@@ -1,0 +1,11 @@
+node_modules/
+dist/
+out/
+coverage/
+pnpm-lock.yaml
+
+# Hand-maintained planning docs and agent config (prose, not reformatted)
+CLAUDE.md
+PLAN.md
+docs/
+.claude/

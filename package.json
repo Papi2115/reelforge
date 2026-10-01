@@ -1,0 +1,32 @@
+{
+  "name": "reelforge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Desktop app: short brief -> script -> voiceover -> deterministic voxel 3D animation -> MP4, powered by the local Claude Code CLI.",
+  "type": "module",
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node scripts/stub.mjs dev \"not implemented until phase 6\"",
+    "typecheck": "tsc -b",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:render": "node scripts/stub.mjs test:render \"golden-frame tests not implemented yet\"",
+    "render:frames": "node scripts/stub.mjs render:frames \"frame rendering not implemented yet\"",
+    "build": "tsc -b"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.0",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3"
+  }
+}

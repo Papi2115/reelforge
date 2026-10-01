@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+*.tsbuildinfo
+coverage/
+
+# Caches and app data
+cache/
+.cache/
+.reelforge/
+
+# Whisper models (large binaries)
+models/
+*.bin
+
+# Video projects (local-first user data, never committed)
+projects/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
