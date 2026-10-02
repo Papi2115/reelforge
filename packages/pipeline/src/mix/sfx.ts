@@ -1,23 +1,46 @@
 /**
  * Built-in SFX recipes, synthesized offline in pure Node (deterministic; no OfflineAudioContext /
- * Chromium). Each recipe returns a mono 48 kHz clip normalized to a -6 dBFS peak, so a cue's
- * `gainDb` is relative to a consistent reference.
+ * Chromium). Each recipe has 3-5 designed variants; `seed % variants` picks one and the seed also
+ * drives its micro-variation, so repeated cues do not sound identical. Every clip is 48 kHz
+ * stereo, DC-free, faded at both edges and levelled to a per-category loudness (loudest 50 ms
+ * K-weighted window, so sub-heavy and bright sounds are judged like the ear does) under a -3 dBFS
+ * peak ceiling, so a cue's `gainDb` is relative to a consistent reference.
+ * Recipe names are documented in docs/sfx.md.
  */
-import {
-  Biquad,
-  MIX_SAMPLE_RATE,
-  Oscillator,
-  fadeEdges,
-  mulberry32,
-  normalizePeak,
-  secondsToFrames,
-  whiteNoise,
-  type Rng,
-} from './dsp.js';
+import { type StereoClip } from './clip.js';
+import { kWeighted, maxWindowRms } from './analysis.js';
+import { Biquad, MIX_SAMPLE_RATE, dbToGain, mulberry32, peakOf, secondsToFrames } from './dsp.js';
 import type { FfmpegError } from '../ffmpeg/errors.js';
 import type { Result } from '../result.js';
+import { boom, hit, hitSoft, pop, snap, stamp } from './sfx/impact.js';
+import type { SfxCategory, SfxDefinition } from './sfx/layers.js';
+import { downer, riser, swooshIn, swooshOut, whoosh, whooshImpact } from './sfx/motion.js';
+import {
+  bubble,
+  bubbleUp,
+  cameraShutter,
+  glitch,
+  paper,
+  scribble,
+  typewriter,
+} from './sfx/texture.js';
+import { chime, coin, ding, sparkle } from './sfx/tonal.js';
+import {
+  blip,
+  blipDown,
+  blipUp,
+  click,
+  errorBuzz,
+  notification,
+  success,
+  tick,
+  tock,
+} from './sfx/ui.js';
 import { writeWavAtomic } from './wav.js';
 
+export type { SfxCategory } from './sfx/layers.js';
+
+/** The first eight are the original v1 names (kept in this order); new names are appended. */
 export const SFX_RECIPES = [
   'whoosh',
   'click',
@@ -27,210 +50,173 @@ export const SFX_RECIPES = [
   'glitch',
   'tick',
   'pop',
+  'swoosh-in',
+  'swoosh-out',
+  'whoosh-impact',
+  'downer',
+  'hit-soft',
+  'boom',
+  'stamp',
+  'snap',
+  'bubble',
+  'bubble-up',
+  'scribble',
+  'paper',
+  'camera-shutter',
+  'tock',
+  'blip',
+  'blip-up',
+  'blip-down',
+  'notification',
+  'success',
+  'error-buzz',
+  'ding',
+  'chime',
+  'coin',
+  'sparkle',
 ] as const;
 export type SfxRecipe = (typeof SFX_RECIPES)[number];
 
-/** Default length per recipe (seconds); `durationS` on a cue overrides it. */
-export const SFX_DEFAULT_DURATION_S: Readonly<Record<SfxRecipe, number>> = {
-  whoosh: 0.6,
-  click: 0.03,
-  hit: 0.6,
-  typewriter: 1.2,
-  riser: 2,
-  glitch: 0.35,
-  tick: 0.02,
-  pop: 0.08,
-};
-
-export const SFX_MIN_DURATION_S = 0.01;
-export const SFX_MAX_DURATION_S = 10;
-/** Peak level of every synthesized SFX (linear, -6 dBFS). */
-export const SFX_PEAK = 0.5;
-
-export interface SfxSynthOptions {
-  readonly seed: number;
-  readonly durationS?: number | undefined;
-}
-
-type Recipe = (frames: number, rng: Rng) => Float32Array;
-
-const SR = MIX_SAMPLE_RATE;
-/** Coefficient refresh interval for swept filters (samples). */
-const SWEEP_STEP = 16;
-
-function whoosh(frames: number, rng: Rng): Float32Array {
-  const out = new Float32Array(frames);
-  const filter = new Biquad();
-  const shimmer = new Biquad().highpass(2500);
-  for (let index = 0; index < frames; index++) {
-    const position = index / frames;
-    if (index % SWEEP_STEP === 0) filter.bandpass(300 * 10 ** Math.sin(Math.PI * position), 1.6);
-    const envelope = Math.sin(Math.PI * position) ** 2;
-    const noise = whiteNoise(rng);
-    out[index] = (filter.process(noise) + 0.08 * shimmer.process(noise)) * envelope;
-  }
-  return out;
-}
-
-function click(frames: number, rng: Rng): Float32Array {
-  const out = new Float32Array(frames);
-  const tone = new Oscillator();
-  for (let index = 0; index < frames; index++) {
-    const t = index / SR;
-    out[index] =
-      0.6 * whiteNoise(rng) * Math.exp(-t / 0.002) + tone.sine(2500) * Math.exp(-t / 0.004);
-  }
-  return out;
-}
-
-function tick(frames: number): Float32Array {
-  const out = new Float32Array(frames);
-  const high = new Oscillator();
-  const higher = new Oscillator();
-  for (let index = 0; index < frames; index++) {
-    const t = index / SR;
-    out[index] =
-      high.sine(4200) * Math.exp(-t / 0.0015) + 0.4 * higher.sine(6300) * Math.exp(-t / 0.001);
-  }
-  return out;
-}
-
-function hit(frames: number, rng: Rng): Float32Array {
-  const out = new Float32Array(frames);
-  const body = new Oscillator();
-  const transient = new Biquad().lowpass(3000);
-  const decay = (frames / SR) * 0.3;
-  for (let index = 0; index < frames; index++) {
-    const t = index / SR;
-    const pitch = 45 + 100 * Math.exp(-t / 0.04);
-    const attack = Math.min(1, t / 0.001);
-    out[index] =
-      attack * body.sine(pitch) * Math.exp(-t / decay) +
-      0.5 * transient.process(whiteNoise(rng)) * Math.exp(-t / 0.01);
-  }
-  return out;
-}
-
-function pop(frames: number): Float32Array {
-  const out = new Float32Array(frames);
-  const body = new Oscillator();
-  for (let index = 0; index < frames; index++) {
-    const t = index / SR;
-    const attack = Math.min(1, t / 0.001);
-    out[index] = attack * body.sine(220 + 500 * Math.exp(-t / 0.015)) * Math.exp(-t / 0.025);
-  }
-  return out;
-}
-
-/** One keystroke (mechanical clack + key resonance + low thump) added at `start`. */
-function addKeystroke(out: Float32Array, start: number, rng: Rng): void {
-  const length = Math.min(secondsToFrames(0.04), out.length - start);
-  const clack = new Biquad().highpass(1500);
-  const resonance = new Oscillator();
-  const thump = new Oscillator();
-  const pitch = 1800 + rng() * 700;
-  const level = 0.7 + rng() * 0.3;
-  for (let offset = 0; offset < length; offset++) {
-    const t = offset / SR;
-    const sample =
-      clack.process(whiteNoise(rng)) * Math.exp(-t / 0.004) +
-      0.3 * resonance.sine(pitch) * Math.exp(-t / 0.008) +
-      0.4 * thump.sine(140) * Math.exp(-t / 0.012);
-    const at = start + offset;
-    out[at] = (out[at] ?? 0) + level * sample;
-  }
-}
-
-function typewriter(frames: number, rng: Rng): Float32Array {
-  const out = new Float32Array(frames);
-  const lastStart = frames - secondsToFrames(0.03);
-  let t = 0;
-  while (secondsToFrames(t) < lastStart) {
-    addKeystroke(out, secondsToFrames(t), rng);
-    t += rng() < 0.12 ? 0.15 + rng() * 0.05 : 0.07 + rng() * 0.06;
-  }
-  return out;
-}
-
-function riser(frames: number, rng: Rng): Float32Array {
-  const out = new Float32Array(frames);
-  const tone = new Oscillator();
-  const overtone = new Oscillator();
-  const air = new Biquad();
-  for (let index = 0; index < frames; index++) {
-    const position = index / frames;
-    const pitch = 200 * 10 ** position;
-    if (index % SWEEP_STEP === 0) air.bandpass(500 * 8 ** position, 0.9);
-    const voice = tone.sine(pitch) + 0.3 * overtone.sine(pitch * 2);
-    out[index] = (0.6 * voice + 0.8 * air.process(whiteNoise(rng))) * position ** 2;
-  }
-  return out;
-}
-
-/** Writes one glitch segment of `kind` into `out[start, end)`. */
-function glitchSegment(out: Float32Array, start: number, end: number, rng: Rng): void {
-  const kind = Math.floor(rng() * 4);
-  const level = 0.4 + rng() * 0.6;
-  const frequency = 100 + rng() * 1100;
-  const hold = 2 + Math.floor(rng() * 18);
-  const steps = 2 + Math.floor(rng() * 6);
-  const square = new Oscillator();
-  const crushed = new Oscillator();
-  let held = 0;
-  for (let index = start; index < end; index++) {
-    let sample = 0;
-    if (kind === 0) {
-      sample = square.sine(frequency) >= 0 ? 1 : -1;
-    } else if (kind === 1) {
-      if ((index - start) % hold === 0) held = whiteNoise(rng);
-      sample = held;
-    } else if (kind === 2) {
-      sample = Math.round(crushed.sine(frequency) * steps) / steps;
-    }
-    out[index] = sample * level;
-  }
-}
-
-function glitch(frames: number, rng: Rng): Float32Array {
-  const out = new Float32Array(frames);
-  let start = 0;
-  while (start < frames) {
-    const end = Math.min(frames, start + secondsToFrames(0.01 + rng() * 0.03));
-    glitchSegment(out, start, end, rng);
-    start = end;
-  }
-  return out;
-}
-
-const RECIPES: Readonly<Record<SfxRecipe, Recipe>> = {
+const DEFINITIONS: Readonly<Record<SfxRecipe, SfxDefinition>> = {
   whoosh,
   click,
   hit,
   typewriter,
   riser,
   glitch,
-  tick: (frames) => tick(frames),
-  pop: (frames) => pop(frames),
+  tick,
+  pop,
+  'swoosh-in': swooshIn,
+  'swoosh-out': swooshOut,
+  'whoosh-impact': whooshImpact,
+  downer,
+  'hit-soft': hitSoft,
+  boom,
+  stamp,
+  snap,
+  bubble,
+  'bubble-up': bubbleUp,
+  scribble,
+  paper,
+  'camera-shutter': cameraShutter,
+  tock,
+  blip,
+  'blip-up': blipUp,
+  'blip-down': blipDown,
+  notification,
+  success,
+  'error-buzz': errorBuzz,
+  ding,
+  chime,
+  coin,
+  sparkle,
 };
 
-/** Synthesizes `recipe` as a mono 48 kHz clip with a -6 dBFS peak (deterministic per seed). */
-export function synthesizeSfx(recipe: SfxRecipe, options: SfxSynthOptions): Float32Array {
-  const durationS = Math.min(
-    SFX_MAX_DURATION_S,
-    Math.max(SFX_MIN_DURATION_S, options.durationS ?? SFX_DEFAULT_DURATION_S[recipe]),
-  );
-  const frames = secondsToFrames(durationS);
-  const samples = RECIPES[recipe](frames, mulberry32(options.seed));
-  // A 2 ms tail fade avoids a click when a recipe is cut at its length.
-  fadeEdges(samples, 0, secondsToFrames(0.002));
-  return normalizePeak(samples, SFX_PEAK);
+const mapRecipes = <T>(pick: (definition: SfxDefinition) => T): Readonly<Record<SfxRecipe, T>> =>
+  Object.fromEntries(SFX_RECIPES.map((recipe) => [recipe, pick(DEFINITIONS[recipe])])) as Record<
+    SfxRecipe,
+    T
+  >;
+
+/** Default length per recipe (seconds); `durationS` on a cue overrides it. */
+export const SFX_DEFAULT_DURATION_S = mapRecipes((definition) => definition.durationS);
+export const SFX_CATEGORY = mapRecipes((definition) => definition.category);
+/** Variant names per recipe; `seed % length` selects one. */
+export const SFX_VARIANTS = mapRecipes((definition) =>
+  definition.variants.map((variant) => variant.name),
+);
+/** One-line intended use per recipe (docs/sfx.md, Sound panel tooltips). */
+export const SFX_USE = mapRecipes((definition) => definition.use);
+
+export const SFX_MIN_DURATION_S = 0.01;
+export const SFX_MAX_DURATION_S = 10;
+/** Peak ceiling of every synthesized SFX (linear, -3 dBFS). */
+export const SFX_PEAK = dbToGain(-3);
+/** Loudest 50 ms K-weighted window RMS per category (dB) before the peak ceiling applies. */
+export const SFX_LEVEL_DB: Readonly<Record<SfxCategory, number>> = {
+  motion: -15,
+  impact: -13,
+  texture: -16,
+  ui: -17,
+  tonal: -17,
+};
+const LEVEL_WINDOW_S = 0.05;
+const FADE_IN_S = 0.001;
+const FADE_OUT_S = 0.003;
+
+export interface SfxSynthOptions {
+  readonly seed: number;
+  readonly durationS?: number | undefined;
 }
 
-/** Writes a synthesized SFX as a mono 48 kHz 16-bit WAV (e.g. for the SFX library preview). */
+export function sfxVariantIndex(recipe: SfxRecipe, seed: number): number {
+  return (seed >>> 0) % DEFINITIONS[recipe].variants.length;
+}
+
+/** DC blocker + raised-cosine edge fades (first and last sample exactly 0). */
+function cleanEdges(channel: Float32Array): void {
+  const dc = new Biquad().highpass(20, 0.6);
+  for (let index = 0; index < channel.length; index++) {
+    channel[index] = dc.process(channel[index] ?? 0);
+  }
+  const fadeIn = Math.min(secondsToFrames(FADE_IN_S), channel.length);
+  const fadeOut = Math.min(secondsToFrames(FADE_OUT_S), channel.length);
+  for (let index = 0; index < fadeIn; index++) {
+    channel[index] = (channel[index] ?? 0) * (0.5 - 0.5 * Math.cos((Math.PI * index) / fadeIn));
+  }
+  const last = channel.length - 1;
+  for (let index = 0; index < fadeOut; index++) {
+    channel[last - index] =
+      (channel[last - index] ?? 0) * (0.5 - 0.5 * Math.cos((Math.PI * index) / fadeOut));
+  }
+}
+
+function level(clip: StereoClip, targetDb: number): StereoClip {
+  const window = secondsToFrames(LEVEL_WINDOW_S);
+  const loudness = Math.max(
+    maxWindowRms(kWeighted(clip.left), window),
+    maxWindowRms(kWeighted(clip.right), window),
+  );
+  const peak = Math.max(peakOf(clip.left), peakOf(clip.right));
+  if (peak === 0) return clip;
+  const gain = Math.min(dbToGain(targetDb) / loudness, SFX_PEAK / peak);
+  for (let index = 0; index < clip.left.length; index++) {
+    clip.left[index] = (clip.left[index] ?? 0) * gain;
+    clip.right[index] = (clip.right[index] ?? 0) * gain;
+  }
+  return clip;
+}
+
+/** Synthesizes `recipe` as a 48 kHz stereo clip (deterministic per seed); see the module comment. */
+export function synthesizeSfx(recipe: SfxRecipe, options: SfxSynthOptions): StereoClip {
+  const definition = DEFINITIONS[recipe];
+  const durationS = Math.min(
+    SFX_MAX_DURATION_S,
+    Math.max(SFX_MIN_DURATION_S, options.durationS ?? definition.durationS),
+  );
+  const frames = secondsToFrames(durationS);
+  const variant = definition.variants[sfxVariantIndex(recipe, options.seed)];
+  if (variant === undefined) throw new Error(`sfx ${recipe} has no variants`);
+  const rendered = variant.render({
+    frames,
+    durationS: frames / MIX_SAMPLE_RATE,
+    rng: mulberry32(options.seed),
+  });
+  const clip = {
+    left: rendered.left.slice(0, frames),
+    right: rendered.right.slice(0, frames),
+  };
+  cleanEdges(clip.left);
+  cleanEdges(clip.right);
+  return level(clip, SFX_LEVEL_DB[definition.category]);
+}
+
+/** Writes a synthesized SFX as a stereo 48 kHz 16-bit WAV (e.g. for the SFX library preview). */
 export function writeSfxWav(
   filePath: string,
   recipe: SfxRecipe,
   options: SfxSynthOptions,
 ): Promise<Result<void, FfmpegError>> {
-  return writeWavAtomic(filePath, [synthesizeSfx(recipe, options)], MIX_SAMPLE_RATE, 'pcm16');
+  const clip = synthesizeSfx(recipe, options);
+  return writeWavAtomic(filePath, [clip.left, clip.right], MIX_SAMPLE_RATE, 'pcm16');
 }

@@ -36,6 +36,8 @@ export interface SceneSettings {
   /** Phone legibility: smallest integer text scale and glyph height (px at 640 wide). */
   readonly minTextScale: number;
   readonly minGlyphPx: number;
+  /** Project props (kit-ext) the scene stage may build per film (PLAN.md#7.4). */
+  readonly maxNewProps: number;
 }
 
 export interface StageSettings {
@@ -58,6 +60,7 @@ export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
   critic: true,
   minTextScale: 2,
   minGlyphPx: 14,
+  maxNewProps: 12,
 };
 
 export const MIN_WORDS_COVERAGE = 0.85;

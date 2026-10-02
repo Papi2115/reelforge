@@ -31,6 +31,9 @@ export const FILES = {
   syncReport: '.reelforge/sync-report.json',
   /** Contact sheets the critic and the review read (next to the CLI's frames, readable). */
   qaFramesDir: '.reelforge/frames/qa',
+  /** Project props built by the scene stage (PLAN.md#7.4) and the modules that failed QA. */
+  propsReport: '.reelforge/props-report.json',
+  propsFailedDir: '.reelforge/props-failed',
 } as const;
 
 export const REPORTS = {

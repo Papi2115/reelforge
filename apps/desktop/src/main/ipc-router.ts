@@ -89,10 +89,11 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.toolsStatus, handlers.toolsStatus);
   registerInvoke(IPC.toolsBrowse, handlers.toolsBrowse);
   registerInvoke(IPC.toolsReset, handlers.toolsReset);
-  registerInvoke(IPC.whisperModels, handlers.whisperModels);
-  registerInvoke(IPC.whisperDownload, handlers.whisperDownload);
+  registerInvoke(IPC.whisperState, handlers.whisperState);
+  registerInvoke(IPC.whisperInstall, handlers.whisperInstall);
   registerInvoke(IPC.whisperCancel, handlers.whisperCancel);
   registerInvoke(IPC.whisperDelete, handlers.whisperDelete);
+  registerInvoke(IPC.whisperUseExisting, handlers.whisperUseExisting);
   registerInvoke(IPC.exportStart, handlers.exportStart);
   registerInvoke(IPC.exportCancel, handlers.exportCancel);
   registerInvoke(IPC.exportOptions, handlers.exportOptions);

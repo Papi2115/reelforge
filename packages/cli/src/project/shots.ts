@@ -7,6 +7,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type {
+  KitExtensionSource,
   NamedPalette,
   ProjectFile,
   RenderManifest,
@@ -26,6 +27,8 @@ export interface RenderSetup {
   readonly palette: NamedPalette | undefined;
   /** Timed words for `ctx.anchor` (absent before the "Words timed" stage). */
   readonly words: WordsFile | undefined;
+  /** Project props (`kit-ext/props/*.js`), registered in every shot. */
+  readonly kitExtensions: readonly KitExtensionSource[];
 }
 
 export interface ShotPlan {
@@ -72,13 +75,20 @@ export function requireStoryboard(files: ProjectFiles): StoryboardFile {
   return required(files.storyboard, 'the Storyboard stage has not run yet; write storyboard.json');
 }
 
-export function renderSetup(files: ProjectFiles): RenderSetup {
+/**
+ * Render settings of the project. `withoutWords`: renders that never resolve anchors (a prop
+ * turntable) work before "Words timed" and with a broken words file.
+ */
+export function renderSetup(
+  files: ProjectFiles,
+  options: { readonly withoutWords?: boolean } = {},
+): RenderSetup {
   const project = requireProject(files);
-  if (files.words.status === 'invalid') {
+  if (files.words.status === 'invalid' && options.withoutWords !== true) {
     throw new ProjectError(`${files.words.file} is invalid`, invalidFix(files.words.file));
   }
   const words =
-    files.words.status === 'ok'
+    files.words.status === 'ok' && options.withoutWords !== true
       ? {
           version: 1 as const,
           words: files.words.data.words.map(({ text, t, tEnd, confidence, status }) => ({
@@ -97,6 +107,7 @@ export function renderSetup(files: ProjectFiles): RenderSetup {
     seed: project.seed,
     palette: project.palette,
     words,
+    kitExtensions: files.kitExtensions.extensions,
   };
 }
 
@@ -188,6 +199,7 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
     seed: setup.seed,
     ...(setup.palette ? { palette: setup.palette } : {}),
     ...(setup.words ? { words: setup.words } : {}),
+    ...(setup.kitExtensions.length > 0 ? { kitExtensions: [...setup.kitExtensions] } : {}),
     shots: [
       ...pad,
       {

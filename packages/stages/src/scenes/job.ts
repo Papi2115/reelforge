@@ -12,11 +12,11 @@ import {
 } from '@reelforge/shared';
 import { readProjectText, requireProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
+import { PropBuilder } from '../props/builder.js';
 import type { SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
 import {
   kitNamesFromCatalog,
-  skipMissingProps,
   type FrameRenderer,
   type KitNames,
   type MissingPropsHandler,
@@ -25,7 +25,11 @@ import {
 export interface SceneJob {
   readonly ctx: StageContext;
   readonly frames: FrameRenderer;
-  readonly onMissingProps: MissingPropsHandler;
+  /** A custom missing-props decision; undefined = build project props (`props`). */
+  readonly onMissingProps: MissingPropsHandler | undefined;
+  /** Builds missing props as project props (kit-ext), shared by the shots of this run. */
+  readonly props: PropBuilder;
+  /** The installed kit's names (project props: `projectPropNames`). */
   readonly kitNames: KitNames;
   readonly settings: SceneSettings;
   readonly styleId: string;
@@ -58,13 +62,17 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   if (!storyboard.ok) return storyboard;
   const words = await readWords(ctx.projectDir);
   if (!words.ok) return words;
+  const kitNames = tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog());
+  const settings = ctx.settings.scenes;
+  const styleId = project.value.style;
   return ok({
     ctx,
     frames: tools.frames,
-    onMissingProps: tools.onMissingProps ?? skipMissingProps,
-    kitNames: tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog()),
-    settings: ctx.settings.scenes,
-    styleId: project.value.style,
+    onMissingProps: tools.onMissingProps,
+    props: new PropBuilder({ ctx, frames: tools.frames, settings, styleId }, kitNames.props),
+    kitNames,
+    settings,
+    styleId,
     shots: storyboard.value.shots,
     words: words.value,
     anchorIndex:

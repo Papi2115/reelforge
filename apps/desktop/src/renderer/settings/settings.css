@@ -391,3 +391,89 @@
   height: 8px;
   margin-top: 0;
 }
+
+/* whisper.cpp setup (Tools page, first-run, Words timed notice) */
+.engine-headline {
+  margin: 0;
+  font-weight: 600;
+}
+
+.engine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.existing-installs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.install-progress,
+.install-failed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.install-progress .stage-progress {
+  height: 6px;
+}
+
+.install-label,
+.install-detail-line {
+  margin: 0;
+  font-size: 12px;
+}
+
+.install-detail-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.install-detail {
+  margin: 0;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.install-failed .link-button {
+  align-self: flex-start;
+}
+
+.prepare-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prepare-row {
+  display: flex;
+  gap: 10px;
+}
+
+.prepare-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.prepare-row-body p {
+  margin: 0;
+}
+
+.prepare-row-body .primary {
+  align-self: flex-start;
+}

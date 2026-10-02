@@ -63,6 +63,8 @@ export const shotBuildRecordSchema = z.object({
   fixIterations: z.int().nonnegative(),
   /** Props the scene needed but the kit lacks (`MISSING:` reply line / unknown kit calls). */
   missingProps: z.array(z.string().min(1)),
+  /** Project-local props built for this shot (`kit-ext/props/<name>.js`, PLAN.md#7.4). */
+  builtProps: z.array(z.string().min(1)).optional(),
   /** Last critic verdicts (empty when the critic did not run). */
   critic: z.array(criticVerdictRecordSchema),
   /** Project-relative contact sheet of the last QA round, when one was rendered. */

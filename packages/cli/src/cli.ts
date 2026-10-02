@@ -8,6 +8,7 @@ import { contactSheetCommand } from './commands/contact-sheet.js';
 import { framesCommand } from './commands/frames.js';
 import { kitDocsCommand } from './commands/kit-docs.js';
 import { lintCommand } from './commands/lint.js';
+import { propPreviewCommand } from './commands/prop-preview.js';
 import { renderShotCommand } from './commands/render-shot.js';
 import { statusCommand } from './commands/status.js';
 import { validateCommand } from './commands/validate.js';
@@ -22,6 +23,7 @@ export const COMMANDS: readonly Command[] = [
   renderShotCommand,
   anchorsCommand,
   kitDocsCommand,
+  propPreviewCommand,
 ];
 
 export function mainUsage(): string {

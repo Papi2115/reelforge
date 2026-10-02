@@ -39,7 +39,9 @@ export async function resolvePreview(
   return { manifest: await api.getDemoManifest(), note: previewNote(result) };
 }
 
-const PREVIEW_INPUTS = /^(project\.json|storyboard\.json|timing\/words\.json|scenes\/.+)$/i;
+/** Project props (kit-ext/props) count: every shot may call them (a change reloads the video). */
+const PREVIEW_INPUTS =
+  /^(project\.json|storyboard\.json|timing\/words\.json|scenes\/.+|kit-ext\/props\/.+)$/i;
 
 /** True when a change can alter the project's video (or the change list is incomplete). */
 export function affectsPreview(event: ProjectChangedEvent): boolean {

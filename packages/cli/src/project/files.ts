@@ -20,6 +20,7 @@ import {
 } from '@reelforge/shared';
 import type { z } from 'zod';
 import { describeUnknown } from '../errors.js';
+import { readKitExtensions, type KitExtensionFiles } from './kit-ext.js';
 import { PROJECT_PATHS, projectPath } from './paths.js';
 
 export type Severity = 'error' | 'warning';
@@ -108,17 +109,20 @@ export interface ProjectFiles {
   readonly storyboard: FileCheck<StoryboardFile>;
   readonly words: FileCheck<WordsFile>;
   readonly cues: FileCheck<CuesFile>;
+  /** Project props (`kit-ext/props/*.js`). */
+  readonly kitExtensions: KitExtensionFiles;
 }
 
 export async function readProjectFiles(root: string): Promise<ProjectFiles> {
-  const [project, brief, storyboard, words, cues] = await Promise.all([
+  const [project, brief, storyboard, words, cues, kitExtensions] = await Promise.all([
     checkJsonFile(root, PROJECT_PATHS.project, projectFileSchema),
     checkJsonFile(root, PROJECT_PATHS.brief, briefFileSchema),
     checkJsonFile(root, PROJECT_PATHS.storyboard, storyboardFileSchema),
     checkJsonFile(root, PROJECT_PATHS.words, WordsFileSchema),
     checkJsonFile(root, PROJECT_PATHS.cues, CuesFileSchema),
+    readKitExtensions(root),
   ]);
-  return { root, project, brief, storyboard, words, cues };
+  return { root, project, brief, storyboard, words, cues, kitExtensions };
 }
 
 /** Problems of the files that exist but do not validate. */

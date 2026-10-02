@@ -2,6 +2,7 @@
  * Engine runtime for one loaded video: validates the manifest, imports and builds every shot,
  * and renders any global time synchronously. Runs inside the sandboxed engine frame.
  */
+import type { KitDefinition } from '@reelforge/kit';
 import { renderManifestSchema, type RenderManifest, type SceneSource } from '@reelforge/shared';
 import { createExactAnchorResolver, NO_ANCHORS } from './anchors.js';
 import type { ResolvedAnchor, SfxCue } from './contract.js';
@@ -13,6 +14,7 @@ import {
   type FrameRendererOptions,
   type GpuInfo,
 } from './gl/frame-renderer.js';
+import { loadKitExtensions, type KitExtensionImporter } from './kit-extensions.js';
 import { pickInShot, type PickResult } from './pick.js';
 import { shotSeed } from './rng.js';
 import { toSceneModule } from './scene-module.js';
@@ -62,6 +64,8 @@ export interface RuntimeDependencies {
   readonly canvas: HTMLCanvasElement;
   /** Imports a scene module source and returns its namespace. */
   importScene(scene: SceneSource, shotId: string): Promise<unknown>;
+  /** Imports a project prop module (`kitExtensions`) and returns its namespace. */
+  readonly importKitExtension: KitExtensionImporter;
 }
 
 export function parseManifest(input: unknown): RenderManifest {
@@ -76,7 +80,11 @@ export function parseManifest(input: unknown): RenderManifest {
 /** Builds one manifest shot from its imported scene module namespace. */
 type ShotBuilder = (shot: RenderManifest['shots'][number], namespace: unknown) => BuiltShot;
 
-function createShotBuilder(manifest: RenderManifest, style: ResolvedStyle): ShotBuilder {
+function createShotBuilder(
+  manifest: RenderManifest,
+  style: ResolvedStyle,
+  kitExtensions: readonly KitDefinition[],
+): ShotBuilder {
   const resolveAnchor = manifest.words
     ? createExactAnchorResolver(manifest.words.words)
     : NO_ANCHORS;
@@ -95,6 +103,7 @@ function createShotBuilder(manifest: RenderManifest, style: ResolvedStyle): Shot
       palette: style.palette,
       safeArea: style.safeArea,
       resolveAnchor,
+      kitExtensions,
     });
 }
 
@@ -127,7 +136,11 @@ export async function createRuntime(
   const style = resolveStyle(manifest);
   // Before any scene code runs: module top-level code may already create Colors.
   configureColorManagement();
-  const build = createShotBuilder(manifest, style);
+  const kitExtensions = await loadKitExtensions(
+    manifest.kitExtensions ?? [],
+    dependencies.importKitExtension,
+  );
+  const build = createShotBuilder(manifest, style, kitExtensions);
   const shots = await buildShots(manifest, build, dependencies);
   const timeline = createTimeline(
     manifest.shots.map((shot) => ({

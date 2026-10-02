@@ -64,7 +64,12 @@ describe.skipIf(manager === null)(suiteTitle, () => {
     cues = CuesFileSchema.parse({
       version: 1,
       sfx: [
-        ...SFX_RECIPES.map((name, index) => ({ t: 0.5 + index * 7, name, gainDb: -6 })),
+        // Every recipe once, spread over the first 55 s.
+        ...SFX_RECIPES.map((name, index) => ({
+          t: 0.5 + (index * 55) / SFX_RECIPES.length,
+          name,
+          gainDb: -6,
+        })),
         { t: 50, file: fixtures.boomFile, pan: -0.5 },
       ],
       ambience: [

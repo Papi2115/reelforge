@@ -18,8 +18,8 @@ import { ScenesPanel } from '../stages/ScenesPanel.js';
 import {
   buildProgress,
   fixPrompt,
-  missingProps,
-  missingPropsBanner,
+  propsBanner,
+  propsSummary,
   shotBadges,
 } from '../stages/scenes-view.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
@@ -41,6 +41,8 @@ import { useProjectSnapshot } from './use-project-snapshot.js';
 
 export interface WorkspaceProps {
   readonly project: ProjectSummary;
+  /** Settings → Tools (e.g. a whisper.cpp install problem in the pipeline sidebar). */
+  readonly onOpenToolsSettings?: () => void;
 }
 
 /** A document shown over the preview (Open of a stage, the brief). */
@@ -59,7 +61,7 @@ function focusShots(): void {
   target?.focus();
 }
 
-export function Workspace({ project }: WorkspaceProps): JSX.Element {
+export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX.Element {
   const { snapshot, error, previewRevision, audioRevision, reload } = useProjectSnapshot(
     project.dir,
   );
@@ -178,6 +180,9 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
             <PipelineSidebar
               stages={stages}
               onOpen={openStage}
+              {...(onOpenToolsSettings === undefined
+                ? {}
+                : { onOpenSettings: onOpenToolsSettings })}
               onBrief={() => {
                 setCenterDocument({ kind: 'script', tab: 'brief' });
               }}
@@ -194,8 +199,8 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
               onSelect={selectShot}
               badges={badges}
               progress={buildProgress(running, shots.length)}
-              missingBanner={missingPropsBanner(
-                missingProps(reports?.scenes ?? null, reports?.missingProps ?? null),
+              propsBanner={propsBanner(
+                propsSummary(reports?.scenes ?? null, reports?.props ?? null),
               )}
               actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
               onRebuild={(shotId) => {

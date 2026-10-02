@@ -2,13 +2,15 @@
  * Test support: a FrameRenderer double for the scene stage's orchestration tests (limits,
  * resume, concurrency, cancel) without a browser. It reads the scene file and obeys markers:
  * `// render:blank` (uniform frames), `// render:fail` (scene does not load), `// render:overlap`
- * (an overlapping-cards diagnostic); otherwise frames are colourful. Rendering of real scenes is
- * covered by the Playwright tests (`*.render.test.ts`).
+ * (an overlapping-cards diagnostic); otherwise frames are colourful. A standalone prop turntable
+ * reads the prop module instead: `// render:fail` (does not load), `// render:floating` (a part
+ * floats), otherwise a good prop. Rendering of real scenes is covered by the Playwright tests.
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { CardDiagnostic } from '@reelforge/engine';
-import { storyboardFileSchema } from '@reelforge/shared';
+import { METRICS_CUE } from '@reelforge/cli/service';
+import { propExtensionFile, storyboardFileSchema } from '@reelforge/shared';
 import type { FrameRenderer, ShotRender, ShotRenderRequest } from '../scenes/tools.js';
 
 const WIDTH = 160;
@@ -60,7 +62,44 @@ export class ScriptedFrameRenderer implements FrameRenderer {
     }
   }
 
+  private async renderTurntable(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
+    const turntable = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
+    const name = /const NAME = "([A-Za-z0-9]+)"/.exec(turntable)?.[1] ?? '';
+    const file = propExtensionFile(name);
+    const source = await readFile(path.join(request.projectDir, ...file.split('/')), 'utf8');
+    if (source.includes('// render:fail')) {
+      return {
+        ok: false,
+        error: `${file}: prop.build(ctx, params) must return a kit object`,
+        errors: [],
+      };
+    }
+    const metrics = {
+      size: [0.9, 1.8, 0.8],
+      meshes: 2,
+      voxels: 900,
+      floatingParts: source.includes('// render:floating') ? ['part 2 floats at y=2.00'] : [],
+    };
+    return {
+      ok: true,
+      width: WIDTH,
+      height: HEIGHT,
+      // Views repeat every 4 s: the repeat of the first view is identical (determinism check).
+      frames: request.times.map((t) => ({
+        t,
+        image: { width: WIDTH, height: HEIGHT, data: frame(false, t % 4) },
+      })),
+      cards: [],
+      anchors: [],
+      cues: [{ t: 0, name: `${METRICS_CUE}${JSON.stringify(metrics)}`, shotId: request.shotId }],
+      errors: [],
+    };
+  }
+
   private async render(request: ShotRenderRequest): Promise<ShotRender> {
+    if (request.standalone !== undefined) {
+      return this.renderTurntable(request, request.standalone.scene);
+    }
     const storyboard = storyboardFileSchema.parse(
       JSON.parse(await readFile(path.join(request.projectDir, 'storyboard.json'), 'utf8')),
     );

@@ -111,8 +111,12 @@ export function ffmpegLocateOptions(settings: AppSettings): LocateOptions {
   return { configuredPath: settings.tools.ffmpegPath ?? undefined };
 }
 
-export function whisperManagerOptions(settings: AppSettings): WhisperManagerOptions {
-  return { configuredPath: settings.tools.whisperPath ?? undefined };
+/** `base`: app-wide options (test hooks: install root, download mirror). */
+export function whisperManagerOptions(
+  settings: AppSettings,
+  base: WhisperManagerOptions = {},
+): WhisperManagerOptions {
+  return { ...base, configuredPath: settings.tools.whisperPath ?? undefined };
 }
 
 export function whisperModel(settings: AppSettings): WhisperModelId {

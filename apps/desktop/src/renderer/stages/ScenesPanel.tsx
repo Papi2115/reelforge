@@ -10,8 +10,8 @@ import type { StageReports } from '../../shared/voiceover-contract.js';
 import { StageProgress } from './StageProgress.js';
 import {
   buildProgress,
-  missingProps,
-  missingPropsBanner,
+  propsBanner,
+  propsSummary,
   syncProblemShots,
   syncRows,
 } from './scenes-view.js';
@@ -95,8 +95,8 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
   const running = state?.running?.stage === 'scenes' ? state.running : null;
   const busy = running !== null || state?.queue.includes('scenes') === true;
   const progress = buildProgress(running, props.totalShots);
-  const banner = missingPropsBanner(
-    missingProps(props.reports?.scenes ?? null, props.reports?.missingProps ?? null),
+  const banner = propsBanner(
+    propsSummary(props.reports?.scenes ?? null, props.reports?.props ?? null),
   );
   const offShots = syncProblemShots(props.reports?.sync ?? null);
 

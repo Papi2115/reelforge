@@ -1,6 +1,12 @@
 import type { VoReport, WordsReport } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { alignmentView, biggerWhisperModel, clock, voFit } from './vo-view.js';
+import {
+  alignmentView,
+  biggerWhisperModel,
+  clock,
+  cpuTranscriptionHint,
+  voFit,
+} from './vo-view.js';
 
 const REPORT: VoReport = {
   version: 1,
@@ -64,5 +70,18 @@ describe('voice-over view', () => {
     expect(biggerWhisperModel('medium')).toBe('large-v3-turbo-q5_0');
     expect(biggerWhisperModel('large-v3-turbo-q5_0')).toBeNull();
     expect(biggerWhisperModel(null)).toBeNull();
+  });
+
+  it('explains a CPU transcription when a GPU build was tried', () => {
+    expect(cpuTranscriptionHint(WORDS)).toBeNull();
+    const engine = { backend: 'blas', usedGpu: false, wallMs: 51_000, audioS: 38.2 };
+    expect(cpuTranscriptionHint({ ...WORDS, engine: { ...engine, cpuReason: null } })).toBeNull();
+    const hint = cpuTranscriptionHint({
+      ...WORDS,
+      engine: { ...engine, cpuReason: 'CUDA unavailable: no CUDA-capable device is detected' },
+    });
+    expect(hint).toContain('slow: 51 s for 38 s of audio');
+    expect(hint).toContain('because CUDA unavailable: no CUDA-capable device is detected');
+    expect(hint).toContain('High performance');
   });
 });

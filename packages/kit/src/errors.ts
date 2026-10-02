@@ -8,6 +8,7 @@ export type KitErrorCode =
   | 'invalid-anchor'
   | 'invalid-surface'
   | 'kit-outside-build'
+  | 'invalid-extension'
   | 'unknown-definition';
 
 export class KitError extends Error {

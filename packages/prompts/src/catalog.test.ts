@@ -41,6 +41,7 @@ describe('bundled prompts', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
         'critic',
+        'prop-build',
         'research',
         'review-plan',
         'review-triage',
@@ -178,6 +179,7 @@ describe('stages and models', () => {
       'review-triage': 'critic',
       'review-plan': 'storyboard',
       'youtube-meta': 'storyboard',
+      'prop-build': 'scene-build',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);

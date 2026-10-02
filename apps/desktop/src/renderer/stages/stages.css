@@ -361,3 +361,40 @@
   border-color: var(--error);
   border-style: dashed;
 }
+
+/* Words timed needs whisper.cpp: "Download and continue" (layout/WordsSetupNotice.tsx) */
+.words-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 12px;
+  padding: 8px;
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  font-size: 12px;
+}
+
+.words-setup-text,
+.words-setup-detail {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.words-setup-detail {
+  font-size: 11px;
+}
+
+.words-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.words-setup .link-button {
+  align-self: flex-start;
+}
+
+.words-setup .stage-progress {
+  height: 5px;
+}

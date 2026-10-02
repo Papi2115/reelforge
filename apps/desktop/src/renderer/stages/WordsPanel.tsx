@@ -8,7 +8,12 @@ import { useState, type JSX } from 'react';
 import type { WordsFile, WordsReport } from '@reelforge/shared';
 import type { FileState } from '../../shared/snapshot-contract.js';
 import { formatTime } from '../layout/timeline-scale.js';
-import { alignmentView, biggerWhisperModel, type MismatchRow } from './vo-view.js';
+import {
+  alignmentView,
+  biggerWhisperModel,
+  cpuTranscriptionHint,
+  type MismatchRow,
+} from './vo-view.js';
 
 export interface WordsPanelProps {
   readonly words: FileState<WordsFile> | undefined;
@@ -67,12 +72,18 @@ function Quality(props: {
   const view = alignmentView(props.report);
   const chosen = props.report?.attempts[props.report.chosen]?.model ?? null;
   const bigger = biggerWhisperModel(chosen);
+  const cpuHint = cpuTranscriptionHint(props.report);
   return (
     <section className="words-quality" aria-label="Alignment quality">
       <p className={`fit-line fit-${view.tone}`}>
         {view.headline}
         {view.model !== null && <span className="muted mono"> · {view.model}</span>}
       </p>
+      {cpuHint !== null && (
+        <p className="words-gpu-hint" role="note">
+          {cpuHint}
+        </p>
+      )}
       {props.report !== null && (
         <div className="vo-actions">
           <button

@@ -20,6 +20,7 @@
     "@reelforge/engine": "workspace:*"
   },
   "scripts": {
-    "test": "vitest run --root ../.. --project unit packages/pipeline"
+    "test": "vitest run --root ../.. --project unit packages/pipeline",
+    "audio:demos": "node scripts/audio-demos.mjs"
   }
 }

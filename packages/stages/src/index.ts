@@ -51,6 +51,16 @@ export { loadSceneJob, type SceneJob } from './scenes/job.js';
 export { buildShot, refineShot, type RefineOptions } from './scenes/shot-job.js';
 export { readScenesReport } from './scenes/report.js';
 export {
+  parsePropEntry,
+  PROP_BUILD_ATTEMPTS,
+  projectPropNames,
+  PropBuilder,
+  type PropOutcome,
+  type PropRequest,
+} from './props/builder.js';
+export { propQaRound, type PropQaResult } from './props/qa.js';
+export { readPropsReport } from './props/report.js';
+export {
   REVIEW_REQUESTS,
   reviewTimes,
   reviewVideo,
@@ -70,7 +80,9 @@ export { syncReport, type SyncReportOptions } from './scenes/sync-report.js';
 export {
   findTextCalls,
   legibilityFindings,
+  unknownKitCalls,
   unknownKitNames,
+  type KitCall,
   type LegibilityRules,
   type TextCall,
 } from './scenes/source-checks.js';

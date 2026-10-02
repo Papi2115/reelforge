@@ -146,7 +146,9 @@ describe('scenes stage', { timeout: 120_000 }, () => {
     expect(records.get('s07')?.findings).toEqual([
       expect.objectContaining({ source: 'missing-prop', severity: 'warning' }),
     ]);
-    expect(records.get('s07')?.notes).toEqual(['missing props prism: kit extension skipped']);
+    expect(records.get('s07')?.notes).toEqual([
+      'missing props prism: built none, could not build prism',
+    ]);
     expect(readProject(dir, 'scenes/s03.js')).toBe(sceneSource(shots[2] as FilmShot));
     // Models per turn kind: Opus builds/fixes, Haiku critic; every scene turn in a fresh session.
     const specs = harness.specs;

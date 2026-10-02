@@ -5,6 +5,8 @@ export interface ConfirmDialogProps {
   readonly title: string;
   readonly children: ReactNode;
   readonly confirmLabel: string;
+  /** Class of the confirm button (default `danger`; e.g. `primary` for a download). */
+  readonly confirmClass?: string;
   readonly busy: boolean;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
@@ -32,7 +34,12 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
           <button ref={cancelRef} type="button" disabled={props.busy} onClick={props.onCancel}>
             Cancel
           </button>
-          <button type="button" className="danger" disabled={props.busy} onClick={props.onConfirm}>
+          <button
+            type="button"
+            className={props.confirmClass ?? 'danger'}
+            disabled={props.busy}
+            onClick={props.onConfirm}
+          >
             {props.confirmLabel}
           </button>
         </div>

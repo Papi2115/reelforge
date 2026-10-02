@@ -18,7 +18,7 @@ export interface ShotsPanelProps {
   readonly badges: ReadonlyMap<string, ShotBadge>;
   /** `Building shot 3/8 · …` while Scenes built runs. */
   readonly progress: string | null;
-  readonly missingBanner: string | null;
+  readonly propsBanner: string | null;
   /** Why the shot actions are unavailable now (null = available). */
   readonly actionsBlocked: string | null;
   readonly onRebuild: (shotId: string) => void;
@@ -81,6 +81,7 @@ function ShotDetails(props: {
           <p className="shot-qa-title">{badge.label}</p>
           <Lines title="QA findings" lines={badge.findings} />
           <Lines title="Critic notes" lines={badge.critic} />
+          <Lines title="Project props built for this shot" lines={badge.builtProps} />
           <Lines title="Missing props (fallback used)" lines={badge.missingProps} />
           <Lines title="Notes" lines={badge.notes} />
           {clean && <p className="muted">Nothing to fix.</p>}
@@ -127,9 +128,9 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
           {props.progress}
         </p>
       )}
-      {props.missingBanner !== null && (
+      {props.propsBanner !== null && (
         <p className="shots-banner" role="status">
-          {props.missingBanner}
+          {props.propsBanner}
         </p>
       )}
       {shots.length === 0 ? (

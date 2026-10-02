@@ -110,7 +110,7 @@ describe('validateCues (pipeline schema injected)', () => {
   });
 
   it('rejects unknown keys and unknown recipe names via the schema', () => {
-    expect(codes(validateCues(cues({ sfx: [{ t: 1, name: 'boom' }] }), options).issues)).toEqual([
+    expect(codes(validateCues(cues({ sfx: [{ t: 1, name: 'kaboom' }] }), options).issues)).toEqual([
       'schema',
     ]);
     expect(validateCues(cues({ extra: true }), options).valid).toBe(false);

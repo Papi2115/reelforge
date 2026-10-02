@@ -11,6 +11,7 @@ import {
 import { EngineError } from '../errors.js';
 import {
   describeLintErrors,
+  lintManifestKitExtensions,
   lintManifestScenes,
   lintShotScene,
   type SceneLintResult,
@@ -40,7 +41,7 @@ export interface SandboxedHarnessOptions {
 function assertScenesPassLint(manifest: RenderManifest): void {
   // An invalid manifest is reported by the engine with the full schema errors.
   if (!renderManifestSchema.safeParse(manifest).success) return;
-  assertNoLintErrors(lintManifestScenes(manifest));
+  assertNoLintErrors([...lintManifestKitExtensions(manifest), ...lintManifestScenes(manifest)]);
 }
 
 /** Same for the new scene of one shot (hot reload); an invalid scene is reported by the engine. */

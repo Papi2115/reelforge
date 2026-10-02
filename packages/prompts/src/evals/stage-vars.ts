@@ -104,6 +104,20 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         suspects: [{ shot: shot.value.id, reason: 'the last frame looks almost blank' }],
       });
     }
+    case 'prop-build': {
+      const shots: string[] = [];
+      for (const shotId of file.propBuild.shotIds) {
+        const shot = findShot(evalCase, shotId);
+        if (!shot.ok) return shot;
+        shots.push(`${shot.value.id}: ${shot.value.intent}`);
+      }
+      return ok({
+        propName: file.propBuild.name,
+        description: file.propBuild.description,
+        shots: shots.join('; '),
+        styleId,
+      });
+    }
     case 'youtube-meta':
       return ok({
         title: project.title,

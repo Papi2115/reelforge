@@ -8,11 +8,12 @@
  */
 import { describeUnknown, planServiceShot } from '@reelforge/cli/service';
 import type { CardDiagnostic } from '@reelforge/engine';
-import type {
-  FrameRenderer,
-  RenderedFrame,
-  ShotRender,
-  ShotRenderRequest,
+import {
+  renderTarget,
+  type FrameRenderer,
+  type RenderedFrame,
+  type ShotRender,
+  type ShotRenderRequest,
 } from '@reelforge/stages';
 import { RenderPool, type PooledTarget } from './render-pool.js';
 import { isFatalRenderError, type OpenRenderTarget, type RenderError } from './render-target.js';
@@ -47,10 +48,7 @@ export class PoolFrameRenderer implements FrameRenderer {
   async renderShot(request: ShotRenderRequest, signal: AbortSignal): Promise<ShotRender> {
     let planned;
     try {
-      planned = await planServiceShot(
-        { projectDir: request.projectDir, shot: request.shotId },
-        request.times,
-      );
+      planned = await planServiceShot(renderTarget(request), request.times);
     } catch (error) {
       return { ok: false, error: describeUnknown(error), errors: [] };
     }

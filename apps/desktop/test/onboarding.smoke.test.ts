@@ -128,6 +128,9 @@ describe('first run', () => {
   it('skips Connect Claude, opens the example from Welcome and plays it', async () => {
     const gate = page.getByRole('dialog', { name: 'Connect Claude' });
     await gate.getByRole('button', { name: 'Skip for now' }).click();
+    // Step 2 of the first-run gate (ffmpeg / whisper.cpp) is optional.
+    const tools = page.getByRole('dialog', { name: 'Prepare tools' });
+    await tools.getByRole('button', { name: 'Skip', exact: true }).click();
     const welcome = page.getByRole('region', { name: 'Welcome to ReelForge' });
     await welcome.getByRole('button', { name: /Open the example project/ }).waitFor();
     await shot('welcome');

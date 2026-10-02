@@ -2,12 +2,13 @@
  * Chunked whisper.cpp transcription (ADR-003): input -> 16 kHz mono WAV -> Silero VAD segments ->
  * chunks split at long pauses -> ONE `whisper-cli -dtw -nfa` call over all chunks (the model loads
  * once) -> words shifted back onto the input timeline -> DTW times calibrated -> words.raw.json.
- * A failing GPU run is retried with `-ng`, then with the next (CPU) install.
+ * The attempt plan (GPU probe, `-ng` retry, CPU fallbacks) comes from gpu-plan.ts.
  */
 import { mkdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { WhisperModelSpec } from './assets.js';
 import type { WhisperAttemptFailure, WhisperError } from './errors.js';
+import { gpuAwarePlan, type Attempt } from './gpu-plan.js';
 import type { WhisperInstall } from './locate.js';
 import {
   WhisperJsonSchema,
@@ -107,22 +108,6 @@ export interface TranscribeContext {
 const VAD_MAX_SPEECH_S = '25';
 const PCM_BYTES_PER_SECOND = 16_000 * 2;
 const WAV_HEADER_BYTES = 44;
-
-interface Attempt {
-  readonly install: WhisperInstall;
-  readonly noGpu: boolean;
-}
-
-function attemptPlan(installs: readonly WhisperInstall[]): Attempt[] {
-  return installs.flatMap((install) =>
-    install.backend === 'cuda' || install.backend === 'custom'
-      ? [
-          { install, noGpu: false },
-          { install, noGpu: true },
-        ]
-      : [{ install, noGpu: false }],
-  );
-}
 
 const ffmpegFailed = (step: string, error: FfmpegError): WhisperError =>
   error.kind === 'cancelled'
@@ -340,8 +325,8 @@ async function transcribe(
   const files = await cutChunks(ctx, options, wav, chunks.value);
   if (!files.ok) return files;
 
-  const plan = attemptPlan(ctx.installs);
-  const failures: WhisperAttemptFailure[] = [];
+  const { attempts: plan, skipped } = await gpuAwarePlan(ctx.installs, ctx.run, options.signal);
+  const failures: WhisperAttemptFailure[] = [...skipped];
   let decodedLang: string = options.lang;
   let firstAttempt = 0;
   if (options.lang === 'auto') {

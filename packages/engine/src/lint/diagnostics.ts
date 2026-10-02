@@ -17,6 +17,8 @@ export const LINT_RULES = [
   'scene-contract',
   'no-module-state-in-update',
   'no-incremental-update',
+  'prop-contract',
+  'no-module-state-in-prop',
 ] as const;
 export type LintRule = (typeof LINT_RULES)[number];
 

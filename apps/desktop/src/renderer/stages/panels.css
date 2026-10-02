@@ -290,3 +290,10 @@
 .sync-row.sync-ok td:last-child {
   color: var(--ok);
 }
+
+.words-gpu-hint {
+  margin: 4px 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--warn);
+  font-size: 12px;
+}

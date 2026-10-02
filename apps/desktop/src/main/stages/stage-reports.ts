@@ -5,7 +5,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import {
-  missingPropsFileSchema,
+  propsReportSchema,
   scenesReportSchema,
   syncReportSchema,
   voiceoverRecordSchema,
@@ -15,7 +15,6 @@ import {
 import { FILES, inProject, REPORTS } from '@reelforge/stages';
 import type { z } from 'zod';
 import type { StageReports } from '../../shared/voiceover-contract.js';
-import { MISSING_PROPS_FILE } from './missing-props.js';
 
 async function readReport<S extends z.ZodType>(
   dir: string,
@@ -39,16 +38,16 @@ export async function readStageReports(dir: string | undefined): Promise<StageRe
       words: null,
       scenes: null,
       sync: null,
-      missingProps: null,
+      props: null,
     };
   }
-  const [voiceover, voReport, words, scenes, sync, missingProps] = await Promise.all([
+  const [voiceover, voReport, words, scenes, sync, props] = await Promise.all([
     readReport(dir, FILES.voiceoverRecord, voiceoverRecordSchema),
     readReport(dir, REPORTS.voiceover, voReportSchema),
     readReport(dir, REPORTS.words, wordsReportSchema),
     readReport(dir, FILES.scenesReport, scenesReportSchema),
     readReport(dir, FILES.syncReport, syncReportSchema),
-    readReport(dir, MISSING_PROPS_FILE, missingPropsFileSchema),
+    readReport(dir, FILES.propsReport, propsReportSchema),
   ]);
-  return { projectDir: dir, voiceover, voReport, words, scenes, sync, missingProps };
+  return { projectDir: dir, voiceover, voReport, words, scenes, sync, props };
 }

@@ -4,8 +4,8 @@ import type { StageRunView } from '../../shared/stages-contract.js';
 import {
   buildProgress,
   fixPrompt,
-  missingProps,
-  missingPropsBanner,
+  propsBanner,
+  propsSummary,
   shotBadges,
   syncProblemShots,
   syncRows,
@@ -95,17 +95,32 @@ describe('scenes view', () => {
     expect(buildProgress(null, 8)).toBeNull();
   });
 
-  it('lists the props the kit lacks in the banner', () => {
-    const names = missingProps(REPORT, {
+  it('says which project props were built and which could not be built', () => {
+    const record = {
+      file: 'kit-ext/props/x.js',
+      description: 'x',
+      shots: ['s01'],
+      attempts: 1,
+      findings: [],
+      notes: [],
+      updatedAt: STAMP,
+    };
+    const summary = propsSummary(REPORT, {
       version: 1,
       updatedAt: STAMP,
-      entries: [{ name: 'abacus', shots: ['s05'], firstSeenAt: STAMP, lastSeenAt: STAMP }],
+      props: [
+        { ...record, name: 'fridge', status: 'built' },
+        { ...record, name: 'abacus', status: 'failed' },
+        { ...record, name: 'printer', status: 'built' },
+      ],
     });
-    expect(names).toEqual(['abacus', 'prism']);
-    expect(missingPropsBanner(names)).toBe(
-      'Kit is missing: abacus, prism — these shots use a fallback. (Extending the kit is done by the developer.)',
+    expect(summary).toEqual({ built: ['fridge', 'printer'], failed: ['abacus', 'prism'] });
+    expect(propsBanner(summary)).toBe(
+      'Built 2 new props: fridge, printer · Could not build: abacus, prism — their shots use a fallback',
     );
-    expect(missingPropsBanner([])).toBeNull();
+    expect(propsBanner({ built: ['fridge'], failed: [] })).toBe('Built 1 new prop: fridge');
+    expect(propsBanner(propsSummary(null, null))).toBeNull();
+    expect(shotBadges(REPORT, null).get('s01')?.builtProps).toEqual([]);
   });
 
   it('turns the sync report into rows with signed deltas and the ±150 ms verdict', () => {

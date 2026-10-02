@@ -158,7 +158,13 @@ export function App(): JSX.Element {
             }}
           />
         ) : (
-          <Workspace key={project.dir} project={project} />
+          <Workspace
+            key={project.dir}
+            project={project}
+            onOpenToolsSettings={() => {
+              setSettingsTab('tools');
+            }}
+          />
         )}
         {project !== null && historyOpen && (
           <HistoryDrawer

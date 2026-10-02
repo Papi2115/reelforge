@@ -118,3 +118,27 @@ export function validateSceneModule(source: string): ValidationReport<{ readonly
   }
   return report({ lines: source.split('\n').length }, issues);
 }
+
+/**
+ * Coarse prop module check (`kit-ext/props/<name>.js`): `export const prop` with this `name` and
+ * a `build`, no obvious non-determinism (the real check is the engine's prop lint).
+ */
+export function validatePropModule(
+  source: string,
+  name: string,
+): ValidationReport<{ readonly lines: number }> {
+  const issues: ValidationIssue[] = [];
+  if (!/^export\s+const\s+prop\s*=/m.test(source)) {
+    issues.push(issue('error', 'prop-export', 'missing export const prop'));
+  }
+  if (!source.includes(`name: '${name}'`) && !source.includes(`name: "${name}"`)) {
+    issues.push(issue('error', 'prop-name', `prop.name is not "${name}"`));
+  }
+  if (!/\bbuild\s*\(/.test(source)) {
+    issues.push(issue('error', 'prop-build', 'missing build(ctx, params)'));
+  }
+  for (const [what, regex] of SCENE_FORBIDDEN) {
+    if (regex.test(source)) issues.push(issue('error', 'prop-forbidden', `uses ${what}`));
+  }
+  return report({ lines: source.split('\n').length }, issues);
+}

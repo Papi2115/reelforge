@@ -8,7 +8,7 @@ import type { FfmpegError } from '../ffmpeg/errors.js';
 import { err, ok, type Result } from '../result.js';
 import { synthesizeAmbience } from './ambience.js';
 import { balanceGains, type BusEvent } from './bus.js';
-import { clipFrames, makeSeamlessLoop, monoClip, type StereoClip } from './clip.js';
+import { clipFrames, makeSeamlessLoop, type StereoClip } from './clip.js';
 import type { AmbienceCue, CuesFile, DuckingSettings, MusicCue, SfxCue } from './cues.js';
 import { MIX_SAMPLE_RATE, dbToGain, hashSeed, secondsToFrames } from './dsp.js';
 import { synthesizeSfx } from './sfx.js';
@@ -98,7 +98,7 @@ class Planner {
       const name = cue.name;
       const seed = cue.seed ?? hashSeed(`${name}@${cue.t.toFixed(3)}`);
       clip = this.cached(`sfx|${name}|${String(seed)}|${String(cue.durationS)}`, () =>
-        monoClip(synthesizeSfx(name, { seed, durationS: cue.durationS })),
+        synthesizeSfx(name, { seed, durationS: cue.durationS }),
       );
     }
     const pan = balanceGains(cue.pan);

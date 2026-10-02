@@ -1,12 +1,15 @@
 /**
- * Scenes built (PLAN.md#7.4-7.7): one job per storyboard shot (build turn → QA by code → Haiku
- * critic → ≤ 2 fix turns → ✓/⚠/✗ in `.reelforge/scenes-report.json` + "Scene sNN built ✓"
- * autocommit), resumable after a limit/cancel/crash without redoing finished shots. The
+ * Scenes built (PLAN.md#7.4-7.7): the storyboard's missing props are built as project props
+ * first (kit-ext, "Prop <name> built ✓"), then one job per storyboard shot (build turn → missing
+ * props built → QA by code → Haiku critic → ≤ 2 fix turns → ✓/⚠/✗ in
+ * `.reelforge/scenes-report.json` + "Scene sNN built ✓" autocommit), resumable after a
+ * limit/cancel/crash without redoing finished shots. The
  * `action` runs a whole-video review mode instead (the "Whole video" chat chips).
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { SHOT_STATUS_SYMBOLS, type ShotBuildRecord, type ShotBuildStatus } from '@reelforge/shared';
 import { FILES } from '../paths.js';
+import { buildStoryboardProps } from '../props/storyboard-props.js';
 import { loadSceneJob, selectShots, type SceneJob } from '../scenes/job.js';
 import { SCENES_QUEUE } from '../scenes/queue.js';
 import { readScenesReport } from '../scenes/report.js';
@@ -68,6 +71,11 @@ async function build(
   const { ctx } = job;
   const selected = selectShots(job, shots);
   if (!selected.ok) return selected;
+  if (job.onMissingProps === undefined) {
+    ctx.step('props flagged by the storyboard');
+    const props = await buildStoryboardProps(job.props, ctx.projectDir, selected.value);
+    if (!props.ok) return props;
+  }
   const ran = await runShotJobs(job, {
     queue: SCENES_QUEUE,
     shots: selected.value,
@@ -91,9 +99,15 @@ async function build(
     );
   }
   const missing = [...new Set(records.value.flatMap((entry) => entry.missingProps))];
+  const newProps = [...new Set(records.value.flatMap((entry) => entry.builtProps ?? []))];
+  const propsNote = newProps.length === 0 ? '' : `; props built: ${newProps.join(', ')}`;
   return ok({
-    message: `${String(records.value.length)} shots: ${statusLine(counts)}${ran.value.resumed ? ` (resumed, ${String(ran.value.skipped.length)} already built)` : ''}`,
-    outputs: [...new Set(selected.value.map((shot) => shot.scene)), FILES.scenesReport],
+    message: `${String(records.value.length)} shots: ${statusLine(counts)}${ran.value.resumed ? ` (resumed, ${String(ran.value.skipped.length)} already built)` : ''}${propsNote}`,
+    outputs: [
+      ...new Set(selected.value.map((shot) => shot.scene)),
+      ...newProps.map((name) => `kit-ext/props/${name}.js`),
+      FILES.scenesReport,
+    ],
     changed: ran.value.ran.length > 0,
     warnings: shotWarnings(records.value),
     metrics: {
@@ -105,6 +119,7 @@ async function build(
       skipped: ran.value.skipped.length,
       fixIterations: records.value.reduce((sum, entry) => sum + entry.fixIterations, 0),
       missingProps: missing.length,
+      builtProps: newProps.length,
     },
   });
 }
@@ -166,6 +181,13 @@ async function run(
 export const scenesStage: StageDefinition<'scenes'> = {
   id: 'scenes',
   inputs: [FILES.storyboard, FILES.words, 'project.json (style)', 'kit catalog'],
-  outputs: ['scenes/<shot>.js', FILES.scenesReport, FILES.syncReport, `${FILES.qaFramesDir}/…`],
+  outputs: [
+    'scenes/<shot>.js',
+    'kit-ext/props/<name>.js',
+    FILES.scenesReport,
+    FILES.propsReport,
+    FILES.syncReport,
+    `${FILES.qaFramesDir}/…`,
+  ],
   run,
 };

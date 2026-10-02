@@ -41,11 +41,14 @@ await runner.run({ stage: 'scenes', action: 'fix-what-looks-wrong' }); // a "Who
   ✓ clean · ⚠ findings left or missing props · ✗ lint/runtime error persisted (or a Claude turn
   failed). Stored in `.reelforge/scenes-report.json` and autocommitted `Scene s03 built ✓` (with two
   shots in flight a commit can also carry the other shot's file).
-- **Missing props**: `MISSING:` reply line or `kit.<env|props|fx>.<name>(` calls the catalogue lacks
-  → `onMissingProps(names, shot)`: `'added'` builds the shot again, `'skipped'` (default
-  `skipMissingProps`) keeps it ⚠ "missing prop: …" and the build goes on. Extending the kit is a
-  repo-level change (a developer/Coder task in `packages/kit` with its tests), never an edit inside a
-  user project.
+- **Missing props** (ADR-007): the storyboard's `missingProps` first, then a `MISSING:` reply line
+  or `kit.props.<name>(` calls that neither the kit nor `kit-ext/props` has → `PropBuilder`: a
+  `prop-build` turn writes `kit-ext/props/<name>.js`, QA by code (prop lint, turntable render,
+  size, floating parts, determinism, Haiku critic), one fix turn, then "Prop <name> built ✓" and the
+  shot is built again with it; a prop that still fails moves to `.reelforge/props-failed/` and the
+  shot keeps ⚠ "missing prop: …". One build per name per run, `maxNewProps` (12) per film, all in
+  `.reelforge/props-report.json`. A custom `onMissingProps(names, shot)` replaces the builder
+  (`'added'` / `'skipped'` / `{ built, failed }`).
 - **FrameRenderer**: `renderShot({ projectDir, shotId, times, cards }, signal)` — the same engine as
   preview/export. The app passes its render service; tests and `run-stage` use
   `src/cli/playwright-renderer.ts` (Playwright + SwiftShader, `planServiceShot` manifests).

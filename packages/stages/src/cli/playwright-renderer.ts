@@ -7,11 +7,12 @@
  */
 import { describeUnknown, planServiceShot } from '@reelforge/cli/service';
 import { launchHarnessBrowser, type HarnessBrowser } from '@reelforge/engine/cli';
-import type {
-  FrameRenderer,
-  RenderedFrame,
-  ShotRender,
-  ShotRenderRequest,
+import {
+  renderTarget,
+  type FrameRenderer,
+  type RenderedFrame,
+  type ShotRender,
+  type ShotRenderRequest,
 } from '../scenes/tools.js';
 
 /** Engine errors arrive wrapped by Playwright (`page.evaluate: Error: [shot s01] ...`). */
@@ -49,15 +50,13 @@ export class PlaywrightFrameRenderer implements FrameRenderer {
   private async render(request: ShotRenderRequest, signal: AbortSignal): Promise<ShotRender> {
     let planned;
     try {
-      planned = await planServiceShot(
-        { projectDir: request.projectDir, shot: request.shotId },
-        request.times,
-      );
+      planned = await planServiceShot(renderTarget(request), request.times);
     } catch (error) {
       return { ok: false, error: describeUnknown(error), errors: [] };
     }
     this.browser ??= launchHarnessBrowser();
-    const page = await (await this.browser).open();
+    // lint: project props (kit-ext) are checked by the engine like in the app's render windows.
+    const page = await (await this.browser).open({ lint: true });
     try {
       let info;
       try {

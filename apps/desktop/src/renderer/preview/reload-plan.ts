@@ -1,7 +1,8 @@
 /**
  * Hot reload planning (PLAN.md#6.4): compares the loaded render manifest with a fresh one built
  * after a file change. If only scene sources changed, just those shots are rebuilt in the engine;
- * any other difference (timings, transitions, words, style, …) needs a full load.
+ * any other difference (timings, transitions, words, style, project props in kit-ext - every shot
+ * may call them, …) needs a full load.
  */
 import type { RenderManifest } from '@reelforge/shared';
 

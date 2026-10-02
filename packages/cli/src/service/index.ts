@@ -10,3 +10,6 @@ export { ProjectError, UsageError, describeUnknown } from '../errors.js';
 export { frameFileName, framesDir } from '../render/output.js';
 export { composeSheet, type SheetLayout, type SheetRow, type SheetTile } from '../render/sheet.js';
 export type { ShotPlan } from '../project/shots.js';
+export { readKitExtensions, type KitExtensionFiles } from '../project/kit-ext.js';
+export * from '../props/checks.js';
+export * from '../props/turntable.js';

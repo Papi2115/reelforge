@@ -8,13 +8,16 @@
 import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
+  WHISPER_ENV_VAR,
   WordsFileSchema,
   WordsRawSchema,
   alignRawWords,
+  cpuFallbackReason,
   type WhisperModelId,
   type WordsFile,
   type WordsRaw,
 } from '@reelforge/pipeline';
+import type { ToolError } from '../audio-tools.js';
 import { WORDS_REPORT_VERSION, wordsReportSchema, type WordsAttempt } from '@reelforge/shared';
 import { requireProjectText, writeProjectJson } from '../files.js';
 import { wordsUseCleanAudio } from '../gating.js';
@@ -61,6 +64,20 @@ interface Transcribed {
   readonly attempts: readonly WordsAttempt[];
 }
 
+/** whisper.cpp, its model or the VAD model is not installed (the app offers the download). */
+export const WHISPER_MISSING_KINDS: readonly string[] = ['not-installed', 'model-missing'];
+
+function whisperMissing(error: ToolError): StageError {
+  return stageError(
+    'missing-tool',
+    'Words timed needs the transcription engine (whisper.cpp and its model), which is not installed yet',
+    [
+      error.message,
+      `To use a whisper.cpp build you already have, choose its whisper-cli in Settings → Tools or set ${WHISPER_ENV_VAR}.`,
+    ],
+  );
+}
+
 async function transcribeWithRetries(
   ctx: StageContext,
   audioPath: string,
@@ -90,6 +107,8 @@ async function transcribeWithRetries(
       signal: ctx.signal,
     });
     if (!raw.ok) {
+      if (index === 0 && WHISPER_MISSING_KINDS.includes(raw.error.kind))
+        return err(whisperMissing(raw.error));
       if (raw.error.kind === 'cancelled' || index === 0)
         return err(toolFailure('transcription', raw.error));
       attempts.push(attemptRecord(entry, {}, raw.error.message));
@@ -162,6 +181,13 @@ async function run(
       heard: region.heard,
     })),
     warnings,
+    engine: {
+      backend: best.raw.backend,
+      usedGpu: best.raw.usedGpu,
+      wallMs: best.raw.wallMs,
+      audioS: best.raw.audioS,
+      cpuReason: cpuFallbackReason(best.raw),
+    },
   });
   if (!report.ok) return report;
   const vo = await addAlignmentToVoReport(ctx.projectDir, {

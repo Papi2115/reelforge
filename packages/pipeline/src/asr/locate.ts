@@ -37,7 +37,7 @@ export interface WhisperLocateOptions {
   readonly fs?: LocateFileSystem;
 }
 
-function envValue(
+export function envValue(
   env: Readonly<Record<string, string | undefined>>,
   name: string,
 ): string | undefined {
@@ -62,7 +62,7 @@ const exe = (name: string, platform: NodeJS.Platform): string =>
   platform === 'win32' ? `${name}.exe` : name;
 
 /** A user path may be the CLI itself or a directory holding it (directly, in Release/ or bin/). */
-function cliCandidates(value: string, platform: NodeJS.Platform): string[] {
+export function cliCandidates(value: string, platform: NodeJS.Platform): string[] {
   const trimmed = value.trim().replace(/^"(.*)"$/, '$1');
   if (trimmed === '') return [];
   const cliName = exe('whisper-cli', platform);
@@ -122,7 +122,8 @@ export function locateWhisper(
   if (found.length === 0) {
     return err({
       kind: 'not-installed',
-      message: `whisper.cpp is not installed (download it from settings, or set ${WHISPER_ENV_VAR})`,
+      // The app offers the download next to the error; the env var hint goes into the details.
+      message: 'whisper.cpp is not installed',
       searched,
     });
   }

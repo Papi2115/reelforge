@@ -182,6 +182,8 @@ export interface KitCatalogEntry {
   readonly anchors: Readonly<Record<string, string>>;
   /** Methods/animation hooks (signature -> what it does); optional for hand-written entries. */
   readonly methods?: Readonly<Record<string, string>>;
+  /** `project`: a project-local prop (`kit-ext/props/<name>.js`); absent for the kit's own. */
+  readonly origin?: 'project';
 }
 
 export function catalogEntries(definitions: readonly KitDefinition[]): KitCatalogEntry[] {

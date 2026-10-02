@@ -98,6 +98,16 @@ describe('settings', () => {
     await gate.getByText('Claude Code is not installed').waitFor();
     await gate.getByRole('button', { name: 'Skip for now' }).click();
     await gate.waitFor({ state: 'detached' });
+    // Step 2: ffmpeg / whisper.cpp status with the same install button as Settings → Tools.
+    const tools = page.getByRole('dialog', { name: 'Prepare tools' });
+    await tools.getByText('whisper.cpp (word timing)').waitFor();
+    await tools.getByText(/^(Installed, with the|Times every spoken word)/).waitFor({
+      timeout: 30_000,
+    });
+    await expectFits(page, 'Prepare tools');
+    await page.screenshot({ path: path.join(screenshotDir, 'settings-first-run-tools.png') });
+    await tools.getByRole('button', { name: 'Skip', exact: true }).click();
+    await tools.waitFor({ state: 'detached' });
     await expect
       .poll(async () => (await savedSettings())['onboarding'])
       .toEqual({ connectClaudeDone: true, welcomeDone: false, tourDone: false });

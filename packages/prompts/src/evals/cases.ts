@@ -42,6 +42,12 @@ export const evalCaseFileSchema = z.strictObject({
     shotId: z.string().min(1),
     imagePaths: z.array(z.string().min(1)).min(1),
   }),
+  /** The project prop the prop-build eval asks for (golden module: kit-ext/props/<name>.js). */
+  propBuild: z.strictObject({
+    name: z.string().regex(/^[a-z][A-Za-z0-9]*$/),
+    description: z.string().min(1),
+    shotIds: shotIdList,
+  }),
   /** chapters.txt the youtube-meta eval passes (the description must contain it). */
   youtubeMeta: z.strictObject({ chapters: z.string().min(1) }).optional(),
   /** Final reply of each stage in fake runs (objects are sent as JSON). */

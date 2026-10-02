@@ -20,6 +20,11 @@
       "out/frames/s04_engine/4.510.png"
     ]
   },
+  "propBuild": {
+    "name": "memoryChip",
+    "description": "A RAM memory stick: long green circuit board with four black chips and a row of gold contacts along the bottom edge.",
+    "shotIds": ["s08_memory"]
+  },
   "replies": {
     "research": "Saved research.md: 9 sourced facts.\nMain sources: Wikipedia (Doom, Doom engine), Doom Wiki.\nUncertain: which pregnancy-test ports really ran the game.",
     "script": "Word count: 86. Estimated duration: about 35 seconds.\nAll claims are sourced in research.md.",
@@ -79,6 +84,7 @@
         "bsp rendering",
         "1993 games"
       ]
-    }
+    },
+    "prop-build": "Built memoryChip: 1.2 x 0.36 x 0.06 units, green board, 4 black chips, gold contacts.\nprop-preview: all checks ok; the chips and contacts read clearly from the front."
   }
 }

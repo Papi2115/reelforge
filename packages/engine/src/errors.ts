@@ -4,6 +4,7 @@ export const ENGINE_ERROR_CODES = [
   'invalid-manifest',
   'not-loaded',
   'scene-import',
+  'kit-extension',
   'scene-contract',
   'scene-lint',
   'scene-build',

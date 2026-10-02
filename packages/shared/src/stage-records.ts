@@ -101,6 +101,18 @@ export const wordsReportSchema = z.object({
     z.object({ t: z.number(), tEnd: z.number(), script: z.string(), heard: z.string() }),
   ),
   warnings: z.array(z.string()),
+  /** whisper.cpp build of the kept result (absent in reports written before it existed). */
+  engine: z
+    .object({
+      /** `cuda` / `blas` / `cpu` (app-managed builds) or `custom`. */
+      backend: z.string().min(1),
+      usedGpu: z.boolean(),
+      wallMs: z.number().nonnegative(),
+      audioS: z.number().nonnegative(),
+      /** Why it ran on the CPU although a GPU build was tried (shown as a hint), else null. */
+      cpuReason: z.string().nullable(),
+    })
+    .optional(),
 });
 export type WordsReport = z.infer<typeof wordsReportSchema>;
 

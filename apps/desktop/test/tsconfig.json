@@ -12,6 +12,8 @@
     "../src/main/navigation-policy.ts",
     "../src/shared/player-contract.ts",
     "../src/shared/export-contract.ts",
+    "../src/main/whisper/test-hooks.ts",
+    "../src/main/whisper/testing/fake-mirror.ts",
     "../electron-builder.config.ts"
   ],
   "references": [

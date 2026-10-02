@@ -72,9 +72,17 @@ interface FakeBehaviour {
   /** Backends whose GPU run fails; with `always` the `-ng` run fails too. */
   failing: Map<string, 'gpu' | 'always'>;
   detected: string;
+  /** CUDA finds no device (`--version` says so; decode runs silently use the CPU). */
+  noCudaDevice: boolean;
 }
 
-const newBehaviour = (): FakeBehaviour => ({ failing: new Map(), detected: 'pl' });
+const newBehaviour = (): FakeBehaviour => ({
+  failing: new Map(),
+  detected: 'pl',
+  noCudaDevice: false,
+});
+
+const NO_DEVICE = 'ggml_cuda_init: failed to initialize CUDA: no CUDA-capable device is detected';
 
 const fakeRunner = {
   behaviour: newBehaviour(),
@@ -93,6 +101,12 @@ const fakeRunner = {
       return ok({ stdout: VAD_STDOUT, stderr: '', durationMs: 1 });
     const backend = path.basename(path.dirname(path.dirname(command)));
     const noGpu = args.includes('-ng');
+    if (args.includes('--version') && backend === 'cuda' && fakeRunner.behaviour.noCudaDevice)
+      return ok({
+        stdout: '',
+        stderr: `${NO_DEVICE}\nwhisper.cpp version: 1.9.4`,
+        durationMs: 1,
+      });
     const failing = fakeRunner.behaviour.failing.get(backend);
     if (failing === 'always' || (failing === 'gpu' && !noGpu)) {
       return err({
@@ -114,7 +128,12 @@ const fakeRunner = {
       const lang = args[args.indexOf('-l') + 1] ?? 'en';
       for (const file of files) await writeFile(`${file}.json`, chunkJson(lang));
     }
-    const banner = backend === 'cuda' && !noGpu ? 'ggml_cuda_init: found 1 CUDA devices' : '';
+    const gpu = backend === 'cuda' && !noGpu;
+    const banner: string = gpu
+      ? fakeRunner.behaviour.noCudaDevice
+        ? NO_DEVICE
+        : 'ggml_cuda_init: found 1 CUDA devices'
+      : '';
     return ok({ stdout: '', stderr: banner, durationMs: 1 });
   }),
 };
@@ -139,8 +158,11 @@ beforeEach(() => {
   fakeFfmpeg.calls = [];
 });
 
+/** whisper-cli decode calls (without the `--version` GPU probes). */
 const whisperCalls = (): { command: string; args: readonly string[] }[] =>
-  fakeRunner.calls.filter((call) => path.basename(call.command) === 'whisper-cli.exe');
+  fakeRunner.calls.filter(
+    (call) => path.basename(call.command) === 'whisper-cli.exe' && !call.args.includes('--version'),
+  );
 
 describe('WhisperManager.transcribe', () => {
   it('runs VAD, cuts chunks, decodes all chunks in one DTW call and writes words.raw.json', async () => {
@@ -234,6 +256,44 @@ describe('WhisperManager.transcribe', () => {
       fallbacks: [{ backend: 'cuda', gpu: true }],
     });
     expect(whisperCalls().map((call) => call.args.includes('-ng'))).toEqual([false, true]);
+  });
+
+  it('skips the CUDA build when CUDA finds no device and records why', async () => {
+    const manager = await installFakeBuilds(['cuda', 'blas']);
+    fakeRunner.behaviour.noCudaDevice = true;
+    const result = await manager.transcribe({
+      input: 'in.wav',
+      workDir: path.join(root, 'work'),
+      lang: 'en',
+      ffmpeg: fakeFfmpeg,
+    });
+    expect(result.ok && result.value).toMatchObject({
+      backend: 'blas',
+      usedGpu: false,
+      fallbacks: [
+        {
+          backend: 'cuda',
+          gpu: true,
+          message: 'CUDA unavailable: no CUDA-capable device is detected',
+        },
+      ],
+    });
+    expect(
+      whisperCalls().map((call) => path.basename(path.dirname(path.dirname(call.command)))),
+    ).toEqual(['blas']);
+  });
+
+  it('runs the CUDA build with -ng when it is the only build and CUDA finds no device', async () => {
+    const manager = await installFakeBuilds(['cuda']);
+    fakeRunner.behaviour.noCudaDevice = true;
+    const result = await manager.transcribe({
+      input: 'in.wav',
+      workDir: path.join(root, 'work'),
+      lang: 'en',
+      ffmpeg: fakeFfmpeg,
+    });
+    expect(result.ok && result.value).toMatchObject({ backend: 'cuda', usedGpu: false });
+    expect(whisperCalls().map((call) => call.args.includes('-ng'))).toEqual([true]);
   });
 
   it('falls back to the CPU build when the CUDA build cannot run at all', async () => {
@@ -407,5 +467,92 @@ describe('WhisperManager.install', () => {
       error: { kind: 'checksum-mismatch' },
     });
     expect(manager.locate().ok).toBe(false);
+  });
+
+  it('plans only what is missing, with exact sizes, GPU build first', async () => {
+    const manager = new WhisperManager({
+      root,
+      env: {},
+      platform: PLATFORM,
+      run: fakeRunner.run,
+      binaryAssets: fakeAssets(),
+    });
+    const all = await manager.planInstall({ engine: true, vad: true, model: 'base' });
+    expect(all.map((step) => step.part)).toEqual([
+      { kind: 'engine', backend: 'cuda' },
+      { kind: 'engine', backend: 'blas' },
+      { kind: 'vad' },
+      { kind: 'model', model: 'base' },
+    ]);
+    expect(all.at(-1)?.asset.bytes).toBe(147_951_465);
+    await touch(manager.vadModelPath());
+    expect(await manager.planInstall({ engine: false, vad: true, model: null })).toEqual([]);
+  });
+
+  it('rewrites assets through assetOverride (mirrors, test hooks)', async () => {
+    const fetch = vi.fn<FetchLike>(() => Promise.resolve(new Response(zip)));
+    const value = createHash('sha256').update(zip).digest('hex');
+    const manager = new WhisperManager({
+      root,
+      env: {},
+      platform: PLATFORM,
+      run: fakeRunner.run,
+      fetch,
+      assetOverride: (asset) => ({
+        ...asset,
+        url: `https://mirror.invalid/${asset.fileName}`,
+        hash: { algo: 'sha256', value },
+      }),
+    });
+    const [step] = await manager.planInstall({
+      engine: true,
+      vad: false,
+      model: null,
+      backend: 'blas',
+    });
+    expect(step?.asset.url).toBe('https://mirror.invalid/whisper-blas-bin-x64.zip');
+    if (step === undefined) return;
+    expect((await manager.installStep(step)).ok).toBe(true);
+    expect(fetch.mock.calls[0]?.[0]).toBe('https://mirror.invalid/whisper-blas-bin-x64.zip');
+    expect(await manager.hasBinary('blas')).toBe(true);
+  });
+
+  it('reports a build without whisper-cli (quarantined by antivirus) and installs nothing', async () => {
+    const empty = buildZip([{ name: 'Release/readme.txt', data: Buffer.from('x') }]);
+    const value = createHash('sha256').update(empty).digest('hex');
+    const manager = new WhisperManager({
+      root,
+      env: {},
+      platform: PLATFORM,
+      run: fakeRunner.run,
+      fetch: () => Promise.resolve(new Response(empty)),
+      assetOverride: (asset) => ({ ...asset, hash: { algo: 'sha256', value } }),
+    });
+    expect(await manager.installBinary('blas')).toMatchObject({
+      ok: false,
+      error: { kind: 'extract-failed', code: 'CLI_MISSING' },
+    });
+    expect(await manager.hasBinary('blas')).toBe(false);
+    expect(manager.locate().ok).toBe(false);
+  });
+
+  it('stops before extracting when cancelled', async () => {
+    const controller = new AbortController();
+    const manager = new WhisperManager({
+      root,
+      env: {},
+      platform: PLATFORM,
+      run: fakeRunner.run,
+      fetch: () => Promise.resolve(new Response(zip)),
+      binaryAssets: fakeAssets(),
+    });
+    const result = await manager.installBinary('blas', {
+      signal: controller.signal,
+      onProgress: () => {
+        controller.abort();
+      },
+    });
+    expect(result).toMatchObject({ ok: false, error: { kind: 'cancelled' } });
+    expect(await manager.hasBinary('blas')).toBe(false);
   });
 });

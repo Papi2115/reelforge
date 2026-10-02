@@ -2,11 +2,12 @@
  * View model of Scenes built in the UI (PLAN.md#7.4-7.7): the ✓/⚠/✗ badge of every shot (the
  * scenes report, overlaid with the live run: building / left for later), its findings for the
  * popover and the "Fix with Claude…" prefill, the build progress line (shot n/m, current step),
- * the missing-props banner and the sync report rows (deltas in ms against ±150 ms). Pure.
+ * the project-props banner (built / could not build) and the sync report rows (deltas in ms
+ * against ±150 ms). Pure.
  */
 import {
   SHOT_STATUS_SYMBOLS,
-  type MissingPropsFile,
+  type PropsReport,
   type ScenesReport,
   type ShotBuildRecord,
   type SyncReport,
@@ -23,6 +24,8 @@ export interface ShotBadge {
   readonly findings: readonly string[];
   readonly critic: readonly string[];
   readonly missingProps: readonly string[];
+  /** Project props (kit-ext) built for this shot. */
+  readonly builtProps: readonly string[];
   readonly notes: readonly string[];
 }
 
@@ -47,6 +50,7 @@ function recordBadge(record: ShotBuildRecord): ShotBadge {
       .filter((verdict) => verdict.verdict !== 'ok' || verdict.note !== '')
       .map((verdict) => `${verdict.verdict}: ${verdict.note}`),
     missingProps: record.missingProps,
+    builtProps: record.builtProps ?? [],
     notes: record.notes,
   };
 }
@@ -59,6 +63,7 @@ function liveBadge(tone: 'running' | 'pending'): ShotBadge {
     findings: [],
     critic: [],
     missingProps: [],
+    builtProps: [],
     notes: [],
   };
 }
@@ -98,20 +103,41 @@ export function buildProgress(running: StageRunView | null, totalShots: number):
   return `${what} shot ${String(Math.max(current, 1))}/${String(total)}${step}`;
 }
 
-/** Props the kit lacks (scenes report + the app's log), sorted. */
-export function missingProps(
-  report: ScenesReport | null,
-  log: MissingPropsFile | null,
-): readonly string[] {
-  const names = new Set<string>();
-  for (const record of report?.shots ?? []) for (const name of record.missingProps) names.add(name);
-  for (const entry of log?.entries ?? []) names.add(entry.name);
-  return [...names].sort();
+export interface PropsSummary {
+  /** Project props that passed QA (kit-ext/props). */
+  readonly built: readonly string[];
+  /** Props that could not be built (failed QA or budget) or are still missing in a shot. */
+  readonly failed: readonly string[];
 }
 
-export function missingPropsBanner(names: readonly string[]): string | null {
-  if (names.length === 0) return null;
-  return `Kit is missing: ${names.join(', ')} — these shots use a fallback. (Extending the kit is done by the developer.)`;
+/** Built and missing props of the project (props report + scenes report), sorted. */
+export function propsSummary(report: ScenesReport | null, props: PropsReport | null): PropsSummary {
+  const built = new Set<string>();
+  const failed = new Set<string>();
+  for (const entry of props?.props ?? [])
+    (entry.status === 'built' ? built : failed).add(entry.name);
+  for (const record of report?.shots ?? []) {
+    for (const name of record.missingProps) if (!built.has(name)) failed.add(name);
+  }
+  return { built: [...built].sort(), failed: [...failed].sort() };
+}
+
+function plural(count: number, noun: string): string {
+  return `${String(count)} new ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** "Built 2 new props: fridge, printer · Could not build: shed — its shots use a fallback." */
+export function propsBanner(summary: PropsSummary): string | null {
+  const parts: string[] = [];
+  if (summary.built.length > 0) {
+    parts.push(`Built ${plural(summary.built.length, 'prop')}: ${summary.built.join(', ')}`);
+  }
+  if (summary.failed.length > 0) {
+    parts.push(
+      `Could not build: ${summary.failed.join(', ')} — ${summary.failed.length === 1 ? 'its shots use' : 'their shots use'} a fallback`,
+    );
+  }
+  return parts.length === 0 ? null : parts.join(' · ');
 }
 
 export interface SyncRow {

@@ -8,7 +8,7 @@ import { createReadStream } from 'node:fs';
 import { mkdir, open, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { AssetHash, AssetSpec } from './assets.js';
-import type { WhisperError } from './errors.js';
+import { systemErrorCode, type WhisperError } from './errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /** `fetch`-compatible function (injectable so tests never touch the network). */
@@ -17,7 +17,7 @@ export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
 export interface DownloadProgress {
   readonly asset: string;
   readonly receivedBytes: number;
-  /** From Content-Length; null when the server does not send it. */
+  /** From Content-Length, else the pinned asset size; null when neither is known. */
   readonly totalBytes: number | null;
   readonly ratio: number | null;
 }
@@ -72,7 +72,8 @@ async function streamToFile(
   hash: Hash | null,
 ): Promise<number> {
   const header = response.headers.get('content-length');
-  const totalBytes = header === null || Number.isNaN(Number(header)) ? null : Number(header);
+  const fromHeader = header === null || Number.isNaN(Number(header)) ? null : Number(header);
+  const totalBytes = fromHeader ?? (asset.bytes > 0 ? asset.bytes : null);
   const handle = await open(tmp, 'w');
   let receivedBytes = 0;
   try {
@@ -163,6 +164,7 @@ export async function downloadVerified(
       message: `download of ${asset.name} failed: ${describe(error)}`,
       url: asset.url,
       status: null,
+      code: systemErrorCode(error),
     });
   }
 }

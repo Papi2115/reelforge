@@ -12,15 +12,26 @@ import type { KitNames } from './tools.js';
 
 const KIT_CALL = /\bkit\s*\.\s*(env|props|fx)\s*\.\s*([A-Za-z_$][\w$]*)\s*\(/g;
 
+export interface KitCall {
+  readonly kind: 'env' | 'props' | 'fx';
+  readonly name: string;
+}
+
+/** `kit.<kind>.<name>(` calls the kit does not provide, in order of first use. */
+export function unknownKitCalls(source: string, kit: KitNames): KitCall[] {
+  const unknown = new Map<string, KitCall>();
+  for (const match of source.matchAll(KIT_CALL)) {
+    const [, group = '', name = ''] = match;
+    const kind = group === 'env' ? 'env' : group === 'props' ? 'props' : 'fx';
+    const known = kind === 'env' ? kit.env : kind === 'props' ? kit.props : kit.fx;
+    if (!known.has(name)) unknown.set(`${kind}.${name}`, { kind, name });
+  }
+  return [...unknown.values()];
+}
+
 /** `kit.<kind>.<name>(` names the kit does not provide, in order of first use. */
 export function unknownKitNames(source: string, kit: KitNames): string[] {
-  const unknown = new Set<string>();
-  for (const match of source.matchAll(KIT_CALL)) {
-    const [, kind = '', name = ''] = match;
-    const known = kind === 'env' ? kit.env : kind === 'props' ? kit.props : kit.fx;
-    if (!known.has(name)) unknown.add(name);
-  }
-  return [...unknown];
+  return [...new Set(unknownKitCalls(source, kit).map((call) => call.name))];
 }
 
 const TEXT_CALLS = new Set(['title', 'kinetic', 'lowerThird']);

@@ -5,7 +5,7 @@
  * a bigger model" and scene runs (rebuild a shot, the review modes). Merged into ipc-contract.ts.
  */
 import {
-  missingPropsFileSchema,
+  propsReportSchema,
   scenesReportSchema,
   settingsWhisperModelSchema,
   shotIdSchema,
@@ -37,7 +37,8 @@ export const stageReportsSchema = z.object({
   words: wordsReportSchema.nullable(),
   scenes: scenesReportSchema.nullable(),
   sync: syncReportSchema.nullable(),
-  missingProps: missingPropsFileSchema.nullable(),
+  /** `.reelforge/props-report.json`: project props built by Scenes built (kit-ext). */
+  props: propsReportSchema.nullable(),
 });
 export type StageReports = z.infer<typeof stageReportsSchema>;
 

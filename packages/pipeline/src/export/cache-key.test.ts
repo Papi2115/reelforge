@@ -2,6 +2,7 @@ import type { RenderManifest } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import {
   extractAnchorUses,
+  kitExtensionInputs,
   segmentCacheKey,
   stableStringify,
   type RenderIdentity,
@@ -125,6 +126,26 @@ describe('segmentCacheKey', () => {
   ])('changes with %s', (_label, change) => {
     const m = manifest();
     expect(keyOf({ manifest: m, ...change(m) })).not.toBe(base);
+  });
+
+  it('depends on the project props (kit-ext) a shot calls, not on the others', () => {
+    const fridge = { name: 'fridge', file: 'kit-ext/props/fridge.js', source: 'v1' };
+    const lamp = { name: 'lamp', file: 'kit-ext/props/lamp.js', source: 'v1' };
+    const m = manifest();
+    const shots = m.shots.map((s, i) =>
+      i === 0 ? { ...s, scene: { ...s.scene, source: 'kit.props.fridge();' } } : s,
+    );
+    const withProps = { ...m, shots, kitExtensions: [fridge, lamp] };
+    const key = keyOf({ manifest: withProps });
+    const otherKey = keyOf({ manifest: withProps }, 1);
+    const fridgeChanged = { ...withProps, kitExtensions: [{ ...fridge, source: 'v2' }, lamp] };
+    expect(keyOf({ manifest: fridgeChanged })).not.toBe(key);
+    expect(keyOf({ manifest: fridgeChanged }, 1)).toBe(otherKey);
+    const lampChanged = { ...withProps, kitExtensions: [fridge, { ...lamp, source: 'v2' }] };
+    expect(keyOf({ manifest: lampChanged })).toBe(key);
+    // No project props at all: the same keys as before kit-ext existed.
+    expect(keyOf({ manifest: { ...m, kitExtensions: [] } })).toBe(base);
+    expect(kitExtensionInputs('const p = kit.props[name]();', [fridge, lamp])).toHaveLength(2);
   });
 
   it('with a resolver, depends on used anchor spans only', () => {

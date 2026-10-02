@@ -75,6 +75,7 @@ import { createExportBackend } from './export/export-backend.js';
 import { createSoundBackend, settingsFfmpeg } from './sound/sound-backend.js';
 import { soundPickerOptions } from './sound/sound-ipc.js';
 import { createTimelineEdits, timelineHandlers } from './timeline-ipc.js';
+import { whisperTestHooks } from './whisper/test-hooks.js';
 import { createMainWindow } from './window.js';
 
 function main(): void {
@@ -219,6 +220,10 @@ function main(): void {
       }),
   });
 
+  // Test hooks (unpackaged + REELFORGE_TEST_HOOKS=1): whisper install root / download mirror.
+  const whisperHooksOn = !app.isPackaged && process.env[TEST_HOOKS_ENV] === '1';
+  const whisperBase = whisperTestHooks(process.env, whisperHooksOn);
+  if (whisperBase.root !== undefined) log.warn(`test hook: whisper root ${whisperBase.root}`);
   const settingsBackend = createSettingsBackend({
     settings,
     settingsFile: settingsFile(userDataDir),
@@ -233,6 +238,12 @@ function main(): void {
     },
     log: log.child('settings'),
     now: () => performance.now(),
+    whisperBase,
+    // Recorded transcriptions need no whisper.cpp unless a test installs one into its own root.
+    whisperAssumeReady:
+      whisperHooksOn &&
+      (process.env[TEST_TRANSCRIPT_ENV] ?? '') !== '' &&
+      whisperBase.root === undefined,
   });
 
   const claude: ClaudeService = new ClaudeService({
@@ -266,7 +277,7 @@ function main(): void {
   const stagesLog = log.child('stages');
   const testHooks = !app.isPackaged && process.env[TEST_HOOKS_ENV] === '1';
   const recordedTranscript = testHooks ? process.env[TEST_TRANSCRIPT_ENV] : undefined;
-  const settingsAudio = settingsAudioTools(() => settings.get());
+  const settingsAudio = settingsAudioTools(() => settings.get(), undefined, whisperBase);
   const audioTools =
     recordedTranscript === undefined || recordedTranscript === ''
       ? settingsAudio
@@ -300,7 +311,6 @@ function main(): void {
       store: pipelineStore,
       frames: renderBackend.frames,
       audio: audioTools,
-      log: stagesLog,
     }),
     exportRun: {
       start: (listener) => exportBackend.service.runForStage(listener),

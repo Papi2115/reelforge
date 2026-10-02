@@ -2,6 +2,7 @@
 export const packageName = '@reelforge/shared';
 
 export * from './app-settings.js';
+export * from './kit-extensions.js';
 export * from './palette.js';
 export * from './pipeline-state.js';
 export * from './project.js';

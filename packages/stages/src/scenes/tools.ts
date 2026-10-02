@@ -10,8 +10,16 @@ import type { StoryboardShot } from '@reelforge/shared';
 
 export interface ShotRenderRequest {
   readonly projectDir: string;
-  /** Storyboard shot id; the scene file is read from disk as it is now. */
+  /**
+   * Storyboard shot id; the scene file is read from disk as it is now. With `standalone`: the
+   * standalone shot id of that scene (its file name, e.g. `turntable`).
+   */
   readonly shotId: string;
+  /**
+   * A scene that is not in the storyboard (a prop turntable, PLAN.md#7.4), rendered from t = 0
+   * for `duration` seconds; project-relative path.
+   */
+  readonly standalone?: { readonly scene: string; readonly duration: number } | undefined;
   /** Local shot times (s) to render; empty = load only (anchors, cues, errors). */
   readonly times: readonly number[];
   /** Run the engine's text-card QA (overlaps, safe area). */
@@ -54,17 +62,49 @@ export interface FrameRenderer {
   renderShot(request: ShotRenderRequest, signal: AbortSignal): Promise<ShotRender>;
 }
 
+/** Per-name outcome of a missing-props request (names as the handler returns them). */
+export interface MissingPropsOutcome {
+  /** Now callable as `kit.props.<name>`: the shot is built again with them. */
+  readonly built: readonly string[];
+  /** Could not be provided: the shot keeps a fallback and is marked ⚠ "missing prop: …". */
+  readonly failed: readonly string[];
+}
+
 /**
- * A shot needs props the kit lacks. `added`: the kit was extended (a repo-level change made by a
- * developer/Coder, never inside a user project), so the shot is built again; `skipped`: the shot
- * is kept as built with what exists and marked ⚠ "missing prop: …".
+ * A shot needs props the kit lacks. The default handler builds each as a project prop
+ * (`kit-ext/props/<name>.js`, PLAN.md#7.4). `added`: all of them exist now, so the shot is built
+ * again; `skipped`: none, the shot is kept as built and marked ⚠ "missing prop: …"; an outcome
+ * object says it per name.
  */
 export type MissingPropsHandler = (
   names: readonly string[],
   shot: StoryboardShot,
-) => Promise<'added' | 'skipped'>;
+) => Promise<'added' | 'skipped' | MissingPropsOutcome>;
 
 export const skipMissingProps: MissingPropsHandler = () => Promise.resolve('skipped');
+
+/** A handler's decision for `names`, per name. */
+export function missingPropsOutcome(
+  names: readonly string[],
+  decision: Awaited<ReturnType<MissingPropsHandler>>,
+): MissingPropsOutcome {
+  if (decision === 'added') return { built: [...names], failed: [] };
+  if (decision === 'skipped') return { built: [], failed: [...names] };
+  return decision;
+}
+
+/** What `planServiceShot` renders for a request: the storyboard shot or a standalone scene. */
+export function renderTarget(request: ShotRenderRequest): {
+  readonly projectDir: string;
+  readonly shot?: string;
+  readonly scene?: string;
+  readonly duration?: number;
+} {
+  const { projectDir, standalone } = request;
+  return standalone === undefined
+    ? { projectDir, shot: request.shotId }
+    : { projectDir, scene: standalone.scene, duration: standalone.duration };
+}
 
 /** Names callable as `kit.env.<name>`, `kit.props.<name>`, `kit.fx.<name>`. */
 export interface KitNames {
@@ -82,7 +122,7 @@ export function kitNamesFromCatalog(): KitNames {
 
 export interface SceneTools {
   readonly frames: FrameRenderer;
-  /** Default: `skipMissingProps`. */
+  /** Default: build each missing prop as a project prop (`kit-ext/props/<name>.js`). */
   readonly onMissingProps?: MissingPropsHandler | undefined;
   /** Default: the installed kit (`kitNamesFromCatalog()`). */
   readonly kitNames?: KitNames | undefined;

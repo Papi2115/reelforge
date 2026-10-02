@@ -2,7 +2,7 @@
  * Per-shot runtime: builds a scene module once (collecting sfx cues) and evaluates it at a local
  * time. GL-free, so it runs (and is tested) in Node as well as in the engine page.
  */
-import { createKit } from '@reelforge/kit';
+import { createKit, type KitDefinition } from '@reelforge/kit';
 import { DEFAULT_SAFE_AREA, type SafeAreaMargins } from '@reelforge/shared';
 import * as THREE from 'three';
 import type { AnchorResolver } from './anchors.js';
@@ -35,6 +35,8 @@ export interface ShotInput {
   /** Text safe-area margins of the style; defaults to 5 %. */
   readonly safeArea?: SafeAreaMargins | undefined;
   readonly resolveAnchor: AnchorResolver;
+  /** Project props (manifest `kitExtensions`), registered as ctx.kit.props.<name>. */
+  readonly kitExtensions?: readonly KitDefinition[] | undefined;
 }
 
 export interface BuiltShot {
@@ -133,7 +135,12 @@ export function buildShot(input: ShotInput): BuiltShot {
     seed: hashString('text', seed),
   });
   // One kit per shot, with its own seeded stream; sealed after build() (no new objects in update).
-  const kit = createKit({ three: THREE, palette, rng: createRng(hashString('kit', seed)) });
+  const kit = createKit({
+    three: THREE,
+    palette,
+    rng: createRng(hashString('kit', seed)),
+    extraProps: input.kitExtensions,
+  });
   const base = {
     three: THREE,
     scene,

@@ -122,3 +122,14 @@ export function biggerWhisperModel(current: string | null): SettingsWhisperModel
   if (index === -1) return null;
   return WHISPER_SIZE_ORDER[index + 1] ?? null;
 }
+
+/**
+ * Words timed ran on the CPU although a GPU build of whisper.cpp was tried: why, and what to do
+ * (docs/whisper.md "GPU"). Null when it used the GPU or only a CPU build is installed.
+ */
+export function cpuTranscriptionHint(report: WordsReport | null): string | null {
+  const engine = report?.engine;
+  if (engine === undefined || engine.cpuReason === null) return null;
+  const seconds = Math.round(engine.wallMs / 1000);
+  return `Transcription ran on the CPU (slow: ${String(seconds)} s for ${String(Math.round(engine.audioS))} s of audio) because ${engine.cpuReason}. On a laptop, make sure the NVIDIA GPU is switched on (GPU mode Hybrid/Discrete, not Eco/Integrated; charger connected) and set Windows Settings → System → Display → Graphics → whisper-cli.exe (ReelForge) to High performance, then Redo Words timed.`;
+}

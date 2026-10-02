@@ -14,13 +14,14 @@ error (wrong option; stderr says which). Every command accepts `--help` and `--j
 | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `reelforge status`                                               | see which stages are done, the shots (id, global times, treatment, scene file), last errors |
 | `reelforge validate`                                             | check `project.json`, `brief.json`, `storyboard.json`, `timing/words.json`, `cues.json`     |
-| `reelforge lint` / `reelforge lint scenes/s03_calc.js`           | determinism + scene-contract lint (forbidden APIs, state carried between frames)             |
+| `reelforge lint` / `reelforge lint scenes/s03_calc.js`           | determinism + scene-contract lint (forbidden APIs, state carried between frames); `kit-ext/props/*.js` get the prop contract |
 | `reelforge frames --shot s03` / `--scene scenes/s03_calc.js`     | render 5 frames (or `--at 0,1.5,3`, local shot seconds) and get their PNG paths to Read       |
 | `reelforge contact-sheet` / `--shot s03,s04` / `--per-shot 4`    | one grid image of every shot (or some) to Read; rows = shots, tiles labelled `s03 1.50s`     |
 | `reelforge render-shot s03` / `--step 0.25`                      | judge motion and timing: one strip image of frames every step                                |
 | `reelforge anchors --phrase "61 KB"`                             | find when a phrase is spoken (fuzzy: `61KB`, `sixty one kilobytes` match too) and in which shot |
 | `reelforge anchors` / `--shot s03`                               | list the anchors and sfx cues each scene declares in `build()` with the ±150 ms landing check |
-| `reelforge kit-docs` / `reelforge kit-docs desk`                 | the `ctx.kit` reference; with a name: params, anchors and an example call                    |
+| `reelforge kit-docs` / `reelforge kit-docs desk`                 | the `ctx.kit` reference (project props marked project-local); with a name: params, anchors and an example call; `kit-docs prop-module`: how to write a project prop |
+| `reelforge prop-preview fridge` / `--angles 0,45,90`             | a project prop (`kit-ext/props/fridge.js`) alone on a neutral stage from 4 angles, one sheet to Read, plus checks: lint, not blank, size 0.3–4 units, no floating parts, deterministic |
 
 ## Reading the output
 
@@ -49,7 +50,16 @@ error (wrong option; stderr says which). Every command accepts `--help` and `--j
 4. Optional: `reelforge render-shot <id>` for motion; at the end `reelforge contact-sheet` for the
    whole video.
 
+## Project props (`kit-ext/props/<name>.js`)
+
+When the kit lacks an object, a project prop is written as an ES module `export const prop = { name,
+description, params, anchors, methods, build(ctx, params) }` using only `ctx.kit.voxel` (contract,
+scale rules, example: `reelforge kit-docs prop-module`). Every render manifest of the project
+carries the props (`kitExtensions`), so scenes call `ctx.kit.props.<name>()` in preview, export and
+the CLI alike. Loop: `reelforge lint kit-ext/props/<name>.js` → `reelforge prop-preview <name>` →
+Read the sheet → fix. Design: `docs/decisions/ADR-007-project-props.md`.
+
 ## Files it writes
 
-Only `.reelforge/frames/` inside the project (frames, contact sheets, strips; regenerated on every
-run). It never edits project files.
+Only `.reelforge/frames/` inside the project (frames, contact sheets, strips, prop turntables in
+`.reelforge/frames/props/<name>/`; regenerated on every run). It never edits project files.

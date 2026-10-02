@@ -3,7 +3,8 @@
  * project with a generated voice-over plays with the `<audio>` element as master clock, at 1x and
  * 2x; the timeline ruler and the slider scrub (p95 latency measured); snapshots land in
  * out/snapshots and on the clipboard; editing a scene hot-reloads just that shot in < 1 s, and a
- * broken scene keeps the last frame. Measured numbers go to out/test-app/player-metrics.json.
+ * broken scene keeps the last frame; adding or editing a project prop (kit-ext/props, PLAN.md#7.4)
+ * reloads the video. Measured numbers go to out/test-app/player-metrics.json.
  */
 import { existsSync } from 'node:fs';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -55,6 +56,16 @@ async function useSpeed(rate: string): Promise<void> {
 async function seekWithSlider(t: string): Promise<void> {
   await page.getByRole('slider', { name: 'Scrub' }).fill(t);
   await waitForRenderedT(page, Number(t).toFixed(3));
+}
+
+/** Waits until the preview shows a frame different from `hash` (after a reload). */
+async function waitForNewFrame(hash: string): Promise<string> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const stats = await frameStats(page);
+    if (stats.hash !== hash) return stats.hash;
+    await page.waitForTimeout(100);
+  }
+  throw new Error('the preview frame did not change');
 }
 
 /** Writes the scene of s02 and waits for the preview to report the hot reload. */
@@ -233,6 +244,38 @@ describe('player', () => {
 
     await editScene(originalScene);
     expect(await problem.count()).toBe(0);
+    expect((await frameStats(page)).hash).toBe(before.hash);
+  });
+
+  it('reloads the video when a project prop (kit-ext) appears or changes', async () => {
+    await seekWithSlider('4');
+    const before = await frameStats(page);
+    const problem = page.getByTestId('preview-problem');
+    const withFridge = originalScene.replace(
+      'scene.background = new three.Color(palette.sky);',
+      'scene.background = new three.Color(palette.sky);\n  const fridge = ctx.kit.props.fridge({ scale: 1.2 });\n  fridge.position.set(-2.4, 0, 0.5);\n  scene.add(fridge);',
+    );
+    expect(withFridge).not.toBe(originalScene);
+    // The scene asks for a prop that does not exist yet: the build error is shown.
+    await writeFile(sceneFile, withFridge);
+    await problem.getByText(/fridge is not a function/).waitFor({ timeout: 10_000 });
+    const fridge = await readFile(
+      path.join(repoRoot, 'packages', 'kit', 'examples', 'kit-ext', 'fridge.js'),
+      'utf8',
+    );
+    await mkdir(path.join(projectDir, 'kit-ext', 'props'), { recursive: true });
+    const propFile = path.join(projectDir, 'kit-ext', 'props', 'fridge.js');
+    await writeFile(propFile, fridge);
+    await problem.waitFor({ state: 'detached', timeout: 10_000 });
+    const withProp = await waitForNewFrame(before.hash);
+    await page.screenshot({ path: path.join(screenshotDir, 'player-kit-ext-prop.png') });
+    // Editing the prop module reloads the shots that use it (the whole video, same time).
+    const recoloured = fridge.replace("default: 'heroTrim'", "default: 'accent2'");
+    expect(recoloured).not.toBe(fridge);
+    await writeFile(propFile, recoloured);
+    await waitForNewFrame(withProp);
+    expect((await frameStats(page)).renderedT).toBe('4.000');
+    await editScene(originalScene);
     expect((await frameStats(page)).hash).toBe(before.hash);
   });
 

@@ -5,8 +5,11 @@
  * which asks first and names the later stages it makes out of date. Disabled actions explain
  * themselves in their tooltip and in the line under the buttons.
  */
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
+import type { PipelineStageKey } from '../../shared/stages-contract.js';
+import { errorMessage, rendererLog } from '../log.js';
 import { ConfirmDialog } from '../project/ConfirmDialog.js';
+import { useWhisperSetup } from '../settings/use-whisper-setup.js';
 import {
   defaultRow,
   elapsedText,
@@ -19,13 +22,19 @@ import {
 } from '../stages/pipeline-view.js';
 import { nextStep } from '../stages/next-step.js';
 import type { StagesControls } from '../stages/use-stages.js';
+import { needsWhisper, wordsSetupView } from '../stages/words-setup.js';
 import { StopIcon } from './icons.js';
+import { WordsSetupNotice } from './WordsSetupNotice.js';
+
+const log = rendererLog('pipeline');
 
 export interface PipelineSidebarProps {
   readonly stages: StagesControls;
   /** Documents and panels of the window (artifacts are opened through main here). */
   readonly onOpen: (target: Exclude<OpenTarget, { kind: 'artifact' }>) => void;
   readonly onBrief: () => void;
+  /** Settings → Tools (whisper.cpp install problems). */
+  readonly onOpenSettings?: () => void;
 }
 
 /** Re-renders every second while `active` (elapsed time of the running stage). */
@@ -157,7 +166,12 @@ function StageDetail({ row, now }: { readonly row: RowView; readonly now: number
   );
 }
 
-export function PipelineSidebar({ stages, onOpen, onBrief }: PipelineSidebarProps): JSX.Element {
+export function PipelineSidebar({
+  stages,
+  onOpen,
+  onBrief,
+  onOpenSettings,
+}: PipelineSidebarProps): JSX.Element {
   const rows = pipelineRows(stages.state);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [confirm, setConfirm] = useState<RowView | undefined>(undefined);
@@ -165,12 +179,60 @@ export function PipelineSidebar({ stages, onOpen, onBrief }: PipelineSidebarProp
   const now = useSecondTick((stages.state?.running ?? null) !== null);
   const selected = rows.find((row) => row.spec.id === selectedId) ?? defaultRow(rows);
   const hint = nextStep(rows);
+  const wordsRow = rows.find((row) => row.spec.id === 'words');
 
   const report = (promise: Promise<{ status: string; message: string | null }>): void => {
     setNotice(undefined);
     void promise.then((result) => {
       if (result.status === 'error') setNotice(result.message ?? 'That did not work.');
     });
+  };
+
+  // Words timed without whisper.cpp: hold the run, offer "Download and continue" (words-setup.ts).
+  const [held, setHeld] = useState<readonly PipelineStageKey[] | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+  const heldRef = useRef(held);
+  heldRef.current = held;
+  const runRef = useRef(stages.run);
+  runRef.current = stages.run;
+  const whisper = useWhisperSetup(
+    `${wordsRow?.status ?? ''}|${wordsRow?.error?.message ?? ''}`,
+    (end) => {
+      const waiting = heldRef.current;
+      if (end.job.kind !== 'setup' || end.phase !== 'done' || waiting === null) return;
+      setHeld(null);
+      void runRef.current(waiting);
+    },
+  );
+  const setupView = dismissed
+    ? ({ kind: 'hidden' } as const)
+    : wordsSetupView({
+        readiness: whisper.view.state?.readiness,
+        progress: whisper.view.progress,
+        held,
+        wordsError: wordsRow?.error ?? null,
+      });
+  const runChecked = (toRun: readonly PipelineStageKey[]): void => {
+    if (!needsWhisper(toRun)) {
+      report(stages.run(toRun));
+      return;
+    }
+    window.reelforge.getWhisperState(false).then(
+      (state) => {
+        if (state.readiness.ready) {
+          report(stages.run(toRun));
+          return;
+        }
+        setNotice(undefined);
+        setDismissed(false);
+        setHeld(toRun);
+        whisper.reload(false);
+      },
+      (reason: unknown) => {
+        log.warn(`whisper readiness check failed: ${errorMessage(reason)}`);
+        report(stages.run(toRun));
+      },
+    );
   };
 
   return (
@@ -222,6 +284,22 @@ export function PipelineSidebar({ stages, onOpen, onBrief }: PipelineSidebarProp
           </li>
         ))}
       </ol>
+      <WordsSetupNotice
+        view={setupView}
+        onDownload={() => {
+          setDismissed(false);
+          if (heldRef.current === null) setHeld(wordsRow?.redoStages ?? ['words']);
+          whisper.start({ kind: 'setup' });
+        }}
+        onCancel={whisper.cancel}
+        onDismiss={() => {
+          setDismissed(true);
+          setHeld(null);
+        }}
+        onOpenSettings={() => {
+          onOpenSettings?.();
+        }}
+      />
       {selected && (
         <>
           <div className="stage-actions" role="group" aria-label={`${selected.spec.label} actions`}>
@@ -265,7 +343,7 @@ export function PipelineSidebar({ stages, onOpen, onBrief }: PipelineSidebarProp
                 action={selected.run}
                 primary
                 onClick={() => {
-                  report(stages.run(selected.runStages));
+                  runChecked(selected.runStages);
                 }}
               />
             )}
@@ -293,7 +371,7 @@ export function PipelineSidebar({ stages, onOpen, onBrief }: PipelineSidebarProp
           }}
           onConfirm={() => {
             setConfirm(undefined);
-            report(stages.run(confirm.redoStages));
+            runChecked(confirm.redoStages);
           }}
         />
       )}

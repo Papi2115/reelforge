@@ -29,7 +29,7 @@ function syntaxErrorPosition(error: unknown): { line: number; column: number } {
   return { line: 1, column: 1 };
 }
 
-function parseScene(source: string, filename: string): Program | LintDiagnostic {
+export function parseScene(source: string, filename: string): Program | LintDiagnostic {
   try {
     return parse(source, {
       ecmaVersion: 'latest',
@@ -49,12 +49,9 @@ function parseScene(source: string, filename: string): Program | LintDiagnostic 
   }
 }
 
-/** Lints one scene module source. Diagnostics are sorted by position. */
-export function lintScene(source: string, options: LintSceneOptions): LintDiagnostic[] {
-  const program = parseScene(source, options.filename);
-  if (!('type' in program)) return [program];
-  const diagnostics: LintDiagnostic[] = [];
-  const report: Report = (node, details) => {
+/** A Report that collects diagnostics at the start of each node. */
+export function collectingReport(diagnostics: LintDiagnostic[]): Report {
+  return (node, details) => {
     diagnostics.push({
       rule: details.rule,
       severity: details.severity ?? 'error',
@@ -64,6 +61,14 @@ export function lintScene(source: string, options: LintSceneOptions): LintDiagno
       fix: details.fix,
     });
   };
+}
+
+/** Lints one scene module source. Diagnostics are sorted by position. */
+export function lintScene(source: string, options: LintSceneOptions): LintDiagnostic[] {
+  const program = parseScene(source, options.filename);
+  if (!('type' in program)) return [program];
+  const diagnostics: LintDiagnostic[] = [];
+  const report = collectingReport(diagnostics);
   const tree = analyzeScopes(program);
   const exports = collectExports(program, tree);
   checkContract(program, exports, tree, report);
