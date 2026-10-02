@@ -4,7 +4,10 @@
  * kills every child process tree on quit.
  */
 import { availableParallelism } from 'node:os';
-import { killTree } from '@reelforge/claude-bridge';
+import { killTree, PipelineStateStore } from '@reelforge/claude-bridge';
+import { writeCliShims } from '@reelforge/cli/shims';
+import { autocommit } from '@reelforge/project';
+import { VOICEOVER_EXTENSIONS } from '@reelforge/shared';
 import {
   app,
   BrowserWindow,
@@ -12,6 +15,7 @@ import {
   ipcMain,
   Menu,
   session,
+  shell,
   type OpenDialogOptions,
 } from 'electron';
 import { IPC_PUSH, type AppInfo } from '../shared/ipc-contract.js';
@@ -19,6 +23,7 @@ import {
   APP_NAME,
   APP_USER_MODEL_ID,
   appLayout,
+  cliShimDir,
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
@@ -26,6 +31,9 @@ import {
 } from './app-paths.js';
 import { registerAppSchemePrivileged, serveAppProtocol } from './app-protocol.js';
 import { createChildProcessRegistry } from './child-processes.js';
+import { chatHandlers } from './claude/chat-ipc.js';
+import { claudeSetup } from './claude/claude-runtime.js';
+import { ClaudeService } from './claude/claude-service.js';
 import { copyPngToClipboard } from './clipboard.js';
 import { loadDemoManifest } from './demo-manifest.js';
 import { saveFrameSnapshot } from './frame-snapshots.js';
@@ -40,6 +48,10 @@ import { applySessionSecurity, hardenAllWebContents } from './security.js';
 import { gpuSwitches } from './settings-consumers.js';
 import { createSettingsBackend, toolPickerOptions } from './settings-ipc.js';
 import { SettingsService } from './settings-service.js';
+import { ScriptDocuments } from './stages/script-documents.js';
+import { appRunnerFactory } from './stages/stage-runtime.js';
+import { StageService } from './stages/stage-service.js';
+import { stagesHandlers, type ReplacePick } from './stages/stages-ipc.js';
 import { timelineHandlers } from './timeline-ipc.js';
 import { createMainWindow } from './window.js';
 
@@ -113,6 +125,7 @@ function main(): void {
       log: watchLog,
       onChange: (event) => {
         mainWindow?.webContents.send(IPC_PUSH.projectChanged.name, event);
+        stages.refresh();
       },
     }),
   );
@@ -139,6 +152,8 @@ function main(): void {
     onCurrentChanged: (dir) => {
       projectWatcher.follow(dir);
       void renderBackend.followProject(dir);
+      void scriptDocuments.flush();
+      void stages.follow(dir);
     },
   });
 
@@ -163,6 +178,79 @@ function main(): void {
     log: log.child('settings'),
     now: () => performance.now(),
   });
+
+  const claude = new ClaudeService({
+    setup: claudeSetup({
+      layout,
+      shimDir: cliShimDir(userDataDir),
+      env: process.env,
+      execPath: process.execPath,
+      isPackaged: app.isPackaged,
+      platform: process.platform,
+      connection: () => settingsBackend.claude.state(false),
+      writeShims: writeCliShims,
+      log: log.child('claude'),
+    }),
+    settings: () => settings.get(),
+    currentProject: () => projects.currentProject()?.dir,
+    renderEnv: (dir) => renderBackend.serviceEnv(dir),
+    commit: (dir, message) => autocommit(dir, message, { kind: 'claude-turn' }),
+    push: (state) => {
+      mainWindow?.webContents.send(IPC_PUSH.chatChanged.name, state);
+    },
+    log: log.child('chat'),
+  });
+
+  const pipelineStore = new PipelineStateStore();
+  const stagesLog = log.child('stages');
+  const stages = new StageService({
+    createRunner: appRunnerFactory({
+      settings: () => settings.get(),
+      sessions: () => claude.sessionManager(),
+      guard: claude.guard,
+      store: pipelineStore,
+    }),
+    store: pipelineStore,
+    guard: claude.guard,
+    push: (state) => {
+      mainWindow?.webContents.send(IPC_PUSH.stagesChanged.name, state);
+    },
+    log: stagesLog,
+  });
+  const scriptDocuments = new ScriptDocuments({
+    store: pipelineStore,
+    currentProject: () => projects.currentProject()?.dir,
+    scriptBusy: (dir) => stages.isBusyWith(dir, 'script'),
+    commit: async (dir, message, step) => {
+      const committed = await autocommit(dir, message, { kind: 'manual', step });
+      if (!committed.ok)
+        stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+    },
+    afterChange: () => {
+      stages.refresh();
+    },
+    log: stagesLog,
+  });
+  const pickReplacement = async (kind: ReplacePick): Promise<string | undefined> => {
+    const options: OpenDialogOptions =
+      kind === 'script'
+        ? {
+            title: 'Use a script from a text file',
+            buttonLabel: 'Use this script',
+            filters: [{ name: 'Text', extensions: ['txt', 'md'] }],
+            properties: ['openFile'],
+          }
+        : {
+            title: 'Import a voice-over recording',
+            buttonLabel: 'Import',
+            filters: [{ name: 'Audio', extensions: [...VOICEOVER_EXTENSIONS] }],
+            properties: ['openFile'],
+          };
+    const picked = await (mainWindow
+      ? dialog.showOpenDialog(mainWindow, options)
+      : dialog.showOpenDialog(options));
+    return picked.canceled ? undefined : picked.filePaths[0];
+  };
 
   const appInfo = (): AppInfo => ({
     name: APP_NAME,
@@ -204,6 +292,15 @@ function main(): void {
       ...settingsBackend.handlers,
       exportStart: (request) => renderBackend.exports.start(request),
       exportCancel: () => Promise.resolve(renderBackend.exports.cancel()),
+      ...chatHandlers(claude),
+      ...stagesHandlers({
+        service: stages,
+        documents: scriptDocuments,
+        currentProject: () => projects.currentProject()?.dir,
+        pickFile: pickReplacement,
+        openPath: (file) => shell.openPath(file),
+        log: stagesLog,
+      }),
     },
     onRendererLog: (entry) => {
       log.child(`renderer:${entry.scope}`).log(entry.level, entry.message);
@@ -217,16 +314,24 @@ function main(): void {
   });
   let childrenKilled = false;
   app.on('before-quit', (event) => {
-    if (childrenKilled || children.size === 0) return;
+    const idle = children.size === 0 && !claude.busy && !stages.busy && !scriptDocuments.dirty;
+    if (childrenKilled || idle) return;
     event.preventDefault();
     childrenKilled = true;
-    log.info(`killing ${String(children.size)} child process tree(s) before quitting`);
-    void children.killAll().finally(() => {
+    log.info(`killing ${String(children.size)} child process tree(s) and Claude before quitting`);
+    void Promise.all([
+      children.killAll(),
+      stages.dispose().then(() => claude.dispose()),
+      scriptDocuments.flush(),
+    ]).finally(() => {
       app.quit();
     });
   });
   app.on('will-quit', () => {
     projectWatcher.close();
+    void scriptDocuments.flush();
+    void stages.dispose();
+    void claude.dispose();
     void renderBackend.dispose();
     settingsBackend.dispose();
     log.info('quit');

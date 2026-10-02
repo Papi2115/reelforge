@@ -25,9 +25,30 @@
   background: #000;
 }
 
+.preview-canvas-wrap {
+  position: relative;
+  line-height: 0;
+}
+
 .preview-canvas {
   image-rendering: pixelated;
   display: block;
+}
+
+.preview-canvas.pickable {
+  cursor: crosshair;
+}
+
+/* The object picked for the chat (PLAN.md#6.6). */
+.preview-marker {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 60%);
+  pointer-events: none;
 }
 
 .preview-status {

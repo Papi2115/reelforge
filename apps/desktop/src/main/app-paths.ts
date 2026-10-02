@@ -26,6 +26,10 @@ export interface AppLayout {
   readonly demoDir: string;
   /** Copy of templates/project (new video projects; made by the build scripts). */
   readonly projectTemplateDir: string;
+  /** Copy of the claude-bridge's PreToolUse bash guard (passed as `permissions.hookScriptPath`). */
+  readonly bashGuardHook: string;
+  /** The bundled `reelforge` CLI Claude runs (behind the PATH shims, PLAN.md#5.6). */
+  readonly cliBundle: string;
 }
 
 /** `appPath` is `app.getAppPath()`: the folder holding apps/desktop/package.json. */
@@ -36,6 +40,8 @@ export function appLayout(appPath: string): AppLayout {
     preloadFile: path.join(out, 'preload', 'preload.cjs'),
     demoDir: path.join(out, 'demo'),
     projectTemplateDir: path.join(out, 'template', 'project'),
+    bashGuardHook: path.join(out, 'resources', 'bash-guard.mjs'),
+    cliBundle: path.join(out, 'cli', 'reelforge.mjs'),
   };
 }
 
@@ -54,6 +60,17 @@ export function settingsFile(userDataDir: string): string {
  * usual install dirs), so smoke tests can show the "not installed" wizard on any machine.
  */
 export const CLAUDE_SEARCH_DIR_ENV = 'REELFORGE_TEST_CLAUDE_DIR';
+
+/** Folder of the `reelforge` launchers put on the PATH of Claude's processes. */
+export function cliShimDir(userDataDir: string): string {
+  return path.join(userDataDir, 'bin');
+}
+
+/**
+ * Test hook (unpackaged runs only): JSON `{ "command": "...", "args": [...] }` used as the claude
+ * launcher of chat turns (smoke tests point it at tools/fake-claude; never a real model call).
+ */
+export const TEST_CLAUDE_LAUNCHER_ENV = 'REELFORGE_TEST_CLAUDE_LAUNCHER';
 
 export function logFile(userDataDir: string): string {
   return path.join(userDataDir, 'logs', 'main.log');

@@ -44,6 +44,22 @@
         }
       ]
     },
-    "sound-cues": "sfx: 4, ambience: 1, music: 0."
+    "sound-cues": "sfx: 4, ambience: 1, music: 0.",
+    "review-triage": {
+      "suspects": [
+        {
+          "shot": "s04_rainbow",
+          "reason": "last frame is almost uniform dark blue, nothing recognisable"
+        }
+      ]
+    },
+    "review-plan": {
+      "fixes": [
+        {
+          "shot": "s04_rainbow",
+          "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
+        }
+      ]
+    }
   }
 }

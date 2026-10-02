@@ -6,11 +6,47 @@
 import { z } from 'zod';
 import type { KitContext, KitMaterials } from './context.js';
 import { KitError } from './errors.js';
-import type { Disposable, KitObject, Three } from './object.js';
+import { isKitObject, type Disposable, type KitObject, type Three } from './object.js';
 import type { KitPalette, KitRng } from './types.js';
 import type { VoxelApi } from './voxel/api.js';
 
 export type KitKind = 'env' | 'prop' | 'fx';
+
+/**
+ * Where a kit object came from: `kit.<namespace>.<name>()`, its `index`-th call (0-based) in the
+ * shot. Stamped on every registry result so tools (the preview's object picking) can name what
+ * was clicked and point at the call in the scene source. Metadata only: never affects rendering.
+ */
+export interface KitOrigin {
+  readonly kind: KitKind;
+  readonly name: string;
+  readonly index: number;
+  /** The scene-facing call, e.g. `kit.props.calculator()`. */
+  readonly call: string;
+}
+
+const ORIGIN_KEY = 'reelforgeKitOrigin';
+const KIT_KINDS: readonly string[] = ['env', 'prop', 'fx'];
+
+function isKitOrigin(value: unknown): value is KitOrigin {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record['kind'] === 'string' &&
+    KIT_KINDS.includes(record['kind']) &&
+    typeof record['name'] === 'string' &&
+    typeof record['index'] === 'number' &&
+    typeof record['call'] === 'string'
+  );
+}
+
+/** The registry origin of a kit object (undefined for voxel meshes/groups and plain objects). */
+export function kitOriginOf(object: {
+  readonly userData: Record<string, unknown>;
+}): KitOrigin | undefined {
+  const value = object.userData[ORIGIN_KEY];
+  return isKitOrigin(value) ? value : undefined;
+}
 
 /** What a definition's build() receives besides its parsed params. */
 export interface KitTools {
@@ -117,7 +153,7 @@ export function bindRegistry<const Definitions extends readonly KitDefinition[]>
       const index = calls.get(definition.name) ?? 0;
       calls.set(definition.name, index + 1);
       const rng = context.rng.fork(`${definition.kind}:${definition.name}:${String(index)}`);
-      return definition.build(parsed.data, {
+      const result = definition.build(parsed.data, {
         three: context.three,
         palette: context.palette,
         voxel,
@@ -125,6 +161,11 @@ export function bindRegistry<const Definitions extends readonly KitDefinition[]>
         materials: () => context.materials(),
         track: (resource) => context.track(resource),
       });
+      if (isKitObject(result)) {
+        const origin: KitOrigin = { kind: definition.kind, name: definition.name, index, call };
+        result.userData[ORIGIN_KEY] = origin;
+      }
+      return result;
     };
     return [definition.name, factory] as const;
   });

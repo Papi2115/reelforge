@@ -6,7 +6,12 @@
 import { ECONOMY_MODEL, type ModelAlias, type Stage } from '@reelforge/claude-bridge';
 import { loadPrompt, type PromptId } from './catalog.js';
 
-/** Bridge stage whose permissions a prompt runs under (1:1: every prompt has its own stage). */
+/**
+ * Bridge stage whose permissions (and model setting, usage bucket) a prompt runs under. The
+ * pipeline prompts map 1:1 to the stage of the same name; the whole-video review prompts reuse
+ * the closest one: triage looks at frames like the critic (Haiku, read-only), the fix plan is
+ * planning work like the storyboard (Sonnet).
+ */
 export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   research: 'research',
   script: 'script',
@@ -15,6 +20,8 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   'scene-fix': 'scene-fix',
   critic: 'critic',
   'sound-cues': 'sound-cues',
+  'review-triage': 'critic',
+  'review-plan': 'storyboard',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

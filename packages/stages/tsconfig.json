@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../shared" },
+    { "path": "../engine" },
+    { "path": "../kit" },
+    { "path": "../cli" },
+    { "path": "../claude-bridge" },
+    { "path": "../pipeline" },
+    { "path": "../project" },
+    { "path": "../prompts" },
+    { "path": "../../tools/fake-claude" }
+  ]
+}

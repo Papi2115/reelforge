@@ -209,23 +209,23 @@ reelforge/
 - [x] **6.3** [O] Layout: lewy panel (pipeline + shoty), środek (podgląd), prawy (czat Claude), dół (timeline). Ciemny motyw jak w referencji. — AC: responsywny od 1280 px.
 - [x] **6.4** [O] Odtwarzacz: zegar nadrzędny = element audio, scrub z dźwiękiem, 0.5×–2×, snapshot klatki, **hot-reload sceny** po zmianie pliku (przebudowa tylko zmienionego shotu). — AC: edycja sceny widoczna w podglądzie < 1 s.
 - [x] **6.5** [O] Timeline (Shots/Narration/Cues/Audio/Cards/Ambience): zoom, zaznaczanie, przesuwanie granic shotów z przyciąganiem do słów, edycja cue'ów, waveform. — AC: przesunięcie granicy aktualizuje `storyboard.json`.
-- [ ] **6.6** [O] Panel czatu: zakresy Selection/Shot/Whole video, **klik w podglądzie → wybór obiektu** (raycast → id/kontekst do Claude'a), kolejka, Stop, chipsy sugestii, log kroków z miniaturami klatek. — AC: zmiana "zrób ten element większy" na zaznaczonym obiekcie działa end-to-end.
+- [x] **6.6** [O] Panel czatu: zakresy Selection/Shot/Whole video, **klik w podglądzie → wybór obiektu** (raycast → id/kontekst do Claude'a), kolejka, Stop, chipsy sugestii, log kroków z miniaturami klatek. — AC: zmiana "zrób ten element większy" na zaznaczonym obiekcie działa end-to-end.
 - [x] **6.7** [O] Settings: Połącz Claude (§2.1), model per etap, tryb Economy, styl, język, wydajność (workery/GPU), ścieżki ffmpeg/whisper. — AC: zmiany zapisują się i działają.
-- [ ] **6.8** [O] Sidebar pipeline'u: statusy etapów + przyciski Open/Replace/Run/Redo, blokady zależności (nie zbudujesz scen bez storyboardu). — AC: kolejność etapów wymuszona.
+- [x] **6.8** [O] Sidebar pipeline'u: statusy etapów + przyciski Open/Replace/Run/Redo, blokady zależności (nie zbudujesz scen bez storyboardu). — AC: kolejność etapów wymuszona.
 
 ### Faza 7 — Orkiestracja etapów
-- [ ] **7.1** [O+S] **Brief → scenariusz**: formularz (temat, długość, ton, odbiorca, język, uwagi) → research (źródła) → beat sheet → `script.txt`; licznik słów i szacunek czasu (150 wpm); edytor ze zmianami; bramka akceptacji. — AC: z 3-zdaniowego briefu powstaje skrypt ze źródłami.
+- [x] **7.1** [O+S] **Brief → scenariusz**: formularz (temat, długość, ton, odbiorca, język, uwagi) → research (źródła) → beat sheet → `script.txt`; licznik słów i szacunek czasu (150 wpm); edytor ze zmianami; bramka akceptacji. — AC: z 3-zdaniowego briefu powstaje skrypt ze źródłami.
 - [ ] **7.2** [O] Voiceover: import (wav/mp3/m4a) i nagrywanie w aplikacji; Replace; raport rozbieżności VO↔skrypt. — AC: wymiana VO → `Words timed` do ponownego uruchomienia, sceny zachowują anchory.
-- [ ] **7.3** [S] **Storyboard**: skrypt + words + styl + katalog kitu → `storyboard.json` (shoty na anchorach, treatment, intent, propsy, kamera, paleta, cues; zmiana wzorca wizualnego co ≤ 6–8 s; lista "brakujących propsów"). — AC: walidacja zod + brak 3× tego samego treatmentu z rzędu.
-- [ ] **7.4** [O] **Budowa scen**: pakiet per shot (współbieżność 2, dostosowana do limitów), każdy kończy lint + smoke-frames + Haiku-krytyk; retry ≤ 2; brakujący prop → najpierw dobudowanie do kitu (z testem). — AC: 8-shotowy film buduje się bez ręcznej interwencji.
-- [ ] **7.5** [O+H] Krytycy klatek: sprawdzenia programowe + Haiku JSON (§4.4). — AC: wykrywa celowo zepsute fixture'y (pusta klatka, ucięty tekst, nakładające się karty).
+- [x] **7.3** [S] **Storyboard**: skrypt + words + styl + katalog kitu → `storyboard.json` (shoty na anchorach, treatment, intent, propsy, kamera, paleta, cues; zmiana wzorca wizualnego co ≤ 6–8 s; lista "brakujących propsów"). — AC: walidacja zod + brak 3× tego samego treatmentu z rzędu.
+- [x] **7.4** [O] **Budowa scen**: pakiet per shot (współbieżność 2, dostosowana do limitów), każdy kończy lint + smoke-frames + Haiku-krytyk; retry ≤ 2; brakujący prop → najpierw dobudowanie do kitu (z testem). — AC: 8-shotowy film buduje się bez ręcznej interwencji.
+- [x] **7.5** [O+H] Krytycy klatek: sprawdzenia programowe + Haiku JSON (§4.4). — AC: wykrywa celowo zepsute fixture'y (pusta klatka, ucięty tekst, nakładające się karty).
 - [ ] **7.6** [S] **Review całego filmu**: contact sheety (3 klatki/shot) → Haiku triage → Sonnet plan poprawek → Opus naprawy. Chipsy: "Review the whole video and fix what looks wrong", "Make all on-screen text easier to read on a phone", "Check every visual lands on its spoken word". — AC: akcje działają z zakresu Whole video.
 - [ ] **7.7** [O] Raport synchronizacji (anchory ±150 ms). — AC: raport per shot w UI.
 
 ### Faza 8 — Sound design
-- [ ] **8.1** [S] Generowanie `cues.json` ze storyboardu (hity na anchorach, whoosh na przejściach, ambient per scena, muzyka per akt). — AC: walidacja zod.
+- [x] **8.1** [S] Generowanie `cues.json` ze storyboardu (hity na anchorach, whoosh na przejściach, ambient per scena, muzyka per akt). — AC: walidacja zod.
 - [ ] **8.2** [O] UI: biblioteka SFX (synth + własne pliki), ścieżki Cues/Ambience/Audio na timeline, suwaki ducking/głośności, odsłuch miksu w podglądzie. — AC: edycja cue'a słyszalna w podglądzie.
-- [ ] **8.3** [O] Etap "Sound design mixed": render `mix.wav`, kontrola LUFS/true peak. — AC: −14 LUFS ±1, TP ≤ −1 dB.
+- [x] **8.3** [O] Etap "Sound design mixed": render `mix.wav`, kontrola LUFS/true peak. — AC: −14 LUFS ±1, TP ≤ −1 dB.
 
 ### Faza 9 — Eksport i paczka
 - [ ] **9.1** [O] Dialog eksportu: preset (1080p30/1440p/4K), kodek/enkoder, kolejka, postęp, wznawianie. — AC: eksport 10-min filmu < 20 min na laptopie z GPU (cel; zmierzony wynik w `docs/perf.md`).

@@ -119,6 +119,38 @@ function setup(): {
       ...settingsStubs(record),
       exportStart: (request) => record(request, { status: 'no-project' } as const),
       exportCancel: (request) => record(request, false),
+      chatState: (request) =>
+        record(request, {
+          projectDir: null,
+          turns: [],
+          queue: [],
+          running: null,
+          pause: null,
+          notice: null,
+        }),
+      chatSend: (request) => record(request, { status: 'queued', turnId: 't1' } as const),
+      chatRemove: (request) => record(request, false),
+      chatStop: (request) => record(request, false),
+      chatResume: (request) => record(request, null),
+      stagesState: (request) =>
+        record(request, { projectDir: null, stages: [], running: null, queue: [], pause: null }),
+      stagesRun: (request) => record(request, { status: 'queued', message: null } as const),
+      stagesStop: (request) => record(request, false),
+      stagesReplace: (request) => record(request, { status: 'cancelled', message: null } as const),
+      stagesOpen: (request) => record(request, { status: 'ok', message: null } as const),
+      briefGet: (request) => record(request, { brief: null, error: null }),
+      briefSave: (request) => record(request, { status: 'ok', message: null } as const),
+      scriptGet: (request) =>
+        record(request, {
+          script: null,
+          research: null,
+          beats: null,
+          sources: [],
+          targetMinutes: null,
+          report: null,
+        }),
+      scriptSave: (request) => record(request, { status: 'ok', message: null } as const),
+      scriptApprove: (request) => record(request, { status: 'ok', message: null } as const),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),
@@ -235,6 +267,38 @@ describe('registerIpc', () => {
       ipc.invoke(IPC.claudeStatus.name, APP_URL, { refresh: true }),
     ).resolves.toMatchObject({ state: 'not-installed' });
     expect(calls).toEqual([patch, { refresh: true }]);
+  });
+
+  it('validates stage requests: stage and artifact names only, never paths', async () => {
+    const { ipc, calls } = setup();
+    await expect(
+      ipc.invoke(IPC.stagesRun.name, APP_URL, { stages: ['sound-cues', 'mix'] }),
+    ).resolves.toEqual({ status: 'queued', message: null });
+    await expect(
+      ipc.invoke(IPC.stagesOpen.name, APP_URL, { artifact: 'video' }),
+    ).resolves.toMatchObject({ status: 'ok' });
+    const bad: [string, unknown][] = [
+      [IPC.stagesRun.name, { stages: [] }],
+      [IPC.stagesRun.name, { stages: ['render'] }],
+      [IPC.stagesRun.name, { stages: ['script'], source: 'C:\\evil.wav' }],
+      [IPC.stagesOpen.name, { artifact: 'C:\\Windows\\calc.exe' }],
+      [IPC.stagesReplace.name, { stage: 'words' }],
+      [
+        IPC.briefSave.name,
+        { topic: ' ', language: 'en', targetMinutes: 1, tone: '', audience: '', notes: '' },
+      ],
+      [
+        IPC.briefSave.name,
+        { topic: 'x', language: 'de', targetMinutes: 1, tone: '', audience: '', notes: '' },
+      ],
+      [IPC.scriptSave.name, { text: 'x', file: 'other.txt' }],
+    ];
+    for (const [channel, payload] of bad) {
+      await expect(ipc.invoke(channel, APP_URL, payload), channel).rejects.toThrow(
+        'invalid request',
+      );
+    }
+    expect(calls).toEqual([{ stages: ['sound-cues', 'mix'] }, { artifact: 'video' }]);
   });
 
   it('forwards valid renderer log entries only', () => {

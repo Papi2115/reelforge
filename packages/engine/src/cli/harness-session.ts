@@ -6,7 +6,7 @@
 import { createHash } from 'node:crypto';
 import { chromium, type Browser, type Page } from 'playwright';
 import type { RenderManifest, SceneSource } from '@reelforge/shared';
-import type { ReelforgeHarness } from '../harness/protocol.js';
+import type { PickInfo, ReelforgeHarness } from '../harness/protocol.js';
 import type { LoadInfo } from '../runtime.js';
 import type { CardDiagnostic } from '../text/check-cards.js';
 import { buildHarness } from './build-harness.js';
@@ -24,6 +24,8 @@ export interface HarnessPage {
   checkCards(shotId: string): Promise<readonly CardDiagnostic[]>;
   /** Hot reload of one shot of the loaded video (PLAN.md#6.4). */
   reloadShot(shotId: string, scene: SceneSource): Promise<LoadInfo>;
+  /** Object at normalized frame point (x, y) at global time t (PLAN.md#6.6); null = background. */
+  pick(x: number, y: number, t: number): Promise<PickInfo | null>;
   /** Console errors and uncaught page errors (host page and engine frame). */
   readonly errors: readonly string[];
   close(): Promise<void>;
@@ -83,6 +85,11 @@ function wrapPage(page: Page): HarnessPage {
         (input) =>
           (window as unknown as HarnessWindow).__reelforge.reloadShot(input.shotId, input.scene),
         { shotId, scene },
+      ),
+    pick: (x, y, t) =>
+      page.evaluate(
+        (input) => (window as unknown as HarnessWindow).__reelforge.pick(input.x, input.y, input.t),
+        { x, y, t },
       ),
     errors,
     close: () => page.close(),

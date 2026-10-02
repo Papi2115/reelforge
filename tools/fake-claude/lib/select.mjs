@@ -13,9 +13,16 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
  * @property {number} [resetsAt]
  * @property {number} [exitCode]
  * @property {FileWrite[]} [writes]   files written by the `tools-write` scenario (relative to cwd)
+ * @property {ToolCall[]} [toolCalls]  extra tool calls `tools-write` announces before its writes
  */
 
 /** @typedef {{ path: string, content: string }} FileWrite */
+
+/**
+ * A tool call replayed as tool_use + tool_result (nothing is executed). `{cwd}` in string inputs
+ * and in the output is replaced by the process cwd.
+ * @typedef {{ name: string, input: Record<string, unknown>, output: string, isError: boolean }} ToolCall
+ */
 
 /** @typedef {StepOverrides & { scenario: string }} Step */
 
@@ -50,6 +57,27 @@ function toWrites(value, where) {
 /**
  * @param {unknown} value
  * @param {string} where
+ * @returns {ToolCall[]}
+ */
+function toToolCalls(value, where) {
+  if (!Array.isArray(value)) throw new Error(`${where}: "toolCalls" must be an array`);
+  return /** @type {unknown[]} */ (value).map((entry) => {
+    const record = asRecord(entry);
+    const name = record?.['name'];
+    const input = asRecord(record?.['input']);
+    const output = record?.['output'];
+    if (typeof name !== 'string' || input === undefined || typeof output !== 'string') {
+      throw new Error(
+        `${where}: each tool call needs string "name", object "input", string "output"`,
+      );
+    }
+    return { name, input, output, isError: record?.['isError'] === true };
+  });
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} where
  * @returns {Step}
  */
 function toStep(value, where) {
@@ -71,6 +99,8 @@ function toStep(value, where) {
   }
   const writes = record['writes'];
   if (writes !== undefined) step.writes = toWrites(writes, where);
+  const toolCalls = record['toolCalls'];
+  if (toolCalls !== undefined) step.toolCalls = toToolCalls(toolCalls, where);
   return step;
 }
 

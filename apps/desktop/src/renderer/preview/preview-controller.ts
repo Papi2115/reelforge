@@ -5,7 +5,7 @@
  * Loads and hot reloads (PLAN.md#6.4) run one at a time; a hot reload rebuilds only the shots
  * whose scene source changed and keeps the video playing, a failed one keeps the previous shot.
  */
-import type { LoadInfo, ReelforgeHarness } from '@reelforge/engine';
+import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
 import type { RenderManifest, SceneSource } from '@reelforge/shared';
 import { planReload } from './reload-plan.js';
 
@@ -110,6 +110,18 @@ export class PreviewController {
     });
     this.requestSeek(t);
     return drawn;
+  }
+
+  /**
+   * Object under normalized frame point (x, y) at global time t (PLAN.md#6.6); null when no video
+   * is loaded or nothing is there. Waits for a running load / hot reload.
+   */
+  pick(x: number, y: number, t: number): Promise<PickInfo | null> {
+    return this.runExclusive(async () => {
+      const info = this.info;
+      if (!info) return null;
+      return this.harness.pick(x, y, Math.min(Math.max(t, 0), info.duration));
+    });
   }
 
   /** Id of the shot shown at global time t, if a video is loaded. */

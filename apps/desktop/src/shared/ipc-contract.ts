@@ -40,8 +40,10 @@ import {
   type SnapshotSaveRequest,
   type SnapshotSaveResult,
 } from './player-contract.js';
+import { CHAT_IPC, CHAT_PUSH, type ChatApi } from './chat-contract.js';
 import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
 import { SETTINGS_IPC, SETTINGS_PUSH, type SettingsApi } from './settings-contract.js';
+import { STAGES_IPC, STAGES_PUSH, type StagesApi } from './stages-contract.js';
 import {
   timelineEditRequestSchema,
   timelineEditResultSchema,
@@ -186,6 +188,10 @@ export const IPC = {
   ...SETTINGS_IPC,
   /** Video export of the open project (hidden render windows + ffmpeg). */
   ...EXPORT_IPC,
+  /** Claude chat panel (PLAN.md#6.6). */
+  ...CHAT_IPC,
+  /** Pipeline sidebar and the Brief -> Script documents (PLAN.md#6.8, #7.1). */
+  ...STAGES_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -198,6 +204,8 @@ export const IPC_PUSH = {
   projectChanged: { name: 'project:changed', payload: projectChangedSchema },
   ...SETTINGS_PUSH,
   ...EXPORT_PUSH,
+  ...CHAT_PUSH,
+  ...STAGES_PUSH,
 } as const satisfies Record<string, SendChannel<z.ZodType>>;
 
 export type InvokeChannels = typeof IPC;
@@ -206,7 +214,7 @@ export type RequestOf<Key extends InvokeChannelKey> = z.infer<InvokeChannels[Key
 export type ResponseOf<Key extends InvokeChannelKey> = z.infer<InvokeChannels[Key]['response']>;
 
 /** The API preload exposes on `window.reelforge`. */
-export interface ReelforgeApi extends SettingsApi, ExportApi {
+export interface ReelforgeApi extends SettingsApi, ExportApi, ChatApi, StagesApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;

@@ -1,4 +1,4 @@
-import type { LoadInfo, ReelforgeHarness } from '@reelforge/engine';
+import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
 import type { RenderManifest, SceneSource } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { PreviewController } from './preview-controller.js';
@@ -61,6 +61,20 @@ class ManualHarness implements ReelforgeHarness {
     if (this.failReload !== undefined) return Promise.reject(new Error(this.failReload));
     return Promise.resolve(INFO);
   }
+  /** `x,y,t` of every pick call. */
+  readonly picks: string[] = [];
+  pick(x: number, y: number, t: number): Promise<PickInfo | null> {
+    this.picks.push(`${String(x)},${String(y)},${String(t)}`);
+    return Promise.resolve({
+      kind: 'kit',
+      shotId: 's00',
+      t,
+      localTime: t,
+      name: 'calculator',
+      id: 'props.calculator#0',
+      description: 'calculator',
+    });
+  }
   async releaseNext(): Promise<void> {
     this.release.shift()?.();
     // Let the controller's await continuation run.
@@ -71,6 +85,18 @@ class ManualHarness implements ReelforgeHarness {
 }
 
 describe('PreviewController', () => {
+  it('picks objects only once a video is loaded, at the clamped time', async () => {
+    const harness = new ManualHarness();
+    const controller = new PreviewController(harness, { draw: () => undefined }, () => {
+      throw new Error('unexpected error');
+    });
+    expect(await controller.pick(0.5, 0.5, 1)).toBeNull();
+    await controller.load(MANIFEST);
+    const picked = await controller.pick(0.25, 0.75, 9);
+    expect(picked?.name).toBe('calculator');
+    expect(harness.picks).toEqual(['0.25,0.75,5']);
+  });
+
   it('ignores seeks before load and clamps to the video', async () => {
     const harness = new ManualHarness();
     const drawn: number[] = [];

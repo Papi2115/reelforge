@@ -88,6 +88,20 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         styleId,
       });
     }
+    case 'review-triage':
+      return ok({
+        imagePaths: file.critic.imagePaths.join(', '),
+        shots: evalCase.storyboard.shots.map((shot) => ({ id: shot.id, intent: shot.intent })),
+        styleId,
+      });
+    case 'review-plan': {
+      const shot = findShot(evalCase, file.critic.shotId);
+      if (!shot.ok) return shot;
+      return ok({
+        request: 'Review the whole video and fix what looks wrong.',
+        suspects: [{ shot: shot.value.id, reason: 'the last frame looks almost blank' }],
+      });
+    }
   }
 }
 

@@ -88,6 +88,47 @@ describe('fake-claude tools-write', () => {
     );
   });
 
+  it('replays toolCalls (with {cwd} filled in) before the writes', async () => {
+    const cwd = tempDir();
+    const run = await runWithScript(cwd, {
+      version: 1,
+      default: {
+        scenario: 'tools-write',
+        toolCalls: [
+          {
+            name: 'Bash',
+            input: { command: 'reelforge frames --shot s02' },
+            output: 'frames:\n  {cwd}/.reelforge/frames/s02/a.png',
+          },
+          { name: 'Read', input: { file_path: '{cwd}/x.png' }, output: 'no', isError: true },
+        ],
+        writes: [{ path: 'a.txt', content: 'a' }],
+      },
+    });
+    expect(run.code).toBe(0);
+    const uses = toolUses(run);
+    expect(uses.map((use) => use['name'])).toEqual(['Bash', 'Read', 'Write']);
+    expect((uses[1]?.['input'] as { file_path: string }).file_path).toBe(`${cwd}/x.png`);
+    const results = run.events.flatMap((event) => {
+      const message = event['message'] as { content?: Record<string, unknown>[] } | undefined;
+      return (message?.content ?? []).filter((block) => block['type'] === 'tool_result');
+    });
+    expect(results[0]?.['content']).toBe(`frames:\n  ${cwd}/.reelforge/frames/s02/a.png`);
+    expect(results[1]?.['is_error']).toBe(true);
+  });
+
+  it('paces its lines with delayMs (files are written before the first line)', async () => {
+    const cwd = tempDir();
+    const started = performance.now();
+    const run = await runWithScript(cwd, {
+      version: 1,
+      default: { scenario: 'tools-write', delayMs: 60, writes: [{ path: 'a.txt', content: 'a' }] },
+    });
+    expect(run.code).toBe(0);
+    // init, Write, result line, rate limit, text, result: >= 5 pauses.
+    expect(performance.now() - started).toBeGreaterThanOrEqual(5 * 60);
+  });
+
   it('refuses a write that leaves the cwd (exit 1, nothing written)', async () => {
     const cwd = tempDir();
     const run = await runWithScript(cwd, {

@@ -28,6 +28,11 @@ export interface ReelforgeHarness {
    * previous version of the shot in place. Seek again to see the change.
    */
   reloadShot(shotId: string, scene: SceneSource): Promise<LoadInfo>;
+  /**
+   * Object picking (PLAN.md#6.6): what is at normalized frame point (x, y) (0..1, top-left) at
+   * global time t; null = background. Renders nothing; `frame()` keeps the last seeked frame.
+   */
+  pick(x: number, y: number, t: number): Promise<PickInfo | null>;
 }
 
 export const readyMessageSchema = z.object({
@@ -61,6 +66,14 @@ export const requestSchema = z.discriminatedUnion('method', [
     method: z.literal('reloadShot'),
     shotId: z.string(),
     scene: z.unknown(),
+  }),
+  z.object({
+    channel: z.literal(RPC_CHANNEL),
+    id: z.int(),
+    method: z.literal('pick'),
+    x: z.number(),
+    y: z.number(),
+    t: z.number(),
   }),
 ]);
 export type RpcRequest = z.infer<typeof requestSchema>;
@@ -97,6 +110,28 @@ export const cardDiagnosticSchema = z.object({
   fix: z.string(),
 });
 
+const vec3Schema = z.tuple([z.number(), z.number(), z.number()]);
+
+export const pickResultSchema = z.object({
+  kind: z.enum(['kit', 'object', 'text']),
+  shotId: z.string(),
+  t: z.number(),
+  localTime: z.number(),
+  name: z.string(),
+  id: z.string(),
+  kitKind: z.enum(['env', 'prop', 'fx']).optional(),
+  call: z.string().optional(),
+  occurrence: z.int().optional(),
+  sceneName: z.string().optional(),
+  parent: z.string().optional(),
+  position: vec3Schema.optional(),
+  size: vec3Schema.optional(),
+  description: z.string(),
+});
+
+/** A pick result as it crosses the frame boundary (PickResult of the runtime, validated). */
+export type PickInfo = z.infer<typeof pickResultSchema>;
+
 export const errorDataSchema = z.object({
   code: z.enum(ENGINE_ERROR_CODES),
   message: z.string(),
@@ -131,6 +166,13 @@ export const responseSchema = z.union([
     ok: z.literal(true),
     method: z.literal('reloadShot'),
     result: loadInfoSchema,
+  }),
+  z.object({
+    channel: z.literal(RPC_CHANNEL),
+    id: z.int(),
+    ok: z.literal(true),
+    method: z.literal('pick'),
+    result: pickResultSchema.nullable(),
   }),
   z.object({
     channel: z.literal(RPC_CHANNEL),

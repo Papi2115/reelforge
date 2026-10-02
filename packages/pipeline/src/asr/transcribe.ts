@@ -67,11 +67,30 @@ export interface TranscribeOptions {
   /** Overrides the model's DTW lead (seconds); keep measured values in config. */
   readonly dtwLeadS?: number | undefined;
   readonly threads?: number | undefined;
+  /**
+   * Decoder overrides for a retry after a poor result (spike 03 retry policy: `-bs 5 -tp 0.2`):
+   * whisper-cli `--beam-size` / `--temperature`.
+   */
+  readonly decoding?: WhisperDecoding | undefined;
   readonly chunking?: ChunkPlanOptions | undefined;
   /** When set, words.raw.json is written here atomically. */
   readonly outPath?: string | undefined;
   readonly signal?: AbortSignal | undefined;
   readonly onProgress?: ((progress: TranscribeProgress) => void) | undefined;
+}
+
+export interface WhisperDecoding {
+  readonly beamSize?: number | undefined;
+  /** Sampling temperature 0..1. */
+  readonly temperature?: number | undefined;
+}
+
+/** `-bs N` / `-tp N` for the decode call (flags as listed by `whisper-cli --help`, b5130). */
+export function decodingArgs(decoding: WhisperDecoding | undefined): string[] {
+  const args: string[] = [];
+  if (decoding?.beamSize !== undefined) args.push('-bs', String(decoding.beamSize));
+  if (decoding?.temperature !== undefined) args.push('-tp', String(decoding.temperature));
+  return args;
 }
 
 export interface TranscribeContext {
@@ -353,6 +372,7 @@ async function transcribe(
       '-nfa',
       '-dtw',
       ctx.model.dtwPreset,
+      ...decodingArgs(options.decoding),
       ...gpuArgs(attempt),
       ...files.value,
     ],

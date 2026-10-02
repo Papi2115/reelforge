@@ -59,11 +59,16 @@ export class ClaudeConnectionService {
   constructor(private readonly options: ClaudeConnectionOptions) {}
 
   async status(refresh: boolean): Promise<ClaudeStatus> {
+    return toClaudeStatus(await this.state(refresh));
+  }
+
+  /** The raw connection state (with the launcher when connected), cached like `status`. */
+  async state(refresh: boolean): Promise<ConnectionState> {
     const cached = this.last;
     if (!refresh && cached !== undefined && this.options.now() - cached.at < CLAUDE_STATUS_TTL_MS) {
-      return toClaudeStatus(cached.state);
+      return cached.state;
     }
-    return toClaudeStatus(await this.check());
+    return this.check();
   }
 
   private check(): Promise<ConnectionState> {

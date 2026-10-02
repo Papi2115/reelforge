@@ -6,7 +6,8 @@ import { KitError } from './errors.js';
 import { createKitContext } from './context.js';
 import { createKit, kitCatalog } from './kit.js';
 import { isKitObject } from './object.js';
-import { bindRegistry, catalogEntries, defineProp } from './registry.js';
+import { bindRegistry, catalogEntries, defineProp, kitOriginOf } from './registry.js';
+import { CRISP_PALETTE } from './testing/palettes.js';
 import { testRng } from './testing/rng.js';
 import { KIT_VERSION } from './version.js';
 import { createVoxelApi } from './voxel/api.js';
@@ -180,6 +181,24 @@ describe('registry', () => {
     expect(first.userData['roll']).not.toBe(second.userData['roll']);
     expect(bound().props.crate().userData['roll']).toBe(first.userData['roll']);
     expect(() => props.crate({ size: 0 })).toThrow(/kit\.props\.crate\(\): invalid params \(size:/);
+  });
+
+  it('stamps every result with its origin (call and per-shot call index)', () => {
+    const { props } = bound();
+    const first = props.crate();
+    const second = props.crate();
+    expect(kitOriginOf(first)).toEqual({
+      kind: 'prop',
+      name: 'crate',
+      index: 0,
+      call: 'kit.props.crate()',
+    });
+    expect(kitOriginOf(second)?.index).toBe(1);
+    expect(kitOriginOf(new THREE.Group())).toBeUndefined();
+    first.userData['reelforgeKitOrigin'] = { kind: 'nope' };
+    expect(kitOriginOf(first)).toBeUndefined();
+    const crisp = createKit({ three: THREE, palette: CRISP_PALETTE, rng: testRng(1) });
+    expect(kitOriginOf(crisp.api.props.calculator())?.call).toBe('kit.props.calculator()');
   });
 
   it('is sealed together with the kit', () => {

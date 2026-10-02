@@ -45,6 +45,23 @@ export const stageStateSchema = z.object({
   status: stageRunStatusSchema,
   updatedAt: z.iso.datetime(),
   message: z.string().optional(),
+  /**
+   * An upstream stage produced new output after this one ran (e.g. the voice-over was replaced):
+   * the outputs still exist but should be redone. Cleared when the stage runs again.
+   */
+  stale: z.boolean().optional(),
+  /** Why the stage is stale, e.g. `voiceover changed`. */
+  staleReason: z.string().optional(),
+  /**
+   * The app closed while the stage was running (or waiting out a usage limit); it can be run again.
+   * Cleared when the stage runs again.
+   */
+  interrupted: z.boolean().optional(),
+  /**
+   * The user approved the stage's output (the script acceptance gate, PLAN.md#7.1); later stages
+   * wait for it. Cleared when the stage runs again.
+   */
+  approvedAt: z.iso.datetime().optional(),
 });
 export type StageState = z.infer<typeof stageStateSchema>;
 

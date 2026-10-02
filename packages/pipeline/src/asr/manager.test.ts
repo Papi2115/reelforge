@@ -205,6 +205,20 @@ describe('WhisperManager.transcribe', () => {
     expect(stages).toEqual(['prepare', 'vad', 'chunk', 'transcribe', 'write']);
   });
 
+  it('passes decoder overrides (-bs / -tp) of a retry to the decode call only', async () => {
+    const manager = await installFakeBuilds(['blas']);
+    const result = await manager.transcribe({
+      input: 'in.wav',
+      workDir: path.join(root, 'work'),
+      lang: 'en',
+      ffmpeg: fakeFfmpeg,
+      decoding: { beamSize: 5, temperature: 0.2 },
+    });
+    expect(result.ok).toBe(true);
+    const args = whisperCalls()[0]?.args ?? [];
+    expect(args).toEqual(expect.arrayContaining(['-bs', '5', '-tp', '0.2']));
+  });
+
   it('retries a failing GPU run with -ng', async () => {
     const manager = await installFakeBuilds(['cuda', 'blas']);
     fakeRunner.behaviour.failing.set('cuda', 'gpu');

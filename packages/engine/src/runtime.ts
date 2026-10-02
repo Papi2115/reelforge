@@ -13,6 +13,7 @@ import {
   type FrameRendererOptions,
   type GpuInfo,
 } from './gl/frame-renderer.js';
+import { pickInShot, type PickResult } from './pick.js';
 import { shotSeed } from './rng.js';
 import { toSceneModule } from './scene-module.js';
 import { buildShot, type BuiltShot } from './shot.js';
@@ -43,6 +44,12 @@ export interface EngineRuntime {
   readFrame(): Uint8Array<ArrayBuffer>;
   /** Text-card QA of one shot (overlaps, safe area), sampled every frame (PLAN.md §4.4). */
   checkCards(shotId: string): CardDiagnostic[];
+  /**
+   * What is at normalized frame point (x, y) (0..1, top-left origin) at global time t: a text
+   * card, a kit object or another scene object of the shot on screen; undefined = background.
+   * Evaluates the shot like seek() but renders nothing (PLAN.md#6.6).
+   */
+  pick(t: number, x: number, y: number): PickResult | undefined;
   /**
    * Re-imports and rebuilds one shot from new scene source (hot reload, PLAN.md#6.4); the other
    * shots, the timeline and the renderer are kept. On failure the previous shot stays in place.
@@ -185,6 +192,12 @@ export async function createRuntime(
       const frame = new Uint8Array(width * height * 4);
       frameRenderer.readFrame(frame);
       return frame;
+    },
+    pick(t, x, y) {
+      const { current } = sampleTimeline(timeline, t);
+      const shot = shotAt(current.index);
+      shot.update(current.localTime);
+      return pickInShot({ shot, width, height, x, y, t, localTime: current.localTime });
     },
     checkCards(shotId) {
       const shot = shots.find((candidate) => candidate.info.id === shotId);

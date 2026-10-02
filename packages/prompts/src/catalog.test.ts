@@ -37,11 +37,13 @@ describe('bundled prompts', () => {
     }
   });
 
-  it('cover every stage of PLAN.md#5.8', () => {
+  it('cover every stage of PLAN.md#5.8 and the whole-video review (#7.6)', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
         'critic',
         'research',
+        'review-plan',
+        'review-triage',
         'scene-build',
         'scene-fix',
         'script',
@@ -170,8 +172,13 @@ describe('stages and models', () => {
     }
   });
 
-  it('maps every prompt 1:1 to the bridge stage of the same name (web tools for research)', () => {
-    for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(id);
+  it('maps pipeline prompts 1:1 to the bridge stage of the same name (web tools for research)', () => {
+    const reuse: Partial<Record<string, string>> = {
+      'review-triage': 'critic',
+      'review-plan': 'storyboard',
+    };
+    for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
+    expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);
     expect(permissionsForStage('research', 'C:/project').allowedTools).toEqual(
       expect.arrayContaining(['WebSearch', 'WebFetch']),
     );

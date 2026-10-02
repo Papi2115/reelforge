@@ -4,6 +4,7 @@
  */
 import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { buildHarness, HARNESS_DIR } from '@reelforge/engine/cli';
 import react from '@vitejs/plugin-react';
 import { build, type BuildOptions } from 'esbuild';
@@ -129,6 +130,31 @@ export async function copyProjectTemplate(context: TaskContext): Promise<void> {
 }
 
 /**
+ * What chat turns need at runtime (PLAN.md#6.6): the claude-bridge's PreToolUse bash guard (main
+ * passes its path as `permissions.hookScriptPath`; a bundled main has no package folder) and the
+ * bundled `reelforge` CLI behind the PATH launchers (built by packages/cli/scripts/build.mjs).
+ */
+export async function copyClaudeResources(context: TaskContext): Promise<void> {
+  const out = appPaths(context).out;
+  await mkdir(path.join(out, 'resources'), { recursive: true });
+  await copyFile(
+    packageSource(context, 'claude-bridge', 'hooks', 'bash-guard.mjs'),
+    path.join(out, 'resources', 'bash-guard.mjs'),
+  );
+  const script = packageSource(context, 'cli', 'scripts', 'build.mjs');
+  const cliBuild: unknown = await import(pathToFileURL(script).href);
+  const buildCli: unknown =
+    typeof cliBuild === 'object' && cliBuild !== null
+      ? Reflect.get(cliBuild, 'buildCli')
+      : undefined;
+  if (typeof buildCli !== 'function') throw new Error(`${script} does not export buildCli()`);
+  const bundle: unknown = await (buildCli as () => Promise<unknown>)();
+  if (typeof bundle !== 'string') throw new Error('buildCli() did not return the bundle path');
+  await mkdir(path.join(out, 'cli'), { recursive: true });
+  await copyFile(bundle, path.join(out, 'cli', 'reelforge.mjs'));
+}
+
+/**
  * esbuild options for the main process (ESM: workspace code uses import.meta) and the preload
  * (CommonJS: sandboxed preloads cannot be ES modules).
  */
@@ -149,6 +175,9 @@ export function mainProcessBuilds(context: TaskContext): BuildOptions[] {
       '@reelforge/engine': packageSource(context, 'engine', 'src', 'index.ts'),
       '@reelforge/kit': packageSource(context, 'kit', 'src', 'index.ts'),
       '@reelforge/cli/service': packageSource(context, 'cli', 'src', 'service', 'index.ts'),
+      '@reelforge/cli/shims': packageSource(context, 'cli', 'src', 'shims.ts'),
+      '@reelforge/prompts': packageSource(context, 'prompts', 'src', 'index.ts'),
+      '@reelforge/stages': packageSource(context, 'stages', 'src', 'index.ts'),
     },
     logLevel: 'warning',
   };

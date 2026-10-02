@@ -54,6 +54,7 @@ export {
   type CleanReport,
   type CleanSkippedStep,
 } from './audio/report.js';
+export { parseMediaAudioInfo, type MediaAudioInfo } from './audio/measure.js';
 export { readJsonFile, writeJsonAtomic, type JsonFileError } from './schemas/json-file.js';
 export {
   AlignmentStatsSchema,
@@ -150,8 +151,10 @@ export {
   type WhisperTranscribeOptions,
 } from './asr/manager.js';
 export {
+  decodingArgs,
   type AsrFfmpeg,
   type ProcessRunner,
+  type WhisperDecoding,
   type TranscribeOptions,
   type TranscribeProgress,
   type TranscribeStage,

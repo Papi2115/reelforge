@@ -74,6 +74,17 @@ export interface FakeClaudeFileWrite {
   readonly content: string;
 }
 
+/**
+ * A tool call `tools-write` replays (tool_use + tool_result, nothing is executed) before its
+ * writes; `{cwd}` in string inputs and in `output` becomes the fake's cwd.
+ */
+export interface FakeClaudeToolCall {
+  readonly name: string;
+  readonly input: Readonly<Record<string, unknown>>;
+  readonly output: string;
+  readonly isError?: boolean;
+}
+
 /** One sidecar step (see README "Sidecar script"); its fields override the env knobs. */
 export interface FakeClaudeStep {
   readonly scenario: FakeClaudeScenario;
@@ -85,6 +96,8 @@ export interface FakeClaudeStep {
   readonly exitCode?: number;
   /** `tools-write` only: files to write, each announced as a Write tool_use + tool_result. */
   readonly writes?: readonly FakeClaudeFileWrite[];
+  /** `tools-write` only: tool calls replayed before the writes. */
+  readonly toolCalls?: readonly FakeClaudeToolCall[];
 }
 
 /** Sidecar JSON for `FAKE_CLAUDE_SCRIPT`. */

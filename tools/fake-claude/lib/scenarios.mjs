@@ -74,6 +74,7 @@ export const LIMIT_TEXT = "You've hit your usage limit · resets 5am (UTC)";
  * @property {number | undefined} exitCode       FAKE_CLAUDE_EXIT_CODE
  * @property {boolean} resumed                   `--resume` was given
  * @property {import('./select.mjs').FileWrite[] | undefined} writes  sidecar `writes` (tools-write)
+ * @property {import('./select.mjs').ToolCall[] | undefined} [toolCalls]  sidecar `toolCalls` (tools-write)
  */
 
 /**
@@ -154,8 +155,8 @@ export function buildPlan(scenario, context, options) {
       return { lines: adapt(toolsEscapeEvents(context)), exitCode: exit(0), lineDelayMs: 0 };
     case 'tools-write': {
       const files = resolveWrites(context.cwd, options.writes ?? []);
-      const events = toolsWriteEvents(context, files, options.reply ?? 'Done.');
-      return { lines: adapt(events), files, exitCode: exit(0), lineDelayMs: 0 };
+      const events = toolsWriteEvents(context, files, options.reply ?? 'Done.', options.toolCalls);
+      return { lines: adapt(events), files, exitCode: exit(0), lineDelayMs: options.delayMs ?? 0 };
     }
     case 'resume':
       return {

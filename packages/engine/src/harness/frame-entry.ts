@@ -65,6 +65,10 @@ async function handle(request: RpcRequest): Promise<void> {
     } else if (request.method === 'seek') {
       const frame = seek(request.t);
       post({ ...reply, ok: true, method: 'seek', result: { frame } }, [frame]);
+    } else if (request.method === 'pick') {
+      if (!runtime) throw new EngineError('not-loaded', 'pick() before a successful load()');
+      const result = runtime.pick(request.t, request.x, request.y) ?? null;
+      post({ ...reply, ok: true, method: 'pick', result });
     } else if (request.method === 'reloadShot') {
       const result = await reloadShot(request.shotId, request.scene);
       post({ ...reply, ok: true, method: 'reloadShot', result });

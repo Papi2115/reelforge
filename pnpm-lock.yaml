@@ -214,9 +214,15 @@ importers:
       '@reelforge/project':
         specifier: workspace:*
         version: link:../../packages/project
+      '@reelforge/prompts':
+        specifier: workspace:*
+        version: link:../../packages/prompts
       '@reelforge/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@reelforge/stages':
+        specifier: workspace:*
+        version: link:../../packages/stages
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -227,6 +233,9 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
+      '@reelforge/fake-claude':
+        specifier: workspace:*
+        version: link:../../tools/fake-claude
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
@@ -372,6 +381,43 @@ importers:
       zod:
         specifier: 4.6.5
         version: 4.6.5
+
+  packages/stages:
+    dependencies:
+      '@reelforge/claude-bridge':
+        specifier: workspace:*
+        version: link:../claude-bridge
+      '@reelforge/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@reelforge/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@reelforge/kit':
+        specifier: workspace:*
+        version: link:../kit
+      '@reelforge/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
+      '@reelforge/project':
+        specifier: workspace:*
+        version: link:../project
+      '@reelforge/prompts':
+        specifier: workspace:*
+        version: link:../prompts
+      '@reelforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      acorn:
+        specifier: 8.18.0
+        version: 8.18.0
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@reelforge/fake-claude':
+        specifier: workspace:*
+        version: link:../../tools/fake-claude
 
   spikes/02-render:
     devDependencies:

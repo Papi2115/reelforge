@@ -45,6 +45,22 @@
         }
       ]
     },
-    "sound-cues": "sfx: 6, ambience: 2, music: 0 (no files in audio/music/)."
+    "sound-cues": "sfx: 6, ambience: 2, music: 0 (no files in audio/music/).",
+    "review-triage": {
+      "suspects": [
+        {
+          "shot": "s04_engine",
+          "reason": "last frame is almost uniform dark blue, nothing recognisable"
+        }
+      ]
+    },
+    "review-plan": {
+      "fixes": [
+        {
+          "shot": "s04_engine",
+          "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
+        }
+      ]
+    }
   }
 }

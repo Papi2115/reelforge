@@ -98,7 +98,8 @@ export function createSandboxedHarness(options: SandboxedHarnessOptions): Reelfo
       | { method: 'load'; manifest: RenderManifest }
       | { method: 'seek'; t: number }
       | { method: 'cards'; shotId: string }
-      | { method: 'reloadShot'; shotId: string; scene: SceneSource },
+      | { method: 'reloadShot'; shotId: string; scene: SceneSource }
+      | { method: 'pick'; x: number; y: number; t: number },
   ): Promise<RpcResponse> {
     await ready;
     const target = iframe.contentWindow;
@@ -148,6 +149,11 @@ export function createSandboxedHarness(options: SandboxedHarnessOptions): Reelfo
         return response.result satisfies LoadInfo;
       }
       throw new EngineError('protocol', 'unexpected reply to reloadShot()');
+    },
+    async pick(x, y, t) {
+      const response = await call({ method: 'pick', x, y, t });
+      if (response.ok && response.method === 'pick') return response.result;
+      throw new EngineError('protocol', 'unexpected reply to pick()');
     },
     get duration() {
       return duration;

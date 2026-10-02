@@ -80,15 +80,46 @@ export function resolveWrites(cwd, writes) {
 }
 
 /**
- * Canned stage output (prompt evals): one Write tool_use + successful tool_result per file (the
- * files themselves are written by the player), then the final text reply.
+ * `{cwd}` -> the process cwd in a string and in the string values of an input object.
+ * @param {RunContext} context
+ * @param {import('./select.mjs').ToolCall} call
+ * @returns {import('./select.mjs').ToolCall}
+ */
+function withCwd(context, call) {
+  /** @param {string} text */
+  const fill = (text) => text.split('{cwd}').join(context.cwd);
+  /** @type {Record<string, unknown>} */
+  const input = {};
+  for (const [key, value] of Object.entries(call.input)) {
+    input[key] = typeof value === 'string' ? fill(value) : value;
+  }
+  return { ...call, input, output: fill(call.output) };
+}
+
+/**
+ * Canned stage output (prompt evals): extra tool calls (replayed, not executed), then one Write
+ * tool_use + successful tool_result per file (the files themselves are written by the player),
+ * then the final text reply.
  * @param {RunContext} context
  * @param {import('./select.mjs').FileWrite[]} files absolute paths (see resolveWrites)
  * @param {string} reply
+ * @param {import('./select.mjs').ToolCall[]} [toolCalls]
  * @returns {StreamEvent[]}
  */
-export function toolsWriteEvents(context, files, reply) {
+export function toolsWriteEvents(context, files, reply, toolCalls = []) {
   const base = okTemplate(modelFamily(context.modelId));
+  const calls = toolCalls.flatMap((raw, index) => {
+    const call = withCwd(context, raw);
+    const id = `toolu_fake_call_${String(index + 1)}`;
+    return [
+      assistant(
+        base.text,
+        `msg_fake_c${String(index + 1)}`,
+        toolUseBlock(id, call.name, call.input),
+      ),
+      toolResult(id, call.output, call.isError),
+    ];
+  });
   const writes = files.flatMap((file, index) => {
     const id = `toolu_fake_write_${String(index + 1)}`;
     return [
@@ -102,6 +133,7 @@ export function toolsWriteEvents(context, files, reply) {
   });
   return [
     { ...base.init, tools: context.tools ?? ['Read', 'Write'] },
+    ...calls,
     ...writes,
     base.rateLimit,
     assistant(base.text, 'msg_fake_wz', { type: 'text', text: reply }),

@@ -10,6 +10,8 @@
     { "path": "./packages/claude-bridge" },
     { "path": "./packages/prompts" },
     { "path": "./packages/project" },
+    { "path": "./packages/stages" },
+    { "path": "./packages/stages/test" },
     { "path": "./packages/cli" },
     { "path": "./packages/cli/test" },
     { "path": "./tools/fake-claude" },

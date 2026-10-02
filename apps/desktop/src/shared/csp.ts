@@ -16,7 +16,8 @@ export function rendererCsp(options: CspOptions = {}): string {
     'script-src': dev === undefined ? ["'self'"] : ["'self'", "'unsafe-inline'"],
     // Dev: Vite injects CSS as <style> elements.
     'style-src': dev === undefined ? ["'self'"] : ["'self'", "'unsafe-inline'"],
-    'img-src': ["'self'", 'data:', 'blob:'],
+    // Chat thumbnails: QA frames of the open project (PLAN.md#6.6).
+    'img-src': ["'self'", 'data:', 'blob:', `${MEDIA_SCHEME}:`],
     'font-src': ["'self'"],
     // The player's <audio> master clock streams project audio from main (PLAN.md#6.4).
     'media-src': [`${MEDIA_SCHEME}:`],

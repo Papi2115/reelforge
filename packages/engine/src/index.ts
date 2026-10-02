@@ -11,11 +11,14 @@ export { createSandboxedHarness, type SandboxedHarnessOptions } from './harness/
 export {
   cardDiagnosticSchema,
   loadInfoSchema,
+  pickResultSchema,
   RPC_CHANNEL,
+  type PickInfo,
   type ReelforgeHarness,
 } from './harness/protocol.js';
 export * from './lint/index.js';
 export * from './palette.js';
+export type { PickKind, PickResult } from './pick.js';
 export * from './presets/index.js';
 export * from './rng.js';
 export { parseManifest, type LoadInfo } from './runtime.js';

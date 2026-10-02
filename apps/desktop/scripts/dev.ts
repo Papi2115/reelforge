@@ -11,6 +11,7 @@ import { context, type BuildContext, type Plugin } from 'esbuild';
 import { createServer } from 'vite';
 import { DEV_SERVER_ENV } from '../src/main/navigation-policy.js';
 import {
+  copyClaudeResources,
   copyDemo,
   copyProjectTemplate,
   mainProcessBuilds,
@@ -42,7 +43,12 @@ function electronEnv(devServerUrl: string): NodeJS.ProcessEnv {
 }
 
 export async function run(task: TaskContext): Promise<void> {
-  await Promise.all([prepareEngineFrame(task), copyDemo(task), copyProjectTemplate(task)]);
+  await Promise.all([
+    prepareEngineFrame(task),
+    copyDemo(task),
+    copyProjectTemplate(task),
+    copyClaudeResources(task),
+  ]);
   const server = await createServer(rendererViteConfig(task, 'development'));
   await server.listen();
   const devServerUrl = server.resolvedUrls?.local[0];

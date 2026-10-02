@@ -19,6 +19,7 @@ describe('rendererCsp', () => {
     expect(policy.get('connect-src')).toEqual(["'self'"]);
     expect(policy.get('frame-src')).toEqual(["'self'"]);
     expect(policy.get('media-src')).toEqual(['reelforge-media:']);
+    expect(policy.get('img-src')).toEqual(["'self'", 'data:', 'blob:', 'reelforge-media:']);
     expect(rendererCsp()).not.toContain('unsafe-eval');
     expect(rendererCsp()).not.toContain('http');
   });

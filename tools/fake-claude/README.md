@@ -41,23 +41,23 @@ Every replayed event is rewritten for the current call: `session_id` (new UUID, 
 
 ## Scenarios (`FAKE_CLAUDE_SCENARIO`, default `ok`)
 
-| Scenario           | Stream                                                                                                                                                                                  | Exit |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| `ok`               | recorded `<model>-ok`: init, (thinking), text `ok`, rate_limit_event, result                                                                                                            | 0    |
-| `tools-read-png`   | recorded: Read PNG (image tool_result), Write denied in `dontAsk` (`permission_denied`)                                                                                                 | 0    |
-| `tools-edit`       | synthetic: Read -> Edit -> Write on `<cwd>/scenes/s01.js` / `notes.txt`, each with a successful tool_result                                                                             | 0    |
-| `tools-escape`     | synthetic, as verified live under `dontAsk`: Write to `<cwd>/../outside.txt` denied, unguarded `echo pwned` ran                                                                         | 0    |
-| `tools-write`      | synthetic: one Write tool_use + successful tool_result per sidecar `writes` entry (the files are really written, paths must stay inside the cwd), then text = `reply` (default `Done.`) | 0    |
-| `resume`           | recorded `resume-1-remember` (no `--resume`) / `resume-2-recall` (with `--resume`, answers `PELICAN-42`)                                                                                | 0    |
-| `slow`             | `ok` with N `thinking_tokens` ticks (`FAKE_CLAUDE_SLOW_TICKS`, 40), `FAKE_CLAUDE_DELAY_MS` (250) between lines                                                                          | 0    |
-| `hang`             | init, then silence until killed (idle watchdog / cancel tests)                                                                                                                          | —    |
-| `crash`            | init + assistant, then a truncated JSON line without newline, stderr `simulated crash`, no result                                                                                       | 1    |
-| `garbage`          | `ok` with `this is not json`, `[1,2,3]` and an unknown `brand_new_event` after init                                                                                                     | 0    |
-| `not-logged-in`    | recorded: synthetic assistant `error:"authentication_failed"`, result `is_error:true` + `subtype:"success"`                                                                             | 1    |
-| `rate-limit`       | **assumed** usage-limit shape, see below                                                                                                                                                | 1    |
-| `limit-warning`    | `ok` with `rate_limit_event.status:"allowed_warning"` (utilization 0.92)                                                                                                                | 0    |
-| `api-key`          | `ok` with `init.apiKeySource:"ANTHROPIC_API_KEY"` and 200 ms pacing (billing-guard tests)                                                                                               | 0    |
-| `resume-not-found` | with `--resume`: recorded `resume-not-found` (one `result`, `errors:["No conversation found…"]`); else `ok`                                                                             | 1/0  |
+| Scenario           | Stream                                                                                                                                                                                                                            | Exit |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `ok`               | recorded `<model>-ok`: init, (thinking), text `ok`, rate_limit_event, result                                                                                                                                                      | 0    |
+| `tools-read-png`   | recorded: Read PNG (image tool_result), Write denied in `dontAsk` (`permission_denied`)                                                                                                                                           | 0    |
+| `tools-edit`       | synthetic: Read -> Edit -> Write on `<cwd>/scenes/s01.js` / `notes.txt`, each with a successful tool_result                                                                                                                       | 0    |
+| `tools-escape`     | synthetic, as verified live under `dontAsk`: Write to `<cwd>/../outside.txt` denied, unguarded `echo pwned` ran                                                                                                                   | 0    |
+| `tools-write`      | synthetic: one Write tool_use + successful tool_result per sidecar `writes` entry (the files are really written before the first line, paths must stay inside the cwd), then text = `reply` (default `Done.`); paced by `delayMs` | 0    |
+| `resume`           | recorded `resume-1-remember` (no `--resume`) / `resume-2-recall` (with `--resume`, answers `PELICAN-42`)                                                                                                                          | 0    |
+| `slow`             | `ok` with N `thinking_tokens` ticks (`FAKE_CLAUDE_SLOW_TICKS`, 40), `FAKE_CLAUDE_DELAY_MS` (250) between lines                                                                                                                    | 0    |
+| `hang`             | init, then silence until killed (idle watchdog / cancel tests)                                                                                                                                                                    | —    |
+| `crash`            | init + assistant, then a truncated JSON line without newline, stderr `simulated crash`, no result                                                                                                                                 | 1    |
+| `garbage`          | `ok` with `this is not json`, `[1,2,3]` and an unknown `brand_new_event` after init                                                                                                                                               | 0    |
+| `not-logged-in`    | recorded: synthetic assistant `error:"authentication_failed"`, result `is_error:true` + `subtype:"success"`                                                                                                                       | 1    |
+| `rate-limit`       | **assumed** usage-limit shape, see below                                                                                                                                                                                          | 1    |
+| `limit-warning`    | `ok` with `rate_limit_event.status:"allowed_warning"` (utilization 0.92)                                                                                                                                                          | 0    |
+| `api-key`          | `ok` with `init.apiKeySource:"ANTHROPIC_API_KEY"` and 200 ms pacing (billing-guard tests)                                                                                                                                         | 0    |
+| `resume-not-found` | with `--resume`: recorded `resume-not-found` (one `result`, `errors:["No conversation found…"]`); else `ok`                                                                                                                       | 1/0  |
 
 ### Usage limit (ASSUMED — never observed live, ADR-001 / spike §8)
 
@@ -105,7 +105,10 @@ limit is hit, capture the stream as a fixture and replace these assumptions.
   Sequential use only.
 - `rules`: first rule whose `promptIncludes` occurs in the prompt; else `default` (else `ok`).
 - A step is a scenario name or
-  `{ scenario, reply?, delayMs?, ticks?, limitShape?, resetsAt?, exitCode?, writes? }`; its fields
+  `{ scenario, reply?, delayMs?, ticks?, limitShape?, resetsAt?, exitCode?, writes?, toolCalls? }`; its fields
   override the env knobs. `writes: [{ "path": "storyboard.json", "content": "..." }]` (relative to the
   cwd) feeds `tools-write` — used by the prompt evals (`packages/prompts`) to emit canned stage output.
+  `toolCalls: [{ "name": "Bash", "input": { "command": "reelforge frames --shot s02" }, "output": "…", "isError"?: false }]`
+  are replayed before the writes (tool_use + tool_result, nothing runs; `{cwd}` in string inputs and
+  in `output` becomes the cwd) — the app's chat smoke test uses them for step-log thumbnails.
   Typed as `FakeClaudeScript` / `FakeClaudeStep` in `src/index.ts`.

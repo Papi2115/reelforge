@@ -93,6 +93,21 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.whisperDelete, handlers.whisperDelete);
   registerInvoke(IPC.exportStart, handlers.exportStart);
   registerInvoke(IPC.exportCancel, handlers.exportCancel);
+  registerInvoke(IPC.chatState, handlers.chatState);
+  registerInvoke(IPC.chatSend, handlers.chatSend);
+  registerInvoke(IPC.chatRemove, handlers.chatRemove);
+  registerInvoke(IPC.chatStop, handlers.chatStop);
+  registerInvoke(IPC.chatResume, handlers.chatResume);
+  registerInvoke(IPC.stagesState, handlers.stagesState);
+  registerInvoke(IPC.stagesRun, handlers.stagesRun);
+  registerInvoke(IPC.stagesStop, handlers.stagesStop);
+  registerInvoke(IPC.stagesReplace, handlers.stagesReplace);
+  registerInvoke(IPC.stagesOpen, handlers.stagesOpen);
+  registerInvoke(IPC.briefGet, handlers.briefGet);
+  registerInvoke(IPC.briefSave, handlers.briefSave);
+  registerInvoke(IPC.scriptGet, handlers.scriptGet);
+  registerInvoke(IPC.scriptSave, handlers.scriptSave);
+  registerInvoke(IPC.scriptApprove, handlers.scriptApprove);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

@@ -5,6 +5,7 @@ import type { PromptId } from '../catalog.js';
 import { validateCriticReply } from '../validators/critic.js';
 import { validateCues, type CuesLike, type CuesSchema } from '../validators/cues.js';
 import { issue, type ValidationIssue } from '../validators/issues.js';
+import { validatePlanReply, validateTriageReply } from '../validators/review.js';
 import { targetWordsFor, validateScript } from '../validators/script.js';
 import { validateStoryboard } from '../validators/storyboard.js';
 import {
@@ -114,6 +115,9 @@ export function checkStageOutput<T extends CuesLike>(input: StageCheckInput<T>):
       ...validateCriticReply(reply, { expectedPaths: evalCase.file.critic.imagePaths }).issues,
     );
   }
+  const shotIds = evalCase.storyboard.shots.map((shot) => shot.id);
+  if (stage === 'review-triage') issues.push(...validateTriageReply(reply, { shotIds }).issues);
+  if (stage === 'review-plan') issues.push(...validatePlanReply(reply, { shotIds }).issues);
   if (stage === 'scene-build' && input.strictReplies) {
     issues.push(...missingLineIssues(reply, evalCase.file.sceneBuild.expectMissing));
   }

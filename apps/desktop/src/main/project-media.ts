@@ -1,7 +1,9 @@
 /**
  * `reelforge-media://project/<path>` (PLAN.md#6.4): maps a media URL to an audio file of the open
- * project and parses HTTP byte ranges, so the `<audio>` master clock can seek. Pure (no Electron):
- * the confinement and range rules are unit-tested; links are checked again in media-protocol.ts.
+ * project and parses HTTP byte ranges, so the `<audio>` master clock can seek. Also serves the
+ * frame PNGs Claude rendered under `.reelforge/frames/` as chat thumbnails (PLAN.md#6.6), downscaled
+ * when `?w=<px>` asks for it. Pure (no Electron): the confinement and range rules are
+ * unit-tested; links are checked again in media-protocol.ts.
  */
 import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
@@ -19,9 +21,27 @@ const MEDIA_TYPES: Readonly<Record<string, string>> = {
   '.webm': 'audio/webm',
 };
 
+const IMAGE_TYPES: Readonly<Record<string, string>> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+};
+
+/** The only folder images are served from (QA frames rendered by the `reelforge` CLI). */
+export const MEDIA_FRAMES_DIR = '.reelforge/frames/';
+export const MAX_THUMBNAIL_WIDTH = 1280;
+
 export interface MediaFile {
   readonly file: string;
   readonly contentType: string;
+  /** Images only: width to downscale to (`?w=`), when smaller than the image. */
+  readonly thumbnailWidth?: number;
+}
+
+function thumbnailWidth(url: URL): number | undefined {
+  const value = Number(url.searchParams.get('w') ?? '');
+  return Number.isInteger(value) && value > 0 ? Math.min(value, MAX_THUMBNAIL_WIDTH) : undefined;
 }
 
 export interface MediaError {
@@ -53,12 +73,18 @@ export function resolveProjectMedia(
   if (relative === '' || /[\0\\:]/.test(relative)) {
     return failure(400, `bad media path: ${requestUrl}`);
   }
-  const contentType = MEDIA_TYPES[path.extname(relative).toLowerCase()];
-  if (contentType === undefined) return failure(403, `not an audio file: ${relative}`);
+  const extension = path.extname(relative).toLowerCase();
+  const imageType = IMAGE_TYPES[extension];
+  const isFrame = imageType !== undefined && relative.toLowerCase().startsWith(MEDIA_FRAMES_DIR);
+  const contentType = isFrame ? imageType : MEDIA_TYPES[extension];
+  if (contentType === undefined) return failure(403, `not an audio file or frame: ${relative}`);
   const root = path.resolve(projectDir);
   const file = path.resolve(root, ...relative.split('/'));
   if (!isInsideFolder(root, file)) return failure(403, `${relative} is outside the project`);
-  return ok({ file, contentType });
+  const width = isFrame ? thumbnailWidth(url) : undefined;
+  return ok(
+    width === undefined ? { file, contentType } : { file, contentType, thumbnailWidth: width },
+  );
 }
 
 export interface ByteRange {

@@ -20,6 +20,26 @@ describe('resolveProjectMedia', () => {
     });
   });
 
+  it('serves frame images only from .reelforge/frames, with an optional thumbnail width', () => {
+    expect(
+      resolveProjectMedia(project, 'reelforge-media://project/.reelforge/frames/s02/a.png?w=160'),
+    ).toEqual({
+      ok: true,
+      value: {
+        file: path.join(project, '.reelforge', 'frames', 's02', 'a.png'),
+        contentType: 'image/png',
+        thumbnailWidth: 160,
+      },
+    });
+    expect(
+      resolveProjectMedia(project, 'reelforge-media://project/.reelforge/frames/sheet.png?w=x'),
+    ).toMatchObject({ ok: true, value: { contentType: 'image/png' } });
+    const refused = (url: string): boolean => !resolveProjectMedia(project, url).ok;
+    expect(refused('reelforge-media://project/out/snapshots/a.png')).toBe(true);
+    expect(refused('reelforge-media://project/.reelforge/frames/../../secret.png')).toBe(true);
+    expect(refused('reelforge-media://project/.reelforge/frames/notes.txt')).toBe(true);
+  });
+
   it('refuses other schemes, hosts, traversal, non-audio files and no open project', () => {
     const status = (dir: string | undefined, url: string): number | undefined => {
       const result = resolveProjectMedia(dir, url);

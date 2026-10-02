@@ -14,6 +14,10 @@
     "./service": {
       "types": "./dist/service/index.d.ts",
       "default": "./dist/service/index.js"
+    },
+    "./shims": {
+      "types": "./dist/shims.d.ts",
+      "default": "./dist/shims.js"
     }
   },
   "bin": {

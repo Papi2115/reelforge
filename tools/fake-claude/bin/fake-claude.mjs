@@ -236,6 +236,7 @@ async function main(argv) {
     exitCode: step.exitCode,
     resumed: values.resume !== undefined,
     writes: step.writes,
+    toolCalls: step.toolCalls,
   });
   if (process.env['FAKE_CLAUDE_PROBE'] === '1') {
     plan.lines.unshift({

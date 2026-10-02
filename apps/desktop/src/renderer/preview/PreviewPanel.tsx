@@ -5,7 +5,7 @@
  * system clock) decides which frame is requested. When the project's files change, only what
  * changed is reloaded (hot reload of single shots); a broken scene keeps the last working frame.
  */
-import { createSandboxedHarness, type LoadInfo } from '@reelforge/engine';
+import { createSandboxedHarness, type LoadInfo, type PickInfo } from '@reelforge/engine';
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { ENGINE_ASSET_DIR, ENGINE_FRAME_HTML } from '../../shared/engine-assets.js';
 import { errorMessage, rendererLog } from '../log.js';
@@ -62,14 +62,33 @@ function sourceKey(source: PreviewSource): string {
   return source.kind === 'demo' ? 'demo' : `project:${String(source.revision)}`;
 }
 
+/** A point of the frame to mark (the object picked for the chat), normalized 0..1. */
+export interface PreviewMarker {
+  readonly x: number;
+  readonly y: number;
+  readonly label: string;
+}
+
 export interface PreviewPanelProps {
   readonly source: PreviewSource;
   readonly player: Player;
   /** Frame snapshots are saved into the open project, so they are offered only with one. */
   readonly snapshots: boolean;
+  /**
+   * Click-to-select (PLAN.md#6.6): a click on the frame asks the engine what is there at the
+   * current time; null = background. (x, y) is the clicked point, normalized 0..1.
+   */
+  readonly onPick?: (pick: PickInfo | null, x: number, y: number) => void;
+  readonly marker?: PreviewMarker | null;
 }
 
-export function PreviewPanel({ source, player, snapshots }: PreviewPanelProps): JSX.Element {
+export function PreviewPanel({
+  source,
+  player,
+  snapshots,
+  onPick,
+  marker,
+}: PreviewPanelProps): JSX.Element {
   const frameHostRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -195,11 +214,37 @@ export function PreviewPanel({ source, player, snapshots }: PreviewPanelProps): 
       data-playing={String(playerState.playing)}
     >
       <div className="preview-stage" ref={stageRef}>
-        <canvas
-          ref={canvasRef}
-          className="preview-canvas"
-          style={display ? { width: display.cssWidth, height: display.cssHeight } : undefined}
-        />
+        <div className="preview-canvas-wrap">
+          <canvas
+            ref={canvasRef}
+            className={`preview-canvas${onPick ? ' pickable' : ''}`}
+            style={display ? { width: display.cssWidth, height: display.cssHeight } : undefined}
+            title={onPick ? 'Click an object to select it for Claude' : undefined}
+            onClick={(event) => {
+              if (!onPick || !controller || state.status !== 'ready') return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              if (rect.width === 0 || rect.height === 0) return;
+              const x = (event.clientX - rect.left) / rect.width;
+              const y = (event.clientY - rect.top) / rect.height;
+              controller.pick(x, y, player.getState().time).then(
+                (picked) => {
+                  onPick(picked, x, y);
+                },
+                (error: unknown) => {
+                  log.warn(`pick failed: ${errorMessage(error)}`);
+                },
+              );
+            }}
+          />
+          {marker && (
+            <span
+              className="preview-marker"
+              style={{ left: `${String(marker.x * 100)}%`, top: `${String(marker.y * 100)}%` }}
+              title={marker.label}
+              aria-hidden="true"
+            />
+          )}
+        </div>
         {state.status === 'loading' && <p className="preview-status">Loading engine…</p>}
         {state.status === 'error' && (
           <p className="preview-status preview-error" role="alert">

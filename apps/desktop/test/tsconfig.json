@@ -17,6 +17,7 @@
     { "path": "../../../packages/claude-bridge" },
     { "path": "../../../packages/shared" },
     { "path": "../../../packages/engine" },
-    { "path": "../../../packages/pipeline" }
+    { "path": "../../../packages/pipeline" },
+    { "path": "../../../tools/fake-claude" }
   ]
 }

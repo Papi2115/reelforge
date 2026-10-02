@@ -3,6 +3,8 @@
 export const PROMPT_IDS = [
   'critic',
   'research',
+  'review-plan',
+  'review-triage',
   'scene-build',
   'scene-fix',
   'script',
@@ -27,6 +29,16 @@ export const PROMPT_SOURCES: Readonly<Record<PromptId, PromptSource>> = {
     source:
       '---\nid: research\nversion: 1\nmodel: sonnet\ntools: [Read, Write, WebSearch, WebFetch]\noutput: research.md\n---\nYou are the researcher for a documentary-style YouTube video.\n\nBrief (brief.json): {{brief}}\n\nTask: research the topic on the web and write `research.md` in the project folder.\n\nRules:\n- Every factual claim gets a source link on the same line: `- claim — https://source`. No source → do not write the claim.\n- Prefer primary sources, reputable outlets, official documents. Note disagreements between sources.\n- Structure: `## Key facts`, `## Timeline` (dated events), `## People & entities`, `## Numbers worth showing on screen` (exact figures with source), `## Open questions / uncertain`.\n- Do not invent quotes, numbers or dates. Mark anything uncertain as such.\n- Do not write the script here. Stop after saving `research.md`; reply with a 3-line summary.\n',
     sha256: '325c8f74210e88c24d906da752a3d907874f2fd70424ec72b5ab221f36e156a4',
+  },
+  'review-plan': {
+    source:
+      '---\nid: review-plan\nversion: 1\nmodel: sonnet\ntools: [Read, Glob, Grep]\noutput: json\n---\nYou plan fixes for the scenes of a video after a whole-video review. Do NOT edit any file.\n\nRequest: {{request}}\nShots flagged by the visual review (with reasons): {{suspects}}\n{{#findings}}Findings of the app\'s code checks: {{findings}}{{/findings}}\n\nRead `storyboard.json` (shot intents) and the scene file of every flagged shot (`scenes/`), and `CLAUDE.md` for the scene contract and the kit. For each shot that really needs a change, write ONE concrete instruction for the scene author: what to change in the scene (object, card, camera, timing) and the result to reach. Keep each shot\'s intent; prefer the smallest change. Skip flags that are wrong.\n\nReturn ONLY JSON, no prose: `{"fixes":[{"shot":"s03","change":"≤40 words"}]}` — at most one entry per shot, `[]` when nothing needs fixing.\n',
+    sha256: '8f20784f07f96da6186e02ac50ff367426aee5cb74e86358ee0e9d71127d7007',
+  },
+  'review-triage': {
+    source:
+      '---\nid: review-triage\nversion: 1\nmodel: haiku\ntools: [Read]\noutput: json\n---\nYou are a strict visual QA reviewer for a whole pixel-art video. Look at the contact sheet(s) at: {{imagePaths}}\n\nEach row is one shot, labelled `<shot id> <local time>`, with frames spread over the shot. What each shot must communicate: {{shots}}\nStyle: {{styleId}} (palette-limited, voxel, dithered, text in capitals inside a safe margin).\n{{#focus}}Pay extra attention to: {{focus}}{{/focus}}\n\nFlag a shot only for a visible problem:\n- blank, uniform or nearly black/white frames, nothing recognisable\n- text or a key object cut off by the frame edge, unreadably small text\n- text/cards overlapping each other or hiding the subject\n- frames that clearly do not match the shot\'s intent\n- a jarring break with the neighbouring shots (style, palette, a frozen camera)\n\nReturn ONLY JSON, no prose: `{"suspects":[{"shot":"s03","reason":"≤20 words"}]}` — one entry per flagged shot, `[]` when every shot looks right.\n',
+    sha256: '9151244622510abf2f6f5a163de7179c8bc622334e2a61d474b4c10f6e89e208',
   },
   'scene-build': {
     source:

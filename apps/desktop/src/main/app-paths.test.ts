@@ -33,6 +33,8 @@ describe('appLayout', () => {
       preloadFile: path.join(appPath, 'out', 'preload', 'preload.cjs'),
       demoDir: path.join(appPath, 'out', 'demo'),
       projectTemplateDir: path.join(appPath, 'out', 'template', 'project'),
+      bashGuardHook: path.join(appPath, 'out', 'resources', 'bash-guard.mjs'),
+      cliBundle: path.join(appPath, 'out', 'cli', 'reelforge.mjs'),
     });
     expect(recentProjectsFile(path.join(appData, 'ReelForge'))).toBe(
       path.join(appData, 'ReelForge', 'recent-projects.json'),

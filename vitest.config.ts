@@ -22,6 +22,14 @@ export default defineConfig({
       '@reelforge/pipeline': workspaceSource('pipeline'),
       '@reelforge/claude-bridge': workspaceSource('claude-bridge'),
       '@reelforge/project': workspaceSource('project'),
+      '@reelforge/prompts': workspaceSource('prompts'),
+      '@reelforge/cli/service': fileURLToPath(
+        new URL('./packages/cli/src/service/index.ts', import.meta.url),
+      ),
+      '@reelforge/cli/shims': fileURLToPath(
+        new URL('./packages/cli/src/shims.ts', import.meta.url),
+      ),
+      '@reelforge/stages': workspaceSource('stages'),
       '@reelforge/fake-claude': fileURLToPath(
         new URL('./tools/fake-claude/src/index.ts', import.meta.url),
       ),

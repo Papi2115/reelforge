@@ -1,13 +1,14 @@
 /**
  * Serves `reelforge-media://project/<path>` (PLAN.md#6.4): audio of the open project for the
- * player's `<audio>` master clock, streamed with HTTP range support so it can seek. Only audio
+ * player's `<audio>` master clock, streamed with HTTP range support so it can seek, and the QA
+ * frames under `.reelforge/frames/` as chat thumbnails (PLAN.md#6.6; `?w=` downscales). Only
  * files strictly inside the open project folder are served (also after following links); there is
  * no file:// access from the renderer.
  */
 import { createReadStream } from 'node:fs';
 import { realpath, stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
-import type { Session } from 'electron';
+import { nativeImage, type Session } from 'electron';
 import { describeError, type Logger } from './logger.js';
 import { isInsideFolder } from './project-files.js';
 import { parseByteRange, resolveProjectMedia } from './project-media.js';
@@ -44,6 +45,9 @@ async function serve(
   }
   const info = await stat(realFile);
   if (!info.isFile()) return text(404, 'not a file');
+  if (media.value.thumbnailWidth !== undefined) {
+    return thumbnail(realFile, media.value.thumbnailWidth);
+  }
   const size = info.size;
   const headers = new Headers({
     'content-type': contentType,
@@ -63,6 +67,22 @@ async function serve(
   const status = range ? 206 : 200;
   if (request.method === 'HEAD' || size === 0) return new Response(null, { status, headers });
   return new Response(fileBody(realFile, start, end), { status, headers });
+}
+
+/** A frame PNG scaled down to `width` (small chat thumbnails instead of full 640/1080p frames). */
+function thumbnail(file: string, width: number): Response {
+  const image = nativeImage.createFromPath(file);
+  if (image.isEmpty()) return text(415, 'not a readable image');
+  const size = image.getSize();
+  const scaled = size.width <= width ? image : image.resize({ width, quality: 'good' });
+  return new Response(new Uint8Array(scaled.toPNG()), {
+    status: 200,
+    headers: {
+      'content-type': 'image/png',
+      'cache-control': 'no-cache',
+      'x-content-type-options': 'nosniff',
+    },
+  });
 }
 
 /** `currentProjectDir` is read per request, so the protocol always follows the open project. */

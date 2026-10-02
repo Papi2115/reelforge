@@ -22,4 +22,5 @@ export * from './validators/storyboard.js';
 export * from './validators/script.js';
 export * from './validators/critic.js';
 export * from './validators/cues.js';
+export * from './validators/review.js';
 export * from './validators/text-outputs.js';
