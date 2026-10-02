@@ -368,3 +368,48 @@
 .status-version {
   margin-left: auto;
 }
+
+.file-problem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.file-problem p,
+.open-recovery p {
+  margin: 0;
+}
+
+.file-problem-path {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.open-recovery {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.start-column {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 12px;
+  min-height: 0;
+}
+
+.start-column > .start-screen {
+  flex: 1;
+  min-height: 0;
+}
+
+.start-column > .open-recovery {
+  width: 340px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}

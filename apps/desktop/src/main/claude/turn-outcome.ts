@@ -23,7 +23,18 @@ export function queuedTurn(id: string, queuedAt: number, request: ChatTurn['requ
     usage: null,
     error: null,
     commit: null,
+    resumable: false,
+    resumeOf: null,
   };
+}
+
+/** The process died mid-turn: its session can continue where it stopped (`--resume`). */
+export function isResumableOutcome(outcome: TurnOutcome): boolean {
+  return (
+    outcome.status === 'crashed' ||
+    outcome.status === 'timeout' ||
+    outcome.status === 'idle-timeout'
+  );
 }
 
 export function turnStatusOf(outcome: TurnOutcome): Exclude<ChatTurnStatus, 'queued' | 'running'> {

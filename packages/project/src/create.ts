@@ -142,5 +142,11 @@ export async function createProject(options: CreateProjectOptions): Promise<Resu
     git,
   );
   if (!commit.ok) return commit;
-  return ok({ dir, project: project.value, migratedFrom: null, initializedGit: true });
+  return ok({
+    dir,
+    project: project.value,
+    migratedFrom: null,
+    initializedGit: true,
+    removedLeftovers: [],
+  });
 }

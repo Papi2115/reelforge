@@ -167,6 +167,8 @@ function setup(): {
       projectNew: (request) => record(request, opened),
       projectOpen: (request) => record(request, { status: 'cancelled' } as const),
       projectOpenRecent: (request) => record(request, opened),
+      projectOpenExample: (request) => record(request, opened),
+      helpOpen: (request) => record(request, { status: 'opened', path: 'logs' } as const),
       projectRecent: (request) => record(request, []),
       projectCurrent: (request) => record(request, null),
       projectClose: (request) => record(request, null),
@@ -178,6 +180,9 @@ function setup(): {
           error: { kind: 'invalid-argument', message: 'no project is open' },
         } as const),
       projectManifest: (request) => record(request, { status: 'no-storyboard' } as const),
+      projectRepairFile: (request) =>
+        record(request, { status: 'repaired', message: 'Restored' } as const),
+      projectRestoreFailedOpen: (request) => record(request, { status: 'cancelled' } as const),
       snapshotSave: (request) =>
         record(request, { status: 'error', message: 'no project is open' } as const),
       snapshotCopy: (request) => record(request, { status: 'copied' } as const),
@@ -202,6 +207,7 @@ function setup(): {
       chatRemove: (request) => record(request, false),
       chatStop: (request) => record(request, false),
       chatResume: (request) => record(request, null),
+      chatResumeTurn: (request) => record(request, { status: 'queued', turnId: 't2' } as const),
       stagesState: (request) =>
         record(request, { projectDir: null, stages: [], running: null, queue: [], pause: null }),
       stagesRun: (request) => record(request, { status: 'queued', message: null } as const),
@@ -297,6 +303,22 @@ describe('registerIpc', () => {
       ipc.invoke(IPC.projectHistory.name, 'https://evil.example/', { limit: 10 }),
     ).rejects.toThrow('untrusted sender');
     expect(calls).toEqual([{ hash }, { title: 'Mój film', language: 'pl' }]);
+  });
+
+  it('opens only the known Help targets, never a path from the renderer', async () => {
+    const { ipc, calls } = setup();
+    await expect(ipc.invoke(IPC.helpOpen.name, APP_URL, { target: 'logs' })).resolves.toEqual({
+      status: 'opened',
+      path: 'logs',
+    });
+    for (const bad of [{ target: 'C:\\Windows' }, { target: 'logs', path: 'x' }, null]) {
+      await expect(ipc.invoke(IPC.helpOpen.name, APP_URL, bad)).rejects.toThrow('invalid request');
+    }
+    await expect(ipc.invoke(IPC.projectOpenExample.name, APP_URL, { dir: 'x' })).rejects.toThrow(
+      'invalid request',
+    );
+    await expect(ipc.invoke(IPC.projectOpenExample.name, APP_URL, null)).resolves.toEqual(opened);
+    expect(calls).toEqual([{ target: 'logs' }, null]);
   });
 
   it('validates snapshot requests (PNG bytes, time, shot id) before they reach main', async () => {

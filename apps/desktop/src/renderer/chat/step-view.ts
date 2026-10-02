@@ -185,6 +185,10 @@ export function turnStatusText(turn: ChatTurn): string | undefined {
     case 'stopped':
       return 'Stopped. What Claude changed so far is kept.';
     case 'failed':
+      if (turn.resumable) {
+        const reason = turn.error === null ? '' : ` (${turn.error.message})`;
+        return `Interrupted${reason}. What Claude changed so far is kept; Resume continues the turn.`;
+      }
       return turn.error === null ? 'Failed' : `Failed: ${turn.error.message}`;
     case 'done':
       return undefined;

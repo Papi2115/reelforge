@@ -100,6 +100,16 @@ export function StartScreen({ onOpened, defaultLanguage }: StartScreenProps): JS
       >
         Open project…
       </button>
+      <button
+        type="button"
+        disabled={busy}
+        title="A fresh copy of “Doom on a calculator”, ready to play, edit and export"
+        onClick={() => {
+          run(() => window.reelforge.openExampleProject());
+        }}
+      >
+        Open the example project
+      </button>
       {error !== undefined && (
         <p className="start-error" role="alert">
           {error}

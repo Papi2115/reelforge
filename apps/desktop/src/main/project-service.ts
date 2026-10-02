@@ -10,11 +10,13 @@ import {
   autocommit,
   createProject,
   findRecentProject,
+  hasRepository,
   history,
   listRecentProjects,
   openProject,
   projectFolderName,
   rememberRecentProject,
+  restoreFileFromHistory,
   revertTo,
   err,
   type AutocommitKind,
@@ -28,12 +30,19 @@ import type {
   HistoryResult,
   NewProjectRequest,
   ProjectErrorInfo,
+  ProjectOpenFailure,
   ProjectOpenResult,
   ProjectSummary,
   RecentProjectEntry,
   RevertProjectResult,
 } from '../shared/project-contract.js';
-import type { ProjectManifestResult, ProjectSnapshotResult } from '../shared/snapshot-contract.js';
+import type {
+  ProjectManifestResult,
+  ProjectSnapshotResult,
+  RepairableFile,
+  RepairFileResult,
+} from '../shared/snapshot-contract.js';
+import { checkFileText, repairFile } from './file-repair.js';
 import { describeError, type Logger } from './logger.js';
 import { buildProjectManifest } from './project-manifest.js';
 import { readProjectSnapshot } from './project-snapshot.js';
@@ -54,6 +63,15 @@ export interface ProjectServiceOptions {
   readonly git?: GitOptions;
   /** Called with the open project's folder (undefined after close) whenever it changes. */
   readonly onCurrentChanged?: (dir: string | undefined) => void;
+  /** Opening failed on a damaged project.json (the start screen offers a restore). */
+  readonly onOpenFailed?: (failure: ProjectOpenFailure) => void;
+  /** Copies the bundled example project somewhere new and returns its folder (PLAN.md#10.3). */
+  readonly installExample?: () => Promise<Result<string>>;
+}
+
+/** Open errors caused by the content of project.json (not a missing folder or a newer app). */
+function isDamagedProjectJson(error: ProjectError): boolean {
+  return error.kind === 'corrupt' || error.kind === 'invalid';
 }
 
 const MAX_NAME_SUFFIX = 99;
@@ -79,6 +97,8 @@ export function newProjectDir(parent: string, title: string): string {
 
 export class ProjectService {
   private current: OpenedProject | undefined;
+  /** Folder of the last open that failed on a damaged project.json (for restoreFailedOpen). */
+  private failedOpen: string | undefined;
 
   constructor(private readonly options: ProjectServiceOptions) {}
 
@@ -101,6 +121,21 @@ export class ProjectService {
     const dir = await this.options.pickFolder('open-project');
     if (dir === undefined) return { status: 'cancelled' };
     return this.open(dir);
+  }
+
+  /** A fresh copy of the example project, opened (Welcome → "Open the example project"). */
+  async openExample(): Promise<ProjectOpenResult> {
+    const install = this.options.installExample;
+    if (install === undefined) {
+      return {
+        status: 'error',
+        error: { kind: 'not-found', message: 'this build has no example project' },
+      };
+    }
+    const installed = await install();
+    if (!installed.ok) return this.opened(installed, 'create');
+    this.options.log.info(`copied the example project to ${installed.value}`);
+    return this.open(installed.value);
   }
 
   async openRecent(dir: string): Promise<ProjectOpenResult> {
@@ -185,6 +220,44 @@ export class ProjectService {
       : { status: 'unchanged' };
   }
 
+  /** Fixes a damaged file of the open project (restore from history / reset app state). */
+  async repairFile(file: RepairableFile): Promise<RepairFileResult> {
+    const project = this.current;
+    if (!project) return { status: 'error', error: noProject() };
+    const result = await repairFile(project.dir, file, this.gitOption());
+    if (result.status === 'error') {
+      this.options.log.warn(`repair of ${file} failed: ${result.error.message}`);
+      return result;
+    }
+    this.options.log.info(result.message);
+    if (file === 'project.json') {
+      const reopened = await openProject(project.dir, this.openOptions());
+      if (reopened.ok) this.current = reopened.value;
+    }
+    return result;
+  }
+
+  /** Restores project.json of the folder that just failed to open, then opens it. */
+  async restoreFailedOpen(): Promise<ProjectOpenResult> {
+    const dir = this.failedOpen;
+    if (dir === undefined) {
+      return {
+        status: 'error',
+        error: { kind: 'invalid-argument', message: 'no project failed to open' },
+      };
+    }
+    const restored = await restoreFileFromHistory(dir, 'project.json', {
+      isValid: (text) => checkFileText('project.json', text) === undefined,
+      ...this.gitOption(),
+    });
+    if (!restored.ok) {
+      this.options.log.warn(`restore of ${dir} project.json failed: ${restored.error.message}`);
+      return { status: 'error', error: errorInfo(restored.error) };
+    }
+    this.options.log.info(`restored project.json of ${dir} from ${restored.value.target}`);
+    return this.open(dir);
+  }
+
   /**
    * Hook for later stages (pipeline runner, Claude turns): commits the open project with a
    * structured message (`ReelForge-Step` trailer). No-op result when nothing changed.
@@ -199,7 +272,31 @@ export class ProjectService {
   }
 
   private async open(dir: string): Promise<ProjectOpenResult> {
-    return this.opened(await openProject(dir, this.openOptions()), 'open');
+    const result = await openProject(dir, this.openOptions());
+    this.failedOpen = undefined;
+    if (!result.ok && isDamagedProjectJson(result.error)) {
+      const resolved = path.resolve(dir);
+      const file = result.error.path ?? path.join(resolved, 'project.json');
+      const canRestore = hasRepository(resolved);
+      this.failedOpen = resolved;
+      this.options.onOpenFailed?.({
+        dir: resolved,
+        file,
+        message: result.error.message,
+        canRestore,
+      });
+      const hint = canRestore ? 'Restore it from the project history or fix it' : 'Fix it';
+      return this.opened(
+        err({ ...result.error, message: `${result.error.message}: ${file}. ${hint}.` }),
+        'open',
+      );
+    }
+    if (result.ok && result.value.removedLeftovers.length > 0) {
+      this.options.log.info(
+        `removed ${String(result.value.removedLeftovers.length)} leftover(s) of interrupted writes`,
+      );
+    }
+    return this.opened(result, 'open');
   }
 
   private async opened(

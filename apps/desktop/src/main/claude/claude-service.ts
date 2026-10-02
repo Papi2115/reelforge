@@ -9,7 +9,6 @@
  */
 import { randomUUID } from 'node:crypto';
 import {
-  ECONOMY_HINT,
   initialTurnView,
   LimitGuard,
   ok,
@@ -39,12 +38,14 @@ import {
 import type { Logger } from '../logger.js';
 import { chatTurnModel, usageBudgetFor } from '../settings-consumers.js';
 import { buildChatPrompt, findSourceHint, requestTitle, selectionLabel } from './chat-prompt.js';
+import { startChatTurn } from './chat-resume.js';
 import { toChatSteps } from './chat-steps.js';
 import { ChatTranscripts, projectKey } from './chat-transcripts.js';
 import { ReviewTurns, reviewRequest, type ReviewTurnsOptions } from './review-turns.js';
 import { createSessionManager } from './session-setup.js';
 import {
   commitSubject,
+  isResumableOutcome,
   queuedTurn,
   turnErrorOf,
   turnStatusOf,
@@ -93,6 +94,8 @@ interface TurnRecord {
   readonly prompt: string;
   readonly model: ModelAlias;
   readonly title: string;
+  /** Id of the interrupted turn this record resumes (runs via `resumeInterrupted`). */
+  readonly resumeOf?: string;
 }
 
 interface Current {
@@ -260,6 +263,27 @@ export class ClaudeService {
     this.guard.resume();
   }
 
+  /** Resume of a turn whose claude process died: queued first, continues its session. */
+  resumeTurn(turnId: string): ChatSendResult {
+    const dir = this.options.currentProject();
+    const key = dir === undefined ? undefined : projectKey(dir);
+    const original =
+      key === undefined
+        ? undefined
+        : this.transcripts.of(key).find((record) => record.turn.id === turnId);
+    if (original === undefined || !original.turn.resumable) {
+      const message = 'That turn cannot be resumed (only the last interrupted turn can).';
+      return { status: 'error', error: { kind: 'invalid-request', message } };
+    }
+    this.update(original, { resumable: false });
+    const turn = queuedTurn(randomUUID(), this.now(), original.turn.request);
+    this.queue.unshift({ ...original, resumeOf: turnId, turn: { ...turn, resumeOf: turnId } });
+    this.options.log.info(`queued resume of chat turn ${turnId}`);
+    this.changed();
+    this.pump();
+    return { status: 'queued', turnId: turn.id };
+  }
+
   /**
    * App quit: drops the queue, kills the running turn (its partial work is still committed) and
    * stops the limit timer.
@@ -345,15 +369,16 @@ export class ClaudeService {
       return;
     }
     this.notice = null;
-    const economy = this.options.settings().economy;
-    const handle = manager.value.enqueue({
-      projectDir: record.projectDir,
-      stage: 'chat',
-      purpose: 'main',
-      prompt: record.prompt,
-      model: record.model,
-      ...(economy ? { appendSystemPrompt: ECONOMY_HINT } : {}),
-    });
+    // A new turn in the session replaces the interrupted one the bridge could resume.
+    for (const other of this.transcripts.of(projectKey(record.projectDir))) {
+      if (other !== record && other.turn.resumable) this.update(other, { resumable: false });
+    }
+    const started = await startChatTurn(manager.value, record, this.options.settings().economy);
+    if ('error' in started) {
+      this.update(record, { status: 'failed', finishedAt: this.now(), error: started.error });
+      return;
+    }
+    const handle = started.handle;
     current.handle = handle;
     if (current.stopRequested) await handle.cancel();
     let view = initialTurnView();
@@ -373,6 +398,7 @@ export class ClaudeService {
       steps: toChatSteps(outcome.view, record.projectDir),
       usage: turnUsageOf(outcome),
       error,
+      resumable: isResumableOutcome(outcome),
     });
     this.options.log.info(`chat turn ${record.turn.id}: ${outcome.status} (${outcome.message})`);
     const subject = commitSubject(status, record.title);

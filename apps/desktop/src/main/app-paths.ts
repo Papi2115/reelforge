@@ -38,6 +38,10 @@ export interface AppLayout {
   readonly projectTemplateDir: string;
   /** Copy of the repo's styles/ with the `<id>/STYLE.md` bibles new projects get. */
   readonly stylesDir: string;
+  /** Copy of templates/examples/ (the first-run example project, PLAN.md#10.3). */
+  readonly examplesDir: string;
+  /** Copy of docs/licenses.md (Help → About ReelForge). */
+  readonly licensesFile: string;
   /** Copy of the claude-bridge's PreToolUse bash guard (passed as `permissions.hookScriptPath`). */
   readonly bashGuardHook: string;
   /** The bundled `reelforge` CLI Claude runs (behind the PATH shims, PLAN.md#5.6). */
@@ -73,6 +77,8 @@ export function appLayout(location: AppLocation): AppLayout {
     demoDir: path.join(out, 'demo'),
     projectTemplateDir: path.join(template, 'project'),
     stylesDir: path.join(template, 'styles'),
+    examplesDir: path.join(template, 'examples'),
+    licensesFile: path.join(template, 'licenses.md'),
     bashGuardHook: path.join(external, EXTERNAL_RESOURCES.hooks, 'bash-guard.mjs'),
     cliBundle: path.join(external, EXTERNAL_RESOURCES.cli, 'reelforge.mjs'),
   };
@@ -107,4 +113,21 @@ export const TEST_CLAUDE_LAUNCHER_ENV = 'REELFORGE_TEST_CLAUDE_LAUNCHER';
 
 export function logFile(userDataDir: string): string {
   return path.join(userDataDir, 'logs', 'main.log');
+}
+
+/**
+ * Test hook (unpackaged runs only): the folder the example project is copied into instead of
+ * `Documents/ReelForge Projects`.
+ */
+export const TEST_PROJECTS_DIR_ENV = 'REELFORGE_TEST_PROJECTS_DIR';
+
+/** `<Documents>/ReelForge Projects`: where "Open the example project" puts its copy. */
+export function defaultProjectsDir(
+  documentsDir: string,
+  env: NodeJS.ProcessEnv,
+  isPackaged: boolean,
+): string {
+  const override = env[TEST_PROJECTS_DIR_ENV];
+  if (!isPackaged && override !== undefined && override !== '') return path.resolve(override);
+  return path.join(documentsDir, `${APP_NAME} Projects`);
 }

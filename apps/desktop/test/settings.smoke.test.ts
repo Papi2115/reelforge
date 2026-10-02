@@ -100,7 +100,11 @@ describe('settings', () => {
     await gate.waitFor({ state: 'detached' });
     await expect
       .poll(async () => (await savedSettings())['onboarding'])
-      .toEqual({ connectClaudeDone: true });
+      .toEqual({ connectClaudeDone: true, welcomeDone: false, tourDone: false });
+    // The Welcome screen (PLAN.md#10.3) follows the gate; Skip leads to the start screen.
+    const welcome = page.getByRole('region', { name: 'Welcome to ReelForge' });
+    await welcome.getByRole('button', { name: 'Skip: go to the start screen' }).click();
+    await page.getByRole('region', { name: 'Start' }).waitFor();
   });
 
   it('changes language and Economy mode; both persist after a relaunch', async () => {

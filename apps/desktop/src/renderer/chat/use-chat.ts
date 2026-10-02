@@ -1,6 +1,6 @@
 /**
  * Chat state of the open project (PLAN.md#6.6): read once, then follow main's `chatChanged`
- * pushes; actions go to main (send/queue, remove from the queue, Stop, "Try now").
+ * pushes; actions go to main (send/queue, remove from the queue, Stop, "Try now", Resume).
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { ChatSendRequest, ChatState } from '../../shared/chat-contract.js';
@@ -16,6 +16,8 @@ export interface ChatControls {
   readonly remove: (turnId: string) => void;
   readonly stop: () => void;
   readonly resume: () => void;
+  /** Continues a turn whose claude process died (refusals show as the send error). */
+  readonly resumeTurn: (turnId: string) => void;
 }
 
 function report(action: string): (error: unknown) => void {
@@ -68,5 +70,11 @@ export function useChat(): ChatControls {
     window.reelforge.resumeChat().catch(report('resumeChat'));
   }, []);
 
-  return { state, sendError, send, remove, stop, resume };
+  const resumeTurn = useCallback((turnId: string) => {
+    window.reelforge.resumeChatTurn(turnId).then((result) => {
+      setSendError(result.status === 'error' ? result.error.message : undefined);
+    }, report('resumeChatTurn'));
+  }, []);
+
+  return { state, sendError, send, remove, stop, resume, resumeTurn };
 }

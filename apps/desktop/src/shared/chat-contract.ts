@@ -159,6 +159,13 @@ export const chatTurnSchema = z.object({
   error: chatErrorSchema.nullable(),
   /** The autocommit made after the turn (null: nothing changed / not yet). */
   commit: z.object({ hash: z.string(), subject: z.string() }).nullable(),
+  /**
+   * The claude process died mid-turn (crashed, killed, timed out): "Resume" continues it in the
+   * same session (`--resume` + a continuation prompt). Only the newest such turn is resumable.
+   */
+  resumable: z.boolean(),
+  /** Id of the interrupted turn this one continues, else null. */
+  resumeOf: z.string().nullable(),
 });
 export type ChatTurn = z.infer<typeof chatTurnSchema>;
 
@@ -202,6 +209,12 @@ export const CHAT_IPC = {
   chatStop: { name: 'chat:stop', request: noPayload, response: z.boolean() },
   /** "Try now" during a usage-limit pause. */
   chatResume: { name: 'chat:resume', request: noPayload, response: z.null() },
+  /** Continues a turn whose claude process died (queued first; runs with `--resume`). */
+  chatResumeTurn: {
+    name: 'chat:resume-turn',
+    request: z.strictObject({ turnId: z.string().max(100) }),
+    response: chatSendResultSchema,
+  },
 } as const;
 
 export const CHAT_PUSH = {
@@ -214,6 +227,7 @@ export interface ChatApi {
   removeQueuedChat(turnId: string): Promise<boolean>;
   stopChat(): Promise<boolean>;
   resumeChat(): Promise<null>;
+  resumeChatTurn(turnId: string): Promise<ChatSendResult>;
   /** Subscribes to chat state pushes; returns the unsubscribe function. */
   onChatChanged(listener: (state: ChatState) => void): () => void;
 }

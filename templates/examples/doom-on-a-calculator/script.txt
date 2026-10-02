@@ -1,0 +1,11 @@
+Doom runs on almost anything. Fridges, watches, even a printer.
+
+But this one is special: a school calculator on an exam bench, with only 61 KB of memory.
+
+The original game needed four megabytes. Here, everything has to fit in 61 KB.
+
+So hackers rewrote the engine, shrank the maps, and drew every frame in tiny pixels.
+
+And there it is: demons and shotguns, on a calculator screen.
+
+If it has a screen, it runs Doom.

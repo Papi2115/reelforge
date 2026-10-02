@@ -11,6 +11,7 @@ import {
   historyResultSchema,
   newProjectRequestSchema,
   openRecentRequestSchema,
+  projectOpenFailureSchema,
   projectOpenResultSchema,
   projectSummarySchema,
   recentProjectEntrySchema,
@@ -18,6 +19,7 @@ import {
   revertResultSchema,
   type HistoryResult,
   type NewProjectRequest,
+  type ProjectOpenFailure,
   type ProjectOpenResult,
   type ProjectSummary,
   type RecentProjectEntry,
@@ -27,9 +29,13 @@ import {
   projectChangedSchema,
   projectManifestResultSchema,
   projectSnapshotResultSchema,
+  repairFileRequestSchema,
+  repairFileResultSchema,
   type ProjectChangedEvent,
   type ProjectManifestResult,
   type ProjectSnapshotResult,
+  type RepairableFile,
+  type RepairFileResult,
 } from './snapshot-contract.js';
 import {
   snapshotCopyRequestSchema,
@@ -42,6 +48,7 @@ import {
 } from './player-contract.js';
 import { CHAT_IPC, CHAT_PUSH, type ChatApi } from './chat-contract.js';
 import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
+import { ONBOARDING_IPC, type OnboardingApi } from './onboarding-contract.js';
 import { SETTINGS_IPC, SETTINGS_PUSH, type SettingsApi } from './settings-contract.js';
 import { SOUND_IPC, type SoundApi } from './sound-contract.js';
 import { YOUTUBE_IPC, type YoutubeApi } from './youtube-contract.js';
@@ -157,6 +164,18 @@ export const IPC = {
     request: noPayload,
     response: projectSnapshotResultSchema,
   },
+  /** Restores a damaged document from history / resets damaged app state (PLAN.md#10.2). */
+  projectRepairFile: {
+    name: 'project:repair-file',
+    request: repairFileRequestSchema,
+    response: repairFileResultSchema,
+  },
+  /** Restores project.json of the project that just failed to open, then opens it. */
+  projectRestoreFailedOpen: {
+    name: 'project:restore-failed-open',
+    request: noPayload,
+    response: projectOpenResultSchema,
+  },
   /** Render manifest of the open project for the preview, when it can be built. */
   projectManifest: {
     name: 'project:manifest',
@@ -201,6 +220,8 @@ export const IPC = {
   ...SOUND_IPC,
   /** YouTube suggestions of an export and copying text (PLAN.md#9.2). */
   ...YOUTUBE_IPC,
+  /** Example project and the Help menu (PLAN.md#10.3). */
+  ...ONBOARDING_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -211,6 +232,8 @@ export const IPC_EVENTS = {
 export const IPC_PUSH = {
   /** Files of the open project changed on disk (debounced). */
   projectChanged: { name: 'project:changed', payload: projectChangedSchema },
+  /** Opening a project failed on a damaged project.json (the start screen offers a restore). */
+  projectOpenFailed: { name: 'project:open-failed', payload: projectOpenFailureSchema },
   ...SETTINGS_PUSH,
   ...EXPORT_PUSH,
   ...CHAT_PUSH,
@@ -224,7 +247,15 @@ export type ResponseOf<Key extends InvokeChannelKey> = z.infer<InvokeChannels[Ke
 
 /** The API preload exposes on `window.reelforge`. */
 export interface ReelforgeApi
-  extends SettingsApi, ExportApi, ChatApi, StagesApi, VoiceoverApi, SoundApi, YoutubeApi {
+  extends
+    SettingsApi,
+    ExportApi,
+    ChatApi,
+    StagesApi,
+    VoiceoverApi,
+    SoundApi,
+    YoutubeApi,
+    OnboardingApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;
@@ -237,6 +268,10 @@ export interface ReelforgeApi
   revertProject(hash: string): Promise<RevertProjectResult>;
   getProjectSnapshot(): Promise<ProjectSnapshotResult>;
   getProjectManifest(): Promise<ProjectManifestResult>;
+  repairProjectFile(file: RepairableFile): Promise<RepairFileResult>;
+  restoreFailedOpen(): Promise<ProjectOpenResult>;
+  /** Subscribes to `projectOpenFailed`; returns the unsubscribe function. */
+  onProjectOpenFailed(listener: (failure: ProjectOpenFailure) => void): () => void;
   saveSnapshot(request: SnapshotSaveRequest): Promise<SnapshotSaveResult>;
   copySnapshot(png: Uint8Array): Promise<SnapshotCopyResult>;
   editTimeline(request: TimelineEditRequest): Promise<TimelineEditResult>;

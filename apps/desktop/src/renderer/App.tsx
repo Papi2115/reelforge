@@ -6,7 +6,12 @@ import { Workspace } from './layout/Workspace.js';
 import { errorMessage, rendererLog } from './log.js';
 import { PreviewPanel } from './preview/PreviewPanel.js';
 import { usePlayer } from './preview/use-player.js';
+import { GuidedTour } from './onboarding/GuidedTour.js';
+import { HelpDialogs, type HelpDialogKind } from './onboarding/HelpDialogs.js';
+import { HelpMenu } from './onboarding/HelpMenu.js';
+import { WelcomeScreen } from './onboarding/WelcomeScreen.js';
 import { HistoryDrawer } from './project/HistoryDrawer.js';
+import { OpenRecovery } from './project/OpenRecovery.js';
 import { StartScreen } from './project/StartScreen.js';
 import { FirstRunGate } from './settings/FirstRunGate.js';
 import { SettingsDialog, type SettingsTab } from './settings/SettingsDialog.js';
@@ -28,7 +33,10 @@ function StartLayout({
   const player = usePlayer(undefined);
   return (
     <div className="start-layout">
-      <StartScreen onOpened={onOpened} defaultLanguage={defaultLanguage} />
+      <div className="start-column">
+        <OpenRecovery onOpened={onOpened} />
+        <StartScreen onOpened={onOpened} defaultLanguage={defaultLanguage} />
+      </div>
       <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
     </div>
   );
@@ -43,6 +51,17 @@ export function App(): JSX.Element {
   const claude = useClaudeStatus();
   const appSettings = settings.state?.settings;
   const firstRun = appSettings !== undefined && !appSettings.onboarding.connectClaudeDone;
+  const [helpDialog, setHelpDialog] = useState<HelpDialogKind | null>(null);
+  const [tourOpen, setTourOpen] = useState(false);
+  /** Closed in this session without "Don't show again": it comes back after a restart. */
+  const [tourClosed, setTourClosed] = useState(false);
+  const onboarding = appSettings?.onboarding;
+  const welcome = onboarding?.connectClaudeDone === true && !onboarding.welcomeDone;
+  const autoTour = project !== null && onboarding?.welcomeDone === true && !onboarding.tourDone;
+
+  useEffect(() => {
+    if (autoTour && !tourClosed) setTourOpen(true);
+  }, [autoTour, tourClosed]);
 
   useEffect(() => {
     window.reelforge.getAppInfo().then(setInfo, (error: unknown) => {
@@ -98,6 +117,16 @@ export function App(): JSX.Element {
             {info.dev ? ' · dev' : ''}
           </span>
         )}
+        <HelpMenu
+          onTour={
+            project === null
+              ? null
+              : () => {
+                  setTourOpen(true);
+                }
+          }
+          onDialog={setHelpDialog}
+        />
         <button
           type="button"
           className="link-button"
@@ -109,7 +138,18 @@ export function App(): JSX.Element {
         </button>
       </header>
       <main className="app-main">
-        {project === null ? (
+        {project === null && welcome ? (
+          <WelcomeScreen
+            defaultLanguage={appSettings?.language}
+            onDone={() => {
+              settings.update({ onboarding: { welcomeDone: true } });
+            }}
+            onOpened={(opened) => {
+              setProject(opened);
+              setHistoryOpen(false);
+            }}
+          />
+        ) : project === null ? (
           <StartLayout
             defaultLanguage={appSettings?.language}
             onOpened={(opened) => {
@@ -136,6 +176,24 @@ export function App(): JSX.Element {
             claude={claude}
             onClose={() => {
               setSettingsTab(null);
+            }}
+          />
+        )}
+        {tourOpen && project !== null && (
+          <GuidedTour
+            onClose={({ dontShowAgain }) => {
+              setTourOpen(false);
+              setTourClosed(true);
+              if (dontShowAgain) settings.update({ onboarding: { tourDone: true } });
+            }}
+          />
+        )}
+        {helpDialog !== null && (
+          <HelpDialogs
+            kind={helpDialog}
+            info={info}
+            onClose={() => {
+              setHelpDialog(null);
             }}
           />
         )}

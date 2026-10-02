@@ -131,7 +131,18 @@ export const appSettingsSchema = z.object({
     .object({
       /** The first-run "Connect Claude" gate was completed or skipped. */
       connectClaudeDone: z.boolean().default(false),
+      /** The Welcome screen after the gate (example / brief / open) was answered (PLAN.md#10.3). */
+      welcomeDone: z.boolean().optional(),
+      /** The guided tour of the workspace was dismissed with "Don't show again". */
+      tourDone: z.boolean().optional(),
     })
+    // Profiles that passed the gate before the Welcome screen and the tour existed are not
+    // onboarded again: both default to the gate's state.
+    .transform((onboarding) => ({
+      connectClaudeDone: onboarding.connectClaudeDone,
+      welcomeDone: onboarding.welcomeDone ?? onboarding.connectClaudeDone,
+      tourDone: onboarding.tourDone ?? onboarding.connectClaudeDone,
+    }))
     .prefault({}),
 });
 export type AppSettings = z.output<typeof appSettingsSchema>;
@@ -185,7 +196,14 @@ export const appSettingsPatchSchema = z.strictObject({
     })
     .partial()
     .optional(),
-  onboarding: z.strictObject({ connectClaudeDone: z.boolean() }).partial().optional(),
+  onboarding: z
+    .strictObject({
+      connectClaudeDone: z.boolean(),
+      welcomeDone: z.boolean(),
+      tourDone: z.boolean(),
+    })
+    .partial()
+    .optional(),
 });
 export type AppSettingsPatch = z.infer<typeof appSettingsPatchSchema>;
 

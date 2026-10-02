@@ -42,7 +42,20 @@ export {
   type CommitResult,
   type RevertResult,
 } from './git-repo.js';
+export {
+  isParsableJson,
+  MAX_RESTORE_CANDIDATES,
+  restoreFileFromHistory,
+  type RestoreFileOptions,
+} from './git-restore.js';
 export { gitEnv, runGit, type GitOptions, type GitOutput } from './git-runner.js';
+export {
+  DEFAULT_LEFTOVER_AGE_MS,
+  isAtomicLeftover,
+  LEFTOVER_FOLDERS,
+  removeAtomicLeftovers,
+  type LeftoverCleanup,
+} from './leftovers.js';
 export {
   clearIndexLock,
   DEFAULT_LOCK_WAIT_MS,

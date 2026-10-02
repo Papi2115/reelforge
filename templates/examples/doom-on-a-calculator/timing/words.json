@@ -1,0 +1,707 @@
+{
+  "version": 1,
+  "lang": "en",
+  "asrModel": null,
+  "words": [
+    {
+      "i": 0,
+      "text": "Doom",
+      "paragraph": 0,
+      "t": 0.3,
+      "tEnd": 0.469,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 1,
+      "text": "runs",
+      "paragraph": 0,
+      "t": 0.47,
+      "tEnd": 0.7,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 2,
+      "text": "on",
+      "paragraph": 0,
+      "t": 0.7,
+      "tEnd": 0.839,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 3,
+      "text": "almost",
+      "paragraph": 0,
+      "t": 0.84,
+      "tEnd": 1.266,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 4,
+      "text": "anything.",
+      "paragraph": 0,
+      "t": 1.266,
+      "tEnd": 1.69,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 5,
+      "text": "Fridges,",
+      "paragraph": 0,
+      "t": 2.382,
+      "tEnd": 2.781,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 6,
+      "text": "watches,",
+      "paragraph": 0,
+      "t": 2.944,
+      "tEnd": 3.352,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 7,
+      "text": "even",
+      "paragraph": 0,
+      "t": 3.516,
+      "tEnd": 3.782,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 8,
+      "text": "a",
+      "paragraph": 0,
+      "t": 3.782,
+      "tEnd": 3.866,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 9,
+      "text": "printer.",
+      "paragraph": 0,
+      "t": 3.866,
+      "tEnd": 4.301,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 10,
+      "text": "But",
+      "paragraph": 1,
+      "t": 5.266,
+      "tEnd": 5.435,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 11,
+      "text": "this",
+      "paragraph": 1,
+      "t": 5.436,
+      "tEnd": 5.647,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 12,
+      "text": "one",
+      "paragraph": 1,
+      "t": 5.647,
+      "tEnd": 5.83,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 13,
+      "text": "is",
+      "paragraph": 1,
+      "t": 5.83,
+      "tEnd": 6.065,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 14,
+      "text": "special:",
+      "paragraph": 1,
+      "t": 6.066,
+      "tEnd": 6.536,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 15,
+      "text": "a",
+      "paragraph": 1,
+      "t": 6.693,
+      "tEnd": 6.775,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 16,
+      "text": "school",
+      "paragraph": 1,
+      "t": 6.776,
+      "tEnd": 7.034,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 17,
+      "text": "calculator",
+      "paragraph": 1,
+      "t": 7.034,
+      "tEnd": 7.644,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 18,
+      "text": "on",
+      "paragraph": 1,
+      "t": 7.645,
+      "tEnd": 7.815,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 19,
+      "text": "an",
+      "paragraph": 1,
+      "t": 7.816,
+      "tEnd": 8.033,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 20,
+      "text": "exam",
+      "paragraph": 1,
+      "t": 8.033,
+      "tEnd": 8.332,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 21,
+      "text": "bench,",
+      "paragraph": 1,
+      "t": 8.332,
+      "tEnd": 8.629,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 22,
+      "text": "with",
+      "paragraph": 1,
+      "t": 8.791,
+      "tEnd": 8.965,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 23,
+      "text": "only",
+      "paragraph": 1,
+      "t": 8.966,
+      "tEnd": 9.264,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 24,
+      "text": "61",
+      "paragraph": 1,
+      "t": 9.264,
+      "tEnd": 10.006,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 25,
+      "text": "KB",
+      "paragraph": 1,
+      "t": 10.006,
+      "tEnd": 10.245,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 26,
+      "text": "of",
+      "paragraph": 1,
+      "t": 10.246,
+      "tEnd": 10.385,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 27,
+      "text": "memory.",
+      "paragraph": 1,
+      "t": 10.386,
+      "tEnd": 10.845,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 28,
+      "text": "The",
+      "paragraph": 2,
+      "t": 11.806,
+      "tEnd": 11.956,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 29,
+      "text": "original",
+      "paragraph": 2,
+      "t": 11.956,
+      "tEnd": 12.374,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 30,
+      "text": "game",
+      "paragraph": 2,
+      "t": 12.374,
+      "tEnd": 12.599,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 31,
+      "text": "needed",
+      "paragraph": 2,
+      "t": 12.599,
+      "tEnd": 12.856,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 32,
+      "text": "four",
+      "paragraph": 2,
+      "t": 12.856,
+      "tEnd": 12.976,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 33,
+      "text": "megabytes.",
+      "paragraph": 2,
+      "t": 12.976,
+      "tEnd": 13.615,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 34,
+      "text": "Here,",
+      "paragraph": 2,
+      "t": 14.31,
+      "tEnd": 14.541,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 35,
+      "text": "everything",
+      "paragraph": 2,
+      "t": 14.704,
+      "tEnd": 15.119,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 36,
+      "text": "has",
+      "paragraph": 2,
+      "t": 15.119,
+      "tEnd": 15.341,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 37,
+      "text": "to",
+      "paragraph": 2,
+      "t": 15.341,
+      "tEnd": 15.453,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 38,
+      "text": "fit",
+      "paragraph": 2,
+      "t": 15.454,
+      "tEnd": 15.63,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 39,
+      "text": "in",
+      "paragraph": 2,
+      "t": 15.631,
+      "tEnd": 15.78,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 40,
+      "text": "61",
+      "paragraph": 2,
+      "t": 15.781,
+      "tEnd": 16.517,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 41,
+      "text": "KB.",
+      "paragraph": 2,
+      "t": 16.517,
+      "tEnd": 16.861,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 42,
+      "text": "So",
+      "paragraph": 3,
+      "t": 17.826,
+      "tEnd": 18.08,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 43,
+      "text": "hackers",
+      "paragraph": 3,
+      "t": 18.08,
+      "tEnd": 18.446,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 44,
+      "text": "rewrote",
+      "paragraph": 3,
+      "t": 18.446,
+      "tEnd": 18.744,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 45,
+      "text": "the",
+      "paragraph": 3,
+      "t": 18.745,
+      "tEnd": 18.885,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 46,
+      "text": "engine,",
+      "paragraph": 3,
+      "t": 18.886,
+      "tEnd": 19.256,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 47,
+      "text": "shrank",
+      "paragraph": 3,
+      "t": 19.419,
+      "tEnd": 19.7,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 48,
+      "text": "the",
+      "paragraph": 3,
+      "t": 19.701,
+      "tEnd": 19.836,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 49,
+      "text": "maps,",
+      "paragraph": 3,
+      "t": 19.837,
+      "tEnd": 20.126,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 50,
+      "text": "and",
+      "paragraph": 3,
+      "t": 20.292,
+      "tEnd": 20.456,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 51,
+      "text": "drew",
+      "paragraph": 3,
+      "t": 20.456,
+      "tEnd": 20.696,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 52,
+      "text": "every",
+      "paragraph": 3,
+      "t": 20.697,
+      "tEnd": 20.896,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 53,
+      "text": "frame",
+      "paragraph": 3,
+      "t": 20.896,
+      "tEnd": 21.16,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 54,
+      "text": "in",
+      "paragraph": 3,
+      "t": 21.16,
+      "tEnd": 21.284,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 55,
+      "text": "tiny",
+      "paragraph": 3,
+      "t": 21.284,
+      "tEnd": 21.55,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 56,
+      "text": "pixels.",
+      "paragraph": 3,
+      "t": 21.55,
+      "tEnd": 22.086,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 57,
+      "text": "And",
+      "paragraph": 4,
+      "t": 23.051,
+      "tEnd": 23.225,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 58,
+      "text": "there",
+      "paragraph": 4,
+      "t": 23.225,
+      "tEnd": 23.374,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 59,
+      "text": "it",
+      "paragraph": 4,
+      "t": 23.374,
+      "tEnd": 23.51,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 60,
+      "text": "is:",
+      "paragraph": 4,
+      "t": 23.51,
+      "tEnd": 23.831,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 61,
+      "text": "demons",
+      "paragraph": 4,
+      "t": 23.991,
+      "tEnd": 24.321,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 62,
+      "text": "and",
+      "paragraph": 4,
+      "t": 24.321,
+      "tEnd": 24.496,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 63,
+      "text": "shotguns,",
+      "paragraph": 4,
+      "t": 24.497,
+      "tEnd": 25.011,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 64,
+      "text": "on",
+      "paragraph": 4,
+      "t": 25.177,
+      "tEnd": 25.347,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 65,
+      "text": "a",
+      "paragraph": 4,
+      "t": 25.347,
+      "tEnd": 25.431,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 66,
+      "text": "calculator",
+      "paragraph": 4,
+      "t": 25.431,
+      "tEnd": 26.08,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 67,
+      "text": "screen.",
+      "paragraph": 4,
+      "t": 26.081,
+      "tEnd": 26.48,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 68,
+      "text": "If",
+      "paragraph": 5,
+      "t": 27.449,
+      "tEnd": 27.598,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 69,
+      "text": "it",
+      "paragraph": 5,
+      "t": 27.599,
+      "tEnd": 27.718,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 70,
+      "text": "has",
+      "paragraph": 5,
+      "t": 27.719,
+      "tEnd": 27.969,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 71,
+      "text": "a",
+      "paragraph": 5,
+      "t": 27.969,
+      "tEnd": 28.037,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 72,
+      "text": "screen,",
+      "paragraph": 5,
+      "t": 28.038,
+      "tEnd": 28.408,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 73,
+      "text": "it",
+      "paragraph": 5,
+      "t": 28.571,
+      "tEnd": 28.688,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 74,
+      "text": "runs",
+      "paragraph": 5,
+      "t": 28.689,
+      "tEnd": 28.914,
+      "confidence": 1,
+      "status": "exact"
+    },
+    {
+      "i": 75,
+      "text": "Doom.",
+      "paragraph": 5,
+      "t": 28.915,
+      "tEnd": 29.168,
+      "confidence": 1,
+      "status": "exact"
+    }
+  ],
+  "mismatches": [],
+  "stats": {
+    "scriptWords": 76,
+    "asrWords": 76,
+    "wer": 0,
+    "werFolded": 0,
+    "exact": 76,
+    "folded": 0,
+    "fuzzy": 0,
+    "missing": 0,
+    "coverage": 1,
+    "timedShare": 1,
+    "insertions": 0,
+    "monotonic": true,
+    "clamped": 0
+  }
+}

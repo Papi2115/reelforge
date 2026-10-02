@@ -9,6 +9,7 @@ import { PROJECT_FILE_VERSION, projectFileSchema, type ProjectFile } from '@reel
 import { writeAtomic, writeJsonAtomic } from './atomic.js';
 import { commitProjectChanges, hasRepository, initRepository } from './git-repo.js';
 import type { GitOptions } from './git-runner.js';
+import { removeAtomicLeftovers } from './leftovers.js';
 import { DEFAULT_TEMPLATE_DIR, PROJECT_GITIGNORE, PROJECT_JSON } from './paths.js';
 import { describeUnknown, err, errorCode, ok, projectError, tryIo, type Result } from './result.js';
 
@@ -26,6 +27,8 @@ export interface OpenedProject {
   readonly migratedFrom: number | null;
   /** True when the folder had no git repository and one was created. */
   readonly initializedGit: boolean;
+  /** Leftovers of interrupted atomic writes that were removed (project-relative). */
+  readonly removedLeftovers: readonly string[];
 }
 
 export interface OpenProjectOptions {
@@ -160,6 +163,8 @@ export async function openProject(
   const git = options.git ?? {};
   const folder = await checkFolder(dir);
   if (!folder.ok) return folder;
+  const cleaned = await tryIo(dir, () => removeAtomicLeftovers(dir));
+  if (!cleaned.ok) return cleaned;
   const raw = await readProjectJson(dir);
   if (!raw.ok) return raw;
   const migrated = migrateProjectJson(raw.value, options.migrations);
@@ -197,5 +202,11 @@ export async function openProject(
     );
     if (!commit.ok) return commit;
   }
-  return ok({ dir, project: project.value, migratedFrom: from, initializedGit });
+  return ok({
+    dir,
+    project: project.value,
+    migratedFrom: from,
+    initializedGit,
+    removedLeftovers: cleaned.value.removed,
+  });
 }

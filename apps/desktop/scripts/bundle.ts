@@ -2,7 +2,7 @@
  * Shared build steps of `pnpm dev` and `pnpm build` for the desktop app:
  * engine frame assets, demo files, the main/preload esbuild bundles and the renderer Vite config.
  */
-import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { buildHarness, HARNESS_DIR } from '@reelforge/engine/cli';
@@ -144,6 +144,24 @@ export async function copyProjectTemplate(context: TaskContext): Promise<void> {
         path.join(template, 'styles', name, 'STYLE.md'),
       );
     }),
+  );
+  await copyExamples(context, template);
+}
+
+/**
+ * The first-run example projects (`templates/examples/`, PLAN.md#10.3) without the CLI's frame
+ * cache, and docs/licenses.md for Help → About (`AppLayout.examplesDir` / `licensesFile`).
+ */
+async function copyExamples(context: TaskContext, template: string): Promise<void> {
+  const target = path.join(template, 'examples');
+  await rm(target, { recursive: true, force: true });
+  await cp(path.join(context.repoRoot, 'templates', 'examples'), target, {
+    recursive: true,
+    filter: (source) => path.basename(source) !== '.reelforge',
+  });
+  await copyFile(
+    path.join(context.repoRoot, 'docs', 'licenses.md'),
+    path.join(template, 'licenses.md'),
   );
 }
 

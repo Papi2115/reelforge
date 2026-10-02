@@ -58,6 +58,9 @@ const api: ReelforgeApi = {
   revertProject: (hash) => invoke(IPC.projectRevert, { hash }),
   getProjectSnapshot: () => invoke(IPC.projectSnapshot, null),
   getProjectManifest: () => invoke(IPC.projectManifest, null),
+  repairProjectFile: (file) => invoke(IPC.projectRepairFile, { file }),
+  restoreFailedOpen: () => invoke(IPC.projectRestoreFailedOpen, null),
+  onProjectOpenFailed: (listener) => subscribe(IPC_PUSH.projectOpenFailed, listener),
   saveSnapshot: (request) => invoke(IPC.snapshotSave, request),
   copySnapshot: (png) => invoke(IPC.snapshotCopy, { png }),
   editTimeline: (request) => invoke(IPC.timelineEdit, request),
@@ -96,6 +99,7 @@ const api: ReelforgeApi = {
   removeQueuedChat: (turnId) => invoke(IPC.chatRemove, { turnId }),
   stopChat: () => invoke(IPC.chatStop, null),
   resumeChat: () => invoke(IPC.chatResume, null),
+  resumeChatTurn: (turnId) => invoke(IPC.chatResumeTurn, { turnId }),
   onChatChanged: (listener) => subscribe(IPC_PUSH.chatChanged, listener),
   getStagesState: () => invoke(IPC.stagesState, null),
   runStages: (stages) => invoke(IPC.stagesRun, { stages: [...stages] }),
@@ -121,6 +125,8 @@ const api: ReelforgeApi = {
   setMix: (patch) => invoke(IPC.soundSetMix, patch),
   runSound: (action) => invoke(IPC.soundRun, { action }),
   renderMixPreview: (t) => invoke(IPC.mixPreview, { t }),
+  openExampleProject: () => invoke(IPC.projectOpenExample, null),
+  openHelpTarget: (target) => invoke(IPC.helpOpen, { target }),
   log: (entry) => {
     ipcRenderer.send(IPC_EVENTS.log.name, entry);
   },

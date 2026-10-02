@@ -45,6 +45,8 @@ function turn(patch: Partial<ChatTurn>): ChatTurn {
     usage: null,
     error: null,
     commit: null,
+    resumable: false,
+    resumeOf: null,
     ...patch,
   };
 }
@@ -156,6 +158,17 @@ describe('turn texts', () => {
     expect(
       turnStatusText(turn({ status: 'failed', error: { kind: 'limit', message: 'usage limit' } })),
     ).toBe('Failed: usage limit');
+    expect(
+      turnStatusText(
+        turn({
+          status: 'failed',
+          resumable: true,
+          error: { kind: 'crashed', message: 'claude exited before finishing the turn' },
+        }),
+      ),
+    ).toBe(
+      'Interrupted (claude exited before finishing the turn). What Claude changed so far is kept; Resume continues the turn.',
+    );
     expect(turnStatusText(turn({ status: 'running' }))).toBe('Claude is working…');
     expect(turnStatusText(turn({}))).toBeUndefined();
   });

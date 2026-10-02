@@ -76,6 +76,8 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.projectRevert, handlers.projectRevert);
   registerInvoke(IPC.projectSnapshot, handlers.projectSnapshot);
   registerInvoke(IPC.projectManifest, handlers.projectManifest);
+  registerInvoke(IPC.projectRepairFile, handlers.projectRepairFile);
+  registerInvoke(IPC.projectRestoreFailedOpen, handlers.projectRestoreFailedOpen);
   registerInvoke(IPC.snapshotSave, handlers.snapshotSave);
   registerInvoke(IPC.snapshotCopy, handlers.snapshotCopy);
   registerInvoke(IPC.timelineEdit, handlers.timelineEdit);
@@ -110,6 +112,7 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.chatRemove, handlers.chatRemove);
   registerInvoke(IPC.chatStop, handlers.chatStop);
   registerInvoke(IPC.chatResume, handlers.chatResume);
+  registerInvoke(IPC.chatResumeTurn, handlers.chatResumeTurn);
   registerInvoke(IPC.stagesState, handlers.stagesState);
   registerInvoke(IPC.stagesRun, handlers.stagesRun);
   registerInvoke(IPC.stagesStop, handlers.stagesStop);
@@ -132,6 +135,8 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.soundSetMix, handlers.soundSetMix);
   registerInvoke(IPC.soundRun, handlers.soundRun);
   registerInvoke(IPC.mixPreview, handlers.mixPreview);
+  registerInvoke(IPC.projectOpenExample, handlers.projectOpenExample);
+  registerInvoke(IPC.helpOpen, handlers.helpOpen);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

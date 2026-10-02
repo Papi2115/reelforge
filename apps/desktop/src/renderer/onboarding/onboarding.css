@@ -1,0 +1,278 @@
+/* Onboarding (PLAN.md#10.3): Welcome screen, guided tour, Help menu and dialogs, next-step hint. */
+
+/* Welcome */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  height: 100%;
+  padding: max(48px, 14vh) 24px 24px;
+  overflow-y: auto;
+}
+
+.welcome-title {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 0.01em;
+}
+
+.welcome-title:focus {
+  outline: none;
+}
+
+.welcome-lead {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.welcome-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: min(980px, 100%);
+}
+
+.welcome-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+  padding: 18px;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+button.welcome-choice,
+.welcome-choice-button {
+  cursor: pointer;
+}
+
+.welcome-choice-button {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  text-align: left;
+  background: none;
+  border: none;
+}
+
+.welcome-choice-button:hover:not(:disabled) {
+  background: none;
+}
+
+.welcome-choice:hover:not(:has(:disabled)) {
+  border-color: #3d4152;
+}
+
+.welcome-choice.recommended {
+  border-color: var(--accent);
+  background: linear-gradient(160deg, var(--accent-soft), var(--panel) 60%);
+}
+
+.welcome-choice-tag {
+  align-self: flex-start;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-accent);
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.welcome-choice-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.welcome-choice-text {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.welcome-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.welcome-skip {
+  margin-top: 8px;
+}
+
+/* Guided tour: the layer lets every click through; only the card takes input. */
+.tour-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.tour-highlight {
+  position: fixed;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 4px rgb(255 138 61 / 25%),
+    0 0 0 9999px rgb(0 0 0 / 28%);
+  transition: none;
+}
+
+.tour-card {
+  position: fixed;
+  width: 320px;
+  padding: 14px 16px 12px;
+  pointer-events: auto;
+  background: var(--panel-raised);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 50%);
+}
+
+.tour-card:focus {
+  outline: none;
+}
+
+.tour-count {
+  margin: 0;
+  color: var(--accent-text);
+  font-size: 11px;
+}
+
+.tour-title {
+  margin: 2px 0 6px;
+  font-size: 16px;
+}
+
+.tour-body {
+  margin: 0 0 10px;
+  line-height: 1.45;
+}
+
+.tour-dont-show {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-spacer {
+  flex: 1;
+}
+
+/* Help menu and dialogs */
+.help-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.help-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: 4px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.help-menu-list [role='menuitem'] {
+  text-align: left;
+  border: none;
+  background: none;
+}
+
+.help-menu-list [role='menuitem']:hover:not(:disabled),
+.help-menu-list [role='menuitem']:focus-visible {
+  background: var(--panel);
+}
+
+.help-dialog {
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.help-body {
+  margin-bottom: 12px;
+}
+
+.help-problem {
+  margin-right: auto;
+  color: var(--error);
+  font-size: 12px;
+}
+
+.shortcut-group h3 {
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: var(--accent-text);
+}
+
+.shortcut-group dl {
+  margin: 0;
+}
+
+.shortcut-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.shortcut-row dt,
+.shortcut-row dd {
+  margin: 0;
+}
+
+kbd {
+  padding: 0 5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+/* "Next: …" at the top of the pipeline sidebar */
+.next-step {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 6px 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border: 1px solid rgb(255 138 61 / 35%);
+  border-radius: 4px;
+}
+
+.next-step span {
+  flex: 1;
+}
+
+.next-step .link-button {
+  color: var(--accent-text);
+}

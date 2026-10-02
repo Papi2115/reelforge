@@ -32,6 +32,19 @@ export const projectOpenResultSchema = z.discriminatedUnion('status', [
 ]);
 export type ProjectOpenResult = z.infer<typeof projectOpenResultSchema>;
 
+/**
+ * Opening a project failed on a damaged project.json (PLAN.md#10.2): pushed to the start screen,
+ * which offers "Restore from history" when the folder has git history.
+ */
+export const projectOpenFailureSchema = z.object({
+  dir: z.string(),
+  /** The damaged file (absolute). */
+  file: z.string(),
+  message: z.string(),
+  canRestore: z.boolean(),
+});
+export type ProjectOpenFailure = z.infer<typeof projectOpenFailureSchema>;
+
 export const newProjectRequestSchema = z.strictObject({
   title: z.string().trim().min(1).max(200),
   language: videoLanguageSchema,

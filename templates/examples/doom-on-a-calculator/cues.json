@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "global": { "voGainDb": 0, "targetLufs": -14, "truePeakMaxDbtp": -1 },
+  "sfx": [
+    { "t": 0.25, "name": "whoosh", "gainDb": -12 },
+    { "t": 2.382, "name": "pop", "gainDb": -10, "pan": -0.4 },
+    { "t": 2.944, "name": "pop", "gainDb": -10 },
+    { "t": 3.516, "name": "pop", "gainDb": -10, "pan": 0.4 },
+    { "t": 4.7, "name": "whoosh", "gainDb": -12 },
+    { "t": 9.264, "name": "glitch", "gainDb": -6 },
+    { "t": 12.856, "name": "tick", "gainDb": -8 },
+    { "t": 15.781, "name": "hit", "gainDb": -4 },
+    { "t": 18.446, "name": "click", "gainDb": -10 },
+    { "t": 19.419, "name": "click", "gainDb": -10 },
+    { "t": 21.284, "name": "click", "gainDb": -10 },
+    { "t": 22.4, "name": "whoosh", "gainDb": -12 },
+    { "t": 23.991, "name": "glitch", "gainDb": -8 },
+    { "t": 24.497, "name": "glitch", "gainDb": -8 },
+    { "t": 28.915, "name": "hit", "gainDb": -4 }
+  ],
+  "ambience": [
+    { "from": 0, "to": 30.5, "name": "hum", "gainDb": -32, "fadeInS": 1, "fadeOutS": 1.5 },
+    { "from": 4.9, "to": 11.3, "name": "room-tone", "gainDb": -26 }
+  ],
+  "music": []
+}

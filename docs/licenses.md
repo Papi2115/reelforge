@@ -18,6 +18,8 @@ audit is PLAN.md#9.4 — rows marked _to verify_ must be checked there before an
 | Style presets (palettes, post-fx settings) | `packages/engine/src/presets/*.json` | ReelForge project | CC0 1.0 | Authored in-repo. |
 | Map land masks (`europe` outline, `generic`/`islands` noise) | `packages/kit/src/fx/map-regions.ts` | ReelForge project | CC0 1.0 | The Europe outline is ~200 rough [lon, lat] points typed by hand from general knowledge for a stylised look; no geodata set (Natural Earth, OSM, ...) is bundled or derived from. |
 | App icon (pixel-art voxel cube) | `apps/desktop/build-resources/icon.{png,ico}`, drawn by `apps/desktop/scripts/icon-art.ts` | ReelForge project, authored in-repo (2026-10-02) | CC0 1.0 | Procedural; regenerate with `pnpm --filter @reelforge/desktop icon`. |
+| Example project "Doom on a calculator" (script, storyboard, scenes, cues, word timings) | `templates/examples/doom-on-a-calculator/` | ReelForge project, authored in-repo (2026-10-02) | CC0 1.0 | Scenes use only the kit; see `docs/example-project.md`. |
+| Example project voice-over (30.5 s, 16 kHz mono WAV, ~0.95 MB) | `templates/examples/doom-on-a-calculator/audio/vo.original.wav` | Synthesized locally on 2026-10-02 with the Windows built-in SAPI voice "Microsoft David Desktop" (System.Speech, the `spikes/03-audio/synth.ps1` approach) | _to verify_ (9.4) | Machine speech from the voice that ships with Windows; no recording of a person. Microsoft's terms for redistributing synthesized output must be checked before any public distribution; if not allowed, replace it with a recorded CC0 voice-over (same script) and re-time the words. |
 | _(sfx library — PLAN.md phase 8)_ | | | | |
 
 ## npm dependencies (runtime)

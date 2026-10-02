@@ -188,7 +188,7 @@ export function commitProjectChanges(
 const HASH_PATTERN = /^[0-9a-f]{4,64}$/i;
 
 /** Full hash + subject of a commit given by (abbreviated) hash. */
-async function resolveCommit(
+export async function resolveCommit(
   dir: string,
   hash: string,
   options: GitOptions,
@@ -202,7 +202,7 @@ async function resolveCommit(
   return ok({ hash: full, subject: subject ?? '' });
 }
 
-async function saveBeforeRevert(
+export async function saveBeforeRevert(
   dir: string,
   options: GitOptions,
 ): Promise<Result<string | undefined>> {
@@ -216,7 +216,8 @@ async function rollbackToHead(dir: string, options: GitOptions): Promise<void> {
   await runGit(dir, ['restore', '--source=HEAD', '--staged', '--worktree', '--', '.'], options);
 }
 
-async function restoreAndCommit(
+/** Restores `pathspec` from `target` and commits it as a revert (caller holds the lock). */
+export async function restoreAndCommit(
   dir: string,
   target: { readonly hash: string; readonly subject: string },
   pathspec: string,

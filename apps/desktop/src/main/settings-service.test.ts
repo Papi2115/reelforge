@@ -86,6 +86,19 @@ describe('SettingsService', () => {
     expect(lines.join('')).toContain('settings corrupt');
   });
 
+  it('survives a zero-byte file (power loss) and loads again without a loop (PLAN.md#10.2)', async () => {
+    await writeFile(file, '', 'utf8');
+    const first = SettingsService.load({ file, log: log(), now: fixedNow });
+    expect(first.get()).toEqual(defaultAppSettings());
+    expect(await readFile(settingsBackupFile(file, 'corrupt', fixedNow()), 'utf8')).toBe('');
+    // The next start finds no file (defaults again), not the same broken one.
+    expect(existsSync(file)).toBe(false);
+    const second = SettingsService.load({ file, log: log(), now: fixedNow });
+    expect(second.get()).toEqual(defaultAppSettings());
+    expect((await second.update({ economy: true })).status).toBe('ok');
+    expect(SettingsService.load({ file, log: log() }).get().economy).toBe(true);
+  });
+
   it('keeps a schema-invalid or newer file as a backup', async () => {
     await writeFile(file, JSON.stringify({ version: 1, economy: 'yes' }), 'utf8');
     const invalid = SettingsService.load({ file, log: log(), now: fixedNow });

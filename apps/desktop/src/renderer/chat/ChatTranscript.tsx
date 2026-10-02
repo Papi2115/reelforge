@@ -110,7 +110,13 @@ export function Step({ row }: { readonly row: StepRow }): JSX.Element {
   );
 }
 
-function Turn({ turn }: { readonly turn: ChatTurn }): JSX.Element {
+function Turn({
+  turn,
+  onResume,
+}: {
+  readonly turn: ChatTurn;
+  readonly onResume: (turnId: string) => void;
+}): JSX.Element {
   const status = turnStatusText(turn);
   return (
     <li className={`turn turn-${turn.status}`} data-turn-status={turn.status}>
@@ -133,6 +139,18 @@ function Turn({ turn }: { readonly turn: ChatTurn }): JSX.Element {
           {status !== undefined && (
             <p className={turn.status === 'failed' ? 'panel-error' : 'muted'}>{status}</p>
           )}
+          {turn.resumable && (
+            <button
+              type="button"
+              className="small-button"
+              title="Continue this turn in the same Claude session"
+              onClick={() => {
+                onResume(turn.id);
+              }}
+            >
+              Resume
+            </button>
+          )}
           {turn.usage !== null && <p className="muted mono">{usageLine(turn.usage)}</p>}
           {turn.commit !== null && (
             <p className="muted" title={turn.commit.subject}>
@@ -149,6 +167,7 @@ export interface ChatTranscriptProps {
   readonly turns: readonly ChatTurn[];
   readonly queue: readonly ChatTurn[];
   readonly onRemoveQueued: (turnId: string) => void;
+  readonly onResumeTurn: (turnId: string) => void;
   readonly empty: JSX.Element;
 }
 
@@ -159,6 +178,7 @@ export function ChatTranscript({
   turns,
   queue,
   onRemoveQueued,
+  onResumeTurn,
   empty,
 }: ChatTranscriptProps): JSX.Element {
   const listRef = useRef<HTMLDivElement>(null);
@@ -186,7 +206,7 @@ export function ChatTranscript({
       ) : (
         <ol className="turn-list" aria-label="Messages">
           {turns.map((turn) => (
-            <Turn key={turn.id} turn={turn} />
+            <Turn key={turn.id} turn={turn} onResume={onResumeTurn} />
           ))}
         </ol>
       )}

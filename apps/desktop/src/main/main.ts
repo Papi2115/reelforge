@@ -4,6 +4,7 @@
  * kills every child process tree on quit.
  */
 import { availableParallelism } from 'node:os';
+import path from 'node:path';
 import { killTree, PipelineStateStore } from '@reelforge/claude-bridge';
 import { writeCliShims } from '@reelforge/cli/shims';
 import { autocommit } from '@reelforge/project';
@@ -24,6 +25,7 @@ import {
   APP_USER_MODEL_ID,
   appLayout,
   cliShimDir,
+  defaultProjectsDir,
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
@@ -42,6 +44,8 @@ import { MicPermissionGate } from './mic-permission.js';
 import { serveMediaProtocol } from './media-protocol.js';
 import { isAllowedNavigation, resolveRendererSource } from './navigation-policy.js';
 import { projectHandlers } from './project-ipc.js';
+import { EXAMPLE_ID, installExampleProject } from './example-project.js';
+import { onboardingHandlers } from './onboarding-ipc.js';
 import { ProjectService, type FolderPurpose } from './project-service.js';
 import { ProjectWatchFollower, watchProject } from './project-watcher.js';
 import {
@@ -203,6 +207,16 @@ function main(): void {
       void scriptDocuments.flush();
       void stages.follow(dir);
     },
+    onOpenFailed: (failure) => {
+      mainWindow?.webContents.send(IPC_PUSH.projectOpenFailed.name, failure);
+    },
+    installExample: () =>
+      installExampleProject({
+        exampleDir: path.join(layout.examplesDir, EXAMPLE_ID),
+        projectsDir: defaultProjectsDir(app.getPath('documents'), process.env, app.isPackaged),
+        templateDir: layout.projectTemplateDir,
+        stylesDir: layout.stylesDir,
+      }),
   });
 
   const settingsBackend = createSettingsBackend({
@@ -337,6 +351,13 @@ function main(): void {
         return manifest.value;
       },
       ...projectHandlers(projects, log.child('snapshot')),
+      ...onboardingHandlers({
+        projects,
+        logsDir: path.dirname(logFile(userDataDir)),
+        licensesFile: layout.licensesFile,
+        openPath: (target) => shell.openPath(target),
+        log: log.child('help'),
+      }),
       ...timelineHandlers({
         projects,
         edits: timelineEdits,

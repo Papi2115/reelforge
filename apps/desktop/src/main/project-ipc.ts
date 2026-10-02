@@ -20,6 +20,8 @@ export type ProjectHandlers = Pick<
   | 'projectRevert'
   | 'projectSnapshot'
   | 'projectManifest'
+  | 'projectRepairFile'
+  | 'projectRestoreFailedOpen'
   | 'snapshotSave'
   | 'snapshotCopy'
 >;
@@ -36,6 +38,8 @@ export function projectHandlers(projects: ProjectService, log: Logger): ProjectH
     projectRevert: (request) => projects.revert(request.hash),
     projectSnapshot: () => projects.snapshot(),
     projectManifest: () => projects.manifest(),
+    projectRepairFile: (request) => projects.repairFile(request.file),
+    projectRestoreFailedOpen: () => projects.restoreFailedOpen(),
     snapshotSave: (request) => saveFrameSnapshot(projects.currentProject()?.dir, request, log),
     snapshotCopy: (request) => copyPngToClipboard(request.png),
   };

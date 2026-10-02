@@ -36,6 +36,7 @@ import { ChatPanel } from './ChatPanel.js';
 import { PipelineSidebar } from './PipelineSidebar.js';
 import { ShotsPanel } from './ShotsPanel.js';
 import { TimelinePanel } from './TimelinePanel.js';
+import { FileProblemsBanner } from './FileProblemsBanner.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
 
 export interface WorkspaceProps {
@@ -167,6 +168,13 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
                 {error}
               </p>
             )}
+            <FileProblemsBanner
+              dir={project.dir}
+              problems={snapshot?.problems ?? []}
+              onRepaired={() => {
+                void reload();
+              }}
+            />
             <PipelineSidebar
               stages={stages}
               onOpen={openStage}

@@ -2,9 +2,11 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   appLayout,
+  defaultProjectsDir,
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
+  TEST_PROJECTS_DIR_ENV,
   USER_DATA_ENV,
 } from './app-paths.js';
 
@@ -43,6 +45,8 @@ describe('appLayout', () => {
       demoDir: path.join(out, 'demo'),
       projectTemplateDir: path.join(out, 'template', 'project'),
       stylesDir: path.join(out, 'template', 'styles'),
+      examplesDir: path.join(out, 'template', 'examples'),
+      licensesFile: path.join(out, 'template', 'licenses.md'),
       bashGuardHook: path.join(out, 'hooks', 'bash-guard.mjs'),
       cliBundle: path.join(out, 'cli', 'reelforge.mjs'),
     });
@@ -70,8 +74,21 @@ describe('appLayout', () => {
       demoDir: path.join(asar, 'out', 'demo'),
       projectTemplateDir: path.join(resourcesPath, 'template', 'project'),
       stylesDir: path.join(resourcesPath, 'template', 'styles'),
+      examplesDir: path.join(resourcesPath, 'template', 'examples'),
+      licensesFile: path.join(resourcesPath, 'template', 'licenses.md'),
       bashGuardHook: path.join(resourcesPath, 'hooks', 'bash-guard.mjs'),
       cliBundle: path.join(resourcesPath, 'cli', 'reelforge.mjs'),
     });
+  });
+});
+
+describe('defaultProjectsDir', () => {
+  it('is Documents/ReelForge Projects; the test override works only unpackaged', () => {
+    const documents = path.join('C:', 'Users', 'Paweł Ząb', 'Documents');
+    const expected = path.join(documents, 'ReelForge Projects');
+    expect(defaultProjectsDir(documents, {}, true)).toBe(expected);
+    const env = { [TEST_PROJECTS_DIR_ENV]: path.join('tmp', 'example run') };
+    expect(defaultProjectsDir(documents, env, false)).toBe(path.resolve('tmp', 'example run'));
+    expect(defaultProjectsDir(documents, env, true)).toBe(expected);
   });
 });

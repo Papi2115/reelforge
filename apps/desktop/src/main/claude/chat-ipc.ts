@@ -4,7 +4,7 @@ import type { ClaudeService } from './claude-service.js';
 
 export type ChatHandlers = Pick<
   InvokeHandlers,
-  'chatState' | 'chatSend' | 'chatRemove' | 'chatStop' | 'chatResume'
+  'chatState' | 'chatSend' | 'chatRemove' | 'chatStop' | 'chatResume' | 'chatResumeTurn'
 >;
 
 export function chatHandlers(service: ClaudeService): ChatHandlers {
@@ -17,5 +17,6 @@ export function chatHandlers(service: ClaudeService): ChatHandlers {
       service.resume();
       return Promise.resolve(null);
     },
+    chatResumeTurn: (request) => Promise.resolve(service.resumeTurn(request.turnId)),
   };
 }

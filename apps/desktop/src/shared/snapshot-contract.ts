@@ -62,6 +62,40 @@ export const cuesViewSchema = z.object({
 });
 export type CuesView = z.infer<typeof cuesViewSchema>;
 
+/**
+ * Files the app can repair (PLAN.md#10.2): tracked documents are restored from their last good
+ * commit as a new commit ("restore"); app state under .reelforge/ is moved aside as a backup so
+ * the app starts it afresh ("reset").
+ */
+export const REPAIRABLE_FILES = [
+  'project.json',
+  'storyboard.json',
+  'timing/words.json',
+  'cues.json',
+  '.reelforge/pipeline.json',
+  '.reelforge/sessions.json',
+] as const;
+export const repairableFileSchema = z.enum(REPAIRABLE_FILES);
+export type RepairableFile = z.infer<typeof repairableFileSchema>;
+export const fileFixSchema = z.enum(['restore', 'reset']);
+export type FileFix = z.infer<typeof fileFixSchema>;
+
+/** A damaged file: which one, what is wrong (path + parser/schema error) and the fix offered. */
+export const fileProblemSchema = z.object({
+  file: repairableFileSchema,
+  message: z.string(),
+  fix: fileFixSchema,
+});
+export type FileProblem = z.infer<typeof fileProblemSchema>;
+
+export const repairFileRequestSchema = z.strictObject({ file: repairableFileSchema });
+
+export const repairFileResultSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('repaired'), message: z.string() }),
+  z.object({ status: z.literal('error'), error: projectErrorSchema }),
+]);
+export type RepairFileResult = z.infer<typeof repairFileResultSchema>;
+
 export const projectSnapshotSchema = z.object({
   dir: z.string(),
   /** Files of the project root and its pipeline folders (audio, timing, scenes, out), sorted. */
@@ -71,6 +105,8 @@ export const projectSnapshotSchema = z.object({
   storyboard: fileStateSchema(storyboardFileSchema),
   words: fileStateSchema(wordsFileSchema),
   cues: fileStateSchema(cuesViewSchema),
+  /** Damaged files (invalid JSON / schema) with the fix the app offers. */
+  problems: z.array(fileProblemSchema),
 });
 export type ProjectSnapshot = z.infer<typeof projectSnapshotSchema>;
 

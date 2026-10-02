@@ -157,6 +157,7 @@ export function ChatPanel({
               turns={state.turns}
               queue={queue}
               onRemoveQueued={chat.remove}
+              onResumeTurn={chat.resumeTurn}
               empty={<EmptyChat />}
             />
           )}

@@ -190,7 +190,7 @@ reelforge/
 - [x] **4.5** [O] `resolveAnchor(phrase, nth)` fuzzy + testy (powtórzenia, interpunkcja, liczby "61 KB").
 - [x] **4.6** [O] Mikser: schemat `cues.json`; SFX z syntezy `OfflineAudioContext` (receptury: whoosh/click/hit/typewriter) + sample użytkownika; ambient loops; muzyka z **sidechain ducking**; loudnorm finalny −14 LUFS; eksport stemów. — AC: render miksu 60 s deterministyczny.
 - [x] **4.7** [O] **Eksport**: render równoległy po shotach (workers = rdzenie/2), cache klatek (hash: kod sceny + wersja kitu + styl + użyte anchory), concat + mux, presety 1080p30 (domyślny) / 1440p / 4K (×6), autodetekcja NVENC/QSV/AMF z fallbackiem `libx264`, wznawianie, miniatura. — AC: 2-min film eksportuje się; zmiana jednego shotu renderuje tylko ten shot.
-- [ ] **4.8** [H] Odpal pipeline na fixture'ach, zraportuj czasy i wąskie gardła. — AC: `docs/perf.md`.
+- [x] **4.8** [H] Odpal pipeline na fixture'ach, zraportuj czasy i wąskie gardła. — AC: `docs/perf.md`.
 
 ### Faza 5 — Most do Claude (`packages/claude-bridge`, `packages/prompts`, `templates/project`)
 - [x] **5.1** [O] Detekcja i wizard połączenia (§2.1). — AC: stany: brak CLI / niezalogowany / OK, testowane na `fake-claude`.
@@ -228,15 +228,15 @@ reelforge/
 - [x] **8.3** [O] Etap "Sound design mixed": render `mix.wav`, kontrola LUFS/true peak. — AC: −14 LUFS ±1, TP ≤ −1 dB.
 
 ### Faza 9 — Eksport i paczka
-- [ ] **9.1** [O] Dialog eksportu: preset (1080p30/1440p/4K), kodek/enkoder, kolejka, postęp, wznawianie. — AC: eksport 10-min filmu < 20 min na laptopie z GPU (cel; zmierzony wynik w `docs/perf.md`).
+- [x] **9.1** [O] Dialog eksportu: preset (1080p30/1440p/4K), kodek/enkoder, kolejka, postęp, wznawianie. — AC: eksport 10-min filmu < 20 min na laptopie z GPU (cel; zmierzony wynik w `docs/perf.md`).
 - [x] **9.2** [S+O] Wyjścia dodatkowe: `chapters.txt` ze storyboardu (format YouTube), miniatura, sugestie tytułu/opisu/tagów. — AC: pliki w `out/`.
 - [ ] **9.3** [O] `electron-builder` (NSIS, Windows x64), brak auto-update, instrukcja podpisywania kodu. — AC: instalator działa na czystej maszynie/VM.
 - [x] **9.4** [H] Audyt licencji (fonty, assety, ffmpeg, whisper, zależności npm) → `docs/licenses.md`. — AC: brak nieznanych/niekompatybilnych.
 
 ### Faza 10 — Hartowanie i v1.0
 - [ ] **10.1** [O] E2E (Playwright-Electron) happy path na `fake-claude` + fixture VO: brief → … → MP4. — AC: przechodzi w CI.
-- [ ] **10.2** [O] Odporność: crash Electrona w trakcie renderu → wznowienie; zabity proces `claude` → wznowienie tury; uszkodzony JSON → komunikat + restore z gita. — AC: testy scenariuszowe.
-- [ ] **10.3** [S] Onboarding: projekt przykładowy (krótki film "Doom na kalkulatorze"-style), pierwszy start prowadzi przez Połącz Claude → brief. — AC: nowy użytkownik dochodzi do MP4 bez czytania dokumentacji.
+- [x] **10.2** [O] Odporność: crash Electrona w trakcie renderu → wznowienie; zabity proces `claude` → wznowienie tury; uszkodzony JSON → komunikat + restore z gita. — AC: testy scenariuszowe.
+- [x] **10.3** [S] Onboarding: projekt przykładowy (krótki film "Doom na kalkulatorze"-style), pierwszy start prowadzi przez Połącz Claude → brief. — AC: nowy użytkownik dochodzi do MP4 bez czytania dokumentacji.
 - [ ] **10.4** [S] Test prawdziwy: Papi robi jeden film end-to-end na realnej subskrypcji; lista poprawek → backlog. — AC: raport z zużycia limitu na film.
 - [ ] **10.5** [S] Tag `v1.0.0`, release notes, README.
 

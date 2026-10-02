@@ -36,8 +36,31 @@ describe('app settings', () => {
         includeThumbnail: true,
         outputDir: null,
       },
-      onboarding: { connectClaudeDone: false },
+      onboarding: { connectClaudeDone: false, welcomeDone: false, tourDone: false },
     });
+  });
+
+  it('onboards only new profiles: Welcome and tour default to the gate state (PLAN.md#10.3)', () => {
+    const existing = appSettingsSchema.parse({
+      version: 1,
+      onboarding: { connectClaudeDone: true },
+    });
+    expect(existing.onboarding).toEqual({
+      connectClaudeDone: true,
+      welcomeDone: true,
+      tourDone: true,
+    });
+    const gatePassed = applyAppSettingsPatch(defaultAppSettings(), {
+      onboarding: { connectClaudeDone: true },
+    });
+    expect(gatePassed.onboarding).toEqual({
+      connectClaudeDone: true,
+      welcomeDone: false,
+      tourDone: false,
+    });
+    const toured = applyAppSettingsPatch(gatePassed, { onboarding: { tourDone: true } });
+    expect(toured.onboarding.tourDone).toBe(true);
+    expect(toured.onboarding.welcomeDone).toBe(false);
   });
 
   it('keeps the export dialog choices, backward-compatibly (PLAN.md#9.1)', () => {

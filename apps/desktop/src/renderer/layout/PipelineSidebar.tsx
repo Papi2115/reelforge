@@ -17,6 +17,7 @@ import {
   type OpenTarget,
   type RowView,
 } from '../stages/pipeline-view.js';
+import { nextStep } from '../stages/next-step.js';
 import type { StagesControls } from '../stages/use-stages.js';
 import { StopIcon } from './icons.js';
 
@@ -163,6 +164,7 @@ export function PipelineSidebar({ stages, onOpen, onBrief }: PipelineSidebarProp
   const [notice, setNotice] = useState<string | undefined>(undefined);
   const now = useSecondTick((stages.state?.running ?? null) !== null);
   const selected = rows.find((row) => row.spec.id === selectedId) ?? defaultRow(rows);
+  const hint = nextStep(rows);
 
   const report = (promise: Promise<{ status: string; message: string | null }>): void => {
     setNotice(undefined);
@@ -184,9 +186,25 @@ export function PipelineSidebar({ stages, onOpen, onBrief }: PipelineSidebarProp
           Brief
         </button>
       </h2>
+      {hint !== null && (
+        <p className="next-step" data-testid="next-step">
+          <span>{hint.text}</span>
+          <button
+            type="button"
+            className="link-button"
+            aria-label="Select the next stage"
+            onClick={() => {
+              setSelectedId(hint.rowId);
+              setNotice(undefined);
+            }}
+          >
+            Show
+          </button>
+        </p>
+      )}
       <ol className="stage-list">
         {rows.map((row) => (
-          <li key={row.spec.id}>
+          <li key={row.spec.id} data-stage-row={row.spec.id}>
             <button
               type="button"
               className={`stage-item status-${row.status}`}

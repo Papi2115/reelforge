@@ -13,6 +13,7 @@ import './stages/stages.css';
 import './stages/panels.css';
 import './sound/sound.css';
 import './export/export.css';
+import './onboarding/onboarding.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });
