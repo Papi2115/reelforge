@@ -165,3 +165,4 @@ pnpm test:packaged       # smoke spakowanej aplikacji + instalatora
 - 2026-10-02 · Prompty etapów (markdown) pisze Manager w packages/prompts/prompts; STYLE.md w styles/<id>/; template CLAUDE.md w templates/project · 3.6, 5.5, 5.8
 - 2026-10-02 · Electron 44 + plain Vite/esbuild, protokoły `reelforge://` i `reelforge-media://`; zegarem mastera jest <audio> · 6.1–6.4
 - 2026-10-02 · `.reelforge/` w całości poza gitem; revert = nowy commit przywracający drzewo (bez reset --hard) · 6.2
+- 2026-10-02 · v1.0.0: wydanie dla użytku własnego; CI (verify win+ubuntu, e2e win) zielone; otwarte: instalator na czystej VM, brak LICENSE, nieobserwowany realny limit użycia · 10.5
