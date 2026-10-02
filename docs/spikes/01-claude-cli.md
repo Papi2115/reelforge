@@ -184,6 +184,9 @@ Not available / not to use: `--max-turns` (absent), `--bare`, `--dangerously-ski
 - Merge per-block `assistant` events by `message.id`; accumulate text across the turn (`result.result` is only the last text).
 - Map `tool_use`↔`tool_result` by `tool_use_id` into UI "steps"; surface `system:permission_denied`; use `thinking_tokens` for progress.
 - Usage = `result.usage` / `result.modelUsage` (+ `total_cost_usd` as list-price meter); never sum per-event usage.
+  **Correction (real run, PLAN.md#10.4):** after `--resume`, `total_cost_usd` and `modelUsage` are the whole
+  session's totals (only top-level `usage` is per turn); the bridge books the difference to the previous turn's
+  totals (`usageSnapshot` in sessions.json, `turn-usage.ts`).
 **5.4 Limits**
 - Track every `rate_limit_event` (status, `unifiedWindows.*.utilization`, `resetsAt`): show quota bar; soft-pause new stages above a threshold.
 - On `status:"rejected"` or `assistant.error ∈ {rate_limit, overloaded, billing_error}` → persist pipeline state, schedule resume at `resetsAt`.

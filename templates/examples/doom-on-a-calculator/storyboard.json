@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "shots": [
+    {
+      "id": "s01",
+      "t0": 0,
+      "t1": 2.2,
+      "treatment": "title-card",
+      "intent": "Doom runs on almost anything: a kinetic title over the neon grid.",
+      "scene": "scenes/s01_title.js"
+    },
+    {
+      "id": "s02",
+      "t0": 2.2,
+      "t1": 4.9,
+      "treatment": "kinetic-text",
+      "intent": "Fridges, watches, even a printer: the list pops in word by word.",
+      "scene": "scenes/s02_anything.js"
+    },
+    {
+      "id": "s03",
+      "t0": 4.9,
+      "t1": 11.3,
+      "treatment": "metaphor-object",
+      "intent": "A school calculator on an exam bench; its Doom screen glitches on \"61 KB\".",
+      "scene": "scenes/s03_exam_bench.js",
+      "transitionIn": { "type": "glitch", "duration": 0.3 }
+    },
+    {
+      "id": "s04",
+      "t0": 11.3,
+      "t1": 17.4,
+      "treatment": "counter/odometer",
+      "intent": "Four megabytes needed, 61 KB available: a counter rolls down to 61 KB.",
+      "scene": "scenes/s04_counter.js",
+      "transitionIn": { "type": "crossfade", "duration": 0.4 }
+    },
+    {
+      "id": "s05",
+      "t0": 17.4,
+      "t1": 22.6,
+      "treatment": "character-scene",
+      "intent": "The hero points at the calculator while the hacks are typed out.",
+      "scene": "scenes/s05_hackers.js",
+      "transitionIn": { "type": "wipe", "duration": 0.4 }
+    },
+    {
+      "id": "s06",
+      "t0": 22.6,
+      "t1": 27,
+      "treatment": "ui-mockup",
+      "intent": "Push into the calculator screen: Doom is running, cubes float over the grid.",
+      "scene": "scenes/s06_screen.js",
+      "transitionIn": { "type": "glitch", "duration": 0.3 }
+    },
+    {
+      "id": "s07",
+      "t0": 27,
+      "t1": 30.5,
+      "treatment": "title-card",
+      "intent": "Closing card: if it has a screen, it runs Doom.",
+      "scene": "scenes/s07_end.js",
+      "transitionIn": { "type": "crossfade", "duration": 0.5 }
+    }
+  ]
+}

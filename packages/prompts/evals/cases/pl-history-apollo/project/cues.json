@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "global": {
+    "voGainDb": 0,
+    "targetLufs": -14,
+    "truePeakMaxDbtp": -1
+  },
+  "sfx": [
+    {
+      "t": 5.065,
+      "name": "hit",
+      "gainDb": -8,
+      "pan": 0
+    },
+    {
+      "t": 13.225,
+      "name": "click",
+      "gainDb": -9,
+      "pan": 0.1
+    },
+    {
+      "t": 16.395,
+      "name": "tick",
+      "gainDb": -8,
+      "pan": 0
+    },
+    {
+      "t": 21.43,
+      "name": "glitch",
+      "gainDb": -10,
+      "pan": 0
+    },
+    {
+      "t": 24.695,
+      "name": "riser",
+      "gainDb": -12,
+      "pan": 0
+    },
+    {
+      "t": 32.055,
+      "name": "pop",
+      "gainDb": -9,
+      "pan": -0.1
+    }
+  ],
+  "ambience": [
+    {
+      "from": 0,
+      "to": 21.43,
+      "name": "hum",
+      "gainDb": -26
+    },
+    {
+      "from": 21.43,
+      "to": 40.855,
+      "name": "wind",
+      "gainDb": -28
+    }
+  ],
+  "music": []
+}

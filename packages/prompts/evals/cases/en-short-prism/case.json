@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "id": "en-short-prism",
+  "summary": "EN 30-second short (prism experiment), ~37 s, 7 shots",
+  "sceneBuild": {
+    "shotId": "s06_red_violet",
+    "expectMissing": ["prism"]
+  },
+  "sceneFix": {
+    "shotIds": ["s06_red_violet"],
+    "scope": "Shot",
+    "request": "Slow the bend down so VIOLET finishes on \"most\"."
+  },
+  "critic": {
+    "shotId": "s04_rainbow",
+    "imagePaths": [
+      "out/frames/s04_rainbow/0.000.png",
+      "out/frames/s04_rainbow/3.810.png",
+      "out/frames/s04_rainbow/7.520.png"
+    ]
+  },
+  "youtubeMeta": {
+    "chapters": "0:00 A rainbow at home\n0:12 Why water bends light\n0:24 Try it yourself"
+  },
+  "replies": {
+    "research": "Saved research.md: 8 sourced facts.\nUncertain: best angle depends on the glass.",
+    "script": "Word count: 84. Estimated duration: about 34 seconds.\nAll claims are sourced.",
+    "storyboard": "7 shots. Treatments: title-card, metaphor-object, 3d-reconstruction x2, data-chart-3d, kinetic-text, character-scene.\nMissing props: none.",
+    "scene-build": "RED and VIOLET bend apart, violet lands on \"most\" with a pop.\nQA: lint 0 errors, frames 0/1.8/3.5 s, anchors within 30 ms.\nMISSING: `prism`",
+    "scene-fix": "Bend now eases over the whole shot and finishes on \"most\".\nLint, frames and anchors re-checked.",
+    "critic": {
+      "frames": [
+        {
+          "path": "out/frames/s04_rainbow/0.000.png",
+          "verdict": "ok",
+          "note": "glass and beam clear"
+        },
+        {
+          "path": "out/frames/s04_rainbow/3.810.png",
+          "verdict": "ok",
+          "note": "rainbow visible on the wall"
+        },
+        {
+          "path": "out/frames/s04_rainbow/7.520.png",
+          "verdict": "blank",
+          "note": "frame almost uniform dark blue"
+        }
+      ]
+    },
+    "sound-cues": "sfx: 4, ambience: 1, music: 0.",
+    "review-triage": {
+      "suspects": [
+        {
+          "shot": "s04_rainbow",
+          "reason": "last frame is almost uniform dark blue, nothing recognisable"
+        }
+      ]
+    },
+    "review-plan": {
+      "fixes": [
+        {
+          "shot": "s04_rainbow",
+          "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
+        }
+      ]
+    },
+    "youtube-meta": {
+      "titles": [
+        "A rainbow in a glass of water",
+        "Make a rainbow with a glass and a flashlight",
+        "Why a glass of water splits white light"
+      ],
+      "description": "Shine a flashlight through a glass of water and a tiny rainbow appears on the wall. White light is a mix of colours, and water bends each one by a slightly different angle.\n\nNewton explained it in 1672 with a prism. All you need is a glass, water and a torch.\n\n0:00 A rainbow at home\n0:12 Why water bends light\n0:24 Try it yourself",
+      "tags": [
+        "rainbow experiment",
+        "light refraction",
+        "prism",
+        "science at home",
+        "newton optics",
+        "white light colors",
+        "physics for kids",
+        "glass of water rainbow"
+      ]
+    }
+  }
+}

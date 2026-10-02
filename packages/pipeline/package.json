@@ -11,5 +11,15 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "dependencies": {
+    "@reelforge/shared": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@reelforge/engine": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project unit packages/pipeline"
   }
 }

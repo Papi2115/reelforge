@@ -5,3 +5,5 @@ packages:
   - spikes/*
 allowBuilds:
   esbuild: true
+  # electron-builder dependency (Squirrel target, unused: we build NSIS); its postinstall is not needed.
+  electron-winstaller: false

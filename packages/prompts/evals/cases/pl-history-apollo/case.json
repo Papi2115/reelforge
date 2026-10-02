@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "id": "pl-history-apollo",
+  "summary": "PL history story (Apollo Guidance Computer), ~40 s, 7 shots",
+  "sceneBuild": {
+    "shotId": "s04_clock",
+    "expectMissing": []
+  },
+  "sceneFix": {
+    "shotIds": ["s04_clock"],
+    "scope": "Shot",
+    "request": "Napis 1 MHZ jest ucięty przy prawej krawędzi, przesuń go do środka.",
+    "critic": "clipped: 1 MHZ label cut at the right edge (frame 5.9 s)"
+  },
+  "critic": {
+    "shotId": "s03_agc",
+    "imagePaths": ["out/frames/s03_agc/0.000.png", "out/frames/s03_agc/4.160.png"]
+  },
+  "replies": {
+    "research": "Zapisano research.md: 9 faktów ze źródłami.\nGłówne źródła: Wikipedia (AGC, Apollo 11).\nNiepewne: porównanie mocy telefonu i AGC.",
+    "script": "Liczba słów: 71. Szacowany czas: ok. 30 sekund.\nWszystkie fakty mają źródła w research.md.",
+    "storyboard": "7 ujęć. Treatmenty: title-card, 3d-reconstruction, ui-mockup, counter/odometer, node-graph/timeline, kinetic-text, character-scene.\nBrakujące propsy: dsky-panel, saturn-v.",
+    "scene-build": "Licznik taktowania rośnie do 1024 kHz i staje na \"jednego megaherca\".\nQA: lint 0 błędów, klatki 0/3/6 s obejrzane, anchory w 60 ms.\nMISSING: none",
+    "scene-fix": "Przesunąłem napis 1 MHZ o 12 % w lewo, mieści się w safe area.\nLint i klatki 0/3/5.9 s ponownie sprawdzone.",
+    "critic": {
+      "frames": [
+        {
+          "path": "out/frames/s03_agc/0.000.png",
+          "verdict": "ok",
+          "note": "panel readable, palette consistent"
+        },
+        {
+          "path": "out/frames/s03_agc/4.160.png",
+          "verdict": "clipped",
+          "note": "4 KB label cut at the top edge"
+        }
+      ]
+    },
+    "sound-cues": "sfx: 6, ambience: 2, music: 0.",
+    "review-triage": {
+      "suspects": [
+        {
+          "shot": "s03_agc",
+          "reason": "last frame is almost uniform dark blue, nothing recognisable"
+        }
+      ]
+    },
+    "review-plan": {
+      "fixes": [
+        {
+          "shot": "s03_agc",
+          "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
+        }
+      ]
+    },
+    "youtube-meta": {
+      "titles": [
+        "Komputer, który poleciał na Księżyc",
+        "4 kilobajty pamięci i lądowanie na Księżycu",
+        "Jak działał komputer pokładowy Apollo"
+      ],
+      "description": "Telefon w twojej kieszeni ma więcej mocy niż komputery, które w 1969 roku wysłały ludzi na Księżyc. Komputer pokładowy Apollo miał 4 kilobajty pamięci.\n\nZobacz, jak inżynierowie zbudowali system, który mimo to bezpiecznie sprowadził lądownik na powierzchnię.",
+      "tags": [
+        "apollo 11",
+        "komputer apollo",
+        "agc",
+        "historia kosmosu",
+        "lądowanie na księżycu",
+        "nasa",
+        "margaret hamilton",
+        "historia informatyki"
+      ]
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "global": {
+    "voGainDb": 0,
+    "targetLufs": -14,
+    "truePeakMaxDbtp": -1
+  },
+  "sfx": [
+    {
+      "t": 7.645,
+      "name": "click",
+      "gainDb": -10,
+      "pan": 0
+    },
+    {
+      "t": 12.695,
+      "name": "pop",
+      "gainDb": -8,
+      "pan": 0.2
+    },
+    {
+      "t": 19.295,
+      "name": "whoosh",
+      "gainDb": -10,
+      "pan": 0
+    },
+    {
+      "t": 32.48,
+      "name": "hit",
+      "gainDb": -8,
+      "pan": 0
+    }
+  ],
+  "ambience": [
+    {
+      "from": 0,
+      "to": 37.205,
+      "name": "room-tone",
+      "gainDb": -27
+    }
+  ],
+  "music": []
+}

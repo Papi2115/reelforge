@@ -2,6 +2,7 @@ node_modules/
 dist/
 out/
 coverage/
+release/
 pnpm-lock.yaml
 
 # Hand-maintained planning docs and agent config (prose, not reformatted)
@@ -9,6 +10,10 @@ CLAUDE.md
 PLAN.md
 docs/
 .claude/
+# Stage prompts are sent to the model byte for byte (hashed into PROMPT_VERSIONS)
+packages/prompts/prompts/
 
 # Generated spike data (measurement fixtures)
 spikes/**/fixtures/
+styles/**/*.md
+templates/**/*.md

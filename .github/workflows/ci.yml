@@ -16,6 +16,9 @@ jobs:
   verify:
     name: verify (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      # Type-aware ESLint over the whole monorepo needs more than Node's default heap.
+      NODE_OPTIONS: --max-old-space-size=8192
     strategy:
       fail-fast: false
       matrix:
@@ -46,3 +49,83 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      # Render tests run real WebGL in Playwright's headless Chromium on SwiftShader (no GPU needed).
+      - name: Install Playwright Chromium (Linux, with system deps)
+        if: runner.os == 'Linux'
+        run: pnpm --filter @reelforge/engine exec playwright install --with-deps --only-shell chromium
+
+      - name: Install Playwright Chromium (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm --filter @reelforge/engine exec playwright install --only-shell chromium
+
+      - name: Render tests (SwiftShader goldens)
+        run: pnpm test:render
+
+      - name: Upload golden diffs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: golden-diff-${{ matrix.os }}
+          path: packages/engine/out/golden-diff/
+          if-no-files-found: ignore
+
+  # End-to-end happy path in the real Electron app (fake-claude, no subscription use).
+  e2e:
+    name: e2e (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+      # The app's pipeline (clean, mix, waveform, export) and the test fixtures need ffmpeg; the
+      # runner image has none. Same build as the dev machine (docs/environment.md), pinned by hash.
+      FFMPEG_VERSION: 8.1.1
+      FFMPEG_SHA256: 23ad8969fbe701d44e6e7e2b97c5fae4a71224fc33a2560a9034e5110d029d15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm (version from packageManager)
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @reelforge/engine exec playwright install --only-shell chromium
+
+      # Gyan's essentials build (GPL, a CI-only test tool, never shipped): libx264 for the GPU-less
+      # export fallback plus every filter the pipeline uses. Windows' own tar.exe reads .7z.
+      - name: Install ffmpeg
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'ffmpeg.7z'
+          $url = "https://github.com/GyanD/codexffmpeg/releases/download/$env:FFMPEG_VERSION/ffmpeg-$env:FFMPEG_VERSION-essentials_build.7z"
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          $hash = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $env:FFMPEG_SHA256) { throw "ffmpeg archive checksum mismatch: $hash" }
+          & "$env:SystemRoot\System32\tar.exe" -xf $archive -C $env:RUNNER_TEMP
+          if ($LASTEXITCODE -ne 0) { throw "tar failed with $LASTEXITCODE" }
+          $bin = Join-Path $env:RUNNER_TEMP "ffmpeg-$env:FFMPEG_VERSION-essentials_build\bin"
+          & (Join-Path $bin 'ffmpeg.exe') -hide_banner -version | Select-Object -First 1
+          Add-Content -Path $env:GITHUB_PATH -Value $bin
+
+      # CI mode: perf bars for a GPU-less runner, longer waits (apps/desktop/test/support/ci-mode.ts).
+      - name: App end-to-end tests
+        run: pnpm test:app:ci
+
+      - name: Upload app test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-artifacts
+          path: apps/desktop/out/test-app/
+          if-no-files-found: ignore

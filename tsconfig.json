@@ -3,12 +3,21 @@
   "references": [
     { "path": "./packages/shared" },
     { "path": "./packages/engine" },
+    { "path": "./packages/engine/test" },
     { "path": "./packages/kit" },
+    { "path": "./packages/kit/test" },
     { "path": "./packages/pipeline" },
     { "path": "./packages/claude-bridge" },
     { "path": "./packages/prompts" },
+    { "path": "./packages/project" },
+    { "path": "./packages/stages" },
+    { "path": "./packages/stages/test" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/cli/test" },
     { "path": "./tools/fake-claude" },
     { "path": "./apps/desktop" },
+    { "path": "./apps/desktop/src/renderer" },
+    { "path": "./apps/desktop/test" },
     { "path": "./spikes/02-render" },
     { "path": "./tsconfig.tooling.json" }
   ]

@@ -1,0 +1,39 @@
+{
+  "name": "@reelforge/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "`reelforge` CLI: self-QA commands the runtime Claude runs inside a video project (frames, contact sheets, lint, validate, anchors, kit docs).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./service": {
+      "types": "./dist/service/index.d.ts",
+      "default": "./dist/service/index.js"
+    },
+    "./shims": {
+      "types": "./dist/shims.d.ts",
+      "default": "./dist/shims.js"
+    }
+  },
+  "bin": {
+    "reelforge": "./dist/reelforge.mjs"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run --root ../.. --project unit --project render packages/cli"
+  },
+  "dependencies": {
+    "@reelforge/engine": "workspace:*",
+    "@reelforge/kit": "workspace:*",
+    "@reelforge/pipeline": "workspace:*",
+    "@reelforge/shared": "workspace:*",
+    "esbuild": "0.28.2",
+    "playwright": "1.63.0",
+    "zod": "4.6.5"
+  }
+}

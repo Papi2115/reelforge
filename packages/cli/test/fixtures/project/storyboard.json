@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "shots": [
+    {
+      "id": "s01",
+      "t0": 0,
+      "t1": 2.2,
+      "treatment": "title-card",
+      "intent": "Doom runs on almost anything.",
+      "scene": "scenes/s01_title.js"
+    },
+    {
+      "id": "s02",
+      "t0": 2.2,
+      "t1": 7.5,
+      "treatment": "metaphor-object",
+      "intent": "A calculator with only 61 KB of memory still runs Doom.",
+      "scene": "scenes/s02_calc.js",
+      "transitionIn": { "type": "crossfade", "duration": 0.4 }
+    }
+  ]
+}

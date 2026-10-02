@@ -9,14 +9,21 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "node scripts/stub.mjs dev \"not implemented until phase 6\"",
+    "dev": "pnpm --filter @reelforge/desktop dev",
     "typecheck": "tsc -b",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "test": "vitest run",
-    "test:render": "node scripts/stub.mjs test:render \"golden-frame tests not implemented yet\"",
-    "render:frames": "node scripts/stub.mjs render:frames \"frame rendering not implemented yet\"",
-    "build": "tsc -b"
+    "test": "vitest run --project unit",
+    "test:render": "node scripts/test-render.mjs",
+    "kit:catalog": "node scripts/kit-catalog.mjs",
+    "test:app": "pnpm --filter @reelforge/desktop build && vitest run --project app",
+    "test:app:ci": "pnpm --filter @reelforge/desktop build && node scripts/test-app-ci.mjs",
+    "render:frames": "node packages/engine/scripts/run-cli.mjs render-frames",
+    "lint:scene": "node packages/engine/scripts/run-cli.mjs lint",
+    "build": "tsc -b && pnpm --filter @reelforge/desktop build",
+    "package": "pnpm --filter @reelforge/desktop package",
+    "dist": "pnpm --filter @reelforge/desktop dist",
+    "test:packaged": "vitest run --project packaged"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

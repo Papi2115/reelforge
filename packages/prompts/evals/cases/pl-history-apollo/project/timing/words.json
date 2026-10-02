@@ -1,0 +1,362 @@
+{
+  "version": 1,
+  "words": [
+    {
+      "text": "Każdy",
+      "t": 1.6,
+      "tEnd": 1.9
+    },
+    {
+      "text": "telefon",
+      "t": 1.9,
+      "tEnd": 2.395
+    },
+    {
+      "text": "w",
+      "t": 2.395,
+      "tEnd": 2.48
+    },
+    {
+      "text": "twojej",
+      "t": 2.48,
+      "tEnd": 2.86
+    },
+    {
+      "text": "kieszeni",
+      "t": 2.86,
+      "tEnd": 3.315
+    },
+    {
+      "text": "ma",
+      "t": 3.315,
+      "tEnd": 3.455
+    },
+    {
+      "text": "więcej",
+      "t": 3.455,
+      "tEnd": 3.825
+    },
+    {
+      "text": "mocy",
+      "t": 3.825,
+      "tEnd": 4.135
+    },
+    {
+      "text": "obliczeniowej",
+      "t": 4.135,
+      "tEnd": 4.85
+    },
+    {
+      "text": "niż",
+      "t": 4.85,
+      "tEnd": 5.065
+    },
+    {
+      "text": "komputery,",
+      "t": 5.065,
+      "tEnd": 5.72
+    },
+    {
+      "text": "które",
+      "t": 5.92,
+      "tEnd": 6.215
+    },
+    {
+      "text": "w",
+      "t": 6.215,
+      "tEnd": 6.3
+    },
+    {
+      "text": "1969",
+      "t": 6.3,
+      "tEnd": 7.95,
+      "status": "fuzzy"
+    },
+    {
+      "text": "roku",
+      "t": 7.95,
+      "tEnd": 8.54,
+      "status": "fuzzy"
+    },
+    {
+      "text": "wysłały",
+      "t": 8.74,
+      "tEnd": 9.22
+    },
+    {
+      "text": "ludzi",
+      "t": 9.22,
+      "tEnd": 9.485
+    },
+    {
+      "text": "na",
+      "t": 9.485,
+      "tEnd": 9.615
+    },
+    {
+      "text": "Księżyc.",
+      "t": 9.615,
+      "tEnd": 10.26
+    },
+    {
+      "text": "Komputer",
+      "t": 11.11,
+      "tEnd": 11.575
+    },
+    {
+      "text": "pokładowy",
+      "t": 11.575,
+      "tEnd": 12.125
+    },
+    {
+      "text": "Apollo",
+      "t": 12.125,
+      "tEnd": 12.53
+    },
+    {
+      "text": "miał",
+      "t": 12.53,
+      "tEnd": 12.75
+    },
+    {
+      "text": "zaledwie",
+      "t": 12.75,
+      "tEnd": 13.225
+    },
+    {
+      "text": "4",
+      "t": 13.225,
+      "tEnd": 13.56
+    },
+    {
+      "text": "kilobajty",
+      "t": 13.56,
+      "tEnd": 14.155
+    },
+    {
+      "text": "pamięci",
+      "t": 14.155,
+      "tEnd": 14.65
+    },
+    {
+      "text": "operacyjnej",
+      "t": 14.65,
+      "tEnd": 15.37
+    },
+    {
+      "text": "i",
+      "t": 15.37,
+      "tEnd": 15.455
+    },
+    {
+      "text": "taktowanie",
+      "t": 15.455,
+      "tEnd": 16.03
+    },
+    {
+      "text": "około",
+      "t": 16.03,
+      "tEnd": 16.395
+    },
+    {
+      "text": "jednego",
+      "t": 16.395,
+      "tEnd": 16.805
+    },
+    {
+      "text": "megaherca.",
+      "t": 16.805,
+      "tEnd": 17.58
+    },
+    {
+      "text": "Mimo",
+      "t": 21.43,
+      "tEnd": 21.69
+    },
+    {
+      "text": "to",
+      "t": 21.69,
+      "tEnd": 21.835
+    },
+    {
+      "text": "inżynierowie",
+      "t": 21.835,
+      "tEnd": 22.465
+    },
+    {
+      "text": "zbudowali",
+      "t": 22.465,
+      "tEnd": 22.995
+    },
+    {
+      "text": "system,",
+      "t": 22.995,
+      "tEnd": 23.52
+    },
+    {
+      "text": "który",
+      "t": 23.72,
+      "tEnd": 24.01
+    },
+    {
+      "text": "potrafił",
+      "t": 24.01,
+      "tEnd": 24.54
+    },
+    {
+      "text": "się",
+      "t": 24.54,
+      "tEnd": 24.695
+    },
+    {
+      "text": "zrestartować",
+      "t": 24.695,
+      "tEnd": 25.45
+    },
+    {
+      "text": "w",
+      "t": 25.45,
+      "tEnd": 25.535
+    },
+    {
+      "text": "trakcie",
+      "t": 25.535,
+      "tEnd": 25.935
+    },
+    {
+      "text": "lądowania",
+      "t": 25.935,
+      "tEnd": 26.485
+    },
+    {
+      "text": "i",
+      "t": 26.485,
+      "tEnd": 26.57
+    },
+    {
+      "text": "dalej",
+      "t": 26.57,
+      "tEnd": 26.885
+    },
+    {
+      "text": "działać.",
+      "t": 26.885,
+      "tEnd": 27.465
+    },
+    {
+      "text": "Dziś",
+      "t": 28.315,
+      "tEnd": 28.56
+    },
+    {
+      "text": "programiści",
+      "t": 28.56,
+      "tEnd": 29.25
+    },
+    {
+      "text": "często",
+      "t": 29.25,
+      "tEnd": 29.625
+    },
+    {
+      "text": "zapominają,",
+      "t": 29.625,
+      "tEnd": 30.445
+    },
+    {
+      "text": "że",
+      "t": 30.645,
+      "tEnd": 30.815
+    },
+    {
+      "text": "ograniczenia",
+      "t": 30.815,
+      "tEnd": 31.485
+    },
+    {
+      "text": "wymuszają",
+      "t": 31.485,
+      "tEnd": 32.055
+    },
+    {
+      "text": "kreatywność.",
+      "t": 32.055,
+      "tEnd": 32.935
+    },
+    {
+      "text": "Właśnie",
+      "t": 33.785,
+      "tEnd": 34.195
+    },
+    {
+      "text": "dlatego",
+      "t": 34.195,
+      "tEnd": 34.605
+    },
+    {
+      "text": "warto",
+      "t": 34.605,
+      "tEnd": 34.935
+    },
+    {
+      "text": "czasem",
+      "t": 34.935,
+      "tEnd": 35.31
+    },
+    {
+      "text": "spojrzeć",
+      "t": 35.31,
+      "tEnd": 35.82
+    },
+    {
+      "text": "wstecz",
+      "t": 35.82,
+      "tEnd": 36.165
+    },
+    {
+      "text": "i",
+      "t": 36.165,
+      "tEnd": 36.25
+    },
+    {
+      "text": "zapytać:",
+      "t": 36.25,
+      "tEnd": 36.85
+    },
+    {
+      "text": "czego",
+      "t": 37.05,
+      "tEnd": 37.285
+    },
+    {
+      "text": "naprawdę",
+      "t": 37.285,
+      "tEnd": 37.76
+    },
+    {
+      "text": "potrzebujemy,",
+      "t": 37.76,
+      "tEnd": 38.54
+    },
+    {
+      "text": "żeby",
+      "t": 38.74,
+      "tEnd": 39.03
+    },
+    {
+      "text": "zbudować",
+      "t": 39.03,
+      "tEnd": 39.54
+    },
+    {
+      "text": "coś",
+      "t": 39.54,
+      "tEnd": 39.785
+    },
+    {
+      "text": "wielkiego?",
+      "t": 39.785,
+      "tEnd": 40.355
+    }
+  ]
+}

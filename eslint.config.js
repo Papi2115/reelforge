@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig(
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/out/**', '**/coverage/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', '**/out/**', '**/coverage/**', '**/release/**'],
   },
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
@@ -39,7 +39,8 @@ export default defineConfig(
     files: ['spikes/*/scripts/**/*.ts'],
     rules: { 'no-console': 'off' },
   },
-  // Determinism guard for scene code (CLAUDE.md §3.2); the real lint lands in PLAN.md#2.6.
+  // Determinism guard for the TypeScript spike scenes (CLAUDE.md §3.2). Scene modules (JS) are
+  // checked by the engine's determinism lint instead (`lintScene`, `pnpm lint:scene`).
   {
     files: ['spikes/*/src/scene/**/*.ts'],
     rules: {
@@ -55,6 +56,39 @@ export default defineConfig(
       'no-restricted-properties': [
         'error',
         { object: 'Math', property: 'random', message: 'Use the seeded RNG (rng.ts).' },
+      ],
+    },
+  },
+  // Kit sources run inside scenes: same determinism rules, and Three.js only arrives through
+  // createKit({ three }) (one Three instance in the sandboxed engine frame), so type imports only.
+  {
+    files: ['packages/kit/src/**/*.ts'],
+    ignores: ['packages/kit/src/**/*.test.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        'Date',
+        'performance',
+        'requestAnimationFrame',
+        'setTimeout',
+        'setInterval',
+        'fetch',
+      ],
+      'no-restricted-properties': [
+        'error',
+        { object: 'Math', property: 'random', message: 'Take a seeded KitRng parameter.' },
+      ],
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'three',
+              message: 'Use the Three namespace passed to createKit({ three }).',
+              allowTypeImports: true,
+            },
+          ],
+        },
       ],
     },
   },

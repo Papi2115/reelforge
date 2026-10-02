@@ -1,0 +1,205 @@
+/* Sound design panel (PLAN.md#8.2), docked under the preview. */
+.doc-panel.docked.sound-panel {
+  flex-basis: 55%;
+}
+
+.sound-panel .doc-header {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.sound-status {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-body {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(220px, 3fr);
+  gap: 12px;
+  padding: 8px 12px;
+  overflow: hidden;
+}
+
+.sound-library,
+.sound-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.sound-controls {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sound-tabs,
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.sound-tab,
+.segmented > button {
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.sound-tab[aria-selected='true'],
+.segmented > button[aria-pressed='true'] {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.sound-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+}
+
+.sound-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--border-soft);
+  cursor: grab;
+}
+
+.sound-item:last-child {
+  border-bottom: none;
+}
+
+.sound-item .icon-button {
+  width: 24px;
+  height: 22px;
+  font-size: 10px;
+}
+
+.sound-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-empty {
+  padding: 6px;
+  font-size: 12px;
+  cursor: default;
+}
+
+.sound-library-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.sound-library-footer .muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sound-busy,
+.mix-readout {
+  margin: 0;
+  font-size: 12px;
+}
+
+.mix-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.sound-levels,
+.sound-ducking {
+  margin: 0;
+  padding: 4px 8px 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+}
+
+.sound-levels legend,
+.sound-ducking legend {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.level-row {
+  display: grid;
+  grid-template-columns: 92px minmax(60px, 1fr) 64px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.level-row input[type='range'] {
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: var(--accent);
+}
+
+.level-row output {
+  text-align: right;
+}
+
+.sound-ducking .muted {
+  margin: 4px 0 0;
+  font-size: 12px;
+}
+
+.ducking-advanced {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.ducking-advanced summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.ducking-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 8px 0 0;
+}
+
+.ducking-number input {
+  width: 72px;
+  padding: 2px 4px;
+}
+
+.sound-library-footer .small-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}

@@ -1,0 +1,119 @@
+/**
+ * One QA round of a shot, run by code after every Claude turn (Claude's self-report is not
+ * trusted), PLAN.md §4.4: determinism lint → smoke render at 5 points (console errors captured)
+ * → programmatic checks (blank, cards, anchors ±150 ms) → Haiku critic on a contact sheet.
+ * The critic only runs when the code checks are clean (their findings are fixed first).
+ */
+import { lintScene } from '@reelforge/engine';
+import { ok, type Result } from '@reelforge/claude-bridge';
+import type { CriticVerdictRecord, QaFinding, StoryboardShot } from '@reelforge/shared';
+import { readProjectText } from '../files.js';
+import { FILES } from '../paths.js';
+import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
+import type { StageError } from '../types.js';
+import { consoleFindings, finding, fixableFindings, lintFindings } from './checks.js';
+import { critiqueFrames, programmaticCritique, type TurnRunner } from './critic.js';
+import type { SceneJob } from './job.js';
+import { renderShot } from './render.js';
+import { shotSyncEvents, syncFindings } from './sync.js';
+import type { ShotRender } from './tools.js';
+
+export interface QaResult {
+  readonly findings: readonly QaFinding[];
+  readonly verdicts: readonly CriticVerdictRecord[];
+  readonly sheet: string | undefined;
+  readonly notes: readonly string[];
+  /** The scene source that was checked (undefined: no file). */
+  readonly source: string | undefined;
+  readonly render: ShotRender | undefined;
+}
+
+/** start, 25 %, 50 %, 75 %, end − 0.1 s (local seconds, ms precision, unique). */
+export function smokeTimes(duration: number): number[] {
+  const points = [0, 0.25, 0.5, 0.75].map((share) => share * duration);
+  points.push(Math.max(0, duration - 0.1));
+  const rounded = points.map((t) => Math.round(t * 1000) / 1000);
+  return [...new Set(rounded)].sort((first, second) => first - second);
+}
+
+export function qaSheetFile(shotId: string, label: string): string {
+  return `${FILES.qaFramesDir}/${shotId}/${label}.png`;
+}
+
+function early(findings: QaFinding[], source: string | undefined): QaResult {
+  return { findings, verdicts: [], sheet: undefined, notes: [], source, render: undefined };
+}
+
+/** Checks the shot as it is on disk; extra checks (e.g. legibility) see the source. */
+export async function qaRound(
+  job: SceneJob,
+  shot: StoryboardShot,
+  label: string,
+  extraChecks?: (source: string) => QaFinding[],
+): Promise<Result<QaResult, StageError>> {
+  const { ctx } = job;
+  const text = await readProjectText(ctx.projectDir, shot.scene);
+  if (!text.ok) return text;
+  const source = text.value;
+  if (source === undefined) {
+    return ok(
+      early([finding('scene', 'error', `${shot.scene} was not written`, { fatal: true })], source),
+    );
+  }
+  if (source.startsWith(SCENE_STUB_MARKER)) {
+    const message = `${shot.scene} is still the storyboard placeholder: write the real scene`;
+    return ok(early([finding('scene', 'error', message, { fatal: true })], source));
+  }
+  const lint = lintFindings(lintScene(source, { filename: shot.scene }), shot.scene);
+  if (lint.length > 0) return ok(early(lint, source));
+  const times = smokeTimes(shot.t1 - shot.t0);
+  const rendered = await renderShot(
+    job.frames,
+    { projectDir: ctx.projectDir, shotId: shot.id, times, cards: true },
+    ctx.signal,
+  );
+  if (!rendered.ok) return rendered;
+  const render = rendered.value;
+  if (!render.ok) {
+    const runtime = finding('runtime', 'error', `the scene fails: ${render.error}`, {
+      fatal: true,
+    });
+    return ok({ ...early([runtime, ...consoleFindings(render.errors)], source), render });
+  }
+  const extra = extraChecks?.(source) ?? [];
+  const sync = syncFindings(
+    shotSyncEvents({
+      shot,
+      anchors: render.anchors,
+      sceneCues: render.cues,
+      words: job.anchorIndex,
+    }),
+    shot,
+  );
+  const code = [...programmaticCritique(render), ...sync, ...extra];
+  const critic: TurnRunner | undefined =
+    job.settings.critic && ctx.hasClaude ? (turn) => ctx.claude(turn) : undefined;
+  if (critic === undefined || fixableFindings(code).length > 0) {
+    return ok({ ...early(code, source), render });
+  }
+  const judged = await critiqueFrames(
+    {
+      projectDir: ctx.projectDir,
+      shotId: shot.id,
+      intent: shot.intent,
+      styleId: job.styleId,
+      render,
+      sheetFile: qaSheetFile(shot.id, label),
+    },
+    critic,
+  );
+  if (!judged.ok) return judged;
+  return ok({
+    findings: [...judged.value.findings, ...sync, ...extra],
+    verdicts: judged.value.verdicts,
+    sheet: judged.value.sheet,
+    notes: judged.value.notes,
+    source,
+    render,
+  });
+}

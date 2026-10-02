@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "id": "noir-voxel",
+  "name": "Noir Voxel",
+  "description": "Low-key true-crime voxels at 640x360: near-black scenes, blood red and amber light, bone-white type, heavy vignette and scanlines.",
+  "default": false,
+  "lights": "noir",
+  "treatments": [
+    "3d-reconstruction",
+    "map",
+    "node-graph/timeline",
+    "metaphor-object",
+    "character-scene",
+    "title-card",
+    "kinetic-text"
+  ]
+}

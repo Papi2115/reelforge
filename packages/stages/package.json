@@ -1,0 +1,34 @@
+{
+  "name": "@reelforge/stages",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pipeline stage orchestration: stage runner (gating, progress, limits, autocommit) and the Script, Voiceover, Audio cleaned, Words timed, Storyboard, Scenes built (QA loop, critics, review, sync report), Sound cues and Mix stages.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project unit --project render packages/stages",
+    "run-stage": "node scripts/run-stage.mjs"
+  },
+  "dependencies": {
+    "@reelforge/claude-bridge": "workspace:*",
+    "@reelforge/cli": "workspace:*",
+    "@reelforge/engine": "workspace:*",
+    "@reelforge/kit": "workspace:*",
+    "@reelforge/pipeline": "workspace:*",
+    "@reelforge/project": "workspace:*",
+    "@reelforge/prompts": "workspace:*",
+    "@reelforge/shared": "workspace:*",
+    "acorn": "8.18.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@reelforge/fake-claude": "workspace:*"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "voxel-pixel-crisp640",
+  "name": "Voxel Pixel · Crisp 640",
+  "description": "Synthwave voxel pixel art at 640x360: neon violet, magenta and teal grids under dithered dusk skies, navy shadows, orange hero accents with cream and slate.",
+  "default": true,
+  "lights": "neon",
+  "treatments": [
+    "metaphor-object",
+    "title-card",
+    "data-chart-3d",
+    "counter/odometer",
+    "ui-mockup",
+    "kinetic-text",
+    "map",
+    "node-graph/timeline",
+    "character-scene"
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "id": "en-tech-doom",
+  "summary": "EN tech story (Doom), ~42 s, 8 shots",
+  "sceneBuild": {
+    "shotId": "s08_memory",
+    "expectMissing": ["memory-chip"]
+  },
+  "sceneFix": {
+    "shotIds": ["s08_memory"],
+    "scope": "Selection",
+    "selection": "odometer prop (prop) in s08_memory",
+    "request": "Make the counter roll faster and land on 4 a little earlier."
+  },
+  "critic": {
+    "shotId": "s04_engine",
+    "imagePaths": [
+      "out/frames/s04_engine/0.000.png",
+      "out/frames/s04_engine/2.300.png",
+      "out/frames/s04_engine/4.510.png"
+    ]
+  },
+  "replies": {
+    "research": "Saved research.md: 9 sourced facts.\nMain sources: Wikipedia (Doom, Doom engine), Doom Wiki.\nUncertain: which pregnancy-test ports really ran the game.",
+    "script": "Word count: 86. Estimated duration: about 35 seconds.\nAll claims are sourced in research.md.",
+    "storyboard": "8 shots. Treatments: title-card, metaphor-object, kinetic-text, 3d-reconstruction x2, montage/transition, node-graph/timeline, counter/odometer.\nMissing props: floppy-disk, pregnancy-test.",
+    "scene-build": "Shows a voxel odometer rolling up to 4 MB, landing on \"4 megabytes\" with a tick.\nQA: lint 0 errors, frames checked at 0/1.8/3.6 s, anchors within 40 ms.\nMISSING: memory-chip",
+    "scene-fix": "Counter now rolls in 60 % of the time and lands 0.2 s before the anchor.\nRe-ran lint and frames at 0/1.2/3.6 s; nothing else changed.",
+    "critic": {
+      "frames": [
+        {
+          "path": "out/frames/s04_engine/0.000.png",
+          "verdict": "ok",
+          "note": "wireframe level readable, neon grid visible"
+        },
+        {
+          "path": "out/frames/s04_engine/2.300.png",
+          "verdict": "overlap",
+          "note": "crossed-out room label covers the wireframe"
+        },
+        {
+          "path": "out/frames/s04_engine/4.510.png",
+          "verdict": "ok",
+          "note": "clean end frame"
+        }
+      ]
+    },
+    "sound-cues": "sfx: 6, ambience: 2, music: 0 (no files in audio/music/).",
+    "review-triage": {
+      "suspects": [
+        {
+          "shot": "s04_engine",
+          "reason": "last frame is almost uniform dark blue, nothing recognisable"
+        }
+      ]
+    },
+    "review-plan": {
+      "fixes": [
+        {
+          "shot": "s04_engine",
+          "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
+        }
+      ]
+    },
+    "youtube-meta": {
+      "titles": [
+        "Why Doom runs everywhere",
+        "How a 1993 game ended up on calculators",
+        "The tricks that made Doom run on anything"
+      ],
+      "description": "In 1993 a small team shipped a game on four floppy disks. Its engine faked a 3D world with flat sectors and a very fast renderer.\n\nThirty years later people run it on calculators, fridges and printers. Here is why that works.",
+      "tags": [
+        "doom",
+        "doom engine",
+        "id software",
+        "retro games",
+        "game history",
+        "runs doom",
+        "bsp rendering",
+        "1993 games"
+      ]
+    }
+  }
+}
