@@ -90,8 +90,9 @@ describe('moods', () => {
     const style = 'voxel-pixel-crisp640';
     expect(defaultMood(act('intro', 0.9), style)).toBe('calm-tech');
     expect(defaultMood(act('body', 0.4), style)).toBe('calm-tech');
-    expect(defaultMood(act('body', 0.7), style)).toBe('bright-explainer');
-    expect(defaultMood(act('full', 0.85), style)).toBe('retro-wave');
+    expect(defaultMood(act('body', 0.7), style)).toBe('calm-tech');
+    expect(defaultMood(act('body', 0.8), style)).toBe('bright-explainer');
+    expect(defaultMood(act('full', 0.95), style)).toBe('retro-wave');
     expect(defaultMood(act('body', 0.9), 'noir-voxel')).toBe('lofi-chill');
     expect(defaultMood(act('body', 0.3), 'soft-480')).toBe('lofi-chill');
     expect(defaultMood(act('body', 0.3), 'my-style')).toBe('calm-tech');
@@ -125,7 +126,7 @@ describe('moods', () => {
     ]);
     expect(cues.every((cue) => cue.ducking?.enabled === true && cue.gainDb === -5)).toBe(true);
     expect(cues.map((cue) => cue.file.split('/').at(-1)?.split('-').slice(1, 3).join('-'))).toEqual(
-      ['calm-tech', 'bright-explainer', 'calm-tech'],
+      ['calm-tech', 'calm-tech', 'calm-tech'],
     );
   });
 });

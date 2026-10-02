@@ -207,7 +207,7 @@ describe('timeline editor', () => {
     const picker = page.getByRole('dialog', { name: 'Add a sound effect' });
     await picker.waitFor();
     await page.screenshot({ path: path.join(screenshotDir, 'timeline-sfx-picker.png') });
-    await picker.getByRole('button', { name: 'whoosh' }).click();
+    await picker.getByRole('button', { name: 'whoosh', exact: true }).click();
     await waitForLanes('sfx', '2');
     const cuesFile = path.join(dir, 'cues.json');
     const added = await poll(

@@ -110,8 +110,9 @@ export function defaultMood(act: FilmAct, styleId: string): MusicMood {
   const moods = STYLE_MOODS[styleId] ?? DEFAULT_STYLE_MOODS;
   const [calm = 'calm-tech', lively = calm, liveliest = lively] = moods;
   if (act.role === 'intro' || act.role === 'outro') return calm;
-  if (act.energy < 0.6) return calm;
-  return act.energy < 0.8 ? lively : liveliest;
+  // Calm is the default (the user finds livelier beds too cheerful): lively only for clearly energetic acts.
+  if (act.energy < 0.75) return calm;
+  return act.energy < 0.92 ? lively : liveliest;
 }
 
 /** Mood per act: Claude's hint where given (same length as the acts), else the style default. */
