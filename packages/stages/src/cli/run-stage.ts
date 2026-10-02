@@ -5,7 +5,10 @@
  *   pnpm --filter @reelforge/stages run-stage <project> <stage> [--source <file>] [--economy] [--no-commit]
  *     scenes: [--action build|fix-what-looks-wrong|phone-legibility|sync-check] [--shots s01,s02]
  */
+import os from 'node:os';
+import path from 'node:path';
 import { parseArgs } from 'node:util';
+import { writeCliShims } from '@reelforge/cli/shims';
 import {
   LimitGuard,
   SessionManager,
@@ -25,6 +28,21 @@ const USAGE =
 
 function isSceneAction(value: string): value is SceneAction {
   return value === 'build' || (REVIEW_MODES as readonly string[]).includes(value);
+}
+
+/** `env` with `dir` first on PATH (whatever the case of the PATH variable on Windows). */
+export function envWithPathFirst(
+  env: NodeJS.ProcessEnv,
+  dir: string,
+  platform: NodeJS.Platform,
+): NodeJS.ProcessEnv {
+  const key = Object.keys(env).find((name) => name.toUpperCase() === 'PATH') ?? 'PATH';
+  const current = env[key];
+  const delimiter = platform === 'win32' ? ';' : ':';
+  return {
+    ...env,
+    [key]: current === undefined || current === '' ? dir : `${dir}${delimiter}${current}`,
+  };
 }
 
 function print(line: string): void {
@@ -90,11 +108,15 @@ ${USAGE}`);
   const concurrency = DEFAULT_STAGE_SETTINGS.scenes.concurrency;
   const guard = new LimitGuard({ maxConcurrency: concurrency });
   const frames = new PlaywrightFrameRenderer();
+  // The storyboard/scene prompts run `reelforge ...`: put the CLI on the children's PATH like the app does.
+  const shimDir = path.join(os.tmpdir(), 'reelforge-run-stage-bin');
+  await writeCliShims({ dir: shimDir, runtime: process.execPath });
   const manager =
     executable === undefined
       ? undefined
       : new SessionManager({
           launcher: { command: executable, args: [] },
+          env: envWithPathFirst(process.env, shimDir, process.platform),
           guard,
           concurrency,
           usage: new UsageLedger(),

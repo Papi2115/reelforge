@@ -98,10 +98,10 @@ export function writeFilm(dir: string, shots: readonly FilmShot[]): void {
 
 /**
  * `clipped`: the title runs off the right frame edge; `late-sfx`: the sfx lands 400 ms after its
- * word; `small-text`: the title at scale 1.
+ * word; `small-text`: the title at scale 1; `update-throws`: update() throws a TypeError after 1 s.
  */
 export type SceneVariant =
-  'ok' | 'lint' | 'overlap' | 'blank' | 'small-text' | 'clipped' | 'late-sfx';
+  'ok' | 'lint' | 'overlap' | 'blank' | 'small-text' | 'clipped' | 'late-sfx' | 'update-throws';
 
 const COLORS = ['accent1', 'accent2', 'accent3', 'accent4', 'hero'];
 
@@ -134,6 +134,8 @@ export function update(t, state, ctx) {
   const titlePlace =
     variant === 'clipped' ? "pos: [0.8, 0.3], align: 'left'" : 'pos: [0.5, 0.3], maxWidth: 0.8';
   const sfxAt = variant === 'late-sfx' ? 'hit.t + 0.4' : 'hit.t';
+  const crash =
+    variant === 'update-throws' ? '\n  if (t > 1) state.missing.position.set(0, 0, 0);' : '';
   return `${marker}export const meta = { id: '${shot.id}', title: '${title}', treatment: '${shot.treatment}' };
 
 function box(three, size, color) {
@@ -162,7 +164,7 @@ export function build(ctx) {
 
 export function update(t, state, ctx) {
   ctx.camera.pushIn({ target: [0, 0.6, 0], dist: [8, 5], to: state.hit.t, direction: [0.4, 0.7, 1] })(t);
-  state.cube.rotation.y = 0.4 * t${wobbleUse};
+  state.cube.rotation.y = 0.4 * t${wobbleUse};${crash}
   ctx.text.title('${title}', { id: 'title', at: 0, ${titlePlace}${titleScale} });${extraCard}
 }
 `;

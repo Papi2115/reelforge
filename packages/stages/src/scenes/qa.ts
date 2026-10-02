@@ -75,7 +75,7 @@ export async function qaRound(
   if (!rendered.ok) return rendered;
   const render = rendered.value;
   if (!render.ok) {
-    const runtime = finding('runtime', 'error', `the scene does not load: ${render.error}`, {
+    const runtime = finding('runtime', 'error', `the scene fails: ${render.error}`, {
       fatal: true,
     });
     return ok({ ...early([runtime, ...consoleFindings(render.errors)], source), render });

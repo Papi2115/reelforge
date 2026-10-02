@@ -81,6 +81,12 @@ export interface TurnRequest {
   readonly model?: ModelAlias;
   /** Start a fresh session instead of resuming the stored one. */
   readonly newSession?: boolean;
+  /**
+   * A one-off fresh session that is never stored in `sessions.json` and does not hold the
+   * project's session slot of `purpose`, so several run in parallel (scene jobs, critics). Implies
+   * `newSession`; its caller handles recovery (no `listInterrupted` entry).
+   */
+  readonly detached?: boolean;
   readonly appendSystemPrompt?: string;
   readonly tools?: readonly string[];
   readonly allowedTools?: readonly string[];

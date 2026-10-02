@@ -64,7 +64,7 @@ async function buildTurn(
     newSession: true,
     label: `scene-build ${shot.id}`,
     commit: false,
-    resumeAfterLimit: false,
+    detached: true,
   });
   if (turn.ok) return ok({ reply: turn.value.reply });
   if (!SHOT_LEVEL_FAILURES.has(turn.error.kind)) return turn;
@@ -96,7 +96,7 @@ async function fixTurn(
     newSession: true,
     label,
     commit: false,
-    resumeAfterLimit: false,
+    detached: true,
   });
   if (turn.ok) return ok(undefined);
   return SHOT_LEVEL_FAILURES.has(turn.error.kind) ? ok(turn.error.message) : turn;

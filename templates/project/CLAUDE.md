@@ -15,7 +15,7 @@ Reply in the user's language (default: English). Be brief: say what you changed 
 ## Scene contract (the ONLY thing you write)
 ```js
 // scenes/s03_calc_desk.js
-export const meta = { id: "s03", title: "Calculator on exam desk", treatment: "metaphor-object" };
+export const meta = { id: "s03_calc_desk", title: "Calculator on exam desk", treatment: "metaphor-object" };
 
 export function build(ctx) {            // runs ONCE: create objects, resolve anchors, register sfx
   const { kit, palette, anchor, sfx, rng } = ctx;
@@ -39,15 +39,16 @@ export function update(t, s, ctx) {     // pure function of local time t (second
 
 ## The kit (compose, don't hand-build)
 Use `reelforge kit-docs` to list what exists (environments, props, effects, voxel tools) and `reelforge kit-docs <name>` for parameters and anchor points. Prefer kit props/environments over raw Three.js. Props attach with `.on(surface)`. Build once in `build()`, animate in `update()`. Calling kit constructors inside `update()` is an error.
+Camera rigs, `ctx.text` options, anchors, sfx, rng and easings: `reelforge kit-docs ctx` (or `camera`, `text`, …). Look them up before you write the scene — do not guess option names (unknown options throw and the frame fails).
 
 ## Style bible
 Read `styles/<style id>/STYLE.md` (path given in `project.json` → `style`). Short version: strong composition (thirds, depth), camera is always moving smoothly (never static > 3 s), change the visual pattern every ≤ 6–8 s, flat-shaded voxel look, neon accents on dark backgrounds, no more than two shots in a row with the same treatment.
 
 ## Self-QA — do this before you say "done"
-Run these in the project folder (they are the only shell commands you may run):
+`reelforge …` commands are the only shell commands you may run. You are already in the project folder: every Bash call is exactly ONE plain `reelforge …` command — no `cd`, no `&&` / `;` / pipes / redirects, no `cat`, `ls` or `python` (they are blocked). Read files with Read, find them with Glob/Grep.
 1. `reelforge lint scenes/sNN_slug.js` — must have 0 errors.
 2. `reelforge frames --scene scenes/sNN_slug.js --at 0,<mid>,<end-0.1>` — then **Read the PNG paths it prints** and look at them: not blank, not cropped, text legible and inside the frame, the subject is the focus, colours match the style. Fix and re-render (max 2 fix iterations per shot).
-3. `reelforge anchors --shot sNN` — every key visual event must land within ±150 ms of its spoken word.
+3. `reelforge anchors --shot <shot id>` (the full id from `storyboard.json`, e.g. `s03_calc_desk`) — every key visual event must land within ±150 ms of its spoken word.
 4. `reelforge validate` after editing `storyboard.json` / `cues.json`.
 5. For a whole-video review: `reelforge contact-sheet --all` and Read the sheets.
 `reelforge status` shows what exists and what is missing.

@@ -128,9 +128,19 @@ export function createRenderServiceHandlers(pool: RenderPool): RenderServiceHand
       const factor =
         job.preset === undefined ? 1 : scaleFactor(job.preset, info.width, info.height);
       const frames: RenderedFrameData[] = [];
+      const sceneFailure = (error: RenderError, step: string): ShotRenderResponse => {
+        // The scene threw while rendering (update(), ctx.text options): the author's problem.
+        if (isFatalRenderError(error)) throw rendererFailure(error);
+        const errors = entry.target.takeConsoleErrors();
+        return {
+          version: RENDER_SERVICE_VERSION,
+          shot,
+          result: { ok: false, error: `${step}: ${error.message}`, errors },
+        };
+      };
       for (const t of job.at) {
         const rendered = await entry.target.frame(plan.t0 + t);
-        if (!rendered.ok) throw rendererFailure(rendered.error);
+        if (!rendered.ok) return sceneFailure(rendered.error, `rendering t=${t.toFixed(2)}s`);
         const image = upscaleNearest(
           { width: info.width, height: info.height, data: rendered.value },
           factor,
@@ -147,7 +157,7 @@ export function createRenderServiceHandlers(pool: RenderPool): RenderServiceHand
       let cards: CardDiagnostic[] = [];
       if (job.cards) {
         const checked = await entry.target.cards(plan.id);
-        if (!checked.ok) throw rendererFailure(checked.error);
+        if (!checked.ok) return sceneFailure(checked.error, 'checking the text cards');
         cards = [...checked.value];
       }
       return {

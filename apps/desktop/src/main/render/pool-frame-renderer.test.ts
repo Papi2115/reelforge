@@ -90,6 +90,29 @@ describe('PoolFrameRenderer', () => {
     });
   });
 
+  it('a scene that throws while rendering a frame is a result too (a QA fix, not an outage)', async () => {
+    await sabotage('s02_calc.js', 'FAIL_FRAME');
+    const targets = fakeTargets();
+    const renderer = new PoolFrameRenderer(targets.open);
+    const result = await renderer.renderShot(
+      { projectDir, shotId: 's02', times: [0, 2.5], cards: true },
+      signal,
+    );
+    expect(result).toEqual({
+      ok: false,
+      error: 'rendering t=2.50s: [shot s02] update(4.7) threw TypeError: x is undefined',
+      errors: ['Uncaught TypeError: x is undefined'],
+    });
+    // The window is still healthy: the next shot renders in it.
+    const next = await renderer.renderShot(
+      { projectDir, shotId: 's01', times: [0], cards: false },
+      signal,
+    );
+    expect(next.ok).toBe(true);
+    expect(targets.opened).toHaveLength(1);
+    await renderer.close();
+  });
+
   it('an unknown shot is a result; a crashed renderer rejects', async () => {
     const renderer = new PoolFrameRenderer(fakeTargets().open);
     const unknown = await renderer.renderShot(

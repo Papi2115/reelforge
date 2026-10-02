@@ -29,6 +29,7 @@ import {
 import { initialTurnView } from './steps.js';
 import { startTurn, type RunningTurn, type TurnOutcome } from './turn.js';
 import { afterTurn, isAuditEvent } from './turn-hooks.js';
+import { usageSnapshotOf, withoutEarlierTurns } from './turn-usage.js';
 import { prepareTurn, resolveModel, type PreparedTurn } from './turn-request.js';
 
 interface Job extends TurnRef {
@@ -120,13 +121,15 @@ export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }>
     const outcome = new Promise<TurnOutcome>((resolve) => (settle = resolve));
     let release: () => void = () => undefined;
     const done = new Promise<void>((resolve) => (release = resolve));
+    const turnId = randomUUID();
+    const dirKey = process.platform === 'win32' ? resolvedDir.toLowerCase() : resolvedDir;
     const job: Job = {
-      turnId: randomUUID(),
+      turnId,
       projectDir: resolvedDir,
       purpose,
       stage: request.stage,
       request,
-      key: `${process.platform === 'win32' ? resolvedDir.toLowerCase() : resolvedDir}|${purpose}`,
+      key: request.detached === true ? `${dirKey}|detached|${turnId}` : `${dirKey}|${purpose}`,
       model: resolveModel(request, this.options),
       channel: new AsyncChannel<StreamEvent>(),
       settle,
@@ -215,7 +218,10 @@ export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }>
     if (turn === undefined) {
       const running = [...this.active.values()].find(
         (job) =>
-          !job.finished && job.purpose === purpose && job.projectDir === path.resolve(projectDir),
+          !job.finished &&
+          job.request.detached !== true &&
+          job.purpose === purpose &&
+          job.projectDir === path.resolve(projectDir),
       );
       return err(
         running === undefined
@@ -261,11 +267,18 @@ export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }>
   private async run(job: Job): Promise<void> {
     const { request } = job;
     const now = (): string => (this.options.now?.() ?? new Date()).toISOString();
-    const stored = await this.store.get(job.projectDir, job.purpose);
-    if (!stored.ok) this.warn(job, stored.error);
-    const resume = request.newSession === true || !stored.ok ? undefined : stored.value?.sessionId;
+    const fresh = request.newSession === true || request.detached === true;
+    const stored =
+      request.detached === true ? undefined : await this.store.get(job.projectDir, job.purpose);
+    if (stored?.ok === false) this.warn(job, stored.error);
+    const resume = fresh || stored?.ok !== true ? undefined : stored.value?.sessionId;
+    // The CLI reports session totals on --resume: this turn's share is the difference.
+    const baseline =
+      resume === undefined || stored?.ok !== true ? undefined : stored.value?.usageSnapshot;
     await this.persist(job, (record) => ({
-      ...(request.newSession === true ? {} : { sessionId: record?.sessionId }),
+      ...(request.newSession === true
+        ? {}
+        : { sessionId: record?.sessionId, usageSnapshot: record?.usageSnapshot }),
       model: job.model,
       updatedAt: now(),
       pendingTurn: {
@@ -294,6 +307,8 @@ export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }>
       running = this.launch(job, { ...prepared.flags, resume: undefined }, toolEvents, now);
       outcome = await running.outcome;
     }
+    const reported = outcome;
+    outcome = withoutEarlierTurns(reported, baseline);
     const reason =
       outcome.failure === undefined ? outcome.status : `${outcome.status}:${outcome.failure}`;
     await this.persist(job, (record) => {
@@ -308,6 +323,7 @@ export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }>
         model: job.model,
         updatedAt: now(),
         pendingTurn: keepPending ? { ...pending, state: 'interrupted', reason } : undefined,
+        usageSnapshot: usageSnapshotOf(reported, record?.usageSnapshot),
       };
     });
     await this.afterTurn(job, outcome, prepared, toolEvents);
@@ -382,7 +398,9 @@ export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }>
     });
   }
 
+  /** Detached turns are never stored (they do not own the purpose's session slot). */
   private async persist(job: Job, mutate: SessionMutator): Promise<void> {
+    if (job.request.detached === true) return;
     const updated = await this.store.update(job.projectDir, job.purpose, mutate);
     if (!updated.ok) this.warn(job, updated.error);
   }

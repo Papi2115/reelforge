@@ -138,7 +138,7 @@ export function formatQa(outcome: ShotOutcome, issues: readonly ShotIssue[]): st
     );
   }
   for (const issue of [...of('lint'), ...of('load')]) {
-    lines.push(issue.kind === 'load' ? `scene failed to load: ${issue.message}` : issue.message);
+    lines.push(issue.kind === 'load' ? `scene failed: ${issue.message}` : issue.message);
   }
   const warnings = outcome.lint.filter((diagnostic) => diagnostic.severity === 'warning');
   if (warnings.length > 0) {

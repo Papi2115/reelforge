@@ -177,7 +177,9 @@ describe('ctx.text cards', () => {
     const badOption = shotWith((_t, ctx) => ctx.text.title('X', { colour: 'text' } as never));
     expect(() => {
       badOption.update(0);
-    }).toThrow(/ctx\.text\.title\(\): options: Unrecognized key: "colour"/);
+    }).toThrow(
+      /ctx\.text\.title\(\): options: Unrecognized key: "colour" \(known options: id, at, until, .*pos, .*color, .*maxWidth\)/,
+    );
     expect(() =>
       shotWith(
         () => undefined,

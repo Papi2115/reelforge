@@ -40,7 +40,7 @@ export interface ShotRenderOk {
 export interface ShotRenderFailed {
   readonly ok: false;
   readonly plan: ShotPlan;
-  /** Why the scene did not load (engine error, written for the scene author). */
+  /** Why the scene did not load or render (engine error, written for the scene author). */
   readonly error: string;
   readonly errors: readonly string[];
 }
@@ -113,24 +113,38 @@ async function openPlaywrightSession(setup: RenderSetup): Promise<RenderSession>
         }
         const { info } = loaded;
         const frames: RenderedFrame[] = [];
-        for (const t of options.times) {
-          const data = await page.frameAt(plan.t0 + t);
-          const image = { width: info.width, height: info.height, data };
-          frames.push({ t, image, stats: computeFrameStats(data) });
+        // A scene that throws in update() (or passes bad ctx.text options) is the scene's
+        // problem, reported like a load failure, never as a reelforge bug.
+        let step = '';
+        try {
+          for (const t of options.times) {
+            step = `rendering t=${t.toFixed(2)}s`;
+            const data = await page.frameAt(plan.t0 + t);
+            const image = { width: info.width, height: info.height, data };
+            frames.push({ t, image, stats: computeFrameStats(data) });
+          }
+          step = 'checking the text cards';
+          const cards = options.cards ? await page.checkCards(plan.id) : [];
+          return {
+            ok: true,
+            plan,
+            width: info.width,
+            height: info.height,
+            style: info.style,
+            frames,
+            cards,
+            anchors: info.anchors.filter((anchor) => anchor.shotId === plan.id),
+            cues: info.cues.filter((cue) => cue.shotId === plan.id),
+            errors: [...page.errors],
+          };
+        } catch (error) {
+          return {
+            ok: false,
+            plan,
+            error: `${step}: ${cleanEngineError(error)}`,
+            errors: [...page.errors],
+          };
         }
-        const cards = options.cards ? await page.checkCards(plan.id) : [];
-        return {
-          ok: true,
-          plan,
-          width: info.width,
-          height: info.height,
-          style: info.style,
-          frames,
-          cards,
-          anchors: info.anchors.filter((anchor) => anchor.shotId === plan.id),
-          cues: info.cues.filter((cue) => cue.shotId === plan.id),
-          errors: [...page.errors],
-        };
       } finally {
         await page.close();
       }

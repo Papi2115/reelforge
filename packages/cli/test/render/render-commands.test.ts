@@ -66,6 +66,22 @@ describe('reelforge frames', () => {
     expect(lint.stdout).toContain('1 lint error in scenes/s01_title.js (not rendered)');
     expect(lint.stdout).not.toContain('frames (t = local shot time');
   });
+
+  it('reports a scene that throws while rendering as a scene problem, not a reelforge bug', async () => {
+    const fresh = await copyFixtureProject();
+    try {
+      await fresh.edit('scenes/s01_title.js', 'maxWidth: 0.8,', 'maxWidth: 0.8, position: [0, 0],');
+      const run = await runCli(fresh.root, 'frames', '--shot', 's01', '--at', '0,1');
+      expect(run.code).toBe(1);
+      expect(run.stderr).toBe('');
+      expect(run.stdout).not.toContain('internal error');
+      expect(run.stdout).toMatch(
+        /scene failed: rendering t=0\.00s: \[shot s01\] ctx\.text\.title\(\): options: Unrecognized key: "position"/,
+      );
+    } finally {
+      await fresh.remove();
+    }
+  });
 });
 
 describe('reelforge contact-sheet and render-shot', () => {

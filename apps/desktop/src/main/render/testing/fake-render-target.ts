@@ -1,7 +1,8 @@
 /**
  * Test support (not used by the app): a RenderTarget without Electron. Frames encode the time
  * (pixel 0 = round(t * 30)), scene sources steer failures: `FAIL_LOAD` -> engine error with a
- * console error, `CRASH` -> the renderer dies, `OVERLAP` -> one card diagnostic.
+ * console error, `CRASH` -> the renderer dies, `OVERLAP` -> one card diagnostic, `FAIL_FRAME` -> an
+ * engine error (update() threw) for frames at t >= 3.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import type { CardDiagnostic, LoadInfo } from '@reelforge/engine';
@@ -71,6 +72,17 @@ export class FakeRenderTarget implements RenderTarget {
     if (this.dead) return Promise.resolve(err({ kind: 'closed', message: 'closed' }));
     if (this.loaded === null) {
       return Promise.resolve(err({ kind: 'engine', message: 'seek() before load()' }));
+    }
+    const sources = this.loaded.shots.map((shot) => shot.scene.source).join('\n');
+    if (sources.includes('FAIL_FRAME') && t >= 3) {
+      this.consoleErrors.push('Uncaught TypeError: x is undefined');
+      return Promise.resolve(
+        err({
+          kind: 'engine',
+          code: 'scene-update',
+          message: `[shot s02] update(${String(t)}) threw TypeError: x is undefined`,
+        }),
+      );
     }
     this.frames.push(t);
     return Promise.resolve(ok(fakeFrame(t)));

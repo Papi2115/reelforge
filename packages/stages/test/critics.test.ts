@@ -50,6 +50,25 @@ function rendered(variant: SceneVariant): ShotRenderOk {
   return render;
 }
 
+describe('a scene that throws in update()', () => {
+  it('is a failed render of that shot (a QA finding), not a renderer outage', async () => {
+    const [shot] = filmShots(1);
+    if (shot === undefined) throw new Error('no shot');
+    const file = path.join(dir, ...shot.scene.split('/'));
+    writeFileSync(file, sceneSource(shot, 'update-throws'));
+    const render = await renderer.renderShot(
+      { projectDir: dir, shotId: shot.id, times: [0, 1.5], cards: true },
+      new AbortController().signal,
+    );
+    writeFileSync(file, sceneSource(shot, VARIANTS[0]));
+    expect(render.ok).toBe(false);
+    if (render.ok) return;
+    expect(render.error).toMatch(
+      /^rendering t=1\.50s: \[shot s01\] update\(1\.5\) threw TypeError: Cannot read properties of undefined/,
+    );
+  });
+});
+
 describe('programmatic critics (no Claude)', () => {
   it('pass a clean scene', () => {
     expect(rendered('ok').frames).toHaveLength(5);

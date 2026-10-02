@@ -72,10 +72,15 @@ const summary = await queue.run(); // { status, done, failed, pending, message }
 
 | File                         | Content                                                                                                                                                                            |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sessions.json`              | session id per purpose (main/script/qa) + the in-flight turn (crash recovery)                                                                                                      |
+| `sessions.json`              | session id per purpose (main/script/qa) + the in-flight turn (crash recovery) + the CLI's session usage totals after the last turn (`usageSnapshot`)                               |
 | `pipeline.json`              | stage statuses, work-item queue, limit pause (`pausedUntil`, concurrency)                                                                                                          |
 | `usage.json`                 | totals + per stage → per model: turns, failed turns, limit hits, tokens, list-price `costUsd`, API ms; crossed budget thresholds                                                   |
 | `debug/<stamp>-<turn>.jsonl` | raw stdout of every `failed`/`crashed` turn (+ `.meta.json`); folder has its own `.gitignore` (`*`) — capture the first real usage-limit stream as a fake-claude fixture from here |
+
+Turns of one project + purpose run one at a time (they share a session); `detached: true` turns
+(scene builds/fixes, critics) get a one-off session that is never stored and run in parallel.
+After `--resume` the CLI reports `total_cost_usd`/`modelUsage` for the whole session, so a
+resumed turn is booked as the difference to the stored `usageSnapshot` (`turn-usage.ts`).
 
 `costUsd` is the CLI's list-price estimate, a relative meter on a subscription. Budgets are soft:
 `budget` events at 50/80/100 % (once each, persisted); nothing is stopped.

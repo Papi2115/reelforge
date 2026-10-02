@@ -2,8 +2,8 @@
  * The stages' FrameRenderer (PLAN.md#7.4) on the app's render windows: the shot is planned exactly
  * as the `reelforge` CLI and the render service plan it (`planServiceShot`: the isolated manifest
  * of one shot at its timeline place), then rendered in a pooled hidden render window — the same
- * engine as preview and export (CLAUDE.md §3.3). A scene that does not load is a result
- * (`ok: false`); a crashed/unavailable renderer rejects. Concurrent requests take separate windows
+ * engine as preview and export (CLAUDE.md §3.3). A scene that does not load or throws while
+ * rendering is a result (`ok: false`); a crashed/unavailable renderer rejects. Concurrent requests take separate windows
  * (the pool opens one per request in flight, up to the scene stage's concurrency).
  */
 import { describeUnknown, planServiceShot } from '@reelforge/cli/service';
@@ -22,6 +22,19 @@ export class RendererUnavailableError extends Error {
     super(`the app's renderer failed: ${renderError.message}`);
     this.name = 'RendererUnavailableError';
   }
+}
+
+/**
+ * An engine error while rendering (the scene threw in update(), bad ctx.text options) fails the
+ * shot like a load error, so QA asks for a fix; anything else means the renderer is gone.
+ */
+function sceneFailure(entry: PooledTarget, error: RenderError, step: string): ShotRender {
+  if (isFatalRenderError(error)) throw new RendererUnavailableError(error);
+  return {
+    ok: false,
+    error: `${step}: ${error.message}`,
+    errors: entry.target.takeConsoleErrors(),
+  };
 }
 
 export class PoolFrameRenderer implements FrameRenderer {
@@ -79,13 +92,13 @@ export class PoolFrameRenderer implements FrameRenderer {
     for (const t of request.times) {
       if (signal.aborted) break;
       const rendered = await entry.target.frame(plan.t0 + t);
-      if (!rendered.ok) throw new RendererUnavailableError(rendered.error);
+      if (!rendered.ok) return sceneFailure(entry, rendered.error, `rendering t=${t.toFixed(2)}s`);
       frames.push({ t, image: { width: info.width, height: info.height, data: rendered.value } });
     }
     let cards: readonly CardDiagnostic[] = [];
     if (request.cards) {
       const checked = await entry.target.cards(plan.id);
-      if (!checked.ok) throw new RendererUnavailableError(checked.error);
+      if (!checked.ok) return sceneFailure(entry, checked.error, 'checking the text cards');
       cards = checked.value;
     }
     return {

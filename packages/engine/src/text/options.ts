@@ -138,7 +138,23 @@ export function parseTextArgument<Schema extends z.ZodType>(
   const result = schema.safeParse(input);
   if (result.success) return result.data;
   const details = result.error.issues
-    .map((issue) => `${[label, ...issue.path.map(String)].join('.')}: ${issue.message}`)
+    .map((issue) => {
+      const where = [label, ...issue.path.map(String)].join('.');
+      const known = issue.code === 'unrecognized_keys' ? knownKeys(schema, issue.path) : undefined;
+      return `${where}: ${issue.message}${known === undefined ? '' : ` (known options: ${known.join(', ')})`}`;
+    })
     .join('; ');
   throw new EngineError('invalid-text-options', `${call}: ${details}`, { shotId });
+}
+
+/** Keys of the object schema at `path` (an LLM guessing `position` learns it is `pos`). */
+function knownKeys(schema: z.ZodType, path: readonly PropertyKey[]): string[] | undefined {
+  let current: z.ZodType = schema;
+  for (const segment of path) {
+    if (!(current instanceof z.ZodObject) || typeof segment !== 'string') return undefined;
+    const next: unknown = current.shape[segment];
+    if (!(next instanceof z.ZodType)) return undefined;
+    current = next;
+  }
+  return current instanceof z.ZodObject ? Object.keys(current.shape) : undefined;
 }

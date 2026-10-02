@@ -66,12 +66,25 @@ export class PlaywrightFrameRenderer implements FrameRenderer {
         return { ok: false, error: cleanEngineError(error), errors: [...page.errors] };
       }
       const frames: RenderedFrame[] = [];
-      for (const t of request.times) {
-        if (signal.aborted) break;
-        const data = await page.frameAt(planned.plan.t0 + t);
-        frames.push({ t, image: { width: info.width, height: info.height, data } });
+      let cards;
+      // A scene that throws in update() is a scene failure (a fix turn), not a renderer outage.
+      let step = '';
+      try {
+        for (const t of request.times) {
+          if (signal.aborted) break;
+          step = `rendering t=${t.toFixed(2)}s`;
+          const data = await page.frameAt(planned.plan.t0 + t);
+          frames.push({ t, image: { width: info.width, height: info.height, data } });
+        }
+        step = 'checking the text cards';
+        cards = request.cards ? await page.checkCards(planned.plan.id) : [];
+      } catch (error) {
+        return {
+          ok: false,
+          error: `${step}: ${cleanEngineError(error)}`,
+          errors: [...page.errors],
+        };
       }
-      const cards = request.cards ? await page.checkCards(planned.plan.id) : [];
       return {
         ok: true,
         width: info.width,

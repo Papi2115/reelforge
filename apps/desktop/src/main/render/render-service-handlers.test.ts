@@ -96,6 +96,21 @@ describe('render service handlers', () => {
     await pool.close();
   });
 
+  it('a scene that throws while rendering a frame is a result, not a renderer failure', async () => {
+    const { handlers, targets, pool } = setup();
+    const file = path.join(projectDir, 'scenes', 's02_calc.js');
+    await writeFile(file, `// FAIL_FRAME\n${await readFile(file, 'utf8')}`);
+    const response = await handlers.frames({ projectDir, shot: 's02', at: [0, 2.5] });
+    expect(response.result).toEqual({
+      ok: false,
+      error: 'rendering t=2.50s: [shot s02] update(4.7) threw TypeError: x is undefined',
+      errors: ['Uncaught TypeError: x is undefined'],
+    });
+    expect(targets.opened).toHaveLength(1);
+    expect(targets.opened[0]?.alive).toBe(true);
+    await pool.close();
+  });
+
   it('a crashed renderer is a 502 and the next request gets a fresh window', async () => {
     const { handlers, targets, pool } = setup();
     await writeFile(path.join(projectDir, 'scenes', 'crash.js'), '// CRASH\n');

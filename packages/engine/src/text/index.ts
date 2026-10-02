@@ -15,9 +15,12 @@ export { MONO_FONT } from './font-mono.js';
 export {
   FONT_NAMES,
   KINETIC_STYLES,
+  kineticOptionsSchema,
   LOWER_THIRD_ANIMATIONS,
+  lowerThirdOptionsSchema,
   MAX_TEXT_SCALE,
   TITLE_ANIMATIONS,
+  titleOptionsSchema,
 } from './options.js';
 export { safeAreaRect, type TextOverlay } from './text-layer.js';
 export type * from './types.js';

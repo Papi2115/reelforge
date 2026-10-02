@@ -91,6 +91,7 @@ export class TurnDriver {
           prompt,
           model,
           newSession,
+          ...(turn.detached === true ? { detached: true } : {}),
           ...(settings.economy ? { appendSystemPrompt: ECONOMY_HINT } : {}),
         },
         {
@@ -120,7 +121,7 @@ export class TurnDriver {
             return err(stageError('limit', `usage limit reached: ${result.message}`));
           }
           if (!guard.paused) guard.reportLimit(result.limit);
-          if (result.sessionId !== undefined && turn.resumeAfterLimit !== false) newSession = false;
+          if (result.sessionId !== undefined && turn.detached !== true) newSession = false;
           prompt = continuationPrompt(turn.text);
       }
     }

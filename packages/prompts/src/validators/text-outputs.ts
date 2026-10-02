@@ -5,14 +5,31 @@
  */
 import { issue, report, type ValidationIssue, type ValidationReport } from './issues.js';
 
-/** Props/environments named on the last `MISSING: a, b` line of a reply ([] when absent/none). */
+/** A prop name is a few words; longer items are prose (seen in real replies, PLAN.md#10.4). */
+const MAX_PROP_NAME_WORDS = 4;
+
+/**
+ * Props/environments named on the last `MISSING: a, b` line of a reply ([] when absent/none).
+ * Real replies add explanations: `none (I drew it with voxel tools)` is none, `chip (40-pin DIP)`
+ * is `chip`, and sentences ("so I built the headline from labels instead") are not names.
+ */
 export function parseMissing(reply: string): string[] {
   const lines = [...reply.matchAll(/^\s*\**MISSING\**\s*:\s*(.*)$/gim)];
-  const value = lines.at(-1)?.[1] ?? '';
+  const value = (lines.at(-1)?.[1] ?? '').replaceAll(/\([^()]*\)/g, ' ');
   return value
     .split(/[,;]/)
-    .map((name) => name.replaceAll(/[`*"'.]/g, '').trim())
-    .filter((name) => name !== '' && !/^(?:none|nothing|n\/a|-)$/i.test(name));
+    .map((name) =>
+      name
+        .replaceAll(/[`*"'.]/g, '')
+        .trim()
+        .replaceAll(/\s+/g, ' '),
+    )
+    .filter(
+      (name) =>
+        name !== '' &&
+        !/^(?:none|nothing|n\/a)\b|^-$/i.test(name) &&
+        name.split(' ').length <= MAX_PROP_NAME_WORDS,
+    );
 }
 
 /** Warns when a reply has more non-empty lines than the prompt allows. */

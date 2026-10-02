@@ -25,6 +25,8 @@ export interface ClaudeTurnSpec {
   readonly prompt: string;
   readonly model: ModelAlias;
   readonly newSession: boolean;
+  /** A one-off session that runs in parallel with others of its purpose (bridge `detached`). */
+  readonly detached?: boolean | undefined;
   readonly appendSystemPrompt?: string | undefined;
 }
 
@@ -91,6 +93,7 @@ export class BridgeClaudeRunner implements ClaudeRunner {
       prompt: spec.prompt,
       model: spec.model,
       newSession: spec.newSession,
+      ...(spec.detached === true ? { detached: true } : {}),
       ...(spec.appendSystemPrompt === undefined
         ? {}
         : { appendSystemPrompt: spec.appendSystemPrompt }),

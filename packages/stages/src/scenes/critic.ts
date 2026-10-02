@@ -69,7 +69,7 @@ async function askCritic(
     newSession: true,
     label: `critic ${input.shotId}`,
     commit: false,
-    resumeAfterLimit: false,
+    detached: true,
   });
   if (!turn.ok) {
     if (turn.error.kind !== 'claude') return turn;

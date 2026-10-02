@@ -86,9 +86,7 @@ async function lookAtShots(
     const shotRender = rendered.value;
     rows.push({ shotId: shot.id, times, render: shotRender });
     const code: QaFinding[] = shotRender.ok ? [...lint, ...programmaticCritique(shotRender)] : lint;
-    const reasons = shotRender.ok
-      ? code.map(formatFinding)
-      : [`does not load: ${shotRender.error}`];
+    const reasons = shotRender.ok ? code.map(formatFinding) : [`fails: ${shotRender.error}`];
     if (reasons.length > 0) {
       suspects.push({ shot: shot.id, reason: reasons[0] ?? '' });
       findings.push(...reasons.map((reason) => `${shot.id}: ${reason}`));
@@ -136,7 +134,7 @@ async function triage(
     newSession: true,
     label: 'review triage',
     commit: false,
-    resumeAfterLimit: false,
+    detached: true,
   });
   if (!turn.ok) return turn;
   const reply = validateTriageReply(turn.value.reply, { shotIds: shots.map((shot) => shot.id) });
@@ -166,7 +164,7 @@ async function plan(
     newSession: true,
     label: 'review plan',
     commit: false,
-    resumeAfterLimit: false,
+    detached: true,
   });
   if (!turn.ok) return turn;
   const reply = validatePlanReply(turn.value.reply, { shotIds: job.shots.map((shot) => shot.id) });

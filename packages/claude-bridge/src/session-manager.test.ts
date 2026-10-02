@@ -4,6 +4,7 @@ import { sessionsFileSchema } from '@reelforge/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { checkConnection } from './detect.js';
 import { SessionManager } from './session-manager.js';
+import { UsageLedger, usageOfOutcome } from './usage-ledger.js';
 import { sessionsFilePath } from './session-store.js';
 import { isProcessAlive, waitFor } from './testing/fake-claude.js';
 import { Harness, drain, flagValue, probeOf } from './testing/manager-harness.js';
@@ -63,6 +64,33 @@ describe('SessionManager: turns on fake-claude', () => {
     );
     expect(flagValue(probeOf(fresh.events).argv, '--resume')).toBeUndefined();
     expect(fresh.outcome.sessionId).not.toBe(first.outcome.sessionId);
+  });
+
+  it('books only the resumed turn, not the session totals the CLI reports after --resume', async () => {
+    const stateDir = harness.temps.make('rf fake state ');
+    const vars = { FAKE_CLAUDE_SCENARIO: 'resume', FAKE_CLAUDE_STATE_DIR: stateDir };
+    const usage = new UsageLedger();
+    const { manager } = harness.manager(vars, { usage });
+    const projectDir = harness.project();
+    const first = await drain(manager.enqueue({ projectDir, stage: 'script', prompt: 'one' }));
+    const second = await drain(manager.enqueue({ projectDir, stage: 'script', prompt: 'two' }));
+    // Recorded real streams: turn 2 reports modelUsage/total_cost_usd of both turns.
+    expect(first.outcome.view.final?.costUsd).toBeCloseTo(0.0111749, 7);
+    expect(second.outcome.view.final?.costUsd).toBeCloseTo(0.0147163 - 0.0111749, 7);
+    expect(usageOfOutcome(second.outcome)).toMatchObject({
+      inputTokens: 10,
+      outputTokens: 55,
+      cacheReadInputTokens: 25724,
+      cacheCreationInputTokens: 342,
+    });
+    const file = await usage.read(projectDir);
+    if (!file.ok) throw new Error(file.error.message);
+    expect(file.value.totals.costUsd).toBeCloseTo(0.0147163, 7);
+    expect(file.value.totals.outputTokens).toBe(284 + 55);
+    expect(readSessions(projectDir).sessions.main?.usageSnapshot).toMatchObject({
+      sessionId: second.outcome.sessionId,
+      costUsd: 0.014716300000000002,
+    });
   });
 
   it('keeps side sessions (script/QA) separate and picks the model per stage', async () => {
@@ -254,6 +282,45 @@ describe('SessionManager: queue, cancellation, watchdogs', () => {
     expect(order.indexOf(`finished:${one?.turnId ?? ''}`)).toBeLessThan(
       order.indexOf(`started:${two?.turnId ?? ''}`),
     );
+  });
+
+  it('runs detached turns of one project and purpose in parallel, without storing them', async () => {
+    const vars = {
+      FAKE_CLAUDE_PROBE: '1',
+      FAKE_CLAUDE_SCENARIO: 'slow',
+      FAKE_CLAUDE_DELAY_MS: '40',
+      FAKE_CLAUDE_SLOW_TICKS: '3',
+    };
+    const { manager, lifecycle } = harness.manager(vars, { concurrency: 2 });
+    const projectDir = harness.project();
+    const stored = await drain(manager.enqueue({ projectDir, stage: 'chat', prompt: 'chat' }));
+    const handles = [1, 2].map((n) =>
+      manager.enqueue({
+        projectDir,
+        stage: 'scene-build',
+        prompt: `shot ${String(n)}`,
+        detached: true,
+      }),
+    );
+    const outcomes = await Promise.all(handles.map((handle) => handle.outcome));
+    await manager.whenIdle();
+    expect(outcomes.map((outcome) => outcome.status)).toEqual(['completed', 'completed']);
+    let running = 0;
+    let peak = 0;
+    for (const event of lifecycle) {
+      if (!handles.some((handle) => handle.turnId === event.turnId)) continue;
+      if (event.type === 'started') {
+        running += 1;
+        expect(event.resumedSessionId).toBeUndefined();
+      }
+      if (event.type === 'finished') running -= 1;
+      peak = Math.max(peak, running);
+    }
+    expect(peak).toBe(2);
+    const file = readSessions(projectDir);
+    expect(file.sessions.main?.sessionId).toBe(stored.outcome.sessionId);
+    expect(file.sessions.main?.pendingTurn).toBeUndefined();
+    expect((await manager.listInterrupted(projectDir)).ok).toBe(true);
   });
 });
 

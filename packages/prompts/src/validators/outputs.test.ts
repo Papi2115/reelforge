@@ -141,6 +141,16 @@ describe('parseMissing', () => {
     ['MISSING: a\nlater\nMissing: b; c', ['b', 'c']],
     ['QA ok.\nMISSING: none', []],
     ['All good, nothing missing.', []],
+    // Real Opus replies (PLAN.md#10.4): explanations in brackets, "none (...)", prose.
+    ["MISSING: none (I drew the file icon with the kit's voxel tools)", []],
+    [
+      'MISSING: calculator open-back (back panel that opens), chip prop (Z80 / 40-pin DIP)',
+      ['calculator open-back', 'chip prop'],
+    ],
+    [
+      'MISSING: a typing/strikethrough option in ctx.text.title is undocumented, so I built the headline from 3D labels and a glowing bar instead',
+      [],
+    ],
   ])('%j', (reply, expected) => {
     expect(parseMissing(reply)).toEqual(expected);
   });

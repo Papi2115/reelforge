@@ -237,7 +237,7 @@ reelforge/
 - [ ] **10.1** [O] E2E (Playwright-Electron) happy path na `fake-claude` + fixture VO: brief → … → MP4. — AC: przechodzi w CI.
 - [x] **10.2** [O] Odporność: crash Electrona w trakcie renderu → wznowienie; zabity proces `claude` → wznowienie tury; uszkodzony JSON → komunikat + restore z gita. — AC: testy scenariuszowe.
 - [x] **10.3** [S] Onboarding: projekt przykładowy (krótki film "Doom na kalkulatorze"-style), pierwszy start prowadzi przez Połącz Claude → brief. — AC: nowy użytkownik dochodzi do MP4 bez czytania dokumentacji.
-- [ ] **10.4** [S] Test prawdziwy: Papi robi jeden film end-to-end na realnej subskrypcji; lista poprawek → backlog. — AC: raport z zużycia limitu na film.
+- [x] **10.4** [S] Test prawdziwy: Papi robi jeden film end-to-end na realnej subskrypcji; lista poprawek → backlog. — AC: raport z zużycia limitu na film.
 - [ ] **10.5** [S] Tag `v1.0.0`, release notes, README.
 
 ---

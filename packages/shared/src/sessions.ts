@@ -27,12 +27,33 @@ export const pendingTurnSchema = z.object({
 });
 export type PendingTurn = z.infer<typeof pendingTurnSchema>;
 
+const modelTokensSchema = z.object({
+  inputTokens: z.number().nonnegative(),
+  outputTokens: z.number().nonnegative(),
+  cacheCreationInputTokens: z.number().nonnegative(),
+  cacheReadInputTokens: z.number().nonnegative(),
+  costUsd: z.number().nonnegative(),
+});
+
+/**
+ * What the CLI reported after the last turn of `sessionId`. Its `total_cost_usd` and
+ * `modelUsage` add up the whole session across `--resume` (seen in the first real run,
+ * PLAN.md#10.4), so the next resumed turn books only the difference.
+ */
+export const usageSnapshotSchema = z.object({
+  sessionId: z.string().min(1),
+  costUsd: z.number().nonnegative(),
+  models: z.record(z.string(), modelTokensSchema),
+});
+export type UsageSnapshot = z.infer<typeof usageSnapshotSchema>;
+
 export const sessionRecordSchema = z.object({
   /** Claude Code session id from `system:init`; absent until the first turn reached init. */
   sessionId: z.string().min(1).optional(),
   model: z.string().min(1),
   updatedAt: z.iso.datetime(),
   pendingTurn: pendingTurnSchema.optional(),
+  usageSnapshot: usageSnapshotSchema.optional(),
 });
 export type SessionRecord = z.infer<typeof sessionRecordSchema>;
 

@@ -55,4 +55,34 @@ describe('kit-docs formatting', () => {
     );
     expect(() => describeKitName(catalog, 'env.calculator')).toThrow(/no kit function/);
   });
+
+  it('answers the scene-context names scene authors ask for (camera, text, ...)', () => {
+    const camera = describeKitName(catalog, 'camera');
+    expect(camera).toContain('pushIn({ dist: [start, end]');
+    expect(camera).toContain('orbit({ radius, degrees: [start, end]');
+    expect(describeKitName(catalog, 'ctx.camera')).toBe(camera);
+    const text = describeKitName(catalog, 'text');
+    // Generated from the engine schemas: the real option names and defaults.
+    expect(text).toMatch(
+      /title\(text, \{ id\?: string, at\?: number = 0, .*pos\?: \[number, number\] = \[0\.5,0\.5\]/,
+    );
+    expect(text).toMatch(
+      /lowerThird\(primary, secondary \| null, \{ .*side\?: "left"\|"right" = "left"/,
+    );
+    expect(text).toMatch(/kinetic\(words: .*perWordDelay\?: number = 0\.25/);
+    expect(describeKitName(catalog, 'ease')).toContain('easeOutBack');
+    const all = describeKitName(catalog, 'ctx');
+    for (const part of [
+      'ctx.camera',
+      'ctx.text',
+      'ctx.anchor',
+      'ctx.sfx.at',
+      'ctx.rng',
+      'ctx.ease',
+    ]) {
+      expect(all).toContain(part);
+    }
+    expect(formatCatalog(catalog)).toContain('reelforge kit-docs ctx');
+    expect(() => describeKitName(catalog, 'cam')).toThrow(/scene context: ctx, camera, text/);
+  });
 });

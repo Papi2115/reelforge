@@ -154,11 +154,11 @@ export interface StageTurn {
   /** Autocommit after the turn (default true); scene turns commit once per shot instead. */
   readonly commit?: boolean;
   /**
-   * After a usage limit, continue in the session the turn started (default true). False starts a
-   * fresh session again: parallel scene jobs share the project's session slot of a purpose, so
-   * "the session" may belong to another shot by then.
+   * A one-off session (bridge `detached`): not stored, does not hold the project's session slot
+   * of `purpose`, so parallel scene jobs really run in parallel. After a usage limit it starts
+   * fresh again (nothing to resume). Default false: the stored session, resumed after a limit.
    */
-  readonly resumeAfterLimit?: boolean;
+  readonly detached?: boolean;
 }
 
 /** A shot's progress as the scene stage reports it. */

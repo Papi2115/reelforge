@@ -240,6 +240,20 @@ describe('scenes stage', { timeout: 120_000 }, () => {
     expect(report(dir).get('s01')).toMatchObject({ status: 'ok', missingProps: [] });
   });
 
+  it('runs the build turns of two shots at the same time (detached sessions)', async () => {
+    const two = await setup('concurrency two', { count: 2, script: allOk });
+    expect((await two.runner.run({ stage: 'scenes' })).ok).toBe(true);
+    let running = 0;
+    let peak = 0;
+    for (const event of two.harness.lifecycle) {
+      if (event.stage !== 'scene-build') continue;
+      if (event.type === 'started') running += 1;
+      if (event.type === 'finished') running -= 1;
+      peak = Math.max(peak, running);
+    }
+    expect(peak).toBe(2);
+  });
+
   it('respects the concurrency setting', async () => {
     const one = await setup('concurrency one', { count: 4, concurrency: 1, script: allOk });
     expect((await one.runner.run({ stage: 'scenes' })).ok).toBe(true);

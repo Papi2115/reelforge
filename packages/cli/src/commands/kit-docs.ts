@@ -3,10 +3,15 @@ import { kitCatalog, type KitCatalog, type KitCatalogEntry } from '@reelforge/ki
 import { COMMON_OPTIONS, parseCommandArgs } from '../args.js';
 import { result, type Command } from '../command.js';
 import { UsageError } from '../errors.js';
+import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
+import { formatParam, paramDocs } from './schema-docs.js';
+
+export { paramDocs, typeSummary } from './schema-docs.js';
 
 export const KIT_DOCS_USAGE = `usage: reelforge kit-docs [--json] [name]
 Without a name: every ctx.kit function (kit.voxel.*, kit.env.*, kit.props.*, kit.fx.*) with its
 params. With a name (e.g. calculator, props.calculator, fromGrid): details and an example call.
+The rest of the scene context: reelforge kit-docs ctx (or camera, text, anchor, sfx, rng, ease, shot).
 Exit code: 0 ok, 2 usage error (unknown name).`;
 
 const NAMESPACE: Readonly<Record<KitCatalogEntry['kind'], string>> = {
@@ -15,74 +20,6 @@ const NAMESPACE: Readonly<Record<KitCatalogEntry['kind'], string>> = {
   fx: 'fx',
 };
 const EXAMPLE_PARAMS = 3;
-
-type JsonSchema = Readonly<Record<string, unknown>>;
-
-function isSchema(value: unknown): value is JsonSchema {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/** A JSON Schema list keyword (`enum`), or [] when absent. */
-function schemaValues(value: unknown): readonly unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function schemaList(value: unknown): JsonSchema[] {
-  return Array.isArray(value) ? value.filter(isSchema) : [];
-}
-
-/** Short type of a JSON Schema: `"a"|"b"`, `number`, `[number, number, number]`, `string[]`. */
-export function typeSummary(schema: JsonSchema): string {
-  const values = schema['enum'];
-  if (Array.isArray(values)) return values.map((value) => JSON.stringify(value)).join('|');
-  if ('const' in schema) return JSON.stringify(schema['const']);
-  const union = [...schemaList(schema['anyOf']), ...schemaList(schema['oneOf'])];
-  if (union.length > 0) return union.map(typeSummary).join('|');
-  const tuple = schemaList(schema['prefixItems']);
-  if (tuple.length > 0) return `[${tuple.map(typeSummary).join(', ')}]`;
-  const type = schema['type'];
-  if (type === 'array') {
-    const items = schema['items'];
-    return `${isSchema(items) ? typeSummary(items) : 'any'}[]`;
-  }
-  if (typeof type === 'string') return type === 'integer' ? 'int' : type;
-  return 'any';
-}
-
-interface ParamDoc {
-  readonly name: string;
-  readonly type: string;
-  readonly required: boolean;
-  readonly defaultValue: unknown;
-  /** First allowed value of an enum (for examples). */
-  readonly firstValue: unknown;
-  readonly description: string | undefined;
-}
-
-export function paramDocs(params: JsonSchema): ParamDoc[] {
-  const properties = isSchema(params['properties']) ? params['properties'] : {};
-  const required = Array.isArray(params['required']) ? params['required'] : [];
-  return Object.entries(properties).map(([name, value]) => {
-    const schema = isSchema(value) ? value : {};
-    const description = schema['description'];
-    const values = schema['enum'];
-    return {
-      name,
-      type: typeSummary(schema),
-      required: required.includes(name),
-      defaultValue: schema['default'],
-      firstValue: schemaValues(values)[0],
-      description: typeof description === 'string' ? description : undefined,
-    };
-  });
-}
-
-function formatParam(param: ParamDoc): string {
-  const optional = param.required ? '' : '?';
-  const fallback =
-    param.defaultValue === undefined ? '' : ` = ${JSON.stringify(param.defaultValue)}`;
-  return `${param.name}${optional}: ${param.type}${fallback}`;
-}
 
 function callName(entry: KitCatalogEntry): string {
   return `kit.${NAMESPACE[entry.kind]}.${entry.name}`;
@@ -110,7 +47,10 @@ export function formatCatalog(catalog: KitCatalog): string {
   for (const [title, entries] of sections) {
     lines.push(`${title}:${entries.length === 0 ? ' (none yet)' : ''}`, ...entries.map(entryLine));
   }
-  lines.push('details + example: reelforge kit-docs <name>');
+  lines.push(
+    'details + example: reelforge kit-docs <name>',
+    'camera rigs, ctx.text options, anchors, sfx, rng, easings: reelforge kit-docs ctx (or camera, text, ...)',
+  );
   return lines.join('\n');
 }
 
@@ -159,13 +99,18 @@ export function describeKitName(catalog: KitCatalog, input: string): string {
       candidate.name === bare && (second === undefined || NAMESPACE[candidate.kind] === first),
   );
   if (entry) return formatEntry(entry);
+  const ctxTopic = describeCtxTopic(name);
+  if (ctxTopic !== undefined) return ctxTopic;
   const known = [...Object.keys(catalog.voxel), ...entries.map((candidate) => candidate.name)];
-  throw new UsageError(`no kit function "${input}"; known: ${known.join(', ')}`);
+  throw new UsageError(
+    `no kit function "${input}"; known: ${known.join(', ')}; scene context: ${CTX_TOPICS.join(', ')}`,
+  );
 }
 
 export const kitDocsCommand: Command = {
   name: 'kit-docs',
-  summary: 'reference of ctx.kit (voxel tools, environments, props, effects)',
+  summary:
+    'reference of ctx.kit (voxel tools, environments, props, effects) and ctx (camera, text, ...)',
   usage: KIT_DOCS_USAGE,
   run(argv) {
     const { positionals } = parseCommandArgs(argv, COMMON_OPTIONS, true);
