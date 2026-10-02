@@ -80,6 +80,8 @@ export default defineConfig({
           environment: 'node',
           testTimeout: 90_000 * appTimeoutScale,
           hookTimeout: 120_000 * appTimeoutScale,
+          // Hosted runners are slow and share one desktop: retry timing-sensitive UI tests there only.
+          retry: process.env['REELFORGE_CI'] === '1' ? 2 : 0,
           fileParallelism: false,
         },
       },

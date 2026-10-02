@@ -210,7 +210,7 @@ describe('player', () => {
     const after = await frameStats(page);
     metrics['hotReloadEditToFrameMs'] = reloadMs;
     metrics['hotReloadNotice'] = await page.getByTestId('preview-reload').textContent();
-    expect(reloadMs).toBeLessThan(1000);
+    expect(reloadMs).toBeLessThan(perfBar(1000, 5000));
     expect(after.renderedT).toBe('4.000');
     expect(after.hash).not.toBe(before.hash);
     await page.screenshot({ path: path.join(screenshotDir, 'player-hot-reload.png') });
