@@ -16,6 +16,9 @@ cache/
 models/
 *.bin
 
+# Spike artifacts (audio, models, binaries live in .cache/ — ignored above)
+spikes/**/samples/*.wav
+
 # Video projects (local-first user data, never committed)
 projects/
 

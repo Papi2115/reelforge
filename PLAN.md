@@ -3,7 +3,7 @@
 Legenda ról przy taskach: **[S]** Sonnet 5.5 (manager) · **[O]** Opus 5.5 (coder) · **[H]** Haiku (scout/runner). Format taska: `- [ ] **id** [rola] opis — AC: kryterium`.
 Manager hakuje checkboxy dopiero po spełnieniu AC i zielonej weryfikacji (patrz `CLAUDE.md` §2).
 
-**Bieżąca faza: 0**
+**Bieżąca faza: 2**
 
 ---
 
@@ -153,15 +153,15 @@ reelforge/
 - [x] **0.1** [S] Zapytaj Papiego (AskUserQuestion): nazwa repo (domyślnie `reelforge`), widoczność (domyślnie **private**), konto/org GitHub. — AC: decyzja w CLAUDE.md §8.
 - [x] **0.2** [O] `git init -b main`, `.gitignore` (node_modules, out, cache, modele whisper, projekty wideo), pnpm workspace, TS base (`strict`), ESLint + Prettier, Vitest, `.editorconfig`, skrypty z CLAUDE.md §5 (stuby), README. — AC: `pnpm install && pnpm typecheck && pnpm lint && pnpm test` zielone na Windows.
 - [x] **0.3** [O] GitHub Actions: typecheck+lint+test na `windows-latest` i `ubuntu-latest`. — AC: workflow przechodzi lokalnie (`act`) lub składniowo, plik w repo.
-- [ ] **0.4** [S] Sprawdź `gh auth status`; `gh repo create <nazwa> --private --source=. --remote=origin --push`; pierwszy commit `chore: bootstrap`; branch `phase-1/spikes`. Brak `gh` → podaj Papiemu 3 komendy do ręcznego wykonania. — AC: `git remote -v` pokazuje origin, push OK.
+- [x] **0.4** [S] Sprawdź `gh auth status`; `gh repo create <nazwa> --private --source=. --remote=origin --push`; pierwszy commit `chore: bootstrap`; branch `phase-1/spikes`. Brak `gh` → podaj Papiemu 3 komendy do ręcznego wykonania. — AC: `git remote -v` pokazuje origin, push OK.
 - [x] **0.5** [H] Odpal pełny toolchain i zraportuj wersje (node, pnpm, ffmpeg?, git, gh, claude) oraz czego brakuje na maszynie Papiego. — AC: digest w `docs/environment.md`.
 
 ### Faza 1 — Spike'i (go/no-go; wyniki w `docs/spikes/`)
-- [ ] **1.0** [H] Zrzuć `claude --help`, `claude -p --help` i docs headless/CLI do `docs/spikes/00-claude-help.md` (fakty do weryfikacji flag). — AC: plik istnieje, flagi z CLAUDE.md §3.1 potwierdzone/zaprzeczone.
-- [ ] **1.1** [O] **Spike CLI-bridge**: spawn `claude -p` ze `stream-json`; `--resume`; `--model` (opus/sonnet/haiku); `--allowedTools`, `--permission-mode`, `--append-system-prompt`; cwd = folder projektu; czytanie PNG z folderu projektu przez narzędzie Read; oczyszczone env; Windows (`.cmd`/`.exe`, kill tree); kształt błędów: niezalogowany i limit użycia; czas zimnego startu. — AC: `docs/spikes/01-claude-cli.md` z werdyktem + działający minimalny skrypt demonstracyjny.
-- [ ] **1.2** [O] **Spike render**: scena Three.js 640×360 `Nearest` + dithering; `seek(t)` dwukrotnie → identyczny hash klatki; `readPixels` → ffmpeg `rawvideo` → MP4 1080p (`neighbor`); porównanie: ukryte okno Electron vs Playwright Chromium; GPU vs SwiftShader; pomiar fps. — AC: `docs/spikes/02-render.md` + MP4 10 s; cel ≥ 100 fps renderu na laptopie Papiego (lub raport ile).
-- [ ] **1.3** [O] **Spike audio**: łańcuch ffmpeg (highpass, `afftdn`, opcj. `arnndn`, `loudnorm`) na 3 próbkach VO; whisper.cpp word timestamps (PL i EN, modele small/medium); alignment do skryptu; WER i czasy. — AC: `docs/spikes/03-audio.md` + rekomendacja modelu.
-- [ ] **1.4** [S] Przegląd spike'ów → ADR w `docs/decisions/`; popraw `PLAN.md` jeśli któraś decyzja D1–D10 upadła; jeśli spike padł → zapytaj Papiego. — AC: ADR-001…003, faza 2 odblokowana.
+- [x] **1.0** [H] Zrzuć `claude --help`, `claude -p --help` i docs headless/CLI do `docs/spikes/00-claude-help.md` (fakty do weryfikacji flag). — AC: plik istnieje, flagi z CLAUDE.md §3.1 potwierdzone/zaprzeczone.
+- [x] **1.1** [O] **Spike CLI-bridge**: spawn `claude -p` ze `stream-json`; `--resume`; `--model` (opus/sonnet/haiku); `--allowedTools`, `--permission-mode`, `--append-system-prompt`; cwd = folder projektu; czytanie PNG z folderu projektu przez narzędzie Read; oczyszczone env; Windows (`.cmd`/`.exe`, kill tree); kształt błędów: niezalogowany i limit użycia; czas zimnego startu. — AC: `docs/spikes/01-claude-cli.md` z werdyktem + działający minimalny skrypt demonstracyjny.
+- [x] **1.2** [O] **Spike render**: scena Three.js 640×360 `Nearest` + dithering; `seek(t)` dwukrotnie → identyczny hash klatki; `readPixels` → ffmpeg `rawvideo` → MP4 1080p (`neighbor`); porównanie: ukryte okno Electron vs Playwright Chromium; GPU vs SwiftShader; pomiar fps. — AC: `docs/spikes/02-render.md` + MP4 10 s; cel ≥ 100 fps renderu na laptopie Papiego (lub raport ile).
+- [x] **1.3** [O] **Spike audio**: łańcuch ffmpeg (highpass, `afftdn`, opcj. `arnndn`, `loudnorm`) na 3 próbkach VO; whisper.cpp word timestamps (PL i EN, modele small/medium); alignment do skryptu; WER i czasy. — AC: `docs/spikes/03-audio.md` + rekomendacja modelu.
+- [x] **1.4** [S] Przegląd spike'ów → ADR w `docs/decisions/`; popraw `PLAN.md` jeśli któraś decyzja D1–D10 upadła; jeśli spike padł → zapytaj Papiego. — AC: ADR-001…003, faza 2 odblokowana.
 
 ### Faza 2 — Silnik (`packages/engine`)
 - [ ] **2.1** [O] Kontrakt sceny + loader modułów (iframe sandbox, bez dostępu do Node), typy w `shared`. — AC: przykładowa scena ładuje się i renderuje.

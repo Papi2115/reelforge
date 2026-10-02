@@ -1,0 +1,3 @@
+In 1993, a small team in Texas shipped a game that fit on four floppy disks. It was called Doom, and it changed everything. The engine drew a fake 3D world using clever tricks: no rooms above rooms, no sloped floors, just flat sectors and a very fast renderer.
+
+Thirty years later, people run that same code on calculators, printers, and even pregnancy tests. Why does it run everywhere? Because the original source was released in 1997, and it only needs about 4 megabytes of memory.
