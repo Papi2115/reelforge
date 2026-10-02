@@ -16,6 +16,13 @@ export const DEFAULT_TEMPLATE_DIR = fileURLToPath(
   new URL('../../../templates/project/', import.meta.url),
 );
 
+/** Folder of the style bibles inside a project: `styles/<style id>/STYLE.md`. */
+export const PROJECT_STYLES_DIR = 'styles';
+export const STYLE_BIBLE = 'STYLE.md';
+
+/** `styles/` of the repo (one folder per style preset). Bundled apps pass their own copy. */
+export const DEFAULT_STYLES_DIR = fileURLToPath(new URL('../../../styles/', import.meta.url));
+
 function isInside(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
   return (

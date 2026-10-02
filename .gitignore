@@ -39,3 +39,6 @@ desktop.ini
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Packaged app and installers (pnpm package / pnpm dist)
+release/

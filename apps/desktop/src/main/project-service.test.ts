@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { DEFAULT_TEMPLATE_DIR, type GitOptions } from '@reelforge/project';
+import { DEFAULT_STYLES_DIR, DEFAULT_TEMPLATE_DIR, type GitOptions } from '@reelforge/project';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLogger } from './logger.js';
 import { newProjectDir, ProjectService, type FolderPurpose } from './project-service.js';
@@ -35,6 +35,7 @@ function service(onCurrentChanged?: (dir: string | undefined) => void): ProjectS
     ...(onCurrentChanged ? { onCurrentChanged } : {}),
     recentFile: path.join(root, 'user data', 'recent-projects.json'),
     templateDir: DEFAULT_TEMPLATE_DIR,
+    stylesDir: DEFAULT_STYLES_DIR,
     pickFolder: (purpose) => {
       purposes.push(purpose);
       return Promise.resolve(picks.shift());
@@ -77,6 +78,7 @@ describe('ProjectService', () => {
     const projects = new ProjectService({
       recentFile: path.join(root, 'user data', 'recent-projects.json'),
       templateDir: DEFAULT_TEMPLATE_DIR,
+      stylesDir: DEFAULT_STYLES_DIR,
       pickFolder: () => Promise.resolve(root),
       defaultStyle: () => 'noir-voxel',
       log: createLogger((line) => lines.push(line)),

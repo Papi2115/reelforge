@@ -2,6 +2,7 @@ node_modules/
 dist/
 out/
 coverage/
+release/
 pnpm-lock.yaml
 
 # Hand-maintained planning docs and agent config (prose, not reformatted)

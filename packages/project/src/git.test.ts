@@ -233,7 +233,8 @@ describe('diffSummary', () => {
     });
     const first = (await entries()).at(-1)?.hash ?? '';
     const root = await diffSummary(dir, first, sandbox.git);
-    expect(root.ok && root.value.files.length).toBe(6);
+    // .gitignore, CLAUDE.md, project.json, 3 .keep files, 3 style bibles
+    expect(root.ok && root.value.files.length).toBe(9);
     const unknown = await diffSummary(dir, 'abcdef12', sandbox.git);
     expect(!unknown.ok && unknown.error.kind).toBe('unknown-commit');
   });

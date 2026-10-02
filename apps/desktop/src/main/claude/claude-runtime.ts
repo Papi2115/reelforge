@@ -2,7 +2,7 @@
  * How the desktop app runs `claude` for the ClaudeService (PLAN.md#6.6, ADR-001): the launcher
  * comes from the "Connect Claude" check (the real CLI on the user's subscription; a test hook can
  * point unpackaged runs at fake-claude), the PreToolUse bash guard runs on the app's own binary as
- * Node (`ELECTRON_RUN_AS_NODE=1`) from the copy shipped in out/resources, and the `reelforge` CLI
+ * Node (`ELECTRON_RUN_AS_NODE=1`) from the copy shipped in hooks/ (AppLayout), and the `reelforge` CLI
  * launchers are written into `<userData>/bin`, which goes first on the children's PATH. Only the
  * parent env is given here; the bridge sanitizes it on every spawn.
  */

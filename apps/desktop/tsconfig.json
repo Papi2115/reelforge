@@ -6,17 +6,43 @@
     "types": ["node"],
     "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo"
   },
-  "include": ["src/main", "src/preload", "src/shared", "scripts/**/*.ts"],
+  "include": [
+    "src/main",
+    "src/preload",
+    "src/shared",
+    "scripts/**/*.ts",
+    "electron-builder.config.ts"
+  ],
   "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/engine" },
-    { "path": "../../packages/claude-bridge" },
-    { "path": "../../packages/pipeline" },
-    { "path": "../../packages/project" },
-    { "path": "../../packages/kit" },
-    { "path": "../../packages/cli" },
-    { "path": "../../packages/prompts" },
-    { "path": "../../packages/stages" },
-    { "path": "../../tools/fake-claude" }
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/engine"
+    },
+    {
+      "path": "../../packages/claude-bridge"
+    },
+    {
+      "path": "../../packages/pipeline"
+    },
+    {
+      "path": "../../packages/project"
+    },
+    {
+      "path": "../../packages/kit"
+    },
+    {
+      "path": "../../packages/cli"
+    },
+    {
+      "path": "../../packages/prompts"
+    },
+    {
+      "path": "../../packages/stages"
+    },
+    {
+      "path": "../../tools/fake-claude"
+    }
   ]
 }

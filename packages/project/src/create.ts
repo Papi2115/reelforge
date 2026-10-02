@@ -1,7 +1,8 @@
 /**
  * New project from `templates/project/`: project.json (template merged with the user's choices,
- * zod-validated), CLAUDE.md and .gitignore copied verbatim, the standard folders, `git init -b main`
- * and a first commit. Every file is written atomically.
+ * zod-validated), CLAUDE.md and .gitignore copied verbatim, the style bibles
+ * (`styles/<id>/STYLE.md`), the standard folders, `git init -b main` and a first commit. Every
+ * file is written atomically.
  */
 import { randomInt } from 'node:crypto';
 import { mkdir, readdir, readFile } from 'node:fs/promises';
@@ -12,6 +13,7 @@ import { commitProjectChanges, initRepository } from './git-repo.js';
 import type { GitOptions } from './git-runner.js';
 import { migrateProjectJson, parseProjectFile, type OpenedProject } from './open.js';
 import {
+  DEFAULT_STYLES_DIR,
   DEFAULT_TEMPLATE_DIR,
   KEEP_FILES,
   PROJECT_CLAUDE_MD,
@@ -20,6 +22,7 @@ import {
   PROJECT_JSON,
 } from './paths.js';
 import { describeUnknown, err, errorCode, ok, projectError, tryIo, type Result } from './result.js';
+import { copyStyleBibles, findStyleBibles, type StyleBible } from './style-bibles.js';
 
 export interface CreateProjectOptions {
   /** Project folder; created if missing, must be empty if it exists. */
@@ -32,6 +35,8 @@ export interface CreateProjectOptions {
   /** Project seed (uint32); random when omitted. */
   readonly seed?: number;
   readonly templateDir?: string;
+  /** Style presets with their `<id>/STYLE.md` bibles (default: the repo's `styles/`). */
+  readonly stylesDir?: string;
   readonly git?: GitOptions;
 }
 
@@ -97,12 +102,14 @@ async function templateProject(
 async function writeProjectFiles(
   dir: string,
   templateDir: string,
+  bibles: readonly StyleBible[],
   project: ProjectFile,
 ): Promise<Result<void>> {
   return tryIo(dir, async () => {
     for (const name of VERBATIM_FILES) {
       await writeAtomic(path.join(dir, name), await readFile(path.join(templateDir, name)));
     }
+    await copyStyleBibles(dir, bibles);
     for (const folder of PROJECT_FOLDERS) await mkdir(path.join(dir, folder), { recursive: true });
     for (const keep of KEEP_FILES) await writeAtomic(path.join(dir, ...keep.split('/')), '');
     await writeJsonAtomic(path.join(dir, PROJECT_JSON), project);
@@ -116,9 +123,14 @@ export async function createProject(options: CreateProjectOptions): Promise<Resu
   // Validate first: a bad title must not leave a half-created folder behind.
   const project = await templateProject(templateDir, options);
   if (!project.ok) return project;
+  const bibles = await findStyleBibles(
+    options.stylesDir ?? DEFAULT_STYLES_DIR,
+    project.value.style,
+  );
+  if (!bibles.ok) return bibles;
   const folder = await ensureEmptyFolder(dir);
   if (!folder.ok) return folder;
-  const written = await writeProjectFiles(dir, templateDir, project.value);
+  const written = await writeProjectFiles(dir, templateDir, bibles.value, project.value);
   if (!written.ok) return written;
   const init = await initRepository(dir, git);
   if (!init.ok) return init;

@@ -41,7 +41,10 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'unit',
-          include: ['{apps,packages,tools,spikes}/*/src/**/*.test.ts'],
+          include: [
+            '{apps,packages,tools,spikes}/*/src/**/*.test.ts',
+            'apps/*/scripts/**/*.test.ts',
+          ],
           environment: 'node',
           // DSP/zip/ffmpeg tests get slow when the whole suite runs in parallel.
           testTimeout: 30_000,
@@ -65,9 +68,23 @@ export default defineConfig({
           // Launches the built Electron app (Playwright _electron); run with `pnpm test:app`.
           name: 'app',
           include: ['apps/*/test/**/*.test.ts'],
+          exclude: ['apps/*/test/packaged/**'],
           environment: 'node',
           testTimeout: 90_000,
           hookTimeout: 120_000,
+          fileParallelism: false,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          // The packaged app (release/): run with `pnpm test:packaged` after `pnpm package` /
+          // `pnpm dist` (the installer test installs, launches and uninstalls it silently).
+          name: 'packaged',
+          include: ['apps/desktop/test/packaged/**/*.test.ts'],
+          environment: 'node',
+          testTimeout: 120_000,
+          hookTimeout: 180_000,
           fileParallelism: false,
         },
       },

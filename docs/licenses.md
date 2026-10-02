@@ -17,6 +17,7 @@ audit is PLAN.md#9.4 — rows marked _to verify_ must be checked there before an
 |---|---|---|---|---|
 | Style presets (palettes, post-fx settings) | `packages/engine/src/presets/*.json` | ReelForge project | CC0 1.0 | Authored in-repo. |
 | Map land masks (`europe` outline, `generic`/`islands` noise) | `packages/kit/src/fx/map-regions.ts` | ReelForge project | CC0 1.0 | The Europe outline is ~200 rough [lon, lat] points typed by hand from general knowledge for a stylised look; no geodata set (Natural Earth, OSM, ...) is bundled or derived from. |
+| App icon (pixel-art voxel cube) | `apps/desktop/build-resources/icon.{png,ico}`, drawn by `apps/desktop/scripts/icon-art.ts` | ReelForge project, authored in-repo (2026-10-02) | CC0 1.0 | Procedural; regenerate with `pnpm --filter @reelforge/desktop icon`. |
 | _(sfx library — PLAN.md phase 8)_ | | | | |
 
 ## npm dependencies (runtime)
@@ -36,6 +37,7 @@ audit is PLAN.md#9.4 — rows marked _to verify_ must be checked there before an
 | vitest | 5.0.3 | MIT | |
 | typescript | 6.0.3 | Apache-2.0 | |
 | eslint, typescript-eslint, prettier | see `package.json` | MIT | |
+| electron-builder | 26.17.0 | MIT | Windows packaging (PLAN.md#9.3, docs/packaging.md). The NSIS installer stub it embeds is NSIS (zlib/libpng license; bzip2 parts BSD-style), which allows redistribution of installers. electron-updater is **not** used. |
 
 ## External binaries and models (not bundled; installed or pointed to by the user)
 

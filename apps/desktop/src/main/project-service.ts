@@ -44,6 +44,8 @@ export interface ProjectServiceOptions {
   /** `<userData>/recent-projects.json` */
   readonly recentFile: string;
   readonly templateDir: string;
+  /** Style presets whose `<id>/STYLE.md` bibles new projects get. */
+  readonly stylesDir: string;
   /** Shows a folder picker; undefined when the user cancels. */
   readonly pickFolder: (purpose: FolderPurpose) => Promise<string | undefined>;
   /** Style preset of new projects (app settings); the template's when omitted. */
@@ -89,6 +91,7 @@ export class ProjectService {
       language: request.language,
       ...(this.options.defaultStyle === undefined ? {} : { style: this.options.defaultStyle() }),
       templateDir: this.options.templateDir,
+      stylesDir: this.options.stylesDir,
       ...this.gitOption(),
     });
     return this.opened(created, 'create');

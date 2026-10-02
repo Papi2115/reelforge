@@ -28,6 +28,7 @@ import {
   recentProjectsFile,
   resolveUserDataDir,
   settingsFile,
+  USER_DATA_SWITCH,
 } from './app-paths.js';
 import { registerAppSchemePrivileged, serveAppProtocol } from './app-protocol.js';
 import { createChildProcessRegistry } from './child-processes.js';
@@ -75,7 +76,15 @@ import { createMainWindow } from './window.js';
 function main(): void {
   app.setName(APP_NAME);
   // Before anything reads userData: the single-instance lock lives there too.
-  app.setPath('userData', resolveUserDataDir(app.getPath('appData'), process.env, app.isPackaged));
+  app.setPath(
+    'userData',
+    resolveUserDataDir(
+      app.getPath('appData'),
+      process.env,
+      app.isPackaged,
+      app.commandLine.getSwitchValue(USER_DATA_SWITCH),
+    ),
+  );
   const userDataDir = app.getPath('userData');
   const sink = fileAndStderrSink(logFile(userDataDir));
   const log = createLogger(sink.write);
@@ -95,7 +104,11 @@ function main(): void {
     return;
   }
   const source = sourceResult.value;
-  const layout = appLayout(app.getAppPath());
+  const layout = appLayout({
+    appPath: app.getAppPath(),
+    resourcesPath: process.resourcesPath,
+    isPackaged: app.isPackaged,
+  });
   const children = createChildProcessRegistry(killTree, log.child('children'));
   const settings = SettingsService.load({
     file: settingsFile(userDataDir),
@@ -171,12 +184,16 @@ function main(): void {
     },
     log: log.child('render'),
   });
-  if (!app.isPackaged && process.env[TEST_HOOKS_ENV] === '1') {
+  // Also in the packaged app: the packaged smoke test (pnpm test:packaged) reaches the render
+  // service like Claude's children do. It only exposes, to code already running in main, the env
+  // the app hands those children anyway.
+  if (process.env[TEST_HOOKS_ENV] === '1') {
     installRenderTestHooks(renderBackend, () => projects.currentProject()?.dir);
   }
   const projects = new ProjectService({
     recentFile: recentProjectsFile(userDataDir),
     templateDir: layout.projectTemplateDir,
+    stylesDir: layout.stylesDir,
     pickFolder,
     defaultStyle: () => settings.get().defaultStyle,
     log: log.child('project'),

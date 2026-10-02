@@ -11,13 +11,27 @@
     "../src/main/app-paths.ts",
     "../src/main/navigation-policy.ts",
     "../src/shared/player-contract.ts",
-    "../src/shared/export-contract.ts"
+    "../src/shared/export-contract.ts",
+    "../electron-builder.config.ts"
   ],
   "references": [
-    { "path": "../../../packages/claude-bridge" },
-    { "path": "../../../packages/shared" },
-    { "path": "../../../packages/engine" },
-    { "path": "../../../packages/pipeline" },
-    { "path": "../../../tools/fake-claude" }
+    {
+      "path": "../../../packages/claude-bridge"
+    },
+    {
+      "path": "../../../packages/shared"
+    },
+    {
+      "path": "../../../packages/engine"
+    },
+    {
+      "path": "../../../packages/pipeline"
+    },
+    {
+      "path": "../../../tools/fake-claude"
+    },
+    {
+      "path": "../../../packages/cli"
+    }
   ]
 }

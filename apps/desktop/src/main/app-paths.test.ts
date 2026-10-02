@@ -23,18 +23,28 @@ describe('resolveUserDataDir', () => {
       path.join(appData, 'ReelForge'),
     );
   });
+
+  it('honours --user-data-dir in every build (before the env override)', () => {
+    const env = { [USER_DATA_ENV]: path.join('tmp', 'env run') };
+    const profile = path.join('tmp', 'packaged smoke ż');
+    expect(resolveUserDataDir(appData, env, true, profile)).toBe(path.resolve(profile));
+    expect(resolveUserDataDir(appData, env, false, profile)).toBe(path.resolve(profile));
+    expect(resolveUserDataDir(appData, {}, true, '')).toBe(path.join(appData, 'ReelForge'));
+  });
 });
 
 describe('appLayout', () => {
   it('points into out/ next to package.json', () => {
     const appPath = path.join('C:', 'Creatorize Suite', 'apps', 'desktop');
-    expect(appLayout(appPath)).toEqual({
-      rendererDir: path.join(appPath, 'out', 'renderer'),
-      preloadFile: path.join(appPath, 'out', 'preload', 'preload.cjs'),
-      demoDir: path.join(appPath, 'out', 'demo'),
-      projectTemplateDir: path.join(appPath, 'out', 'template', 'project'),
-      bashGuardHook: path.join(appPath, 'out', 'resources', 'bash-guard.mjs'),
-      cliBundle: path.join(appPath, 'out', 'cli', 'reelforge.mjs'),
+    const out = path.join(appPath, 'out');
+    expect(appLayout({ appPath, resourcesPath: 'unused', isPackaged: false })).toEqual({
+      rendererDir: path.join(out, 'renderer'),
+      preloadFile: path.join(out, 'preload', 'preload.cjs'),
+      demoDir: path.join(out, 'demo'),
+      projectTemplateDir: path.join(out, 'template', 'project'),
+      stylesDir: path.join(out, 'template', 'styles'),
+      bashGuardHook: path.join(out, 'hooks', 'bash-guard.mjs'),
+      cliBundle: path.join(out, 'cli', 'reelforge.mjs'),
     });
     expect(recentProjectsFile(path.join(appData, 'ReelForge'))).toBe(
       path.join(appData, 'ReelForge', 'recent-projects.json'),
@@ -42,5 +52,26 @@ describe('appLayout', () => {
     expect(logFile(path.join(appData, 'ReelForge'))).toBe(
       path.join(appData, 'ReelForge', 'logs', 'main.log'),
     );
+  });
+
+  it('packaged: app files from app.asar, files run or copied out from resources/', () => {
+    const resourcesPath = path.join(
+      'C:',
+      'Users',
+      'Paweł Ząb',
+      'Programs',
+      'ReelForge',
+      'resources',
+    );
+    const asar = path.join(resourcesPath, 'app.asar');
+    expect(appLayout({ appPath: asar, resourcesPath, isPackaged: true })).toEqual({
+      rendererDir: path.join(asar, 'out', 'renderer'),
+      preloadFile: path.join(asar, 'out', 'preload', 'preload.cjs'),
+      demoDir: path.join(asar, 'out', 'demo'),
+      projectTemplateDir: path.join(resourcesPath, 'template', 'project'),
+      stylesDir: path.join(resourcesPath, 'template', 'styles'),
+      bashGuardHook: path.join(resourcesPath, 'hooks', 'bash-guard.mjs'),
+      cliBundle: path.join(resourcesPath, 'cli', 'reelforge.mjs'),
+    });
   });
 });

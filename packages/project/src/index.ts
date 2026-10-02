@@ -59,11 +59,14 @@ export {
   type ProjectMigration,
 } from './open.js';
 export {
+  DEFAULT_STYLES_DIR,
   DEFAULT_TEMPLATE_DIR,
   KEEP_FILES,
   PROJECT_FOLDERS,
   PROJECT_JSON,
+  PROJECT_STYLES_DIR,
   projectFolderName,
+  STYLE_BIBLE,
   toProjectRelative,
 } from './paths.js';
 export {

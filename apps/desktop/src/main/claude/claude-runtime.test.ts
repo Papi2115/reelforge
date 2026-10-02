@@ -66,7 +66,11 @@ describe('claudeChildEnv', () => {
 });
 
 describe('claudeSetup', () => {
-  const layout = appLayout(path.join(root, 'app'));
+  const layout = appLayout({
+    appPath: path.join(root, 'app'),
+    resourcesPath: path.join(root, 'resources'),
+    isPackaged: true,
+  });
   const written: CliShimOptions[] = [];
   const setup = (connection: ConnectionState) =>
     claudeSetup({

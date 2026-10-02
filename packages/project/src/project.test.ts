@@ -7,7 +7,12 @@ import { createProject } from './create.js';
 import { history } from './git-history.js';
 import { runGit } from './git-runner.js';
 import { openProject, type ProjectMigration } from './open.js';
-import { DEFAULT_TEMPLATE_DIR, projectFolderName, toProjectRelative } from './paths.js';
+import {
+  DEFAULT_STYLES_DIR,
+  DEFAULT_TEMPLATE_DIR,
+  projectFolderName,
+  toProjectRelative,
+} from './paths.js';
 import { createGitSandbox, type GitSandbox } from './testing/git-sandbox.js';
 
 // Every case spawns git a dozen times; Windows CI runners are slow at process creation.
@@ -77,9 +82,52 @@ describe('createProject', () => {
       'audio/.keep',
       'project.json',
       'scenes/.keep',
+      'styles/noir-voxel/STYLE.md',
+      'styles/soft-480/STYLE.md',
+      'styles/voxel-pixel-crisp640/STYLE.md',
       'timing/.keep',
     ]);
     expect((await gitOutput(dir, ['branch', '--show-current'])).stdout).toBe('main');
+  });
+
+  it('copies the style bible of every preset (styles/<id>/STYLE.md)', async () => {
+    const dir = projectDir();
+    const created = await create(dir);
+    const bible = path.join('styles', created.project.style, 'STYLE.md');
+    expect(await readFile(path.join(dir, bible))).toEqual(
+      await readFile(path.join(DEFAULT_STYLES_DIR, created.project.style, 'STYLE.md')),
+    );
+    expect(existsSync(path.join(dir, 'styles', 'noir-voxel', 'STYLE.md'))).toBe(true);
+    expect(existsSync(path.join(dir, 'styles', 'noir-voxel', 'style.json'))).toBe(false);
+  });
+
+  it('refuses a styles folder without the bible of the chosen style', async () => {
+    const stylesDir = path.join(sandbox.root, 'styles');
+    await mkdir(path.join(stylesDir, 'soft-480'), { recursive: true });
+    await writeFile(path.join(stylesDir, 'soft-480', 'STYLE.md'), '# Soft');
+    const dir = projectDir('no bible');
+    const result = await createProject({
+      dir,
+      title: 'X',
+      style: 'noir-voxel',
+      stylesDir,
+      git: sandbox.git,
+    });
+    expect(!result.ok && result.error).toMatchObject({
+      kind: 'io',
+      path: path.join(stylesDir, 'noir-voxel', 'STYLE.md'),
+    });
+    expect(existsSync(dir)).toBe(false);
+
+    const soft = await createProject({
+      dir,
+      title: 'X',
+      style: 'soft-480',
+      stylesDir,
+      git: sandbox.git,
+    });
+    expect(soft.ok).toBe(true);
+    expect(await readFile(path.join(dir, 'styles', 'soft-480', 'STYLE.md'), 'utf8')).toBe('# Soft');
   });
 
   it('sets a repo-local identity only when git has none', async () => {

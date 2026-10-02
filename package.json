@@ -19,7 +19,10 @@
     "test:app": "pnpm --filter @reelforge/desktop build && vitest run --project app",
     "render:frames": "node packages/engine/scripts/run-cli.mjs render-frames",
     "lint:scene": "node packages/engine/scripts/run-cli.mjs lint",
-    "build": "tsc -b && pnpm --filter @reelforge/desktop build"
+    "build": "tsc -b && pnpm --filter @reelforge/desktop build",
+    "package": "pnpm --filter @reelforge/desktop package",
+    "dist": "pnpm --filter @reelforge/desktop dist",
+    "test:packaged": "vitest run --project packaged"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

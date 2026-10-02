@@ -2,13 +2,14 @@
  * Shared build steps of `pnpm dev` and `pnpm build` for the desktop app:
  * engine frame assets, demo files, the main/preload esbuild bundles and the renderer Vite config.
  */
-import { copyFile, mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { buildHarness, HARNESS_DIR } from '@reelforge/engine/cli';
 import react from '@vitejs/plugin-react';
 import { build, type BuildOptions } from 'esbuild';
 import type { InlineConfig, Plugin } from 'vite';
+import { EXTERNAL_RESOURCES } from '../src/main/app-paths.js';
 import { rendererCsp } from '../src/shared/csp.js';
 import { ENGINE_ASSET_DIR, ENGINE_FRAME_FILES } from '../src/shared/engine-assets.js';
 import {
@@ -117,15 +118,32 @@ export async function copyDemo(context: TaskContext): Promise<void> {
 /** Files of templates/project that new video projects are made from (see @reelforge/project). */
 const PROJECT_TEMPLATE_FILES = ['CLAUDE.md', '.gitignore', 'project.json'];
 
-/** Copies templates/project for main (`AppLayout.projectTemplateDir`). */
+/**
+ * Copies templates/project and the style bibles (`styles/<id>/STYLE.md`) for main
+ * (`AppLayout.projectTemplateDir` / `AppLayout.stylesDir`).
+ */
 export async function copyProjectTemplate(context: TaskContext): Promise<void> {
+  const template = path.join(appPaths(context).out, EXTERNAL_RESOURCES.template);
   const source = path.join(context.repoRoot, 'templates', 'project');
-  const target = path.join(appPaths(context).out, 'template', 'project');
+  const target = path.join(template, 'project');
   await mkdir(target, { recursive: true });
   await Promise.all(
     PROJECT_TEMPLATE_FILES.map((file) =>
       copyFile(path.join(source, file), path.join(target, file)),
     ),
+  );
+  const styles = path.join(context.repoRoot, 'styles');
+  const presets = (await readdir(styles, { withFileTypes: true })).filter((entry) =>
+    entry.isDirectory(),
+  );
+  await Promise.all(
+    presets.map(async ({ name }) => {
+      await mkdir(path.join(template, 'styles', name), { recursive: true });
+      await copyFile(
+        path.join(styles, name, 'STYLE.md'),
+        path.join(template, 'styles', name, 'STYLE.md'),
+      );
+    }),
   );
 }
 
@@ -136,10 +154,10 @@ export async function copyProjectTemplate(context: TaskContext): Promise<void> {
  */
 export async function copyClaudeResources(context: TaskContext): Promise<void> {
   const out = appPaths(context).out;
-  await mkdir(path.join(out, 'resources'), { recursive: true });
+  await mkdir(path.join(out, EXTERNAL_RESOURCES.hooks), { recursive: true });
   await copyFile(
     packageSource(context, 'claude-bridge', 'hooks', 'bash-guard.mjs'),
-    path.join(out, 'resources', 'bash-guard.mjs'),
+    path.join(out, EXTERNAL_RESOURCES.hooks, 'bash-guard.mjs'),
   );
   const script = packageSource(context, 'cli', 'scripts', 'build.mjs');
   const cliBuild: unknown = await import(pathToFileURL(script).href);
@@ -150,8 +168,8 @@ export async function copyClaudeResources(context: TaskContext): Promise<void> {
   if (typeof buildCli !== 'function') throw new Error(`${script} does not export buildCli()`);
   const bundle: unknown = await (buildCli as () => Promise<unknown>)();
   if (typeof bundle !== 'string') throw new Error('buildCli() did not return the bundle path');
-  await mkdir(path.join(out, 'cli'), { recursive: true });
-  await copyFile(bundle, path.join(out, 'cli', 'reelforge.mjs'));
+  await mkdir(path.join(out, EXTERNAL_RESOURCES.cli), { recursive: true });
+  await copyFile(bundle, path.join(out, EXTERNAL_RESOURCES.cli, 'reelforge.mjs'));
 }
 
 /**
