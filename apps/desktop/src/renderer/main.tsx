@@ -11,6 +11,8 @@ import './preview/preview.css';
 import './settings/settings.css';
 import './stages/stages.css';
 import './stages/panels.css';
+import './sound/sound.css';
+import './export/export.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

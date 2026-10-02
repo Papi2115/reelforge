@@ -12,6 +12,8 @@ import type { StageArtifact } from '../../shared/stages-contract.js';
 import { isInsideFolder } from '../project-files.js';
 
 const VIDEO_FILE = /\.mp4$/i;
+/** Artifacts that are folders (opened in Explorer). */
+const FOLDER_ARTIFACTS: ReadonlySet<StageArtifact> = new Set(['scenes', 'stems', 'out']);
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -55,6 +57,10 @@ async function relativeOf(dir: string, artifact: StageArtifact): Promise<string 
       return FILES.scenesDir;
     case 'mix':
       return FILES.mix;
+    case 'stems':
+      return FILES.stemsDir;
+    case 'out':
+      return 'out';
     case 'video':
       return latestVideo(dir);
   }
@@ -65,6 +71,8 @@ const MISSING: Readonly<Record<StageArtifact, string>> = {
   clean: 'The cleaned audio does not exist yet: run Audio cleaned.',
   scenes: 'There is no scenes folder yet.',
   mix: 'The mix does not exist yet: run Sound design mixed.',
+  stems: 'No stems yet: use Render mix + stems.',
+  out: 'Nothing exported yet.',
   video: 'No exported video yet.',
 };
 
@@ -79,10 +87,9 @@ export async function artifactPath(
     const [root, real] = await Promise.all([realpath(dir), realpath(inProject(dir, relative))]);
     if (!isInsideFolder(root, real)) return err(`${relative} links outside the project folder.`);
     const info = await stat(real);
-    const wanted = artifact === 'scenes' ? info.isDirectory() : info.isFile();
-    return wanted
-      ? ok(real)
-      : err(`${relative} is not a ${artifact === 'scenes' ? 'folder' : 'file'}.`);
+    const folder = FOLDER_ARTIFACTS.has(artifact);
+    const wanted = folder ? info.isDirectory() : info.isFile();
+    return wanted ? ok(real) : err(`${relative} is not a ${folder ? 'folder' : 'file'}.`);
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       return err(MISSING[artifact]);

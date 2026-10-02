@@ -42,6 +42,8 @@ export const evalCaseFileSchema = z.strictObject({
     shotId: z.string().min(1),
     imagePaths: z.array(z.string().min(1)).min(1),
   }),
+  /** chapters.txt the youtube-meta eval passes (the description must contain it). */
+  youtubeMeta: z.strictObject({ chapters: z.string().min(1) }).optional(),
   /** Final reply of each stage in fake runs (objects are sent as JSON). */
   replies: z.record(
     z.enum(PROMPT_IDS),

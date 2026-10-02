@@ -1,7 +1,12 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { projectMediaUrl } from '../shared/player-contract.js';
-import { parseByteRange, resolveProjectMedia } from './project-media.js';
+import {
+  limitRange,
+  MAX_RANGE_BYTES,
+  parseByteRange,
+  resolveProjectMedia,
+} from './project-media.js';
 
 // Absolute on every OS (`C:\…` on Windows, `/…` on POSIX): resolveProjectMedia resolves the dir.
 const project = path.join(path.parse(process.cwd()).root, 'Creatorize Suite', 'Mój film');
@@ -70,6 +75,14 @@ describe('parseByteRange', () => {
     expect(parseByteRange('bytes=0-1,5-6', 1000)).toBeUndefined();
     expect(parseByteRange('items=0-1', 1000)).toBeUndefined();
     expect(parseByteRange('bytes=-', 1000)).toBeUndefined();
+  });
+
+  it('caps a response so no file stays open while the player streams', () => {
+    expect(limitRange({ start: 10, end: 10 ** 9 })).toEqual({
+      start: 10,
+      end: 10 + MAX_RANGE_BYTES - 1,
+    });
+    expect(limitRange({ start: 0, end: 99 })).toEqual({ start: 0, end: 99 });
   });
 
   it('reports unsatisfiable ranges', () => {

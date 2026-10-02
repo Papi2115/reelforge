@@ -218,6 +218,13 @@ export {
 export { STEM_FILE_NAMES } from './mix/master.js';
 export { mixAudio, type MixAudioOptions, type MixProgress, type MixStage } from './mix/mix.js';
 export {
+  MAX_PREVIEW_WINDOW_S,
+  mixPreview,
+  windowCues,
+  type MixPreviewOptions,
+  type MixPreviewResult,
+} from './mix/preview.js';
+export {
   EXPORT_PRESETS,
   EXPORT_PRESET_IDS,
   DEFAULT_EXPORT_PRESET,
@@ -246,6 +253,7 @@ export {
   type RenderIdentity,
 } from './export/cache-key.js';
 export {
+  EXPORT_QUALITIES,
   HARDWARE_ENCODERS,
   VIDEO_ENCODER_IDS,
   detectEncoder,

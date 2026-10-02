@@ -1,4 +1,5 @@
 /** Audio cleaned, Sound cues (Claude + deterministic fallback) and Mix on fake tools. */
+import path from 'node:path';
 import { PipelineStateStore } from '@reelforge/claude-bridge';
 import { CleanReportSchema, CuesFileSchema, MixReportSchema } from '@reelforge/pipeline';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
@@ -109,6 +110,16 @@ describe('sound cues stage', { timeout: 60_000 }, () => {
     expect(latest).toMatchObject({ kind: 'pipeline-step', step: 'sound-cues' });
   });
 
+  it('skips Claude when the default cues are requested', async () => {
+    const { harness, runner } = await setup('cues default', CUE_INPUTS, {
+      steps: [writes({ 'cues.json': goldenFile('cues.json') })],
+    });
+    const result = await runner.run({ stage: 'sound-cues', mode: 'default' });
+    expect(result.ok && result.value.metrics['source']).toBe('default');
+    expect(result.ok && result.value.warnings).toContain('Default cues requested (no Claude turn)');
+    expect(harness?.specs).toEqual([]);
+  });
+
   it('uses the default cues when Claude is not connected', async () => {
     const { runner } = await setup('cues offline', CUE_INPUTS);
     const result = await runner.run({ stage: 'sound-cues' });
@@ -131,6 +142,9 @@ describe('mix stage', { timeout: 30_000 }, () => {
       outputs: ['audio/mix.wav'],
     });
     expect(audio.mixCalls[0]?.voPath.endsWith('vo.clean.wav')).toBe(true);
+    expect(audio.mixCalls[0]?.stemsDir).toBeUndefined();
+    expect((await runner.run({ stage: 'mix', stems: true })).ok).toBe(true);
+    expect(audio.mixCalls[1]?.stemsDir).toBe(path.join(dir, 'out', 'stems'));
     expect(
       MixReportSchema.parse(JSON.parse(readProject(dir, '.reelforge/reports/mix.json'))).after
         .integratedLufs,

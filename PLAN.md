@@ -224,12 +224,12 @@ reelforge/
 
 ### Faza 8 — Sound design
 - [x] **8.1** [S] Generowanie `cues.json` ze storyboardu (hity na anchorach, whoosh na przejściach, ambient per scena, muzyka per akt). — AC: walidacja zod.
-- [ ] **8.2** [O] UI: biblioteka SFX (synth + własne pliki), ścieżki Cues/Ambience/Audio na timeline, suwaki ducking/głośności, odsłuch miksu w podglądzie. — AC: edycja cue'a słyszalna w podglądzie.
+- [x] **8.2** [O] UI: biblioteka SFX (synth + własne pliki), ścieżki Cues/Ambience/Audio na timeline, suwaki ducking/głośności, odsłuch miksu w podglądzie. — AC: edycja cue'a słyszalna w podglądzie.
 - [x] **8.3** [O] Etap "Sound design mixed": render `mix.wav`, kontrola LUFS/true peak. — AC: −14 LUFS ±1, TP ≤ −1 dB.
 
 ### Faza 9 — Eksport i paczka
 - [ ] **9.1** [O] Dialog eksportu: preset (1080p30/1440p/4K), kodek/enkoder, kolejka, postęp, wznawianie. — AC: eksport 10-min filmu < 20 min na laptopie z GPU (cel; zmierzony wynik w `docs/perf.md`).
-- [ ] **9.2** [S+O] Wyjścia dodatkowe: `chapters.txt` ze storyboardu (format YouTube), miniatura, sugestie tytułu/opisu/tagów. — AC: pliki w `out/`.
+- [x] **9.2** [S+O] Wyjścia dodatkowe: `chapters.txt` ze storyboardu (format YouTube), miniatura, sugestie tytułu/opisu/tagów. — AC: pliki w `out/`.
 - [ ] **9.3** [O] `electron-builder` (NSIS, Windows x64), brak auto-update, instrukcja podpisywania kodu. — AC: instalator działa na czystej maszynie/VM.
 - [x] **9.4** [H] Audyt licencji (fonty, assety, ffmpeg, whisper, zależności npm) → `docs/licenses.md`. — AC: brak nieznanych/niekompatybilnych.
 

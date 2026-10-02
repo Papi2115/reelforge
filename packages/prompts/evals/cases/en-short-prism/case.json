@@ -19,6 +19,9 @@
       "out/frames/s04_rainbow/7.520.png"
     ]
   },
+  "youtubeMeta": {
+    "chapters": "0:00 A rainbow at home\n0:12 Why water bends light\n0:24 Try it yourself"
+  },
   "replies": {
     "research": "Saved research.md: 8 sourced facts.\nUncertain: best angle depends on the glass.",
     "script": "Word count: 84. Estimated duration: about 34 seconds.\nAll claims are sourced.",
@@ -59,6 +62,24 @@
           "shot": "s04_rainbow",
           "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
         }
+      ]
+    },
+    "youtube-meta": {
+      "titles": [
+        "A rainbow in a glass of water",
+        "Make a rainbow with a glass and a flashlight",
+        "Why a glass of water splits white light"
+      ],
+      "description": "Shine a flashlight through a glass of water and a tiny rainbow appears on the wall. White light is a mix of colours, and water bends each one by a slightly different angle.\n\nNewton explained it in 1672 with a prism. All you need is a glass, water and a torch.\n\n0:00 A rainbow at home\n0:12 Why water bends light\n0:24 Try it yourself",
+      "tags": [
+        "rainbow experiment",
+        "light refraction",
+        "prism",
+        "science at home",
+        "newton optics",
+        "white light colors",
+        "physics for kids",
+        "glass of water rainbow"
       ]
     }
   }

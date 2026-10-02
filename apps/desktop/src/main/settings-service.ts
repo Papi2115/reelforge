@@ -122,6 +122,13 @@ export class SettingsService {
     );
   }
 
+  /** The export folder is set by main only (its folder picker, or null for `<project>/out`). */
+  setExportFolder(value: string | null): Promise<SettingsWriteResult> {
+    return this.enqueue(() =>
+      this.commit({ ...this.current, export: { ...this.current.export, outputDir: value } }),
+    );
+  }
+
   /** Resolves when every queued write has finished. */
   async whenSaved(): Promise<void> {
     await this.writes;

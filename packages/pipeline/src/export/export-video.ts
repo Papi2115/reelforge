@@ -103,9 +103,11 @@ export async function exportVideo(
   }
 
   const paths = exportPaths(options.projectDir);
+  const output = options.output ?? path.join(paths.outDir, `${safeOutputName(options.title)}.mp4`);
   try {
     await mkdir(paths.segmentsDir, { recursive: true });
     await mkdir(paths.outDir, { recursive: true });
+    await mkdir(path.dirname(output), { recursive: true });
   } catch (error) {
     return err({
       kind: 'io',
@@ -132,7 +134,6 @@ export async function exportVideo(
       segment: path.join(paths.segmentsDir, `${key}${media.segmentExtension}`),
     };
   });
-  const output = path.join(paths.outDir, `${safeOutputName(options.title)}.mp4`);
   const jobKey = sha256Hex(stableStringify({ keys: jobs.map((job) => job.key), output }));
   const previous = await readExportState(paths.stateFile);
   const resumed =
@@ -231,7 +232,10 @@ export async function exportVideo(
 
   emit({ type: 'mux' });
   const audio = await resolveAudio(options);
-  const partialOutput = path.join(paths.outDir, `${path.basename(output, '.mp4')}.partial.mp4`);
+  const partialOutput = path.join(
+    path.dirname(output),
+    `${path.basename(output, path.extname(output))}.partial.mp4`,
+  );
   const muxed = await media.concatAndMux(
     {
       segments: jobs.map((job) => job.segment),

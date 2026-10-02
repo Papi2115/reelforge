@@ -61,6 +61,24 @@
           "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
         }
       ]
+    },
+    "youtube-meta": {
+      "titles": [
+        "Why Doom runs everywhere",
+        "How a 1993 game ended up on calculators",
+        "The tricks that made Doom run on anything"
+      ],
+      "description": "In 1993 a small team shipped a game on four floppy disks. Its engine faked a 3D world with flat sectors and a very fast renderer.\n\nThirty years later people run it on calculators, fridges and printers. Here is why that works.",
+      "tags": [
+        "doom",
+        "doom engine",
+        "id software",
+        "retro games",
+        "game history",
+        "runs doom",
+        "bsp rendering",
+        "1993 games"
+      ]
     }
   }
 }

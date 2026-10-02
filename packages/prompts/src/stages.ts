@@ -10,7 +10,7 @@ import { loadPrompt, type PromptId } from './catalog.js';
  * Bridge stage whose permissions (and model setting, usage bucket) a prompt runs under. The
  * pipeline prompts map 1:1 to the stage of the same name; the whole-video review prompts reuse
  * the closest one: triage looks at frames like the critic (Haiku, read-only), the fix plan is
- * planning work like the storyboard (Sonnet).
+ * planning work like the storyboard (Sonnet), and so is the YouTube text of an export (Sonnet).
  */
 export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   research: 'research',
@@ -22,6 +22,7 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   'sound-cues': 'sound-cues',
   'review-triage': 'critic',
   'review-plan': 'storyboard',
+  'youtube-meta': 'storyboard',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

@@ -2,6 +2,8 @@
  * Template variables per stage for an eval case, and the project files each stage produces
  * (removed before the turn, written back by fake-claude, then validated).
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import type { StoryboardShot } from '@reelforge/shared';
 import { renderOutputPaths, type PromptId } from '../catalog.js';
@@ -102,6 +104,13 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         suspects: [{ shot: shot.value.id, reason: 'the last frame looks almost blank' }],
       });
     }
+    case 'youtube-meta':
+      return ok({
+        title: project.title,
+        language: project.language,
+        script: readFileSync(path.join(evalCase.projectDir, 'script.txt'), 'utf8'),
+        chapters: file.youtubeMeta?.chapters,
+      });
   }
 }
 

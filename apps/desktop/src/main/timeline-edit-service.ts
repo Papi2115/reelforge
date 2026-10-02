@@ -164,7 +164,8 @@ function cueLabelOf(json: unknown): (track: CueTrack, index: number) => string {
   };
 }
 
-async function writeTextAtomic(file: string, text: string): Promise<void> {
+/** Writes UTF-8 text via a temp file + rename (Windows-safe atomic replace). */
+export async function writeTextAtomic(file: string, text: string): Promise<void> {
   const tmp = `${file}.${randomBytes(4).toString('hex')}.tmp`;
   try {
     await writeFile(tmp, text, 'utf8');
@@ -179,6 +180,13 @@ export class TimelineEditService {
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly options: TimelineEditServiceOptions) {}
+
+  /** Runs another writer of storyboard.json / cues.json (the Sound panel) in the same queue. */
+  exclusive<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.queue.then(task);
+    this.queue = run.catch(() => undefined);
+    return run;
+  }
 
   /** Applies one change; queued behind the previous ones. */
   edit(request: TimelineEditRequest): Promise<TimelineEditResult> {

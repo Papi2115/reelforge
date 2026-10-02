@@ -55,6 +55,13 @@ export type SettingsWhisperModel = z.infer<typeof settingsWhisperModelSchema>;
 export const SETTINGS_DEFAULT_STYLE = 'voxel-pixel-crisp640';
 
 export const MAX_EXPORT_WORKERS = 64;
+
+/** Export presets (= `EXPORT_PRESET_IDS` of the pipeline). */
+export const EXPORT_PRESET_CHOICES = ['1080p30', '1440p', '4k'] as const;
+export type ExportPresetChoice = (typeof EXPORT_PRESET_CHOICES)[number];
+/** Quality profiles of the export dialog: Draft (fast) / Standard / High. */
+export const EXPORT_QUALITY_PROFILES = ['draft', 'standard', 'high'] as const;
+export type ExportQualityProfile = (typeof EXPORT_QUALITY_PROFILES)[number];
 export const MAX_SOFT_BUDGET_USD = 100_000;
 
 const stageModelsSchema = z.object({
@@ -109,6 +116,17 @@ export const appSettingsSchema = z.object({
       whisperModel: settingsWhisperModelSchema.default('large-v3-turbo-q5_0'),
     })
     .prefault({}),
+  /** Last choices of the export dialog (PLAN.md#9.1); encoder and workers live in `performance`. */
+  export: z
+    .object({
+      preset: z.enum(EXPORT_PRESET_CHOICES).default('1080p30'),
+      quality: z.enum(EXPORT_QUALITY_PROFILES).default('standard'),
+      includeChapters: z.boolean().default(true),
+      includeThumbnail: z.boolean().default(true),
+      /** Folder of the MP4 chosen with main's folder picker; null = `<project>/out`. */
+      outputDir: toolPathSchema.default(null),
+    })
+    .prefault({}),
   onboarding: z
     .object({
       /** The first-run "Connect Claude" gate was completed or skipped. */
@@ -157,6 +175,16 @@ export const appSettingsPatchSchema = z.strictObject({
     .partial()
     .optional(),
   tools: z.strictObject({ whisperModel: settingsWhisperModelSchema }).partial().optional(),
+  // The output folder is absent on purpose: main sets it only from its own folder picker.
+  export: z
+    .strictObject({
+      preset: z.enum(EXPORT_PRESET_CHOICES),
+      quality: z.enum(EXPORT_QUALITY_PROFILES),
+      includeChapters: z.boolean(),
+      includeThumbnail: z.boolean(),
+    })
+    .partial()
+    .optional(),
   onboarding: z.strictObject({ connectClaudeDone: z.boolean() }).partial().optional(),
 });
 export type AppSettingsPatch = z.infer<typeof appSettingsPatchSchema>;
@@ -173,6 +201,7 @@ export function applyAppSettingsPatch(settings: AppSettings, patch: AppSettingsP
     usage: { ...settings.usage, ...patch.usage },
     performance: { ...settings.performance, ...patch.performance },
     tools: { ...settings.tools, ...patch.tools },
+    export: { ...settings.export, ...patch.export },
     onboarding: { ...settings.onboarding, ...patch.onboarding },
   });
 }

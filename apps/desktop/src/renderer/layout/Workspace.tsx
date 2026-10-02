@@ -4,6 +4,8 @@
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useEffect, useRef, useState, type JSX } from 'react';
+import type { LibrarySound } from '../../shared/sound-contract.js';
+import { DUCKING_PRESET_VALUES, libraryCue } from '../../shared/sound-library.js';
 import type { ChatSelection } from '../../shared/chat-contract.js';
 import type { ProjectSummary } from '../../shared/project-contract.js';
 import { selectionText, toSelection } from '../chat/step-view.js';
@@ -24,6 +26,10 @@ import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { VoiceoverPanel } from '../stages/VoiceoverPanel.js';
 import { WordsPanel } from '../stages/WordsPanel.js';
+import { ExportDialog } from '../export/ExportDialog.js';
+import { SoundPanel } from '../sound/SoundPanel.js';
+import { useMixPreview } from '../sound/use-mix-preview.js';
+import { useSound } from '../sound/use-sound.js';
 import { useTimeline } from '../timeline/use-timeline.js';
 import { AppShell } from './AppShell.js';
 import { ChatPanel } from './ChatPanel.js';
@@ -41,7 +47,8 @@ type CenterDocument =
   | { readonly kind: 'script'; readonly tab: ScriptTab }
   | { readonly kind: 'words' }
   | { readonly kind: 'voiceover' }
-  | { readonly kind: 'scenes' };
+  | { readonly kind: 'scenes' }
+  | { readonly kind: 'sound' };
 
 /** Brings the Shots panel into view (Open of the Storyboard stage). */
 function focusShots(): void {
@@ -56,11 +63,23 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
     project.dir,
   );
   const files = snapshot?.files ?? [];
-  const player = usePlayer(playbackAudioUrl(files, audioRevision));
+  const timeRef = useRef(0);
+  const mixPreview = useMixPreview(
+    project.dir,
+    audioRevision,
+    files.includes('audio/mix.wav'),
+    () => timeRef.current,
+  );
+  const player = usePlayer(
+    playbackAudioUrl(files, audioRevision, mixPreview.monitor, mixPreview.playing),
+  );
   const { time, duration, playing, fps } = usePlayerState(player);
+  timeRef.current = time;
   const timeline = useTimeline(project.dir, snapshot, reload, audioRevision, duration);
   const stages = useStages(project.dir);
   const reports = useStageReports(project.dir, reportsKey(stages.state));
+  const sound = useSound(project.dir, reportsKey(stages.state));
+  const [exportOpen, setExportOpen] = useState(false);
   const [centerDocument, setCenterDocument] = useState<CenterDocument | null>(null);
 
   // A project without a brief or a script starts at the brief (new project flow).
@@ -87,6 +106,12 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
       case 'scenes':
         setCenterDocument({ kind: 'scenes' });
         return;
+      case 'sound':
+        setCenterDocument({ kind: 'sound' });
+        return;
+      case 'export':
+        setExportOpen(true);
+        return;
       case 'shots':
         setCenterDocument(null);
         focusShots();
@@ -112,155 +137,196 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
   const [shotNotice, setShotNotice] = useState<string | undefined>(undefined);
 
+  /** A library sound becomes a cue at `t` (drop on the timeline or Add at the playhead). */
+  const addSound = (librarySound: LibrarySound, t: number): void => {
+    const { track, cue } = libraryCue(librarySound, t, {
+      duration: timeline.duration,
+      shots,
+      ducking: sound.state?.ducking ?? DUCKING_PRESET_VALUES.medium,
+    });
+    const index = timeline.model.cues[track].length;
+    timeline.editing.apply({ file: 'cues', edits: [{ kind: 'insert-cue', track, index, cue }] });
+  };
+
   return (
-    <AppShell
-      left={
-        <div className="left-stack">
-          {error !== undefined && (
-            <p className="panel-error banner" role="alert">
-              {error}
-            </p>
-          )}
-          <PipelineSidebar
-            stages={stages}
-            onOpen={openStage}
-            onBrief={() => {
-              setCenterDocument({ kind: 'script', tab: 'brief' });
-            }}
-          />
-          {shotNotice !== undefined && (
-            <p className="panel-error banner" role="alert">
-              {shotNotice}
-            </p>
-          )}
-          <ShotsPanel
-            storyboard={snapshot?.storyboard}
-            selectedId={timeline.selectedShotId}
-            time={time}
-            onSelect={selectShot}
-            badges={badges}
-            progress={buildProgress(running, shots.length)}
-            missingBanner={missingPropsBanner(
-              missingProps(reports?.scenes ?? null, reports?.missingProps ?? null),
+    <>
+      {exportOpen && (
+        <ExportDialog
+          dir={project.dir}
+          playhead={time}
+          onClose={() => {
+            setExportOpen(false);
+          }}
+        />
+      )}
+      <AppShell
+        left={
+          <div className="left-stack">
+            {error !== undefined && (
+              <p className="panel-error banner" role="alert">
+                {error}
+              </p>
             )}
-            actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
-            onRebuild={(shotId) => {
-              setShotNotice(undefined);
-              void window.reelforge.runScenes('build', [shotId]).then((result) => {
-                if (result.status === 'error') setShotNotice(result.message ?? 'Not started.');
-              });
-            }}
-            onFix={(shotId) => {
-              const shot = shots.find((candidate) => candidate.id === shotId);
-              if (shot !== undefined) selectShot(shot);
-              setPrefill((current) => ({
-                text: fixPrompt(shotId, badges.get(shotId)),
-                nonce: (current?.nonce ?? 0) + 1,
-              }));
-            }}
-          />
-        </div>
-      }
-      center={
-        <div className={`center-stack${centerDocument?.kind === 'scenes' ? ' has-dock' : ''}`}>
-          <PreviewPanel
-            source={{ kind: 'project', revision: previewRevision }}
-            player={player}
-            snapshots
-            onPick={(pick, x, y) => {
-              setSelection(pick === null ? null : toSelection(pick, x, y));
-            }}
-            marker={
-              markerVisible
-                ? { x: selection.x, y: selection.y, label: selectionText(selection) }
-                : null
-            }
-          />
-          {centerDocument?.kind === 'script' && (
-            <ScriptPanel
-              project={project}
+            <PipelineSidebar
               stages={stages}
-              tab={centerDocument.tab}
-              onTab={(tab) => {
-                setCenterDocument({ kind: 'script', tab });
-              }}
-              onClose={() => {
-                setCenterDocument(null);
+              onOpen={openStage}
+              onBrief={() => {
+                setCenterDocument({ kind: 'script', tab: 'brief' });
               }}
             />
-          )}
-          {centerDocument?.kind === 'scenes' && (
-            <ScenesPanel
-              stages={stages}
-              reports={reports}
-              totalShots={shots.length}
-              onSeekShot={(shotId, t) => {
-                timeline.selection.set([{ kind: 'shot', id: shotId }]);
-                player.seek(t);
+            {shotNotice !== undefined && (
+              <p className="panel-error banner" role="alert">
+                {shotNotice}
+              </p>
+            )}
+            <ShotsPanel
+              storyboard={snapshot?.storyboard}
+              selectedId={timeline.selectedShotId}
+              time={time}
+              onSelect={selectShot}
+              badges={badges}
+              progress={buildProgress(running, shots.length)}
+              missingBanner={missingPropsBanner(
+                missingProps(reports?.scenes ?? null, reports?.missingProps ?? null),
+              )}
+              actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
+              onRebuild={(shotId) => {
+                setShotNotice(undefined);
+                void window.reelforge.runScenes('build', [shotId]).then((result) => {
+                  if (result.status === 'error') setShotNotice(result.message ?? 'Not started.');
+                });
               }}
-              onClose={() => {
-                setCenterDocument(null);
+              onFix={(shotId) => {
+                const shot = shots.find((candidate) => candidate.id === shotId);
+                if (shot !== undefined) selectShot(shot);
+                setPrefill((current) => ({
+                  text: fixPrompt(shotId, badges.get(shotId)),
+                  nonce: (current?.nonce ?? 0) + 1,
+                }));
               }}
             />
-          )}
-          {centerDocument?.kind === 'voiceover' && (
-            <VoiceoverPanel
-              stages={stages}
-              reports={reports}
-              onSeek={(t) => {
-                player.seek(t);
+          </div>
+        }
+        center={
+          <div
+            className={`center-stack${centerDocument?.kind === 'scenes' || centerDocument?.kind === 'sound' ? ' has-dock' : ''}`}
+          >
+            <PreviewPanel
+              source={{ kind: 'project', revision: previewRevision }}
+              player={player}
+              snapshots
+              onPick={(pick, x, y) => {
+                setSelection(pick === null ? null : toSelection(pick, x, y));
               }}
-              onClose={() => {
-                setCenterDocument(null);
-              }}
-            />
-          )}
-          {centerDocument?.kind === 'words' && (
-            <WordsPanel
-              words={snapshot?.words}
-              report={reports?.words ?? null}
-              busy={
-                stages.state?.running?.stage === 'words' ||
-                stages.state?.queue.includes('words') === true
+              marker={
+                markerVisible
+                  ? { x: selection.x, y: selection.y, label: selectionText(selection) }
+                  : null
               }
-              onSeek={(t) => {
-                player.seek(t);
-              }}
-              onClose={() => {
-                setCenterDocument(null);
-              }}
             />
-          )}
-        </div>
-      }
-      right={
-        <ChatPanel
-          shotId={timeline.selectedShotId ?? shotUnderPlayhead}
-          selection={selection}
-          onClearSelection={() => {
-            setSelection(null);
-          }}
-          prefill={prefill}
-        />
-      }
-      bottom={
-        <TimelinePanel
-          model={timeline.model}
-          duration={timeline.duration}
-          time={time}
-          playing={playing}
-          fps={fps}
-          selection={timeline.selection}
-          editing={timeline.editing}
-          waveform={timeline.waveform}
-          onSeek={(t) => {
-            player.seek(t);
-          }}
-          onScrub={(t) => {
-            player.scrub(t);
-          }}
-        />
-      }
-    />
+            {centerDocument?.kind === 'script' && (
+              <ScriptPanel
+                project={project}
+                stages={stages}
+                tab={centerDocument.tab}
+                onTab={(tab) => {
+                  setCenterDocument({ kind: 'script', tab });
+                }}
+                onClose={() => {
+                  setCenterDocument(null);
+                }}
+              />
+            )}
+            {centerDocument?.kind === 'scenes' && (
+              <ScenesPanel
+                stages={stages}
+                reports={reports}
+                totalShots={shots.length}
+                onSeekShot={(shotId, t) => {
+                  timeline.selection.set([{ kind: 'shot', id: shotId }]);
+                  player.seek(t);
+                }}
+                onClose={() => {
+                  setCenterDocument(null);
+                }}
+              />
+            )}
+            {centerDocument?.kind === 'sound' && (
+              <SoundPanel
+                sound={sound}
+                preview={mixPreview}
+                stages={stages.state}
+                onAdd={(librarySound) => {
+                  addSound(librarySound, time);
+                }}
+                onOpenStems={() => {
+                  void stages.open('stems');
+                }}
+                onClose={() => {
+                  setCenterDocument(null);
+                }}
+              />
+            )}
+            {centerDocument?.kind === 'voiceover' && (
+              <VoiceoverPanel
+                stages={stages}
+                reports={reports}
+                onSeek={(t) => {
+                  player.seek(t);
+                }}
+                onClose={() => {
+                  setCenterDocument(null);
+                }}
+              />
+            )}
+            {centerDocument?.kind === 'words' && (
+              <WordsPanel
+                words={snapshot?.words}
+                report={reports?.words ?? null}
+                busy={
+                  stages.state?.running?.stage === 'words' ||
+                  stages.state?.queue.includes('words') === true
+                }
+                onSeek={(t) => {
+                  player.seek(t);
+                }}
+                onClose={() => {
+                  setCenterDocument(null);
+                }}
+              />
+            )}
+          </div>
+        }
+        right={
+          <ChatPanel
+            shotId={timeline.selectedShotId ?? shotUnderPlayhead}
+            selection={selection}
+            onClearSelection={() => {
+              setSelection(null);
+            }}
+            prefill={prefill}
+          />
+        }
+        bottom={
+          <TimelinePanel
+            model={timeline.model}
+            duration={timeline.duration}
+            time={time}
+            playing={playing}
+            fps={fps}
+            selection={timeline.selection}
+            editing={timeline.editing}
+            waveform={timeline.waveform}
+            onSeek={(t) => {
+              player.seek(t);
+            }}
+            onScrub={(t) => {
+              player.scrub(t);
+            }}
+            onDropSound={addSound}
+          />
+        }
+      />
+    </>
   );
 }

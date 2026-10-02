@@ -15,3 +15,4 @@ export * from './style-preset.js';
 export * from './usage.js';
 export * from './waveform-peaks.js';
 export * from './words.js';
+export * from './youtube-meta.js';

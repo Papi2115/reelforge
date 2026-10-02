@@ -34,14 +34,13 @@ import { createChildProcessRegistry } from './child-processes.js';
 import { chatHandlers } from './claude/chat-ipc.js';
 import { claudeSetup } from './claude/claude-runtime.js';
 import { ClaudeService } from './claude/claude-service.js';
-import { copyPngToClipboard } from './clipboard.js';
 import { loadDemoManifest } from './demo-manifest.js';
-import { saveFrameSnapshot } from './frame-snapshots.js';
 import { registerIpc } from './ipc-router.js';
 import { createLogger, describeError, fileAndStderrSink } from './logger.js';
 import { MicPermissionGate } from './mic-permission.js';
 import { serveMediaProtocol } from './media-protocol.js';
 import { isAllowedNavigation, resolveRendererSource } from './navigation-policy.js';
+import { projectHandlers } from './project-ipc.js';
 import { ProjectService, type FolderPurpose } from './project-service.js';
 import { ProjectWatchFollower, watchProject } from './project-watcher.js';
 import {
@@ -60,10 +59,17 @@ import {
   recordedTranscription,
   TEST_TRANSCRIPT_ENV,
 } from './stages/audio-probe.js';
-import { appRunnerFactory, settingsAudioTools } from './stages/stage-runtime.js';
+import {
+  appRunnerFactory,
+  settingsAudioTools,
+  sharedClaudeRunner,
+} from './stages/stage-runtime.js';
 import { StageService } from './stages/stage-service.js';
 import { replacementDialogOptions, stagesHandlers, type ReplacePick } from './stages/stages-ipc.js';
-import { timelineHandlers } from './timeline-ipc.js';
+import { createExportBackend } from './export/export-backend.js';
+import { createSoundBackend, settingsFfmpeg } from './sound/sound-backend.js';
+import { soundPickerOptions } from './sound/sound-ipc.js';
+import { createTimelineEdits, timelineHandlers } from './timeline-ipc.js';
 import { createMainWindow } from './window.js';
 
 function main(): void {
@@ -127,18 +133,22 @@ function main(): void {
     mainWindow.focus();
   });
 
-  const pickFolder = async (purpose: FolderPurpose): Promise<string | undefined> => {
-    const options: OpenDialogOptions = {
-      title:
-        purpose === 'open-project' ? 'Open a ReelForge project' : 'Where to create the project',
-      buttonLabel: purpose === 'open-project' ? 'Open project' : 'Create here',
-      properties: ['openDirectory', 'createDirectory'],
-    };
+  /** Native open dialog over the main window: the picked paths, undefined when cancelled. */
+  const showOpen = async (options: OpenDialogOptions): Promise<string[] | undefined> => {
     const picked = await (mainWindow
       ? dialog.showOpenDialog(mainWindow, options)
       : dialog.showOpenDialog(options));
-    return picked.canceled ? undefined : picked.filePaths[0];
+    return picked.canceled ? undefined : picked.filePaths;
   };
+  const pickFolder = async (purpose: FolderPurpose): Promise<string | undefined> =>
+    (
+      await showOpen({
+        title:
+          purpose === 'open-project' ? 'Open a ReelForge project' : 'Where to create the project',
+        buttonLabel: purpose === 'open-project' ? 'Open project' : 'Create here',
+        properties: ['openDirectory', 'createDirectory'],
+      })
+    )?.[0];
   const watchLog = log.child('watch');
   const projectWatcher = new ProjectWatchFollower((dir) =>
     watchProject({
@@ -186,13 +196,7 @@ function main(): void {
     platform: process.platform,
     isPackaged: app.isPackaged,
     probeCwd: userDataDir,
-    pickToolFile: async (tool) => {
-      const options = toolPickerOptions(tool, process.platform);
-      const picked = await (mainWindow
-        ? dialog.showOpenDialog(mainWindow, options)
-        : dialog.showOpenDialog(options));
-      return picked.canceled ? undefined : picked.filePaths[0];
-    },
+    pickToolFile: async (tool) => (await showOpen(toolPickerOptions(tool, process.platform)))?.[0],
     pushWhisperProgress: (progress) => {
       mainWindow?.webContents.send(IPC_PUSH.whisperProgress.name, progress);
     },
@@ -237,6 +241,26 @@ function main(): void {
       ? settingsAudio
       : recordedTranscription(recordedTranscript)(settingsAudio);
   if (audioTools !== settingsAudio) stagesLog.warn('test hook: transcriptions are recorded');
+  const exportBackend = createExportBackend({
+    projects,
+    settings,
+    cores: availableParallelism(),
+    controller: renderBackend.exports,
+    claude: sharedClaudeRunner(() => claude.sessionManager()),
+    ffmpeg: settingsFfmpeg(() => settings.get()),
+    pickFolder: async () =>
+      (
+        await showOpen({
+          title: 'Where to save exported videos',
+          properties: ['openDirectory', 'createDirectory'],
+        })
+      )?.[0],
+    openPath: (folder) => shell.openPath(folder),
+    push: (state) => {
+      mainWindow?.webContents.send(IPC_PUSH.exportQueueChanged.name, state);
+    },
+    log: log.child('export'),
+  });
   const stages: StageService = new StageService({
     createRunner: appRunnerFactory({
       settings: () => settings.get(),
@@ -248,9 +272,9 @@ function main(): void {
       log: stagesLog,
     }),
     exportRun: {
-      start: (listener) => renderBackend.exports.start({}, listener),
+      start: (listener) => exportBackend.service.runForStage(listener),
       cancel: () => {
-        renderBackend.exports.cancel();
+        exportBackend.service.cancelStage();
       },
     },
     store: pipelineStore,
@@ -274,14 +298,10 @@ function main(): void {
     },
     log: stagesLog,
   });
-  const pickReplacement = async (kind: ReplacePick): Promise<string | undefined> => {
-    const options = replacementDialogOptions(kind);
-    const picked = await (mainWindow
-      ? dialog.showOpenDialog(mainWindow, options)
-      : dialog.showOpenDialog(options));
-    return picked.canceled ? undefined : picked.filePaths[0];
-  };
+  const pickReplacement = async (kind: ReplacePick): Promise<string | undefined> =>
+    (await showOpen(replacementDialogOptions(kind)))?.[0];
 
+  const timelineEdits = createTimelineEdits(projects, log.child('timeline'));
   const appInfo = (): AppInfo => ({
     name: APP_NAME,
     version: app.getVersion(),
@@ -299,30 +319,26 @@ function main(): void {
         if (!manifest.ok) throw new Error(manifest.error);
         return manifest.value;
       },
-      projectNew: (request) => projects.newProject(request),
-      projectOpen: () => projects.openWithPicker(),
-      projectOpenRecent: (request) => projects.openRecent(request.dir),
-      projectRecent: () => projects.recent(),
-      projectCurrent: () => Promise.resolve(projects.currentProject()),
-      projectClose: () => Promise.resolve(projects.close()),
-      projectHistory: (request) => projects.history(request.limit),
-      projectRevert: (request) => projects.revert(request.hash),
-      projectSnapshot: () => projects.snapshot(),
-      projectManifest: () => projects.manifest(),
-      snapshotSave: (request) =>
-        saveFrameSnapshot(projects.currentProject()?.dir, request, log.child('snapshot')),
-      snapshotCopy: (request) => copyPngToClipboard(request.png),
+      ...projectHandlers(projects, log.child('snapshot')),
       ...timelineHandlers({
         projects,
+        edits: timelineEdits,
         trackChild: (child) => {
           children.track(child);
         },
         log: log.child('timeline'),
       }),
       ...settingsBackend.handlers,
-      exportStart: (request) => renderBackend.exports.start(request),
-      exportCancel: () => Promise.resolve(renderBackend.exports.cancel()),
+      ...exportBackend.handlers,
       ...chatHandlers(claude),
+      ...createSoundBackend({
+        projects,
+        settings: () => settings.get(),
+        edits: timelineEdits,
+        enqueue: (requests) => stages.enqueue(requests),
+        pickFiles: (kind) => showOpen(soundPickerOptions(kind)),
+        log: log.child('sound'),
+      }),
       ...stagesHandlers({
         service: stages,
         documents: scriptDocuments,
@@ -365,6 +381,7 @@ function main(): void {
     void scriptDocuments.flush();
     void stages.dispose();
     void claude.dispose();
+    exportBackend.service.queue.dispose();
     void renderBackend.dispose();
     settingsBackend.dispose();
     log.info('quit');

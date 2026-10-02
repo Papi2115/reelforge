@@ -11,6 +11,7 @@ import {
   stageError,
   type StageContext,
   type StageDefinition,
+  type RequestOf,
   type StageError,
   type StageSummary,
 } from '../types.js';
@@ -33,7 +34,10 @@ export function loudnessProblems(report: MixReport, toleranceLu: number): string
   return problems;
 }
 
-async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>> {
+async function run(
+  ctx: StageContext,
+  request: RequestOf<'mix'>,
+): Promise<Result<StageSummary, StageError>> {
   if (ctx.audio === undefined) return err(stageError('missing-tool', 'ffmpeg is not configured'));
   const cues = await requireProjectJson(ctx.projectDir, FILES.cues, CuesFileSchema);
   if (!cues.ok) return cues;
@@ -43,6 +47,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     outputPath: inProject(ctx.projectDir, FILES.mix),
     baseDir: ctx.projectDir,
     workDir: inProject(ctx.projectDir, FILES.mixWorkDir),
+    stemsDir: request.stems === true ? inProject(ctx.projectDir, FILES.stemsDir) : undefined,
     signal: ctx.signal,
     onProgress: (progress) => {
       ctx.step(

@@ -58,6 +58,7 @@ class Planner {
     private readonly totalFrames: number,
     private readonly baseDir: string,
     private readonly files: FileClips,
+    private readonly busGainDb: Readonly<Record<'sfx' | 'ambience' | 'music', number>>,
   ) {}
 
   private cached(key: string, make: () => StereoClip): StereoClip {
@@ -101,7 +102,7 @@ class Planner {
       );
     }
     const pan = balanceGains(cue.pan);
-    const gain = dbToGain(cue.gainDb);
+    const gain = dbToGain(cue.gainDb + this.busGainDb.sfx);
     return ok({
       clip,
       startFrame: start,
@@ -118,6 +119,7 @@ class Planner {
   private ranged(
     label: string,
     cue: { from: number; to: number; fadeInS: number; fadeOutS: number; gainDb: number },
+    bus: 'ambience' | 'music',
     clip: StereoClip,
     offsetFrame: number,
     loop: boolean,
@@ -127,7 +129,7 @@ class Planner {
     const frames = Math.min(secondsToFrames(cue.to), this.totalFrames) - start;
     if (frames <= 0) return null;
     const half = Math.floor(frames / 2);
-    const gain = dbToGain(cue.gainDb);
+    const gain = dbToGain(cue.gainDb + this.busGainDb[bus]);
     return {
       clip,
       startFrame: start,
@@ -159,7 +161,7 @@ class Planner {
       const seed = cue.seed ?? hashSeed(`${name}@${cue.from.toFixed(3)}`);
       clip = this.cached(`amb|${name}|${String(seed)}`, () => synthesizeAmbience(name, { seed }));
     }
-    return ok(this.ranged(`ambience[${String(index)}]`, cue, clip, 0, true));
+    return ok(this.ranged(`ambience[${String(index)}]`, cue, 'ambience', clip, 0, true));
   }
 
   music(cue: MusicCue, index: number): Result<BusEvent | null, FfmpegError> {
@@ -181,7 +183,14 @@ class Planner {
       return ok(null);
     }
     return ok(
-      this.ranged(label, cue, clip, cue.loop ? offset % clipFrames(clip) : offset, cue.loop),
+      this.ranged(
+        label,
+        cue,
+        'music',
+        clip,
+        cue.loop ? offset % clipFrames(clip) : offset,
+        cue.loop,
+      ),
     );
   }
 }
@@ -210,7 +219,11 @@ export function planMix(
   baseDir: string,
   files: FileClips,
 ): Result<MixPlan, FfmpegError> {
-  const planner = new Planner(totalFrames, baseDir, files);
+  const planner = new Planner(totalFrames, baseDir, files, {
+    sfx: cues.global.sfxGainDb ?? 0,
+    ambience: cues.global.ambienceGainDb ?? 0,
+    music: cues.global.musicGainDb ?? 0,
+  });
   const sfx = collect(cues.sfx, (cue, index) => planner.sfx(cue, index));
   if (!sfx.ok) return sfx;
   const ambience = collect(cues.ambience, (cue, index) => planner.ambience(cue, index));

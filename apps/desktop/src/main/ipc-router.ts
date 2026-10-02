@@ -93,6 +93,18 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.whisperDelete, handlers.whisperDelete);
   registerInvoke(IPC.exportStart, handlers.exportStart);
   registerInvoke(IPC.exportCancel, handlers.exportCancel);
+  registerInvoke(IPC.exportOptions, handlers.exportOptions);
+  registerInvoke(IPC.exportQueue, handlers.exportQueue);
+  registerInvoke(IPC.exportEnqueue, handlers.exportEnqueue);
+  registerInvoke(IPC.exportCancelJob, handlers.exportCancelJob);
+  registerInvoke(IPC.exportResumeJob, handlers.exportResumeJob);
+  registerInvoke(IPC.exportResumeInterrupted, handlers.exportResumeInterrupted);
+  registerInvoke(IPC.exportTestEncoder, handlers.exportTestEncoder);
+  registerInvoke(IPC.exportPickFolder, handlers.exportPickFolder);
+  registerInvoke(IPC.exportOpenFolder, handlers.exportOpenFolder);
+  registerInvoke(IPC.youtubeMeta, handlers.youtubeMeta);
+  registerInvoke(IPC.youtubeMetaGenerate, handlers.youtubeMetaGenerate);
+  registerInvoke(IPC.copyText, handlers.copyText);
   registerInvoke(IPC.chatState, handlers.chatState);
   registerInvoke(IPC.chatSend, handlers.chatSend);
   registerInvoke(IPC.chatRemove, handlers.chatRemove);
@@ -114,6 +126,12 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.stagesReports, handlers.stagesReports);
   registerInvoke(IPC.wordsRetry, handlers.wordsRetry);
   registerInvoke(IPC.scenesRun, handlers.scenesRun);
+  registerInvoke(IPC.soundState, handlers.soundState);
+  registerInvoke(IPC.soundImport, handlers.soundImport);
+  registerInvoke(IPC.soundPreview, handlers.soundPreview);
+  registerInvoke(IPC.soundSetMix, handlers.soundSetMix);
+  registerInvoke(IPC.soundRun, handlers.soundRun);
+  registerInvoke(IPC.mixPreview, handlers.mixPreview);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

@@ -35,6 +35,8 @@ export interface MusicBusInput {
 
 export interface PremixInputs {
   readonly voPath: string;
+  /** Seek into the voice-over (s): the premix starts there (preview windows). */
+  readonly voStartS?: number;
   readonly sfxBusPath: string;
   readonly ambienceBusPath: string;
   /** At least one. */
@@ -133,7 +135,11 @@ export function premixArgs(inputs: PremixInputs, outputs: PremixOutputs): string
   ];
   return [
     '-y',
-    ...files.flatMap((file) => ['-i', file]),
+    ...files.flatMap((file, index) =>
+      index === 0 && (inputs.voStartS ?? 0) > 0
+        ? ['-ss', (inputs.voStartS ?? 0).toFixed(6), '-i', file]
+        : ['-i', file],
+    ),
     '-filter_complex',
     premixGraph(inputs),
     ...floatWavOutput('[premix]', outputs.premix),

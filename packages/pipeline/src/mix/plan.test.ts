@@ -44,6 +44,25 @@ describe('planMix', () => {
     ]);
   });
 
+  it('adds the bus gains of `global` to every cue of the bus', () => {
+    const result = plan(
+      {
+        global: { sfxGainDb: -6, ambienceGainDb: 6, musicGainDb: -20 },
+        sfx: [{ t: 1, name: 'hit', gainDb: -6 }],
+        ambience: [{ from: 0, to: 4, name: 'hum' }],
+        music: [{ from: 0, to: 4, file: 'm.wav', ducking: { enabled: false } }],
+      },
+      { 'm.wav': second },
+    );
+    if (!result.ok) throw new Error('plan failed');
+    expect(result.value.sfx[0]?.gainLeft).toBeCloseTo(10 ** (-12 / 20), 6);
+    expect(result.value.ambience[0]?.gainLeft).toBeCloseTo(10 ** (6 / 20), 6);
+    expect(result.value.music[0]?.events[0]?.gainLeft).toBeCloseTo(0.1, 6);
+    const without = plan({ sfx: [{ t: 1, name: 'hit', gainDb: -6 }] });
+    if (!without.ok) throw new Error('plan failed');
+    expect(without.value.sfx[0]?.gainLeft).toBeCloseTo(10 ** (-6 / 20), 6);
+  });
+
   it('uses stable default seeds (editing other cues does not change a sound)', () => {
     const alone = plan({ sfx: [{ t: 2, name: 'whoosh' }] });
     const withOthers = plan({

@@ -10,6 +10,7 @@ export const PROMPT_IDS = [
   'script',
   'sound-cues',
   'storyboard',
+  'youtube-meta',
 ] as const;
 export type PromptId = (typeof PROMPT_IDS)[number];
 
@@ -64,5 +65,10 @@ export const PROMPT_SOURCES: Readonly<Record<PromptId, PromptSource>> = {
     source:
       '---\nid: storyboard\nversion: 1\nmodel: sonnet\ntools: [Read, Write, Glob, Grep, Bash(reelforge *)]\noutput: storyboard.json\n---\nYou are the director/storyboard artist for a voxel pixel-art 3D video. Turn the narration into a shot list.\n\nInputs in the project folder: `script.txt`, `timing/words.json` (every spoken word with t/tEnd in seconds), `project.json` (style), the style bible `styles/{{styleId}}/STYLE.md`, and the kit catalog (`reelforge kit-docs`).\n\nWrite `storyboard.json`:\n```json\n{ "version": 1, "shots": [\n  { "id": "s01_hook", "t0": 0.0, "t1": 6.4, "treatment": "title-card",\n    "intent": "Hook: <what the viewer must feel/understand>", "scene": "scenes/s01_hook.js",\n    "transitionIn": { "type": "cut" } } ] }\n```\nRules:\n- Shots are contiguous: first t0 = 0, each t0 = previous t1, last t1 = end of the last word (+0.5 s). Boundaries must fall on word boundaries from `words.json` (use a word\'s `t`, never mid-word); prefer sentence/clause boundaries.\n- Typical shot length 3–8 s; change the visual pattern at least every 6–8 s. Never use the same treatment more than 2 times in a row. Vary: title-card, metaphor-object, 3d-reconstruction, map, node-graph/timeline, data-chart-3d, counter/odometer, ui-mockup, character-scene, kinetic-text, montage/transition.\n- `intent` is plain words: what is shown, the key moment (quote the spoken phrase it must land on, e.g. lands on "61 KB"), the camera idea, the mood. One to three sentences.\n- Pick treatments from what the kit can actually do; if a needed prop/environment does not exist, still write the shot but list it under a top-level `"missingProps": ["calculator", …]` array.\n- `transitionIn`: mostly cut; crossfade/glitch/wipe (with `duration`, 0.2–0.6 s) at act changes. First shot has no transition.\n- Every important fact or number in the narration should have a visual. Don\'t illustrate filler.\n\nThen run `reelforge validate` and fix any error. Reply with shot count, treatment mix and missing props.\n',
     sha256: '0091036485e618b6a8789e939d6698635366aabe5a2e45daa1eb1032c3fb3400',
+  },
+  'youtube-meta': {
+    source:
+      '---\nid: youtube-meta\nversion: 1\nmodel: sonnet\ntools: [Read]\noutput: json\n---\nYou write the YouTube upload text for a finished explainer video. Do not create or edit any file.\n\nWorking title: {{title}}\nLanguage: {{language}} (write every title, the description and the tags in this language).\nWhat the narrator says (the whole script):\n{{script}}\n{{#chapters}}\nChapters of the video (YouTube format):\n{{chapters}}\n{{/chapters}}\n\nReturn ONLY JSON, no prose: `{"titles":["…","…","…"],"description":"…","tags":["…"]}`\n- titles: exactly 3 different options, each at most 70 characters: concrete and curious, true to the video (no promises it does not keep), no ALL CAPS, no emojis.\n- description: 2–3 short paragraphs on what the viewer learns and why it matters, at most 1500 characters{{#chapters}}; then an empty line and the chapters above copied exactly, one per line{{/chapters}}. No links, at most 3 hashtags.\n- tags: 8–15 search phrases a viewer would type, lowercase, without `#`; all tags together at most 450 characters.\n',
+    sha256: '51c3df652e155117b5100bd6d877d456533e714adc679123f4f87e01cc0fbd83',
   },
 };

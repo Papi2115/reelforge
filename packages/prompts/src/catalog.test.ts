@@ -37,7 +37,7 @@ describe('bundled prompts', () => {
     }
   });
 
-  it('cover every stage of PLAN.md#5.8 and the whole-video review (#7.6)', () => {
+  it('cover every stage of PLAN.md#5.8, the whole-video review (#7.6) and the YouTube text (#9.2)', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
         'critic',
@@ -49,6 +49,7 @@ describe('bundled prompts', () => {
         'script',
         'sound-cues',
         'storyboard',
+        'youtube-meta',
       ].sort(),
     );
   });
@@ -176,6 +177,7 @@ describe('stages and models', () => {
     const reuse: Partial<Record<string, string>> = {
       'review-triage': 'critic',
       'review-plan': 'storyboard',
+      'youtube-meta': 'storyboard',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);

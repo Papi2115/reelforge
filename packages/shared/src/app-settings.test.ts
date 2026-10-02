@@ -29,8 +29,37 @@ describe('app settings', () => {
       usage: { softBudgetUsd: null },
       performance: { exportWorkers: 'auto', encoder: 'auto', gpu: 'auto' },
       tools: { ffmpegPath: null, whisperPath: null, whisperModel: 'large-v3-turbo-q5_0' },
+      export: {
+        preset: '1080p30',
+        quality: 'standard',
+        includeChapters: true,
+        includeThumbnail: true,
+        outputDir: null,
+      },
       onboarding: { connectClaudeDone: false },
     });
+  });
+
+  it('keeps the export dialog choices, backward-compatibly (PLAN.md#9.1)', () => {
+    // A file written before the export section existed still parses, with the defaults.
+    expect(appSettingsSchema.parse({ version: 1 }).export.preset).toBe('1080p30');
+    const next = applyAppSettingsPatch(defaultAppSettings(), {
+      export: { preset: '4k', includeChapters: false },
+    });
+    expect(next.export).toEqual({
+      preset: '4k',
+      quality: 'standard',
+      includeChapters: false,
+      includeThumbnail: true,
+      outputDir: null,
+    });
+    // The output folder comes from main's picker only.
+    expect(appSettingsPatchSchema.safeParse({ export: { outputDir: 'C:\\x' } }).success).toBe(
+      false,
+    );
+    expect(appSettingsSchema.safeParse({ version: 1, export: { quality: 'ultra' } }).success).toBe(
+      false,
+    );
   });
 
   it('fills missing nested fields with defaults and drops unknown keys', () => {

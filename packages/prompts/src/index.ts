@@ -24,3 +24,4 @@ export * from './validators/critic.js';
 export * from './validators/cues.js';
 export * from './validators/review.js';
 export * from './validators/text-outputs.js';
+export * from './validators/youtube-meta.js';

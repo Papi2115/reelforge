@@ -14,6 +14,7 @@ import { FfmpegManager } from '../ffmpeg/manager.js';
 import { CuesFileSchema, type CuesFile } from './cues.js';
 import { STEM_FILE_NAMES } from './master.js';
 import { mixAudio, type MixProgress } from './mix.js';
+import { mixPreview } from './preview.js';
 import { SFX_RECIPES } from './sfx.js';
 import {
   FIXTURE_DURATION_S,
@@ -151,6 +152,34 @@ describe.skipIf(manager === null)(suiteTitle, () => {
       (name) => name.startsWith('.reelforge-mix-') || name.endsWith('.partial'),
     );
     expect(leftovers).toEqual([]);
+  }, 120_000);
+
+  it('renders a 15 s preview window that sounds like that part of the full mix', async () => {
+    const full = path.join(projectDir, 'audio', 'mix a.wav');
+    const report = await mixAudio(cues, {
+      ffmpeg,
+      voPath: fixtures.voPath,
+      outputPath: full,
+      baseDir: projectDir,
+    });
+    if (!report.ok) throw new Error(report.error.message);
+    const output = path.join(projectDir, 'preview', 'window.wav');
+    const preview = await mixPreview(cues, {
+      ffmpeg,
+      voPath: fixtures.voPath,
+      outputPath: output,
+      baseDir: projectDir,
+      workDir: path.join(projectDir, 'preview'),
+      startS: 20,
+      durationS: 15,
+      gainDb: report.value.gainDb,
+    });
+    expect(preview.ok, preview.ok ? '' : preview.error.message).toBe(true);
+    expect((await readFile(output)).length).toBe(44 + 15 * 48_000 * 4);
+    const windowDb = await rmsDb(output, 2, 13);
+    const fullDb = await rmsDb(full, 22, 33);
+    expect(Math.abs(windowDb - fullDb)).toBeLessThan(1.5);
+    expect((await readdir(path.join(projectDir, 'preview'))).sort()).toEqual(['window.wav']);
   }, 120_000);
 
   it('returns cancelled and writes nothing when aborted', async () => {

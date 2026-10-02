@@ -24,6 +24,8 @@ export const FILES = {
   voiceoverRecord: '.reelforge/voiceover.json',
   asrWorkDir: '.reelforge/cache/asr',
   mixWorkDir: '.reelforge/cache/mix',
+  /** Stems of the last mix render with stems (git-ignored like every export). */
+  stemsDir: 'out/stems',
   /** Per-shot build/QA result (✓ ⚠ ✗) and the sync report (PLAN.md#7.4, #7.7). */
   scenesReport: '.reelforge/scenes-report.json',
   syncReport: '.reelforge/sync-report.json',

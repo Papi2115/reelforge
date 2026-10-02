@@ -6,12 +6,12 @@
  * no file:// access from the renderer.
  */
 import { createReadStream } from 'node:fs';
-import { realpath, stat } from 'node:fs/promises';
+import { open, realpath, stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { nativeImage, type Session } from 'electron';
 import { describeError, type Logger } from './logger.js';
 import { isInsideFolder } from './project-files.js';
-import { parseByteRange, resolveProjectMedia } from './project-media.js';
+import { limitRange, parseByteRange, resolveProjectMedia } from './project-media.js';
 import { MEDIA_SCHEME } from '../shared/player-contract.js';
 
 function text(status: number, body: string): Response {
@@ -24,6 +24,23 @@ function isMissingFile(error: unknown): boolean {
 
 function fileBody(file: string, start: number, end: number): ReadableStream<Uint8Array> {
   return Readable.toWeb(createReadStream(file, { start, end })) as ReadableStream<Uint8Array>;
+}
+
+/** Bytes [start, end] read at once: the file is closed before the response is sent. */
+async function fileBytes(file: string, start: number, end: number): Promise<Uint8Array> {
+  const handle = await open(file, 'r');
+  try {
+    const bytes = new Uint8Array(end - start + 1);
+    let read = 0;
+    while (read < bytes.length) {
+      const result = await handle.read(bytes, read, bytes.length - read, start + read);
+      if (result.bytesRead === 0) break;
+      read += result.bytesRead;
+    }
+    return bytes.subarray(0, read);
+  } finally {
+    await handle.close();
+  }
 }
 
 async function serve(
@@ -55,7 +72,8 @@ async function serve(
     'cache-control': 'no-cache',
     'x-content-type-options': 'nosniff',
   });
-  const range = parseByteRange(request.headers.get('range'), size);
+  const asked = parseByteRange(request.headers.get('range'), size);
+  const range = asked === undefined || asked === 'unsatisfiable' ? asked : limitRange(asked);
   if (range === 'unsatisfiable') {
     headers.set('content-range', `bytes */${String(size)}`);
     return new Response(null, { status: 416, headers });
@@ -66,6 +84,7 @@ async function serve(
   if (range) headers.set('content-range', `bytes ${String(start)}-${String(end)}/${String(size)}`);
   const status = range ? 206 : 200;
   if (request.method === 'HEAD' || size === 0) return new Response(null, { status, headers });
+  if (range) return new Response(await fileBytes(realFile, start, end), { status, headers });
   return new Response(fileBody(realFile, start, end), { status, headers });
 }
 

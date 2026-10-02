@@ -5,9 +5,10 @@
  * (48 kHz 16-bit stereo) + optional float32 stems with the same master gain. Deterministic: the
  * same cues and inputs give a byte-identical `mix.wav`. Never throws for expected failures.
  */
-import { mkdir, mkdtemp, rename, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { describeError, type FfmpegError } from '../ffmpeg/errors.js';
+import { renameRetrying } from '../fs-retry.js';
 import { parseMediaAudioInfo, type LoudnessStats } from '../audio/measure.js';
 import {
   measureLoudness,
@@ -42,6 +43,8 @@ export interface MixAudioOptions {
   readonly outputPath: string;
   /** Folder that relative cue file paths are resolved against (the project folder). */
   readonly baseDir: string;
+  /** Position in the voice-over that plays at 0 s (preview windows, see preview.ts). */
+  readonly voStartS?: number | undefined;
   /** When set, `vo.wav`, `sfx.wav`, `ambience.wav` and `music.wav` are written here. */
   readonly stemsDir?: string | undefined;
   /** Parent folder for temporary files (default: the output's folder); always cleaned up. */
@@ -62,7 +65,7 @@ const CLEAN_TO_MIX_STAGE: Readonly<Record<CleanStage, MixStage>> = {
   verify: 'verify',
 };
 
-interface WorkFiles {
+export interface WorkFiles {
   readonly sfx: string;
   readonly ambience: string;
   readonly music: (index: number) => string;
@@ -108,9 +111,10 @@ function samePath(first: string, second: string): boolean {
   return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
 }
 
-class MixRun {
+/** One mix render (preview.ts drives its decode / bus / premix steps on its own). */
+export class MixRun {
   private readonly pass: PassContext;
-  private readonly files: WorkFiles;
+  readonly files: WorkFiles;
 
   constructor(
     private readonly cues: CuesFile,
@@ -135,7 +139,7 @@ class MixRun {
     this.options.onProgress?.({ stage, ratio: null });
   }
 
-  private async decodeFiles(): Promise<Result<Map<string, StereoClip>, FfmpegError>> {
+  async decodeFiles(): Promise<Result<Map<string, StereoClip>, FfmpegError>> {
     this.progress('decode');
     const clips = new Map<string, StereoClip>();
     for (const [index, file] of cueFiles(this.cues, this.options.baseDir).entries()) {
@@ -154,7 +158,7 @@ class MixRun {
     return ok(clips);
   }
 
-  private async renderBuses(plan: MixPlan): Promise<Result<MusicBusInput[], FfmpegError>> {
+  async renderBuses(plan: MixPlan): Promise<Result<MusicBusInput[], FfmpegError>> {
     this.progress('synthesize');
     const { signal } = this.options;
     const sfx = await writeBusWav(this.files.sfx, plan.sfx, plan.totalFrames, signal);
@@ -176,7 +180,7 @@ class MixRun {
     return ok(buses);
   }
 
-  private async premix(
+  async premix(
     musicBuses: readonly MusicBusInput[],
     totalFrames: number,
   ): Promise<Result<void, FfmpegError>> {
@@ -185,6 +189,7 @@ class MixRun {
       premixArgs(
         {
           voPath: this.options.voPath,
+          voStartS: this.options.voStartS ?? 0,
           sfxBusPath: this.files.sfx,
           ambienceBusPath: this.files.ambience,
           musicBuses,
@@ -283,7 +288,7 @@ class MixRun {
         : await this.stems(this.options.stemsDir, mastered.value.gainDb);
     if (!stems.ok) return stems;
     try {
-      await rename(partialPath, this.options.outputPath);
+      await renameRetrying(partialPath, this.options.outputPath);
     } catch (error) {
       return err({
         kind: 'io',

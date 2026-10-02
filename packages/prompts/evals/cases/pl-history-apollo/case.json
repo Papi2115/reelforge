@@ -52,6 +52,24 @@
           "change": "Keep the key object lit and in frame until the end of the shot; ease the camera out instead of fading to the background colour."
         }
       ]
+    },
+    "youtube-meta": {
+      "titles": [
+        "Komputer, który poleciał na Księżyc",
+        "4 kilobajty pamięci i lądowanie na Księżycu",
+        "Jak działał komputer pokładowy Apollo"
+      ],
+      "description": "Telefon w twojej kieszeni ma więcej mocy niż komputery, które w 1969 roku wysłały ludzi na Księżyc. Komputer pokładowy Apollo miał 4 kilobajty pamięci.\n\nZobacz, jak inżynierowie zbudowali system, który mimo to bezpiecznie sprowadził lądownik na powierzchnię.",
+      "tags": [
+        "apollo 11",
+        "komputer apollo",
+        "agc",
+        "historia kosmosu",
+        "lądowanie na księżycu",
+        "nasa",
+        "margaret hamilton",
+        "historia informatyki"
+      ]
     }
   }
 }

@@ -61,6 +61,8 @@ export interface MixRequest extends ToolCall {
   readonly outputPath: string;
   readonly baseDir: string;
   readonly workDir: string;
+  /** Also write the stems here. */
+  readonly stemsDir?: string | undefined;
 }
 
 export interface AudioTools {
@@ -158,6 +160,7 @@ export function createPipelineAudioTools(options: PipelineAudioToolsOptions = {}
         outputPath: request.outputPath,
         baseDir: request.baseDir,
         workDir: request.workDir,
+        stemsDir: request.stemsDir,
         signal: request.signal,
         onProgress:
           onProgress === undefined

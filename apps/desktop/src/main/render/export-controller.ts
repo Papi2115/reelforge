@@ -56,6 +56,7 @@ export class ExportController {
   async start(
     request: ExportStartRequest,
     listener?: (event: ExportProgress) => void,
+    output?: string,
   ): Promise<ExportOutcome> {
     if (this.running !== null) return { status: 'busy' };
     const projectDir = this.options.currentProject();
@@ -69,6 +70,7 @@ export class ExportController {
       return await this.options.run({
         projectDir,
         request,
+        output,
         settings: this.options.settings(),
         cores: this.options.cores,
         ...prepared,

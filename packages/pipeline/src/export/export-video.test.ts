@@ -122,6 +122,15 @@ describe('exportVideo (fake frame source + raw media)', () => {
     expect(state.finished.map((shot) => shot.id).sort()).toEqual(['a', 'b', 'c']);
   });
 
+  it('writes the video to a chosen path outside out/ (thumbnail stays in out/)', async () => {
+    const output = path.join(projectDir, 'elsewhere ż', 'final cut.mp4');
+    const exported = await run(threeShots(), { output, thumbnailAt: 0.5 }).result;
+    expect(exported.ok && exported.value.output).toBe(output);
+    expect((await stat(output)).size).toBe(45 * FRAME_BYTES);
+    expect(exported.ok && exported.value.thumbnail).toBe(path.join(projectDir, 'out', 'thumb.png'));
+    expect(await readdir(path.dirname(output))).toEqual(['final cut.mp4']);
+  });
+
   it('re-renders nothing when nothing changed', async () => {
     expect((await run(threeShots()).result).ok).toBe(true);
     const second = run(threeShots());

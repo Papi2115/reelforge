@@ -7,6 +7,8 @@ import { createLogger } from './logger.js';
 import { defaultAppSettings } from '@reelforge/shared';
 import type { ToolsStatus } from '../shared/settings-contract.js';
 import type { SettingsHandlers } from './settings-ipc.js';
+import type { SoundHandlers } from './sound/sound-ipc.js';
+import type { ExportHandlers } from './export/export-ipc.js';
 
 type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
 
@@ -77,6 +79,73 @@ function settingsStubs(record: <T>(request: unknown, response: T) => Promise<T>)
   };
 }
 
+/** Export dialog + YouTube channels (PLAN.md#9.1, #9.2). */
+function exportStubs(
+  record: <T>(request: unknown, response: T) => Promise<T>,
+): Omit<ExportHandlers, 'exportStart' | 'exportCancel'> {
+  const queued = { status: 'queued', id: 'export-1' } as const;
+  return {
+    exportOptions: (request) =>
+      record(request, {
+        projectDir: null,
+        title: '',
+        defaultFileName: 'video.mp4',
+        outputDir: '',
+        customOutputDir: false,
+        render: null,
+        presets: [],
+        cores: 1,
+        defaults: {
+          preset: '1080p30',
+          encoder: 'auto',
+          quality: 'standard',
+          workers: 'auto',
+          includeChapters: true,
+          includeThumbnail: true,
+        },
+        chapters: { text: null, problem: null },
+        thumbnailDefaultS: null,
+        blockers: [],
+        warnings: [],
+      } as const),
+    exportQueue: (request) => record(request, { projectDir: null, jobs: [], interrupted: null }),
+    exportEnqueue: (request) => record(request, queued),
+    exportCancelJob: (request) => record(request, true),
+    exportResumeJob: (request) => record(request, queued),
+    exportResumeInterrupted: (request) => record(request, queued),
+    exportTestEncoder: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+    exportPickFolder: (request) => record(request, { status: 'cancelled' } as const),
+    exportOpenFolder: (request) => record(request, { status: 'ok', message: null } as const),
+    youtubeMeta: (request) => record(request, null),
+    youtubeMetaGenerate: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+    copyText: (request) => record(request, { status: 'copied' } as const),
+  };
+}
+
+/** Sound panel channels (PLAN.md#8.2). */
+function soundStubs(record: <T>(request: unknown, response: T) => Promise<T>): SoundHandlers {
+  return {
+    soundState: (request) =>
+      record(request, {
+        projectDir: null,
+        library: [],
+        gains: { voGainDb: 0, sfxGainDb: 0, ambienceGainDb: 0, musicGainDb: 0 },
+        ducking: null,
+        musicCues: 0,
+        cuesError: null,
+        mix: { exists: false, stale: false, result: null },
+        stems: [],
+      }),
+    soundImport: (request) =>
+      record(request, { status: 'cancelled', message: null, files: [] } as const),
+    soundPreview: (request) => record(request, { status: 'ok', file: 'a.wav' } as const),
+    soundSetMix: (request) =>
+      record(request, { status: 'ok', message: 'Sound', committed: true } as const),
+    soundRun: (request) => record(request, { status: 'queued', message: null } as const),
+    mixPreview: (request) => record(request, { status: 'unavailable', reason: 'n/a' } as const),
+  };
+}
+
 function setup(): {
   ipc: FakeIpcMain;
   logs: RendererLogEntry[];
@@ -119,6 +188,7 @@ function setup(): {
       ...settingsStubs(record),
       exportStart: (request) => record(request, { status: 'no-project' } as const),
       exportCancel: (request) => record(request, false),
+      ...exportStubs(record),
       chatState: (request) =>
         record(request, {
           projectDir: null,
@@ -168,6 +238,7 @@ function setup(): {
         }),
       wordsRetry: (request) => record(request, { status: 'queued', message: null } as const),
       scenesRun: (request) => record(request, { status: 'queued', message: null } as const),
+      ...soundStubs(record),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),

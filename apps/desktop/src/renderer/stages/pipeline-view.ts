@@ -19,6 +19,8 @@ export type OpenTarget =
   | { readonly kind: 'words' }
   | { readonly kind: 'shots' }
   | { readonly kind: 'scenes' }
+  | { readonly kind: 'sound' }
+  | { readonly kind: 'export' }
   | { readonly kind: 'artifact'; readonly artifact: StageArtifact };
 
 export interface PipelineRowSpec {
@@ -85,7 +87,7 @@ export const PIPELINE_ROWS: readonly PipelineRowSpec[] = [
     id: 'sound',
     label: 'Sound design mixed',
     stages: ['sound-cues', 'mix'],
-    open: { kind: 'artifact', artifact: 'mix' },
+    open: { kind: 'sound' },
     replace: null,
     coming: '',
   },
@@ -93,7 +95,7 @@ export const PIPELINE_ROWS: readonly PipelineRowSpec[] = [
     id: 'export',
     label: 'Video exported',
     stages: ['export'],
-    open: { kind: 'artifact', artifact: 'video' },
+    open: { kind: 'export' },
     replace: null,
     coming: '',
   },
@@ -297,6 +299,12 @@ function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionV
   }
   if (spec.open.kind === 'scenes') {
     return { enabled: true, hint: 'Build progress, missing props and the sync report' };
+  }
+  if (spec.open.kind === 'sound') {
+    return { enabled: true, hint: 'Sound library, levels, ducking, mix render and preview' };
+  }
+  if (spec.open.kind === 'export') {
+    return { enabled: true, hint: 'Export settings, the export queue and YouTube extras' };
   }
   const has = infos.some((info) => info.hasOutput);
   return has

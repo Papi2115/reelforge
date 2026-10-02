@@ -5,7 +5,9 @@
  * clicks and ruler drags seek / scrub through the player API.
  */
 import { useEffect, useRef, useState, type JSX, type ReactNode, type RefObject } from 'react';
+import type { LibrarySound } from '../../shared/sound-contract.js';
 import { BUILTIN_SFX_NAMES } from '../../shared/timeline-contract.js';
+import { decodeSoundDrag, SOUND_DRAG_TYPE } from '../sound/sound-view.js';
 import type { WaveformView } from '../timeline/draw-timeline.js';
 import { itemKey, selectedCues, useSelection, type SelectionStore } from '../timeline/selection.js';
 import { addSfxChange, gainChange, type CueRef } from '../timeline/timeline-changes.js';
@@ -18,6 +20,7 @@ import {
   followTime,
   resizeView,
   timeToX,
+  xToTime,
   zoomAround,
   ZOOM_STEP,
   type TimelineView,
@@ -39,6 +42,8 @@ export interface TimelinePanelProps {
   readonly onSeek: (t: number) => void;
   /** Ruler drags scrub (with audio snippets, PLAN.md#6.4). */
   readonly onScrub: (t: number) => void;
+  /** A library sound dropped on the lanes at time `t` (PLAN.md#8.2). */
+  readonly onDropSound: (sound: LibrarySound, t: number) => void;
 }
 
 const EMPTY_TEXT = {
@@ -279,7 +284,22 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
             </span>
           ))}
         </div>
-        <div className="timeline-lanes" ref={laneRef}>
+        <div
+          className="timeline-lanes"
+          ref={laneRef}
+          onDragOver={(event) => {
+            if (!event.dataTransfer.types.includes(SOUND_DRAG_TYPE)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+          }}
+          onDrop={(event) => {
+            const sound = decodeSoundDrag(event.dataTransfer.getData(SOUND_DRAG_TYPE));
+            if (sound === null) return;
+            event.preventDefault();
+            const left = event.currentTarget.getBoundingClientRect().left;
+            props.onDropSound(sound, Math.max(0, xToTime(view, event.clientX - left)));
+          }}
+        >
           {laneWidth > 0 && (
             <TimelineCanvas
               model={model}

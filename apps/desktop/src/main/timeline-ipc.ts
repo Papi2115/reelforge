@@ -10,8 +10,22 @@ import type { ProjectService } from './project-service.js';
 import { TimelineEditService } from './timeline-edit-service.js';
 import { WaveformService } from './waveform-peaks.js';
 
+/** The edit service of the open project (also used by the Sound panel's cues.json writes). */
+export function createTimelineEdits(projects: ProjectService, log: Logger): TimelineEditService {
+  return new TimelineEditService({
+    projectDir: () => projects.currentProject()?.dir,
+    commit: async (message) => {
+      const result = await projects.autocommit(message, { kind: 'manual' });
+      if (!result.ok) log.warn(`timeline edit not committed: ${result.error.message}`);
+      return result.ok && result.value.status === 'committed';
+    },
+    log: log.child('edit'),
+  });
+}
+
 export interface TimelineHandlerOptions {
   readonly projects: ProjectService;
+  readonly edits: TimelineEditService;
   readonly trackChild: (child: ChildProcess) => void;
   readonly log: Logger;
 }
@@ -21,15 +35,7 @@ export function timelineHandlers(
 ): Pick<InvokeHandlers, 'timelineEdit' | 'timelineWaveform'> {
   const { projects, log } = options;
   const projectDir = (): string | undefined => projects.currentProject()?.dir;
-  const edits = new TimelineEditService({
-    projectDir,
-    commit: async (message) => {
-      const result = await projects.autocommit(message, { kind: 'manual' });
-      if (!result.ok) log.warn(`timeline edit not committed: ${result.error.message}`);
-      return result.ok && result.value.status === 'committed';
-    },
-    log: log.child('edit'),
-  });
+  const { edits } = options;
   const waveforms = new WaveformService({
     projectDir,
     ffmpeg: () => {

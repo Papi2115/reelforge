@@ -16,6 +16,7 @@ import {
   stageError,
   type StageContext,
   type StageDefinition,
+  type RequestOf,
   type StageError,
   type StageSummary,
 } from '../types.js';
@@ -116,7 +117,10 @@ async function defaultCues(
   return ok({ cues: check.value, source: 'default', warnings: check.warnings });
 }
 
-async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>> {
+async function run(
+  ctx: StageContext,
+  request: RequestOf<'sound-cues'>,
+): Promise<Result<StageSummary, StageError>> {
   const { project } = ctx.snapshot;
   if (project.status !== 'ok') return err(stageError('not-ready', 'project.json is invalid'));
   const storyboard = await requireProjectJson(
@@ -135,7 +139,8 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
   const durationS = defaultDurationS(input);
   const warnings: string[] = [];
   let produced: Produced | undefined;
-  if (ctx.settings.economy) warnings.push('Economy mode: default cues (no Claude turn)');
+  if (request.mode === 'default') warnings.push('Default cues requested (no Claude turn)');
+  else if (ctx.settings.economy) warnings.push('Economy mode: default cues (no Claude turn)');
   else if (!ctx.hasClaude) warnings.push('Claude is not connected: default cues');
   else {
     const fromClaude = await claudeCues(ctx, project.value.style, durationS);

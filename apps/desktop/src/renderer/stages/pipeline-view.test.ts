@@ -234,6 +234,13 @@ describe('pipelineRows', () => {
       status: 'waiting',
       detail: 'audio/mix.wav is missing: run Sound design mixed first.',
       run: { enabled: false },
+      // The export dialog and the Sound panel open before there is any output.
+      open: { enabled: true },
+      spec: { open: { kind: 'export' } },
+    });
+    expect(row(rows, 'sound')).toMatchObject({
+      open: { enabled: true },
+      spec: { open: { kind: 'sound' } },
     });
     expect(row(rows, 'voiceover')).toMatchObject({
       status: 'waiting',

@@ -8,6 +8,7 @@ import { issue, type ValidationIssue } from '../validators/issues.js';
 import { validatePlanReply, validateTriageReply } from '../validators/review.js';
 import { targetWordsFor, validateScript } from '../validators/script.js';
 import { validateStoryboard } from '../validators/storyboard.js';
+import { validateYoutubeMetaReply } from '../validators/youtube-meta.js';
 import {
   parseMissing,
   replyLengthIssues,
@@ -118,6 +119,10 @@ export function checkStageOutput<T extends CuesLike>(input: StageCheckInput<T>):
   const shotIds = evalCase.storyboard.shots.map((shot) => shot.id);
   if (stage === 'review-triage') issues.push(...validateTriageReply(reply, { shotIds }).issues);
   if (stage === 'review-plan') issues.push(...validatePlanReply(reply, { shotIds }).issues);
+  if (stage === 'youtube-meta') {
+    const chapters = evalCase.file.youtubeMeta?.chapters ?? null;
+    issues.push(...validateYoutubeMetaReply(reply, { chapters }).issues);
+  }
   if (stage === 'scene-build' && input.strictReplies) {
     issues.push(...missingLineIssues(reply, evalCase.file.sceneBuild.expectMissing));
   }

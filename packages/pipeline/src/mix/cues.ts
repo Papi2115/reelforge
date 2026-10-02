@@ -105,6 +105,13 @@ export const MusicCueSchema = z
 
 export const MixGlobalSchema = z.strictObject({
   voGainDb: gainDb.default(0),
+  /**
+   * Bus gains on top of every cue's own gain (the Sound panel's sliders, PLAN.md#8.2). Optional,
+   * not defaulted: files written before they existed keep the same bytes when re-serialized.
+   */
+  sfxGainDb: gainDb.optional(),
+  ambienceGainDb: gainDb.optional(),
+  musicGainDb: gainDb.optional(),
   targetLufs: z.number().min(-40).max(-5).default(-14),
   truePeakMaxDbtp: z.number().min(-9).max(0).default(-1),
   /** Timeline length; defaults to the voice-over length. */

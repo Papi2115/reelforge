@@ -84,6 +84,18 @@ describe('playback audio', () => {
     expect(playbackAudioUrl([], 3)).toBeUndefined();
   });
 
+  it('plays the voice-over only, or the preview mix of the last cue edit (PLAN.md#8.2)', () => {
+    const files = ['audio/vo.clean.wav', 'audio/mix.wav'];
+    expect(playbackAudioFile(files, 'vo')).toBe('audio/vo.clean.wav');
+    const preview = { file: '.reelforge/cache/preview/mix-preview-2.wav', revision: 7 };
+    expect(playbackAudioUrl(files, 3, 'mix', preview)).toBe(
+      'reelforge-media://project/.reelforge/cache/preview/mix-preview-2.wav?v=7',
+    );
+    expect(playbackAudioUrl(files, 3, 'vo', preview)).toBe(
+      'reelforge-media://project/audio/vo.clean.wav?v=3',
+    );
+  });
+
   it('notices audio changes', () => {
     expect(affectsAudio(['audio/mix.wav'], false)).toBe(true);
     expect(affectsAudio(['scenes/s01.js'], false)).toBe(false);

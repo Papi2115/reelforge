@@ -29,6 +29,8 @@ import type { OpenRenderTarget } from './render-target.js';
 export interface ExportProjectOptions {
   readonly projectDir: string;
   readonly request: ExportStartRequest;
+  /** Absolute MP4 path (the dialog's folder + file name); default `out/<title>.mp4`. */
+  readonly output?: string | undefined;
   readonly settings: AppSettings;
   readonly cores: number;
   readonly openTarget: OpenRenderTarget;
@@ -94,6 +96,8 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
       createFrameSource: electronFrameSourceFactory(pool, options.signal),
       workers: request.workers ?? performance.workers,
       ...(request.preset === undefined ? {} : { preset: request.preset }),
+      ...(request.thumbnailAt === undefined ? {} : { thumbnailAt: request.thumbnailAt }),
+      ...(options.output === undefined ? {} : { output: options.output }),
       ...(manifest.words === undefined
         ? {}
         : { resolveAnchor: createExactAnchorResolver(manifest.words.words) }),

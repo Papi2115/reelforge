@@ -12,29 +12,37 @@ export type HardwareEncoderId = (typeof HARDWARE_ENCODERS)[number];
 export type VideoEncoderId = HardwareEncoderId | 'libx264';
 export const VIDEO_ENCODER_IDS: readonly VideoEncoderId[] = [...HARDWARE_ENCODERS, 'libx264'];
 
-/** `final`: upload quality. `draft`: faster, visibly softer dither (quick checks). */
-export type ExportQuality = 'final' | 'draft';
+/**
+ * `final`: upload quality (the app's Standard). `draft`: faster, visibly softer dither (quick
+ * checks). `high`: slower presets / lower quantizers for archival masters (bigger files).
+ */
+export type ExportQuality = 'final' | 'draft' | 'high';
+export const EXPORT_QUALITIES: readonly ExportQuality[] = ['draft', 'final', 'high'];
 
 const QUALITY_ARGS: Readonly<Record<VideoEncoderId, Readonly<Record<ExportQuality, string[]>>>> = {
   // p7/hq/cq19: 49.6 dB PSNR at ~12 Mbps on the dither test clip (p4 defaults: 35.5 dB, 2 Mbps).
   h264_nvenc: {
     final: ['-preset', 'p7', '-tune', 'hq', '-rc', 'vbr', '-cq', '19', '-b:v', '0'],
     draft: ['-preset', 'p4', '-tune', 'hq', '-rc', 'vbr', '-cq', '23', '-b:v', '0'],
+    high: ['-preset', 'p7', '-tune', 'hq', '-rc', 'vbr', '-cq', '16', '-b:v', '0'],
   },
   // Not measurable on the dev machine (no Intel GPU): ICQ mode via global_quality.
   h264_qsv: {
     final: ['-preset', 'medium', '-global_quality', '18'],
     draft: ['-preset', 'veryfast', '-global_quality', '23'],
+    high: ['-preset', 'slow', '-global_quality', '15'],
   },
   // Constant QP 16/18/20: 46.5 dB at ~12 Mbps.
   h264_amf: {
     final: ['-quality', 'quality', '-rc', 'cqp', '-qp_i', '16', '-qp_p', '18', '-qp_b', '20'],
     draft: ['-quality', 'speed', '-rc', 'cqp', '-qp_i', '20', '-qp_p', '22', '-qp_b', '24'],
+    high: ['-quality', 'quality', '-rc', 'cqp', '-qp_i', '13', '-qp_p', '15', '-qp_b', '17'],
   },
   // medium/crf18: 46.1 dB at ~10 Mbps; veryfast/crf20: 41.3 dB, ~3.5x faster.
   libx264: {
     final: ['-preset', 'medium', '-crf', '18'],
     draft: ['-preset', 'veryfast', '-crf', '20'],
+    high: ['-preset', 'slow', '-crf', '15'],
   },
 };
 

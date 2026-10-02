@@ -49,8 +49,10 @@ export type ExportProgress =
 
 export interface ExportVideoOptions {
   readonly projectDir: string;
-  /** Video title; the output is `out/<safe title>.mp4`. */
+  /** Video title; the output is `out/<safe title>.mp4` unless `output` is set. */
   readonly title: string;
+  /** Absolute path of the MP4 (any folder); chapters.txt and thumb.png stay in `out/`. */
+  readonly output?: string;
   readonly manifest: RenderManifest;
   readonly identity: RenderIdentity;
   readonly media: ExportMedia;

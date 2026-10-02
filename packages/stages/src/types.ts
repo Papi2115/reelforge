@@ -33,8 +33,16 @@ export type StageRequest =
       /** Only these storyboard shots (default: all). */
       readonly shots?: readonly string[];
     }
-  | { readonly stage: 'sound-cues' }
-  | { readonly stage: 'mix' };
+  | {
+      readonly stage: 'sound-cues';
+      /** `default`: the deterministic cues without a Claude turn (the Sound panel's button). */
+      readonly mode?: 'auto' | 'default';
+    }
+  | {
+      readonly stage: 'mix';
+      /** Also write the vo/sfx/ambience/music stems to `out/stems/`. */
+      readonly stems?: boolean;
+    };
 
 /**
  * "Review the whole video and fix what looks wrong" · "Make all on-screen text easier to read on

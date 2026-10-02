@@ -118,7 +118,15 @@ export const replaceableStageSchema = z.enum(REPLACEABLE_STAGES);
 export type ReplaceableStage = z.infer<typeof replaceableStageSchema>;
 
 /** Outputs opened with the system's default app (main resolves the path inside the project). */
-export const STAGE_ARTIFACTS = ['voiceover', 'clean', 'scenes', 'mix', 'video'] as const;
+export const STAGE_ARTIFACTS = [
+  'voiceover',
+  'clean',
+  'scenes',
+  'mix',
+  'stems',
+  'video',
+  'out',
+] as const;
 export const stageArtifactSchema = z.enum(STAGE_ARTIFACTS);
 export type StageArtifact = z.infer<typeof stageArtifactSchema>;
 
