@@ -174,7 +174,10 @@ describe('pipelineRows', () => {
       ),
     );
     expect(row(rows, 'storyboard').status).toBe('paused');
-    expect(row(rows, 'storyboard').detail).toMatch(/^Paused by the Claude usage limit until 17:05/);
+    // The clock format follows the user's locale (24 h in Poland, "5:05 PM" in en-US).
+    expect(row(rows, 'storyboard').detail).toMatch(
+      /^Paused by the Claude usage limit until (17:05|0?5:05\s?PM)/i,
+    );
   });
 
   it('marks queued, failed (with details), stale and interrupted stages', () => {
