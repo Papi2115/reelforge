@@ -16,6 +16,9 @@ jobs:
   verify:
     name: verify (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      # Type-aware ESLint over the whole monorepo needs more than Node's default heap.
+      NODE_OPTIONS: --max-old-space-size=8192
     strategy:
       fail-fast: false
       matrix:
