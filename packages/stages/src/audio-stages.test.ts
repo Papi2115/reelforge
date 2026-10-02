@@ -1,7 +1,13 @@
 /** Audio cleaned, Sound cues (Claude + deterministic fallback) and Mix on fake tools. */
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { PipelineStateStore } from '@reelforge/claude-bridge';
-import { CleanReportSchema, CuesFileSchema, MixReportSchema } from '@reelforge/pipeline';
+import {
+  CleanReportSchema,
+  CuesFileSchema,
+  MixQaReportSchema,
+  MixReportSchema,
+} from '@reelforge/pipeline';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { DEFAULT_STAGE_SETTINGS, type StageSettings } from './settings.js';
@@ -70,6 +76,21 @@ describe('clean stage', { timeout: 30_000 }, () => {
   });
 });
 
+let reference: Promise<Record<string, unknown>> | undefined;
+
+/** The deterministic cues.json of the golden project (as the stage writes it before Claude). */
+function defaultDesign(): Promise<Record<string, unknown>> {
+  reference ??= (async () => {
+    const { dir, runner } = await setup('cues reference', CUE_INPUTS, {
+      settings: { ...DEFAULT_STAGE_SETTINGS, economy: true },
+    });
+    const result = await runner.run({ stage: 'sound-cues' });
+    if (!result.ok) throw new Error(result.error.message);
+    return JSON.parse(readProject(dir, 'cues.json')) as Record<string, unknown>;
+  })();
+  return reference;
+}
+
 describe('sound cues stage', { timeout: 60_000 }, () => {
   it("keeps Claude's valid cues.json", async () => {
     const { dir, harness, runner } = await setup('cues claude', CUE_INPUTS, {
@@ -105,7 +126,13 @@ describe('sound cues stage', { timeout: 60_000 }, () => {
     expect(result.ok && result.value.metrics['source']).toBe('default');
     expect(harness?.specs).toEqual([]);
     const cues = CuesFileSchema.parse(JSON.parse(readProject(dir, 'cues.json')));
-    expect(cues.sfx.map((cue) => cue.name)).toEqual(['pop', 'whoosh']);
+    // The scene's pop, transition sounds and a soft hit on a number; one generated bed.
+    expect(cues.sfx.find((cue) => cue.name === 'pop')?.t).toBe(12.6);
+    expect(cues.sfx.some((cue) => cue.name === 'swoosh-in')).toBe(true);
+    expect(cues.moods).toEqual(['bright-explainer']);
+    expect(cues.music).toHaveLength(1);
+    expect(existsSync(path.join(dir, ...(cues.music[0]?.file ?? '').split('/')))).toBe(true);
+    expect(result.ok && result.value.metrics).toMatchObject({ acts: 1, moods: 'bright-explainer' });
     const [latest] = await projects.history(dir);
     expect(latest).toMatchObject({ kind: 'pipeline-step', step: 'sound-cues' });
   });
@@ -118,6 +145,48 @@ describe('sound cues stage', { timeout: 60_000 }, () => {
     expect(result.ok && result.value.metrics['source']).toBe('default');
     expect(result.ok && result.value.warnings).toContain('Default cues requested (no Claude turn)');
     expect(harness?.specs).toEqual([]);
+  });
+
+  it('skips the music when it is switched off in the settings', async () => {
+    const { dir, runner } = await setup('cues no music', CUE_INPUTS, {
+      settings: { ...DEFAULT_STAGE_SETTINGS, economy: true, music: { enabled: false } },
+    });
+    expect((await runner.run({ stage: 'sound-cues' })).ok).toBe(true);
+    const cues = CuesFileSchema.parse(JSON.parse(readProject(dir, 'cues.json')));
+    expect(cues.music).toEqual([]);
+    expect(cues.moods).toBeUndefined();
+  });
+
+  it("re-renders the music when Claude's adjustment changes an act's mood", async () => {
+    const design = await defaultDesign();
+    const adjusted = { ...design, moods: ['lofi-chill'] };
+    const { dir, harness, runner } = await setup('cues moods', CUE_INPUTS, {
+      steps: [writes({ 'cues.json': JSON.stringify(adjusted) })],
+    });
+    const result = await runner.run({ stage: 'sound-cues' });
+    expect(harness?.specs[0]?.prompt).toContain('1: 0–37.205 s, full, energy');
+    expect(result.ok && result.value.metrics).toMatchObject({
+      source: 'claude',
+      moods: 'lofi-chill',
+    });
+    const cues = CuesFileSchema.parse(JSON.parse(readProject(dir, 'cues.json')));
+    const file = cues.music[0]?.file ?? '';
+    expect(file).toMatch(/^audio\/music\/gen-lofi-chill-/);
+    expect(existsSync(path.join(dir, ...file.split('/')))).toBe(true);
+    expect(cues.sfx).toEqual(CuesFileSchema.parse(design).sfx);
+  });
+
+  it('rejects moods that do not match the acts and keeps the default design', async () => {
+    const design = await defaultDesign();
+    const wrong = JSON.stringify({ ...design, moods: ['lofi-chill', 'retro-wave'] });
+    const { dir, harness, runner } = await setup('cues bad moods', CUE_INPUTS, {
+      steps: [writes({ 'cues.json': wrong }), writes({ 'cues.json': wrong })],
+    });
+    const result = await runner.run({ stage: 'sound-cues' });
+    expect(harness?.specs[1]?.prompt).toContain('moods-count');
+    expect(result.ok && result.value.metrics['source']).toBe('default');
+    const cues = CuesFileSchema.parse(JSON.parse(readProject(dir, 'cues.json')));
+    expect(cues).toEqual(CuesFileSchema.parse(design));
   });
 
   it('uses the default cues when Claude is not connected', async () => {
@@ -149,6 +218,36 @@ describe('mix stage', { timeout: 30_000 }, () => {
       MixReportSchema.parse(JSON.parse(readProject(dir, '.reelforge/reports/mix.json'))).after
         .integratedLufs,
     ).toBe(-14.2);
+  });
+
+  it('writes the mix QA report and warns about shallow ducking and muddy music', async () => {
+    const { dir, audio, runner } = await mixProject('mix qa');
+    const good = await runner.run({ stage: 'mix' });
+    expect(good.ok && good.value.warnings).toEqual([]);
+    expect(good.ok && good.value.metrics).toMatchObject({ duckingDb: 9.5, speechMarginDb: 21 });
+    const first = MixQaReportSchema.parse(
+      JSON.parse(readProject(dir, '.reelforge/mix-report.json')),
+    );
+    expect(first.checks.map((check) => [check.id, check.status])).toEqual([
+      ['loudness', 'pass'],
+      ['true-peak', 'pass'],
+      ['clipping', 'pass'],
+      ['ducking', 'pass'],
+      ['speech-clarity', 'pass'],
+      ['music-low-band', 'pass'],
+      ['sfx-density', 'pass'],
+    ]);
+    if (audio.mixQa === undefined) throw new Error('the fake mix has QA measurements');
+    audio.mixQa = { ...audio.mixQa, duckingDepthDb: 2.5, musicLowShare: 0.2 };
+    const weak = await runner.run({ stage: 'mix' });
+    expect(weak.ok && weak.value.warnings).toEqual([
+      'Music ducking under speech: 2.5 dB (want ≥ 6 dB)',
+      'Music below 120 Hz: 20.0 % (want ≤ 12 %)',
+    ]);
+    const second = MixQaReportSchema.parse(
+      JSON.parse(readProject(dir, '.reelforge/mix-report.json')),
+    );
+    expect(second.checks.find((check) => check.id === 'ducking')?.status).toBe('warn');
   });
 
   it('fails when the master misses the loudness bar', async () => {

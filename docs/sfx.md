@@ -27,7 +27,8 @@ All sounds are synthesized offline in pure Node (`packages/pipeline/src/mix/sfx.
 
 The first eight names are the original v1 set (unchanged, same order); the rest were added later.
 The list is mirrored by `BUILTIN_SFX_NAMES` (desktop, checked by a test) and the `sound-cues`
-prompt.
+prompt (checked by a test); `reelforge kit-docs sfx` prints it from `SFX_RECIPES` / `SFX_USE` /
+`SFX_VARIANTS` directly.
 
 | Name | Category | Default s | Variants (`seed % n`) | Intended use |
 | --- | --- | --- | --- | --- |
@@ -63,3 +64,72 @@ prompt.
 | `chime` | tonal | 1.8 | 0·up, 1·down, 2·cluster | Magic / idea / discovery moment, gentle intro sting. |
 | `coin` | tonal | 0.6 | 0·classic, 1·high, 2·triple, 3·gem | Money, points, reward, collected item (retro). |
 | `sparkle` | tonal | 1 | 0·dense, 1·sparse, 2·rising, 3·magic | Shine, magic, "new!", clean / polished result. |
+
+## How cues are chosen (the sound director)
+
+The **Sound design mixed** stage writes a deterministic `cues.json` first (no Claude; same inputs ->
+same file); Claude's sound-cues turn (prompt v2) then only adjusts it, and Economy mode / no Claude
+keeps it as is. Code: `packages/stages/src/sound/` (`cue-events.ts` finds events, `cue-rules.ts` is
+the rule table, `cue-director.ts` applies it; tests next to them).
+
+**Inputs:** `storyboard.json` (shots, treatments, transitions), `timing/words.json`, and what the
+built scenes declared: their `ctx.sfx.at` sounds and resolved anchors (from the scene stage's
+`.reelforge/sync-report.json`, or the runner's `sceneSfx` provider).
+
+**Events -> sounds** (`CUE_RULES`; level = category level + trim; priority 0 = kept first):
+
+| Event | Sound (variants) | Level dB | Lead | Priority |
+| --- | --- | --- | --- | --- |
+| Scene sound (`sfx.at`), first of its name in the shot | the scene's recipe, light variants | category | 0 | 0 |
+| List reveal (scene pops <= 2.5 s apart) | `pop` low -> cork -> pluck -> mouth (rising pitch), pan -0.2..+0.2 | -11 | 0 | 0 |
+| Counter (`counter/odometer` shot) | `tick`/`tock` alternating from the first tick / number to the landing, interval = span / 10 (0.12-0.3 s), crescendo -4 -> 0 dB; landing `ding` (`hit` if the scene asked) | -17..-21 / -8..-12 | 0 | 0 |
+| Typed text (scene `typewriter`) | `typewriter` (typewriter, laptop) | -14 | 0 | 0 |
+| End card (last shot, `title-card`) | `chime` up, 0.6 s into the shot | -13 | 0 | 0 |
+| Crossfade | `whoosh` air/slow, length = transition + 0.6 s | -14 | 0.3 s | 1 |
+| Glitch transition | `glitch` digital/stutter/corrupt | -11 | 0 | 1 |
+| Wipe | `swoosh-in` soft/bright, panned ±0.2 | -13 | 0.05 s | 1 |
+| Spoken number (shot without scene sounds) | `hit-soft` felt/muted; `whoosh-impact` snappy/classic when an anchor sits on it in a title/text/chart/counter shot | -8 / -11 | 0 / 0.25 s | 2 |
+| Text card in (`title-card`, `kinetic-text`) | `swoosh-in` soft/tick at shot start + 0.3 s | -15 | 0 | 3 |
+| Anchor without a sound (shot without scene sounds) | `pop` / `bubble` / `blip` | -11..-12 | 0 | 3 |
+| Repeated scene sound (same name again in the shot) | the scene's recipe | category | 0 | 3 |
+| Emphasis (`word!`, `word:` + payoff, ALL CAPS) | `riser` noise/tonal (0.6-1.4 s) ending on a `hit-soft` | -19 / -9 | - | 4 |
+| Cut | into UI-like shots `swoosh-in` soft, into 3D scenes `whoosh` fast/up/down; pan alternates ±0.15 | -16 | 0.25 s | 5 |
+
+Category levels (`CATEGORY_GAIN_DB`): motion -10, impact -7, texture -8, ui -9, tonal -11 dB, so
+the SFX sit roughly 10-15 dB under the voice. Bass-heavy variants (`hit` deep/cinematic, `boom`
+deep/explosion, `whoosh-impact` heavy, `stamp` heavy) are never picked automatically.
+
+**Density control** (`DENSITY`): a *gesture* is one cue or a designed series (counter, list,
+riser + hit). Budget = duration / 3 s + 1 gestures; at most 3 gestures start within any 4 s;
+gestures start >= 0.8 s apart; cues of different gestures >= 150 ms apart; nothing in the first
+0.3 s of a shot except transition sounds (a scene sound up to 0.15 s inside it moves to 0.3 s,
+deeper ones are dropped). Selection goes priority level by level; within a level the gesture
+farthest from those already kept goes first, so the sounds spread over the film.
+
+**Variants:** seed = hash(shot id | event index | cue index | recipe), adjusted so `seed % n` is
+the chosen variant; the previous cue's variant of the same recipe is never repeated (except in
+designed series).
+
+**Ambience:** one quiet bed per shot group (room-tone / hum at -28 dB), or, under generated music,
+one faint room-tone bed (-32 dB) for the whole film.
+
+## Mix QA (`.reelforge/mix-report.json`)
+
+After every mix render (`mix/qa.ts` streams over the stems in 4096-frame blocks; `mix/qa-report.ts`
+builds the verdict; the Sound panel lists it under the loudness readout):
+
+| Check | Bar | On a miss |
+| --- | --- | --- |
+| Integrated loudness | -14 ±1 LUFS | stage fails |
+| True peak | <= -1 dBTP | stage fails |
+| Clipping (full-scale samples in mix.wav) | none | listed as failed |
+| Music ducking under speech (un-ducked buses vs ducked stem, speech blocks) | >= 6 dB | warning |
+| Voice over music in the speech bands (500 Hz-4 kHz octaves, SII band-importance weighted) | >= 15 dB | warning |
+| Music stem energy below 120 Hz | <= 12 % | warning |
+| Sound moments per minute (cues < 0.6 s apart count once) | <= 24 | warning |
+
+Speech = blocks whose VO-stem level is above (95th percentile - 20 dB) and above -50 dBFS.
+
+Listening: `pnpm --filter @reelforge/stages sound:demo` (needs ffmpeg and a built CLI) renders the
+example film through these stages into `out/audio-demos/example-mix.wav` (+ `.png` spectrogram),
+`example-music.wav` (the ducked bed alone), `example-mix-cues.json` and `example-mix-report.json`.

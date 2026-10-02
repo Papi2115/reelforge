@@ -52,6 +52,8 @@ export interface StageSettings {
   /** Keep the replaced recording as `audio/vo.original.prev.<ext>`. */
   readonly archivePreviousVoiceover: boolean;
   readonly scenes: SceneSettings;
+  /** Generated background music per act in the sound-cues stage (default on). */
+  readonly music: { readonly enabled: boolean };
 }
 
 export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
@@ -82,6 +84,7 @@ export const DEFAULT_STAGE_SETTINGS: StageSettings = {
   mixToleranceLu: 1,
   archivePreviousVoiceover: true,
   scenes: DEFAULT_SCENE_SETTINGS,
+  music: { enabled: true },
 };
 
 /** Stage settings from the desktop app settings (`settings.json`). */
@@ -91,6 +94,7 @@ export function stageSettingsFromApp(app: AppSettings): StageSettings {
     ...DEFAULT_STAGE_SETTINGS,
     economy: app.economy,
     models: app.models,
+    music: { enabled: app.music.enabled },
     whisper: {
       ...DEFAULT_STAGE_SETTINGS.whisper,
       model,

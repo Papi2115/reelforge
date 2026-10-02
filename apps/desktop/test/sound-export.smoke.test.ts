@@ -1,7 +1,8 @@
 /**
  * Sound design and export in the built app (`pnpm test:app`; PLAN.md#8.2, #9.1, #9.2) on the CLI
  * fixture project stretched to three 11 s shots, with a synthetic voice-over: default cues without
- * Claude, Render mix (−14 LUFS ±1, TP ≤ −1), a library sound dragged onto the timeline (cue +
+ * Claude (director SFX + a generated music bed, summarized in the panel), Render mix (−14 LUFS ±1,
+ * TP ≤ −1) and its QA report in the panel, a library sound dragged onto the timeline (cue +
  * commit + preview mix of the edit), bus gain and music ducking written to cues.json, then the
  * export dialog: a 1080p30 export (ffprobe, chapters.txt, thumb.png, metadata), cancel + resume,
  * and YouTube suggestions from fake-claude. Never a model call. Screenshots at 1280×720 in
@@ -48,8 +49,9 @@ async function json(file: string): Promise<Record<string, unknown>> {
 
 async function cues(): Promise<{
   global?: Record<string, number>;
-  sfx: { t: number; name?: string }[];
-  music?: { ducking?: { ratio: number } }[];
+  sfx: { t: number; name?: string; seed?: number }[];
+  music?: { file: string; ducking?: { ratio: number } }[];
+  moods?: string[];
 }> {
   return (await json(path.join(dir, 'cues.json'))) as Awaited<ReturnType<typeof cues>>;
 }
@@ -168,16 +170,37 @@ describe('sound design', () => {
     await panel.waitFor();
     const before = JSON.stringify(await cues());
     await panel.getByRole('button', { name: 'Default cues (no Claude)' }).click();
-    const generated = await poll(cues, (value) => JSON.stringify(value) !== before);
+    const generated = await poll(cues, (value) => (value.music?.length ?? 0) > 0, 60_000);
     expect(JSON.stringify(generated)).not.toBe(before);
+    // The director's SFX (seeded variants) and one generated, ducked music bed for the one act.
+    expect(generated.sfx.length).toBeGreaterThan(0);
+    expect(generated.sfx.every((cue) => typeof cue.seed === 'number')).toBe(true);
+    expect(generated.moods).toHaveLength(1);
+    const bed = generated.music?.[0]?.file ?? '';
+    expect(bed).toMatch(/^audio\/music\/gen-/);
+    expect(existsSync(path.join(dir, ...bed.split('/')))).toBe(true);
+    const summary = panel.getByTestId('cue-summary');
+    await expect
+      .poll(() => summary.textContent())
+      .toContain(`1 music bed (${generated.moods?.[0] ?? ''})`);
     await panel.getByRole('button', { name: 'Render mix', exact: true }).click();
     await poll(
-      () => Promise.resolve(existsSync(path.join(dir, '.reelforge', 'reports', 'mix.json'))),
+      () => Promise.resolve(existsSync(path.join(dir, '.reelforge', 'mix-report.json'))),
       Boolean,
       120_000,
     );
     const readout = panel.getByTestId('mix-readout');
     await readout.getByText(/LUFS ✓/).waitFor({ timeout: 30_000 });
+    const qaList = panel.getByRole('list', { name: 'Mix report' });
+    await qaList.getByText(/Music ducking under speech: [\d.]+ dB$/).waitFor({ timeout: 30_000 });
+    const qa = (await json(path.join(dir, '.reelforge', 'mix-report.json'))) as {
+      checks: { id: string; status: string }[];
+    };
+    const status = Object.fromEntries(qa.checks.map((check) => [check.id, check.status]));
+    expect(status).toMatchObject({ loudness: 'pass', 'true-peak': 'pass', clipping: 'pass' });
+    expect(['pass', 'warn']).toContain(status['ducking']);
+    expect(await qaList.getByRole('listitem').count()).toBe(qa.checks.length);
+    await shot('sound-report');
     const report = (await json(path.join(dir, '.reelforge', 'reports', 'mix.json'))) as {
       after: { integratedLufs: number; truePeakDbtp: number };
     };
@@ -227,9 +250,10 @@ describe('sound design', () => {
     synthesizeVoiceover(music, 12);
     await stubFolderPicker(app, music);
     await panel.getByRole('tab', { name: /^Music/ }).click();
+    const beds = (await cues()).music?.length ?? 0;
     await panel.getByRole('button', { name: 'Import Music files…' }).click();
     await panel.getByRole('button', { name: 'Add bed music.wav at the playhead' }).click();
-    await poll(cues, (value) => (value.music?.length ?? 0) === 1);
+    await poll(cues, (value) => (value.music?.length ?? 0) === beds + 1);
     const ducking = panel.getByRole('group', { name: 'Music ducking amount' });
     await expect
       .poll(() => ducking.getByRole('button', { name: 'Medium' }).getAttribute('aria-pressed'))

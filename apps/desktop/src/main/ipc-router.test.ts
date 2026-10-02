@@ -158,8 +158,9 @@ function soundStubs(record: <T>(request: unknown, response: T) => Promise<T>): S
         gains: { voGainDb: 0, sfxGainDb: 0, ambienceGainDb: 0, musicGainDb: 0 },
         ducking: null,
         musicCues: 0,
+        cues: null,
         cuesError: null,
-        mix: { exists: false, stale: false, result: null },
+        mix: { exists: false, stale: false, result: null, qa: null },
         stems: [],
       }),
     soundImport: (request) =>

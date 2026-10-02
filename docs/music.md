@@ -11,10 +11,35 @@ samples, no downloads). Same request -> byte-identical WAV.
 - `writeMusicFile(projectDir, options)` -> `audio/music/gen-<mood>-<seed>-<hash>.wav` (16-bit).
   The hash covers every option and `MUSIC_ENGINE_VERSION`, so an existing file is reused only for
   the identical request.
-- `planActMusic(acts, { seed, moods, gainDb })` (pure) -> per act: generation options + a ducked
-  music cue (`loop: false`, the bed is rendered to the act's exact length, fades 1 s / 2 s).
-  `generateActMusic(projectDir, acts, options)` renders them (cached) and returns the cues for
-  `cues.json`. An act's `energy` (0..1) maps to the bed's intensity. Not wired into stages yet.
+- `planActMusic(acts, { seed, moods, gainDb, crossfadeS?, edgeFadeInS?, edgeFadeOutS?, timelineS? })`
+  (pure) -> per act: generation options + a ducked music cue (`loop: false`, the bed is rendered
+  to the cue's exact length). Without `crossfadeS` beds meet at the act edges and fade 1 s / 2 s;
+  with it each bed runs half the crossfade into its neighbours and fades over the overlap, and the
+  film edges fade `edgeFadeInS` / `edgeFadeOutS`. `generateActMusic(projectDir, acts, options)`
+  renders them (cached) and returns the cues for `cues.json`. An act's `energy` (0..1) maps to the
+  bed's intensity.
+
+## In the sound-cues stage
+
+`packages/stages/src/sound/` (`acts.ts`, `music.ts`, `design.ts`). On unless the app setting
+`music.enabled` is off or the user has their own files in `audio/music/` (those win: one ducked bed
+per shot group, as before; generated `gen-*.wav` files never count as the user's).
+
+- **Acts:** films under 75 s are one act; longer ones are cut into ~60 s acts (>= 30 s) at shot
+  boundaries, a non-cut transition counting as 10 s closer to the ideal boundary; roles intro /
+  body / outro.
+- **Energy** from the shot density (shots per minute: 4 -> 0.3, 8 -> 0.5, 12 -> 0.7, 16+ -> 0.9),
+  x0.85 for intro and outro; a bed gets at most 0.7 (light music).
+- **Mood** from the project style: `voxel-pixel-crisp640` calm-tech / bright-explainer /
+  retro-wave, `noir-voxel` tense-investigation / lofi-chill, `soft-480` lofi-chill / calm-tech
+  (others calm-tech / bright-explainer). Intro / outro and energy < 0.6 get the first, < 0.8 the
+  second, otherwise the third. Claude's sound-cues turn may set `moods` in `cues.json` (one per
+  act, validated: mood names by the schema, one entry per act); the stage then re-renders those
+  beds and keeps Claude's gain / ducking of each bed.
+- **Mix:** beds at -5 dB (about -28 LUFS before the master), 2 s crossfades between acts, 1.5 s
+  fade-in / 3 s fade-out at the film edges, ducked by the voice with the Medium sidechain preset
+  (threshold -30 dB, ratio 8, 20 / 400 ms). The mix QA (docs/sfx.md) checks ducking >= 6 dB, the
+  voice >= 15 dB over the music in the speech bands and <= 12 % of the music stem below 120 Hz.
 
 ## Moods
 

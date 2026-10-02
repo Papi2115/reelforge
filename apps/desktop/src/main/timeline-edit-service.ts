@@ -6,9 +6,9 @@
  * (`ReelForge-Kind: manual`). Changes run one at a time, in arrival order.
  */
 import { randomBytes } from 'node:crypto';
-import { rename, rm, writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { CuesFileSchema } from '@reelforge/pipeline';
+import { CuesFileSchema, renameRetrying } from '@reelforge/pipeline';
 import { storyboardFileSchema } from '@reelforge/shared';
 import { z } from 'zod';
 import { SNAPSHOT_FILES } from '../shared/snapshot-contract.js';
@@ -169,7 +169,8 @@ export async function writeTextAtomic(file: string, text: string): Promise<void>
   const tmp = `${file}.${randomBytes(4).toString('hex')}.tmp`;
   try {
     await writeFile(tmp, text, 'utf8');
-    await rename(tmp, file);
+    // Windows: git (autocommit) or a reader may hold the target for a moment (EPERM / EBUSY).
+    await renameRetrying(tmp, file);
   } catch (error) {
     await rm(tmp, { force: true });
     throw error;

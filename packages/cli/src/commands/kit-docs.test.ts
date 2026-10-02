@@ -1,4 +1,5 @@
 import type { KitCatalog } from '@reelforge/kit';
+import { SFX_CATEGORY, SFX_RECIPES } from '@reelforge/pipeline';
 import { describe, expect, it } from 'vitest';
 import { describeKitName, exampleCall, formatCatalog, typeSummary } from './kit-docs.js';
 
@@ -71,6 +72,10 @@ describe('kit-docs formatting', () => {
     );
     expect(text).toMatch(/kinetic\(words: .*perWordDelay\?: number = 0\.25/);
     expect(describeKitName(catalog, 'ease')).toContain('easeOutBack');
+    // Every built-in SFX from the pipeline's source of truth, with its variants and use.
+    const sfx = describeKitName(catalog, 'sfx');
+    for (const name of SFX_RECIPES) expect(sfx).toContain(`  ${name} (${SFX_CATEGORY[name]}; `);
+    expect(sfx).toContain('whoosh (motion; fast/slow/up/down/air): ');
     const all = describeKitName(catalog, 'ctx');
     for (const part of [
       'ctx.camera',

@@ -1,15 +1,17 @@
 /**
  * View model of the Sound panel (PLAN.md#8.2): level rows and their ranges, dB / loudness
- * formatting with the −14 LUFS ±1 / ≤ −1 dBTP checks, the library grouped per kind, and the
+ * formatting with the −14 LUFS ±1 / ≤ −1 dBTP checks, the cue summary and mix QA marks, the library grouped per kind, and the
  * drag payload of a library sound (validated on drop). Pure.
  */
 import {
   librarySoundSchema,
   MIX_GAIN_KEYS,
+  type CueSummary,
   type Ducking,
   type LibrarySound,
   type MixGainKey,
   type MixGains,
+  type MixQaCheckView,
   type MixResult,
   type SoundKind,
   type SoundMixPatch,
@@ -63,6 +65,37 @@ export function loudnessReadout(result: MixResult): LoudnessReadout {
     peakTarget: `≤ ${plain(result.truePeakMaxDbtp)}`,
   };
 }
+
+const plural = (count: number, one: string, many: string): string =>
+  `${String(count)} ${count === 1 ? one : many}`;
+
+/** `14 SFX · 1 ambience bed · 1 music bed (bright-explainer)`. */
+export function cueSummaryText(summary: CueSummary): string {
+  const moods = summary.moods.length > 0 ? ` (${summary.moods.join(', ')})` : '';
+  return [
+    `${String(summary.sfx)} SFX`,
+    plural(summary.ambience, 'ambience bed', 'ambience beds'),
+    `${plural(summary.music, 'music bed', 'music beds')}${moods}`,
+  ].join(' · ');
+}
+
+/** The most used built-in sounds, e.g. `tick ×9, pop ×3, glitch ×2`. */
+export function topSoundsText(summary: CueSummary, limit = 6): string {
+  const shown = summary.sounds
+    .slice(0, limit)
+    .map((sound) => `${sound.name} ×${String(sound.count)}`);
+  const more = summary.sounds.length - shown.length;
+  return more > 0 ? `${shown.join(', ')} +${String(more)} more` : shown.join(', ');
+}
+
+export const QA_MARKS: Readonly<
+  Record<MixQaCheckView['status'], { readonly mark: string; readonly className: string }>
+> = {
+  pass: { mark: '✓', className: 'qa-ok' },
+  warn: { mark: '⚠', className: 'qa-warning' },
+  fail: { mark: '✗', className: 'qa-failed' },
+  skip: { mark: '–', className: 'muted' },
+};
 
 /** The library per kind, in main's order (built-ins first). */
 export function libraryByKind(

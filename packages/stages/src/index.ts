@@ -18,11 +18,14 @@ export * from './snapshot.js';
 export * from './types.js';
 export { BUILT_IN_STAGES, type StageRegistry } from './stages/registry.js';
 export {
-  MIN_SFX_GAP_S,
   generateDefaultCues,
   shotGroups,
   type DefaultCuesInput,
+  type GeneratedMusic,
 } from './stages/default-cues.js';
+export { CATEGORY_GAIN_DB, CUE_RULES, DENSITY, type CueEventKind } from './sound/cue-rules.js';
+export { STYLE_MOODS, detectActs, actMoods, type FilmAct } from './sound/acts.js';
+export { designSound, type SoundDesign, type SoundDesignInput } from './sound/design.js';
 export { SCENE_STUB_MARKER, sceneStubSource } from './stages/scene-stub.js';
 export { buildVoReport, MAX_PLAUSIBLE_WPM, MIN_PLAUSIBLE_WPM } from './stages/vo-report.js';
 export { findRepetitionLoop, RETRY_DECODING } from './stages/words-quality.js';

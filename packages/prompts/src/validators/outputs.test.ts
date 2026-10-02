@@ -1,7 +1,7 @@
 import { CuesFileSchema } from '@reelforge/pipeline';
 import { describe, expect, it } from 'vitest';
 import { validateCriticReply } from './critic.js';
-import { validateCues } from './cues.js';
+import { sfxGestureCount, validateCues } from './cues.js';
 import { countWords, targetWordsFor, validateScript } from './script.js';
 import {
   parseMissing,
@@ -131,6 +131,19 @@ describe('validateCues (pipeline schema injected)', () => {
     expect(validateCues(dense, options).issues).toEqual([
       expect.objectContaining({ code: 'sfx-density', severity: 'warning' }),
     ]);
+    // A counter's ticks 0.2 s apart are one sound moment, not 15 cues.
+    const counter = cues({
+      sfx: Array.from({ length: 15 }, (_, index) => ({ t: 5 + index * 0.2, name: 'tick' })),
+    });
+    expect(validateCues(counter, options).issues).toEqual([]);
+    expect(sfxGestureCount([1, 1.2, 1.4, 5, 5.3, 9])).toBe(3);
+  });
+
+  it('checks one music mood per act', () => {
+    const moods = cues({ moods: ['calm-tech', 'retro-wave'] });
+    expect(validateCues(moods, { ...options, actCount: 2 }).issues).toEqual([]);
+    expect(codes(validateCues(moods, { ...options, actCount: 1 }).issues)).toEqual(['moods-count']);
+    expect(codes(validateCues(cues({ moods: ['dubstep'] }), options).issues)).toEqual(['schema']);
   });
 });
 

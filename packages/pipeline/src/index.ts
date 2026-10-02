@@ -252,10 +252,37 @@ export {
   type AmbienceSynthOptions,
 } from './mix/ambience.js';
 export { MIX_SAMPLE_RATE, hashSeed, mulberry32 } from './mix/dsp.js';
+export { renameRetrying } from './fs-retry.js';
+export {
+  bandShare,
+  integratedLufs,
+  mixToMono,
+  powerSpectrum,
+  spectralCentroid,
+  type PowerSpectrum,
+} from './mix/analysis.js';
 export { makeSeamlessLoop, type LoopCurve, type StereoClip } from './mix/clip.js';
 export { encodeWav, writeWavAtomic, type WavSampleFormat } from './mix/wav.js';
 export {
+  MIX_QA_CHECK_IDS,
+  MIX_QA_LIMITS,
+  MIX_QA_REPORT_VERSION,
+  MixQaCheckSchema,
+  MixQaReportSchema,
+  MixQaStatusSchema,
+  buildMixQaReport,
+  soundMoments,
+  type MixQaCheck,
+  type MixQaCheckId,
+  type MixQaOptions,
+  type MixQaReport,
+  type MixQaStatus,
+} from './mix/qa-report.js';
+export { analyzeMix, type MixQaInputs, type MixQaMeasurements } from './mix/qa.js';
+export { WavReader, parseWavHeader, type WavInfo } from './mix/wav-reader.js';
+export {
   MIX_REPORT_VERSION,
+  MixQaMeasurementsSchema,
   MixReportSchema,
   STEM_NAMES,
   type MixReport,

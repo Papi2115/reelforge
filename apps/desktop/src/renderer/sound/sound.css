@@ -138,6 +138,21 @@
   gap: 4px 8px;
 }
 
+.cue-summary {
+  margin: 0;
+  font-size: 12px;
+}
+
+.mix-qa {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
 .sound-levels,
 .sound-ducking {
   margin: 0;

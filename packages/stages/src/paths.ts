@@ -29,6 +29,8 @@ export const FILES = {
   /** Per-shot build/QA result (✓ ⚠ ✗) and the sync report (PLAN.md#7.4, #7.7). */
   scenesReport: '.reelforge/scenes-report.json',
   syncReport: '.reelforge/sync-report.json',
+  /** Mix QA verdict of the last mix render (ducking, speech clarity, low band, ...). */
+  mixQaReport: '.reelforge/mix-report.json',
   /** Contact sheets the critic and the review read (next to the CLI's frames, readable). */
   qaFramesDir: '.reelforge/frames/qa',
   /** Project props built by the scene stage (PLAN.md#7.4) and the modules that failed QA. */

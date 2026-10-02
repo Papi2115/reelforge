@@ -46,6 +46,33 @@ describe('planActMusic', () => {
     const cues = CuesFileSchema.parse({ version: 1, music: plans.map((plan) => plan.cue) });
     expect(cues.music).toHaveLength(2);
   });
+
+  it('overlaps neighbouring beds by the crossfade and fades the film edges', () => {
+    const acts = [
+      { from: 0, to: 60 },
+      { from: 60, to: 120 },
+      { from: 120, to: 150 },
+    ];
+    const plans = planActMusic(acts, {
+      seed: 3,
+      crossfadeS: 2,
+      edgeFadeInS: 1.5,
+      edgeFadeOutS: 3,
+      timelineS: 150,
+    });
+    expect(plans.map((plan) => [plan.cue.from, plan.cue.to])).toEqual([
+      [0, 61],
+      [59, 121],
+      [119, 150],
+    ]);
+    expect(plans.map((plan) => [plan.cue.fadeInS, plan.cue.fadeOutS])).toEqual([
+      [1.5, 2],
+      [2, 2],
+      [2, 3],
+    ]);
+    // Each bed is rendered to its cue's length, so the fade-out is never cut short.
+    expect(plans.map((plan) => plan.options.durationS)).toEqual([61, 62, 31]);
+  });
 });
 
 describe('writeMusicFile / generateActMusic', () => {

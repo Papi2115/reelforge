@@ -29,6 +29,7 @@ describe('app settings', () => {
       usage: { softBudgetUsd: null },
       performance: { exportWorkers: 'auto', encoder: 'auto', gpu: 'auto' },
       tools: { ffmpegPath: null, whisperPath: null, whisperModel: 'large-v3-turbo-q5_0' },
+      music: { enabled: true },
       export: {
         preset: '1080p30',
         quality: 'standard',

@@ -23,6 +23,8 @@ export interface CuesLike {
     readonly gainDb: number;
   }[];
   readonly music: readonly { readonly from: number; readonly to: number; readonly file: string }[];
+  /** Mood per act of the generated music (names are checked by the schema). */
+  readonly moods?: readonly string[] | undefined;
 }
 
 export type CuesSchema<T extends CuesLike> = z.ZodType<T>;
@@ -36,13 +38,24 @@ export interface CuesCheckOptions<T extends CuesLike> {
   readonly musicFileExists?: ((file: string) => boolean) | undefined;
   /** Loudest allowed ambience (dB). Default -20. */
   readonly maxAmbienceDb?: number | undefined;
+  /** Acts of the generated music; `moods` must then have one entry per act. */
+  readonly actCount?: number | undefined;
 }
 
 /** Cues may run this far past the voice-over end (s). */
 const END_TOLERANCE_S = 1;
-/** Prompt: roughly one SFX per 4–10 s; warn when clearly denser/sparser. */
+/** Prompt: roughly one sound moment per 3–6 s; warn when clearly denser/sparser. */
 const DENSEST_SFX_GAP_S = 2;
 const SPARSEST_SFX_GAP_S = 20;
+/** Cues closer than this form one sound moment (a counter's ticks, a list's pops). */
+const GESTURE_JOIN_S = 0.6;
+
+/** Number of sound moments: cues closer than GESTURE_JOIN_S to the previous one join it. */
+export function sfxGestureCount(times: readonly number[]): number {
+  const sorted = [...times].sort((a, b) => a - b);
+  return sorted.filter((t, index) => index === 0 || t - (sorted[index - 1] ?? 0) >= GESTURE_JOIN_S)
+    .length;
+}
 
 function timelineIssues(cues: CuesLike, durationS: number): ValidationIssue[] {
   const end = durationS + END_TOLERANCE_S;
@@ -71,13 +84,13 @@ function timelineIssues(cues: CuesLike, durationS: number): ValidationIssue[] {
         );
     });
   }
-  const count = cues.sfx.length;
+  const count = sfxGestureCount(cues.sfx.map((cue) => cue.t));
   if (count > durationS / DENSEST_SFX_GAP_S) {
     issues.push(
       issue(
         'warning',
         'sfx-density',
-        `${String(count)} sfx in ${String(durationS)} s is too dense (aim for one per 4–10 s)`,
+        `${String(count)} sound moments in ${String(durationS)} s is too dense (aim for one per 3–6 s)`,
       ),
     );
   } else if (count < Math.floor(durationS / SPARSEST_SFX_GAP_S)) {
@@ -85,7 +98,7 @@ function timelineIssues(cues: CuesLike, durationS: number): ValidationIssue[] {
       issue(
         'warning',
         'sfx-density',
-        `${String(count)} sfx in ${String(durationS)} s is very sparse`,
+        `${String(count)} sound moments in ${String(durationS)} s is very sparse`,
       ),
     );
   }
@@ -126,6 +139,17 @@ export function checkCues<T extends CuesLike>(
     }
   });
   if (options.durationS !== undefined) issues.push(...timelineIssues(cues, options.durationS));
+  const { actCount } = options;
+  if (cues.moods !== undefined && actCount !== undefined && cues.moods.length !== actCount) {
+    issues.push(
+      issue(
+        'error',
+        'moods-count',
+        `moods has ${String(cues.moods.length)} entries but the film has ${String(actCount)} act(s): one mood per act`,
+        'moods',
+      ),
+    );
+  }
   return issues;
 }
 

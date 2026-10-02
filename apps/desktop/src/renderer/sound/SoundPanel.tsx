@@ -1,7 +1,7 @@
 /**
  * Sound design (PLAN.md#8.2), docked under the preview: the library (drag onto the timeline),
- * "Generate cues" (Claude, or the deterministic default cues without it), "Render mix" (with
- * stems) and its loudness readout, the level sliders (voice-over + SFX / ambience / music buses)
+ * "Generate cues" (Claude, or the deterministic default cues without it) with a summary of the
+ * cues, "Render mix" (with stems), its loudness readout and the mix QA report, the level sliders (voice-over + SFX / ambience / music buses)
  * and the music ducking presets, and what the player monitors (full mix with the preview of the
  * latest edits, or the voice-over only).
  */
@@ -18,11 +18,14 @@ import type { MonitorMode } from '../preview/audio-source.js';
 import { STAGE_LABELS } from '../stages/pipeline-view.js';
 import { SoundLibrary } from './SoundLibrary.js';
 import {
+  cueSummaryText,
   formatDb,
   GAIN_RANGE,
   GAIN_ROWS,
   gainPatch,
   loudnessReadout,
+  QA_MARKS,
+  topSoundsText,
   withDuckingField,
   type DuckingNumberField,
 } from './sound-view.js';
@@ -51,7 +54,7 @@ const ACTIONS: readonly {
   {
     action: 'default-cues',
     label: 'Default cues (no Claude)',
-    hint: 'Deterministic cues: hits on anchors, whooshes on transitions, ambience per act',
+    hint: 'Deterministic sound design: SFX on scene events and transitions, ambience, generated music per act',
   },
   { action: 'mix', label: 'Render mix', hint: 'audio/mix.wav at −14 LUFS, true peak ≤ −1 dBTP' },
   {
@@ -108,6 +111,34 @@ function MixReadout({
         </button>
       )}
     </div>
+  );
+}
+
+function CueSummaryLine({ sound }: Pick<SoundPanelProps, 'sound'>): JSX.Element | null {
+  const summary = sound.state?.cues;
+  if (summary === null || summary === undefined) return null;
+  return (
+    <p className="cue-summary" data-testid="cue-summary">
+      <span>{cueSummaryText(summary)}</span>
+      {summary.sounds.length > 0 && <span className="muted"> — {topSoundsText(summary)}</span>}
+    </p>
+  );
+}
+
+function MixQaList({ sound }: Pick<SoundPanelProps, 'sound'>): JSX.Element | null {
+  const checks = sound.state?.mix.qa;
+  if (checks === null || checks === undefined || checks.length === 0) return null;
+  return (
+    <ul className="mix-qa" aria-label="Mix report">
+      {checks.map((check) => {
+        const mark = QA_MARKS[check.status];
+        return (
+          <li key={check.id} className={mark.className} title={`want ${check.limit}`}>
+            <span aria-hidden="true">{mark.mark}</span> {check.label}: {check.value}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -273,7 +304,9 @@ export function SoundPanel(props: SoundPanelProps): JSX.Element {
               {state.cuesError}
             </p>
           )}
+          <CueSummaryLine sound={sound} />
           <MixReadout sound={sound} onOpenStems={props.onOpenStems} />
+          <MixQaList sound={sound} />
           <fieldset className="sound-levels">
             <legend>Levels</legend>
             {GAIN_ROWS.map((row) => {

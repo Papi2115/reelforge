@@ -116,6 +116,17 @@ export interface ActMusicOptions {
   readonly moods?: MusicMood | readonly MusicMood[] | undefined;
   /** Cue gain (dB) of every bed (default 0: the bed is already at -23 LUFS). */
   readonly gainDb?: number | undefined;
+  /**
+   * Overlap of consecutive beds (s): each bed runs half of it into its neighbours and fades over
+   * the whole overlap (an equal-time crossfade). 0 (default): beds meet at the act edges and fade
+   * 1 s in / 2 s out.
+   */
+  readonly crossfadeS?: number | undefined;
+  /** Fade-in at the first act's start and fade-out at the last act's end when crossfading. */
+  readonly edgeFadeInS?: number | undefined;
+  readonly edgeFadeOutS?: number | undefined;
+  /** Timeline end (s): a crossfade never extends a bed past it. */
+  readonly timelineS?: number | undefined;
 }
 
 export type MusicCueInput = NonNullable<CuesFileInput['music']>[number];
@@ -127,6 +138,32 @@ export interface ActMusicPlan {
 
 const round3 = (value: number): number => Math.round(value * 1000) / 1000;
 
+const DEFAULT_FADE_IN_S = 1;
+const DEFAULT_FADE_OUT_S = 2;
+const DEFAULT_EDGE_FADE_IN_S = 1.5;
+const DEFAULT_EDGE_FADE_OUT_S = 3;
+
+interface BedSpan {
+  readonly from: number;
+  readonly to: number;
+  readonly fadeInS: number;
+  readonly fadeOutS: number;
+}
+
+function bedSpan(act: ActSpan, first: boolean, last: boolean, options: ActMusicOptions): BedSpan {
+  const crossfade = Math.max(0, options.crossfadeS ?? 0);
+  if (crossfade === 0) {
+    return { from: act.from, to: act.to, fadeInS: DEFAULT_FADE_IN_S, fadeOutS: DEFAULT_FADE_OUT_S };
+  }
+  const end = options.timelineS ?? Number.POSITIVE_INFINITY;
+  return {
+    from: first ? act.from : Math.max(0, act.from - crossfade / 2),
+    to: last ? act.to : Math.min(end, act.to + crossfade / 2),
+    fadeInS: first ? (options.edgeFadeInS ?? DEFAULT_EDGE_FADE_IN_S) : crossfade,
+    fadeOutS: last ? (options.edgeFadeOutS ?? DEFAULT_EDGE_FADE_OUT_S) : crossfade,
+  };
+}
+
 /** One bed per act (pure): generation options and the ducked music cue that plays it. */
 export function planActMusic(acts: readonly ActSpan[], options: ActMusicOptions): ActMusicPlan[] {
   const moods: readonly MusicMood[] =
@@ -135,33 +172,33 @@ export function planActMusic(acts: readonly ActSpan[], options: ActMusicOptions)
       : typeof options.moods === 'string'
         ? [options.moods]
         : options.moods;
-  return acts
-    .filter((act) => act.to - act.from >= MIN_MUSIC_DURATION_S / 2)
-    .map((act, index) => {
-      const mood = act.mood ?? moods[index % Math.max(1, moods.length)] ?? 'calm-tech';
-      const generate: GenerateMusicOptions = {
-        mood,
-        seed: hashSeed(`${String(options.seed >>> 0)}|act${String(index)}|${mood}`),
-        durationS: clampDuration(act.to - act.from),
-        energy: act.energy,
-        loopable: true,
-      };
-      return {
-        options: generate,
-        cue: {
-          id: `music-${String(index + 1).padStart(2, '0')}`,
-          from: round3(act.from),
-          to: round3(act.to),
-          file: musicFilePath(generate),
-          gainDb: options.gainDb ?? 0,
-          // The bed is rendered to the act's exact length; looping is only for user-extended cues.
-          loop: false,
-          fadeInS: 1,
-          fadeOutS: 2,
-          ducking: { enabled: true },
-        },
-      };
-    });
+  const kept = acts.filter((act) => act.to - act.from >= MIN_MUSIC_DURATION_S / 2);
+  return kept.map((act, index) => {
+    const mood = act.mood ?? moods[index % Math.max(1, moods.length)] ?? 'calm-tech';
+    const span = bedSpan(act, index === 0, index === kept.length - 1, options);
+    const generate: GenerateMusicOptions = {
+      mood,
+      seed: hashSeed(`${String(options.seed >>> 0)}|act${String(index)}|${mood}`),
+      durationS: clampDuration(span.to - span.from),
+      energy: act.energy,
+      loopable: true,
+    };
+    return {
+      options: generate,
+      cue: {
+        id: `music-${String(index + 1).padStart(2, '0')}`,
+        from: round3(span.from),
+        to: round3(span.to),
+        file: musicFilePath(generate),
+        gainDb: options.gainDb ?? 0,
+        // The bed is rendered to the cue's exact length; looping is only for user-extended cues.
+        loop: false,
+        fadeInS: round3(span.fadeInS),
+        fadeOutS: round3(span.fadeOutS),
+        ducking: { enabled: true },
+      },
+    };
+  });
 }
 
 /** Renders (cached) every act's bed and returns the music cues for `cues.json`. */
