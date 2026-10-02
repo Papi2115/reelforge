@@ -1,0 +1,241 @@
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { projectFileSchema } from '@reelforge/shared';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createProject } from './create.js';
+import { history } from './git-history.js';
+import { runGit } from './git-runner.js';
+import { openProject, type ProjectMigration } from './open.js';
+import { DEFAULT_TEMPLATE_DIR, projectFolderName, toProjectRelative } from './paths.js';
+import { createGitSandbox, type GitSandbox } from './testing/git-sandbox.js';
+
+// Every case spawns git a dozen times; Windows CI runners are slow at process creation.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
+
+let sandbox: GitSandbox;
+
+beforeEach(async () => {
+  sandbox = await createGitSandbox();
+});
+
+afterEach(async () => {
+  await sandbox.dispose();
+});
+
+function projectDir(name = 'Mój film o kalkulatorze'): string {
+  return path.join(sandbox.root, name);
+}
+
+async function create(dir = projectDir()) {
+  const result = await createProject({
+    dir,
+    title: 'Mój film',
+    language: 'pl',
+    seed: 7,
+    git: sandbox.git,
+  });
+  if (!result.ok) throw new Error(result.error.message);
+  return result.value;
+}
+
+async function gitOutput(dir: string, args: string[]): Promise<{ code: number; stdout: string }> {
+  const result = await runGit(dir, args, sandbox.git);
+  if (!result.ok) throw new Error(result.error.message);
+  return { code: result.value.code, stdout: result.value.stdout.trim() };
+}
+
+describe('createProject', () => {
+  it('creates the template files, folders and a first commit (space + Polish path)', async () => {
+    const dir = projectDir();
+    const created = await create(dir);
+    expect(created.project).toMatchObject({
+      version: 1,
+      title: 'Mój film',
+      language: 'pl',
+      seed: 7,
+    });
+    const projectJson: unknown = JSON.parse(await readFile(path.join(dir, 'project.json'), 'utf8'));
+    expect(projectFileSchema.parse(projectJson)).toEqual(created.project);
+    expect(await readFile(path.join(dir, 'CLAUDE.md'))).toEqual(
+      await readFile(path.join(DEFAULT_TEMPLATE_DIR, 'CLAUDE.md')),
+    );
+    for (const folder of ['scenes', 'audio', 'timing', 'out', '.git']) {
+      expect(existsSync(path.join(dir, folder))).toBe(true);
+    }
+    const entries = await history(dir, { git: sandbox.git });
+    if (!entries.ok) throw new Error(entries.error.message);
+    expect(entries.value).toHaveLength(1);
+    expect(entries.value[0]).toMatchObject({
+      kind: 'create',
+      step: 'create',
+      subject: 'Create project "Mój film"',
+    });
+    expect(entries.value[0]?.files.map((file) => file.path).sort()).toEqual([
+      '.gitignore',
+      'CLAUDE.md',
+      'audio/.keep',
+      'project.json',
+      'scenes/.keep',
+      'timing/.keep',
+    ]);
+    expect((await gitOutput(dir, ['branch', '--show-current'])).stdout).toBe('main');
+  });
+
+  it('sets a repo-local identity only when git has none', async () => {
+    const dir = projectDir();
+    await create(dir);
+    expect((await gitOutput(dir, ['config', '--local', '--get', 'user.name'])).stdout).toBe(
+      'ReelForge',
+    );
+    expect((await gitOutput(dir, ['log', '-1', '--format=%an <%ae>'])).stdout).toBe(
+      'ReelForge <reelforge@local>',
+    );
+
+    const withIdentity = await createGitSandbox({
+      identity: { name: 'Papi', email: 'papi@example.com' },
+    });
+    try {
+      const other = path.join(withIdentity.root, 'p');
+      const result = await createProject({ dir: other, title: 'X', git: withIdentity.git });
+      expect(result.ok).toBe(true);
+      const local = await runGit(
+        other,
+        ['config', '--local', '--get', 'user.name'],
+        withIdentity.git,
+      );
+      expect(local.ok && local.value.code).toBe(1);
+      const author = await runGit(other, ['log', '-1', '--format=%an'], withIdentity.git);
+      expect(author.ok && author.value.stdout.trim()).toBe('Papi');
+    } finally {
+      await withIdentity.dispose();
+    }
+  });
+
+  it('refuses a folder with files and an invalid title (without creating anything)', async () => {
+    const dir = projectDir();
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, 'notes.txt'), 'mine');
+    const notEmpty = await createProject({ dir, title: 'X', git: sandbox.git });
+    expect(!notEmpty.ok && notEmpty.error.kind).toBe('not-empty');
+
+    const other = projectDir('blank');
+    const blank = await createProject({ dir: other, title: '   ', git: sandbox.git });
+    expect(!blank.ok && blank.error.kind).toBe('invalid-argument');
+    expect(existsSync(other)).toBe(false);
+  });
+});
+
+describe('openProject', () => {
+  it('opens a created project', async () => {
+    const dir = projectDir();
+    const created = await create(dir);
+    const opened = await openProject(dir, { git: sandbox.git });
+    expect(opened).toEqual({ ok: true, value: { ...created, initializedGit: false } });
+  });
+
+  it('returns typed errors for missing folders, non-projects and broken project.json', async () => {
+    const missing = await openProject(projectDir('nope'), { git: sandbox.git });
+    expect(!missing.ok && missing.error.kind).toBe('not-found');
+
+    const plain = projectDir('plain');
+    await mkdir(plain);
+    const notProject = await openProject(plain, { git: sandbox.git });
+    expect(!notProject.ok && notProject.error.kind).toBe('not-a-project');
+
+    const dir = projectDir();
+    await create(dir);
+    const file = path.join(dir, 'project.json');
+    await writeFile(file, '{ "version": 1, "title": ');
+    const corrupt = await openProject(dir, { git: sandbox.git });
+    expect(!corrupt.ok && corrupt.error).toMatchObject({ kind: 'corrupt', path: file });
+
+    await writeFile(
+      file,
+      JSON.stringify({ version: 1, title: 'X', language: 'de', style: 'a', fps: 30, seed: 1 }),
+    );
+    const invalid = await openProject(dir, { git: sandbox.git });
+    expect(!invalid.ok && invalid.error.kind).toBe('invalid');
+    expect(!invalid.ok && invalid.error.details?.[0]).toMatch(/^language:/);
+
+    await writeFile(file, JSON.stringify({ version: 99, title: 'X' }));
+    const newer = await openProject(dir, { git: sandbox.git });
+    expect(!newer.ok && newer.error.kind).toBe('unsupported-version');
+  });
+
+  it('migrates an old project.json through the migration hook and commits it', async () => {
+    const dir = projectDir();
+    await create(dir);
+    const file = path.join(dir, 'project.json');
+    await writeFile(
+      file,
+      JSON.stringify({
+        version: 0,
+        name: 'Old',
+        language: 'en',
+        style: 'voxel-pixel-crisp640',
+        fps: 30,
+        seed: 3,
+      }),
+    );
+    const fromV0: ProjectMigration = ({ name, ...rest }) => ({ ...rest, title: name });
+    const opened = await openProject(dir, { git: sandbox.git, migrations: new Map([[0, fromV0]]) });
+    expect(opened.ok && opened.value.migratedFrom).toBe(0);
+    expect(opened.ok && opened.value.project.title).toBe('Old');
+    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({ version: 1, title: 'Old' });
+    const entries = await history(dir, { git: sandbox.git });
+    expect(entries.ok && entries.value[0]?.step).toBe('migrate');
+
+    await writeFile(file, JSON.stringify({ version: 0, name: 'Old' }));
+    const noMigration = await openProject(dir, { git: sandbox.git });
+    expect(!noMigration.ok && noMigration.error.kind).toBe('unsupported-version');
+  });
+
+  it('starts git history (with the template .gitignore) for a folder without it', async () => {
+    const dir = projectDir('hand made');
+    await mkdir(path.join(dir, 'audio'), { recursive: true });
+    await writeFile(path.join(dir, 'audio', 'vo.original.wav'), 'RIFF');
+    await writeFile(
+      path.join(dir, 'project.json'),
+      JSON.stringify({
+        version: 1,
+        title: 'Hand',
+        language: 'en',
+        style: 'voxel-pixel-crisp640',
+        fps: 30,
+        seed: 1,
+      }),
+    );
+    const opened = await openProject(dir, { git: sandbox.git });
+    expect(opened.ok && opened.value.initializedGit).toBe(true);
+    const entries = await history(dir, { git: sandbox.git });
+    if (!entries.ok) throw new Error(entries.error.message);
+    expect(entries.value[0]?.subject).toBe('Start history');
+    expect(entries.value[0]?.files.map((change) => change.path).sort()).toEqual([
+      '.gitignore',
+      'project.json',
+    ]);
+  });
+});
+
+describe('paths', () => {
+  it('derives Windows-safe folder names from titles', () => {
+    expect(projectFolderName('Jak działa: kalkulator?')).toBe('Jak działa kalkulator');
+    expect(projectFolderName('  a/b\\c  ')).toBe('a b c');
+    expect(projectFolderName('con')).toBe('con video');
+    expect(projectFolderName('...')).toBe('Untitled video');
+    expect(projectFolderName('dots...')).toBe('dots');
+  });
+
+  it('confines files to the project', () => {
+    const dir = projectDir();
+    expect(toProjectRelative(dir, 'scenes/s01.js')).toEqual({ ok: true, value: 'scenes/s01.js' });
+    expect(toProjectRelative(dir, path.join(dir, 'scenes', 's01.js'))).toEqual({
+      ok: true,
+      value: 'scenes/s01.js',
+    });
+    for (const bad of ['../x.js', '.git/config', dir, path.join(sandbox.root, 'other.js')]) {
+      expect(toProjectRelative(dir, bad).ok).toBe(false);
+    }
+  });
+});

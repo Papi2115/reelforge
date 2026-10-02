@@ -1,6 +1,6 @@
 {
   "name": "@reelforge/kit",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Voxel props, environments, effects and styles.",
   "type": "module",
@@ -11,5 +11,13 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/three": "0.186.0",
+    "playwright": "1.63.0",
+    "three": "0.186.1"
   }
 }

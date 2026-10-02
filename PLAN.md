@@ -164,50 +164,50 @@ reelforge/
 - [x] **1.4** [S] Przegląd spike'ów → ADR w `docs/decisions/`; popraw `PLAN.md` jeśli któraś decyzja D1–D10 upadła; jeśli spike padł → zapytaj Papiego. — AC: ADR-001…003, faza 2 odblokowana.
 
 ### Faza 2 — Silnik (`packages/engine`)
-- [ ] **2.1** [O] Kontrakt sceny + loader modułów (iframe sandbox, bez dostępu do Node), typy w `shared`. — AC: przykładowa scena ładuje się i renderuje.
-- [ ] **2.2** [O] Zegar/`seek`, seeded RNG (mulberry32), mapowanie t globalny→lokalny shotu, przejścia (cut, crossfade, glitch, wipe). — AC: testy determinizmu (hash klatki stabilny).
-- [ ] **2.3** [O] Post-fx pixel-art: low-res RT, paleta LUT, Bayer dithering, outline, scanlines; presety JSON. — AC: golden frames dla 3 presetów.
-- [ ] **2.4** [O] Rigi kamery: dolly, orbit, push-in, crane, shake (seeded), look-at. — AC: test ruchu (pozycje w t=0/0.5/1).
-- [ ] **2.5** [O] System tekstu: pixel fonty (OFL), title/lower-third/kinetic, API pomiaru + safe area + wykrywanie kolizji kart. — AC: test: nakładające się karty zgłoszone.
-- [ ] **2.6** [O] **Lint determinizmu** (AST): zakazane API z CLAUDE.md §3.2. — AC: testy pozytywne/negatywne, komunikaty zrozumiałe dla LLM.
-- [ ] **2.7** [O] Harness golden-frame: `pnpm render:frames`, `pnpm test:render` (tolerancja per-pixel konfigurowalna). — AC: dokumentacja w `docs/`.
-- [ ] **2.8** [H] Przejdź wszystkie golden-framy i oceń wizualnie (puste/ucięte/artefakty). — AC: digest bez blockerów.
+- [x] **2.1** [O] Kontrakt sceny + loader modułów (iframe sandbox, bez dostępu do Node), typy w `shared`. — AC: przykładowa scena ładuje się i renderuje.
+- [x] **2.2** [O] Zegar/`seek`, seeded RNG (mulberry32), mapowanie t globalny→lokalny shotu, przejścia (cut, crossfade, glitch, wipe). — AC: testy determinizmu (hash klatki stabilny).
+- [x] **2.3** [O] Post-fx pixel-art: low-res RT, paleta LUT, Bayer dithering, outline, scanlines; presety JSON. — AC: golden frames dla 3 presetów.
+- [x] **2.4** [O] Rigi kamery: dolly, orbit, push-in, crane, shake (seeded), look-at. — AC: test ruchu (pozycje w t=0/0.5/1).
+- [x] **2.5** [O] System tekstu: pixel fonty (OFL), title/lower-third/kinetic, API pomiaru + safe area + wykrywanie kolizji kart. — AC: test: nakładające się karty zgłoszone.
+- [x] **2.6** [O] **Lint determinizmu** (AST): zakazane API z CLAUDE.md §3.2. — AC: testy pozytywne/negatywne, komunikaty zrozumiałe dla LLM.
+- [x] **2.7** [O] Harness golden-frame: `pnpm render:frames`, `pnpm test:render` (tolerancja per-pixel konfigurowalna). — AC: dokumentacja w `docs/`.
+- [x] **2.8** [H] Przejdź wszystkie golden-framy i oceń wizualnie (puste/ucięte/artefakty). — AC: digest bez blockerów.
 
 ### Faza 3 — Kit i styl (`packages/kit`)
-- [ ] **3.1** [O] Narzędzia voxel: `voxelFromGrid`, instancing/greedy meshing, indeks palety per voxel, fałszywe AO. — AC: test wydajności (100k voxeli ≥ 60 fps podgląd).
-- [ ] **3.2** [O] Środowiska: neon grid (fiolet/teal), dithered niebo, ławka/biurko, pustka-scena, miasto z bloków, pokój. — AC: contact sheet środowisk.
-- [ ] **3.3** [O] Propsy v1 (~30): kalkulator, ławka, kartka, laptop, monitor, serwer, telefon, folder, gotówka/monety, walizka, stół z mapą, globus, zegar, kłódka, klucz, auto, budynek, magazyn, kontener, ciężarówka, **postać-voxel** (stand/walk/sit/point), tłum itd. Każdy z turntable testem. — AC: auto-generowany `docs/kit-catalog.md` z miniaturami.
-- [ ] **3.4** [O] Efekty i infografiki 3D: pływające kostki, eksplozja odłamków, glitch/dissolve, flicker, licznik/odometr, słupki 3D, graf węzłów, animowana mapa, oś czasu. — AC: każdy efekt ma scenę-przykład + golden.
-- [ ] **3.5** [O] Presety stylu: Voxel Pixel · Crisp 640 (domyślny), Noir Voxel, Soft 480; tokeny palet. — AC: ta sama scena w 3 stylach.
-- [ ] **3.6** [S] `STYLE.md` (biblia stylu, §4.2) dla każdego presetu; spot-check wizualny względem referencji Papiego. — AC: Papi akceptuje wygląd na 3 klatkach.
-- [ ] **3.7** [H] QA katalogu kitu (contact sheet → lista defektów). — AC: digest.
+- [x] **3.1** [O] Narzędzia voxel: `voxelFromGrid`, instancing/greedy meshing, indeks palety per voxel, fałszywe AO. — AC: test wydajności (100k voxeli ≥ 60 fps podgląd).
+- [x] **3.2** [O] Środowiska: neon grid (fiolet/teal), dithered niebo, ławka/biurko, pustka-scena, miasto z bloków, pokój. — AC: contact sheet środowisk.
+- [x] **3.3** [O] Propsy v1 (~30): kalkulator, ławka, kartka, laptop, monitor, serwer, telefon, folder, gotówka/monety, walizka, stół z mapą, globus, zegar, kłódka, klucz, auto, budynek, magazyn, kontener, ciężarówka, **postać-voxel** (stand/walk/sit/point), tłum itd. Każdy z turntable testem. — AC: auto-generowany `docs/kit-catalog.md` z miniaturami.
+- [x] **3.4** [O] Efekty i infografiki 3D: pływające kostki, eksplozja odłamków, glitch/dissolve, flicker, licznik/odometr, słupki 3D, graf węzłów, animowana mapa, oś czasu. — AC: każdy efekt ma scenę-przykład + golden.
+- [x] **3.5** [O] Presety stylu: Voxel Pixel · Crisp 640 (domyślny), Noir Voxel, Soft 480; tokeny palet. — AC: ta sama scena w 3 stylach.
+- [x] **3.6** [S] `STYLE.md` (biblia stylu, §4.2) dla każdego presetu; spot-check wizualny względem referencji Papiego. — AC: Papi akceptuje wygląd na 3 klatkach.
+- [x] **3.7** [H] QA katalogu kitu (contact sheet → lista defektów). — AC: digest.
 
 ### Faza 4 — Pipeline audio/czas/eksport (`packages/pipeline`)
-- [ ] **4.1** [O] Menedżer ffmpeg: wykrywanie/wskazanie binarium, parser postępu, anulowanie. — AC: testy na fixture.
-- [ ] **4.2** [O] **Audio clean**: presety light/standard/heavy (highpass, `afftdn`, opcj. `arnndn`, opcj. skracanie długich ciszy z limitem, `loudnorm`), raport LUFS przed/po → `vo.clean.wav`. — AC: test na 3 próbkach, LUFS w tolerancji.
-- [ ] **4.3** [O] whisper.cpp: pobranie modelu na żądanie (checksum), uruchomienie, word timestamps, wybór języka. — AC: `words.raw.json` zgodny ze schematem.
-- [ ] **4.4** [O] Alignment (Needleman–Wunsch) skrypt↔ASR → `words.json` wierny skryptowi; confidence; obszary rozbieżności. — AC: test WER na fixture < próg ze spike'a.
-- [ ] **4.5** [O] `resolveAnchor(phrase, nth)` fuzzy + testy (powtórzenia, interpunkcja, liczby "61 KB").
-- [ ] **4.6** [O] Mikser: schemat `cues.json`; SFX z syntezy `OfflineAudioContext` (receptury: whoosh/click/hit/typewriter) + sample użytkownika; ambient loops; muzyka z **sidechain ducking**; loudnorm finalny −14 LUFS; eksport stemów. — AC: render miksu 60 s deterministyczny.
-- [ ] **4.7** [O] **Eksport**: render równoległy po shotach (workers = rdzenie/2), cache klatek (hash: kod sceny + wersja kitu + styl + użyte anchory), concat + mux, presety 1080p30 (domyślny) / 1440p / 4K (×6), autodetekcja NVENC/QSV/AMF z fallbackiem `libx264`, wznawianie, miniatura. — AC: 2-min film eksportuje się; zmiana jednego shotu renderuje tylko ten shot.
+- [x] **4.1** [O] Menedżer ffmpeg: wykrywanie/wskazanie binarium, parser postępu, anulowanie. — AC: testy na fixture.
+- [x] **4.2** [O] **Audio clean**: presety light/standard/heavy (highpass, `afftdn`, opcj. `arnndn`, opcj. skracanie długich ciszy z limitem, `loudnorm`), raport LUFS przed/po → `vo.clean.wav`. — AC: test na 3 próbkach, LUFS w tolerancji.
+- [x] **4.3** [O] whisper.cpp: pobranie modelu na żądanie (checksum), uruchomienie, word timestamps, wybór języka. — AC: `words.raw.json` zgodny ze schematem.
+- [x] **4.4** [O] Alignment (Needleman–Wunsch) skrypt↔ASR → `words.json` wierny skryptowi; confidence; obszary rozbieżności. — AC: test WER na fixture < próg ze spike'a.
+- [x] **4.5** [O] `resolveAnchor(phrase, nth)` fuzzy + testy (powtórzenia, interpunkcja, liczby "61 KB").
+- [x] **4.6** [O] Mikser: schemat `cues.json`; SFX z syntezy `OfflineAudioContext` (receptury: whoosh/click/hit/typewriter) + sample użytkownika; ambient loops; muzyka z **sidechain ducking**; loudnorm finalny −14 LUFS; eksport stemów. — AC: render miksu 60 s deterministyczny.
+- [x] **4.7** [O] **Eksport**: render równoległy po shotach (workers = rdzenie/2), cache klatek (hash: kod sceny + wersja kitu + styl + użyte anchory), concat + mux, presety 1080p30 (domyślny) / 1440p / 4K (×6), autodetekcja NVENC/QSV/AMF z fallbackiem `libx264`, wznawianie, miniatura. — AC: 2-min film eksportuje się; zmiana jednego shotu renderuje tylko ten shot.
 - [ ] **4.8** [H] Odpal pipeline na fixture'ach, zraportuj czasy i wąskie gardła. — AC: `docs/perf.md`.
 
 ### Faza 5 — Most do Claude (`packages/claude-bridge`, `packages/prompts`, `templates/project`)
-- [ ] **5.1** [O] Detekcja i wizard połączenia (§2.1). — AC: stany: brak CLI / niezalogowany / OK, testowane na `fake-claude`.
-- [ ] **5.2** [O] Menedżer sesji: sesja per projekt + sesje boczne (script/QA), `--resume`, model per etap, kolejka, anulowanie (kill tree), timeouty, odzyskiwanie po crashu. — AC: testy na `fake-claude`.
-- [ ] **5.3** [O] Parser `stream-json` → typowane zdarzenia (tekst, tool_use, tool_result, result, usage) → "kroki" jak w UI referencji. — AC: testy na nagranych strumieniach.
-- [ ] **5.4** [O] **Limity**: wykrycie limitu użycia/rate-limit, parsowanie czasu resetu jeśli dostępny, pauza i trwały stan pipeline'u, wznowienie; licznik zużycia per projekt/etap; budżety miękkie; tryb Economy. — AC: scenariusz "limit w połowie budowy scen" wznawia się bez utraty pracy.
-- [ ] **5.5** [S] **Szablon `templates/project/CLAUDE.md`** dla runtime'owego Claude'a: kontrakt sceny, auto-generowane API kitu, wskaźnik do `STYLE.md`, zakazane API, jak robić self-QA (`reelforge frames/lint/anchors`), co wolno edytować (`scenes/`, `storyboard.json`, `script.txt`, `cues.json`), czego nie (`project.json`, audio, engine). — AC: Papi przegląda treść.
-- [ ] **5.6** [O] CLI **`reelforge`** (dla runtime Claude'a przez allowlistę Bash): `frames --at`, `contact-sheet`, `lint`, `validate`, `anchors`, `render-shot`, `kit-docs`, `status`. — AC: każda komenda ma testy i czytelne błędy.
-- [ ] **5.7** [O] Uprawnienia per etap: `--allowedTools "Read,Edit,Write,Glob,Grep,Bash(reelforge:*)"` (+`WebSearch,WebFetch` tylko w Script), blokada wyjścia poza folder projektu, `--add-dir` kitu read-only. — AC: test: próba edycji poza projektem odrzucona.
-- [ ] **5.8** [S] Biblioteka promptów etapów (script, research, storyboard, scene-build, scene-fix, critic, sound-cues) w `packages/prompts` + **evale** (briefy fixture → wyjście zgodne ze schematem). — AC: evale odpalane na `fake-claude` w CI, na prawdziwym ręcznie.
-- [ ] **5.9** [O] **`tools/fake-claude`**: atrapa CLI odtwarzająca nagrane `stream-json` (w tym limit i błędy). — AC: testy bridge'a i e2e nie wołają prawdziwego Claude'a.
+- [x] **5.1** [O] Detekcja i wizard połączenia (§2.1). — AC: stany: brak CLI / niezalogowany / OK, testowane na `fake-claude`.
+- [x] **5.2** [O] Menedżer sesji: sesja per projekt + sesje boczne (script/QA), `--resume`, model per etap, kolejka, anulowanie (kill tree), timeouty, odzyskiwanie po crashu. — AC: testy na `fake-claude`.
+- [x] **5.3** [O] Parser `stream-json` → typowane zdarzenia (tekst, tool_use, tool_result, result, usage) → "kroki" jak w UI referencji. — AC: testy na nagranych strumieniach.
+- [x] **5.4** [O] **Limity**: wykrycie limitu użycia/rate-limit, parsowanie czasu resetu jeśli dostępny, pauza i trwały stan pipeline'u, wznowienie; licznik zużycia per projekt/etap; budżety miękkie; tryb Economy. — AC: scenariusz "limit w połowie budowy scen" wznawia się bez utraty pracy.
+- [x] **5.5** [S] **Szablon `templates/project/CLAUDE.md`** dla runtime'owego Claude'a: kontrakt sceny, auto-generowane API kitu, wskaźnik do `STYLE.md`, zakazane API, jak robić self-QA (`reelforge frames/lint/anchors`), co wolno edytować (`scenes/`, `storyboard.json`, `script.txt`, `cues.json`), czego nie (`project.json`, audio, engine). — AC: Papi przegląda treść.
+- [x] **5.6** [O] CLI **`reelforge`** (dla runtime Claude'a przez allowlistę Bash): `frames --at`, `contact-sheet`, `lint`, `validate`, `anchors`, `render-shot`, `kit-docs`, `status`. — AC: każda komenda ma testy i czytelne błędy.
+- [x] **5.7** [O] Uprawnienia per etap: `--allowedTools "Read,Edit,Write,Glob,Grep,Bash(reelforge:*)"` (+`WebSearch,WebFetch` tylko w Script), blokada wyjścia poza folder projektu, `--add-dir` kitu read-only. — AC: test: próba edycji poza projektem odrzucona.
+- [x] **5.8** [S] Biblioteka promptów etapów (script, research, storyboard, scene-build, scene-fix, critic, sound-cues) w `packages/prompts` + **evale** (briefy fixture → wyjście zgodne ze schematem). — AC: evale odpalane na `fake-claude` w CI, na prawdziwym ręcznie.
+- [x] **5.9** [O] **`tools/fake-claude`**: atrapa CLI odtwarzająca nagrane `stream-json` (w tym limit i błędy). — AC: testy bridge'a i e2e nie wołają prawdziwego Claude'a.
 
 ### Faza 6 — Aplikacja desktop (`apps/desktop`)
-- [ ] **6.1** [O] Szkielet Electron (`contextIsolation`, brak `nodeIntegration` w rendererze, bezpieczne IPC, sceny w sandboxowanym iframe). — AC: `pnpm dev` otwiera okno.
-- [ ] **6.2** [O] Menedżer projektów: nowy/otwórz, `git init`, autocommit po kroku pipeline'u i turze Claude'a, panel historii + revert ("Saved locally · git history"). — AC: revert przywraca scenę.
-- [ ] **6.3** [O] Layout: lewy panel (pipeline + shoty), środek (podgląd), prawy (czat Claude), dół (timeline). Ciemny motyw jak w referencji. — AC: responsywny od 1280 px.
-- [ ] **6.4** [O] Odtwarzacz: zegar nadrzędny = element audio, scrub z dźwiękiem, 0.5×–2×, snapshot klatki, **hot-reload sceny** po zmianie pliku (przebudowa tylko zmienionego shotu). — AC: edycja sceny widoczna w podglądzie < 1 s.
+- [x] **6.1** [O] Szkielet Electron (`contextIsolation`, brak `nodeIntegration` w rendererze, bezpieczne IPC, sceny w sandboxowanym iframe). — AC: `pnpm dev` otwiera okno.
+- [x] **6.2** [O] Menedżer projektów: nowy/otwórz, `git init`, autocommit po kroku pipeline'u i turze Claude'a, panel historii + revert ("Saved locally · git history"). — AC: revert przywraca scenę.
+- [x] **6.3** [O] Layout: lewy panel (pipeline + shoty), środek (podgląd), prawy (czat Claude), dół (timeline). Ciemny motyw jak w referencji. — AC: responsywny od 1280 px.
+- [x] **6.4** [O] Odtwarzacz: zegar nadrzędny = element audio, scrub z dźwiękiem, 0.5×–2×, snapshot klatki, **hot-reload sceny** po zmianie pliku (przebudowa tylko zmienionego shotu). — AC: edycja sceny widoczna w podglądzie < 1 s.
 - [ ] **6.5** [O] Timeline (Shots/Narration/Cues/Audio/Cards/Ambience): zoom, zaznaczanie, przesuwanie granic shotów z przyciąganiem do słów, edycja cue'ów, waveform. — AC: przesunięcie granicy aktualizuje `storyboard.json`.
 - [ ] **6.6** [O] Panel czatu: zakresy Selection/Shot/Whole video, **klik w podglądzie → wybór obiektu** (raycast → id/kontekst do Claude'a), kolejka, Stop, chipsy sugestii, log kroków z miniaturami klatek. — AC: zmiana "zrób ten element większy" na zaznaczonym obiekcie działa end-to-end.
 - [ ] **6.7** [O] Settings: Połącz Claude (§2.1), model per etap, tryb Economy, styl, język, wydajność (workery/GPU), ścieżki ffmpeg/whisper. — AC: zmiany zapisują się i działają.

@@ -1,0 +1,136 @@
+/* Timeline skeleton (PLAN.md#6.3): ruler, tracks, playhead. */
+.timeline {
+  height: 100%;
+}
+
+.timeline-grid {
+  --label-width: 92px;
+  --lane-end-gap: 14px;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+
+.track {
+  display: grid;
+  grid-template-columns: var(--label-width) minmax(0, 1fr);
+  height: 26px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.track-label {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  border-right: 1px solid var(--border-soft);
+}
+
+.track-lane,
+.ruler {
+  position: relative;
+  min-width: 0;
+  margin-right: var(--lane-end-gap);
+  overflow: hidden;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.ruler-row {
+  height: 24px;
+  background: var(--panel-raised);
+}
+
+.ruler-row .track-label {
+  color: var(--text);
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 5px 0 0 4px;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.track-empty {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.segment {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  min-width: 2px;
+  padding: 0 4px;
+  overflow: hidden;
+  border: 1px solid #5a6178;
+  border-radius: 3px;
+  background: #2d3242;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.segment.marker {
+  width: 4px;
+  min-width: 4px;
+  margin-left: -2px;
+  padding: 0;
+  border-color: var(--warn);
+  background: var(--warn);
+}
+
+.track[aria-label='Shots'] .segment {
+  border-color: #b8652b;
+  background: #4a2a14;
+}
+
+.track[aria-label='Shots'] .segment.selected {
+  border-color: var(--accent);
+  background: #7a3f17;
+}
+
+.track[aria-label='Narration'] .segment {
+  border-color: #3d5c80;
+  background: #1c2a3b;
+}
+
+.track[aria-label='Ambience'] .segment {
+  border-color: #3f7356;
+  background: #18301f;
+}
+
+.playhead-layer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--label-width);
+  right: var(--lane-end-gap);
+  pointer-events: none;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 40%);
+}

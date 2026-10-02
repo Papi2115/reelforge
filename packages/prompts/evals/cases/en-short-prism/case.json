@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "id": "en-short-prism",
+  "summary": "EN 30-second short (prism experiment), ~37 s, 7 shots",
+  "sceneBuild": {
+    "shotId": "s06_red_violet",
+    "expectMissing": ["prism"]
+  },
+  "sceneFix": {
+    "shotIds": ["s06_red_violet"],
+    "scope": "Shot",
+    "request": "Slow the bend down so VIOLET finishes on \"most\"."
+  },
+  "critic": {
+    "shotId": "s04_rainbow",
+    "imagePaths": [
+      "out/frames/s04_rainbow/0.000.png",
+      "out/frames/s04_rainbow/3.810.png",
+      "out/frames/s04_rainbow/7.520.png"
+    ]
+  },
+  "replies": {
+    "research": "Saved research.md: 8 sourced facts.\nUncertain: best angle depends on the glass.",
+    "script": "Word count: 84. Estimated duration: about 34 seconds.\nAll claims are sourced.",
+    "storyboard": "7 shots. Treatments: title-card, metaphor-object, 3d-reconstruction x2, data-chart-3d, kinetic-text, character-scene.\nMissing props: none.",
+    "scene-build": "RED and VIOLET bend apart, violet lands on \"most\" with a pop.\nQA: lint 0 errors, frames 0/1.8/3.5 s, anchors within 30 ms.\nMISSING: `prism`",
+    "scene-fix": "Bend now eases over the whole shot and finishes on \"most\".\nLint, frames and anchors re-checked.",
+    "critic": {
+      "frames": [
+        {
+          "path": "out/frames/s04_rainbow/0.000.png",
+          "verdict": "ok",
+          "note": "glass and beam clear"
+        },
+        {
+          "path": "out/frames/s04_rainbow/3.810.png",
+          "verdict": "ok",
+          "note": "rainbow visible on the wall"
+        },
+        {
+          "path": "out/frames/s04_rainbow/7.520.png",
+          "verdict": "blank",
+          "note": "frame almost uniform dark blue"
+        }
+      ]
+    },
+    "sound-cues": "sfx: 4, ambience: 1, music: 0."
+  }
+}

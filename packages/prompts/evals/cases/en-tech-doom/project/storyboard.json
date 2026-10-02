@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "shots": [
+    {
+      "id": "s01_hook",
+      "t0": 0,
+      "t1": 4.28,
+      "treatment": "title-card",
+      "intent": "Hook: the year 1993 slams onto a neon grid; lands on \"1993\". Slow push-in, excited mood.",
+      "scene": "scenes/s01_hook.js"
+    },
+    {
+      "id": "s02_floppies",
+      "t0": 4.28,
+      "t1": 8.745,
+      "treatment": "metaphor-object",
+      "intent": "Four voxel floppy disks stack up on a desk in Texas; the fourth lands on \"four floppy disks\". Camera cranes down.",
+      "scene": "scenes/s02_floppies.js"
+    },
+    {
+      "id": "s03_doom_title",
+      "t0": 8.745,
+      "t1": 12.305,
+      "treatment": "kinetic-text",
+      "intent": "The word DOOM punches in on \"Doom\", then \"changed everything\" shakes the frame.",
+      "scene": "scenes/s03_doom_title.js"
+    },
+    {
+      "id": "s04_engine",
+      "t0": 12.305,
+      "t1": 16.915,
+      "treatment": "3d-reconstruction",
+      "intent": "A wireframe level assembles itself on \"fake 3D world\"; a ghost room above another room is crossed out on \"no rooms above rooms\".",
+      "scene": "scenes/s04_engine.js"
+    },
+    {
+      "id": "s05_sectors",
+      "t0": 16.915,
+      "t1": 24.05,
+      "treatment": "3d-reconstruction",
+      "intent": "Flat sectors light up one by one on \"flat sectors\"; a speed streak sweeps on \"very fast renderer\". Calm orbit through the pause.",
+      "scene": "scenes/s05_sectors.js"
+    },
+    {
+      "id": "s06_everywhere",
+      "t0": 24.05,
+      "t1": 31.345,
+      "treatment": "montage/transition",
+      "intent": "Montage: calculator, printer and a pregnancy test each show the game, timed to \"calculators\", \"printers\" and \"pregnancy tests\".",
+      "scene": "scenes/s06_everywhere.js",
+      "transitionIn": {
+        "type": "crossfade",
+        "duration": 0.4
+      }
+    },
+    {
+      "id": "s07_source",
+      "t0": 31.345,
+      "t1": 38.27,
+      "treatment": "node-graph/timeline",
+      "intent": "Timeline 1993 to 1997; a source-code node opens on \"released in 1997\" and copies branch out.",
+      "scene": "scenes/s07_source.js"
+    },
+    {
+      "id": "s08_memory",
+      "t0": 38.27,
+      "t1": 41.95,
+      "treatment": "counter/odometer",
+      "intent": "A memory counter spins up and stops on 4 MB exactly on \"4 megabytes\". Push-in, satisfied ending.",
+      "scene": "scenes/s08_memory.js"
+    }
+  ],
+  "missingProps": ["floppy-disk", "pregnancy-test"]
+}

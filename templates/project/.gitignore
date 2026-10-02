@@ -1,0 +1,21 @@
+# ReelForge video project. Tracked: what is authored (project.json, brief.json, research.md,
+# script.txt, beats.md, timing/, storyboard.json, cues.json, scenes/, CLAUDE.md).
+# Not tracked: heavy media, renders and app state (sessions, usage, caches, frames, debug dumps).
+
+# Audio originals, cleaned VO and mixes (heavy; re-importable). The folder itself is kept.
+audio/**
+!audio/.keep
+
+# Exports
+out/
+
+# App state: Claude sessions, pipeline queue, usage ledger, caches, QA frames, debug dumps
+.reelforge/
+
+# In-flight atomic writes
+*.tmp
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store

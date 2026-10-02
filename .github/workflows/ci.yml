@@ -46,3 +46,23 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      # Render tests run real WebGL in Playwright's headless Chromium on SwiftShader (no GPU needed).
+      - name: Install Playwright Chromium (Linux, with system deps)
+        if: runner.os == 'Linux'
+        run: pnpm --filter @reelforge/engine exec playwright install --with-deps --only-shell chromium
+
+      - name: Install Playwright Chromium (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm --filter @reelforge/engine exec playwright install --only-shell chromium
+
+      - name: Render tests (SwiftShader goldens)
+        run: pnpm test:render
+
+      - name: Upload golden diffs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: golden-diff-${{ matrix.os }}
+          path: packages/engine/out/golden-diff/
+          if-no-files-found: ignore

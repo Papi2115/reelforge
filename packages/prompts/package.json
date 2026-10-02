@@ -11,5 +11,19 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "scripts": {
+    "generate": "node scripts/generate-prompts.mjs",
+    "test": "vitest run --root ../.. --project unit packages/prompts",
+    "eval:real": "vitest run --root ../.. --project unit packages/prompts/src/evals/evals.real.test.ts"
+  },
+  "dependencies": {
+    "@reelforge/claude-bridge": "workspace:*",
+    "@reelforge/shared": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@reelforge/fake-claude": "workspace:*",
+    "@reelforge/pipeline": "workspace:*"
   }
 }

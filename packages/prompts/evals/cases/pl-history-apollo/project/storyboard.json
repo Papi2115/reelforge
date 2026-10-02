@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "shots": [
+    {
+      "id": "s01_hook",
+      "t0": 0,
+      "t1": 5.92,
+      "treatment": "title-card",
+      "intent": "Hak: telefon w kieszeni świeci mocniej niż komputery z 1969; ląduje na \"komputery\". Powolny najazd.",
+      "scene": "scenes/s01_hook.js"
+    },
+    {
+      "id": "s02_moon",
+      "t0": 5.92,
+      "t1": 11.11,
+      "treatment": "3d-reconstruction",
+      "intent": "Voxelowa rakieta Saturn V startuje i leci do Księżyca; lądowanie na \"Księżyc\". Kamera śledzi rakietę.",
+      "scene": "scenes/s02_moon.js"
+    },
+    {
+      "id": "s03_agc",
+      "t0": 11.11,
+      "t1": 15.37,
+      "treatment": "ui-mockup",
+      "intent": "Panel DSKY komputera Apollo; licznik pamięci pokazuje 4 KB na \"4 kilobajty\".",
+      "scene": "scenes/s03_agc.js"
+    },
+    {
+      "id": "s04_clock",
+      "t0": 15.37,
+      "t1": 21.43,
+      "treatment": "counter/odometer",
+      "intent": "Licznik taktowania zatrzymuje się na 1 MHz na \"jednego megaherca\"; spokojny orbit przez pauzę.",
+      "scene": "scenes/s04_clock.js"
+    },
+    {
+      "id": "s05_restart",
+      "t0": 21.43,
+      "t1": 28.315,
+      "treatment": "node-graph/timeline",
+      "intent": "Oś czasu lądowania; alarm i restart systemu na \"zrestartować\", lądownik dalej schodzi.",
+      "scene": "scenes/s05_restart.js",
+      "transitionIn": {
+        "type": "glitch",
+        "duration": 0.3
+      }
+    },
+    {
+      "id": "s06_constraints",
+      "t0": 28.315,
+      "t1": 33.785,
+      "treatment": "kinetic-text",
+      "intent": "Słowa OGRANICZENIA i KREATYWNOŚĆ zderzają się na \"wymuszają kreatywność\".",
+      "scene": "scenes/s06_constraints.js"
+    },
+    {
+      "id": "s07_outro",
+      "t0": 33.785,
+      "t1": 40.855,
+      "treatment": "character-scene",
+      "intent": "Bohater w pomarańczowej bluzie patrzy w niebo na \"spojrzeć wstecz\"; pytanie zawisa w kadrze.",
+      "scene": "scenes/s07_outro.js"
+    }
+  ],
+  "missingProps": ["dsky-panel", "saturn-v"]
+}

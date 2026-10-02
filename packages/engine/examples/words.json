@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "words": [
+    { "text": "Hello", "t": 1, "tEnd": 1.3 },
+    { "text": "world.", "t": 1.3, "tEnd": 1.6 }
+  ]
+}

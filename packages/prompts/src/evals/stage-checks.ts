@@ -1,0 +1,121 @@
+/** Validates what a stage turn produced (files in the project and/or the final reply). */
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import type { PromptId } from '../catalog.js';
+import { validateCriticReply } from '../validators/critic.js';
+import { validateCues, type CuesLike, type CuesSchema } from '../validators/cues.js';
+import { issue, type ValidationIssue } from '../validators/issues.js';
+import { targetWordsFor, validateScript } from '../validators/script.js';
+import { validateStoryboard } from '../validators/storyboard.js';
+import {
+  parseMissing,
+  replyLengthIssues,
+  validateResearch,
+  validateSceneModule,
+} from '../validators/text-outputs.js';
+import type { EvalCase } from './cases.js';
+
+export interface StageCheckInput<T extends CuesLike> {
+  readonly stage: PromptId;
+  readonly evalCase: EvalCase;
+  readonly projectDir: string;
+  /** Project-relative files the stage writes. */
+  readonly files: readonly string[];
+  readonly reply: string;
+  /** `CuesFileSchema` of `@reelforge/pipeline` (injected). */
+  readonly cuesSchema: CuesSchema<T>;
+  /** Fake runs replay canned replies, so the `MISSING:` line must match the case exactly. */
+  readonly strictReplies: boolean;
+}
+
+/** Reply line limits stated in the prompts. */
+const MAX_REPLY_LINES: Partial<Record<PromptId, number>> = {
+  research: 3,
+  'scene-build': 5,
+  'scene-fix': 4,
+};
+
+function readOutputs(
+  projectDir: string,
+  files: readonly string[],
+): {
+  texts: Map<string, string>;
+  issues: ValidationIssue[];
+} {
+  const texts = new Map<string, string>();
+  const issues: ValidationIssue[] = [];
+  for (const file of files) {
+    const absolute = path.join(projectDir, file);
+    if (!existsSync(absolute)) {
+      issues.push(issue('error', 'missing-output', `${file} was not written`, file));
+      continue;
+    }
+    const text = readFileSync(absolute, 'utf8');
+    if (text.trim() === '') issues.push(issue('error', 'empty-output', `${file} is empty`, file));
+    texts.set(file, text);
+  }
+  return { texts, issues };
+}
+
+function located(file: string, issues: readonly ValidationIssue[]): ValidationIssue[] {
+  return issues.map((entry) => ({
+    ...entry,
+    path: entry.path === undefined ? file : `${file}: ${entry.path}`,
+  }));
+}
+
+function missingLineIssues(reply: string, expected: readonly string[]): ValidationIssue[] {
+  const named = parseMissing(reply);
+  const same = named.length === expected.length && named.every((name) => expected.includes(name));
+  return same
+    ? []
+    : [
+        issue(
+          'error',
+          'missing-line',
+          `MISSING: ${JSON.stringify(named)}, expected ${JSON.stringify(expected)}`,
+        ),
+      ];
+}
+
+function fileIssues<T extends CuesLike>(
+  input: StageCheckInput<T>,
+  file: string,
+  text: string,
+): readonly ValidationIssue[] {
+  const { evalCase, projectDir } = input;
+  if (file === 'research.md') return validateResearch(text).issues;
+  if (file === 'script.txt') {
+    const minutes = evalCase.brief.targetMinutes ?? 1;
+    return validateScript(text, { targetWords: targetWordsFor(minutes) }).issues;
+  }
+  if (file === 'storyboard.json') return validateStoryboard(text, { words: evalCase.words }).issues;
+  if (file === 'cues.json') {
+    return validateCues(text, {
+      schema: input.cuesSchema,
+      durationS: evalCase.words.words.at(-1)?.tEnd,
+      musicFileExists: (music) => existsSync(path.join(projectDir, music)),
+    }).issues;
+  }
+  if (file.endsWith('.js')) return validateSceneModule(text).issues;
+  return [];
+}
+
+export function checkStageOutput<T extends CuesLike>(input: StageCheckInput<T>): ValidationIssue[] {
+  const { stage, reply, evalCase } = input;
+  const outputs = readOutputs(input.projectDir, input.files);
+  const issues = [...outputs.issues];
+  for (const [file, text] of outputs.texts)
+    issues.push(...located(file, fileIssues(input, file, text)));
+  const maxLines = MAX_REPLY_LINES[stage];
+  if (maxLines !== undefined) issues.push(...replyLengthIssues(reply, maxLines));
+  if (stage === 'critic') {
+    issues.push(
+      ...validateCriticReply(reply, { expectedPaths: evalCase.file.critic.imagePaths }).issues,
+    );
+  }
+  if (stage === 'scene-build' && input.strictReplies) {
+    issues.push(...missingLineIssues(reply, evalCase.file.sceneBuild.expectMissing));
+  }
+  return issues;
+}

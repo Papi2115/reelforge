@@ -149,3 +149,10 @@ pnpm build               # produkcyjny build
 - 2026-10-02 · ADR-001 CLI-bridge GO: spawn natywnego claude.exe (nie .cmd), env sanitize + abort gdy apiKeySource≠none, `claude auth status` zamiast sondy -p, brak --max-turns → własny watchdog · spike 1.1
 - 2026-10-02 · ADR-002 render GO: Electron hidden window + IPC, GPU ANGLE D3D11, NVENC/libx264; goldeny per backend · spike 1.2
 - 2026-10-02 · ADR-003 audio GO: whisper large-v3-turbo-q5_0 (EN+PL), VAD chunks + DTW offset, gain+alimiter zamiast loudnorm, ASR na oryginale · spike 1.3
+- 2026-10-02 · Sandbox scen = iframe `allow-scripts` + blob modules, engine+kit w iframe, postMessage (ADR-004); pixel-fonty własne CC0 (ADR-005); kit: voxel/env/props/fx (ADR-006) · determinizm + licencje · 2.1–3.5
+- 2026-10-02 · Miks audio: synteza SFX w czystym Node zamiast OfflineAudioContext · deterministyczne bajt-w-bajt, bez Chromium · 4.6
+- 2026-10-02 · Eksport: segmenty per-shot kodowane od razu docelowym kodekiem + concat (copy); klucz cache = scena+kit+styl+anchory; FrameSource wstrzykiwany, w app = ukryte okno Electron · 4.7
+- 2026-10-02 · Bridge: tylko `dontAsk`/`acceptEdits`/`plan`; allowlista `Edit(./**)`; CLI auto-zatwierdza `echo` → hook PreToolUse blokuje Bash poza `reelforge` · test na realnym CLI 5.7
+- 2026-10-02 · Prompty etapów (markdown) pisze Manager w packages/prompts/prompts; STYLE.md w styles/<id>/; template CLAUDE.md w templates/project · 3.6, 5.5, 5.8
+- 2026-10-02 · Electron 44 + plain Vite/esbuild, protokoły `reelforge://` i `reelforge-media://`; zegarem mastera jest <audio> · 6.1–6.4
+- 2026-10-02 · `.reelforge/` w całości poza gitem; revert = nowy commit przywracający drzewo (bez reset --hard) · 6.2

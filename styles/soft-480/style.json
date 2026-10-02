@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "id": "soft-480",
+  "name": "Soft 480",
+  "description": "Warm, chunky voxel pixel art at 480x270 (bigger pixels): coral, peach and cream over plum and umber, soft light and no outlines.",
+  "default": false,
+  "lights": "soft",
+  "treatments": [
+    "character-scene",
+    "metaphor-object",
+    "title-card",
+    "kinetic-text",
+    "data-chart-3d",
+    "counter/odometer",
+    "montage/transition"
+  ]
+}

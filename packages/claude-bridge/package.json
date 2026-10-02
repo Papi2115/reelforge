@@ -11,5 +11,12 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "dependencies": {
+    "@reelforge/shared": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project unit packages/claude-bridge"
   }
 }

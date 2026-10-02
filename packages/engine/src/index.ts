@@ -1,2 +1,19 @@
-/** Package identity; placeholder until real functionality lands. */
+/** @reelforge/engine: deterministic scene runtime (scene contract, clock/seek, RNG, transitions, post-fx, camera rigs, pixel text). */
 export const packageName = '@reelforge/engine';
+
+export * from './anchors.js';
+export * from './camera/easing.js';
+export * from './camera/rigs.js';
+export type * from './contract.js';
+export * from './errors.js';
+export type { GpuInfo } from './gl/frame-renderer.js';
+export { createSandboxedHarness, type SandboxedHarnessOptions } from './harness/host.js';
+export { RPC_CHANNEL, type ReelforgeHarness } from './harness/protocol.js';
+export * from './lint/index.js';
+export * from './palette.js';
+export * from './presets/index.js';
+export * from './rng.js';
+export { parseManifest, type LoadInfo } from './runtime.js';
+export * from './style.js';
+export * from './text/index.js';
+export * from './timeline.js';

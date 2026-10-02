@@ -6,10 +6,16 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "fake-claude": "./bin/fake-claude.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "scripts": {
+    "test": "vitest run --root ../.. --project unit tools/fake-claude"
   }
 }

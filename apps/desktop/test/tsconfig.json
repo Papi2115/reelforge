@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "tsBuildInfoFile": "../node_modules/.cache/tsconfig.test.tsbuildinfo"
+  },
+  "include": [
+    ".",
+    "../src/main/app-paths.ts",
+    "../src/main/navigation-policy.ts",
+    "../src/shared/player-contract.ts"
+  ],
+  "references": [{ "path": "../../../packages/claude-bridge" }]
+}

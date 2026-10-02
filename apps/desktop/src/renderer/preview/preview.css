@@ -1,0 +1,173 @@
+/* Preview panel and transport bar (PLAN.md#6.3, #6.4). */
+.preview {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+}
+
+.start-layout .preview {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.preview-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.preview-canvas {
+  image-rendering: pixelated;
+  display: block;
+}
+
+.preview-status {
+  position: absolute;
+  margin: 0;
+  max-width: 80%;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.preview-error {
+  color: var(--error);
+}
+
+.preview-note {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--warn);
+  background: rgb(13 14 18 / 88%);
+  font-size: 12px;
+}
+
+/* Holds the engine's (invisible) sandboxed iframe. */
+.preview-engine-host {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.transport {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border);
+}
+
+.transport-time {
+  flex-shrink: 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.transport-scrub {
+  flex: 1;
+  min-width: 60px;
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: var(--accent);
+}
+
+.transport-select select {
+  padding: 3px 4px;
+  font-size: 12px;
+}
+
+.transport .icon-button[aria-pressed='true'],
+.transport-stats[aria-pressed='true'] {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.transport-stats {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Player overlays (PLAN.md#6.4) */
+.preview-stats,
+.preview-reload,
+.preview-snapshot {
+  position: absolute;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgb(13 14 18 / 88%);
+  font-size: 12px;
+}
+
+.preview-stats {
+  top: 8px;
+  right: 8px;
+  color: var(--ok);
+}
+
+.preview-reload {
+  bottom: 8px;
+  right: 8px;
+  color: var(--ok);
+}
+
+.preview-snapshot {
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 16px);
+}
+
+.preview-problem {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  max-height: 60%;
+  overflow: auto;
+  padding: 6px 10px;
+  border: 1px solid var(--error);
+  border-radius: 4px;
+  color: var(--error);
+  background: rgb(13 14 18 / 92%);
+  font-size: 12px;
+}
+
+.preview-problem-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview-problem pre {
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  color: var(--text);
+}

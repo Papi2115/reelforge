@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "shots": [
+    {
+      "id": "s01_hook",
+      "t0": 0,
+      "t1": 5.33,
+      "treatment": "title-card",
+      "intent": "Hook: \"Try this at home\" title over a kitchen table; lands on \"experiment\". Gentle push-in.",
+      "scene": "scenes/s01_hook.js"
+    },
+    {
+      "id": "s02_glass",
+      "t0": 5.33,
+      "t1": 8.345,
+      "treatment": "metaphor-object",
+      "intent": "A voxel glass of water slides onto the table on \"place it on a table\".",
+      "scene": "scenes/s02_glass.js"
+    },
+    {
+      "id": "s03_flashlight",
+      "t0": 8.345,
+      "t1": 11.675,
+      "treatment": "3d-reconstruction",
+      "intent": "A flashlight beam enters the glass at an angle on \"at an angle\"; camera low and close.",
+      "scene": "scenes/s03_flashlight.js"
+    },
+    {
+      "id": "s04_rainbow",
+      "t0": 11.675,
+      "t1": 19.295,
+      "treatment": "3d-reconstruction",
+      "intent": "A tiny rainbow blooms on the wall on \"tiny rainbow\"; slow pull-back through the pause.",
+      "scene": "scenes/s04_rainbow.js"
+    },
+    {
+      "id": "s05_spectrum",
+      "t0": 19.295,
+      "t1": 26.745,
+      "treatment": "data-chart-3d",
+      "intent": "Bars per colour show how much water bends each one; they rise on \"slightly different amount\".",
+      "scene": "scenes/s05_spectrum.js",
+      "transitionIn": {
+        "type": "wipe",
+        "duration": 0.3
+      }
+    },
+    {
+      "id": "s06_red_violet",
+      "t0": 26.745,
+      "t1": 30.325,
+      "treatment": "kinetic-text",
+      "intent": "RED and VIOLET words bend at different angles on \"least\" and \"most\".",
+      "scene": "scenes/s06_red_violet.js"
+    },
+    {
+      "id": "s07_newton",
+      "t0": 30.325,
+      "t1": 37.205,
+      "treatment": "character-scene",
+      "intent": "Newton with a prism in a dark room; the beam splits on \"1672\". Slow orbit.",
+      "scene": "scenes/s07_newton.js"
+    }
+  ]
+}
