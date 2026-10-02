@@ -3,6 +3,7 @@
  * single-instance lock, security policy, the app protocol, typed IPC and the main window, and
  * kills every child process tree on quit.
  */
+import { availableParallelism } from 'node:os';
 import { killTree } from '@reelforge/claude-bridge';
 import {
   app,
@@ -21,6 +22,7 @@ import {
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
+  settingsFile,
 } from './app-paths.js';
 import { registerAppSchemePrivileged, serveAppProtocol } from './app-protocol.js';
 import { createChildProcessRegistry } from './child-processes.js';
@@ -33,7 +35,12 @@ import { serveMediaProtocol } from './media-protocol.js';
 import { isAllowedNavigation, resolveRendererSource } from './navigation-policy.js';
 import { ProjectService, type FolderPurpose } from './project-service.js';
 import { ProjectWatchFollower, watchProject } from './project-watcher.js';
+import { installRenderTestHooks, RenderBackend, TEST_HOOKS_ENV } from './render/render-backend.js';
 import { applySessionSecurity, hardenAllWebContents } from './security.js';
+import { gpuSwitches } from './settings-consumers.js';
+import { createSettingsBackend, toolPickerOptions } from './settings-ipc.js';
+import { SettingsService } from './settings-service.js';
+import { timelineHandlers } from './timeline-ipc.js';
 import { createMainWindow } from './window.js';
 
 function main(): void {
@@ -61,6 +68,13 @@ function main(): void {
   const source = sourceResult.value;
   const layout = appLayout(app.getAppPath());
   const children = createChildProcessRegistry(killTree, log.child('children'));
+  const settings = SettingsService.load({
+    file: settingsFile(userDataDir),
+    log: log.child('settings'),
+  });
+  // Chromium switches only work before `ready`: a changed GPU preference applies after a restart.
+  for (const name of gpuSwitches(settings.get().performance.gpu))
+    app.commandLine.appendSwitch(name);
 
   app.enableSandbox();
   registerAppSchemePrivileged();
@@ -102,14 +116,52 @@ function main(): void {
       },
     }),
   );
+  const renderBackend = new RenderBackend({
+    source,
+    layout,
+    settings: () => settings.get(),
+    cores: availableParallelism(),
+    currentProject: () => projects.currentProject()?.dir,
+    pushProgress: (event) => {
+      mainWindow?.webContents.send(IPC_PUSH.exportProgress.name, event);
+    },
+    log: log.child('render'),
+  });
+  if (!app.isPackaged && process.env[TEST_HOOKS_ENV] === '1') {
+    installRenderTestHooks(renderBackend, () => projects.currentProject()?.dir);
+  }
   const projects = new ProjectService({
     recentFile: recentProjectsFile(userDataDir),
     templateDir: layout.projectTemplateDir,
     pickFolder,
+    defaultStyle: () => settings.get().defaultStyle,
     log: log.child('project'),
     onCurrentChanged: (dir) => {
       projectWatcher.follow(dir);
+      void renderBackend.followProject(dir);
     },
+  });
+
+  const settingsBackend = createSettingsBackend({
+    settings,
+    settingsFile: settingsFile(userDataDir),
+    cores: availableParallelism(),
+    env: process.env,
+    platform: process.platform,
+    isPackaged: app.isPackaged,
+    probeCwd: userDataDir,
+    pickToolFile: async (tool) => {
+      const options = toolPickerOptions(tool, process.platform);
+      const picked = await (mainWindow
+        ? dialog.showOpenDialog(mainWindow, options)
+        : dialog.showOpenDialog(options));
+      return picked.canceled ? undefined : picked.filePaths[0];
+    },
+    pushWhisperProgress: (progress) => {
+      mainWindow?.webContents.send(IPC_PUSH.whisperProgress.name, progress);
+    },
+    log: log.child('settings'),
+    now: () => performance.now(),
   });
 
   const appInfo = (): AppInfo => ({
@@ -142,6 +194,16 @@ function main(): void {
       snapshotSave: (request) =>
         saveFrameSnapshot(projects.currentProject()?.dir, request, log.child('snapshot')),
       snapshotCopy: (request) => copyPngToClipboard(request.png),
+      ...timelineHandlers({
+        projects,
+        trackChild: (child) => {
+          children.track(child);
+        },
+        log: log.child('timeline'),
+      }),
+      ...settingsBackend.handlers,
+      exportStart: (request) => renderBackend.exports.start(request),
+      exportCancel: () => Promise.resolve(renderBackend.exports.cancel()),
     },
     onRendererLog: (entry) => {
       log.child(`renderer:${entry.scope}`).log(entry.level, entry.message);
@@ -165,6 +227,8 @@ function main(): void {
   });
   app.on('will-quit', () => {
     projectWatcher.close();
+    void renderBackend.dispose();
+    settingsBackend.dispose();
     log.info('quit');
     sink.close();
   });
@@ -188,6 +252,8 @@ function main(): void {
       const window = createMainWindow(layout, source, log.child('window'));
       window.on('closed', () => {
         mainWindow = undefined;
+        // Hidden render windows would keep 'window-all-closed' from firing.
+        app.quit();
       });
       mainWindow = window;
     })

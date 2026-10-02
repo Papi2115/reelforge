@@ -1,4 +1,4 @@
-/** Time <-> position helpers of the timeline and time readouts (PLAN.md#6.3). */
+/** Time readouts and ruler ticks of the timeline (PLAN.md#6.3, #6.5). */
 
 /** `m:ss.cc` (`1:02.50`); negative and non-finite times show as 0. */
 export function formatTime(seconds: number): string {
@@ -18,30 +18,27 @@ export function formatRulerLabel(seconds: number): string {
   return tenths % 10 === 0 ? label : `${label}.${String(tenths % 10)}`;
 }
 
-const TICK_STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600] as const;
+const TICK_STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600] as const;
 const LARGEST_TICK_STEP = 600;
 export const MIN_TICK_SPACING_PX = 64;
 
-/** Ruler tick times: the smallest step whose ticks are at least MIN_TICK_SPACING_PX apart. */
-export function rulerTicks(duration: number, widthPx: number): number[] {
-  if (!(duration > 0) || !(widthPx > 0)) return [];
-  const pxPerSecond = widthPx / duration;
-  const step =
+/** Smallest ruler step (s) whose ticks are at least MIN_TICK_SPACING_PX apart. */
+export function rulerStep(pxPerSecond: number): number {
+  if (!(pxPerSecond > 0)) return LARGEST_TICK_STEP;
+  return (
     TICK_STEPS.find((candidate) => candidate * pxPerSecond >= MIN_TICK_SPACING_PX) ??
-    LARGEST_TICK_STEP;
+    LARGEST_TICK_STEP
+  );
+}
+
+/** Ruler tick times within [from, to] (whole multiples of the step for the zoom). */
+export function rulerTicks(from: number, to: number, pxPerSecond: number): number[] {
+  if (!(to > from) || !(pxPerSecond > 0)) return [];
+  const step = rulerStep(pxPerSecond);
   const ticks: number[] = [];
-  for (let index = 0; index * step <= duration + 1e-9; index += 1) ticks.push(index * step);
+  const first = Math.max(0, Math.ceil(from / step - 1e-9));
+  for (let index = first; index * step <= to + 1e-9; index += 1) {
+    ticks.push(Math.round(index * step * 1000) / 1000);
+  }
   return ticks;
-}
-
-/** Time under horizontal position `x` (px from the lane start) of a `widthPx` lane, clamped. */
-export function timeAtPosition(x: number, widthPx: number, duration: number): number {
-  if (!(duration > 0) || !(widthPx > 0)) return 0;
-  return Math.min(duration, Math.max(0, (x / widthPx) * duration));
-}
-
-/** Position of `t` as a percentage of `duration`, clamped to 0..100. */
-export function timePercent(t: number, duration: number): number {
-  if (!(duration > 0)) return 0;
-  return Math.min(100, Math.max(0, (t / duration) * 100));
 }

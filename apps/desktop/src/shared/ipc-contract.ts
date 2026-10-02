@@ -40,6 +40,17 @@ import {
   type SnapshotSaveRequest,
   type SnapshotSaveResult,
 } from './player-contract.js';
+import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
+import { SETTINGS_IPC, SETTINGS_PUSH, type SettingsApi } from './settings-contract.js';
+import {
+  timelineEditRequestSchema,
+  timelineEditResultSchema,
+  waveformRequestSchema,
+  waveformResultSchema,
+  type TimelineEditRequest,
+  type TimelineEditResult,
+  type WaveformResult,
+} from './timeline-contract.js';
 
 /** A request/response channel (`ipcRenderer.invoke` -> `ipcMain.handle`). */
 export interface InvokeChannel<Request extends z.ZodType, Response extends z.ZodType> {
@@ -159,6 +170,22 @@ export const IPC = {
     request: snapshotCopyRequestSchema,
     response: snapshotCopyResultSchema,
   },
+  /** Applies timeline edits to storyboard.json / cues.json and commits (PLAN.md#6.5). */
+  timelineEdit: {
+    name: 'timeline:edit',
+    request: timelineEditRequestSchema,
+    response: timelineEditResultSchema,
+  },
+  /** Waveform peaks of a project audio file (decoded by ffmpeg in main, cached). */
+  timelineWaveform: {
+    name: 'timeline:waveform',
+    request: waveformRequestSchema,
+    response: waveformResultSchema,
+  },
+  /** Settings, Connect Claude, ffmpeg/whisper paths, whisper models (PLAN.md#6.7). */
+  ...SETTINGS_IPC,
+  /** Video export of the open project (hidden render windows + ffmpeg). */
+  ...EXPORT_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -169,6 +196,8 @@ export const IPC_EVENTS = {
 export const IPC_PUSH = {
   /** Files of the open project changed on disk (debounced). */
   projectChanged: { name: 'project:changed', payload: projectChangedSchema },
+  ...SETTINGS_PUSH,
+  ...EXPORT_PUSH,
 } as const satisfies Record<string, SendChannel<z.ZodType>>;
 
 export type InvokeChannels = typeof IPC;
@@ -177,7 +206,7 @@ export type RequestOf<Key extends InvokeChannelKey> = z.infer<InvokeChannels[Key
 export type ResponseOf<Key extends InvokeChannelKey> = z.infer<InvokeChannels[Key]['response']>;
 
 /** The API preload exposes on `window.reelforge`. */
-export interface ReelforgeApi {
+export interface ReelforgeApi extends SettingsApi, ExportApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;
@@ -192,6 +221,8 @@ export interface ReelforgeApi {
   getProjectManifest(): Promise<ProjectManifestResult>;
   saveSnapshot(request: SnapshotSaveRequest): Promise<SnapshotSaveResult>;
   copySnapshot(png: Uint8Array): Promise<SnapshotCopyResult>;
+  editTimeline(request: TimelineEditRequest): Promise<TimelineEditResult>;
+  getWaveform(file: string): Promise<WaveformResult>;
   /** Subscribes to `projectChanged`; returns the unsubscribe function. */
   onProjectChanged(listener: (event: ProjectChangedEvent) => void): () => void;
   log(entry: RendererLogEntry): void;

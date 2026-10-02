@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { projectMediaUrl } from '../shared/player-contract.js';
 import { parseByteRange, resolveProjectMedia } from './project-media.js';
 
-const project = path.join('C:', 'Creatorize Suite', 'Mój film');
+// Absolute on every OS (`C:\…` on Windows, `/…` on POSIX): resolveProjectMedia resolves the dir.
+const project = path.join(path.parse(process.cwd()).root, 'Creatorize Suite', 'Mój film');
 
 describe('resolveProjectMedia', () => {
   it('maps media URLs to audio files inside the open project', () => {

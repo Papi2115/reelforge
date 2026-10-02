@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { listProjectFiles, MAX_PROJECT_FILE_BYTES, readProjectText } from './project-files.js';
 import { buildProjectManifest } from './project-manifest.js';
-import { cueLabel, readProjectSnapshot } from './project-snapshot.js';
+import { readProjectSnapshot } from './project-snapshot.js';
 
 const FIXTURE = path.resolve(
   import.meta.dirname,
@@ -67,7 +67,7 @@ describe('readProjectSnapshot', () => {
     });
     expect(snapshot.cues).toEqual({
       status: 'ok',
-      data: { sfx: [{ t: 3.7, label: 'hit' }], ambience: [], music: [] },
+      data: { sfx: [{ t: 3.7, label: 'hit', gainDb: 0 }], ambience: [], music: [] },
     });
   });
 
@@ -184,14 +184,5 @@ describe('buildProjectManifest', () => {
     expect(result.status === 'unavailable' && result.reason).toMatch(
       /^storyboard cannot be previewed: shots\.0\.t0: shot "s01" must start at 0/,
     );
-  });
-});
-
-describe('cueLabel', () => {
-  it('prefers the id, then the recipe, then the file name', () => {
-    expect(cueLabel({ id: 'boom', name: 'hit' }, 'sfx')).toBe('boom');
-    expect(cueLabel({ name: 'hit' }, 'sfx')).toBe('hit');
-    expect(cueLabel({ file: 'audio/sfx/door.wav' }, 'sfx')).toBe('door.wav');
-    expect(cueLabel({}, 'sfx')).toBe('sfx');
   });
 });

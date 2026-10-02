@@ -5,6 +5,14 @@ user's subscription (ADR-001). No API keys, no SDK, no credential access; every 
 sanitized env (`sanitizeEnv`) and a turn whose `init.apiKeySource` is not `"none"` is killed
 (`billing-guard`). Tests run against `tools/fake-claude`, never the real CLI.
 
+**Extra env (`extraEnv`)**: the only way to add variables to a child's env is
+`SessionManagerOptions.extraEnv(projectDir)` (→ `TurnSpec.extraEnv` → `SpawnOptions.extraEnv` →
+`buildChildEnv`). It is applied **after** sanitizing and accepts only the names in
+`EXTRA_ENV_ALLOWLIST` (`REELFORGE_RENDER_URL`, `REELFORGE_RENDER_TOKEN`: the app's local render
+service for the `reelforge` CLI). Any other name — including `ANTHROPIC_*`/`CLAUDE_CODE_*` — is
+dropped, so the hook can never reintroduce billing variables (tested in `env.test.ts` and
+`session-manager.test.ts`).
+
 ## Public API
 
 | Area              | Exports                                                                                                                                    |

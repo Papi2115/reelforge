@@ -4,6 +4,9 @@ import { IPC, IPC_EVENTS, type AppInfo, type RendererLogEntry } from '../shared/
 import { registerIpc, type IpcMainLike, type IpcSenderEvent } from './ipc-router.js';
 import type { ProjectOpenResult } from '../shared/project-contract.js';
 import { createLogger } from './logger.js';
+import { defaultAppSettings } from '@reelforge/shared';
+import type { ToolsStatus } from '../shared/settings-contract.js';
+import type { SettingsHandlers } from './settings-ipc.js';
 
 type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
 
@@ -45,6 +48,35 @@ const opened: ProjectOpenResult = {
   },
 };
 
+/** Settings channels (PLAN.md#6.7); their requests are checked in the test below. */
+function settingsStubs(record: <T>(request: unknown, response: T) => Promise<T>): SettingsHandlers {
+  const tools: ToolsStatus = {
+    ffmpeg: { status: 'missing', message: 'not found', configured: false },
+    whisper: { status: 'missing', message: 'not installed', configured: false },
+  };
+  return {
+    settingsGet: (request) =>
+      record(request, { settings: defaultAppSettings(), cores: 8, file: 'settings.json' }),
+    settingsUpdate: (request) =>
+      record(request, { status: 'ok', settings: defaultAppSettings() } as const),
+    claudeStatus: (request) =>
+      record(request, {
+        state: 'not-installed',
+        installCommand: 'npm install -g @anthropic-ai/claude-code',
+        searchedDirs: 3,
+      } as const),
+    claudeOpenLogin: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+    toolsStatus: (request) => record(request, tools),
+    toolsBrowse: (request) => record(request, { status: 'cancelled' } as const),
+    toolsReset: (request) => record(request, tools),
+    whisperModels: (request) =>
+      record(request, { modelsDir: 'C:\\m', models: [], vadInstalled: false, downloading: null }),
+    whisperDownload: (request) => record(request, { status: 'started' } as const),
+    whisperCancel: (request) => record(request, null),
+    whisperDelete: (request) => record(request, { status: 'deleted' } as const),
+  };
+}
+
 function setup(): {
   ipc: FakeIpcMain;
   logs: RendererLogEntry[];
@@ -80,6 +112,13 @@ function setup(): {
       snapshotSave: (request) =>
         record(request, { status: 'error', message: 'no project is open' } as const),
       snapshotCopy: (request) => record(request, { status: 'copied' } as const),
+      timelineEdit: (request) =>
+        record(request, { status: 'error', message: 'no project is open' } as const),
+      timelineWaveform: (request) =>
+        record(request, { status: 'unavailable', reason: 'no project is open' } as const),
+      ...settingsStubs(record),
+      exportStart: (request) => record(request, { status: 'no-project' } as const),
+      exportCancel: (request) => record(request, false),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),
@@ -165,6 +204,37 @@ describe('registerIpc', () => {
       'invalid request',
     );
     expect(calls).toEqual([{ png, t: 2.2, shotId: 's02' }, { png }]);
+  });
+
+  it('validates settings requests: no tool paths or unknown keys from the renderer', async () => {
+    const { ipc, calls } = setup();
+    const patch = { language: 'pl', economy: true, models: { critic: 'sonnet' } };
+    await expect(ipc.invoke(IPC.settingsUpdate.name, APP_URL, patch)).resolves.toMatchObject({
+      status: 'ok',
+    });
+    for (const bad of [
+      { tools: { ffmpegPath: 'C:\\evil.exe' } },
+      { language: 'de' },
+      { performance: { exportWorkers: -1 } },
+      { theme: 'light' },
+    ]) {
+      await expect(ipc.invoke(IPC.settingsUpdate.name, APP_URL, bad)).rejects.toThrow(
+        'invalid request',
+      );
+    }
+    await expect(ipc.invoke(IPC.toolsBrowse.name, APP_URL, { tool: 'git' })).rejects.toThrow(
+      'invalid request',
+    );
+    await expect(
+      ipc.invoke(IPC.whisperDownload.name, APP_URL, { model: '../../evil' }),
+    ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.claudeOpenLogin.name, APP_URL, { command: 'calc' }),
+    ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.claudeStatus.name, APP_URL, { refresh: true }),
+    ).resolves.toMatchObject({ state: 'not-installed' });
+    expect(calls).toEqual([patch, { refresh: true }]);
   });
 
   it('forwards valid renderer log entries only', () => {

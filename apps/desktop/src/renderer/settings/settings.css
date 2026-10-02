@@ -1,0 +1,393 @@
+/* Settings dialog, Connect Claude wizard, tools and whisper models (PLAN.md#6.7). */
+.settings-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(880px, calc(100vw - 48px));
+  height: min(600px, calc(100vh - 48px));
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.settings-dialog.first-run {
+  width: min(620px, calc(100vw - 48px));
+  height: auto;
+  max-height: calc(100vh - 48px);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-header .modal-title {
+  margin: 0;
+}
+
+.settings-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 160px;
+  flex-shrink: 0;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.settings-tab {
+  text-align: left;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+
+.settings-tab[aria-selected='true'] {
+  color: var(--text);
+  background: var(--accent-soft);
+  border-color: transparent;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.settings-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-heading {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 14px;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.settings-toggle input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.settings-toggle > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-footer {
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.settings-panel p,
+.first-run-body p {
+  margin: 0;
+}
+
+.settings-page > p.muted,
+.tool-card > p.muted {
+  font-size: 12px;
+}
+
+/* Connect Claude */
+.connect {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.connect-steps {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.connect-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.connect-step-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--panel-raised);
+  font-size: 11px;
+}
+
+.connect-step.step-current {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.connect-step.step-current .connect-step-mark {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.connect-step.step-done .connect-step-mark {
+  color: #0b2416;
+  background: var(--ok);
+}
+
+.connect-step.step-failed {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.connect-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.connect-headline {
+  font-weight: 600;
+}
+
+.connect-detail {
+  color: var(--muted);
+}
+
+.connect-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.tone-ok {
+  background: var(--ok);
+}
+
+.tone-action {
+  background: var(--warn);
+}
+
+.tone-error {
+  background: var(--error);
+}
+
+.connect-install input {
+  width: 100%;
+  user-select: all;
+}
+
+.connect-note {
+  font-size: 12px;
+}
+
+.connect-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.connect-error {
+  color: var(--error);
+  white-space: pre-wrap;
+}
+
+.connect-privacy {
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+
+.first-run-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.first-run-actions {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Tools */
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.tool-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tool-card-header .connect-dot {
+  margin-top: 0;
+}
+
+.tool-card-header .settings-heading {
+  margin: 0;
+}
+
+.tool-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.tool-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.tool-facts dt {
+  color: var(--muted);
+}
+
+.tool-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-fact-row {
+  display: contents;
+}
+
+.tool-problem {
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.license-badge {
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  background: var(--panel-raised);
+}
+
+.license-lgpl {
+  color: var(--ok);
+}
+
+.license-gpl {
+  color: var(--warn);
+}
+
+.license-nonfree {
+  color: var(--error);
+}
+
+.model-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.model-table th {
+  color: var(--muted);
+  font-weight: 500;
+  text-align: left;
+}
+
+.model-table th,
+.model-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.model-table input[type='radio'] {
+  accent-color: var(--accent);
+}
+
+.model-progress {
+  display: block;
+  width: 120px;
+  height: 6px;
+  accent-color: var(--accent);
+}
+
+.model-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Status bar: Claude connection chip */
+.claude-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.claude-chip .connect-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 0;
+}

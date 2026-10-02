@@ -85,6 +85,16 @@ describe('locateWhisper', () => {
     expect(result.ok && result.value[0]).toMatchObject({ cliPath: cli(fromEnv), source: 'env' });
   });
 
+  it('looks for suffix-less binaries on POSIX', () => {
+    const posixCli = path.join(blas, 'Release', 'whisper-cli');
+    const fs = fakeFs([cli(cuda), posixCli]);
+    const result = locateWhisper({ root: ROOT, env: {}, fs, platform: 'linux' });
+    expect(result).toEqual({
+      ok: true,
+      value: [{ cliPath: posixCli, vadToolPath: null, backend: 'blas', source: 'app-data' }],
+    });
+  });
+
   it('lists every searched path when nothing is installed', () => {
     const result = locateWhisper({ root: ROOT, env: {}, fs: fakeFs([]), platform: 'win32' });
     expect(result.ok).toBe(false);

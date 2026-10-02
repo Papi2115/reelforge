@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  formatRulerLabel,
-  formatTime,
-  rulerTicks,
-  timeAtPosition,
-  timePercent,
-} from './timeline-scale.js';
+import { formatRulerLabel, formatTime, rulerStep, rulerTicks } from './timeline-scale.js';
 
 describe('formatTime', () => {
   it('formats minutes, seconds and centiseconds', () => {
@@ -26,34 +20,23 @@ describe('formatTime', () => {
 
 describe('rulerTicks', () => {
   it('picks a step that keeps labels apart', () => {
-    expect(rulerTicks(7.5, 700)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
-    expect(rulerTicks(7.5, 1500)).toEqual([
+    expect(rulerTicks(0, 7.5, 700 / 7.5)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(rulerTicks(0, 7.5, 200)).toEqual([
       0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5,
     ]);
-    expect(rulerTicks(600, 800)).toEqual([0, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600]);
+    expect(rulerTicks(0, 600, 800 / 600)).toEqual([
+      0, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600,
+    ]);
+    expect(rulerStep(800)).toBe(0.1);
   });
 
-  it('returns nothing for an empty timeline', () => {
-    expect(rulerTicks(0, 800)).toEqual([]);
-    expect(rulerTicks(10, 0)).toEqual([]);
+  it('lists only the visible window', () => {
+    expect(rulerTicks(12.3, 15.1, 100)).toEqual([13, 14, 15]);
+    expect(rulerTicks(1.05, 1.45, 700)).toEqual([1.1, 1.2, 1.3, 1.4]);
   });
-});
 
-describe('timePercent', () => {
-  it('clamps to the timeline', () => {
-    expect(timePercent(2.5, 10)).toBe(25);
-    expect(timePercent(20, 10)).toBe(100);
-    expect(timePercent(-1, 10)).toBe(0);
-    expect(timePercent(1, 0)).toBe(0);
-  });
-});
-
-describe('timeAtPosition', () => {
-  it('maps a pointer position on the lane to a clamped time', () => {
-    expect(timeAtPosition(200, 800, 10)).toBe(2.5);
-    expect(timeAtPosition(-5, 800, 10)).toBe(0);
-    expect(timeAtPosition(900, 800, 10)).toBe(10);
-    expect(timeAtPosition(100, 0, 10)).toBe(0);
-    expect(timeAtPosition(100, 800, 0)).toBe(0);
+  it('returns nothing for an empty window', () => {
+    expect(rulerTicks(0, 0, 800)).toEqual([]);
+    expect(rulerTicks(0, 10, 0)).toEqual([]);
   });
 });

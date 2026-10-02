@@ -208,9 +208,9 @@ reelforge/
 - [x] **6.2** [O] Menedżer projektów: nowy/otwórz, `git init`, autocommit po kroku pipeline'u i turze Claude'a, panel historii + revert ("Saved locally · git history"). — AC: revert przywraca scenę.
 - [x] **6.3** [O] Layout: lewy panel (pipeline + shoty), środek (podgląd), prawy (czat Claude), dół (timeline). Ciemny motyw jak w referencji. — AC: responsywny od 1280 px.
 - [x] **6.4** [O] Odtwarzacz: zegar nadrzędny = element audio, scrub z dźwiękiem, 0.5×–2×, snapshot klatki, **hot-reload sceny** po zmianie pliku (przebudowa tylko zmienionego shotu). — AC: edycja sceny widoczna w podglądzie < 1 s.
-- [ ] **6.5** [O] Timeline (Shots/Narration/Cues/Audio/Cards/Ambience): zoom, zaznaczanie, przesuwanie granic shotów z przyciąganiem do słów, edycja cue'ów, waveform. — AC: przesunięcie granicy aktualizuje `storyboard.json`.
+- [x] **6.5** [O] Timeline (Shots/Narration/Cues/Audio/Cards/Ambience): zoom, zaznaczanie, przesuwanie granic shotów z przyciąganiem do słów, edycja cue'ów, waveform. — AC: przesunięcie granicy aktualizuje `storyboard.json`.
 - [ ] **6.6** [O] Panel czatu: zakresy Selection/Shot/Whole video, **klik w podglądzie → wybór obiektu** (raycast → id/kontekst do Claude'a), kolejka, Stop, chipsy sugestii, log kroków z miniaturami klatek. — AC: zmiana "zrób ten element większy" na zaznaczonym obiekcie działa end-to-end.
-- [ ] **6.7** [O] Settings: Połącz Claude (§2.1), model per etap, tryb Economy, styl, język, wydajność (workery/GPU), ścieżki ffmpeg/whisper. — AC: zmiany zapisują się i działają.
+- [x] **6.7** [O] Settings: Połącz Claude (§2.1), model per etap, tryb Economy, styl, język, wydajność (workery/GPU), ścieżki ffmpeg/whisper. — AC: zmiany zapisują się i działają.
 - [ ] **6.8** [O] Sidebar pipeline'u: statusy etapów + przyciski Open/Replace/Run/Redo, blokady zależności (nie zbudujesz scen bez storyboardu). — AC: kolejność etapów wymuszona.
 
 ### Faza 7 — Orkiestracja etapów
@@ -263,6 +263,8 @@ reelforge/
 
 ## 9. Backlog (po v1)
 macOS/Linux · opcjonalny lokalny TTS (Piper/Kokoro) · import muzyki z Suno z auto-dopasowaniem do aktów · szablony serii (cały kanał = jeden styl + biblia) · eksport Shorts 9:16 z tego samego storyboardu · współdzielenie kitu między projektami · rozszerzanie kitu przez społeczność.
+
+Odłożone z v1 (TODO w kodzie): ścieżka **Cards** na timeline (6.5) — karty tekstowe rejestruje scena w runtime (`shot.cards()` w silniku); podgląd musi je raportować do renderera (albo dry-run jak w CLI), dziś ścieżka pokazuje tylko opis.
 
 ## 10. Otwarte pytania do Papiego (zaszyte domyślne założenia)
 3. Język filmów — domyślnie **EN** (jak w referencji), PL wspierany (skrypt i whisper).

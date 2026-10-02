@@ -1,6 +1,6 @@
 /** Small RGBA8 raster helpers for contact sheets (top-down, 4 bytes per pixel). */
 import { MONO_FONT, type BitmapFont } from '@reelforge/engine';
-import type { RgbaImage } from '@reelforge/engine/cli';
+import type { RgbaImage } from '@reelforge/engine/raster';
 
 export type Rgb = readonly [number, number, number];
 

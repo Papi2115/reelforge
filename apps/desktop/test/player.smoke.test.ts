@@ -134,10 +134,10 @@ describe('player', () => {
   it('scrubs from the timeline ruler and the slider, frame by frame and fast', async () => {
     await seekWithSlider('1');
     const before = await frameStats(page);
-    const ruler = page.locator('.timeline .ruler');
-    const box = await ruler.boundingBox();
-    if (!box) throw new Error('timeline ruler not visible');
-    const y = box.y + box.height / 2;
+    // The ruler is the top 20 px of the timeline canvas, which fits the whole video by default.
+    const box = await page.getByTestId('timeline-canvas').boundingBox();
+    if (!box) throw new Error('timeline lanes not visible');
+    const y = box.y + 10;
     await page.mouse.move(box.x + box.width * 0.1, y);
     await page.mouse.down();
     await page.mouse.move(box.x + box.width * 0.6, y, { steps: 12 });

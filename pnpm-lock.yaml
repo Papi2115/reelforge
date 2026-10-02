@@ -199,9 +199,15 @@ importers:
       '@reelforge/claude-bridge':
         specifier: workspace:*
         version: link:../../packages/claude-bridge
+      '@reelforge/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
       '@reelforge/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@reelforge/kit':
+        specifier: workspace:*
+        version: link:../../packages/kit
       '@reelforge/pipeline':
         specifier: workspace:*
         version: link:../../packages/pipeline

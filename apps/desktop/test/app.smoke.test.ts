@@ -128,22 +128,39 @@ describe('desktop app', () => {
     });
     expect(exposed).toEqual({
       api: [
+        'browseToolPath',
+        'cancelExport',
+        'cancelWhisperDownload',
         'closeProject',
         'copySnapshot',
+        'deleteWhisperModel',
+        'downloadWhisperModel',
+        'editTimeline',
         'getAppInfo',
+        'getClaudeStatus',
         'getCurrentProject',
         'getDemoManifest',
         'getProjectHistory',
         'getProjectManifest',
         'getProjectSnapshot',
         'getRecentProjects',
+        'getSettings',
+        'getToolsStatus',
+        'getWaveform',
+        'getWhisperModels',
         'log',
         'newProject',
+        'onExportProgress',
         'onProjectChanged',
+        'onWhisperProgress',
+        'openClaudeLogin',
         'openProject',
         'openRecentProject',
+        'resetToolPath',
         'revertProject',
         'saveSnapshot',
+        'startExport',
+        'updateSettings',
       ],
       process: 'undefined',
       require: 'undefined',
@@ -242,17 +259,22 @@ describe('desktop app', () => {
         `${label}${status}`,
       );
     }
-    const timeline = page.getByRole('region', { name: 'Timeline' });
-    const trackSegments = (track: string): Promise<string[]> =>
-      timeline.getByRole('row', { name: track }).locator('.segment').allTextContents();
-    expect(await trackSegments('Shots')).toEqual(['s01', 's02']);
-    expect(await trackSegments('Cues')).toEqual(['hit']);
+    const lanes = page.getByTestId('timeline-canvas');
+    await page.waitForFunction(
+      () =>
+        document.querySelector<HTMLCanvasElement>('canvas.timeline-canvas')?.dataset['shots'] ===
+        '2',
+    );
+    expect(await lanes.getAttribute('data-sfx')).toBe('1');
 
     await shotButtons.nth(1).click();
     await waitForRenderedT(page, '2.200');
     expect(await shotButtons.nth(1).getAttribute('aria-pressed')).toBe('true');
-    const playhead = await page.getByTestId('playhead').evaluate((element) => element.style.left);
-    expect(Number.parseFloat(playhead)).toBeCloseTo((2.2 / 7.5) * 100, 3);
+    await page.waitForFunction(
+      () =>
+        document.querySelector<HTMLCanvasElement>('canvas.timeline-canvas')?.dataset['playhead'] ===
+        '2.200',
+    );
     expect(await page.getByLabel('Current time').textContent()).toContain('0:02.20');
 
     for (const [width, height] of [

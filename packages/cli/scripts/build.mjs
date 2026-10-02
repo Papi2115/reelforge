@@ -17,6 +17,7 @@ const WORKSPACE_ENTRIES = {
   '@reelforge/kit': path.join(packagesRoot, 'kit', 'src', 'index.ts'),
   '@reelforge/engine': path.join(packagesRoot, 'engine', 'src', 'index.ts'),
   '@reelforge/engine/cli': path.join(packagesRoot, 'engine', 'src', 'cli', 'index.ts'),
+  '@reelforge/engine/raster': path.join(packagesRoot, 'engine', 'src', 'raster', 'index.ts'),
   '@reelforge/pipeline': path.join(packagesRoot, 'pipeline', 'src', 'index.ts'),
 };
 

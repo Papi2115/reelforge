@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@reelforge/claude-bridge": "workspace:*",
+    "@reelforge/cli": "workspace:*",
     "@reelforge/engine": "workspace:*",
+    "@reelforge/kit": "workspace:*",
     "@reelforge/pipeline": "workspace:*",
     "@reelforge/project": "workspace:*",
     "@reelforge/shared": "workspace:*",

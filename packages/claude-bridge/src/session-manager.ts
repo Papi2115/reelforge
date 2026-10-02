@@ -328,6 +328,7 @@ export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }>
       prompt: request.prompt,
       cwd: job.projectDir,
       env: this.options.env ?? process.env,
+      extraEnv: this.options.extraEnv?.(job.projectDir),
       timeoutMs: request.timeoutMs ?? this.options.turnTimeoutMs ?? 30 * 60_000,
       idleTimeoutMs: request.idleTimeoutMs ?? this.options.idleTimeoutMs ?? 5 * 60_000,
       exitGraceMs: this.options.exitGraceMs,

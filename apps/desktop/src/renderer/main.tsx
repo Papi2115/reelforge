@@ -8,6 +8,7 @@ import './layout/layout.css';
 import './layout/timeline.css';
 import './layout/chat.css';
 import './preview/preview.css';
+import './settings/settings.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

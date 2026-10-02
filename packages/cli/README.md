@@ -19,8 +19,16 @@ may call and how to read the output: [`docs/cli.md`](../../docs/cli.md).
 
 ## How rendering works
 
-Rendering commands use the engine harness (`@reelforge/engine/cli`: Playwright Chromium +
-SwiftShader, the same sandboxed engine as preview and export). A shot is rendered **on its own but
+Rendering commands use one of two backends with identical output (same PNG paths, text, JSON):
+
+- **Inside the app** (`REELFORGE_RENDER_URL` + `REELFORGE_RENDER_TOKEN` set by the app for its
+  `claude` processes): the app's local render service (`src/service/protocol.ts`, loopback HTTP,
+  bearer token, only the open project). The app builds the same per-shot manifest from the project
+  files and renders it in its hidden GPU window; frames come back as PNGs. No Playwright needed.
+- **Otherwise** (dev, CI): the engine harness (`@reelforge/engine/cli`: Playwright Chromium +
+  SwiftShader).
+
+Both run the same sandboxed engine as preview and export. A shot is rendered **on its own but
 at its real place on the timeline**: the manifest gets an empty padding shot over `[0, t0)`, so the
 seed, local times and anchors are exactly those of the full video, and only that shot's scene is
 built (one broken scene does not hide the others). Transitions from the previous shot are not

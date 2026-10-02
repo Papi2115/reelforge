@@ -2,14 +2,19 @@
  * Shared build steps of `pnpm dev` and `pnpm build` for the desktop app:
  * engine frame assets, demo files, the main/preload esbuild bundles and the renderer Vite config.
  */
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildHarness, HARNESS_DIR } from '@reelforge/engine/cli';
 import react from '@vitejs/plugin-react';
-import type { BuildOptions } from 'esbuild';
+import { build, type BuildOptions } from 'esbuild';
 import type { InlineConfig, Plugin } from 'vite';
 import { rendererCsp } from '../src/shared/csp.js';
 import { ENGINE_ASSET_DIR, ENGINE_FRAME_FILES } from '../src/shared/engine-assets.js';
+import {
+  RENDER_HOST_HTML,
+  RENDER_HOST_SCRIPT,
+  RENDER_PRELOAD_FILE,
+} from '../src/shared/render-host-contract.js';
 
 export interface TaskContext {
   /** apps/desktop */
@@ -39,7 +44,10 @@ function packageSource(context: TaskContext, ...parts: string[]): string {
   return path.join(context.repoRoot, 'packages', ...parts);
 }
 
-/** Bundles the engine harness (packages/engine) and copies its sandboxed frame into publicDir. */
+/**
+ * Bundles the engine harness (packages/engine), copies its sandboxed frame into publicDir and
+ * builds the render host page next to it.
+ */
 export async function prepareEngineFrame(context: TaskContext): Promise<void> {
   await buildHarness();
   const target = path.join(appPaths(context).publicDir, ENGINE_ASSET_DIR);
@@ -48,6 +56,48 @@ export async function prepareEngineFrame(context: TaskContext): Promise<void> {
     ENGINE_FRAME_FILES.map((file) =>
       copyFile(path.join(HARNESS_DIR, file), path.join(target, file)),
     ),
+  );
+  await buildRenderHost(context);
+}
+
+/** The render host may run its own bundle and frame the engine page; nothing else. */
+const RENDER_HOST_CSP = "default-src 'none'; script-src 'self'; frame-src 'self'";
+
+/**
+ * The hidden render window's page (src/renderer/render-host): the preview's harness host + the
+ * same engine frame, next to it in publicDir/engine/ (export and render service, ADR-002).
+ */
+export async function buildRenderHost(context: TaskContext): Promise<void> {
+  const target = path.join(appPaths(context).publicDir, ENGINE_ASSET_DIR);
+  await mkdir(target, { recursive: true });
+  await build({
+    entryPoints: [path.join(context.appRoot, 'src', 'renderer', 'render-host', 'render-host.ts')],
+    outfile: path.join(target, RENDER_HOST_SCRIPT),
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: 'chrome150',
+    alias: {
+      '@reelforge/engine': packageSource(context, 'engine', 'src', 'index.ts'),
+      '@reelforge/shared': packageSource(context, 'shared', 'src', 'index.ts'),
+      '@reelforge/kit': packageSource(context, 'kit', 'src', 'index.ts'),
+    },
+    logLevel: 'warning',
+  });
+  await writeFile(
+    path.join(target, RENDER_HOST_HTML),
+    `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="${RENDER_HOST_CSP}" />
+    <title>ReelForge renderer</title>
+  </head>
+  <body>
+    <script src="${RENDER_HOST_SCRIPT}"></script>
+  </body>
+</html>
+`,
   );
 }
 
@@ -94,6 +144,11 @@ export function mainProcessBuilds(context: TaskContext): BuildOptions[] {
       '@reelforge/claude-bridge': packageSource(context, 'claude-bridge', 'src', 'index.ts'),
       '@reelforge/project': packageSource(context, 'project', 'src', 'index.ts'),
       '@reelforge/pipeline': packageSource(context, 'pipeline', 'src', 'index.ts'),
+      // Exact subpaths first: esbuild maps a package alias onto its subpaths too.
+      '@reelforge/engine/raster': packageSource(context, 'engine', 'src', 'raster', 'index.ts'),
+      '@reelforge/engine': packageSource(context, 'engine', 'src', 'index.ts'),
+      '@reelforge/kit': packageSource(context, 'kit', 'src', 'index.ts'),
+      '@reelforge/cli/service': packageSource(context, 'cli', 'src', 'service', 'index.ts'),
     },
     logLevel: 'warning',
   };
@@ -114,6 +169,12 @@ export function mainProcessBuilds(context: TaskContext): BuildOptions[] {
       ...common,
       entryPoints: [path.join(src, 'preload', 'preload.ts')],
       outfile: path.join(out, 'preload', 'preload.cjs'),
+      format: 'cjs',
+    },
+    {
+      ...common,
+      entryPoints: [path.join(src, 'preload', 'render-preload.ts')],
+      outfile: path.join(out, 'preload', RENDER_PRELOAD_FILE),
       format: 'cjs',
     },
   ];

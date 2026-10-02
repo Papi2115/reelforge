@@ -44,11 +44,19 @@ function fileStateSchema<Data extends z.ZodType>(data: Data) {
   ]);
 }
 
-const rangeCueSchema = z.object({ from: z.number(), to: z.number(), label: z.string() });
+const rangeCueSchema = z.object({
+  from: z.number(),
+  to: z.number(),
+  label: z.string(),
+  gainDb: z.number(),
+});
+export type RangeCueView = z.infer<typeof rangeCueSchema>;
+const sfxCueSchema = z.object({ t: z.number(), label: z.string(), gainDb: z.number() });
+export type SfxCueView = z.infer<typeof sfxCueSchema>;
 
-/** `cues.json` reduced to what the timeline shows. */
+/** `cues.json` reduced to what the timeline shows (same order as the file). */
 export const cuesViewSchema = z.object({
-  sfx: z.array(z.object({ t: z.number(), label: z.string() })),
+  sfx: z.array(sfxCueSchema),
   ambience: z.array(rangeCueSchema),
   music: z.array(rangeCueSchema),
 });

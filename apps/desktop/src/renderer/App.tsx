@@ -8,6 +8,10 @@ import { PreviewPanel } from './preview/PreviewPanel.js';
 import { usePlayer } from './preview/use-player.js';
 import { HistoryDrawer } from './project/HistoryDrawer.js';
 import { StartScreen } from './project/StartScreen.js';
+import { FirstRunGate } from './settings/FirstRunGate.js';
+import { SettingsDialog, type SettingsTab } from './settings/SettingsDialog.js';
+import { useClaudeStatus } from './settings/use-claude-status.js';
+import { useSettings } from './settings/use-settings.js';
 
 const log = rendererLog('app');
 const DEMO_SOURCE = { kind: 'demo' } as const;
@@ -15,14 +19,16 @@ const DEMO_SOURCE = { kind: 'demo' } as const;
 /** Start screen: projects on the left, the demo video in the preview. */
 function StartLayout({
   onOpened,
+  defaultLanguage,
 }: {
   readonly onOpened: (project: ProjectSummary) => void;
+  readonly defaultLanguage: ProjectSummary['language'] | undefined;
 }): JSX.Element {
   // The demo has no audio: the player runs on the system clock.
   const player = usePlayer(undefined);
   return (
     <div className="start-layout">
-      <StartScreen onOpened={onOpened} />
+      <StartScreen onOpened={onOpened} defaultLanguage={defaultLanguage} />
       <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
     </div>
   );
@@ -32,6 +38,11 @@ export function App(): JSX.Element {
   const [info, setInfo] = useState<AppInfo | undefined>(undefined);
   const [project, setProject] = useState<ProjectSummary | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  const settings = useSettings();
+  const claude = useClaudeStatus();
+  const appSettings = settings.state?.settings;
+  const firstRun = appSettings !== undefined && !appSettings.onboarding.connectClaudeDone;
 
   useEffect(() => {
     window.reelforge.getAppInfo().then(setInfo, (error: unknown) => {
@@ -87,10 +98,20 @@ export function App(): JSX.Element {
             {info.dev ? ' · dev' : ''}
           </span>
         )}
+        <button
+          type="button"
+          className="link-button"
+          onClick={() => {
+            setSettingsTab('claude');
+          }}
+        >
+          Settings
+        </button>
       </header>
       <main className="app-main">
         {project === null ? (
           <StartLayout
+            defaultLanguage={appSettings?.language}
             onOpened={(opened) => {
               setProject(opened);
               setHistoryOpen(false);
@@ -107,6 +128,25 @@ export function App(): JSX.Element {
             onReverted={refreshProject}
           />
         )}
+        {settingsTab !== null && (
+          <SettingsDialog
+            tab={settingsTab}
+            onTab={setSettingsTab}
+            settings={settings}
+            claude={claude}
+            onClose={() => {
+              setSettingsTab(null);
+            }}
+          />
+        )}
+        {firstRun && settingsTab === null && (
+          <FirstRunGate
+            claude={claude}
+            onDone={() => {
+              settings.update({ onboarding: { connectClaudeDone: true } });
+            }}
+          />
+        )}
       </main>
       <StatusBar
         projectOpen={project !== null}
@@ -115,6 +155,11 @@ export function App(): JSX.Element {
           setHistoryOpen((open) => !open);
         }}
         version={info?.version}
+        economy={appSettings?.economy}
+        claude={claude.status}
+        onOpenClaudeSettings={() => {
+          setSettingsTab('claude');
+        }}
       />
     </div>
   );

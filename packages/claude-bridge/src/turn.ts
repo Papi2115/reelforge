@@ -3,6 +3,7 @@
  * The turn is complete on the `result` line (the process exits ~0.7 s later and is reaped
  * asynchronously). No `--max-turns` exists, so the overall timeout + idle watchdog are ours.
  */
+import type { ExtraEnv } from './env.js';
 import { LineBuffer, parseStreamLine, type ResultEvent, type StreamEvent } from './events.js';
 import {
   classifyFailure,
@@ -46,6 +47,8 @@ export interface TurnSpec {
   readonly prompt: string;
   readonly cwd: string;
   readonly env: NodeJS.ProcessEnv;
+  /** Allowlisted app vars for the child (render service URL/token), see `buildChildEnv`. */
+  readonly extraEnv?: ExtraEnv | undefined;
   /** Whole-turn limit; undefined = none. */
   readonly timeoutMs?: number | undefined;
   /** Max silence on stdout; undefined = none. */
@@ -102,7 +105,11 @@ function failedSpawn(message: string): RunningTurn {
 }
 
 export function startTurn(spec: TurnSpec): RunningTurn {
-  const spawned = spawnClaude(spec.launcher, spec.args, { cwd: spec.cwd, env: spec.env });
+  const spawned = spawnClaude(spec.launcher, spec.args, {
+    cwd: spec.cwd,
+    env: spec.env,
+    extraEnv: spec.extraEnv,
+  });
   if (!spawned.ok) return failedSpawn(spawned.error);
   const child = spawned.value;
   const pid = child.pid;

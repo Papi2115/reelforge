@@ -46,6 +46,8 @@ export interface ProjectServiceOptions {
   readonly templateDir: string;
   /** Shows a folder picker; undefined when the user cancels. */
   readonly pickFolder: (purpose: FolderPurpose) => Promise<string | undefined>;
+  /** Style preset of new projects (app settings); the template's when omitted. */
+  readonly defaultStyle?: () => string;
   readonly log: Logger;
   readonly git?: GitOptions;
   /** Called with the open project's folder (undefined after close) whenever it changes. */
@@ -85,6 +87,7 @@ export class ProjectService {
       dir: newProjectDir(parent, request.title),
       title: request.title,
       language: request.language,
+      ...(this.options.defaultStyle === undefined ? {} : { style: this.options.defaultStyle() }),
       templateDir: this.options.templateDir,
       ...this.gitOption(),
     });

@@ -10,7 +10,13 @@
     ".",
     "../src/main/app-paths.ts",
     "../src/main/navigation-policy.ts",
-    "../src/shared/player-contract.ts"
+    "../src/shared/player-contract.ts",
+    "../src/shared/export-contract.ts"
   ],
-  "references": [{ "path": "../../../packages/claude-bridge" }]
+  "references": [
+    { "path": "../../../packages/claude-bridge" },
+    { "path": "../../../packages/shared" },
+    { "path": "../../../packages/engine" },
+    { "path": "../../../packages/pipeline" }
+  ]
 }

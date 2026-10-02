@@ -14,16 +14,22 @@ const log = rendererLog('start');
 
 export interface StartScreenProps {
   readonly onOpened: (project: ProjectSummary) => void;
+  /** From the app settings; undefined until they are loaded. */
+  readonly defaultLanguage: Language | undefined;
 }
 
 type Language = ProjectSummary['language'];
 
-export function StartScreen({ onOpened }: StartScreenProps): JSX.Element {
+export function StartScreen({ onOpened, defaultLanguage }: StartScreenProps): JSX.Element {
   const [title, setTitle] = useState('');
-  const [language, setLanguage] = useState<Language>('en');
+  const [language, setLanguage] = useState<Language>(defaultLanguage ?? 'en');
   const [recent, setRecent] = useState<RecentProjectEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (defaultLanguage !== undefined) setLanguage(defaultLanguage);
+  }, [defaultLanguage]);
 
   useEffect(() => {
     window.reelforge.getRecentProjects().then(setRecent, (reason: unknown) => {

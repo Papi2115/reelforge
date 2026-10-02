@@ -44,6 +44,17 @@ export function recentProjectsFile(userDataDir: string): string {
   return path.join(userDataDir, 'recent-projects.json');
 }
 
+/** App settings (PLAN.md#6.7). */
+export function settingsFile(userDataDir: string): string {
+  return path.join(userDataDir, 'settings.json');
+}
+
+/**
+ * Test hook (unpackaged runs only): the only folder searched for `claude` (instead of PATH and the
+ * usual install dirs), so smoke tests can show the "not installed" wizard on any machine.
+ */
+export const CLAUDE_SEARCH_DIR_ENV = 'REELFORGE_TEST_CLAUDE_DIR';
+
 export function logFile(userDataDir: string): string {
   return path.join(userDataDir, 'logs', 'main.log');
 }

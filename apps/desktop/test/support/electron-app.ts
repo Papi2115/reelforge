@@ -2,10 +2,12 @@
  * Shared helpers of the app smoke tests: launching the built Electron app through Playwright,
  * opening a project folder through the (stubbed) native picker, and reading the preview canvas.
  */
+import { existsSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { _electron, type ElectronApplication, type Page } from 'playwright';
-import { USER_DATA_ENV } from '../../src/main/app-paths.js';
+import { settingsFile, USER_DATA_ENV } from '../../src/main/app-paths.js';
 import { DEV_SERVER_ENV } from '../../src/main/navigation-policy.js';
 
 export const appRoot = path.resolve(import.meta.dirname, '..', '..');
@@ -30,7 +32,10 @@ function electronBinary(): string {
   return binary;
 }
 
-function launchEnv(userDataDir: string): Record<string, string> {
+function launchEnv(
+  userDataDir: string,
+  extra: Readonly<Record<string, string>>,
+): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [name, value] of Object.entries(process.env)) {
     if (value !== undefined && name !== 'ELECTRON_RUN_AS_NODE' && name !== DEV_SERVER_ENV) {
@@ -38,7 +43,22 @@ function launchEnv(userDataDir: string): Record<string, string> {
     }
   }
   env[USER_DATA_ENV] = userDataDir;
-  return env;
+  return { ...env, ...extra };
+}
+
+export interface LaunchOptions {
+  /** Keep the first-run "Connect Claude" gate (default: a fresh profile starts with it done). */
+  readonly firstRun?: boolean;
+  /** Extra env for the app (test hooks). */
+  readonly env?: Readonly<Record<string, string>>;
+}
+
+/** A fresh profile gets settings with the first-run gate done, so it does not cover the app. */
+async function seedSettings(userDataDir: string): Promise<void> {
+  const file = settingsFile(userDataDir);
+  if (existsSync(file)) return;
+  await mkdir(userDataDir, { recursive: true });
+  await writeFile(file, JSON.stringify({ version: 1, onboarding: { connectClaudeDone: true } }));
 }
 
 /**
@@ -46,12 +66,16 @@ function launchEnv(userDataDir: string): Record<string, string> {
  * focus and real key presses on the machine running the tests (seen: an auto-repeating
  * ArrowRight) reach the player's shortcuts. Playwright's input does not need OS focus.
  */
-export async function launchApp(userDataDir: string): Promise<ElectronApplication> {
+export async function launchApp(
+  userDataDir: string,
+  options: LaunchOptions = {},
+): Promise<ElectronApplication> {
+  if (options.firstRun !== true) await seedSettings(userDataDir);
   const app = await _electron.launch({
     executablePath: electronBinary(),
     args: [appRoot],
     cwd: appRoot,
-    env: launchEnv(userDataDir),
+    env: launchEnv(userDataDir, options.env ?? {}),
   });
   await app.firstWindow();
   await app.evaluate(({ BrowserWindow }) => {

@@ -120,6 +120,27 @@ describe('SessionManager: turns on fake-claude', () => {
     for (const key of leaked) expect(allowed).toContain(key.toUpperCase());
   });
 
+  it('asks extraEnv per project; the hook cannot smuggle billing vars in', async () => {
+    const asked: string[] = [];
+    const { manager } = harness.manager(
+      { FAKE_CLAUDE_PROBE: '1' },
+      {
+        extraEnv: (projectDir) => {
+          asked.push(projectDir);
+          // Untyped data: the allowlist must drop the key, or the billing guard would trip.
+          return { ANTHROPIC_API_KEY: 'fake-key' } as unknown as Record<string, never>;
+        },
+      },
+    );
+    const projectDir = harness.project();
+    const { events, outcome } = await drain(
+      manager.enqueue({ projectDir, stage: 'chat', prompt: 'x' }),
+    );
+    expect(outcome.status).toBe('completed');
+    expect(asked).toEqual([projectDir]);
+    expect(probeOf(events).claudeEnvKeys).not.toContain('ANTHROPIC_API_KEY');
+  });
+
   it('aborts the turn when init reports an API key source (billing guard)', async () => {
     const { manager } = harness.manager({ FAKE_CLAUDE_SCENARIO: 'api-key' });
     const projectDir = harness.project();

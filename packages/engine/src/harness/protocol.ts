@@ -86,7 +86,7 @@ export const loadInfoSchema = z.object({
   gpu: gpuInfoSchema,
 });
 
-const cardDiagnosticSchema = z.object({
+export const cardDiagnosticSchema = z.object({
   rule: z.enum(['card-overlap', 'card-outside-safe-area']),
   severity: z.literal('error'),
   shotId: z.string(),

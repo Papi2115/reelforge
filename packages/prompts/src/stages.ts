@@ -1,7 +1,7 @@
 /**
  * Prompt -> bridge stage (tool permissions, default model, usage bucket) and model selection.
  * Model priority mirrors the bridge's `resolveModel`: explicit override > Economy (all
- * `ECONOMY_MODEL`) > the model declared in the prompt file.
+ * `ECONOMY_MODEL`) > the app's model per stage > the model declared in the prompt file.
  */
 import { ECONOMY_MODEL, type ModelAlias, type Stage } from '@reelforge/claude-bridge';
 import { loadPrompt, type PromptId } from './catalog.js';
@@ -24,14 +24,19 @@ export function permissionStageFor(id: PromptId): Stage {
 export interface PromptModelOptions {
   /** Economy mode (PLAN.md §2.2): every stage on the bridge's `ECONOMY_MODEL`. */
   readonly economy?: boolean;
-  /** User/per-project choice for this stage; wins over everything. */
+  /** Explicit choice for this one turn; wins over everything. */
   readonly override?: ModelAlias;
+  /**
+   * Model per bridge stage from the app settings (same shape as `SessionManagerOptions.models`);
+   * below Economy, above the model declared in the prompt file.
+   */
+  readonly models?: Partial<Record<Stage, ModelAlias>>;
 }
 
 export function promptModel(id: PromptId, options: PromptModelOptions = {}): ModelAlias {
   if (options.override !== undefined) return options.override;
   if (options.economy === true) return ECONOMY_MODEL;
-  return loadPrompt(id).model;
+  return options.models?.[permissionStageFor(id)] ?? loadPrompt(id).model;
 }
 
 /** Built-in tool names a prompt declares, without rule content (`Bash(reelforge *)` -> `Bash`). */

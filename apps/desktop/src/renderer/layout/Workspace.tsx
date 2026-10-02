@@ -1,13 +1,14 @@
 /**
  * The open project's workspace (PLAN.md#6.3): wires the snapshot, the player (shared time, PLAN.md
- * #6.4) and the shot selection into the panels of the app shell.
+ * #6.4) and the timeline (selection, edits, waveform; PLAN.md#6.5) into the panels of the shell.
  */
 import type { StoryboardShot } from '@reelforge/shared';
-import { useState, type JSX } from 'react';
+import type { JSX } from 'react';
 import type { ProjectSummary } from '../../shared/project-contract.js';
 import { playbackAudioUrl } from '../preview/audio-source.js';
 import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
+import { useTimeline } from '../timeline/use-timeline.js';
 import { AppShell } from './AppShell.js';
 import { ChatPanel } from './ChatPanel.js';
 import { PipelineSidebar } from './PipelineSidebar.js';
@@ -15,36 +16,21 @@ import { ShotsPanel } from './ShotsPanel.js';
 import { TimelinePanel } from './TimelinePanel.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
 
-/** The cleaned voice-over, else the original one. */
-const VOICEOVER_FILES = [/^audio\/vo\.clean\.wav$/i, /^audio\/vo\.original\.[^/]+$/i];
-
-function voiceoverName(files: readonly string[]): string | undefined {
-  for (const pattern of VOICEOVER_FILES) {
-    const file = files.find((candidate) => pattern.test(candidate));
-    if (file !== undefined) return file.slice('audio/'.length);
-  }
-  return undefined;
-}
-
 export interface WorkspaceProps {
   readonly project: ProjectSummary;
 }
 
 export function Workspace({ project }: WorkspaceProps): JSX.Element {
-  const { snapshot, error, previewRevision, audioRevision } = useProjectSnapshot(project.dir);
+  const { snapshot, error, previewRevision, audioRevision, reload } = useProjectSnapshot(
+    project.dir,
+  );
   const files = snapshot?.files ?? [];
   const player = usePlayer(playbackAudioUrl(files, audioRevision));
-  const { time, duration } = usePlayerState(player);
-  const [selectedShotId, setSelectedShotId] = useState<string | undefined>(undefined);
-
-  const storyboard = snapshot?.storyboard;
-  const shots: readonly StoryboardShot[] = storyboard?.status === 'ok' ? storyboard.data.shots : [];
-  const words = snapshot?.words.status === 'ok' ? snapshot.words.data.words : [];
-  const cues = snapshot?.cues.status === 'ok' ? snapshot.cues.data : undefined;
-  const voiceover = voiceoverName(files);
+  const { time, duration, playing, fps } = usePlayerState(player);
+  const timeline = useTimeline(project.dir, snapshot, reload, audioRevision, duration);
 
   const selectShot = (shot: StoryboardShot): void => {
-    setSelectedShotId(shot.id);
+    timeline.selection.set([{ kind: 'shot', id: shot.id }]);
     player.seek(shot.t0);
   };
 
@@ -59,8 +45,8 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
           )}
           <PipelineSidebar files={snapshot?.files} />
           <ShotsPanel
-            storyboard={storyboard}
-            selectedId={selectedShotId}
+            storyboard={snapshot?.storyboard}
+            selectedId={timeline.selectedShotId}
             time={time}
             onSelect={selectShot}
           />
@@ -73,16 +59,20 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
           snapshots
         />
       }
-      right={<ChatPanel selectedShotId={selectedShotId} />}
+      right={<ChatPanel selectedShotId={timeline.selectedShotId} />}
       bottom={
         <TimelinePanel
-          duration={duration}
+          model={timeline.model}
+          duration={timeline.duration}
           time={time}
-          shots={shots}
-          words={words}
-          cues={cues}
-          voiceover={voiceover}
-          selectedShotId={selectedShotId}
+          playing={playing}
+          fps={fps}
+          selection={timeline.selection}
+          editing={timeline.editing}
+          waveform={timeline.waveform}
+          onSeek={(t) => {
+            player.seek(t);
+          }}
           onScrub={(t) => {
             player.scrub(t);
           }}

@@ -43,8 +43,21 @@ Implementations:
 - `testing/playwright-frame-source.ts` — `createPlaywrightFrameSources()`: headless Chromium via
   `@reelforge/engine/cli` (one shared browser, one page per worker). **SwiftShader only**: the
   engine CLI launches with `--use-angle=swiftshader`. Tests/dev tooling only, not exported.
-- Phase 6: hidden Electron `BrowserWindow` + IPC (ADR-002), same interface. It should launch with
-  GPU (ANGLE D3D11) and report the renderer string.
+- `apps/desktop/src/main/render/electron-frame-source.ts` — the app's source: hidden render windows
+  (`render-window.ts`: `show: false`, sandboxed, GPU = Chromium's ANGLE D3D11) loading
+  `engine/render-host.html` (the preview's `createSandboxedHarness` + the same `engine-frame.html`,
+  determinism lint on). Main sends `load`/`frame`/`cards` calls over IPC; frames come back as RGBA
+  bytes (structured clone). A `RenderPool` reuses windows (and their loaded manifest) across workers
+  and the thumbnail; windows close gracefully (`close()` + `closed`). Aborting closes them.
+  `exportProject()` (`export-project.ts`) wires the preview's manifest, ffmpeg/encoder/workers from
+  the settings and `exportVideo`; IPC `export:start` / `export:cancel` / push `export:progress`
+  (frame events throttled to 10/s).
+
+Measured in the app (`apps/desktop/test/render.smoke.test.ts`, 10 s fixture clip at 1080p30, GPU
+Radeon 740M iGPU — the RTX 4050 was unavailable to CUDA/Chromium during the run): libx264 final
+58.5 fps end to end (2 workers; 53.9 with 1 worker; ADR-002: 56–68), AMF final 77 fps (65.8 with 1
+worker). NVENC not measured (`CUDA_ERROR_NO_DEVICE`); re-measure on the dGPU (Settings → GPU:
+high-performance).
 
 ## Segments: encoded straight to the final codec
 

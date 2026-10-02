@@ -1,5 +1,6 @@
 /** Public types of the SessionManager: stages, models per stage, requests, lifecycle events. */
 import type { PendingTurn, SessionPurpose } from '@reelforge/shared';
+import type { ExtraEnv } from './env.js';
 import type { ModelAlias, PermissionMode } from './args.js';
 import type { StreamEvent } from './events.js';
 import type { LimitGuard } from './limit-guard.js';
@@ -38,6 +39,11 @@ export interface SessionManagerOptions {
   readonly launcher: ClaudeLauncher;
   /** Parent env for children (sanitized on every spawn). Default `process.env`. */
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Allowlisted app vars for the turn's child (EXTRA_ENV_ALLOWLIST: the render service URL and
+   * token for the `reelforge` CLI), asked per turn so they follow the open project.
+   */
+  readonly extraEnv?: (projectDir: string) => ExtraEnv | undefined;
   /** Max concurrently running turns across all sessions. Default 1. */
   readonly concurrency?: number;
   readonly models?: Partial<Record<Stage, ModelAlias>>;

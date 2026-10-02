@@ -1,0 +1,114 @@
+import { describe, expect, it } from 'vitest';
+import {
+  APP_SETTINGS_VERSION,
+  appSettingsPatchSchema,
+  appSettingsSchema,
+  applyAppSettingsPatch,
+  defaultAppSettings,
+  migrateAppSettings,
+} from './app-settings.js';
+
+describe('app settings', () => {
+  it('has the PLAN.md defaults', () => {
+    expect(defaultAppSettings()).toEqual({
+      version: APP_SETTINGS_VERSION,
+      language: 'en',
+      defaultStyle: 'voxel-pixel-crisp640',
+      theme: 'dark',
+      models: {
+        research: 'sonnet',
+        script: 'sonnet',
+        storyboard: 'sonnet',
+        'scene-build': 'opus',
+        'scene-fix': 'opus',
+        critic: 'haiku',
+        'sound-cues': 'sonnet',
+      },
+      chat: { model: 'sonnet', boostModel: 'opus' },
+      economy: false,
+      usage: { softBudgetUsd: null },
+      performance: { exportWorkers: 'auto', encoder: 'auto', gpu: 'auto' },
+      tools: { ffmpegPath: null, whisperPath: null, whisperModel: 'large-v3-turbo-q5_0' },
+      onboarding: { connectClaudeDone: false },
+    });
+  });
+
+  it('fills missing nested fields with defaults and drops unknown keys', () => {
+    const parsed = appSettingsSchema.parse({
+      version: 1,
+      models: { critic: 'sonnet' },
+      performance: { exportWorkers: 3 },
+      somethingNew: true,
+    });
+    expect(parsed.models.critic).toBe('sonnet');
+    expect(parsed.models['scene-build']).toBe('opus');
+    expect(parsed.performance).toEqual({ exportWorkers: 3, encoder: 'auto', gpu: 'auto' });
+    expect(parsed).not.toHaveProperty('somethingNew');
+  });
+
+  it('rejects invalid values', () => {
+    for (const bad of [
+      { version: 1, language: 'de' },
+      { version: 1, theme: 'light' },
+      { version: 1, models: { script: 'gpt' } },
+      { version: 1, performance: { exportWorkers: 0 } },
+      { version: 1, usage: { softBudgetUsd: -5 } },
+      { version: 1, defaultStyle: 'Not A Style' },
+    ]) {
+      expect(appSettingsSchema.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
+    }
+  });
+
+  it('migrates unversioned files and refuses newer versions', () => {
+    const legacy = migrateAppSettings({ language: 'pl', economy: true });
+    expect(legacy).toMatchObject({ ok: true, migratedFrom: 0 });
+    if (legacy.ok) {
+      expect(legacy.settings.version).toBe(APP_SETTINGS_VERSION);
+      expect(legacy.settings.language).toBe('pl');
+      expect(legacy.settings.economy).toBe(true);
+    }
+    expect(migrateAppSettings({ version: 1 })).toMatchObject({ ok: true, migratedFrom: null });
+    expect(migrateAppSettings({ version: 2 })).toMatchObject({
+      ok: false,
+      reason: 'newer-version',
+    });
+    expect(migrateAppSettings([1, 2])).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(migrateAppSettings({ version: 'one' })).toMatchObject({ ok: false, reason: 'corrupt' });
+    expect(migrateAppSettings({ version: 1, economy: 'yes' })).toMatchObject({
+      ok: false,
+      reason: 'corrupt',
+    });
+  });
+
+  it('applies patches one level deep', () => {
+    const next = applyAppSettingsPatch(defaultAppSettings(), {
+      language: 'pl',
+      economy: true,
+      models: { storyboard: 'opus' },
+      performance: { encoder: 'nvenc' },
+    });
+    expect(next.language).toBe('pl');
+    expect(next.economy).toBe(true);
+    expect(next.models.storyboard).toBe('opus');
+    expect(next.models.script).toBe('sonnet');
+    expect(next.performance).toEqual({ exportWorkers: 'auto', encoder: 'nvenc', gpu: 'auto' });
+  });
+
+  it('keeps tool paths and unknown keys out of renderer patches', () => {
+    expect(
+      appSettingsPatchSchema.safeParse({ tools: { ffmpegPath: 'C:\\evil.exe' } }).success,
+    ).toBe(false);
+    expect(appSettingsPatchSchema.safeParse({ version: 2 }).success).toBe(false);
+    expect(appSettingsPatchSchema.safeParse({ theme: 'dark' }).success).toBe(false);
+    expect(appSettingsPatchSchema.safeParse({ tools: { whisperModel: 'small' } }).success).toBe(
+      true,
+    );
+    // A parsed patch carries only what was sent (no defaults over other choices).
+    expect(appSettingsPatchSchema.parse({ models: { critic: 'sonnet' }, performance: {} })).toEqual(
+      {
+        models: { critic: 'sonnet' },
+        performance: {},
+      },
+    );
+  });
+});

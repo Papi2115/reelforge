@@ -8,7 +8,12 @@ export type * from './contract.js';
 export * from './errors.js';
 export type { GpuInfo } from './gl/frame-renderer.js';
 export { createSandboxedHarness, type SandboxedHarnessOptions } from './harness/host.js';
-export { RPC_CHANNEL, type ReelforgeHarness } from './harness/protocol.js';
+export {
+  cardDiagnosticSchema,
+  loadInfoSchema,
+  RPC_CHANNEL,
+  type ReelforgeHarness,
+} from './harness/protocol.js';
 export * from './lint/index.js';
 export * from './palette.js';
 export * from './presets/index.js';

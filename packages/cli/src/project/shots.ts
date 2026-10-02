@@ -18,6 +18,8 @@ import type { FileCheck, ProjectFiles } from './files.js';
 import { projectRelative, resolveInProject, samePath } from './paths.js';
 
 export interface RenderSetup {
+  /** Project folder. */
+  readonly root: string;
   readonly style: string;
   readonly fps: number;
   readonly seed: number;
@@ -89,6 +91,7 @@ export function renderSetup(files: ProjectFiles): RenderSetup {
         }
       : undefined;
   return {
+    root: files.root,
     style: project.style,
     fps: project.fps,
     seed: project.seed,

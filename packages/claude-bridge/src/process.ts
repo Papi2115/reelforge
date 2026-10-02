@@ -3,7 +3,7 @@
  * never a `.cmd`/`.bat` shim, sanitized env, whole-tree kill via `taskkill /T /F`.
  */
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { sanitizeEnv } from './env.js';
+import { buildChildEnv, type ExtraEnv } from './env.js';
 import { err, ok, type Result } from './result.js';
 
 /** What to execute: the resolved `claude.exe`, or e.g. `node fake-claude.mjs` in tests. */
@@ -17,6 +17,8 @@ export interface SpawnOptions {
   readonly cwd: string;
   /** Parent env; always sanitized before reaching the child. */
   readonly env: NodeJS.ProcessEnv;
+  /** Allowlisted app vars added after sanitizing (see `buildChildEnv`). */
+  readonly extraEnv?: ExtraEnv | undefined;
 }
 
 /** `.cmd`/`.bat` need a shell on Windows (EINVAL otherwise, CVE-2024-27980) -> refused. */
@@ -38,7 +40,7 @@ export function spawnClaude(
   try {
     const child = spawn(launcher.command, [...launcher.args, ...args], {
       cwd: options.cwd,
-      env: sanitizeEnv(options.env),
+      env: buildChildEnv(options.env, options.extraEnv),
       shell: false,
       windowsHide: true,
       // POSIX: own process group so the whole tree can be killed with kill(-pid).

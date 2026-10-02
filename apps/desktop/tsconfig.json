@@ -12,6 +12,8 @@
     { "path": "../../packages/engine" },
     { "path": "../../packages/claude-bridge" },
     { "path": "../../packages/pipeline" },
-    { "path": "../../packages/project" }
+    { "path": "../../packages/project" },
+    { "path": "../../packages/kit" },
+    { "path": "../../packages/cli" }
   ]
 }

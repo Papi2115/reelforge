@@ -153,6 +153,7 @@ describe('path helpers', () => {
     expect(isIgnoredChange('.git')).toBe(true);
     expect(isIgnoredChange('.GIT/index')).toBe(true);
     expect(isIgnoredChange('.reelforge/frames/s01/0001.png')).toBe(true);
+    expect(isIgnoredChange('.reelforge/cache/peaks-0123456789abcdef.json')).toBe(true);
     expect(isIgnoredChange('cues.json.123.tmp')).toBe(true);
     expect(isIgnoredChange('.gitignore')).toBe(false);
     expect(isIgnoredChange('.reelforge/pipeline.json')).toBe(false);

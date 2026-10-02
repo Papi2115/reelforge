@@ -27,6 +27,12 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
+/**
+ * The pinned release zips are Windows builds (`whisper-cli.exe`), so every manager here locates
+ * binaries as on Windows, whatever OS runs the suite (CI also runs on Linux).
+ */
+const PLATFORM = 'win32';
+
 const cliOf = (backend: BinaryBackend): string =>
   path.join(backendDir(root, backend), 'Release', 'whisper-cli.exe');
 
@@ -40,7 +46,7 @@ async function installFakeBuilds(backends: readonly BinaryBackend[]): Promise<Wh
     await touch(cliOf(backend));
     await touch(path.join(path.dirname(cliOf(backend)), 'whisper-vad-speech-segments.exe'));
   }
-  const manager = new WhisperManager({ root, env: {}, run: fakeRunner.run });
+  const manager = new WhisperManager({ root, env: {}, platform: PLATFORM, run: fakeRunner.run });
   await touch(manager.modelPath('large-v3-turbo-q5_0'));
   await touch(manager.vadModelPath());
   return manager;
@@ -330,6 +336,7 @@ describe('WhisperManager.install', () => {
     const manager = new WhisperManager({
       root,
       env: {},
+      platform: PLATFORM,
       run: fakeRunner.run,
       fetch,
       binaryAssets: fakeAssets(),
@@ -357,7 +364,14 @@ describe('WhisperManager.install', () => {
         err({ kind: 'spawn-failed', message: 'nvidia-smi not found', command: 'nvidia-smi' }),
       ),
     );
-    const manager = new WhisperManager({ root, env: {}, run, fetch, binaryAssets: fakeAssets() });
+    const manager = new WhisperManager({
+      root,
+      env: {},
+      platform: PLATFORM,
+      run,
+      fetch,
+      binaryAssets: fakeAssets(),
+    });
     await placeVerified(manager.modelPath('small'), WHISPER_MODELS.small);
     await placeVerified(manager.vadModelPath(), SILERO_VAD_MODEL);
     const result = await manager.install({ model: 'small' });
@@ -369,6 +383,7 @@ describe('WhisperManager.install', () => {
     const manager = new WhisperManager({
       root,
       env: {},
+      platform: PLATFORM,
       run: fakeRunner.run,
       fetch,
       binaryAssets: fakeAssets(),

@@ -194,6 +194,12 @@ describe('stages and models', () => {
       expect(promptModel(id, { economy: true, override: 'haiku' })).toBe(
         resolveModel({ ...request, model: 'haiku' }, { launcher, economy: true }),
       );
+      const models = { [stage]: 'haiku' } as const;
+      expect(promptModel(id, { models })).toBe('haiku');
+      expect(promptModel(id, { models })).toBe(resolveModel(request, { launcher, models }));
+      expect(promptModel(id, { models, economy: true })).toBe(
+        resolveModel(request, { launcher, models, economy: true }),
+      );
     }
   });
 

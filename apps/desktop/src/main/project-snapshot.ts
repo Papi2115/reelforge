@@ -3,7 +3,6 @@
  * status is computed from it in the renderer) and storyboard / words / cues, each validated with
  * the schema its writer uses (shared for storyboard and words, the pipeline's for cues).
  */
-import path from 'node:path';
 import { CuesFileSchema, type CuesFile } from '@reelforge/pipeline';
 import { storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
 import {
@@ -12,31 +11,23 @@ import {
   type FileState,
   type ProjectSnapshot,
 } from '../shared/snapshot-contract.js';
+import { cueLabel } from '../shared/timeline-edits.js';
 import { listProjectFiles, readProjectJson } from './project-files.js';
-
-interface CueSource {
-  readonly id?: string | undefined;
-  readonly name?: string | undefined;
-  readonly file?: string | undefined;
-}
-
-/** Display name of a cue: its id, recipe name or file name. */
-export function cueLabel(cue: CueSource, fallback: string): string {
-  return cue.id ?? cue.name ?? (cue.file === undefined ? fallback : path.basename(cue.file));
-}
 
 export function cuesView(cues: CuesFile): CuesView {
   return {
-    sfx: cues.sfx.map((cue) => ({ t: cue.t, label: cueLabel(cue, 'sfx') })),
+    sfx: cues.sfx.map((cue) => ({ t: cue.t, label: cueLabel(cue, 'sfx'), gainDb: cue.gainDb })),
     ambience: cues.ambience.map((cue) => ({
       from: cue.from,
       to: cue.to,
       label: cueLabel(cue, 'ambience'),
+      gainDb: cue.gainDb,
     })),
     music: cues.music.map((cue) => ({
       from: cue.from,
       to: cue.to,
       label: cueLabel(cue, 'music'),
+      gainDb: cue.gainDb,
     })),
   };
 }

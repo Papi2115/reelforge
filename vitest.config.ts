@@ -14,6 +14,9 @@ export default defineConfig({
       '@reelforge/engine/cli': fileURLToPath(
         new URL('./packages/engine/src/cli/index.ts', import.meta.url),
       ),
+      '@reelforge/engine/raster': fileURLToPath(
+        new URL('./packages/engine/src/raster/index.ts', import.meta.url),
+      ),
       // After the /cli subpath: aliases match by prefix, the first match wins.
       '@reelforge/engine': workspaceSource('engine'),
       '@reelforge/pipeline': workspaceSource('pipeline'),

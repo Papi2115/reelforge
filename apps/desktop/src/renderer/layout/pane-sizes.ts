@@ -17,7 +17,7 @@ export interface Viewport {
   readonly height: number;
 }
 
-export const DEFAULT_PANE_SIZES: PaneSizes = { left: 272, right: 320, bottom: 196 };
+export const DEFAULT_PANE_SIZES: PaneSizes = { left: 272, right: 320, bottom: 216 };
 
 export const PANE_LIMITS = {
   minLeft: 220,

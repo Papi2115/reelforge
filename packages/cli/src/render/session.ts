@@ -1,13 +1,18 @@
 /**
- * Renders shots through the engine harness (headless Chromium + SwiftShader, the same sandboxed
- * engine as preview and export). One browser per command; one fresh page per shot so console
- * errors and failures are attributed to the right shot.
+ * Renders shots through the engine harness, the same sandboxed engine as preview and export:
+ * - inside the app (REELFORGE_RENDER_URL set by the app for its claude processes): the app's
+ *   render service (service-session.ts, GPU Electron renderer);
+ * - otherwise (dev, CI): headless Chromium + SwiftShader. One browser per command; one fresh page
+ *   per shot so console errors and failures are attributed to the right shot.
  */
 import type { CardDiagnostic, ResolvedAnchor, SfxCue } from '@reelforge/engine';
-import type { FrameStats, HarnessBrowser, RgbaImage } from '@reelforge/engine/cli';
+import type { HarnessBrowser } from '@reelforge/engine/cli';
+import type { FrameStats, RgbaImage } from '@reelforge/engine/raster';
 import { describeUnknown, ProjectError } from '../errors.js';
 import { isolatedManifest, type RenderSetup, type ShotPlan } from '../project/shots.js';
 import { engineCli } from './engine-tools.js';
+import { renderServiceFromEnv } from './service-client.js';
+import { openServiceRenderSession } from './service-session.js';
 
 export interface RenderedFrame {
   /** Local shot time (seconds). */
@@ -83,7 +88,16 @@ async function launch(): Promise<HarnessBrowser> {
   }
 }
 
-export async function openRenderSession(setup: RenderSetup): Promise<RenderSession> {
+export async function openRenderSession(
+  setup: RenderSetup,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<RenderSession> {
+  const service = renderServiceFromEnv(env);
+  if (service !== undefined) return openServiceRenderSession(setup, service);
+  return openPlaywrightSession(setup);
+}
+
+async function openPlaywrightSession(setup: RenderSetup): Promise<RenderSession> {
   const browser = await launch();
   const { computeFrameStats } = await engineCli();
   return {

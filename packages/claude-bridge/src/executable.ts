@@ -48,7 +48,9 @@ export function exeFromCmdShim(shimPath: string): string | undefined {
   }
   const match = /"%dp0%\\([^"]+\.exe)"/i.exec(content);
   if (match?.[1] === undefined) return undefined;
-  const exe = path.win32.join(path.win32.dirname(shimPath), match[1]);
+  // The shim exists on this machine's filesystem, so join with the native path API; the target
+  // inside it is always backslash-separated (identical to path.win32.join on Windows).
+  const exe = path.join(path.dirname(shimPath), ...match[1].split('\\'));
   return existsSync(exe) ? exe : undefined;
 }
 

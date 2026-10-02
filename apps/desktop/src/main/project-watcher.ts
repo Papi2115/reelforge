@@ -46,13 +46,14 @@ export function normalizeChangedPath(relative: string): string {
   return relative.replace(/\\/g, '/').replace(/^(\.\/)+/, '');
 }
 
-/** Git internals, in-flight atomic writes and QA frame dumps never matter to the layout. */
+/** Git internals, in-flight atomic writes, QA frame dumps and caches never matter to the layout. */
 export function isIgnoredChange(relative: string): boolean {
   const lower = relative.toLowerCase();
   return (
     lower === '.git' ||
     lower.startsWith('.git/') ||
     lower.startsWith('.reelforge/frames/') ||
+    lower.startsWith('.reelforge/cache/') ||
     lower.endsWith('.tmp')
   );
 }

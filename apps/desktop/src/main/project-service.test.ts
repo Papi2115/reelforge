@@ -73,6 +73,19 @@ describe('ProjectService', () => {
     ).toEqual(['create']);
   });
 
+  it('starts new projects with the default style from the app settings', async () => {
+    const projects = new ProjectService({
+      recentFile: path.join(root, 'user data', 'recent-projects.json'),
+      templateDir: DEFAULT_TEMPLATE_DIR,
+      pickFolder: () => Promise.resolve(root),
+      defaultStyle: () => 'noir-voxel',
+      log: createLogger((line) => lines.push(line)),
+      git,
+    });
+    const result = await projects.newProject({ title: 'Noir', language: 'en' });
+    expect(result).toMatchObject({ status: 'opened', project: { style: 'noir-voxel' } });
+  });
+
   it('autocommits for later stages and reverts the scene (restores content, new commit)', async () => {
     const projects = service();
     picks.push(root);

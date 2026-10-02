@@ -2,7 +2,7 @@
  * Contact sheet: a grid of labelled frames in one image (one row per shot), the format the
  * runtime Claude and the Haiku critic read. Labels use the engine's pixel mono font.
  */
-import type { RgbaImage } from '@reelforge/engine/cli';
+import type { RgbaImage } from '@reelforge/engine/raster';
 import {
   blit,
   createImage,
