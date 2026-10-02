@@ -7,8 +7,7 @@
  * (`pnpm test:app`) every strict value applies.
  *
  * REELFORGE_TEST_ELECTRON_ARGS adds Chromium switches to every app launch, to reproduce the runner
- * locally (`pnpm test:app:ci -- --simulate-runner` sets `--use-angle=d3d11-warp
- * --disable-audio-output`).
+ * locally (`pnpm test:app:ci -- --simulate-runner`, see scripts/test-app-ci.mjs).
  */
 export const CI_ENV = 'REELFORGE_CI';
 export const ELECTRON_ARGS_ENV = 'REELFORGE_TEST_ELECTRON_ARGS';

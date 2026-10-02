@@ -325,8 +325,13 @@ export class Player {
     if (!this.clock.isPlaying) this.media?.pause();
   }
 
+  /**
+   * Into [0, duration]. Before setVideo() the duration is unknown (0): a seek then (a shot clicked
+   * while the project's video loads) is kept, and setVideo() clamps it to the real duration.
+   */
   private clamp(t: number): number {
-    return Math.min(Math.max(Number.isFinite(t) ? t : 0, 0), this.state.duration);
+    const time = Math.max(Number.isFinite(t) ? t : 0, 0);
+    return this.state.duration > 0 ? Math.min(time, this.state.duration) : time;
   }
 
   private clampedFrameTime(t: number): number {

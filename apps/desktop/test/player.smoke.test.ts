@@ -143,13 +143,18 @@ describe('player', () => {
   it('scrubs from the timeline ruler and the slider, frame by frame and fast', async () => {
     await seekWithSlider('1');
     const before = await frameStats(page);
-    // The ruler is the top 20 px of the timeline canvas, which fits the whole video by default.
-    const box = await page.getByTestId('timeline-canvas').boundingBox();
+    // The ruler is the top 20 px of the timeline canvas. Positions come from its scale (the
+    // default window size depends on the screen: 1024x768 on the CI runner).
+    const lanes = page.getByTestId('timeline-canvas');
+    const box = await lanes.boundingBox();
     if (!box) throw new Error('timeline lanes not visible');
+    const pxPerSecond = Number(await lanes.getAttribute('data-px-per-second'));
+    const scrollX = Number(await lanes.getAttribute('data-scroll-x'));
+    const xAt = (t: number): number => box.x + t * pxPerSecond - scrollX;
     const y = box.y + 10;
-    await page.mouse.move(box.x + box.width * 0.1, y);
+    await page.mouse.move(xAt(0.75), y);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.6, y, { steps: 12 });
+    await page.mouse.move(xAt(4.5), y, { steps: 12 });
     await page.mouse.up();
     await page.waitForFunction(() => {
       const t = Number(

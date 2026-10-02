@@ -117,6 +117,23 @@ describe('Player on the system clock', () => {
     expect(player.getState().time).toBe(2);
   });
 
+  it('keeps a seek made before the video is loaded, clamped once it is', () => {
+    const env = new ManualEnvironment();
+    const player = new Player(env, () => undefined);
+    // A shot clicked while the project's video still loads (duration not known yet).
+    player.seek(2.2);
+    expect(player.getState().time).toBe(2.2);
+    player.setVideo(7.5, 30);
+    expect(player.getState().time).toBe(2.2);
+    player.seek(9);
+    player.seek(-1);
+    expect(player.getState().time).toBe(0);
+    const late = new Player(env, () => undefined);
+    late.seek(12);
+    late.setVideo(7.5, 30);
+    expect(late.getState().time).toBe(7.5);
+  });
+
   it('runs keyboard actions', () => {
     const { player } = setup();
     player.perform({ kind: 'faster' });
