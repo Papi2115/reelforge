@@ -1,0 +1,525 @@
+{
+  "version": 1,
+  "source": "Windows SAPI SpeakProgress events (word starts) + visemes (word ends)",
+  "durationS": 38.455,
+  "spans": [
+    {
+      "start": 1.6,
+      "end": 14.445
+    },
+    {
+      "start": 19.295,
+      "end": 36.705
+    }
+  ],
+  "gap": {
+    "start": 14.745000000000001,
+    "end": 18.995
+  },
+  "words": [
+    {
+      "text": "Here",
+      "paragraph": 0,
+      "t": 1.6,
+      "tEnd": 1.82
+    },
+    {
+      "text": "is",
+      "paragraph": 0,
+      "t": 1.82,
+      "tEnd": 2.12
+    },
+    {
+      "text": "a",
+      "paragraph": 0,
+      "t": 2.12,
+      "tEnd": 2.225
+    },
+    {
+      "text": "quick",
+      "paragraph": 0,
+      "t": 2.225,
+      "tEnd": 2.485
+    },
+    {
+      "text": "experiment",
+      "paragraph": 0,
+      "t": 2.485,
+      "tEnd": 3.195
+    },
+    {
+      "text": "you",
+      "paragraph": 0,
+      "t": 3.195,
+      "tEnd": 3.345
+    },
+    {
+      "text": "can",
+      "paragraph": 0,
+      "t": 3.345,
+      "tEnd": 3.57
+    },
+    {
+      "text": "try",
+      "paragraph": 0,
+      "t": 3.57,
+      "tEnd": 3.83
+    },
+    {
+      "text": "at",
+      "paragraph": 0,
+      "t": 3.83,
+      "tEnd": 4.05
+    },
+    {
+      "text": "home.",
+      "paragraph": 0,
+      "t": 4.05,
+      "tEnd": 4.48
+    },
+    {
+      "text": "Take",
+      "paragraph": 0,
+      "t": 5.33,
+      "tEnd": 5.53
+    },
+    {
+      "text": "a",
+      "paragraph": 0,
+      "t": 5.53,
+      "tEnd": 5.635
+    },
+    {
+      "text": "glass",
+      "paragraph": 0,
+      "t": 5.635,
+      "tEnd": 5.945
+    },
+    {
+      "text": "of",
+      "paragraph": 0,
+      "t": 5.945,
+      "tEnd": 6.125
+    },
+    {
+      "text": "water,",
+      "paragraph": 0,
+      "t": 6.125,
+      "tEnd": 6.59
+    },
+    {
+      "text": "place",
+      "paragraph": 0,
+      "t": 6.79,
+      "tEnd": 7.155
+    },
+    {
+      "text": "it",
+      "paragraph": 0,
+      "t": 7.155,
+      "tEnd": 7.325
+    },
+    {
+      "text": "on",
+      "paragraph": 0,
+      "t": 7.325,
+      "tEnd": 7.54
+    },
+    {
+      "text": "a",
+      "paragraph": 0,
+      "t": 7.54,
+      "tEnd": 7.645
+    },
+    {
+      "text": "table,",
+      "paragraph": 0,
+      "t": 7.645,
+      "tEnd": 8.145
+    },
+    {
+      "text": "and",
+      "paragraph": 0,
+      "t": 8.345,
+      "tEnd": 8.55
+    },
+    {
+      "text": "shine",
+      "paragraph": 0,
+      "t": 8.55,
+      "tEnd": 8.905
+    },
+    {
+      "text": "a",
+      "paragraph": 0,
+      "t": 8.905,
+      "tEnd": 9.01
+    },
+    {
+      "text": "flashlight",
+      "paragraph": 0,
+      "t": 9.01,
+      "tEnd": 9.475
+    },
+    {
+      "text": "through",
+      "paragraph": 0,
+      "t": 9.475,
+      "tEnd": 9.685
+    },
+    {
+      "text": "it",
+      "paragraph": 0,
+      "t": 9.685,
+      "tEnd": 9.85
+    },
+    {
+      "text": "at",
+      "paragraph": 0,
+      "t": 9.85,
+      "tEnd": 10.05
+    },
+    {
+      "text": "an",
+      "paragraph": 0,
+      "t": 10.05,
+      "tEnd": 10.34
+    },
+    {
+      "text": "angle.",
+      "paragraph": 0,
+      "t": 10.34,
+      "tEnd": 10.825
+    },
+    {
+      "text": "You",
+      "paragraph": 0,
+      "t": 11.675,
+      "tEnd": 11.82
+    },
+    {
+      "text": "will",
+      "paragraph": 0,
+      "t": 11.82,
+      "tEnd": 12.06
+    },
+    {
+      "text": "see",
+      "paragraph": 0,
+      "t": 12.06,
+      "tEnd": 12.24
+    },
+    {
+      "text": "a",
+      "paragraph": 0,
+      "t": 12.24,
+      "tEnd": 12.345
+    },
+    {
+      "text": "tiny",
+      "paragraph": 0,
+      "t": 12.345,
+      "tEnd": 12.695
+    },
+    {
+      "text": "rainbow",
+      "paragraph": 0,
+      "t": 12.695,
+      "tEnd": 13.175
+    },
+    {
+      "text": "on",
+      "paragraph": 0,
+      "t": 13.175,
+      "tEnd": 13.325
+    },
+    {
+      "text": "the",
+      "paragraph": 0,
+      "t": 13.325,
+      "tEnd": 13.485
+    },
+    {
+      "text": "wall",
+      "paragraph": 0,
+      "t": 13.485,
+      "tEnd": 13.715
+    },
+    {
+      "text": "behind",
+      "paragraph": 0,
+      "t": 13.715,
+      "tEnd": 14.195
+    },
+    {
+      "text": "it.",
+      "paragraph": 0,
+      "t": 14.195,
+      "tEnd": 14.445
+    },
+    {
+      "text": "That",
+      "paragraph": 1,
+      "t": 19.295,
+      "tEnd": 19.535
+    },
+    {
+      "text": "happens",
+      "paragraph": 1,
+      "t": 19.535,
+      "tEnd": 19.98
+    },
+    {
+      "text": "because",
+      "paragraph": 1,
+      "t": 19.98,
+      "tEnd": 20.345
+    },
+    {
+      "text": "white",
+      "paragraph": 1,
+      "t": 20.345,
+      "tEnd": 20.63
+    },
+    {
+      "text": "light",
+      "paragraph": 1,
+      "t": 20.63,
+      "tEnd": 20.91
+    },
+    {
+      "text": "is",
+      "paragraph": 1,
+      "t": 20.91,
+      "tEnd": 21.21
+    },
+    {
+      "text": "a",
+      "paragraph": 1,
+      "t": 21.21,
+      "tEnd": 21.315
+    },
+    {
+      "text": "mix",
+      "paragraph": 1,
+      "t": 21.315,
+      "tEnd": 21.63
+    },
+    {
+      "text": "of",
+      "paragraph": 1,
+      "t": 21.63,
+      "tEnd": 21.81
+    },
+    {
+      "text": "many",
+      "paragraph": 1,
+      "t": 21.81,
+      "tEnd": 22.065
+    },
+    {
+      "text": "colors,",
+      "paragraph": 1,
+      "t": 22.065,
+      "tEnd": 22.57
+    },
+    {
+      "text": "and",
+      "paragraph": 1,
+      "t": 22.77,
+      "tEnd": 22.975
+    },
+    {
+      "text": "water",
+      "paragraph": 1,
+      "t": 22.975,
+      "tEnd": 23.31
+    },
+    {
+      "text": "bends",
+      "paragraph": 1,
+      "t": 23.31,
+      "tEnd": 23.675
+    },
+    {
+      "text": "each",
+      "paragraph": 1,
+      "t": 23.675,
+      "tEnd": 23.845
+    },
+    {
+      "text": "color",
+      "paragraph": 1,
+      "t": 23.845,
+      "tEnd": 24.17
+    },
+    {
+      "text": "by",
+      "paragraph": 1,
+      "t": 24.17,
+      "tEnd": 24.32
+    },
+    {
+      "text": "a",
+      "paragraph": 1,
+      "t": 24.32,
+      "tEnd": 24.425
+    },
+    {
+      "text": "slightly",
+      "paragraph": 1,
+      "t": 24.425,
+      "tEnd": 24.89
+    },
+    {
+      "text": "different",
+      "paragraph": 1,
+      "t": 24.89,
+      "tEnd": 25.335
+    },
+    {
+      "text": "amount.",
+      "paragraph": 1,
+      "t": 25.335,
+      "tEnd": 25.895
+    },
+    {
+      "text": "Red",
+      "paragraph": 1,
+      "t": 26.745,
+      "tEnd": 26.985
+    },
+    {
+      "text": "bends",
+      "paragraph": 1,
+      "t": 26.985,
+      "tEnd": 27.34
+    },
+    {
+      "text": "the",
+      "paragraph": 1,
+      "t": 27.34,
+      "tEnd": 27.505
+    },
+    {
+      "text": "least,",
+      "paragraph": 1,
+      "t": 27.505,
+      "tEnd": 27.865
+    },
+    {
+      "text": "violet",
+      "paragraph": 1,
+      "t": 28.065,
+      "tEnd": 28.505
+    },
+    {
+      "text": "bends",
+      "paragraph": 1,
+      "t": 28.505,
+      "tEnd": 28.86
+    },
+    {
+      "text": "the",
+      "paragraph": 1,
+      "t": 28.86,
+      "tEnd": 29.015
+    },
+    {
+      "text": "most.",
+      "paragraph": 1,
+      "t": 29.015,
+      "tEnd": 29.475
+    },
+    {
+      "text": "Isaac",
+      "paragraph": 1,
+      "t": 30.325,
+      "tEnd": 30.75
+    },
+    {
+      "text": "Newton",
+      "paragraph": 1,
+      "t": 30.75,
+      "tEnd": 31.08
+    },
+    {
+      "text": "described",
+      "paragraph": 1,
+      "t": 31.08,
+      "tEnd": 31.69
+    },
+    {
+      "text": "this",
+      "paragraph": 1,
+      "t": 31.69,
+      "tEnd": 31.95
+    },
+    {
+      "text": "effect",
+      "paragraph": 1,
+      "t": 31.95,
+      "tEnd": 32.325
+    },
+    {
+      "text": "in",
+      "paragraph": 1,
+      "t": 32.325,
+      "tEnd": 32.48
+    },
+    {
+      "text": "1672,",
+      "paragraph": 1,
+      "t": 32.48,
+      "tEnd": 34.29
+    },
+    {
+      "text": "using",
+      "paragraph": 1,
+      "t": 34.49,
+      "tEnd": 34.89
+    },
+    {
+      "text": "a",
+      "paragraph": 1,
+      "t": 34.89,
+      "tEnd": 34.995
+    },
+    {
+      "text": "simple",
+      "paragraph": 1,
+      "t": 34.995,
+      "tEnd": 35.365
+    },
+    {
+      "text": "prism",
+      "paragraph": 1,
+      "t": 35.365,
+      "tEnd": 35.755
+    },
+    {
+      "text": "and",
+      "paragraph": 1,
+      "t": 35.755,
+      "tEnd": 35.985
+    },
+    {
+      "text": "a",
+      "paragraph": 1,
+      "t": 35.985,
+      "tEnd": 36.09
+    },
+    {
+      "text": "dark",
+      "paragraph": 1,
+      "t": 36.09,
+      "tEnd": 36.4
+    },
+    {
+      "text": "room.",
+      "paragraph": 1,
+      "t": 36.4,
+      "tEnd": 36.705
+    }
+  ]
+}

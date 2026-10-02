@@ -9,6 +9,7 @@
     { "path": "./packages/prompts" },
     { "path": "./tools/fake-claude" },
     { "path": "./apps/desktop" },
+    { "path": "./spikes/02-render" },
     { "path": "./tsconfig.tooling.json" }
   ]
 }

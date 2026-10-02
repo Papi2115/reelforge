@@ -9,3 +9,6 @@ CLAUDE.md
 PLAN.md
 docs/
 .claude/
+
+# Generated spike data (measurement fixtures)
+spikes/**/fixtures/

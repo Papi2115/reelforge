@@ -1,0 +1,3 @@
+Każdy telefon w twojej kieszeni ma więcej mocy obliczeniowej niż komputery, które w 1969 roku wysłały ludzi na Księżyc. Komputer pokładowy Apollo miał zaledwie 4 kilobajty pamięci operacyjnej i taktowanie około jednego megaherca.
+
+Mimo to inżynierowie zbudowali system, który potrafił się zrestartować w trakcie lądowania i dalej działać. Dziś programiści często zapominają, że ograniczenia wymuszają kreatywność. Właśnie dlatego warto czasem spojrzeć wstecz i zapytać: czego naprawdę potrzebujemy, żeby zbudować coś wielkiego?

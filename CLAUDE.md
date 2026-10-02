@@ -145,3 +145,7 @@ pnpm build               # produkcyjny build
 - 2026-10-02 · TypeScript 6.0.3 (nie 7) · typescript-eslint 8.71 wspiera tylko TS <6.1; pnpm 12 odrzuca świeże wydania (<~1 dzień) — pinować starsze zamiast dodawać wyjątki · 0.2
 - 2026-10-02 · CI: node 24 tylko, akcje checkout@v7 / pnpm/action-setup@v6 / setup-node@v7 · zgodnie z maszyną dev; dodanie node 20/22 do matrixu do decyzji później · 0.3
 - 2026-10-02 · Pliki agentów przeniesione do `.claude/agents/`, `settings.json` do `.claude/` · Claude Code nie widział subagentów w roocie · bootstrap
+- 2026-10-02 · Tryb autonomiczny: Papi poszedł spać i kazał dokończyć całość bez pytań; Manager działa na domyślnych założeniach z PLAN.md, bez zmiany zakresu/ToS · polecenie usera
+- 2026-10-02 · ADR-001 CLI-bridge GO: spawn natywnego claude.exe (nie .cmd), env sanitize + abort gdy apiKeySource≠none, `claude auth status` zamiast sondy -p, brak --max-turns → własny watchdog · spike 1.1
+- 2026-10-02 · ADR-002 render GO: Electron hidden window + IPC, GPU ANGLE D3D11, NVENC/libx264; goldeny per backend · spike 1.2
+- 2026-10-02 · ADR-003 audio GO: whisper large-v3-turbo-q5_0 (EN+PL), VAD chunks + DTW offset, gain+alimiter zamiast loudnorm, ASR na oryginale · spike 1.3
