@@ -2,7 +2,7 @@ import { err, ok } from '@reelforge/claude-bridge';
 import { defaultAppSettings, type AppSettings } from '@reelforge/shared';
 import type { AudioTools, PipelineAudioToolsOptions } from '@reelforge/stages';
 import { describe, expect, it } from 'vitest';
-import { sharedClaudeRunner, settingsAudioTools } from './stage-runtime.js';
+import { appStageSettings, sharedClaudeRunner, settingsAudioTools } from './stage-runtime.js';
 
 function fakeTools(id: number): AudioTools {
   return {
@@ -47,5 +47,11 @@ describe('stage runtime', () => {
       newSession: true,
     });
     expect(result).toMatchObject({ status: 'blocked', message: 'Claude Code is not logged in.' });
+  });
+
+  it('scene settings: two shots at once, two fix turns (one in Economy mode)', () => {
+    const app = defaultAppSettings();
+    expect(appStageSettings(app).scenes).toMatchObject({ concurrency: 2, maxFixIterations: 2 });
+    expect(appStageSettings({ ...app, economy: true }).scenes.maxFixIterations).toBe(1);
   });
 });

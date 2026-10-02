@@ -1,17 +1,44 @@
 /**
- * Session and web-contents hardening (Electron security checklist): no permissions, no remote
+ * Session and web-contents hardening (Electron security checklist): no permissions (but the
+ * microphone of the main window right after a Record click, mic-permission.ts), no remote
  * requests, no new windows, no navigation away from the renderer origin, no <webview>.
  */
-import { app, type Session } from 'electron';
+import { app, type Session, type WebContents } from 'electron';
 import type { Logger } from './logger.js';
+import type { MicPermissionGate } from './mic-permission.js';
 import { isAllowedNavigation, isAllowedRequest, type RendererSource } from './navigation-policy.js';
 
-export function applySessionSecurity(session: Session, source: RendererSource, log: Logger): void {
-  session.setPermissionRequestHandler((_contents, permission, callback) => {
-    log.warn(`denied permission request "${permission}"`);
-    callback(false);
+export interface MicAccess {
+  readonly gate: MicPermissionGate;
+  /** Only the main window may record (never the hidden render windows). */
+  readonly isMainWindow: (contents: WebContents | null) => boolean;
+}
+
+export function applySessionSecurity(
+  session: Session,
+  source: RendererSource,
+  log: Logger,
+  mic?: MicAccess,
+): void {
+  session.setPermissionRequestHandler((contents, permission, callback, details) => {
+    const mediaTypes = 'mediaTypes' in details ? details.mediaTypes : undefined;
+    const allowed =
+      mic !== undefined &&
+      mic.isMainWindow(contents) &&
+      mic.gate.request({
+        permission,
+        mediaTypes,
+        requestingUrl: details.requestingUrl,
+        isMainFrame: details.isMainFrame,
+      });
+    if (allowed) log.info('granted microphone access (Record clicked)');
+    else log.warn(`denied permission request "${permission}"`);
+    callback(allowed);
   });
-  session.setPermissionCheckHandler(() => false);
+  session.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => {
+    if (mic === undefined || !mic.isMainWindow(contents)) return false;
+    return mic.gate.check({ permission, mediaType: details.mediaType, requestingOrigin });
+  });
   session.setDevicePermissionHandler(() => false);
   session.webRequest.onBeforeRequest((details, callback) => {
     const allowed = isAllowedRequest(details.url, source);

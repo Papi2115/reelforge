@@ -1,5 +1,6 @@
 /** Stage runner contracts: requests, results, events, the context a stage runs with. */
 import type { PipelineStateStore, Result, StreamEvent } from '@reelforge/claude-bridge';
+import type { WhisperModelId } from '@reelforge/pipeline';
 import type { PromptId } from '@reelforge/prompts';
 import type { SessionPurpose, ShotBuildStatus, UsageTotals } from '@reelforge/shared';
 import type { AudioTools } from './audio-tools.js';
@@ -19,7 +20,11 @@ export type StageRequest =
       readonly archivePrevious?: boolean;
     }
   | { readonly stage: 'clean' }
-  | { readonly stage: 'words' }
+  | {
+      readonly stage: 'words';
+      /** Whisper model of this run instead of the settings' one ("Retry with a bigger model"). */
+      readonly model?: WhisperModelId;
+    }
   | { readonly stage: 'storyboard' }
   | {
       readonly stage: 'scenes';

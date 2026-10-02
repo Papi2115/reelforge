@@ -1,0 +1,292 @@
+/* Stage panels: Voiceover (recording booth, fit report), Words timed quality, Scenes / sync. */
+.section-title {
+  margin: 12px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vo-body {
+  gap: 8px;
+}
+
+.vo-current {
+  margin: 0;
+}
+
+.vo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vo-hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+.fit-line {
+  margin: 4px 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--border);
+}
+
+.fit-line.fit-ok {
+  border-color: var(--ok);
+}
+
+.fit-line.fit-warn {
+  border-color: var(--warn);
+}
+
+.fit-line.fit-bad {
+  border-color: var(--error);
+}
+
+.fit-details {
+  margin: 0 0 6px;
+  padding-left: 22px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mismatch-table {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.mismatch-table caption {
+  text-align: left;
+  padding-bottom: 4px;
+}
+
+.mismatch-table th,
+.mismatch-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+  vertical-align: top;
+}
+
+.mismatch-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.words-quality {
+  margin-bottom: 10px;
+}
+
+/* Recording booth */
+.recorder {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.4fr);
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-raised);
+}
+
+.recorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.recorder-controls select {
+  max-width: 100%;
+}
+
+.recorder-status {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.recorder-status.live {
+  color: var(--error);
+}
+
+.recorder-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.level-meter {
+  height: 10px;
+  border-radius: 3px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.level-meter span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ok) 0 70%, var(--warn) 70% 90%, var(--error) 90%);
+  background-size: 100% 100%;
+}
+
+.level-meter span.clip {
+  background: var(--error);
+}
+
+.teleprompter {
+  max-height: 180px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  border-radius: 4px;
+  background: var(--bg);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.teleprompter p {
+  margin: 0;
+}
+
+/* Shots: QA badges, details, progress, missing props */
+.shot-entry {
+  position: relative;
+}
+
+.shot-entry .shot-item {
+  padding-right: 34px;
+}
+
+.shot-entry .shot-line {
+  overflow: hidden;
+}
+
+.shots-panel .shot-list {
+  overflow-x: hidden;
+}
+
+.shot-badge {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shot-badge.qa-ok,
+.qa-ok {
+  color: var(--ok);
+}
+
+.shot-badge.qa-warning,
+.qa-warning {
+  color: var(--warn);
+}
+
+.shot-badge.qa-failed,
+.qa-failed {
+  color: var(--error);
+}
+
+.shot-badge.qa-running {
+  color: var(--accent-text);
+}
+
+.shot-qa {
+  margin: -2px 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-raised);
+  font-size: 12px;
+}
+
+.shot-qa-title {
+  margin: 4px 0 2px;
+  font-weight: 600;
+}
+
+.shot-qa-list {
+  margin: 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+
+.shot-qa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.shots-progress,
+.shots-banner {
+  margin: 0 8px 6px;
+  font-size: 12px;
+}
+
+.shots-progress {
+  color: var(--accent-text);
+}
+
+.shots-banner {
+  padding: 6px 8px;
+  border-left: 3px solid var(--warn);
+  border-radius: 4px;
+  background: var(--panel-raised);
+}
+
+/* Scenes built: docked under the preview */
+.center-stack.has-dock {
+  flex-direction: column;
+}
+
+.center-stack.has-dock > .preview {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+}
+
+.doc-panel.docked {
+  position: relative;
+  inset: auto;
+  flex: 0 0 42%;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+}
+
+.doc-panel.docked .doc-header > .small-button + .small-button {
+  margin-left: 0;
+}
+
+.scenes-totals {
+  display: flex;
+  gap: 12px;
+  margin: 0 0 6px;
+}
+
+.sync-row {
+  cursor: pointer;
+}
+
+.sync-row:hover,
+.sync-row:focus-visible {
+  background: var(--panel-raised);
+}
+
+.sync-row.sync-off td:last-child {
+  color: var(--error);
+}
+
+.sync-row.sync-ok td:last-child {
+  color: var(--ok);
+}

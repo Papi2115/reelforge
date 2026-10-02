@@ -21,19 +21,12 @@ afterEach(() => {
 const STAMP = '2026-10-02T10:00:00.000Z';
 
 describe('stage state', () => {
-  it('starts every runner stage but the voice-over (Replace) from the sidebar', () => {
+  it('starts every stage but the voice-over (Replace / Record) from the sidebar', () => {
     expect(runRequestFor('script')).toEqual({ stage: 'script' });
     expect(runRequestFor('voiceover')).toBeUndefined();
-    expect(runRequestFor('export')).toBeUndefined();
-    expect(Object.keys(STAGE_RUNS)).toEqual([
-      'script',
-      'voiceover',
-      'clean',
-      'words',
-      'storyboard',
-      'sound-cues',
-      'mix',
-    ]);
+    expect(runRequestFor('scenes')).toEqual({ stage: 'scenes' });
+    expect(runRequestFor('export')).toEqual({ stage: 'export' });
+    expect(Object.keys(STAGE_RUNS)).toEqual([...PIPELINE_STAGES]);
   });
 
   it('recovers running and paused stages as interrupted, keeping the rest', () => {
@@ -91,7 +84,17 @@ describe('stage state', () => {
     });
     expect(byStage.get('words')).toMatchObject({ status: 'done', warnings: ['low coverage'] });
     expect(byStage.get('storyboard')?.reasons).toEqual([APPROVAL_REASON]);
-    expect(byStage.get('scenes')).toMatchObject({ registered: false, ready: false, reasons: [] });
-    expect(byStage.get('export')).toMatchObject({ hasOutput: false, registered: false });
+    expect(byStage.get('scenes')).toMatchObject({ registered: true, ready: false });
+    expect(byStage.get('scenes')?.reasons).toContain(
+      'storyboard.json is missing: run Storyboard first.',
+    );
+    expect(byStage.get('export')).toMatchObject({ hasOutput: false, registered: true });
+    expect(byStage.get('export')?.reasons).toEqual(
+      expect.arrayContaining([
+        'No scenes yet: run Scenes built first.',
+        'audio/mix.wav is missing: run Sound design mixed first.',
+        APPROVAL_REASON,
+      ]),
+    );
   });
 });

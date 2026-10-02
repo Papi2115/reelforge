@@ -15,8 +15,10 @@ import type {
 
 export type OpenTarget =
   | { readonly kind: 'script' }
+  | { readonly kind: 'voiceover' }
   | { readonly kind: 'words' }
   | { readonly kind: 'shots' }
+  | { readonly kind: 'scenes' }
   | { readonly kind: 'artifact'; readonly artifact: StageArtifact };
 
 export interface PipelineRowSpec {
@@ -43,7 +45,7 @@ export const PIPELINE_ROWS: readonly PipelineRowSpec[] = [
     id: 'voiceover',
     label: 'Voiceover added',
     stages: ['voiceover'],
-    open: { kind: 'artifact', artifact: 'voiceover' },
+    open: { kind: 'voiceover' },
     replace: 'voiceover',
     coming: '',
   },
@@ -75,9 +77,9 @@ export const PIPELINE_ROWS: readonly PipelineRowSpec[] = [
     id: 'scenes',
     label: 'Scenes built',
     stages: ['scenes'],
-    open: { kind: 'artifact', artifact: 'scenes' },
+    open: { kind: 'scenes' },
     replace: null,
-    coming: 'Coming with the scenes stage.',
+    coming: '',
   },
   {
     id: 'sound',
@@ -93,7 +95,7 @@ export const PIPELINE_ROWS: readonly PipelineRowSpec[] = [
     stages: ['export'],
     open: { kind: 'artifact', artifact: 'video' },
     replace: null,
-    coming: 'Coming with the export stage.',
+    coming: '',
   },
 ];
 
@@ -252,7 +254,7 @@ function rowDetail(
     case 'waiting': {
       const next = infos.find((info) => !isDone(info));
       if (next === undefined || !next.registered) return spec.coming || null;
-      if (!next.runnable) return 'Use Replace to import a recording.';
+      if (!next.runnable) return 'Use Replace or Open → Record to add a recording.';
       return next.reasons[0] ?? null;
     }
   }
@@ -269,7 +271,8 @@ function runAction(
   if (first === undefined)
     return { label, enabled: false, hint: 'Done: use Redo to run it again.' };
   if (!first.registered) return { label, enabled: false, hint: spec.coming };
-  if (!first.runnable) return { label, enabled: false, hint: 'Use Replace to import a recording.' };
+  if (!first.runnable)
+    return { label, enabled: false, hint: 'Use Replace or Open → Record to add a recording.' };
   if (busy) return { label, enabled: false, hint: `${spec.label} is already running or queued.` };
   if (!first.ready) return { label, enabled: false, hint: first.reasons.join(' ') || 'Not ready.' };
   return { label, enabled: true, hint: `Run ${spec.label}` };
@@ -289,6 +292,12 @@ function redoAction(spec: PipelineRowSpec, infos: readonly StageInfo[], busy: bo
 
 function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionView {
   if (spec.open.kind === 'script') return { enabled: true, hint: 'Open the brief and the script' };
+  if (spec.open.kind === 'voiceover') {
+    return { enabled: true, hint: 'Import, record or replace the voice-over; fit to the script' };
+  }
+  if (spec.open.kind === 'scenes') {
+    return { enabled: true, hint: 'Build progress, missing props and the sync report' };
+  }
   const has = infos.some((info) => info.hasOutput);
   return has
     ? { enabled: true, hint: `Open ${spec.label.toLowerCase()} output` }

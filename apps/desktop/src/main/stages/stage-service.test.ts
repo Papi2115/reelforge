@@ -14,7 +14,7 @@ import {
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StagesState } from '../../shared/stages-contract.js';
 import { createLogger } from '../logger.js';
-import { StageService } from './stage-service.js';
+import { StageService, type RunOutcome, type StageServiceOptions } from './stage-service.js';
 import { APPROVAL_REASON, INTERRUPTED_MESSAGE, INTERRUPTED_PAUSE_MESSAGE } from './stage-state.js';
 import { Gate, gatedRun, SUMMARY, TempProjects, until } from './testing/fixtures.js';
 
@@ -46,7 +46,12 @@ interface Harness {
 
 async function harness(
   stages: Partial<StageRegistry>,
-  options: { files?: Record<string, string>; brief?: boolean; claude?: ClaudeRunner } = {},
+  options: {
+    files?: Record<string, string>;
+    brief?: boolean;
+    claude?: ClaudeRunner;
+    exportRun?: StageServiceOptions['exportRun'];
+  } = {},
 ): Promise<Harness> {
   const dir = projects.create(options.files, options.brief ?? true);
   const store = new PipelineStateStore();
@@ -64,6 +69,7 @@ async function harness(
         store,
         autocommit: false,
       }),
+    ...(options.exportRun === undefined ? {} : { exportRun: options.exportRun }),
     store,
     guard,
     push: (next) => pushes.push(next),
@@ -81,6 +87,14 @@ async function harness(
     return read.value;
   };
   return { service, dir, guard, pushes, lines, state };
+}
+
+async function approve(dir: string): Promise<void> {
+  const stamp = new Date().toISOString();
+  await new PipelineStateStore().update(dir, (current) => ({
+    ...current,
+    stages: { script: { status: 'done', updatedAt: stamp, approvedAt: stamp } },
+  }));
 }
 
 function last(pushes: readonly StagesState[]): StagesState | undefined {
@@ -128,7 +142,7 @@ describe('StageService', () => {
     expect(refused.message).toContain('brief.json is missing');
     expect(await service.run(['voiceover'])).toMatchObject({
       status: 'error',
-      message: 'Voiceover cannot be started from here yet.',
+      message: 'Voiceover cannot be started from here.',
     });
     expect(await service.run(['export'])).toMatchObject({ status: 'error' });
   });
@@ -284,5 +298,108 @@ describe('StageService', () => {
     await service.whenIdle();
     expect((await state()).stages['script']?.status).toBe('done');
     await until(() => last(pushes)?.pause === null && last(pushes)?.running === null);
+  });
+
+  it('runs "Video exported" on the app export: gating, progress, persisted status, output', async () => {
+    const files = {
+      'storyboard.json': '{}',
+      'scenes/s01.js': 'export {}',
+      'audio/mix.wav': 'RIFF',
+    };
+    let release: () => void = () => undefined;
+    const exportRun: StageServiceOptions['exportRun'] = {
+      start: async (listener) => {
+        listener({
+          type: 'plan',
+          shots: 1,
+          cachedShots: 0,
+          totalFrames: 60,
+          framesToRender: 60,
+          workers: 1,
+          encoder: 'libx264',
+          resumed: false,
+        });
+        listener({
+          type: 'frame',
+          shotId: 's01',
+          frameInShot: 30,
+          shotFrames: 60,
+          renderedFrames: 30,
+          framesToRender: 60,
+          fps: 30,
+          etaS: 1,
+        });
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return {
+          status: 'done',
+          output: path.join(dir, 'out', 'Test.mp4'),
+          thumbnail: null,
+          renderedShots: ['s01'],
+          cachedShots: [],
+          totalFrames: 60,
+          durationS: 2,
+          width: 1920,
+          height: 1080,
+          encoder: 'libx264',
+          gpu: null,
+          resumed: false,
+          wallMs: 10,
+        };
+      },
+      cancel: () => undefined,
+    };
+    const { service, pushes, state, dir } = await harness({}, { files, exportRun });
+    expect((await service.run(['export'])).message).toContain(APPROVAL_REASON);
+    await approve(dir);
+    const outcomes: RunOutcome[] = [];
+    const views: number[] = [];
+    expect(
+      await service.enqueue([{ stage: 'export' }], {
+        onView: (view) => views.push(view.percent ?? -1),
+        onDone: (outcome) => outcomes.push(outcome),
+      }),
+    ).toMatchObject({ status: 'queued' });
+    await until(() => last(pushes)?.running?.label?.startsWith('Rendering s01') === true);
+    expect(last(pushes)?.running).toMatchObject({ stage: 'export', percent: 47.5 });
+    expect(views).toEqual([5, 47.5]);
+    expect((await state()).stages['export']?.status).toBe('running');
+    release();
+    await service.whenIdle();
+    expect((await state()).stages['export']).toMatchObject({
+      status: 'done',
+      message: 'out/Test.mp4 (1080p, 2.0 s, libx264)',
+    });
+    expect(outcomes).toEqual([
+      { status: 'done', message: 'out/Test.mp4 (1080p, 2.0 s, libx264)', warnings: [] },
+    ]);
+  });
+
+  it('a scene run carries its review mode and target shots; shot events show per shot', async () => {
+    const gate = new Gate();
+    const { service, pushes, dir } = await harness(
+      {
+        scenes: {
+          ...BUILT_IN_STAGES.scenes,
+          run: async (ctx) => {
+            ctx.shot('s02', 'started');
+            ctx.shot('s02', 'finished', 'warning');
+            const outcome = await gate.wait(ctx.signal);
+            return outcome === 'aborted' ? err(stageError('cancelled', 'cancelled')) : ok(SUMMARY);
+          },
+        },
+      },
+      { files: { 'storyboard.json': '{}' } },
+    );
+    await approve(dir);
+    expect(
+      await service.enqueue([{ stage: 'scenes', action: 'sync-check', shots: ['s02'] }]),
+    ).toMatchObject({ status: 'queued' });
+    await gate.started;
+    await until(() => last(pushes)?.running?.shots['s02'] === 'warning');
+    expect(last(pushes)?.running).toMatchObject({ action: 'sync-check', targets: ['s02'] });
+    expect(service.stop('scenes')).toBe(true);
+    await service.whenIdle();
   });
 });

@@ -4,7 +4,7 @@
  * and the message box. Enter sends (queues while Claude works), Shift+Enter is a new line, Esc
  * stops the running turn.
  */
-import { useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import {
   CHAT_CHIPS,
   CHAT_SCOPES,
@@ -28,6 +28,8 @@ export interface ChatComposerProps {
   readonly running: boolean;
   readonly onSend: (request: ChatSendRequest) => Promise<boolean>;
   readonly onStop: () => void;
+  /** Text put into the message box (e.g. "Fix with Claude…"); a new nonce applies it again. */
+  readonly prefill?: { readonly text: string; readonly nonce: number } | null;
 }
 
 /** Why the current scope cannot be sent, if it cannot. */
@@ -58,6 +60,14 @@ export function ChatComposer(props: ChatComposerProps): JSX.Element {
   const [text, setText] = useState('');
   const [boost, setBoost] = useState(false);
   const [sending, setSending] = useState(false);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const prefillNonce = props.prefill?.nonce;
+  const prefillText = props.prefill?.text;
+  useEffect(() => {
+    if (prefillNonce === undefined || prefillText === undefined) return;
+    setText(prefillText.slice(0, MAX_CHAT_TEXT));
+    box.current?.focus();
+  }, [prefillNonce, prefillText]);
   const problem = scopeProblem(scope, selection, shotId);
   const canSend = !sending && problem === undefined && text.trim() !== '';
 
@@ -156,6 +166,7 @@ export function ChatComposer(props: ChatComposerProps): JSX.Element {
         }}
       >
         <textarea
+          ref={box}
           aria-label="Message to Claude"
           placeholder={problem ?? (running ? 'Queue another change…' : 'Describe a change…')}
           rows={3}

@@ -126,6 +126,29 @@ export const shotSyncSchema = z.object({
 });
 export type ShotSync = z.infer<typeof shotSyncSchema>;
 
+export const MISSING_PROPS_VERSION = 1;
+
+/** One prop a scene build asked for that the kit does not have. */
+export const missingPropEntrySchema = z.object({
+  name: z.string().min(1),
+  /** Shots that use a fallback because of it (storyboard ids). */
+  shots: z.array(z.string().min(1)),
+  firstSeenAt: z.iso.datetime(),
+  lastSeenAt: z.iso.datetime(),
+});
+export type MissingPropEntry = z.infer<typeof missingPropEntrySchema>;
+
+/**
+ * `.reelforge/missing-props.json`: props the kit lacks, logged by the app for the developer
+ * (extending the kit is a repo-level change, never an edit inside a user project).
+ */
+export const missingPropsFileSchema = z.object({
+  version: z.literal(MISSING_PROPS_VERSION),
+  updatedAt: z.iso.datetime(),
+  entries: z.array(missingPropEntrySchema),
+});
+export type MissingPropsFile = z.infer<typeof missingPropsFileSchema>;
+
 /** `.reelforge/sync-report.json` ("Check every visual lands on its spoken word"). */
 export const syncReportSchema = z.object({
   version: z.literal(SYNC_REPORT_VERSION),

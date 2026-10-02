@@ -129,6 +129,7 @@ describe('desktop app', () => {
     expect(exposed).toEqual({
       api: [
         'approveScript',
+        'armMicrophone',
         'browseToolPath',
         'cancelExport',
         'cancelWhisperDownload',
@@ -149,10 +150,12 @@ describe('desktop app', () => {
         'getRecentProjects',
         'getScript',
         'getSettings',
+        'getStageReports',
         'getStagesState',
         'getToolsStatus',
         'getWaveform',
         'getWhisperModels',
+        'importVoiceover',
         'log',
         'newProject',
         'onChatChanged',
@@ -168,9 +171,12 @@ describe('desktop app', () => {
         'replaceStage',
         'resetToolPath',
         'resumeChat',
+        'retryWords',
         'revertProject',
+        'runScenes',
         'runStages',
         'saveBrief',
+        'saveRecording',
         'saveScript',
         'saveSnapshot',
         'sendChat',
@@ -251,7 +257,7 @@ describe('desktop app', () => {
     await page.getByRole('button', { name: 'Open project…' }).click();
 
     const shots = page.getByRole('region', { name: 'Shots' });
-    const shotButtons = shots.getByRole('button');
+    const shotButtons = shots.locator('.shot-item');
     await shotButtons.first().waitFor();
     expect(await shotButtons.allTextContents()).toEqual([
       's010:00.00–0:02.20title-cardDoom runs on almost anything.scenes/s01_title.js',

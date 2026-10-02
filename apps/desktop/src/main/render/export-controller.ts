@@ -52,7 +52,11 @@ export class ExportController {
     return this.running !== null;
   }
 
-  async start(request: ExportStartRequest): Promise<ExportOutcome> {
+  /** `listener` also gets every (throttled) progress event (the Video exported stage). */
+  async start(
+    request: ExportStartRequest,
+    listener?: (event: ExportProgress) => void,
+  ): Promise<ExportOutcome> {
     if (this.running !== null) return { status: 'busy' };
     const projectDir = this.options.currentProject();
     if (projectDir === undefined) return { status: 'no-project' };
@@ -69,7 +73,10 @@ export class ExportController {
         cores: this.options.cores,
         ...prepared,
         signal: controller.signal,
-        onProgress: throttleFrames(this.options.push, this.options.now),
+        onProgress: throttleFrames((event) => {
+          this.options.push(event);
+          listener?.(event);
+        }, this.options.now),
         log: this.options.log,
       });
     } finally {

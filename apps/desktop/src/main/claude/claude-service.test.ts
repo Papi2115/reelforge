@@ -165,6 +165,91 @@ describe('ClaudeService queue', () => {
     expect(turns[0]?.usage?.outputTokens).toBeGreaterThan(0);
   });
 
+  it('lets the pipeline run two Claude turns at once (scene building), chat stays FIFO', () => {
+    expect(harness({}).service.guard.concurrency).toBe(2);
+    expect(harness({}, { maxConcurrency: 3 }).service.guard.concurrency).toBe(3);
+  });
+
+  it('runs a Whole-video chip as a review mode of the scene stage, with its steps', async () => {
+    const modes: string[] = [];
+    let finish: (() => void) | undefined;
+    let stops = 0;
+    const { service } = harness(
+      {},
+      {
+        review: {
+          run: (mode, observer) => {
+            modes.push(mode);
+            observer.onView({
+              stage: 'scenes',
+              label: 'Review: triage',
+              percent: 40,
+              startedAt: 0,
+              steps: [{ type: 'text', id: 't0-a', text: 'Looking at the sheets.' }],
+              paused: null,
+              action: mode,
+              targets: null,
+              shots: {},
+            });
+            finish = () => {
+              observer.onDone({
+                status: 'done',
+                message: 'Review: 1 shot flagged, 1 fixed',
+                warnings: [],
+              });
+            };
+            return Promise.resolve({ status: 'queued', message: null });
+          },
+          stop: () => {
+            stops += 1;
+            return true;
+          },
+        },
+      },
+    );
+    const sent = await service.send(message('', { chip: 'visuals-on-words' }));
+    expect(sent.status).toBe('queued');
+    expect(modes).toEqual(['sync-check']);
+    const running = service.state();
+    expect(running.running).toBe(running.turns[0]?.id);
+    expect(running.turns[0]?.steps.map((step) => (step.type === 'text' ? step.text : ''))).toEqual([
+      'Looking at the sheets.',
+      'Review: triage (40 %)',
+    ]);
+    expect(await service.stop()).toBe(true);
+    expect(stops).toBe(1);
+    finish?.();
+    const done = service.state();
+    expect(done.running).toBeNull();
+    expect(done.turns[0]).toMatchObject({ status: 'done', request: { chip: 'visuals-on-words' } });
+    expect(done.turns[0]?.steps.at(-1)).toEqual({
+      type: 'text',
+      id: 'review-result',
+      text: 'Review: 1 shot flagged, 1 fixed',
+    });
+  });
+
+  it('a chip whose review cannot start reports why and leaves no turn behind', async () => {
+    const { service } = harness(
+      {},
+      {
+        review: {
+          run: () =>
+            Promise.resolve({
+              status: 'error',
+              message: 'Scenes built is already running or queued.',
+            }),
+          stop: () => false,
+        },
+      },
+    );
+    expect(await service.send(message('', { chip: 'review-video' }))).toEqual({
+      status: 'error',
+      error: { kind: 'invalid-request', message: 'Scenes built is already running or queued.' },
+    });
+    expect(service.state().turns).toEqual([]);
+  });
+
   it('refuses Selection without a picked object and messages without a project', async () => {
     const { service } = harness({});
     const result = await service.send(message('bigger', { scope: 'selection' }));

@@ -6,7 +6,7 @@
 import { initialTurnView, reduceTurn, type TurnView } from '@reelforge/claude-bridge';
 import type { PipelineStage, StageEvent } from '@reelforge/stages';
 import type { ChatStep } from '../../shared/chat-contract.js';
-import type { StageRunView } from '../../shared/stages-contract.js';
+import type { ShotRunState, StageRunView } from '../../shared/stages-contract.js';
 import { toChatSteps } from '../claude/chat-steps.js';
 
 /** Older steps are dropped beyond this (a long stage must not grow the push without bound). */
@@ -19,13 +19,25 @@ export class StageRun {
   private finishedSteps: ChatStep[] = [];
   private view: TurnView = initialTurnView();
   private turn = 0;
+  private readonly shots = new Map<string, ShotRunState>();
   readonly warnings: string[] = [];
 
   constructor(
     readonly stage: PipelineStage,
     readonly projectDir: string,
     readonly startedAt: number,
+    /** Scene runs: the review mode (null = build) and the target shots (null = all). */
+    readonly scope: { readonly action: string | null; readonly shots: readonly string[] | null } = {
+      action: null,
+      shots: null,
+    },
   ) {}
+
+  /** A step reported outside the runner (the export). */
+  setStep(label: string, percent: number | null): void {
+    this.label = label;
+    if (percent !== null) this.percent = clampPercent(percent);
+  }
 
   /** Applies a runner event; true when the view changed. */
   apply(event: StageEvent): boolean {
@@ -50,6 +62,16 @@ export class StageRun {
       case 'warning':
         this.warnings.push(event.message);
         return true;
+      case 'shot':
+        this.shots.set(
+          event.shotId,
+          event.state === 'finished'
+            ? (event.status ?? 'ok')
+            : event.state === 'started'
+              ? 'running'
+              : 'requeued',
+        );
+        return true;
       default:
         // started / committed / done / failed: the service re-reads the project instead.
         return false;
@@ -66,6 +88,9 @@ export class StageRun {
       startedAt: this.startedAt,
       steps,
       paused: this.paused,
+      action: this.scope.action,
+      targets: this.scope.shots === null ? null : [...this.scope.shots],
+      shots: Object.fromEntries(this.shots),
     };
   }
 

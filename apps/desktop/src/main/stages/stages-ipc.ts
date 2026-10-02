@@ -1,14 +1,24 @@
 /**
- * IPC handlers of the pipeline sidebar and the Brief -> Script documents (PLAN.md#6.8, #7.1),
- * merged into `registerIpc` by main.ts. Electron-free: the native file picker and
- * `shell.openPath` come in through the options.
+ * IPC handlers of the pipeline sidebar, the Brief -> Script documents and the stage panels
+ * (PLAN.md#6.8, #7.1-7.7), merged into `registerIpc` by main.ts. Electron-free: the native file
+ * picker, `shell.openPath`, the audio probe and the microphone gate come in through the options.
  */
+import type { WhisperModelId } from '@reelforge/pipeline';
+import { VOICEOVER_EXTENSIONS } from '@reelforge/shared';
 import type { StageCommandResult, StageArtifact } from '../../shared/stages-contract.js';
 import type { InvokeHandlers } from '../ipc-router.js';
-import type { Logger } from '../logger.js';
+import { describeError, type Logger } from '../logger.js';
+import type { MicPermissionGate } from '../mic-permission.js';
 import type { ScriptDocuments } from './script-documents.js';
 import { artifactPath } from './stage-artifacts.js';
+import { readStageReports } from './stage-reports.js';
 import type { StageService } from './stage-service.js';
+import {
+  checkImport,
+  saveRecording,
+  validateRecordingWav,
+  type AudioProbe,
+} from './voiceover-input.js';
 
 export type StagesHandlers = Pick<
   InvokeHandlers,
@@ -22,9 +32,37 @@ export type StagesHandlers = Pick<
   | 'scriptGet'
   | 'scriptSave'
   | 'scriptApprove'
+  | 'voiceoverImport'
+  | 'voiceoverRecording'
+  | 'micArm'
+  | 'stagesReports'
+  | 'wordsRetry'
+  | 'scenesRun'
 >;
 
 export type ReplacePick = 'script' | 'voiceover';
+
+/** Options of the native file picker for Replace (Electron's OpenDialogOptions shape). */
+export function replacementDialogOptions(kind: ReplacePick): {
+  title: string;
+  buttonLabel: string;
+  filters: { name: string; extensions: string[] }[];
+  properties: ['openFile'];
+} {
+  return kind === 'script'
+    ? {
+        title: 'Use a script from a text file',
+        buttonLabel: 'Use this script',
+        filters: [{ name: 'Text', extensions: ['txt', 'md'] }],
+        properties: ['openFile'],
+      }
+    : {
+        title: 'Import a voice-over recording',
+        buttonLabel: 'Import',
+        filters: [{ name: 'Audio', extensions: [...VOICEOVER_EXTENSIONS] }],
+        properties: ['openFile'],
+      };
+}
 
 export interface StagesHandlerOptions {
   readonly service: StageService;
@@ -34,7 +72,12 @@ export interface StagesHandlerOptions {
   readonly pickFile: (kind: ReplacePick) => Promise<string | undefined>;
   /** `shell.openPath`: resolves to an error message, '' on success. */
   readonly openPath: (file: string) => Promise<string>;
+  /** Length + audio stream of a picked recording (ffmpeg of the settings). */
+  readonly probe: AudioProbe;
+  readonly hasWhisperModel: (model: WhisperModelId) => boolean;
+  readonly mic: MicPermissionGate;
   readonly log: Logger;
+  readonly now?: () => Date;
 }
 
 const cancelled: StageCommandResult = { status: 'cancelled', message: null };
@@ -55,6 +98,39 @@ async function openArtifact(
   return { status: 'ok', message: null };
 }
 
+async function importVoiceover(options: StagesHandlerOptions): Promise<StageCommandResult> {
+  if (options.currentProject() === undefined) {
+    return { status: 'error', message: 'No project is open.' };
+  }
+  const file = await options.pickFile('voiceover');
+  if (file === undefined) return cancelled;
+  const checked = await checkImport(file, options.probe);
+  if (!checked.ok) return { status: 'error', message: checked.error };
+  return options.service.enqueue([{ stage: 'voiceover', source: file }]);
+}
+
+async function saveTake(
+  options: StagesHandlerOptions,
+  wav: Uint8Array,
+): Promise<StageCommandResult> {
+  const dir = options.currentProject();
+  if (dir === undefined) return { status: 'error', message: 'No project is open.' };
+  const valid = validateRecordingWav(wav);
+  if (!valid.ok) return { status: 'error', message: valid.error };
+  let file: string;
+  try {
+    file = await saveRecording(dir, wav, options.now?.() ?? new Date());
+  } catch (error) {
+    options.log.warn(`recording not saved: ${describeError(error)}`);
+    return {
+      status: 'error',
+      message: `The recording could not be saved: ${describeError(error)}`,
+    };
+  }
+  options.log.info(`saved a ${valid.value.durationS.toFixed(1)} s take: ${file}`);
+  return options.service.enqueue([{ stage: 'voiceover', source: file }]);
+}
+
 export function stagesHandlers(options: StagesHandlerOptions): StagesHandlers {
   const { service, documents } = options;
   return {
@@ -65,10 +141,10 @@ export function stagesHandlers(options: StagesHandlerOptions): StagesHandlers {
       if (options.currentProject() === undefined) {
         return { status: 'error', message: 'No project is open.' };
       }
+      if (request.stage === 'voiceover') return importVoiceover(options);
       const file = await options.pickFile(request.stage);
       if (file === undefined) return cancelled;
-      if (request.stage === 'script') return documents.importScript(file);
-      return service.enqueue([{ stage: 'voiceover', source: file }]);
+      return documents.importScript(file);
     },
     stagesOpen: (request) => openArtifact(options, request.artifact),
     briefGet: () => documents.brief(),
@@ -76,5 +152,29 @@ export function stagesHandlers(options: StagesHandlerOptions): StagesHandlers {
     scriptGet: () => documents.script(),
     scriptSave: (request) => documents.saveScript(request.text),
     scriptApprove: () => documents.approve(),
+    voiceoverImport: () => importVoiceover(options),
+    voiceoverRecording: (request) => saveTake(options, request.wav),
+    micArm: () => {
+      options.mic.arm();
+      return Promise.resolve(true);
+    },
+    stagesReports: () => readStageReports(options.currentProject()),
+    wordsRetry: (request) => {
+      if (!options.hasWhisperModel(request.model)) {
+        return Promise.resolve({
+          status: 'error',
+          message: `The ${request.model} model is not installed: download it in Settings → Tools first.`,
+        });
+      }
+      return service.enqueue([{ stage: 'words', model: request.model }]);
+    },
+    scenesRun: (request) =>
+      service.enqueue([
+        {
+          stage: 'scenes',
+          ...(request.action === 'build' ? {} : { action: request.action }),
+          ...(request.shots === null ? {} : { shots: request.shots }),
+        },
+      ]),
   };
 }

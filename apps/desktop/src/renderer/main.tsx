@@ -10,6 +10,7 @@ import './layout/chat.css';
 import './preview/preview.css';
 import './settings/settings.css';
 import './stages/stages.css';
+import './stages/panels.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

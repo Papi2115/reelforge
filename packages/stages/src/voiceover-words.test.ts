@@ -171,6 +171,15 @@ describe('words stage', { timeout: 30_000 }, () => {
     expect(report.attempts[0]?.coverage).toBeLessThan(0.85);
   });
 
+  it('runs with the model of the request ("Retry with a bigger model")', async () => {
+    const { audio, runner } = await wordsProject('words bigger');
+    audio.installedModels.add('medium');
+    audio.transcriptions = [spikeRaw('en-doom', 'medium')];
+    const result = await runner.run({ stage: 'words', model: 'medium' });
+    expect(result.ok && result.value.metrics['model']).toBe('medium');
+    expect(audio.transcribeCalls[0]?.model).toBe('medium');
+  });
+
   it('falls back to another installed model and reports mismatches when all attempts stay poor', async () => {
     const { dir, audio, runner } = await wordsProject('words poor');
     audio.installedModels.add('small');

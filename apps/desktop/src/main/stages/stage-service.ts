@@ -1,23 +1,22 @@
 /**
  * StageService (PLAN.md#6.8): runs pipeline stages for the open project on a `StageRunner` with
- * the app's real dependencies (built by `createRunner`), one stage at a time per project (others
- * wait in a FIFO queue; a multi-stage Run such as "Sound design mixed" is one group that stops at
- * the first failure), Stop (kills the stage's processes), the script acceptance gate, and the
- * state pushed to the sidebar: stage infos from pipeline.json + files, the running stage's live
- * steps and the account-wide usage-limit pause (the chat's LimitGuard). On the first open of a
- * project in this app session, stages left `running`/`paused` by a crash become `interrupted`.
- * Electron-free: the runner factory and the push come in through the options.
+ * the app's real dependencies (built by `createRunner`) — and "Video exported" on the app's render
+ * backend (export-stage.ts) — one stage at a time per project (others wait in a FIFO queue; a
+ * multi-stage Run such as "Sound design mixed" is one group that stops at the first failure),
+ * Stop (kills the stage's processes), the script acceptance gate, and the state pushed to the
+ * sidebar: stage infos from pipeline.json + files, the running stage's live steps and the
+ * account-wide usage-limit pause (the chat's LimitGuard). On the first open of a project in this
+ * app session, stages left `running`/`paused` by a crash become `interrupted`. A caller can watch
+ * one queued run (the chat's review chips). Electron-free: the runner factory, the export and the
+ * push come in through the options.
  */
 import path from 'node:path';
 import type { LimitGuard, PipelineStateStore } from '@reelforge/claude-bridge';
 import {
-  canRun,
-  isStageId,
   readProjectSnapshot,
   STAGE_TITLES,
   type PipelineStage,
   type StageEvent,
-  type StageRequest,
   type StageRunner,
 } from '@reelforge/stages';
 import type {
@@ -27,19 +26,31 @@ import type {
   StagesState,
 } from '../../shared/stages-contract.js';
 import { describeError, type Logger } from '../logger.js';
+import { CoalescedPush } from './coalesced-push.js';
 import { hasExportedVideo } from './stage-artifacts.js';
+import {
+  executeQueued,
+  runScope,
+  type ExportRun,
+  type RunObserver,
+  type RunOutcome,
+} from './stage-execution.js';
 import { StageRun } from './stage-run.js';
 import {
-  approvalReasons,
   buildStageInfos,
-  errorInfo,
-  recoverInterrupted,
+  gateReasons,
+  recoverPipeline,
   runRequestFor,
+  type AppStageRequest,
 } from './stage-state.js';
+
+export type { RunObserver, RunOutcome } from './stage-execution.js';
 
 export interface StageServiceOptions {
   /** A runner for a project folder (claude, audio tools, settings, guard, store, autocommit). */
   readonly createRunner: (projectDir: string) => StageRunner;
+  /** "Video exported": the app's export with a progress listener, and its cancel. */
+  readonly exportRun?: ExportRun;
   /** Shared with the runners (per-file serialized writes of pipeline.json). */
   readonly store: PipelineStateStore;
   /** The app's account-wide guard (the chat shows the same pause). */
@@ -52,15 +63,16 @@ export interface StageServiceOptions {
 }
 
 interface QueuedRun {
-  readonly request: StageRequest;
+  readonly request: AppStageRequest;
   readonly group: number;
+  readonly observer?: RunObserver | undefined;
 }
 
 interface ProjectPipeline {
   readonly dir: string;
   readonly runner: StageRunner;
   readonly queue: QueuedRun[];
-  active: { readonly run: StageRun; readonly group: number } | undefined;
+  active: { readonly run: StageRun; readonly item: QueuedRun } | undefined;
   readonly errors: Map<PipelineStage, StageErrorInfo>;
   readonly warnings: Map<PipelineStage, readonly string[]>;
   idle: Promise<void>;
@@ -91,14 +103,16 @@ export class StageService {
   private infos: { readonly key: string; readonly stages: StageInfo[] } | undefined;
   /** Reads of the project run one after another, so the last one always wins. */
   private computing: Promise<void> = Promise.resolve();
-  private pushTimer: ReturnType<typeof setTimeout> | undefined;
-  private recompute = false;
+  private readonly pushes: CoalescedPush;
   private nextGroup = 0;
   private disposed = false;
 
   constructor(private readonly options: StageServiceOptions) {
+    this.pushes = new CoalescedPush(options.pushDelayMs ?? 50, (recompute) =>
+      this.flush(recompute),
+    );
     const changed = (): void => {
-      this.schedule(false);
+      this.pushes.schedule(false);
     };
     options.guard.on('paused', changed);
     options.guard.on('resumed', changed);
@@ -119,7 +133,7 @@ export class StageService {
 
   /** Re-reads the open project (files changed, a document was saved) and pushes the state. */
   refresh(): void {
-    this.schedule(true);
+    this.pushes.schedule(true);
   }
 
   async state(): Promise<StagesState> {
@@ -139,19 +153,22 @@ export class StageService {
 
   /** Queues Run/Redo of `stages` (in order, one group) in the open project. */
   async run(stages: readonly PipelineStage[]): Promise<StageCommandResult> {
-    const requests: StageRequest[] = [];
+    const requests: AppStageRequest[] = [];
     for (const stage of stages) {
       const request = runRequestFor(stage);
       if (request === undefined) {
-        return result('error', `${STAGE_TITLES[stage]} cannot be started from here yet.`);
+        return result('error', `${STAGE_TITLES[stage]} cannot be started from here.`);
       }
       requests.push(request);
     }
     return this.enqueue(requests);
   }
 
-  /** Queues requests (e.g. a voice-over import) as one group. */
-  async enqueue(requests: readonly StageRequest[]): Promise<StageCommandResult> {
+  /** Queues requests (e.g. a voice-over import) as one group; `observer` follows the first. */
+  async enqueue(
+    requests: readonly AppStageRequest[],
+    observer?: RunObserver,
+  ): Promise<StageCommandResult> {
     const dir = this.current;
     const first = requests[0];
     if (dir === undefined) return result('error', 'No project is open.');
@@ -163,13 +180,16 @@ export class StageService {
       }
     }
     if (pipeline.active === undefined && pipeline.queue.length === 0) {
-      const reasons = await this.gate(dir, first.stage);
+      const reasons = gateReasons(first.stage, await this.snapshot(dir));
       if (reasons.length > 0) return result('error', reasons.join(' '));
     }
     this.nextGroup += 1;
-    for (const request of requests) pipeline.queue.push({ request, group: this.nextGroup });
+    const group = this.nextGroup;
+    requests.forEach((request, index) => {
+      pipeline.queue.push({ request, group, observer: index === 0 ? observer : undefined });
+    });
     this.options.log.info(`queued ${requests.map((request) => request.stage).join(' + ')}`);
-    this.schedule(false);
+    this.pushes.schedule(false);
     this.pump(pipeline);
     return result('queued', null);
   }
@@ -181,16 +201,17 @@ export class StageService {
     if (pipeline === undefined) return false;
     const active = pipeline.active;
     if (active?.run.stage === stage) {
-      this.dropGroup(pipeline, active.group);
+      this.dropGroup(pipeline, active.item.group);
       this.options.log.info(`stopping ${stage}`);
-      pipeline.runner.cancel();
-      this.schedule(false);
+      if (stage === 'export') this.options.exportRun?.cancel();
+      else pipeline.runner.cancel();
+      this.pushes.schedule(false);
       return true;
     }
     const queued = pipeline.queue.find((item) => item.request.stage === stage);
     if (queued === undefined) return false;
     this.dropGroup(pipeline, queued.group);
-    this.schedule(true);
+    this.pushes.schedule(true);
     return true;
   }
 
@@ -207,15 +228,20 @@ export class StageService {
   async dispose(): Promise<void> {
     this.disposed = true;
     for (const pipeline of this.pipelines.values()) {
-      pipeline.queue.length = 0;
+      for (const item of pipeline.queue.splice(0)) item.observer?.onDone({ status: 'cancelled' });
+      if (pipeline.active?.run.stage === 'export') this.options.exportRun?.cancel();
       pipeline.runner.cancel();
     }
     await this.whenIdle();
-    if (this.pushTimer !== undefined) clearTimeout(this.pushTimer);
+    this.pushes.dispose();
   }
 
   private now(): number {
     return this.options.now?.() ?? Date.now();
+  }
+
+  private snapshot(dir: string): ReturnType<typeof readProjectSnapshot> {
+    return readProjectSnapshot(dir, this.options.store);
   }
 
   private pipeline(dir: string): ProjectPipeline {
@@ -239,15 +265,11 @@ export class StageService {
     return pipeline;
   }
 
-  /** Gating of the runner + the script approval, for a stage about to start. */
-  private async gate(dir: string, stage: PipelineStage): Promise<string[]> {
-    const snapshot = await readProjectSnapshot(dir, this.options.store);
-    const readiness = isStageId(stage) ? canRun(stage, snapshot).reasons : [];
-    return [...readiness, ...approvalReasons(stage, snapshot)];
-  }
-
   private dropGroup(pipeline: ProjectPipeline, group: number): void {
     const kept = pipeline.queue.filter((item) => item.group !== group);
+    for (const item of pipeline.queue) {
+      if (item.group === group) item.observer?.onDone({ status: 'cancelled' });
+    }
     pipeline.queue.splice(0, pipeline.queue.length, ...kept);
   }
 
@@ -255,12 +277,20 @@ export class StageService {
     if (this.disposed || pipeline.active !== undefined) return;
     const next = pipeline.queue.shift();
     if (next === undefined) return;
-    const run = new StageRun(next.request.stage, pipeline.dir, this.now());
-    pipeline.active = { run, group: next.group };
-    pipeline.errors.delete(next.request.stage);
+    const stage = next.request.stage;
+    const run = new StageRun(stage, pipeline.dir, this.now(), runScope(next.request));
+    pipeline.active = { run, item: next };
+    pipeline.errors.delete(stage);
     pipeline.idle = this.execute(pipeline, next, run)
+      .then((outcome) => {
+        next.observer?.onDone(outcome);
+      })
       .catch((error: unknown) => {
-        this.options.log.error(`${next.request.stage} crashed: ${describeError(error)}`);
+        this.options.log.error(`${stage} crashed: ${describeError(error)}`);
+        next.observer?.onDone({
+          status: 'failed',
+          error: { kind: 'internal', message: describeError(error), issues: [] },
+        });
       })
       .finally(() => {
         pipeline.active = undefined;
@@ -269,34 +299,49 @@ export class StageService {
       });
   }
 
-  private async execute(pipeline: ProjectPipeline, next: QueuedRun, run: StageRun): Promise<void> {
+  private async execute(
+    pipeline: ProjectPipeline,
+    next: QueuedRun,
+    run: StageRun,
+  ): Promise<RunOutcome> {
     const stage = next.request.stage;
-    const approval = approvalReasons(
-      stage,
-      await readProjectSnapshot(pipeline.dir, this.options.store),
-    );
-    if (approval.length > 0) {
-      pipeline.errors.set(stage, { kind: 'not-ready', message: approval.join(' '), issues: [] });
-      this.dropGroup(pipeline, next.group);
-      return;
-    }
-    this.options.log.info(`running ${stage} in ${pipeline.dir}`);
-    const outcome = await pipeline.runner.run(next.request);
+    const outcome = await executeQueued({
+      dir: pipeline.dir,
+      runner: pipeline.runner,
+      request: next.request,
+      run,
+      exportRun: this.options.exportRun,
+      store: this.options.store,
+      log: this.options.log,
+      onChange: () => {
+        this.changed(pipeline);
+      },
+    });
     pipeline.warnings.set(stage, [...run.warnings]);
-    if (outcome.ok) {
-      this.options.log.info(`${stage}: ${outcome.value.message}`);
-      return;
+    if (outcome.status === 'done') {
+      this.options.log.info(`${stage}: ${outcome.message}`);
+      return outcome;
     }
     this.dropGroup(pipeline, next.group);
-    this.options.log.warn(`${stage} ${outcome.error.kind}: ${outcome.error.message}`);
-    if (outcome.error.kind !== 'cancelled') pipeline.errors.set(stage, errorInfo(outcome.error));
+    if (outcome.status === 'failed') {
+      this.options.log.warn(`${stage} ${outcome.error.kind}: ${outcome.error.message}`);
+      pipeline.errors.set(stage, outcome.error);
+    }
+    return outcome;
   }
 
   private onEvent(pipeline: ProjectPipeline, event: StageEvent): void {
     const active = pipeline.active;
     const changed = active?.run.stage === event.stage && active.run.apply(event);
     if (REFRESH_EVENTS.has(event.type)) this.refreshFor(pipeline);
-    else if (changed && this.isCurrent(pipeline)) this.schedule(false);
+    if (changed) this.changed(pipeline);
+  }
+
+  /** The active run's view changed: push it (and hand it to its observer). */
+  private changed(pipeline: ProjectPipeline): void {
+    const active = pipeline.active;
+    if (active?.item.observer !== undefined) active.item.observer.onView(active.run.snapshot());
+    if (this.isCurrent(pipeline)) this.pushes.schedule(false);
   }
 
   private isCurrent(pipeline: ProjectPipeline): boolean {
@@ -304,7 +349,7 @@ export class StageService {
   }
 
   private refreshFor(pipeline: ProjectPipeline): void {
-    if (this.isCurrent(pipeline)) this.schedule(true);
+    if (this.isCurrent(pipeline)) this.pushes.schedule(true);
   }
 
   /** First open of `dir` in this session: stages a crash left running become interrupted. */
@@ -312,21 +357,12 @@ export class StageService {
     const key = projectKey(dir);
     if (this.recovered.has(key) || this.pipelines.get(key)?.active !== undefined) return;
     this.recovered.add(key);
-    const read = await this.options.store.read(dir);
-    if (!read.ok) {
-      this.options.log.warn(`pipeline.json of ${dir}: ${read.error.message}`);
-      return;
-    }
-    const stamp = new Date(this.now()).toISOString();
-    if (recoverInterrupted(read.value, stamp).recovered.length === 0) return;
-    let recovered: string[] = [];
-    const updated = await this.options.store.update(dir, (state) => {
-      const next = recoverInterrupted(state, stamp);
-      recovered = next.recovered;
-      return next.state;
-    });
-    if (!updated.ok) this.options.log.warn(`pipeline.json not recovered: ${updated.error.message}`);
-    else this.options.log.info(`interrupted stage(s) after a restart: ${recovered.join(', ')}`);
+    await recoverPipeline(
+      this.options.store,
+      dir,
+      new Date(this.now()).toISOString(),
+      this.options.log,
+    );
   }
 
   private computeInfos(): Promise<void> {
@@ -342,10 +378,7 @@ export class StageService {
       return;
     }
     const key = projectKey(dir);
-    const [snapshot, hasVideo] = await Promise.all([
-      readProjectSnapshot(dir, this.options.store),
-      hasExportedVideo(dir),
-    ]);
+    const [snapshot, hasVideo] = await Promise.all([this.snapshot(dir), hasExportedVideo(dir)]);
     if (this.current === undefined || projectKey(this.current) !== key) return;
     const pipeline = this.pipelines.get(key);
     this.infos = {
@@ -376,21 +409,9 @@ export class StageService {
     };
   }
 
-  /** Coalesced pushes; `recompute` re-reads the project files first. */
-  private schedule(recompute: boolean): void {
-    if (this.disposed) return;
-    this.recompute ||= recompute;
-    if (this.pushTimer !== undefined) return;
-    this.pushTimer = setTimeout(() => {
-      this.pushTimer = undefined;
-      void this.flush();
-    }, this.options.pushDelayMs ?? 50);
-  }
-
-  private async flush(): Promise<void> {
-    const recompute = this.recompute || this.infos === undefined;
-    this.recompute = false;
-    if (recompute) {
+  /** `recompute` re-reads the project files first. */
+  private async flush(recompute: boolean): Promise<void> {
+    if (recompute || this.infos === undefined) {
       try {
         await this.computeInfos();
       } catch (error) {

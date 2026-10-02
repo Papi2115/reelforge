@@ -3,6 +3,7 @@
  * line each in STAGE_RUNS), the stage infos (pipeline.json + files + gating + this session's
  * errors), the script acceptance gate (PLAN.md#7.1) and the crash recovery of pipeline.json.
  */
+import type { PipelineStateStore } from '@reelforge/claude-bridge';
 import type { PipelineState, StageState } from '@reelforge/shared';
 import {
   canRun,
@@ -17,30 +18,42 @@ import {
   type StageRequest,
 } from '@reelforge/stages';
 import type { StageErrorInfo, StageInfo } from '../../shared/stages-contract.js';
+import type { Logger } from '../logger.js';
+import { exportReasons } from './export-stage.js';
+
+/** What the app queues: a runner stage, or the export (run by the app's render backend). */
+export type AppStageRequest = StageRequest | { readonly stage: 'export' };
 
 /**
  * What the sidebar can start, per stage: the Run request, or `replace-only` (the voice-over needs
- * a recording: Replace). Stages missing here arrive with a later update (Run disabled).
+ * a recording: Replace / Record). Every pipeline stage is registered.
  */
-export const STAGE_RUNS: Readonly<Partial<Record<PipelineStage, StageRequest | 'replace-only'>>> = {
+export const STAGE_RUNS: Readonly<Record<PipelineStage, AppStageRequest | 'replace-only'>> = {
   script: { stage: 'script' },
   voiceover: 'replace-only',
   clean: { stage: 'clean' },
   words: { stage: 'words' },
   storyboard: { stage: 'storyboard' },
+  scenes: { stage: 'scenes' },
   'sound-cues': { stage: 'sound-cues' },
   mix: { stage: 'mix' },
+  export: { stage: 'export' },
 };
 
-export function runRequestFor(stage: PipelineStage): StageRequest | undefined {
+export function runRequestFor(stage: PipelineStage): AppStageRequest | undefined {
   const run = STAGE_RUNS[stage];
-  return run === undefined || run === 'replace-only' ? undefined : run;
+  return run === 'replace-only' ? undefined : run;
 }
 
 export const INTERRUPTED_MESSAGE = 'Interrupted: the app closed while it was running.';
 export const INTERRUPTED_PAUSE_MESSAGE =
   'Interrupted: the app closed while it waited for the usage limit to reset.';
 export const APPROVAL_REASON = 'Approve the script first (Script written → Open → Approve script).';
+
+/** Gating reasons + the script approval for `stage` (Run/Redo and the sidebar). */
+export function gateReasons(stage: PipelineStage, snapshot: ProjectSnapshot): string[] {
+  return readinessOf(stage, snapshot).reasons;
+}
 
 /** Stages that read the script (directly or not) wait for the user's approval of it. */
 export function approvalReasons(stage: PipelineStage, snapshot: ProjectSnapshot): string[] {
@@ -105,9 +118,8 @@ function readinessOf(
   stage: PipelineStage,
   snapshot: ProjectSnapshot,
 ): { ready: boolean; reasons: string[] } {
-  if (STAGE_RUNS[stage] === undefined || !isStageId(stage)) return { ready: false, reasons: [] };
-  const readiness = canRun(stage, snapshot);
-  const reasons = [...readiness.reasons, ...approvalReasons(stage, snapshot)];
+  const readiness = isStageId(stage) ? canRun(stage, snapshot).reasons : exportReasons(snapshot);
+  const reasons = [...readiness, ...approvalReasons(stage, snapshot)];
   return { ready: reasons.length === 0, reasons };
 }
 
@@ -127,8 +139,8 @@ export function buildStageInfos(input: StageInfoInput): StageInfo[] {
       interrupted: state?.interrupted === true,
       approvedAt: state?.approvedAt ?? null,
       hasOutput: stageHasOutput(stage, snapshot, input.hasVideo),
-      registered: run !== undefined,
-      runnable: run !== undefined && run !== 'replace-only',
+      registered: true,
+      runnable: run !== 'replace-only',
       ready: readiness.ready,
       reasons: readiness.reasons,
       invalidates: stagesToInvalidate(stage, snapshot),
@@ -136,4 +148,27 @@ export function buildStageInfos(input: StageInfoInput): StageInfo[] {
       warnings: [...(input.warnings.get(stage) ?? [])],
     };
   });
+}
+
+/** Applies `recoverInterrupted` to pipeline.json of `dir` and logs what it did. */
+export async function recoverPipeline(
+  store: PipelineStateStore,
+  dir: string,
+  stamp: string,
+  log: Logger,
+): Promise<void> {
+  const read = await store.read(dir);
+  if (!read.ok) {
+    log.warn(`pipeline.json of ${dir}: ${read.error.message}`);
+    return;
+  }
+  if (recoverInterrupted(read.value, stamp).recovered.length === 0) return;
+  let recovered: string[] = [];
+  const updated = await store.update(dir, (state) => {
+    const next = recoverInterrupted(state, stamp);
+    recovered = next.recovered;
+    return next.state;
+  });
+  if (!updated.ok) log.warn(`pipeline.json not recovered: ${updated.error.message}`);
+  else log.info(`interrupted stage(s) after a restart: ${recovered.join(', ')}`);
 }

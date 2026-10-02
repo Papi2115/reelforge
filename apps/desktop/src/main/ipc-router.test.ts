@@ -151,6 +151,23 @@ function setup(): {
         }),
       scriptSave: (request) => record(request, { status: 'ok', message: null } as const),
       scriptApprove: (request) => record(request, { status: 'ok', message: null } as const),
+      voiceoverImport: (request) =>
+        record(request, { status: 'cancelled', message: null } as const),
+      voiceoverRecording: (request) =>
+        record(request, { status: 'queued', message: null } as const),
+      micArm: (request) => record(request, true),
+      stagesReports: (request) =>
+        record(request, {
+          projectDir: null,
+          voiceover: null,
+          voReport: null,
+          words: null,
+          scenes: null,
+          sync: null,
+          missingProps: null,
+        }),
+      wordsRetry: (request) => record(request, { status: 'queued', message: null } as const),
+      scenesRun: (request) => record(request, { status: 'queued', message: null } as const),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),

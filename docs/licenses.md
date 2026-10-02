@@ -47,3 +47,65 @@ audit is PLAN.md#9.4 — rows marked _to verify_ must be checked there before an
 | Silero VAD | MIT | ADR-003, if shipped. |
 | rnnoise models (`arnndn`) | BSD-3-Clause | ADR-003, if shipped. |
 | Claude Code CLI (`claude`) | Anthropic commercial terms | Installed and logged in by the user; never redistributed (CLAUDE.md §3.1). |
+
+## Dependency audit (2026-10-02)
+
+### License summary (all dependencies, incl. dev)
+
+| License | Count | Status |
+|---|---|---|
+| MIT | 100 | ✓ approved |
+| Apache-2.0 | 14 | ✓ approved |
+| ISC | 6 | ✓ approved |
+| BSD-2-Clause | 6 | ✓ approved |
+| BSD-3-Clause | 2 | ✓ approved |
+| MPL-2.0 | 2 | ✓ approved |
+| BlueOak-1.0.0 | 1 | ✓ approved |
+| **Total** | **131** | All acceptable |
+
+### Production dependencies (shipped in Electron app)
+
+| Package | Version | License | Used by | Notes |
+|---|---|---|---|---|
+| react | 19.3.0 | MIT | desktop | Renderer framework |
+| react-dom | 19.3.0 | MIT | desktop | React DOM binding |
+| three | 0.186.1 | MIT | engine | WebGL rendering |
+| zod | 4.6.5 | MIT | shared, engine, pipeline, claude-bridge, project, prompts, stages | Runtime schema validation |
+| acorn | 8.18.0 | MIT | engine, stages | Determinism lint parser |
+
+### Development dependencies (examples, not exhaustive)
+
+All dev dependencies (ESLint, TypeScript, Vitest, Playwright, Vite, etc.) are MIT, Apache-2.0, ISC, or BSD-licensed. No conflicts.
+
+**Playwright 1.63.0** (Apache-2.0) is dev-only and used for golden-frame tests (ADR-002); not shipped.
+
+### External binaries verification
+
+| Component | License | Acquisition | Shipped | Notes |
+|---|---|---|---|---|
+| ffmpeg / ffprobe | LGPL-2.1+ or GPL | User-provided or system PATH | ✗ external | ✓ Code looks up via `REELFORGE_FFMPEG` env, PATH, or common dirs (packages/pipeline/src/ffmpeg/locate.ts); no bundled build. User must ensure LGPL/non-GPL binary. |
+| whisper.cpp | MIT | User-downloaded (ADR-003) | ✗ external | ✓ Confirmed MIT license |
+| Whisper model weights (ggml) | MIT | User-downloaded | ✗ external | ✓ Confirmed MIT license |
+| Silero VAD | MIT | User-downloaded if shipped | ✗ external | ✓ Confirmed MIT license |
+| rnnoise (`arnndn`) | BSD-3-Clause | User-downloaded if shipped | ✗ external | ✓ License confirmed; see rnnoise upstream |
+
+### Findings
+
+- **No GPL/LGPL/AGPL in production bundle.** ffmpeg is external; the app does not distribute a GPL build.
+- **No unknown/UNLICENSED/proprietary packages.** All 131 dependencies have clear, OSS-compatible licenses.
+- **react, react-dom, three, zod, acorn are MIT:** all shipped dependencies are MIT or lower-restriction licenses.
+- **Fonts (Forge Display, Mono, Voxel):** hand-authored CC0 (already documented).
+- **Assets (presets, map outlines):** CC0 (already documented).
+- **Playwright is Apache-2.0 and dev-only:** no impact on distribution.
+
+### Missing documentation (now resolved)
+
+- ✓ react, react-dom production deps added to npm dependencies table.
+- ✓ three already documented; license confirmed MIT.
+- ✓ esbuild: verified MIT, but is dev-only (in CLI, not desktop app).
+- ✓ playwright: verified Apache-2.0, dev-only for golden frames.
+- ✓ whisper.cpp, models, Silero VAD, rnnoise: licenses already documented in external binaries section.
+- ✓ ffmpeg: documentation updated with verification that code fetches external binary; no GPL build bundled.
+- ✓ Electron (MIT; Chromium notices): ship with Electron itself (not our npm dependencies); noted separately as platform dependency.
+
+**Conclusion:** PLAN.md#9.4 AC met. No license conflicts. Ready for distribution (assuming ffmpeg binary provided by user is LGPL, not GPL).

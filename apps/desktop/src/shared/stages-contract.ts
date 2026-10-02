@@ -67,6 +67,10 @@ export const stageInfoSchema = z.object({
 });
 export type StageInfo = z.infer<typeof stageInfoSchema>;
 
+/** A shot of a running scene build: in progress, ✓ / ⚠ / ✗, or left for the next run. */
+export const shotRunStateSchema = z.enum(['running', 'ok', 'warning', 'failed', 'requeued']);
+export type ShotRunState = z.infer<typeof shotRunStateSchema>;
+
 /** The stage running right now. */
 export const stageRunViewSchema = z.object({
   stage: pipelineStageKeySchema,
@@ -80,6 +84,12 @@ export const stageRunViewSchema = z.object({
   steps: z.array(chatStepSchema),
   /** Waiting out a usage limit (`until`: epoch ms of the automatic resume, null = manual). */
   paused: z.object({ until: z.number().nullable(), message: z.string() }).nullable(),
+  /** Scenes: the review mode of this run (null = build / other stages). */
+  action: z.string().nullable(),
+  /** Scenes: the shots this run targets (null = every shot of the storyboard). */
+  targets: z.array(z.string()).nullable(),
+  /** Scenes: shots started/finished so far in this run. */
+  shots: z.record(z.string(), shotRunStateSchema),
 });
 export type StageRunView = z.infer<typeof stageRunViewSchema>;
 

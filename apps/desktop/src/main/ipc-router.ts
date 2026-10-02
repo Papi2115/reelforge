@@ -108,6 +108,12 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.scriptGet, handlers.scriptGet);
   registerInvoke(IPC.scriptSave, handlers.scriptSave);
   registerInvoke(IPC.scriptApprove, handlers.scriptApprove);
+  registerInvoke(IPC.voiceoverImport, handlers.voiceoverImport);
+  registerInvoke(IPC.voiceoverRecording, handlers.voiceoverRecording);
+  registerInvoke(IPC.micArm, handlers.micArm);
+  registerInvoke(IPC.stagesReports, handlers.stagesReports);
+  registerInvoke(IPC.wordsRetry, handlers.wordsRetry);
+  registerInvoke(IPC.scenesRun, handlers.scenesRun);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

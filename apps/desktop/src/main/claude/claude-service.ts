@@ -8,10 +8,8 @@
  * and commits come in through the options; state goes out through `push`.
  */
 import { randomUUID } from 'node:crypto';
-import path from 'node:path';
 import {
   ECONOMY_HINT,
-  err,
   initialTurnView,
   LimitGuard,
   ok,
@@ -29,19 +27,23 @@ import {
 } from '@reelforge/claude-bridge';
 import type { CommitResult, ProjectError } from '@reelforge/project';
 import type { AppSettings } from '@reelforge/shared';
-import type {
-  ChatError,
-  ChatSendRequest,
-  ChatSendResult,
-  ChatState,
-  ChatTurn,
+import {
+  CHIP_LABELS,
+  type ChatChip,
+  type ChatError,
+  type ChatSendRequest,
+  type ChatSendResult,
+  type ChatState,
+  type ChatTurn,
 } from '../../shared/chat-contract.js';
 import type { Logger } from '../logger.js';
 import { chatTurnModel, usageBudgetFor } from '../settings-consumers.js';
 import { buildChatPrompt, findSourceHint, requestTitle, selectionLabel } from './chat-prompt.js';
 import { toChatSteps } from './chat-steps.js';
+import { ChatTranscripts, projectKey } from './chat-transcripts.js';
+import { ReviewTurns, reviewRequest, type ReviewTurnsOptions } from './review-turns.js';
+import { createSessionManager } from './session-setup.js';
 import {
-  chatExtraEnv,
   commitSubject,
   queuedTurn,
   turnErrorOf,
@@ -76,7 +78,14 @@ export interface ClaudeServiceOptions {
   readonly now?: () => number;
   readonly pushDelayMs?: number;
   readonly exitGraceMs?: number;
+  /** Claude turns at once (chat + pipeline stages; scene building runs 2). Default 2. */
+  readonly maxConcurrency?: number;
+  /** Whole-video chips run the scene stage's review modes (PLAN.md#7.6); else a chat turn. */
+  readonly review?: Pick<ReviewTurnsOptions, 'run' | 'stop'>;
 }
+
+/** Scene building runs two shots at once (PLAN.md#7.4); the chat runs one turn at a time. */
+export const DEFAULT_CLAUDE_CONCURRENCY = 2;
 
 interface TurnRecord {
   turn: ChatTurn;
@@ -92,13 +101,7 @@ interface Current {
   stopRequested: boolean;
 }
 
-/** Started turns kept per project in the chat transcript. */
-export const MAX_TRANSCRIPT_TURNS = 100;
-
-function projectKey(dir: string): string {
-  const resolved = path.resolve(dir);
-  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
-}
+export { MAX_TRANSCRIPT_TURNS } from './chat-transcripts.js';
 
 export class ClaudeService {
   readonly guard: LimitGuard;
@@ -106,15 +109,23 @@ export class ClaudeService {
   private manager: SessionManager | undefined;
   private setupRun: Promise<Result<SessionManager, ChatError>> | undefined;
   private readonly queue: TurnRecord[] = [];
-  private readonly transcripts = new Map<string, TurnRecord[]>();
+  private readonly transcripts = new ChatTranscripts<TurnRecord>();
   private current: Current | undefined;
   private notice: ChatError | null = null;
   private pushTimer: ReturnType<typeof setTimeout> | undefined;
   private idle: Promise<void> = Promise.resolve();
   private disposed = false;
+  private readonly reviews: ReviewTurns | undefined;
 
   constructor(private readonly options: ClaudeServiceOptions) {
-    this.guard = new LimitGuard(options.clock === undefined ? {} : { clock: options.clock });
+    this.reviews =
+      options.review === undefined
+        ? undefined
+        : new ReviewTurns({ ...options.review, now: () => this.now() });
+    this.guard = new LimitGuard({
+      maxConcurrency: this.concurrency,
+      ...(options.clock === undefined ? {} : { clock: options.clock }),
+    });
     this.usage = new UsageLedger({ budgetFor: usageBudgetFor(options.settings) });
     this.guard.on('paused', (pause) => {
       options.log.warn(
@@ -132,6 +143,10 @@ export class ClaudeService {
   /** A chat turn is running (quitting must kill it first). */
   get busy(): boolean {
     return this.current !== undefined;
+  }
+
+  private get concurrency(): number {
+    return Math.max(1, this.options.maxConcurrency ?? DEFAULT_CLAUDE_CONCURRENCY);
   }
 
   /** The app's SessionManager once Claude is set up (stage orchestration shares it). */
@@ -152,10 +167,14 @@ export class ClaudeService {
     const pause = this.guard.pause;
     return {
       projectDir: dir ?? null,
-      turns:
-        key === undefined ? [] : (this.transcripts.get(key) ?? []).map((record) => record.turn),
+      turns: key === undefined ? [] : this.transcripts.of(key).map((record) => record.turn),
       queue: this.queue.filter(mine).map((record) => record.turn),
-      running: current !== undefined && mine(current.record) ? current.record.turn.id : null,
+      running:
+        current !== undefined && mine(current.record)
+          ? current.record.turn.id
+          : key === undefined
+            ? null
+            : (this.reviews?.runningId(key) ?? null),
       pause:
         pause === undefined
           ? null
@@ -169,6 +188,9 @@ export class ClaudeService {
     const dir = this.options.currentProject();
     if (dir === undefined) {
       return { status: 'error', error: { kind: 'no-project', message: 'no project is open' } };
+    }
+    if (request.chip !== null && this.reviews !== undefined) {
+      return this.sendReview(dir, request.chip, this.reviews);
     }
     const scope = request.chip === null ? request.scope : 'video';
     const selection = scope === 'selection' ? request.selection : null;
@@ -222,6 +244,9 @@ export class ClaudeService {
   async stop(): Promise<boolean> {
     const current = this.current;
     const dir = this.options.currentProject();
+    if (current === undefined && dir !== undefined) {
+      return this.reviews?.stop(projectKey(dir)) ?? false;
+    }
     if (current === undefined || dir === undefined) return false;
     if (projectKey(current.record.projectDir) !== projectKey(dir)) return false;
     current.stopRequested = true;
@@ -247,6 +272,40 @@ export class ClaudeService {
     await this.manager?.whenIdle();
     await this.idle;
     if (this.pushTimer !== undefined) clearTimeout(this.pushTimer);
+  }
+
+  /** A chip: the review mode runs as a scene stage run, shown as a turn of this chat. */
+  private async sendReview(
+    dir: string,
+    chip: ChatChip,
+    reviews: ReviewTurns,
+  ): Promise<ChatSendResult> {
+    const model = chatTurnModel(this.options.settings(), false);
+    const record: TurnRecord = {
+      projectDir: dir,
+      prompt: '',
+      model,
+      title: CHIP_LABELS[chip],
+      turn: queuedTurn(randomUUID(), this.now(), reviewRequest(chip, model)),
+    };
+    this.transcripts.add(record);
+    const started = await reviews.start(projectKey(dir), chip, {
+      turn: () => record.turn,
+      update: (patch) => {
+        this.update(record, patch);
+      },
+      remove: () => {
+        this.transcripts.remove(record);
+        this.changed();
+      },
+    });
+    if (started.status === 'error') {
+      return {
+        status: 'error',
+        error: { kind: 'invalid-request', message: started.message ?? 'The review cannot start.' },
+      };
+    }
+    return { status: 'queued', turnId: record.turn.id };
   }
 
   private now(): number {
@@ -275,17 +334,9 @@ export class ClaudeService {
     this.changed();
   }
 
-  private remember(record: TurnRecord): void {
-    const key = projectKey(record.projectDir);
-    const list = this.transcripts.get(key) ?? [];
-    list.push(record);
-    if (list.length > MAX_TRANSCRIPT_TURNS) list.splice(0, list.length - MAX_TRANSCRIPT_TURNS);
-    this.transcripts.set(key, list);
-  }
-
   private async run(current: Current): Promise<void> {
     const { record } = current;
-    this.remember(record);
+    this.transcripts.add(record);
     this.update(record, { status: 'running', startedAt: this.now() });
     const manager = await this.ensureManager();
     if (!manager.ok) {
@@ -347,35 +398,20 @@ export class ClaudeService {
   private ensureManager(): Promise<Result<SessionManager, ChatError>> {
     if (this.manager !== undefined) return Promise.resolve(ok(this.manager));
     this.setupRun ??= this.options.setup().then((setup) => {
-      const created = setup.ok ? this.createManager(setup.value) : setup;
+      const created = setup.ok
+        ? createSessionManager(setup.value, {
+            guard: this.guard,
+            usage: this.usage,
+            concurrency: this.concurrency,
+            renderEnv: this.options.renderEnv,
+            exitGraceMs: this.options.exitGraceMs,
+          })
+        : setup;
       if (created.ok) this.manager = created.value;
       else this.setupRun = undefined;
       return created;
     });
     return this.setupRun;
-  }
-
-  private createManager(setup: ClaudeSetup): Result<SessionManager, ChatError> {
-    try {
-      return ok(
-        new SessionManager({
-          launcher: setup.launcher,
-          env: setup.env,
-          extraEnv: (dir) => chatExtraEnv(this.options.renderEnv(dir)),
-          guard: this.guard,
-          usage: this.usage,
-          permissions: setup.permissions,
-          ...(this.options.exitGraceMs === undefined
-            ? {}
-            : { exitGraceMs: this.options.exitGraceMs }),
-        }),
-      );
-    } catch (error) {
-      return err({
-        kind: 'setup',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
   }
 
   /** Coalesced pushes: a stream of events becomes at most one push per `pushDelayMs`. */

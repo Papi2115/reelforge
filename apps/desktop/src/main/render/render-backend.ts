@@ -15,6 +15,7 @@ import { describeError, type Logger } from '../logger.js';
 import type { RendererSource } from '../navigation-policy.js';
 import { ExportController } from './export-controller.js';
 import { exportProject } from './export-project.js';
+import { PoolFrameRenderer } from './pool-frame-renderer.js';
 import { engineBundleVersion } from './render-identity.js';
 import { RenderPool } from './render-pool.js';
 import { createRenderServiceHandlers } from './render-service-handlers.js';
@@ -35,6 +36,8 @@ export interface RenderBackendOptions {
 export class RenderBackend {
   readonly exports: ExportController;
   readonly openTarget: OpenRenderTarget;
+  /** Smoke frames, card QA and anchors of the Scenes built stage (its own warm windows). */
+  readonly frames: PoolFrameRenderer;
   private service: {
     readonly server: RenderService;
     readonly pool: RenderPool;
@@ -49,6 +52,7 @@ export class RenderBackend {
     const preloadFile = path.join(path.dirname(layout.preloadFile), RENDER_PRELOAD_FILE);
     const windowLog = log.child('window');
     this.openTarget = () => openRenderWindow({ hostUrl, preloadFile, lint: true, log: windowLog });
+    this.frames = new PoolFrameRenderer(this.openTarget);
     this.exports = new ExportController({
       currentProject: options.currentProject,
       settings: options.settings,
@@ -86,6 +90,7 @@ export class RenderBackend {
 
   async dispose(): Promise<void> {
     this.exports.cancel();
+    await this.frames.close();
     await this.followProject(undefined);
   }
 
@@ -129,6 +134,8 @@ export class RenderBackend {
 /** Name of the test-only global (unpackaged app + REELFORGE_TEST_HOOKS=1). */
 export const RENDER_TEST_HOOKS_GLOBAL = '__reelforgeRenderTest';
 export const TEST_HOOKS_ENV = 'REELFORGE_TEST_HOOKS';
+/** With the test hooks: Chromium's fake microphone and auto-accepted capture (recording tests). */
+export const TEST_FAKE_MEDIA_ENV = 'REELFORGE_TEST_FAKE_MEDIA';
 
 export interface RenderTestHooks {
   /** The env the app would give Claude for the open project (render service URL + token). */

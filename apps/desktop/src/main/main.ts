@@ -7,7 +7,6 @@ import { availableParallelism } from 'node:os';
 import { killTree, PipelineStateStore } from '@reelforge/claude-bridge';
 import { writeCliShims } from '@reelforge/cli/shims';
 import { autocommit } from '@reelforge/project';
-import { VOICEOVER_EXTENSIONS } from '@reelforge/shared';
 import {
   app,
   BrowserWindow,
@@ -19,6 +18,7 @@ import {
   type OpenDialogOptions,
 } from 'electron';
 import { IPC_PUSH, type AppInfo } from '../shared/ipc-contract.js';
+import type { StageCommandResult } from '../shared/stages-contract.js';
 import {
   APP_NAME,
   APP_USER_MODEL_ID,
@@ -39,19 +39,30 @@ import { loadDemoManifest } from './demo-manifest.js';
 import { saveFrameSnapshot } from './frame-snapshots.js';
 import { registerIpc } from './ipc-router.js';
 import { createLogger, describeError, fileAndStderrSink } from './logger.js';
+import { MicPermissionGate } from './mic-permission.js';
 import { serveMediaProtocol } from './media-protocol.js';
 import { isAllowedNavigation, resolveRendererSource } from './navigation-policy.js';
 import { ProjectService, type FolderPurpose } from './project-service.js';
 import { ProjectWatchFollower, watchProject } from './project-watcher.js';
-import { installRenderTestHooks, RenderBackend, TEST_HOOKS_ENV } from './render/render-backend.js';
+import {
+  installRenderTestHooks,
+  RenderBackend,
+  TEST_FAKE_MEDIA_ENV,
+  TEST_HOOKS_ENV,
+} from './render/render-backend.js';
 import { applySessionSecurity, hardenAllWebContents } from './security.js';
 import { gpuSwitches } from './settings-consumers.js';
 import { createSettingsBackend, toolPickerOptions } from './settings-ipc.js';
 import { SettingsService } from './settings-service.js';
 import { ScriptDocuments } from './stages/script-documents.js';
-import { appRunnerFactory } from './stages/stage-runtime.js';
+import {
+  ffmpegAudioProbe,
+  recordedTranscription,
+  TEST_TRANSCRIPT_ENV,
+} from './stages/audio-probe.js';
+import { appRunnerFactory, settingsAudioTools } from './stages/stage-runtime.js';
 import { StageService } from './stages/stage-service.js';
-import { stagesHandlers, type ReplacePick } from './stages/stages-ipc.js';
+import { replacementDialogOptions, stagesHandlers, type ReplacePick } from './stages/stages-ipc.js';
 import { timelineHandlers } from './timeline-ipc.js';
 import { createMainWindow } from './window.js';
 
@@ -88,6 +99,16 @@ function main(): void {
   for (const name of gpuSwitches(settings.get().performance.gpu))
     app.commandLine.appendSwitch(name);
 
+  const micGate = new MicPermissionGate(source.origin);
+  // Test hook (unpackaged + REELFORGE_TEST_HOOKS=1): a fake microphone for the recording tests.
+  if (
+    !app.isPackaged &&
+    process.env[TEST_HOOKS_ENV] === '1' &&
+    process.env[TEST_FAKE_MEDIA_ENV] === '1'
+  ) {
+    app.commandLine.appendSwitch('use-fake-device-for-media-stream');
+    app.commandLine.appendSwitch('use-fake-ui-for-media-stream');
+  }
   app.enableSandbox();
   registerAppSchemePrivileged();
   if (process.platform === 'win32') app.setAppUserModelId(APP_USER_MODEL_ID);
@@ -179,7 +200,7 @@ function main(): void {
     now: () => performance.now(),
   });
 
-  const claude = new ClaudeService({
+  const claude: ClaudeService = new ClaudeService({
     setup: claudeSetup({
       layout,
       shimDir: cliShimDir(userDataDir),
@@ -195,6 +216,11 @@ function main(): void {
     currentProject: () => projects.currentProject()?.dir,
     renderEnv: (dir) => renderBackend.serviceEnv(dir),
     commit: (dir, message) => autocommit(dir, message, { kind: 'claude-turn' }),
+    review: {
+      run: (mode, observer): Promise<StageCommandResult> =>
+        stages.enqueue([{ stage: 'scenes', action: mode }], observer),
+      stop: (): boolean => stages.stop('scenes'),
+    },
     push: (state) => {
       mainWindow?.webContents.send(IPC_PUSH.chatChanged.name, state);
     },
@@ -203,13 +229,30 @@ function main(): void {
 
   const pipelineStore = new PipelineStateStore();
   const stagesLog = log.child('stages');
-  const stages = new StageService({
+  const testHooks = !app.isPackaged && process.env[TEST_HOOKS_ENV] === '1';
+  const recordedTranscript = testHooks ? process.env[TEST_TRANSCRIPT_ENV] : undefined;
+  const settingsAudio = settingsAudioTools(() => settings.get());
+  const audioTools =
+    recordedTranscript === undefined || recordedTranscript === ''
+      ? settingsAudio
+      : recordedTranscription(recordedTranscript)(settingsAudio);
+  if (audioTools !== settingsAudio) stagesLog.warn('test hook: transcriptions are recorded');
+  const stages: StageService = new StageService({
     createRunner: appRunnerFactory({
       settings: () => settings.get(),
       sessions: () => claude.sessionManager(),
       guard: claude.guard,
       store: pipelineStore,
+      frames: renderBackend.frames,
+      audio: audioTools,
+      log: stagesLog,
     }),
+    exportRun: {
+      start: (listener) => renderBackend.exports.start({}, listener),
+      cancel: () => {
+        renderBackend.exports.cancel();
+      },
+    },
     store: pipelineStore,
     guard: claude.guard,
     push: (state) => {
@@ -232,20 +275,7 @@ function main(): void {
     log: stagesLog,
   });
   const pickReplacement = async (kind: ReplacePick): Promise<string | undefined> => {
-    const options: OpenDialogOptions =
-      kind === 'script'
-        ? {
-            title: 'Use a script from a text file',
-            buttonLabel: 'Use this script',
-            filters: [{ name: 'Text', extensions: ['txt', 'md'] }],
-            properties: ['openFile'],
-          }
-        : {
-            title: 'Import a voice-over recording',
-            buttonLabel: 'Import',
-            filters: [{ name: 'Audio', extensions: [...VOICEOVER_EXTENSIONS] }],
-            properties: ['openFile'],
-          };
+    const options = replacementDialogOptions(kind);
     const picked = await (mainWindow
       ? dialog.showOpenDialog(mainWindow, options)
       : dialog.showOpenDialog(options));
@@ -299,6 +329,9 @@ function main(): void {
         currentProject: () => projects.currentProject()?.dir,
         pickFile: pickReplacement,
         openPath: (file) => shell.openPath(file),
+        probe: ffmpegAudioProbe(() => settings.get()),
+        hasWhisperModel: (model) => audioTools.hasWhisperModel(model),
+        mic: micGate,
         log: stagesLog,
       }),
     },
@@ -341,7 +374,13 @@ function main(): void {
   app
     .whenReady()
     .then(() => {
-      applySessionSecurity(session.defaultSession, source, log.child('security'));
+      applySessionSecurity(session.defaultSession, source, log.child('security'), {
+        gate: micGate,
+        isMainWindow: (contents) =>
+          contents !== null &&
+          mainWindow !== undefined &&
+          contents.id === mainWindow.webContents.id,
+      });
       serveMediaProtocol(
         session.defaultSession,
         () => projects.currentProject()?.dir,

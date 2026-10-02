@@ -18,7 +18,7 @@ export const SCOPE_LABELS: Readonly<Record<ChatScope, string>> = {
   video: 'Whole video',
 };
 
-/** Prepared Whole-video requests (PLAN.md#7.6 chips; the full review automation comes later). */
+/** Whole-video suggestions (PLAN.md#7.6): each runs a review mode of the scene stage. */
 export const CHAT_CHIPS = ['review-video', 'readable-text', 'visuals-on-words'] as const;
 export const chatChipSchema = z.enum(CHAT_CHIPS);
 export type ChatChip = z.infer<typeof chatChipSchema>;

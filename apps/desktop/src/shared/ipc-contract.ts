@@ -44,6 +44,7 @@ import { CHAT_IPC, CHAT_PUSH, type ChatApi } from './chat-contract.js';
 import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
 import { SETTINGS_IPC, SETTINGS_PUSH, type SettingsApi } from './settings-contract.js';
 import { STAGES_IPC, STAGES_PUSH, type StagesApi } from './stages-contract.js';
+import { VOICEOVER_IPC, type VoiceoverApi } from './voiceover-contract.js';
 import {
   timelineEditRequestSchema,
   timelineEditResultSchema,
@@ -192,6 +193,8 @@ export const IPC = {
   ...CHAT_IPC,
   /** Pipeline sidebar and the Brief -> Script documents (PLAN.md#6.8, #7.1). */
   ...STAGES_IPC,
+  /** Voice-over import/recording, stage reports, words retry, scene runs (PLAN.md#7.2-7.7). */
+  ...VOICEOVER_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -214,7 +217,7 @@ export type RequestOf<Key extends InvokeChannelKey> = z.infer<InvokeChannels[Key
 export type ResponseOf<Key extends InvokeChannelKey> = z.infer<InvokeChannels[Key]['response']>;
 
 /** The API preload exposes on `window.reelforge`. */
-export interface ReelforgeApi extends SettingsApi, ExportApi, ChatApi, StagesApi {
+export interface ReelforgeApi extends SettingsApi, ExportApi, ChatApi, StagesApi, VoiceoverApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;

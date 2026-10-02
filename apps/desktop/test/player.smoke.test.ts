@@ -95,7 +95,9 @@ afterAll(async () => {
 describe('player', () => {
   it('plays in real time with the project audio as master clock', async () => {
     await page.locator('section.preview[data-clock="audio"]').waitFor({ timeout: 10_000 });
-    const shot = page.getByRole('region', { name: 'Shots' }).getByRole('button').nth(1);
+    const shot = page
+      .getByRole('region', { name: 'Shots' })
+      .getByRole('button', { name: /^Shot s02/ });
     await shot.click();
     await waitForRenderedT(page, '2.200');
     await page.getByRole('button', { name: 'FPS' }).click();

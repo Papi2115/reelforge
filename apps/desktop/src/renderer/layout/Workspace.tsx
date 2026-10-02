@@ -12,7 +12,17 @@ import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
 import type { OpenTarget } from '../stages/pipeline-view.js';
 import { ScriptPanel, type ScriptTab } from '../stages/ScriptPanel.js';
+import { ScenesPanel } from '../stages/ScenesPanel.js';
+import {
+  buildProgress,
+  fixPrompt,
+  missingProps,
+  missingPropsBanner,
+  shotBadges,
+} from '../stages/scenes-view.js';
+import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
+import { VoiceoverPanel } from '../stages/VoiceoverPanel.js';
 import { WordsPanel } from '../stages/WordsPanel.js';
 import { useTimeline } from '../timeline/use-timeline.js';
 import { AppShell } from './AppShell.js';
@@ -28,7 +38,10 @@ export interface WorkspaceProps {
 
 /** A document shown over the preview (Open of a stage, the brief). */
 type CenterDocument =
-  { readonly kind: 'script'; readonly tab: ScriptTab } | { readonly kind: 'words' };
+  | { readonly kind: 'script'; readonly tab: ScriptTab }
+  | { readonly kind: 'words' }
+  | { readonly kind: 'voiceover' }
+  | { readonly kind: 'scenes' };
 
 /** Brings the Shots panel into view (Open of the Storyboard stage). */
 function focusShots(): void {
@@ -47,6 +60,7 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
   const { time, duration, playing, fps } = usePlayerState(player);
   const timeline = useTimeline(project.dir, snapshot, reload, audioRevision, duration);
   const stages = useStages(project.dir);
+  const reports = useStageReports(project.dir, reportsKey(stages.state));
   const [centerDocument, setCenterDocument] = useState<CenterDocument | null>(null);
 
   // A project without a brief or a script starts at the brief (new project flow).
@@ -67,6 +81,12 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
       case 'words':
         setCenterDocument({ kind: 'words' });
         return;
+      case 'voiceover':
+        setCenterDocument({ kind: 'voiceover' });
+        return;
+      case 'scenes':
+        setCenterDocument({ kind: 'scenes' });
+        return;
       case 'shots':
         setCenterDocument(null);
         focusShots();
@@ -86,6 +106,12 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
     player.seek(shot.t0);
   };
 
+  const running = stages.state?.running ?? null;
+  const badges = shotBadges(reports?.scenes ?? null, running);
+  const scenesBusy = running?.stage === 'scenes' || stages.state?.queue.includes('scenes') === true;
+  const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
+  const [shotNotice, setShotNotice] = useState<string | undefined>(undefined);
+
   return (
     <AppShell
       left={
@@ -102,16 +128,41 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
               setCenterDocument({ kind: 'script', tab: 'brief' });
             }}
           />
+          {shotNotice !== undefined && (
+            <p className="panel-error banner" role="alert">
+              {shotNotice}
+            </p>
+          )}
           <ShotsPanel
             storyboard={snapshot?.storyboard}
             selectedId={timeline.selectedShotId}
             time={time}
             onSelect={selectShot}
+            badges={badges}
+            progress={buildProgress(running, shots.length)}
+            missingBanner={missingPropsBanner(
+              missingProps(reports?.scenes ?? null, reports?.missingProps ?? null),
+            )}
+            actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
+            onRebuild={(shotId) => {
+              setShotNotice(undefined);
+              void window.reelforge.runScenes('build', [shotId]).then((result) => {
+                if (result.status === 'error') setShotNotice(result.message ?? 'Not started.');
+              });
+            }}
+            onFix={(shotId) => {
+              const shot = shots.find((candidate) => candidate.id === shotId);
+              if (shot !== undefined) selectShot(shot);
+              setPrefill((current) => ({
+                text: fixPrompt(shotId, badges.get(shotId)),
+                nonce: (current?.nonce ?? 0) + 1,
+              }));
+            }}
           />
         </div>
       }
       center={
-        <div className="center-stack">
+        <div className={`center-stack${centerDocument?.kind === 'scenes' ? ' has-dock' : ''}`}>
           <PreviewPanel
             source={{ kind: 'project', revision: previewRevision }}
             player={player}
@@ -138,9 +189,40 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
               }}
             />
           )}
+          {centerDocument?.kind === 'scenes' && (
+            <ScenesPanel
+              stages={stages}
+              reports={reports}
+              totalShots={shots.length}
+              onSeekShot={(shotId, t) => {
+                timeline.selection.set([{ kind: 'shot', id: shotId }]);
+                player.seek(t);
+              }}
+              onClose={() => {
+                setCenterDocument(null);
+              }}
+            />
+          )}
+          {centerDocument?.kind === 'voiceover' && (
+            <VoiceoverPanel
+              stages={stages}
+              reports={reports}
+              onSeek={(t) => {
+                player.seek(t);
+              }}
+              onClose={() => {
+                setCenterDocument(null);
+              }}
+            />
+          )}
           {centerDocument?.kind === 'words' && (
             <WordsPanel
               words={snapshot?.words}
+              report={reports?.words ?? null}
+              busy={
+                stages.state?.running?.stage === 'words' ||
+                stages.state?.queue.includes('words') === true
+              }
               onSeek={(t) => {
                 player.seek(t);
               }}
@@ -158,6 +240,7 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
           onClearSelection={() => {
             setSelection(null);
           }}
+          prefill={prefill}
         />
       }
       bottom={

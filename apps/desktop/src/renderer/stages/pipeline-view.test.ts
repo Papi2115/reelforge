@@ -13,10 +13,7 @@ import {
   type RowView,
 } from './pipeline-view.js';
 
-const UNREGISTERED: readonly PipelineStageKey[] = ['scenes', 'export'];
-
 function info(stage: PipelineStageKey, patch: Partial<StageInfo> = {}): StageInfo {
-  const registered = !UNREGISTERED.includes(stage);
   return {
     stage,
     status: null,
@@ -27,8 +24,8 @@ function info(stage: PipelineStageKey, patch: Partial<StageInfo> = {}): StageInf
     interrupted: false,
     approvedAt: null,
     hasOutput: false,
-    registered,
-    runnable: registered && stage !== 'voiceover',
+    registered: true,
+    runnable: stage !== 'voiceover',
     ready: false,
     reasons: [],
     invalidates: [],
@@ -138,6 +135,9 @@ describe('pipelineRows', () => {
             startedAt: 1_000,
             steps: [],
             paused: null,
+            action: null,
+            targets: null,
+            shots: {},
           },
         },
       ),
@@ -166,6 +166,9 @@ describe('pipelineRows', () => {
             startedAt: 0,
             steps: [],
             paused: { until, message: 'limit' },
+            action: null,
+            targets: null,
+            shots: {},
           },
         },
       ),
@@ -215,21 +218,28 @@ describe('pipelineRows', () => {
     expect(row(rows, 'sound')).toMatchObject({ status: 'queued', busy: true });
   });
 
-  it('keeps not-yet-wired stages visible with their real status and Run disabled', () => {
-    const rows = pipelineRows(state({ scenes: { hasOutput: true }, export: {} }));
+  it('runs Scenes built and Video exported from the sidebar; the voice-over needs a recording', () => {
+    const rows = pipelineRows(
+      state({
+        scenes: { hasOutput: true, ready: true },
+        export: { reasons: ['audio/mix.wav is missing: run Sound design mixed first.'] },
+      }),
+    );
     expect(row(rows, 'scenes')).toMatchObject({
       status: 'done',
-      redo: { enabled: false, hint: 'Coming with the scenes stage.' },
+      redo: { enabled: true },
+      open: { enabled: true },
     });
     expect(row(rows, 'export')).toMatchObject({
       status: 'waiting',
-      detail: 'Coming with the export stage.',
-      run: { enabled: false, hint: 'Coming with the export stage.' },
+      detail: 'audio/mix.wav is missing: run Sound design mixed first.',
+      run: { enabled: false },
     });
     expect(row(rows, 'voiceover')).toMatchObject({
       status: 'waiting',
-      run: { enabled: false, hint: 'Use Replace to import a recording.' },
+      run: { enabled: false, hint: 'Use Replace or Open → Record to add a recording.' },
       replace: { enabled: true },
+      open: { enabled: true },
     });
   });
 

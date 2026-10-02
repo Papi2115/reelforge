@@ -215,12 +215,12 @@ reelforge/
 
 ### Faza 7 — Orkiestracja etapów
 - [x] **7.1** [O+S] **Brief → scenariusz**: formularz (temat, długość, ton, odbiorca, język, uwagi) → research (źródła) → beat sheet → `script.txt`; licznik słów i szacunek czasu (150 wpm); edytor ze zmianami; bramka akceptacji. — AC: z 3-zdaniowego briefu powstaje skrypt ze źródłami.
-- [ ] **7.2** [O] Voiceover: import (wav/mp3/m4a) i nagrywanie w aplikacji; Replace; raport rozbieżności VO↔skrypt. — AC: wymiana VO → `Words timed` do ponownego uruchomienia, sceny zachowują anchory.
+- [x] **7.2** [O] Voiceover: import (wav/mp3/m4a) i nagrywanie w aplikacji; Replace; raport rozbieżności VO↔skrypt. — AC: wymiana VO → `Words timed` do ponownego uruchomienia, sceny zachowują anchory.
 - [x] **7.3** [S] **Storyboard**: skrypt + words + styl + katalog kitu → `storyboard.json` (shoty na anchorach, treatment, intent, propsy, kamera, paleta, cues; zmiana wzorca wizualnego co ≤ 6–8 s; lista "brakujących propsów"). — AC: walidacja zod + brak 3× tego samego treatmentu z rzędu.
 - [x] **7.4** [O] **Budowa scen**: pakiet per shot (współbieżność 2, dostosowana do limitów), każdy kończy lint + smoke-frames + Haiku-krytyk; retry ≤ 2; brakujący prop → najpierw dobudowanie do kitu (z testem). — AC: 8-shotowy film buduje się bez ręcznej interwencji.
 - [x] **7.5** [O+H] Krytycy klatek: sprawdzenia programowe + Haiku JSON (§4.4). — AC: wykrywa celowo zepsute fixture'y (pusta klatka, ucięty tekst, nakładające się karty).
-- [ ] **7.6** [S] **Review całego filmu**: contact sheety (3 klatki/shot) → Haiku triage → Sonnet plan poprawek → Opus naprawy. Chipsy: "Review the whole video and fix what looks wrong", "Make all on-screen text easier to read on a phone", "Check every visual lands on its spoken word". — AC: akcje działają z zakresu Whole video.
-- [ ] **7.7** [O] Raport synchronizacji (anchory ±150 ms). — AC: raport per shot w UI.
+- [x] **7.6** [S] **Review całego filmu**: contact sheety (3 klatki/shot) → Haiku triage → Sonnet plan poprawek → Opus naprawy. Chipsy: "Review the whole video and fix what looks wrong", "Make all on-screen text easier to read on a phone", "Check every visual lands on its spoken word". — AC: akcje działają z zakresu Whole video.
+- [x] **7.7** [O] Raport synchronizacji (anchory ±150 ms). — AC: raport per shot w UI.
 
 ### Faza 8 — Sound design
 - [x] **8.1** [S] Generowanie `cues.json` ze storyboardu (hity na anchorach, whoosh na przejściach, ambient per scena, muzyka per akt). — AC: walidacja zod.
@@ -231,7 +231,7 @@ reelforge/
 - [ ] **9.1** [O] Dialog eksportu: preset (1080p30/1440p/4K), kodek/enkoder, kolejka, postęp, wznawianie. — AC: eksport 10-min filmu < 20 min na laptopie z GPU (cel; zmierzony wynik w `docs/perf.md`).
 - [ ] **9.2** [S+O] Wyjścia dodatkowe: `chapters.txt` ze storyboardu (format YouTube), miniatura, sugestie tytułu/opisu/tagów. — AC: pliki w `out/`.
 - [ ] **9.3** [O] `electron-builder` (NSIS, Windows x64), brak auto-update, instrukcja podpisywania kodu. — AC: instalator działa na czystej maszynie/VM.
-- [ ] **9.4** [H] Audyt licencji (fonty, assety, ffmpeg, whisper, zależności npm) → `docs/licenses.md`. — AC: brak nieznanych/niekompatybilnych.
+- [x] **9.4** [H] Audyt licencji (fonty, assety, ffmpeg, whisper, zależności npm) → `docs/licenses.md`. — AC: brak nieznanych/niekompatybilnych.
 
 ### Faza 10 — Hartowanie i v1.0
 - [ ] **10.1** [O] E2E (Playwright-Electron) happy path na `fake-claude` + fixture VO: brief → … → MP4. — AC: przechodzi w CI.

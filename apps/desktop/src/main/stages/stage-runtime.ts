@@ -3,7 +3,8 @@
  * SessionManager (the ClaudeService's: sanitized env, permissions, render-service env, limit guard
  * and usage ledger are configured there; set up on first use), ffmpeg / whisper.cpp are located
  * from the current settings (rebuilt when a tool path changes), the stage settings are read from
- * the app settings at the start of every run, and pipeline.json goes through the shared store.
+ * the app settings at the start of every run, scene frames render on the app's render windows,
+ * missing kit props are logged, and pipeline.json goes through the shared store.
  */
 import {
   type LimitGuard,
@@ -15,15 +16,20 @@ import type { AppSettings } from '@reelforge/shared';
 import {
   BridgeClaudeRunner,
   createPipelineAudioTools,
+  DEFAULT_SCENE_SETTINGS,
   stageSettingsFromApp,
   StageRunner,
   type AudioTools,
   type ClaudeRunner,
   type ClaudeTurnResult,
+  type FrameRenderer,
   type PipelineAudioToolsOptions,
+  type StageSettings,
 } from '@reelforge/stages';
 import type { ChatError } from '../../shared/chat-contract.js';
-import { whisperManagerOptions } from '../settings-consumers.js';
+import type { Logger } from '../logger.js';
+import { qaIterations, whisperManagerOptions } from '../settings-consumers.js';
+import { loggingMissingProps } from './missing-props.js';
 
 /** A turn that cannot start because Claude is not set up (not installed / not logged in). */
 export function blockedTurn(message: string): ClaudeTurnResult {
@@ -76,23 +82,48 @@ export function settingsAudioTools(
   };
 }
 
+/** Shots built at once (PLAN.md#7.4: 2, capped by the LimitGuard after a limit). */
+export const SCENE_CONCURRENCY = DEFAULT_SCENE_SETTINGS.concurrency;
+
+/** Stage settings of the app settings, scene QA included (Economy: one fix turn per shot). */
+export function appStageSettings(app: AppSettings): StageSettings {
+  const base = stageSettingsFromApp(app);
+  return {
+    ...base,
+    scenes: {
+      ...base.scenes,
+      concurrency: SCENE_CONCURRENCY,
+      maxFixIterations: qaIterations(app),
+    },
+  };
+}
+
 export interface AppRunnerOptions {
   readonly settings: () => AppSettings;
   readonly sessions: () => Promise<Result<SessionManager, ChatError>>;
   readonly guard: LimitGuard;
   readonly store: PipelineStateStore;
+  /** Scenes built: smoke frames, card QA and anchors on the app's render windows. */
+  readonly frames: FrameRenderer;
+  readonly log: Logger;
+  /** ffmpeg / whisper of the settings (`settingsAudioTools`; a test hook may wrap them). */
+  readonly audio: AudioTools;
 }
 
 /** `StageServiceOptions.createRunner` of the desktop app. */
 export function appRunnerFactory(options: AppRunnerOptions): (projectDir: string) => StageRunner {
   const claude = sharedClaudeRunner(options.sessions);
-  const audio = settingsAudioTools(options.settings);
+  const audio = options.audio;
   return (projectDir) =>
     new StageRunner({
       projectDir,
       claude,
       audio,
-      settings: () => stageSettingsFromApp(options.settings()),
+      settings: () => appStageSettings(options.settings()),
+      scenes: {
+        frames: options.frames,
+        onMissingProps: loggingMissingProps(projectDir, options.log),
+      },
       guard: options.guard,
       store: options.store,
     });

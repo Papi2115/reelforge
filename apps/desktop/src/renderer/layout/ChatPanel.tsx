@@ -19,6 +19,8 @@ export interface ChatPanelProps {
   /** Object picked in the preview. */
   readonly selection: ChatSelection | null;
   readonly onClearSelection: () => void;
+  /** "Fix with Claude…" of a shot: the text goes into the message box, scope Shot. */
+  readonly prefill: { readonly text: string; readonly nonce: number } | null;
 }
 
 const MINUTE_MS = 60_000;
@@ -60,7 +62,12 @@ function EmptyChat(): JSX.Element {
   );
 }
 
-export function ChatPanel({ shotId, selection, onClearSelection }: ChatPanelProps): JSX.Element {
+export function ChatPanel({
+  shotId,
+  selection,
+  onClearSelection,
+  prefill,
+}: ChatPanelProps): JSX.Element {
   const [tab, setTab] = useState<Tab>('chat');
   const [scope, setScope] = useState<ChatScope>(selection === null ? 'video' : 'selection');
   const chat = useChat();
@@ -76,6 +83,12 @@ export function ChatPanel({ shotId, selection, onClearSelection }: ChatPanelProp
   useEffect(() => {
     if (selectionId !== null) setScope('selection');
   }, [selectionId]);
+  const prefillNonce = prefill?.nonce;
+  useEffect(() => {
+    if (prefillNonce === undefined) return;
+    setScope('shot');
+    setTab('chat');
+  }, [prefillNonce]);
 
   return (
     <section className="panel chat" aria-label="Claude">
@@ -161,6 +174,7 @@ export function ChatPanel({ shotId, selection, onClearSelection }: ChatPanelProp
             running={running !== null}
             onSend={chat.send}
             onStop={chat.stop}
+            prefill={prefill}
           />
         </div>
       ) : (

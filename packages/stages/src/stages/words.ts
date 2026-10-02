@@ -11,6 +11,7 @@ import {
   WordsFileSchema,
   WordsRawSchema,
   alignRawWords,
+  type WhisperModelId,
   type WordsFile,
   type WordsRaw,
 } from '@reelforge/pipeline';
@@ -20,6 +21,7 @@ import { wordsUseCleanAudio } from '../gating.js';
 import { FILES, REPORTS, inProject } from '../paths.js';
 import {
   stageError,
+  type RequestOf,
   type StageContext,
   type StageDefinition,
   type StageError,
@@ -64,13 +66,14 @@ async function transcribeWithRetries(
   audioPath: string,
   script: string,
   lang: 'en' | 'pl',
+  model: WhisperModelId | undefined,
 ): Promise<Result<Transcribed, StageError>> {
   const audio = ctx.audio;
   if (audio === undefined)
     return err(stageError('missing-tool', 'ffmpeg/whisper are not configured'));
   const { whisper } = ctx.settings;
-  const plan = attemptPlan(whisper.model, whisper.fallbackModel, (model) =>
-    audio.hasWhisperModel(model),
+  const plan = attemptPlan(model ?? whisper.model, whisper.fallbackModel, (candidate) =>
+    audio.hasWhisperModel(candidate),
   );
   const attempts: WordsAttempt[] = [];
   let best: Candidate | undefined;
@@ -109,7 +112,10 @@ async function transcribeWithRetries(
     : ok({ best, attempts });
 }
 
-async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>> {
+async function run(
+  ctx: StageContext,
+  request: RequestOf<'words'>,
+): Promise<Result<StageSummary, StageError>> {
   const { snapshot } = ctx;
   if (snapshot.voiceover === undefined || snapshot.project.status !== 'ok') {
     return err(stageError('not-ready', 'a project with an imported voice-over is required'));
@@ -122,6 +128,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     inProject(ctx.projectDir, audioFile),
     script.value,
     snapshot.project.value.language,
+    request.model,
   );
   if (!transcribed.ok) return transcribed;
   const { best, attempts } = transcribed.value;

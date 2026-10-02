@@ -95,6 +95,13 @@ const api: ReelforgeApi = {
   saveScript: (text) => invoke(IPC.scriptSave, { text }),
   approveScript: () => invoke(IPC.scriptApprove, null),
   onStagesChanged: (listener) => subscribe(IPC_PUSH.stagesChanged, listener),
+  importVoiceover: () => invoke(IPC.voiceoverImport, null),
+  saveRecording: (wav) => invoke(IPC.voiceoverRecording, { wav }),
+  armMicrophone: () => invoke(IPC.micArm, null),
+  getStageReports: () => invoke(IPC.stagesReports, null),
+  retryWords: (model) => invoke(IPC.wordsRetry, { model }),
+  runScenes: (action, shots) =>
+    invoke(IPC.scenesRun, { action, shots: shots === null ? null : [...shots] }),
   log: (entry) => {
     ipcRenderer.send(IPC_EVENTS.log.name, entry);
   },
