@@ -105,6 +105,10 @@ packages/pipeline   ffmpeg (clean/mix/export), whisper.cpp (słowa), alignment, 
 packages/claude-bridge   spawn `claude`, sesje, stream-json → zdarzenia, limity, kolejka
 packages/prompts    prompty etapów (wersjonowane) + evale
 packages/shared     typy + schematy zod
+packages/stages     orkiestracja etapów (script…mix, sceny + QA, review, sync report)
+packages/project    foldery projektów, git (autocommit/historia/revert), odzyskiwanie
+packages/cli        CLI `reelforge` dla runtime'owego Claude'a (frames, lint, anchors, kit-docs…)
+styles/ templates/  style + STYLE.md, szablon projektu i projekt przykładowy
 templates/project   szablon projektu wideo (w tym CLAUDE.md dla runtime'owego Claude'a)
 tools/fake-claude   atrapa CLI do testów
 ```
@@ -123,6 +127,11 @@ pnpm test                # vitest (unit)
 pnpm test:render         # golden frames (engine/kit)
 pnpm render:frames -- --scene <file> --at 0,2.5,5   # PNG-i do oceny wizualnej
 pnpm build               # produkcyjny build
+pnpm test:app            # e2e w prawdziwym Electronie (fake-claude)
+pnpm test:app:ci         # to samo z tolerancjami dla runnera bez GPU/audio (CI)
+pnpm kit:catalog         # regeneruje docs/kit-catalog.md
+pnpm package / pnpm dist # app rozpakowana / instalator NSIS
+pnpm test:packaged       # smoke spakowanej aplikacji + instalatora
 ```
 
 ## 6. Konwencje kodu

@@ -21,6 +21,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
+  closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
@@ -193,7 +194,7 @@ afterAll(async () => {
     path.join(screenshotDir, 'render-metrics.json'),
     `${JSON.stringify(metrics, null, 2)}\n`,
   );
-  await app.close();
+  await closeApp(app);
   // The app log explains failures of the hidden render windows / the service.
   await cp(logFile(userDataDir), path.join(screenshotDir, 'render-main.log')).catch(
     () => undefined,

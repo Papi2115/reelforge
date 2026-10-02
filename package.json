@@ -17,6 +17,7 @@
     "test:render": "node scripts/test-render.mjs",
     "kit:catalog": "node scripts/kit-catalog.mjs",
     "test:app": "pnpm --filter @reelforge/desktop build && vitest run --project app",
+    "test:app:ci": "pnpm --filter @reelforge/desktop build && node scripts/test-app-ci.mjs",
     "render:frames": "node packages/engine/scripts/run-cli.mjs render-frames",
     "lint:scene": "node packages/engine/scripts/run-cli.mjs lint",
     "build": "tsc -b && pnpm --filter @reelforge/desktop build",

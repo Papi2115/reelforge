@@ -9,6 +9,7 @@ import path from 'node:path';
 import { _electron, type ElectronApplication, type Page } from 'playwright';
 import { settingsFile, USER_DATA_ENV } from '../../src/main/app-paths.js';
 import { DEV_SERVER_ENV } from '../../src/main/navigation-policy.js';
+import { extraElectronArgs } from './ci-mode.js';
 
 export const appRoot = path.resolve(import.meta.dirname, '..', '..');
 export const screenshotDir = path.join(appRoot, 'out', 'test-app');
@@ -73,7 +74,8 @@ export async function launchApp(
   if (options.firstRun !== true) await seedSettings(userDataDir);
   const app = await _electron.launch({
     executablePath: electronBinary(),
-    args: [appRoot],
+    // Chromium switches go before the app path.
+    args: [...extraElectronArgs(), appRoot],
     cwd: appRoot,
     env: launchEnv(userDataDir, options.env ?? {}),
   });
@@ -85,6 +87,14 @@ export async function launchApp(
     }
   });
   return app;
+}
+
+/**
+ * Closes the app in `afterAll`. When `beforeAll` failed before the launch, there is no app: the
+ * hook must not add a TypeError on top of the real failure.
+ */
+export async function closeApp(app: ElectronApplication | undefined): Promise<void> {
+  await app?.close();
 }
 
 /** Test hook: the native folder picker cannot be driven, so main's dialog is stubbed. */

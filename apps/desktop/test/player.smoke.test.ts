@@ -15,6 +15,7 @@ import {
   FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   frameStats,
+  closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
@@ -26,8 +27,14 @@ import {
   pngSizeInMain,
   toneWav,
 } from './support/player-probes.js';
+import { perfBar } from './support/ci-mode.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
+/**
+ * Preview frames per second while playing: 30 fps content on a real GPU. ANGLE on WARP (the
+ * GPU-less CI runner) renders 24-31 fps, so CI checks that playback runs, not the machine's speed.
+ */
+const PLAYBACK_FPS_BAR = perfBar(28, 15);
 const metrics: Record<string, unknown> = {};
 
 let app: ElectronApplication;
@@ -88,7 +95,7 @@ afterAll(async () => {
     path.join(screenshotDir, 'player-metrics.json'),
     `${JSON.stringify(metrics, null, 2)}\n`,
   );
-  await app.close();
+  await closeApp(app);
   await rm(userDataDir, { recursive: true, force: true });
 });
 
@@ -110,7 +117,7 @@ describe('player', () => {
     metrics['playback1x'] = run;
     expect(run.clock).toBe('audio');
     expect(Math.abs(run.advanced - run.elapsed / 1000)).toBeLessThan(0.15);
-    expect(run.fps).toBeGreaterThanOrEqual(28);
+    expect(run.fps).toBeGreaterThanOrEqual(PLAYBACK_FPS_BAR);
     await page.screenshot({ path: path.join(screenshotDir, 'player-playing.png') });
     // Space again continues from the pause point (no jump back to the shot start).
     const paused = Number((await frameStats(page)).renderedT);
@@ -248,7 +255,7 @@ describe('player', () => {
     const latency = await measureScrubLatency(page, 50, { from: 2.6, to: 7.4 });
     metrics['kitGallery'] = { playback1x: run, playback2x: fast, scrubLatency: latency };
     await page.screenshot({ path: path.join(screenshotDir, 'player-kit-gallery.png') });
-    expect(run.fps).toBeGreaterThanOrEqual(28);
+    expect(run.fps).toBeGreaterThanOrEqual(PLAYBACK_FPS_BAR);
     expect(latency.p95).toBeLessThan(100);
     expect(existsSync(path.join(projectDir, 'out', 'snapshots'))).toBe(true);
   });

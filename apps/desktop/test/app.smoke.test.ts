@@ -19,6 +19,7 @@ import {
   FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   frameStats,
+  closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
@@ -90,7 +91,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await app.close();
+  await closeApp(app);
   await rm(userDataDir, { recursive: true, force: true });
 });
 

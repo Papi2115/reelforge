@@ -14,15 +14,19 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
+  closeApp,
   launchApp,
   renderedTime,
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
+import { perfBar } from './support/ci-mode.js';
 import { createLongProject, LONG_PROJECT } from './support/timeline-project.js';
 
 /** Vertical centres of the lanes (CSS px from the canvas top; TRACK_ROWS in timeline-model.ts). */
 const ROW_Y = { ruler: 10, shots: 34, narration: 60, cues: 83, audio: 109, ambience: 147 };
+/** Longest timeline draw: one 60 Hz frame; the CI runner's 4 slow vCPUs get three. */
+const DRAW_MS_BAR = perfBar(16, 50);
 
 let app: ElectronApplication;
 let page: Page;
@@ -127,7 +131,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await app.close();
+  await closeApp(app);
   await rm(userDataDir, { recursive: true, force: true, maxRetries: 5 });
 });
 
@@ -266,7 +270,7 @@ describe('timeline editor', () => {
       zoomed.scrollX,
     );
     const scrolled = await lanes();
-    expect(Number(scrolled.dataset['drawMaxMs'])).toBeLessThan(16);
+    expect(Number(scrolled.dataset['drawMaxMs'])).toBeLessThan(DRAW_MS_BAR);
     await page.screenshot({ path: path.join(screenshotDir, 'timeline-long-zoomed-1280x720.png') });
 
     await resize(1920, 1080);

@@ -195,26 +195,38 @@ export function pipelineScript(): FakeClaudeScript {
   };
 }
 
+/**
+ * Runs ffmpeg / ffprobe from PATH and returns stdout. A binary that cannot start (not installed)
+ * says so: spawnSync then has `error` set, no exit status and no stderr.
+ */
+export function runMediaTool(tool: string, args: readonly string[]): string {
+  const run = spawnSync(tool, args, { encoding: 'utf8' });
+  if (run.error !== undefined) {
+    throw new Error(
+      `${tool} could not start (${run.error.message}): the app tests need ffmpeg and ffprobe on PATH`,
+    );
+  }
+  if (run.status !== 0) {
+    throw new Error(`${tool} exited with ${String(run.status)}: ${run.stderr.trim()}`);
+  }
+  return run.stdout;
+}
+
 /** A 48 kHz mono "voice" (a tone with a tremolo) made by ffmpeg. */
 export function synthesizeVoiceover(file: string, seconds = VO_SECONDS): void {
-  const run = spawnSync(
-    'ffmpeg',
-    [
-      '-hide_banner',
-      '-y',
-      '-f',
-      'lavfi',
-      '-i',
-      `sine=frequency=220:sample_rate=48000:duration=${String(seconds)}`,
-      '-af',
-      'tremolo=f=3:d=0.7,volume=0.5',
-      '-ac',
-      '1',
-      file,
-    ],
-    { encoding: 'utf8' },
-  );
-  if (run.status !== 0) throw new Error(`ffmpeg failed: ${run.stderr}`);
+  runMediaTool('ffmpeg', [
+    '-hide_banner',
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    `sine=frequency=220:sample_rate=48000:duration=${String(seconds)}`,
+    '-af',
+    'tremolo=f=3:d=0.7,volume=0.5',
+    '-ac',
+    '1',
+    file,
+  ]);
 }
 
 export interface MediaInfo {
@@ -223,13 +235,16 @@ export interface MediaInfo {
 }
 
 export function ffprobe(file: string): MediaInfo {
-  const run = spawnSync(
-    'ffprobe',
-    ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', file],
-    { encoding: 'utf8' },
-  );
-  if (run.status !== 0) throw new Error(`ffprobe failed: ${run.stderr}`);
-  const parsed = JSON.parse(run.stdout) as {
+  const stdout = runMediaTool('ffprobe', [
+    '-v',
+    'error',
+    '-show_format',
+    '-show_streams',
+    '-of',
+    'json',
+    file,
+  ]);
+  const parsed = JSON.parse(stdout) as {
     format: { duration: string };
     streams: MediaInfo['streams'];
   };

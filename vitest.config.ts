@@ -1,6 +1,12 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
+/**
+ * `pnpm test:app:ci` (REELFORGE_CI=1, see apps/desktop/test/support/ci-mode.ts): the GPU-less
+ * hosted runner gets twice the default app test and hook timeouts.
+ */
+const appTimeoutScale = process.env['REELFORGE_CI'] === '1' ? 2 : 1;
+
 /** Workspace packages resolve to their TypeScript sources, so tests never need a prior build. */
 const workspaceSource = (name: string): string =>
   fileURLToPath(new URL(`./packages/${name}/src/index.ts`, import.meta.url));
@@ -44,6 +50,8 @@ export default defineConfig({
           include: [
             '{apps,packages,tools,spikes}/*/src/**/*.test.ts',
             'apps/*/scripts/**/*.test.ts',
+            // Pure helpers of the app smoke tests (CI mode, media tools): no Electron needed.
+            'apps/*/test/support/**/*.test.ts',
           ],
           environment: 'node',
           // DSP/zip/ffmpeg tests get slow when the whole suite runs in parallel.
@@ -68,10 +76,10 @@ export default defineConfig({
           // Launches the built Electron app (Playwright _electron); run with `pnpm test:app`.
           name: 'app',
           include: ['apps/*/test/**/*.test.ts'],
-          exclude: ['apps/*/test/packaged/**'],
+          exclude: ['apps/*/test/packaged/**', 'apps/*/test/support/**'],
           environment: 'node',
-          testTimeout: 90_000,
-          hookTimeout: 120_000,
+          testTimeout: 90_000 * appTimeoutScale,
+          hookTimeout: 120_000 * appTimeoutScale,
           fileParallelism: false,
         },
       },

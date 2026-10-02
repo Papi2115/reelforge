@@ -17,7 +17,7 @@ import { fakeClaudeBinPath, type FakeClaudeScript } from '@reelforge/fake-claude
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
-import { launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const GOLDEN = path.join(
@@ -103,7 +103,7 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
-  await app.close();
+  await closeApp(app);
   await cp(logFile(userDataDir), path.join(screenshotDir, 'stages-main.log')).catch(
     () => undefined,
   );

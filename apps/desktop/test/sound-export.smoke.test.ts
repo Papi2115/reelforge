@@ -19,6 +19,7 @@ import { logFile, settingsFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app
 import {
   FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
+  closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
@@ -153,7 +154,7 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
-  await app.close();
+  await closeApp(app);
   await cp(logFile(userDataDir), path.join(screenshotDir, 'sound-export-main.log')).catch(
     () => undefined,
   );

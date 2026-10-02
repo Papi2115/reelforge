@@ -21,7 +21,13 @@ import {
   TEST_CLAUDE_LAUNCHER_ENV,
   TEST_PROJECTS_DIR_ENV,
 } from '../src/main/app-paths.js';
-import { launchApp, renderedTime, frameStats, screenshotDir } from './support/electron-app.js';
+import {
+  closeApp,
+  launchApp,
+  renderedTime,
+  frameStats,
+  screenshotDir,
+} from './support/electron-app.js';
 import { ffprobe } from './support/pipeline-film.js';
 
 const DONE_ROWS = [
@@ -110,7 +116,7 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
-  await app.close();
+  await closeApp(app);
   await cp(logFile(userDataDir), path.join(screenshotDir, 'onboarding-main.log')).catch(
     () => undefined,
   );
