@@ -149,102 +149,6 @@
   margin: 0;
 }
 
-/* Shots: QA badges, details, progress, missing props */
-.shot-entry {
-  position: relative;
-}
-
-.shot-entry .shot-item {
-  padding-right: 34px;
-}
-
-.shot-entry .shot-line {
-  overflow: hidden;
-}
-
-.shots-panel .shot-list {
-  overflow-x: hidden;
-}
-
-.shot-badge {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  width: 24px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.shot-badge.qa-ok,
-.qa-ok {
-  color: var(--ok);
-}
-
-.shot-badge.qa-warning,
-.qa-warning {
-  color: var(--warn);
-}
-
-.shot-badge.qa-failed,
-.qa-failed {
-  color: var(--error);
-}
-
-.shot-badge.qa-running {
-  color: var(--accent-text);
-}
-
-.shot-qa {
-  margin: -2px 0 6px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--panel-raised);
-  font-size: 12px;
-}
-
-.shot-qa-title {
-  margin: 4px 0 2px;
-  font-weight: 600;
-}
-
-.shot-qa-list {
-  margin: 0;
-  padding-left: 18px;
-  overflow-wrap: anywhere;
-}
-
-.shot-qa-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.shots-progress,
-.shots-banner {
-  margin: 0 8px 6px;
-  font-size: 12px;
-}
-
-.shots-progress {
-  color: var(--accent-text);
-}
-
-.shots-banner {
-  padding: 6px 8px;
-  border-left: 3px solid var(--warn);
-  border-radius: 4px;
-  background: var(--panel-raised);
-}
-
 /* Scenes built: docked under the preview */
 .center-stack.has-dock {
   flex-direction: column;
@@ -289,4 +193,55 @@
 
 .sync-row.sync-ok td:last-child {
   color: var(--ok);
+}
+
+.words-gpu-hint {
+  margin: 4px 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--warn);
+  font-size: 12px;
+}
+
+/* Final review (PLAN.md#11.5): summary + the ⚠/✗ shots left (also the export pre-flight) */
+.final-review-summary {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.preflight-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.preflight-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 3px 6px;
+  border-color: var(--border-soft);
+  background: var(--bg);
+  font-size: 12px;
+  text-align: left;
+}
+
+.preflight-text {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A run's progress in a docked panel keeps its own height (it used to shrink to nothing in the
+   scrolling body and its two text lines overlapped the totals under it, PLAN.md#11.2). */
+.doc-panel.docked .stage-run {
+  flex: none;
+}
+
+.doc-panel.docked .stage-run-log {
+  flex: none;
+  max-height: 140px;
 }

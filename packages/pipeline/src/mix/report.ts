@@ -7,6 +7,16 @@ export const MIX_REPORT_VERSION = 1;
 export const STEM_NAMES = ['vo', 'sfx', 'ambience', 'music'] as const;
 export type StemName = (typeof STEM_NAMES)[number];
 
+/** `mix/qa.ts` measurements (absent when the analysis was skipped or failed: see warnings). */
+export const MixQaMeasurementsSchema = z.object({
+  speechS: z.number().nonnegative(),
+  musicLowShare: z.number().min(0).max(1).nullable(),
+  duckingDepthDb: z.number().nullable(),
+  speechMarginDb: z.number().nullable(),
+  speechMarginMinDb: z.number().nullable(),
+  clippedSamples: z.int().nonnegative(),
+});
+
 export const MixReportSchema = z.object({
   version: z.literal(MIX_REPORT_VERSION),
   durationS: z.number().positive(),
@@ -39,6 +49,7 @@ export const MixReportSchema = z.object({
   }),
   /** Stems written (empty when no stems directory was requested). */
   stems: z.array(z.enum(STEM_NAMES)),
+  qa: MixQaMeasurementsSchema.optional(),
   warnings: z.array(z.string()),
 });
 

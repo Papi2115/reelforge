@@ -1,6 +1,10 @@
-/** Lints every scene of a render manifest; used to reject broken scenes before they are loaded. */
+/**
+ * Lints every scene (and project prop) of a render manifest; used to reject broken modules before
+ * they are loaded.
+ */
 import type { RenderManifest, SceneSource } from '@reelforge/shared';
 import { formatDiagnostics, hasErrors, type LintDiagnostic } from './diagnostics.js';
+import { lintPropModule } from './lint-prop.js';
 import { lintScene } from './lint-scene.js';
 
 export interface SceneLintResult {
@@ -22,6 +26,15 @@ export function lintManifestScenes(manifest: RenderManifest): SceneLintResult[] 
   return manifest.shots.map((shot) => lintShotScene(shot.id, shot.scene));
 }
 
+/** Prop-mode lint of the manifest's project props (`shotId` is `kit-ext:<name>`). */
+export function lintManifestKitExtensions(manifest: RenderManifest): SceneLintResult[] {
+  return (manifest.kitExtensions ?? []).map((extension) => ({
+    shotId: `kit-ext:${extension.name}`,
+    file: extension.file,
+    diagnostics: lintPropModule(extension.source, { filename: extension.file }),
+  }));
+}
+
 /** Text of all error-level diagnostics, or undefined when every scene passes. */
 export function describeLintErrors(results: readonly SceneLintResult[]): string | undefined {
   const blocks = results
@@ -31,7 +44,8 @@ export function describeLintErrors(results: readonly SceneLintResult[]): string 
     }))
     .filter((result) => hasErrors(result.diagnostics))
     .map(
-      (result) => `[shot ${result.shotId}]\n${formatDiagnostics(result.file, result.diagnostics)}`,
+      (result) =>
+        `${result.shotId.startsWith('kit-ext:') ? `[${result.shotId}]` : `[shot ${result.shotId}]`}\n${formatDiagnostics(result.file, result.diagnostics)}`,
     );
   return blocks.length === 0 ? undefined : blocks.join('\n');
 }

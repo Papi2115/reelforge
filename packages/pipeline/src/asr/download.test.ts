@@ -26,6 +26,7 @@ const ASSET: AssetSpec = {
   url: 'https://example.invalid/ggml-test.bin',
   fileName: 'ggml-test.bin',
   hash: { algo: 'sha256', value: sha256(PAYLOAD) },
+  bytes: PAYLOAD.length,
 };
 
 /** Serves `body` in 4 KB chunks with a Content-Length header. */
@@ -119,6 +120,46 @@ describe('downloadVerified', () => {
       fetch: serve(Buffer.alloc(0), 404),
     });
     expect(result).toMatchObject({ ok: false, error: { kind: 'download-failed', status: 404 } });
+  });
+
+  it('keeps the system error code of a failed connection (offline)', async () => {
+    const offline = Object.assign(new TypeError('fetch failed'), {
+      cause: Object.assign(new Error('getaddrinfo ENOTFOUND huggingface.co'), {
+        code: 'ENOTFOUND',
+      }),
+    });
+    const result = await downloadVerified(ASSET, path.join(dir, 'x.bin'), {
+      fetch: () => Promise.reject(offline),
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: 'download-failed', status: null, code: 'ENOTFOUND' },
+    });
+  });
+
+  it('keeps the code of a failed write (disk full) and removes the partial file', async () => {
+    const full = Object.assign(new Error('ENOSPC: no space left on device, write'), {
+      code: 'ENOSPC',
+    });
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.error(full);
+      },
+    });
+    const result = await downloadVerified(ASSET, path.join(dir, ASSET.fileName), {
+      fetch: () => Promise.resolve(new Response(stream)),
+    });
+    expect(result).toMatchObject({ ok: false, error: { kind: 'download-failed', code: 'ENOSPC' } });
+    expect(await readdir(dir)).toEqual([]);
+  });
+
+  it('uses the pinned size as the progress total without Content-Length', async () => {
+    const seen: DownloadProgress[] = [];
+    await downloadVerified(ASSET, path.join(dir, ASSET.fileName), {
+      fetch: () => Promise.resolve(new Response(new Blob([PAYLOAD]).stream())),
+      onProgress: (progress) => seen.push(progress),
+    });
+    expect(seen.at(-1)).toMatchObject({ totalBytes: PAYLOAD.length, ratio: 1 });
   });
 
   it('cancels mid-stream and removes the partial file', async () => {

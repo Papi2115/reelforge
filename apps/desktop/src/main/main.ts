@@ -71,10 +71,12 @@ import {
 } from './stages/stage-runtime.js';
 import { StageService } from './stages/stage-service.js';
 import { replacementDialogOptions, stagesHandlers, type ReplacePick } from './stages/stages-ipc.js';
+import { variantsHandlers } from './stages/variants-ipc.js';
 import { createExportBackend } from './export/export-backend.js';
 import { createSoundBackend, settingsFfmpeg } from './sound/sound-backend.js';
 import { soundPickerOptions } from './sound/sound-ipc.js';
 import { createTimelineEdits, timelineHandlers } from './timeline-ipc.js';
+import { whisperTestHooks } from './whisper/test-hooks.js';
 import { createMainWindow } from './window.js';
 
 function main(): void {
@@ -219,6 +221,10 @@ function main(): void {
       }),
   });
 
+  // Test hooks (unpackaged + REELFORGE_TEST_HOOKS=1): whisper install root / download mirror.
+  const whisperHooksOn = !app.isPackaged && process.env[TEST_HOOKS_ENV] === '1';
+  const whisperBase = whisperTestHooks(process.env, whisperHooksOn);
+  if (whisperBase.root !== undefined) log.warn(`test hook: whisper root ${whisperBase.root}`);
   const settingsBackend = createSettingsBackend({
     settings,
     settingsFile: settingsFile(userDataDir),
@@ -233,6 +239,12 @@ function main(): void {
     },
     log: log.child('settings'),
     now: () => performance.now(),
+    whisperBase,
+    // Recorded transcriptions need no whisper.cpp unless a test installs one into its own root.
+    whisperAssumeReady:
+      whisperHooksOn &&
+      (process.env[TEST_TRANSCRIPT_ENV] ?? '') !== '' &&
+      whisperBase.root === undefined,
   });
 
   const claude: ClaudeService = new ClaudeService({
@@ -266,7 +278,7 @@ function main(): void {
   const stagesLog = log.child('stages');
   const testHooks = !app.isPackaged && process.env[TEST_HOOKS_ENV] === '1';
   const recordedTranscript = testHooks ? process.env[TEST_TRANSCRIPT_ENV] : undefined;
-  const settingsAudio = settingsAudioTools(() => settings.get());
+  const settingsAudio = settingsAudioTools(() => settings.get(), undefined, whisperBase);
   const audioTools =
     recordedTranscript === undefined || recordedTranscript === ''
       ? settingsAudio
@@ -300,7 +312,6 @@ function main(): void {
       store: pipelineStore,
       frames: renderBackend.frames,
       audio: audioTools,
-      log: stagesLog,
     }),
     exportRun: {
       start: (listener) => exportBackend.service.runForStage(listener),
@@ -314,6 +325,7 @@ function main(): void {
       mainWindow?.webContents.send(IPC_PUSH.stagesChanged.name, state);
     },
     log: stagesLog,
+    finalReview: () => settings.get().scenes.finalReview,
   });
   const scriptDocuments = new ScriptDocuments({
     store: pipelineStore,
@@ -386,6 +398,19 @@ function main(): void {
         probe: ffmpegAudioProbe(() => settings.get()),
         hasWhisperModel: (model) => audioTools.hasWhisperModel(model),
         mic: micGate,
+        commit: async (dir, message) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step: 'locks' });
+          if (!committed.ok)
+            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+        },
+        log: stagesLog,
+      }),
+      ...variantsHandlers({
+        service: stages,
+        currentProject: () => projects.currentProject()?.dir,
+        settings: () => settings.get(),
+        claudeConcurrency: () => claude.guard.concurrency,
+        frames: renderBackend.frames,
         log: stagesLog,
       }),
     },
@@ -401,7 +426,13 @@ function main(): void {
   });
   let childrenKilled = false;
   app.on('before-quit', (event) => {
-    const idle = children.size === 0 && !claude.busy && !stages.busy && !scriptDocuments.dirty;
+    // A settings change made just before quitting (e.g. Welcome → Skip) must reach the disk.
+    const idle =
+      children.size === 0 &&
+      !claude.busy &&
+      !stages.busy &&
+      !scriptDocuments.dirty &&
+      !settings.saving;
     if (childrenKilled || idle) return;
     event.preventDefault();
     childrenKilled = true;
@@ -410,6 +441,7 @@ function main(): void {
       children.killAll(),
       stages.dispose().then(() => claude.dispose()),
       scriptDocuments.flush(),
+      settings.whenSaved(),
     ]).finally(() => {
       app.quit();
     });

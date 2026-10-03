@@ -1,5 +1,5 @@
 /** Sync check (PLAN.md#7.7): events vs spoken words, ±150 ms. */
-import type { ResolvedAnchor } from '@reelforge/engine';
+import type { CardDiagnostic, ResolvedAnchor } from '@reelforge/engine';
 import { AnchorIndex } from '@reelforge/pipeline';
 import { describe, expect, it } from 'vitest';
 import { shotSync, shotSyncEvents, syncFindings } from './sync.js';
@@ -68,5 +68,38 @@ describe('shotSyncEvents', () => {
       ],
     });
     expect(events.map((event) => event.verdict)).toEqual(['off', 'ok', 'ok']);
+  });
+
+  it('times annotations with a phrase from the card QA records (local -> global)', () => {
+    const record = (id: string, at: number, rule: CardDiagnostic['rule']): CardDiagnostic => ({
+      rule,
+      severity: rule === 'annotation-anchor' ? 'info' : 'warning',
+      shotId: 's02',
+      cards: [id],
+      t0: at,
+      t1: at,
+      message: '',
+      fix: '',
+      anchor: { phrase: '61 KB', at, spokenT: 1 },
+    });
+    const events = shotSyncEvents({
+      shot,
+      anchors: [],
+      sceneCues: [],
+      cards: [
+        record('ring', 1.1, 'annotation-anchor'),
+        record('late', 1.5, 'annotation-off-anchor'),
+        { ...record('plain', 0, 'card-overlap'), anchor: undefined },
+      ],
+    });
+    expect(
+      events.map((event) => [event.kind, event.label, event.t, event.deltaMs, event.verdict]),
+    ).toEqual([
+      ['annotation', 'ring', 3.1, 100, 'ok'],
+      ['annotation', 'late', 3.5, 500, 'off'],
+    ]);
+    expect(shotSync(shot, events).problems).toBe(1);
+    // Reported by the card QA already (annotation-off-anchor): not a second sync finding.
+    expect(syncFindings(events, shot)).toEqual([]);
   });
 });

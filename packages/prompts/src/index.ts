@@ -18,6 +18,7 @@ export {
 } from './template.js';
 export { frontMatterSchema, parseFrontMatter, type FrontMatter } from './front-matter.js';
 export * from './validators/issues.js';
+export * from './validators/annotations.js';
 export * from './validators/storyboard.js';
 export * from './validators/script.js';
 export * from './validators/critic.js';

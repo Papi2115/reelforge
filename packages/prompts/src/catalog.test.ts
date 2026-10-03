@@ -7,6 +7,7 @@ import {
   resolveModel,
   type ClaudeLauncher,
 } from '@reelforge/claude-bridge';
+import { MUSIC_MOODS, SFX_RECIPES } from '@reelforge/pipeline';
 import { describe, expect, it } from 'vitest';
 import {
   isPromptId,
@@ -41,6 +42,7 @@ describe('bundled prompts', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
         'critic',
+        'prop-build',
         'research',
         'review-plan',
         'review-triage',
@@ -58,7 +60,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 1, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 2, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -91,7 +93,17 @@ describe('renderPrompt', () => {
       required: ['scope', 'shotIds', 'request'],
       optional: ['selection', 'critic'],
     });
-    expect(promptVariables('sound-cues')).toEqual({ required: [], optional: [] });
+    expect(promptVariables('sound-cues')).toEqual({ required: ['styleId'], optional: ['acts'] });
+  });
+
+  it('names every built-in SFX recipe and music mood in the sound-cues prompt', () => {
+    const rendered = renderPrompt('sound-cues', { styleId: 'voxel-pixel-crisp640' });
+    expect(rendered.ok).toBe(true);
+    const text = rendered.ok ? rendered.value : '';
+    for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
+      expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
+    }
+    expect(loadPrompt('sound-cues').version).toBe(2);
   });
 
   it('fills a prompt and leaves no template tags behind', () => {
@@ -178,6 +190,7 @@ describe('stages and models', () => {
       'review-triage': 'critic',
       'review-plan': 'storyboard',
       'youtube-meta': 'storyboard',
+      'prop-build': 'scene-build',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);

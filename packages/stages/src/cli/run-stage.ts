@@ -4,6 +4,7 @@
  * headless Chromium (Playwright, SwiftShader) instead of the app's render service.
  *   pnpm --filter @reelforge/stages run-stage <project> <stage> [--source <file>] [--economy] [--no-commit]
  *     scenes: [--action build|fix-what-looks-wrong|phone-legibility|sync-check] [--shots s01,s02]
+ *     scenes --action variants --shots s03 [--count 2|3] [--note <text>] | [--pick <n> [--lock]]
  */
 import os from 'node:os';
 import path from 'node:path';
@@ -20,14 +21,39 @@ import { BridgeClaudeRunner } from '../claude.js';
 import { isStageId } from '../ids.js';
 import { StageRunner } from '../runner.js';
 import { DEFAULT_STAGE_SETTINGS } from '../settings.js';
-import { REVIEW_MODES, type SceneAction, type StageEvent, type StageRequest } from '../types.js';
+import {
+  REVIEW_MODES,
+  type SceneAction,
+  type StageEvent,
+  type StageRequest,
+  type VariantOp,
+} from '../types.js';
 import { PlaywrightFrameRenderer } from './playwright-renderer.js';
 
 const USAGE =
-  'usage: run-stage <project> <script|voiceover|clean|words|storyboard|scenes|sound-cues|mix> [--source <file>] [--action <build|review mode>] [--shots <ids>] [--economy] [--no-commit]\n';
+  'usage: run-stage <project> <script|voiceover|clean|words|storyboard|scenes|sound-cues|mix> [--source <file>] [--action <build|review mode|variants>] [--shots <ids>] [--count 2|3] [--note <text>] [--pick <n> [--lock]] [--economy] [--no-commit]\n';
 
 function isSceneAction(value: string): value is SceneAction {
-  return value === 'build' || (REVIEW_MODES as readonly string[]).includes(value);
+  return (
+    value === 'build' || value === 'variants' || (REVIEW_MODES as readonly string[]).includes(value)
+  );
+}
+
+/** Shot variants (PLAN.md#11.3): pick one, or generate `--count` (default 3) with a note. */
+export function variantOp(values: {
+  readonly count?: string | undefined;
+  readonly note?: string | undefined;
+  readonly pick?: string | undefined;
+  readonly lock?: boolean | undefined;
+}): VariantOp {
+  if (values.pick !== undefined) {
+    return { kind: 'pick', index: Number(values.pick), lock: values.lock === true };
+  }
+  return {
+    kind: 'generate',
+    count: values.count === undefined ? 3 : Number(values.count),
+    ...(values.note === undefined ? {} : { note: values.note }),
+  };
 }
 
 /** `env` with `dir` first on PATH (whatever the case of the PATH variable on Windows). */
@@ -78,6 +104,10 @@ export async function main(argv: readonly string[]): Promise<number> {
       source: { type: 'string' },
       action: { type: 'string' },
       shots: { type: 'string' },
+      count: { type: 'string' },
+      note: { type: 'string' },
+      pick: { type: 'string' },
+      lock: { type: 'boolean', default: false },
       economy: { type: 'boolean', default: false },
       'no-commit': { type: 'boolean', default: false },
     },
@@ -102,7 +132,12 @@ ${USAGE}`);
       return 2;
     }
     const shots = values.shots?.split(',').map((id) => id.trim());
-    request = { stage, action, ...(shots === undefined ? {} : { shots }) };
+    request = {
+      stage,
+      action,
+      ...(shots === undefined ? {} : { shots }),
+      ...(action === 'variants' ? { variants: variantOp(values) } : {}),
+    };
   } else request = { stage };
   const executable = resolveClaudeExecutable().executable;
   const concurrency = DEFAULT_STAGE_SETTINGS.scenes.concurrency;

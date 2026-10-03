@@ -225,6 +225,43 @@ describe('words stage', { timeout: 30_000 }, () => {
     expect(state.ok && state.value.stages['scenes']?.stale).toBe(true);
   });
 
+  it('asks for the transcription engine when whisper.cpp or its model is missing', async () => {
+    const { audio, runner } = await wordsProject('words no whisper');
+    audio.transcriptions = [{ kind: 'not-installed', message: 'whisper.cpp is not installed' }];
+    const result = await runner.run({ stage: 'words' });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatchObject({
+      kind: 'missing-tool',
+      message: expect.stringContaining('needs the transcription engine') as unknown,
+    });
+    expect(result.error.issues?.[0]).toBe('whisper.cpp is not installed');
+    expect(result.error.issues?.[1]).toContain('REELFORGE_WHISPER');
+    expect(audio.transcribeCalls).toHaveLength(1);
+  });
+
+  it('records which whisper build ran and why it was not the GPU', async () => {
+    const { dir, audio, runner } = await wordsProject('words cpu');
+    const raw = spikeRaw('en-doom', 'large-v3-turbo-q5_0');
+    audio.transcriptions = [
+      {
+        ...raw,
+        backend: 'blas',
+        usedGpu: false,
+        fallbacks: [{ backend: 'cuda', gpu: true, message: 'CUDA unavailable: no device' }],
+      },
+    ];
+    expect((await runner.run({ stage: 'words' })).ok).toBe(true);
+    const report = wordsReportSchema.parse(
+      JSON.parse(readProject(dir, '.reelforge/reports/words.json')),
+    );
+    expect(report.engine).toMatchObject({
+      backend: 'blas',
+      usedGpu: false,
+      cpuReason: 'CUDA unavailable: no device',
+    });
+  });
+
   it('needs ffmpeg/whisper', async () => {
     const dir = await projects.create('words no tools', ['script.txt']);
     writeProject(dir, 'audio/vo.original.wav', 'RIFF');

@@ -5,7 +5,12 @@
  * one broken file never hides the others. Main validates with the full schemas; the renderer gets
  * the shapes below (cues as a display view: the mix settings stay in main).
  */
-import { renderManifestSchema, storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
+import {
+  renderManifestSchema,
+  shotLocksFileSchema,
+  storyboardFileSchema,
+  wordsFileSchema,
+} from '@reelforge/shared';
 import { z } from 'zod';
 import { projectErrorSchema } from './project-contract.js';
 
@@ -15,6 +20,7 @@ export const SNAPSHOT_FILES = {
   storyboard: 'storyboard.json',
   words: 'timing/words.json',
   cues: 'cues.json',
+  locks: 'locks.json',
 } as const;
 
 export const FILE_ERROR_KINDS = [
@@ -105,6 +111,8 @@ export const projectSnapshotSchema = z.object({
   storyboard: fileStateSchema(storyboardFileSchema),
   words: fileStateSchema(wordsFileSchema),
   cues: fileStateSchema(cuesViewSchema),
+  /** `locks.json`: shots the user locked (PLAN.md#11.4). */
+  locks: fileStateSchema(shotLocksFileSchema),
   /** Damaged files (invalid JSON / schema) with the fix the app offers. */
   problems: z.array(fileProblemSchema),
 });

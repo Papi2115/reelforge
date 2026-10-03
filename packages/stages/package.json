@@ -14,7 +14,8 @@
   },
   "scripts": {
     "test": "vitest run --root ../.. --project unit --project render packages/stages",
-    "run-stage": "node scripts/run-stage.mjs"
+    "run-stage": "node scripts/run-stage.mjs",
+    "sound:demo": "node scripts/sound-demo.mjs"
   },
   "dependencies": {
     "@reelforge/claude-bridge": "workspace:*",

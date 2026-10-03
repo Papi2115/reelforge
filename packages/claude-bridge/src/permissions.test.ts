@@ -141,6 +141,10 @@ describe('checkToolUse (bridge-side policy)', () => {
   it('edits: only inside the project, never in the kit or protected folders', () => {
     expect(decide('Edit', { file_path: path.join(projectDir, 'scenes', 's01.js') })).toBe(true);
     expect(decide('Write', { file_path: path.join('scenes', 'new.js') })).toBe(true);
+    // Project props (PLAN.md#7.4): kit-ext is project content, editable like scenes.
+    expect(
+      decide('Write', { file_path: path.join(projectDir, 'kit-ext', 'props', 'fridge.js') }),
+    ).toBe(true);
     expect(decide('Write', { file_path: path.join(projectDir, '..', 'x.txt') })).toBe(false);
     expect(decide('Write', { file_path: path.join(kitDir, 'x.md') })).toBe(false);
     expect(

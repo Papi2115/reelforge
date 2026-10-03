@@ -43,6 +43,19 @@ describe('planReload', () => {
     expect(planReload(BASE, next)).toEqual({ kind: 'shots', shotIds: ['s02'] });
   });
 
+  it('loads in full when a project prop (kit-ext) changes: every shot may use it', () => {
+    const fridge = { name: 'fridge', file: 'kit-ext/props/fridge.js', source: 'v1' };
+    const loaded = edit((manifest) => {
+      manifest.kitExtensions = [fridge];
+    });
+    const next = edit((manifest) => {
+      manifest.kitExtensions = [{ ...fridge, source: 'v2' }];
+    });
+    expect(planReload(loaded, next)).toEqual({ kind: 'full' });
+    expect(planReload(BASE, loaded)).toEqual({ kind: 'full' });
+    expect(planReload(loaded, structuredClone(loaded))).toEqual({ kind: 'unchanged' });
+  });
+
   it('loads in full for any other change', () => {
     const changes: ((manifest: RenderManifest) => void)[] = [
       (manifest) => {

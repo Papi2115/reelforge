@@ -8,7 +8,7 @@ import path from 'node:path';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createInflateRaw, crc32 } from 'node:zlib';
-import type { WhisperError } from './errors.js';
+import { systemErrorCode, type WhisperError } from './errors.js';
 import { err, ok, type Result } from '../result.js';
 
 const EOCD_SIGNATURE = 0x06054b50;
@@ -181,6 +181,7 @@ export async function extractZip(
       kind: 'extract-failed',
       message: `cannot extract ${path.basename(zipPath)}: ${error instanceof Error ? error.message : String(error)}`,
       path: zipPath,
+      code: systemErrorCode(error),
     });
   }
 }

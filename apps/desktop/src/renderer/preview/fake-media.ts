@@ -2,7 +2,8 @@
  * Test doubles of the player's environment: a manual clock / frame / timer environment and a fake
  * `<audio>` element whose playhead advances with that clock. Used by the player unit tests only.
  */
-import type { MediaEvent, PlayerEnvironment, PlayerMedia } from './player.js';
+import type { MediaEvent } from './media-watch.js';
+import type { PlayerEnvironment, PlayerMedia } from './player.js';
 
 export class ManualEnvironment implements PlayerEnvironment {
   ms = 0;
@@ -53,6 +54,8 @@ export class FakeMedia implements PlayerMedia {
   muted = false;
   paused = true;
   readyState = 4;
+  error: { readonly message: string } | null = null;
+  loads = 0;
   readonly plays: number[] = [];
   private readonly listeners = new Map<MediaEvent, Set<() => void>>();
   /** Set to make the next play() reject with this error. */
@@ -73,6 +76,19 @@ export class FakeMedia implements PlayerMedia {
   pause(): void {
     this.paused = true;
   }
+  /** Like HTMLMediaElement.load(): back to no data, paused, at 0 (emit 'loadedmetadata' next). */
+  load(): void {
+    this.loads += 1;
+    this.error = null;
+    this.paused = true;
+    this.currentTime = 0;
+    this.readyState = 0;
+  }
+  /** The reloaded source has its metadata again. */
+  loaded(): void {
+    this.readyState = 4;
+    this.emit('loadedmetadata');
+  }
   addEventListener(type: MediaEvent, listener: () => void): void {
     const set = this.listeners.get(type) ?? new Set();
     set.add(listener);
@@ -87,6 +103,9 @@ export class FakeMedia implements PlayerMedia {
   advance(ms: number): void {
     if (this.paused) return;
     this.currentTime = Math.min(this.currentTime + (ms / 1000) * this.playbackRate, this.duration);
-    if (this.currentTime >= this.duration) this.paused = true;
+    if (this.currentTime >= this.duration) {
+      this.paused = true;
+      this.emit('ended');
+    }
   }
 }

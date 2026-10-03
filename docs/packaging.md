@@ -43,7 +43,8 @@ Uninstall ReelForge.exe   (installed app only)
   `process.resourcesPath` when packaged and under `apps/desktop/out/` in dev.
 - **Not included:** fake-claude, Playwright, esbuild, ffmpeg, whisper.cpp, Whisper models. ffmpeg is
   an external binary the user points to (GPL builds must not be bundled, `docs/licenses.md`);
-  whisper.cpp and its models are downloaded on demand into the user's data folder. The `ffmpeg.dll`
+  whisper.cpp and its models are downloaded on demand into the user's data folder
+  (`%LOCALAPPDATA%\ReelForge\whisper`, ≈ 600 MB, hash-checked; `docs/whisper.md`). The `ffmpeg.dll`
   next to the exe is Chromium's own media library that ships with Electron, not the pipeline's ffmpeg.
 - `default_app.asar` (Electron's sample app) is removed in `afterPack`; Chromium locales are trimmed
   to `en-US` and `pl` (`electronLanguages`).

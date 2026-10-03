@@ -12,6 +12,7 @@ import { validateYoutubeMetaReply } from '../validators/youtube-meta.js';
 import {
   parseMissing,
   replyLengthIssues,
+  validatePropModule,
   validateResearch,
   validateSceneModule,
 } from '../validators/text-outputs.js';
@@ -35,6 +36,7 @@ const MAX_REPLY_LINES: Partial<Record<PromptId, number>> = {
   research: 3,
   'scene-build': 5,
   'scene-fix': 4,
+  'prop-build': 4,
 };
 
 function readOutputs(
@@ -98,6 +100,9 @@ function fileIssues<T extends CuesLike>(
       durationS: evalCase.words.words.at(-1)?.tEnd,
       musicFileExists: (music) => existsSync(path.join(projectDir, music)),
     }).issues;
+  }
+  if (file.startsWith('kit-ext/props/') && file.endsWith('.js')) {
+    return validatePropModule(text, evalCase.file.propBuild.name).issues;
   }
   if (file.endsWith('.js')) return validateSceneModule(text).issues;
   return [];

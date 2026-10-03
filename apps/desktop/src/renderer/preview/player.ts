@@ -12,6 +12,7 @@ import {
   type ClockMedia,
   type ClockSource,
 } from './playback-clock.js';
+import { MediaWatch, type MediaEvent, type WatchedMedia } from './media-watch.js';
 import type { TransportAction } from './transport-keys.js';
 
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
@@ -29,10 +30,15 @@ export interface PlayerEnvironment {
   clearTimer(handle: number): void;
 }
 
-export type MediaEvent = 'loadedmetadata' | 'error';
+/** Reloads of a failed audio source before the player gives up on it (PLAN.md#11.1). */
+export const MAX_AUDIO_RECOVERIES = 1;
+/** Audio ending more than this before the video end gets a visible note. */
+export const AUDIO_ENDED_EARLY_S = 1;
 
-export interface PlayerMedia extends ClockMedia {
+export interface PlayerMedia extends ClockMedia, WatchedMedia {
+  currentTime: number;
   muted: boolean;
+  load(): void;
   addEventListener(type: MediaEvent, listener: () => void): void;
   removeEventListener(type: MediaEvent, listener: () => void): void;
 }
@@ -51,6 +57,8 @@ export interface PlayerState {
   readonly duration: number;
   readonly fps: number;
   readonly clock: ClockSource;
+  /** Why the preview has no (more) sound, shown over the preview; null when all is well. */
+  readonly audioProblem: string | null;
 }
 
 const INITIAL_STATE: PlayerState = {
@@ -62,6 +70,7 @@ const INITIAL_STATE: PlayerState = {
   duration: 0,
   fps: 30,
   clock: 'system',
+  audioProblem: null,
 };
 
 export class Player {
@@ -71,6 +80,9 @@ export class Player {
   private state: PlayerState = INITIAL_STATE;
   private target: SeekTarget | undefined;
   private media: PlayerMedia | undefined;
+  private mediaWatch: MediaWatch | undefined;
+  /** Reloads of the current media after failures. */
+  private recoveries = 0;
   private frameHandle: number | undefined;
   /** Frame index last requested while playing. */
   private lastIndex: number | undefined;
@@ -79,10 +91,6 @@ export class Player {
   private readonly onMediaReady = (): void => {
     this.clock.mediaReady();
     this.publish({});
-  };
-  private readonly onMediaFailed = (): void => {
-    this.reportMediaError(new Error('the audio file cannot be played'));
-    this.attachMedia(undefined);
   };
 
   constructor(
@@ -108,16 +116,29 @@ export class Player {
   /** Master audio (undefined: system clock). Time and play state are kept. */
   attachMedia(media: PlayerMedia | undefined): void {
     this.media?.removeEventListener('loadedmetadata', this.onMediaReady);
-    this.media?.removeEventListener('error', this.onMediaFailed);
+    this.mediaWatch?.dispose();
+    this.mediaWatch = undefined;
     this.stopSnippet();
     this.media = media;
+    this.recoveries = 0;
     if (media) {
       media.muted = this.state.muted;
       media.addEventListener('loadedmetadata', this.onMediaReady);
-      media.addEventListener('error', this.onMediaFailed);
+      this.mediaWatch = new MediaWatch(media, this.env, {
+        failed: (reason) => {
+          this.mediaFailed(media, reason);
+        },
+        ended: (t) => {
+          this.mediaEnded(t);
+        },
+      });
     }
     this.clock.attachMedia(media);
-    this.publish({});
+    this.publish({ audioProblem: null });
+  }
+
+  dismissAudioProblem(): void {
+    this.publish({ audioProblem: null });
   }
 
   /** A video was loaded: its duration and frame rate. */
@@ -299,6 +320,33 @@ export class Player {
   private cancelTick(): void {
     if (this.frameHandle !== undefined) this.env.cancelFrame(this.frameHandle);
     this.frameHandle = undefined;
+  }
+
+  /** One reload that resumes at the current time, then a visible warning and the system clock. */
+  private mediaFailed(media: PlayerMedia, reason: string): void {
+    if (this.media !== media) return;
+    if (this.recoveries < MAX_AUDIO_RECOVERIES) {
+      this.recoveries += 1;
+      this.reportMediaError(new Error(`${reason}; reloading the audio`));
+      // The system clock carries on until loadedmetadata (onMediaReady) resumes the audio there.
+      this.clock.mediaLost();
+      media.load();
+      this.publish({});
+      return;
+    }
+    this.reportMediaError(new Error(reason));
+    this.attachMedia(undefined);
+    this.publish({
+      audioProblem: `Preview audio failed: ${reason}. The preview plays on without sound.`,
+    });
+  }
+
+  private mediaEnded(t: number): void {
+    const { duration } = this.state;
+    if (!this.clock.isPlaying || duration - t <= AUDIO_ENDED_EARLY_S) return;
+    this.publish({
+      audioProblem: `Preview audio ends at ${t.toFixed(1)} s, the video runs to ${duration.toFixed(1)} s: no sound after that.`,
+    });
   }
 
   private playSnippet(): void {

@@ -3,8 +3,9 @@
  * #10.1): brief -> script (fake-claude) -> approve -> record a 2 s take with Chromium's fake
  * microphone -> replace it with a file (archived, later stages stale) -> Audio cleaned (real
  * ffmpeg) -> Words timed (a recorded transcription through REELFORGE_TEST_TRANSCRIPT; no whisper
- * model) -> Storyboard -> Scenes built (QA on the app's render windows, ✓ badges) -> the "Check
- * every visual lands on its spoken word" chip (sync report in the chat and the Scenes panel) ->
+ * model) -> Storyboard -> Scenes built (QA on the app's render windows, ✓ badges, the automatic
+ * final review) -> the "Check every visual lands on its spoken word" chip (sync report in the chat
+ * and the Scenes panel) ->
  * Sound design mixed (real ffmpeg) -> Video exported -> an MP4 that ffprobe reads. Never a model
  * call. Screenshots at 1280x720 in out/test-app/pipeline-*.png.
  */
@@ -17,6 +18,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { showChat, showStage, stageText } from './support/pipeline-rows.js';
 import {
   ffprobe,
   golden,
@@ -39,10 +41,7 @@ function pipeline() {
 }
 
 async function rowText(label: string): Promise<string> {
-  const row = pipeline().getByRole('button', { name: label, exact: false }).first();
-  const text = (await row.textContent()) ?? '';
-  const detail = (await row.getAttribute('title')) ?? '';
-  return detail === '' ? text : `${text} (${detail})`;
+  return stageText(page, label);
 }
 
 async function waitDone(label: string, timeout: number): Promise<void> {
@@ -53,7 +52,7 @@ async function waitDone(label: string, timeout: number): Promise<void> {
 
 /** Selects a sidebar row and presses its Run (Retry / Resume) button. */
 async function runRow(label: string): Promise<void> {
-  await pipeline().getByRole('button', { name: label }).first().click();
+  await (await showStage(page, label)).click();
   const run = pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: /^(Run|Retry|Resume)$/ });
@@ -62,7 +61,7 @@ async function runRow(label: string): Promise<void> {
 }
 
 async function openRow(label: string): Promise<void> {
-  await pipeline().getByRole('button', { name: label }).first().click();
+  await (await showStage(page, label)).click();
   await pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: 'Open' })
@@ -178,7 +177,34 @@ describe('the pipeline in the app', () => {
     await runRow('Scenes built');
     await page.locator('.shots-progress').waitFor({ timeout: 30_000 });
     await shot('scenes-running');
+    // Regression (PLAN.md#11.2): the progress block of the docked panel used to shrink and draw
+    // "Building shot n/m · <step>" and "<step>" over the lines under it.
+    await openRow('Scenes built');
+    const scenesPanel = page.getByRole('region', { name: 'Scenes built' });
+    await scenesPanel.locator('.stage-run').waitFor({ timeout: 30_000 });
+    const progress = await scenesPanel.evaluate((panel) => {
+      const body = panel.querySelector('.doc-body');
+      const children = [...(body?.children ?? [])].map((child) => child.getBoundingClientRect());
+      const overlaps = children
+        .slice(1)
+        .filter((rect, index) => rect.top < (children[index]?.bottom ?? 0) - 1).length;
+      return {
+        overlaps,
+        title: panel.querySelector('.stage-run-title')?.textContent ?? '',
+        step: panel.querySelector('.stage-run-step')?.textContent ?? '',
+      };
+    });
+    expect(progress.overlaps).toBe(0);
+    expect(progress.title).toMatch(/^Shot \d+ of 7$/);
+    expect(progress.step).not.toContain(progress.title);
+    await scenesPanel.getByRole('button', { name: /^Stop building$/ }).waitFor();
+    await shot('scenes-running-panel');
+    await scenesPanel.getByRole('button', { name: 'Back to preview' }).click();
     await waitDone('Scenes built', 420_000);
+    // The quiet final review follows by itself (PLAN.md#11.5).
+    await expect
+      .poll(() => rowText('Scenes built'), { timeout: 180_000, interval: 500 })
+      .toMatch(/^Scenes builtDone.*Review done: 7 ✓/);
     const shots = page.getByRole('region', { name: 'Shots' });
     await expect.poll(() => shots.locator('.shot-badge.qa-ok').count()).toBe(7);
     await shots.getByRole('button', { name: /^QA of s04_rainbow/ }).click();
@@ -191,7 +217,7 @@ describe('the pipeline in the app', () => {
   }, 480_000);
 
   it('runs the sync check from the Whole-video chip and shows the report', async () => {
-    const chat = page.getByRole('region', { name: 'Claude' });
+    const chat = await showChat(page);
     await chat.getByRole('button', { name: 'Check every visual lands on its spoken word' }).click();
     await chat.locator('[data-turn-status="done"]').waitFor({ timeout: 120_000 });
     await chat.getByText(/^Review \(sync-check\)/).waitFor();

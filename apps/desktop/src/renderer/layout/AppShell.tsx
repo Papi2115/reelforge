@@ -1,7 +1,8 @@
 /**
- * Main layout grid (PLAN.md#6.3): left column (pipeline + shots), centre (preview), right column
- * (Claude chat, full height) and the timeline under the left and centre columns. The splitters
- * resize the panes; sizes are clamped to the window and persisted in localStorage.
+ * Main layout grid (PLAN.md#6.3, #11.2): left column (pipeline + shots, full height), centre
+ * (preview), right column (Claude chat, full height; a slim rail when collapsed) and the timeline
+ * under the preview. The splitters resize the panes; sizes are clamped to the window and persisted in
+ * localStorage.
  */
 import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react';
 import { errorMessage, rendererLog } from '../log.js';
@@ -40,9 +41,17 @@ export interface AppShellProps {
   readonly center: ReactNode;
   readonly right: ReactNode;
   readonly bottom: ReactNode;
+  /** Width of the collapsed chat rail; undefined while the chat is open. */
+  readonly collapsedRight?: number | undefined;
 }
 
-export function AppShell({ left, center, right, bottom }: AppShellProps): JSX.Element {
+export function AppShell({
+  left,
+  center,
+  right,
+  bottom,
+  collapsedRight,
+}: AppShellProps): JSX.Element {
   const shellRef = useRef<HTMLDivElement>(null);
   const [requested, setRequested] = useState<PaneSizes>(loadPaneSizes);
   const [viewport, setViewport] = useState<Viewport | undefined>(undefined);
@@ -63,14 +72,16 @@ export function AppShell({ left, center, right, bottom }: AppShellProps): JSX.El
     savePaneSizes(requested);
   }, [requested]);
 
-  const sizes = viewport ? clampPaneSizes(requested, viewport) : requested;
+  const sizes = viewport ? clampPaneSizes(requested, viewport, collapsedRight) : requested;
   const width = viewport?.width ?? 0;
   const height = viewport?.height ?? 0;
   const splitters = 2 * PANE_LIMITS.splitterSize;
+  const rightWidth = collapsedRight ?? sizes.right;
+  const rightSplitter = collapsedRight === undefined ? PANE_LIMITS.splitterSize : 0;
   // A drag stores the clamped size, so later window growth does not resurrect a stale value.
   const resize = (patch: Partial<PaneSizes>): void => {
     const next = { ...sizes, ...patch };
-    setRequested(viewport ? clampPaneSizes(next, viewport) : next);
+    setRequested(viewport ? clampPaneSizes(next, viewport, collapsedRight) : next);
   };
 
   return (
@@ -78,7 +89,7 @@ export function AppShell({ left, center, right, bottom }: AppShellProps): JSX.El
       ref={shellRef}
       className="app-shell"
       style={{
-        gridTemplateColumns: `${String(sizes.left)}px ${String(PANE_LIMITS.splitterSize)}px minmax(0, 1fr) ${String(PANE_LIMITS.splitterSize)}px ${String(sizes.right)}px`,
+        gridTemplateColumns: `${String(sizes.left)}px ${String(PANE_LIMITS.splitterSize)}px minmax(0, 1fr) ${String(rightSplitter)}px ${String(rightWidth)}px`,
         gridTemplateRows: `minmax(0, 1fr) ${String(PANE_LIMITS.splitterSize)}px ${String(sizes.bottom)}px`,
       }}
     >
@@ -89,25 +100,27 @@ export function AppShell({ left, center, right, bottom }: AppShellProps): JSX.El
         orientation="vertical"
         value={sizes.left}
         min={PANE_LIMITS.minLeft}
-        max={width - sizes.right - splitters - PANE_LIMITS.minCenterWidth}
+        max={width - rightWidth - splitters - PANE_LIMITS.minCenterWidth}
         growsTowardsStart={false}
         onChange={(value) => {
           resize({ left: value });
         }}
       />
       <div className="shell-center">{center}</div>
-      <Splitter
-        className="shell-split-right"
-        label="Resize chat panel"
-        orientation="vertical"
-        value={sizes.right}
-        min={PANE_LIMITS.minRight}
-        max={width - sizes.left - splitters - PANE_LIMITS.minCenterWidth}
-        growsTowardsStart
-        onChange={(value) => {
-          resize({ right: value });
-        }}
-      />
+      {collapsedRight === undefined && (
+        <Splitter
+          className="shell-split-right"
+          label="Resize chat panel"
+          orientation="vertical"
+          value={sizes.right}
+          min={PANE_LIMITS.minRight}
+          max={width - sizes.left - splitters - PANE_LIMITS.minCenterWidth}
+          growsTowardsStart
+          onChange={(value) => {
+            resize({ right: value });
+          }}
+        />
+      )}
       <div className="shell-right">{right}</div>
       <Splitter
         className="shell-split-bottom"

@@ -4,7 +4,8 @@
  * and usage ledger are configured there; set up on first use), ffmpeg / whisper.cpp are located
  * from the current settings (rebuilt when a tool path changes), the stage settings are read from
  * the app settings at the start of every run, scene frames render on the app's render windows,
- * missing kit props are logged, and pipeline.json goes through the shared store.
+ * missing props are built as project props (kit-ext, the stages' default), and pipeline.json goes
+ * through the shared store.
  */
 import {
   type LimitGuard,
@@ -12,6 +13,7 @@ import {
   type Result,
   type SessionManager,
 } from '@reelforge/claude-bridge';
+import type { WhisperManagerOptions } from '@reelforge/pipeline';
 import type { AppSettings } from '@reelforge/shared';
 import {
   BridgeClaudeRunner,
@@ -27,9 +29,7 @@ import {
   type StageSettings,
 } from '@reelforge/stages';
 import type { ChatError } from '../../shared/chat-contract.js';
-import type { Logger } from '../logger.js';
 import { qaIterations, whisperManagerOptions } from '../settings-consumers.js';
-import { loggingMissingProps } from './missing-props.js';
 
 /** A turn that cannot start because Claude is not set up (not installed / not logged in). */
 export function blockedTurn(message: string): ClaudeTurnResult {
@@ -60,6 +60,7 @@ export function sharedClaudeRunner(
 export function settingsAudioTools(
   settings: () => AppSettings,
   create: (options: PipelineAudioToolsOptions) => AudioTools = createPipelineAudioTools,
+  whisperBase: WhisperManagerOptions = {},
 ): AudioTools {
   let cached: { readonly key: string; readonly tools: AudioTools } | undefined;
   const current = (): AudioTools => {
@@ -68,7 +69,10 @@ export function settingsAudioTools(
     if (cached?.key !== key) {
       cached = {
         key,
-        tools: create({ ffmpegPath: app.tools.ffmpegPath, whisper: whisperManagerOptions(app) }),
+        tools: create({
+          ffmpegPath: app.tools.ffmpegPath,
+          whisper: whisperManagerOptions(app, whisperBase),
+        }),
       };
     }
     return cached.tools;
@@ -105,7 +109,6 @@ export interface AppRunnerOptions {
   readonly store: PipelineStateStore;
   /** Scenes built: smoke frames, card QA and anchors on the app's render windows. */
   readonly frames: FrameRenderer;
-  readonly log: Logger;
   /** ffmpeg / whisper of the settings (`settingsAudioTools`; a test hook may wrap them). */
   readonly audio: AudioTools;
 }
@@ -120,10 +123,7 @@ export function appRunnerFactory(options: AppRunnerOptions): (projectDir: string
       claude,
       audio,
       settings: () => appStageSettings(options.settings()),
-      scenes: {
-        frames: options.frames,
-        onMissingProps: loggingMissingProps(projectDir, options.log),
-      },
+      scenes: { frames: options.frames },
       guard: options.guard,
       store: options.store,
     });

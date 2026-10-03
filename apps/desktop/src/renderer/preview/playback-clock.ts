@@ -146,6 +146,17 @@ export class PlaybackClock {
     this.startMedia();
   }
 
+  /**
+   * The media failed and is reloading: stop following it and carry on from its time on the
+   * system clock; mediaReady() resumes the audio at the then current time.
+   */
+  mediaLost(): void {
+    if (!this.following) return;
+    const t = this.time();
+    this.following = false;
+    this.reanchor(t);
+  }
+
   private reanchor(position: number): void {
     this.position = position;
     this.anchorMs = this.now();

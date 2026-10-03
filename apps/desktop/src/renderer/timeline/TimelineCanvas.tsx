@@ -1,7 +1,7 @@
 /**
  * The timeline lanes (PLAN.md#6.5): one canvas drawn by draw-timeline.ts, with pointer gestures
- * (scrub on the ruler, drag shot boundaries / cues / range edges with snapping, click to select or
- * seek), Ctrl+wheel zoom, wheel scroll, double-click on Cues to add a sound and the editing keys.
+ * (scrub on the ruler or by dragging the playhead, drag shot boundaries / cues / range edges with
+ * snapping, click to select or seek) in the rows the user shows, Ctrl+wheel zoom, wheel scroll, double-click on Cues to add a sound and the editing keys.
  * Drag previews live in refs and redraw on the next animation frame without a React render.
  * App code: performance.now and requestAnimationFrame are fine here (never in scenes).
  */
@@ -27,10 +27,10 @@ import {
 import {
   applyChanges,
   hitTest,
-  LANES_HEIGHT,
   type TimelineHit,
   type TimelineModel,
   type TrackId,
+  type TrackLayout,
 } from './timeline-model.js';
 import { timeToX, xToTime, zoomAround, ZOOM_STEP, type TimelineView } from './timeline-view.js';
 import { WORD_DETAIL_PX_PER_SECOND } from './word-index.js';
@@ -45,6 +45,8 @@ export interface TimelineCanvasProps {
   readonly selected: readonly TimelineItem[];
   readonly waveform: WaveformView;
   readonly emptyText: DrawInput['emptyText'];
+  /** The shown rows. */
+  readonly layout: TrackLayout;
   readonly onSeek: (t: number) => void;
   readonly onScrub: (t: number) => void;
   readonly onChange: (change: FileEdits) => void;
@@ -66,6 +68,7 @@ function cursorFor(hit: TimelineHit | undefined): string {
     case 'range':
       return 'grab';
     case 'ruler':
+    case 'playhead':
       return 'col-resize';
     default:
       return 'default';
@@ -110,10 +113,10 @@ export function TimelineCanvas(props: TimelineCanvasProps): JSX.Element {
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
     if (!canvas || !context) return;
-    const { model, view, time, selected, waveform, emptyText } = propsRef.current;
+    const { model, view, time, selected, waveform, emptyText, layout } = propsRef.current;
     const ratio = window.devicePixelRatio || 1;
     const width = Math.max(1, Math.round(view.width * ratio));
-    const height = Math.round(LANES_HEIGHT * ratio);
+    const height = Math.round(layout.height * ratio);
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -129,6 +132,7 @@ export function TimelineCanvas(props: TimelineCanvasProps): JSX.Element {
       hover: hover.current,
       snapAt: preview.current.snapAt,
       emptyText,
+      layout,
     });
     const ms = performance.now() - started;
     maxDrawMs.current = Math.max(maxDrawMs.current, ms);
@@ -144,6 +148,7 @@ export function TimelineCanvas(props: TimelineCanvasProps): JSX.Element {
       waveform: waveform.kind,
       shots: String(shown.shots.length),
       sfx: String(shown.cues.sfx.length),
+      tracks: layout.rows.map((row) => row.id).join(','),
     });
   }, []);
 
@@ -189,9 +194,11 @@ export function TimelineCanvas(props: TimelineCanvasProps): JSX.Element {
     return { x: event.clientX - (rect?.left ?? 0), y: event.clientY - (rect?.top ?? 0) };
   };
 
-  const hitAt = (x: number, y: number): TimelineHit | undefined => {
-    const { model, view } = propsRef.current;
-    return hitTest(model, view, x, y, view.pxPerSecond >= WORD_DETAIL_PX_PER_SECOND);
+  /** What is under (x, y); `withPlayhead` false ignores the playhead's grab zone. */
+  const hitAt = (x: number, y: number, withPlayhead = true): TimelineHit | undefined => {
+    const { model, view, layout, time } = propsRef.current;
+    const wordsLevel = view.pxPerSecond >= WORD_DETAIL_PX_PER_SECOND;
+    return hitTest(model, view, x, y, wordsLevel, layout, withPlayhead ? time : undefined);
   };
 
   const onPointerDown = (event: PointerEvent<HTMLCanvasElement>): void => {
@@ -205,6 +212,7 @@ export function TimelineCanvas(props: TimelineCanvasProps): JSX.Element {
     event.currentTarget.setPointerCapture(event.pointerId);
     switch (hit.kind) {
       case 'ruler':
+      case 'playhead':
         gesture.current = { kind: 'scrub' };
         onScrub(xToTime(view, x));
         return;
@@ -338,7 +346,8 @@ export function TimelineCanvas(props: TimelineCanvasProps): JSX.Element {
 
   const onDoubleClick = (event: { clientX: number; clientY: number }): void => {
     const { x, y } = position(event);
-    const hit = hitAt(x, y);
+    // The first click of a double-click seeked here: the playhead is under the pointer now.
+    const hit = hitAt(x, y, false);
     const track: TrackId | undefined =
       hit?.kind === 'sfx' ? 'cues' : hit?.kind === 'lane' ? hit.track : undefined;
     if (track === 'cues') propsRef.current.onAddSfx(xToTime(propsRef.current.view, x), x);
@@ -351,7 +360,7 @@ export function TimelineCanvas(props: TimelineCanvasProps): JSX.Element {
       tabIndex={0}
       aria-label="Timeline lanes: drag shot boundaries and cues, Ctrl+wheel to zoom"
       data-testid="timeline-canvas"
-      style={{ width: `${String(props.view.width)}px`, height: `${String(LANES_HEIGHT)}px` }}
+      style={{ width: `${String(props.view.width)}px`, height: `${String(props.layout.height)}px` }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={(event) => {

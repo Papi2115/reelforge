@@ -87,6 +87,31 @@ export class Biquad {
     return this.set(alpha, 0, -alpha, 1 + alpha, -2 * cos, 1 - alpha);
   }
 
+  /** Peaking EQ (bell) with `gainDb` at `frequency`. */
+  peaking(frequency: number, q: number, gainDb: number): this {
+    const { cos, alpha } = this.omega(frequency, q);
+    const a = 10 ** (gainDb / 40);
+    return this.set(1 + alpha * a, -2 * cos, 1 - alpha * a, 1 + alpha / a, -2 * cos, 1 - alpha / a);
+  }
+
+  /** Shelving EQ (slope 1): `low` boosts/cuts below `frequency`, otherwise above it. */
+  shelf(kind: 'low' | 'high', frequency: number, gainDb: number): this {
+    const { cos, alpha } = this.omega(frequency, Math.SQRT1_2);
+    const a = 10 ** (gainDb / 40);
+    const root = 2 * Math.sqrt(a) * alpha;
+    const sign = kind === 'low' ? 1 : -1;
+    const plus = a + 1;
+    const minus = a - 1;
+    return this.set(
+      a * (plus - sign * minus * cos + root),
+      sign * 2 * a * (minus - sign * plus * cos),
+      a * (plus - sign * minus * cos - root),
+      plus + sign * minus * cos + root,
+      -sign * 2 * (minus + sign * plus * cos),
+      plus + sign * minus * cos - root,
+    );
+  }
+
   process(input: number): number {
     const output = this.b0 * input + this.z1;
     this.z1 = this.b1 * input - this.a1 * output + this.z2;

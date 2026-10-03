@@ -2,6 +2,7 @@
  * Engine runtime for one loaded video: validates the manifest, imports and builds every shot,
  * and renders any global time synchronously. Runs inside the sandboxed engine frame.
  */
+import type { KitDefinition } from '@reelforge/kit';
 import { renderManifestSchema, type RenderManifest, type SceneSource } from '@reelforge/shared';
 import { createExactAnchorResolver, NO_ANCHORS } from './anchors.js';
 import type { ResolvedAnchor, SfxCue } from './contract.js';
@@ -13,6 +14,7 @@ import {
   type FrameRendererOptions,
   type GpuInfo,
 } from './gl/frame-renderer.js';
+import { loadKitExtensions, type KitExtensionImporter } from './kit-extensions.js';
 import { pickInShot, type PickResult } from './pick.js';
 import { shotSeed } from './rng.js';
 import { toSceneModule } from './scene-module.js';
@@ -42,7 +44,10 @@ export interface EngineRuntime {
   seek(t: number): void;
   /** Copy of the last rendered frame (RGBA8, top-down, width*height*4 bytes). */
   readFrame(): Uint8Array<ArrayBuffer>;
-  /** Text-card QA of one shot (overlaps, safe area), sampled every frame (PLAN.md §4.4). */
+  /**
+   * Text-card QA of one shot (overlaps, safe area; annotation targets and anchors), sampled every
+   * frame (PLAN.md §4.4).
+   */
   checkCards(shotId: string): CardDiagnostic[];
   /**
    * What is at normalized frame point (x, y) (0..1, top-left origin) at global time t: a text
@@ -62,6 +67,8 @@ export interface RuntimeDependencies {
   readonly canvas: HTMLCanvasElement;
   /** Imports a scene module source and returns its namespace. */
   importScene(scene: SceneSource, shotId: string): Promise<unknown>;
+  /** Imports a project prop module (`kitExtensions`) and returns its namespace. */
+  readonly importKitExtension: KitExtensionImporter;
 }
 
 export function parseManifest(input: unknown): RenderManifest {
@@ -76,7 +83,11 @@ export function parseManifest(input: unknown): RenderManifest {
 /** Builds one manifest shot from its imported scene module namespace. */
 type ShotBuilder = (shot: RenderManifest['shots'][number], namespace: unknown) => BuiltShot;
 
-function createShotBuilder(manifest: RenderManifest, style: ResolvedStyle): ShotBuilder {
+function createShotBuilder(
+  manifest: RenderManifest,
+  style: ResolvedStyle,
+  kitExtensions: readonly KitDefinition[],
+): ShotBuilder {
   const resolveAnchor = manifest.words
     ? createExactAnchorResolver(manifest.words.words)
     : NO_ANCHORS;
@@ -95,6 +106,7 @@ function createShotBuilder(manifest: RenderManifest, style: ResolvedStyle): Shot
       palette: style.palette,
       safeArea: style.safeArea,
       resolveAnchor,
+      kitExtensions,
     });
 }
 
@@ -127,7 +139,11 @@ export async function createRuntime(
   const style = resolveStyle(manifest);
   // Before any scene code runs: module top-level code may already create Colors.
   configureColorManagement();
-  const build = createShotBuilder(manifest, style);
+  const kitExtensions = await loadKitExtensions(
+    manifest.kitExtensions ?? [],
+    dependencies.importKitExtension,
+  );
+  const build = createShotBuilder(manifest, style, kitExtensions);
   const shots = await buildShots(manifest, build, dependencies);
   const timeline = createTimeline(
     manifest.shots.map((shot) => ({
@@ -202,7 +218,16 @@ export async function createRuntime(
     checkCards(shotId) {
       const shot = shots.find((candidate) => candidate.info.id === shotId);
       if (!shot) throw new EngineError('not-loaded', `no shot "${shotId}" in the loaded video`);
-      return checkCards(collectCardTimeline(shot));
+      // QA probe: annotation targets are also raycast for occlusion.
+      const probing = {
+        info: shot.info,
+        safeArea: shot.safeArea,
+        cards: () => shot.cards(),
+        update: (localTime: number) => {
+          shot.update(localTime, { probe: true });
+        },
+      };
+      return checkCards(collectCardTimeline(probing));
     },
     async reloadShot(shotId, scene) {
       const index = manifest.shots.findIndex((shot) => shot.id === shotId);

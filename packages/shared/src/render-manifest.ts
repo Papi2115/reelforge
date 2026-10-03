@@ -4,6 +4,7 @@
  * words; scene module sources are inlined so the sandboxed engine never touches the disk.
  */
 import { z } from 'zod';
+import { kitExtensionSchema } from './kit-extensions.js';
 import { paletteSchema } from './palette.js';
 import { shotIdSchema, transitionSchema } from './storyboard.js';
 import { stylePresetIdSchema } from './style-preset.js';
@@ -47,9 +48,22 @@ export const renderManifestSchema = z
     /** Swatch overrides/additions merged over the style's palette (same names replace colours). */
     palette: paletteSchema.optional(),
     words: wordsFileSchema.optional(),
+    /** Project-local props (`kit-ext/props/*.js`), registered before any scene is built. */
+    kitExtensions: z.array(kitExtensionSchema).optional(),
     shots: z.array(manifestShotSchema).min(1),
   })
   .superRefine((manifest, issues) => {
+    const names = new Set<string>();
+    (manifest.kitExtensions ?? []).forEach((extension, index) => {
+      if (names.has(extension.name)) {
+        issues.addIssue({
+          code: 'custom',
+          message: `duplicate kit extension "${extension.name}"`,
+          path: ['kitExtensions', index, 'name'],
+        });
+      }
+      names.add(extension.name);
+    });
     const seen = new Set<string>();
     manifest.shots.forEach((shot, index) => {
       if (seen.has(shot.id)) {

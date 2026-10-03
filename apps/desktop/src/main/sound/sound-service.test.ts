@@ -8,7 +8,7 @@ import { BUILTIN_AMBIENCE_NAMES } from '../../shared/sound-contract.js';
 import { DUCKING_PRESET_VALUES, libraryCue } from '../../shared/sound-library.js';
 import { createLogger } from '../logger.js';
 import { freeName } from './sound-files.js';
-import { applyMixPatch, describeMixPatch, SoundService } from './sound-service.js';
+import { applyMixPatch, cueSummary, describeMixPatch, SoundService } from './sound-service.js';
 
 const FIXTURE = path.resolve(
   import.meta.dirname,
@@ -118,6 +118,38 @@ describe('SoundService', () => {
     expect(commits).toEqual(['Sound: SFX bus -6 dB, music bus 3 dB']);
     const state = await service.state();
     expect(state.gains).toEqual({ voGainDb: 0, sfxGainDb: -6, ambienceGainDb: 0, musicGainDb: 3 });
+    expect(state.cues).toEqual({
+      sfx: 1,
+      ambience: 0,
+      music: 0,
+      sounds: [{ name: 'hit', count: 1 }],
+      moods: [],
+    });
+  });
+
+  it('summarizes the cues: SFX by use, music moods', () => {
+    const summary = cueSummary(
+      CuesFileSchema.parse({
+        version: 1,
+        sfx: [
+          { t: 1, name: 'pop' },
+          { t: 2, name: 'tick' },
+          { t: 2.3, name: 'tick' },
+          { t: 4, file: 'audio/sfx/boom.wav' },
+        ],
+        moods: ['retro-wave'],
+      }),
+    );
+    expect(summary).toEqual({
+      sfx: 4,
+      ambience: 0,
+      music: 0,
+      sounds: [
+        { name: 'tick', count: 2 },
+        { name: 'pop', count: 1 },
+      ],
+      moods: ['retro-wave'],
+    });
   });
 
   it('applies ducking to every music cue; refuses it without music', async () => {
@@ -166,7 +198,12 @@ describe('SoundService', () => {
   });
 
   it('reports the mix result, staleness and stems', async () => {
-    expect((await service.state()).mix).toEqual({ exists: false, stale: false, result: null });
+    expect((await service.state()).mix).toEqual({
+      exists: false,
+      stale: false,
+      result: null,
+      qa: null,
+    });
     await mkdir(path.join(dir, 'audio'), { recursive: true });
     await writeFile(path.join(dir, 'audio', 'mix.wav'), 'RIFF');
     await mkdir(path.join(dir, '.reelforge', 'reports'), { recursive: true });
@@ -196,11 +233,31 @@ describe('SoundService', () => {
     );
     await mkdir(path.join(dir, 'out', 'stems'), { recursive: true });
     await writeFile(path.join(dir, 'out', 'stems', 'vo.wav'), 'RIFF');
+    const ducking = {
+      id: 'ducking',
+      label: 'Music ducking under speech',
+      status: 'warn',
+      value: '3.0 dB',
+      limit: '≥ 6 dB',
+    } as const;
+    await writeFile(
+      path.join(dir, '.reelforge', 'mix-report.json'),
+      JSON.stringify({
+        version: 1,
+        createdAt: '2026-10-02T10:00:00.000Z',
+        durationS: 7.5,
+        checks: [ducking],
+        sfx: { count: 1, perMinute: 8, momentsPerMinute: 8 },
+        music: { beds: 1, moods: ['calm-tech'] },
+        warnings: ['Music ducking under speech: 3.0 dB (want ≥ 6 dB)'],
+      }),
+    );
     const state = await service.state();
     expect(state.mix).toMatchObject({
       exists: true,
       stale: false,
       result: { integratedLufs: -14.2, truePeakDbtp: -1.4, toleranceLu: 1 },
+      qa: [ducking],
     });
     expect(state.stems).toEqual(['out/stems/vo.wav']);
     // Editing cues after the render makes it stale.

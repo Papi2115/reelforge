@@ -3,7 +3,7 @@
  * #6.4) and the timeline (selection, edits, waveform; PLAN.md#6.5) into the panels of the shell.
  */
 import type { StoryboardShot } from '@reelforge/shared';
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import type { LibrarySound } from '../../shared/sound-contract.js';
 import { DUCKING_PRESET_VALUES, libraryCue } from '../../shared/sound-library.js';
 import type { ChatSelection } from '../../shared/chat-contract.js';
@@ -13,25 +13,28 @@ import { playbackAudioUrl } from '../preview/audio-source.js';
 import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
 import type { OpenTarget } from '../stages/pipeline-view.js';
-import { ScriptPanel, type ScriptTab } from '../stages/ScriptPanel.js';
-import { ScenesPanel } from '../stages/ScenesPanel.js';
+import { exportPreflight } from '../stages/final-review-view.js';
+import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
 import {
   buildProgress,
   fixPrompt,
-  missingProps,
-  missingPropsBanner,
+  propsBanner,
+  propsSummary,
   shotBadges,
 } from '../stages/scenes-view.js';
+import { useShotLocks } from '../stages/use-shot-locks.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
-import { VoiceoverPanel } from '../stages/VoiceoverPanel.js';
-import { WordsPanel } from '../stages/WordsPanel.js';
+import { useVariantsDock } from '../stages/use-variants-dock.js';
+import { VariantsDockPanel } from '../stages/VariantsPanel.js';
 import { ExportDialog } from '../export/ExportDialog.js';
-import { SoundPanel } from '../sound/SoundPanel.js';
 import { useMixPreview } from '../sound/use-mix-preview.js';
 import { useSound } from '../sound/use-sound.js';
 import { useTimeline } from '../timeline/use-timeline.js';
 import { AppShell } from './AppShell.js';
+import { CenterDocument, type CenterDocumentKind } from './CenterDocument.js';
+import { CHAT_RAIL_WIDTH } from './chat-dock.js';
+import { useChatDock } from './use-chat-dock.js';
 import { ChatPanel } from './ChatPanel.js';
 import { PipelineSidebar } from './PipelineSidebar.js';
 import { ShotsPanel } from './ShotsPanel.js';
@@ -41,15 +44,9 @@ import { useProjectSnapshot } from './use-project-snapshot.js';
 
 export interface WorkspaceProps {
   readonly project: ProjectSummary;
+  /** Settings → Tools (e.g. a whisper.cpp install problem in the pipeline sidebar). */
+  readonly onOpenToolsSettings?: () => void;
 }
-
-/** A document shown over the preview (Open of a stage, the brief). */
-type CenterDocument =
-  | { readonly kind: 'script'; readonly tab: ScriptTab }
-  | { readonly kind: 'words' }
-  | { readonly kind: 'voiceover' }
-  | { readonly kind: 'scenes' }
-  | { readonly kind: 'sound' };
 
 /** Brings the Shots panel into view (Open of the Storyboard stage). */
 function focusShots(): void {
@@ -59,7 +56,7 @@ function focusShots(): void {
   target?.focus();
 }
 
-export function Workspace({ project }: WorkspaceProps): JSX.Element {
+export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX.Element {
   const { snapshot, error, previewRevision, audioRevision, reload } = useProjectSnapshot(
     project.dir,
   );
@@ -81,7 +78,8 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
   const reports = useStageReports(project.dir, reportsKey(stages.state));
   const sound = useSound(project.dir, reportsKey(stages.state));
   const [exportOpen, setExportOpen] = useState(false);
-  const [centerDocument, setCenterDocument] = useState<CenterDocument | null>(null);
+  const chatDock = useChatDock();
+  const [centerDocument, setCenterDocument] = useState<CenterDocumentKind | null>(null);
 
   // A project without a brief or a script starts at the brief (new project flow).
   const briefChecked = useRef(false);
@@ -127,6 +125,21 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
   // The marker shows only on the frame the object was picked on (it may move elsewhere).
   const markerVisible = selection !== null && Math.abs(time - selection.t) < 0.5 / Math.max(fps, 1);
 
+  const closeDocument = useCallback(() => {
+    setCenterDocument(null);
+  }, []);
+  const variants = useVariantsDock({
+    dir: project.dir,
+    stages: stages.state,
+    player,
+    time,
+    playing,
+    shots,
+    selectedShotId: timeline.selectedShotId,
+    onOpen: closeDocument,
+  });
+  const variantsOpen = variants.shotId !== null && centerDocument === null;
+
   const selectShot = (shot: StoryboardShot): void => {
     timeline.selection.set([{ kind: 'shot', id: shot.id }]);
     player.seek(shot.t0);
@@ -137,6 +150,17 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
   const scenesBusy = running?.stage === 'scenes' || stages.state?.queue.includes('scenes') === true;
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
   const [shotNotice, setShotNotice] = useState<string | undefined>(undefined);
+  const locks = useShotLocks(snapshot?.locks, timeline.selectedShotId, reload);
+  const runScenes = (action: 'build' | 'sync-check', shotId: string): void => {
+    setShotNotice(undefined);
+    void window.reelforge.runScenes(action, [shotId]).then((result) => {
+      if (result.status === 'error') setShotNotice(result.message ?? 'Not started.');
+    });
+  };
+  const seekShot = (shotId: string, t: number): void => {
+    timeline.selection.set([{ kind: 'shot', id: shotId }]);
+    player.seek(t);
+  };
 
   /** A library sound becomes a cue at `t` (drop on the timeline or Add at the playhead). */
   const addSound = (librarySound: LibrarySound, t: number): void => {
@@ -155,12 +179,18 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
         <ExportDialog
           dir={project.dir}
           playhead={time}
+          preflight={exportPreflight(reports?.finalReview ?? null, reports?.scenes ?? null, shots)}
+          onSeekShot={(shotId, t) => {
+            setExportOpen(false);
+            seekShot(shotId, t);
+          }}
           onClose={() => {
             setExportOpen(false);
           }}
         />
       )}
       <AppShell
+        collapsedRight={chatDock.open ? undefined : CHAT_RAIL_WIDTH}
         left={
           <div className="left-stack">
             {error !== undefined && (
@@ -178,13 +208,16 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
             <PipelineSidebar
               stages={stages}
               onOpen={openStage}
+              {...(onOpenToolsSettings === undefined
+                ? {}
+                : { onOpenSettings: onOpenToolsSettings })}
               onBrief={() => {
                 setCenterDocument({ kind: 'script', tab: 'brief' });
               }}
             />
-            {shotNotice !== undefined && (
+            {(shotNotice ?? locks.notice) !== undefined && (
               <p className="panel-error banner" role="alert">
-                {shotNotice}
+                {shotNotice ?? locks.notice}
               </p>
             )}
             <ShotsPanel
@@ -194,14 +227,28 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
               onSelect={selectShot}
               badges={badges}
               progress={buildProgress(running, shots.length)}
-              missingBanner={missingPropsBanner(
-                missingProps(reports?.scenes ?? null, reports?.missingProps ?? null),
+              propsBanner={propsBanner(
+                propsSummary(reports?.scenes ?? null, reports?.props ?? null),
               )}
               actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
               onRebuild={(shotId) => {
-                setShotNotice(undefined);
-                void window.reelforge.runScenes('build', [shotId]).then((result) => {
-                  if (result.status === 'error') setShotNotice(result.message ?? 'Not started.');
+                runScenes('build', shotId);
+              }}
+              locked={locks.locked}
+              outOfSync={outOfSyncLocked(
+                locks.locked,
+                reports?.sync ?? null,
+                reports?.finalReview ?? null,
+              )}
+              lockable={lockableOkShots(shots, badges, locks.locked)}
+              onLock={(shotIds, lock) => {
+                void locks.setLocked(shotIds, lock);
+              }}
+              onVariants={variants.open}
+              withVariants={variants.withVariants}
+              onUnlockAndFix={(shotId) => {
+                void locks.setLocked([shotId], false).then((unlocked) => {
+                  if (unlocked) runScenes('sync-check', shotId);
                 });
               }}
               onFix={(shotId) => {
@@ -211,16 +258,17 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
                   text: fixPrompt(shotId, badges.get(shotId)),
                   nonce: (current?.nonce ?? 0) + 1,
                 }));
+                chatDock.show();
               }}
             />
           </div>
         }
         center={
           <div
-            className={`center-stack${centerDocument?.kind === 'scenes' || centerDocument?.kind === 'sound' ? ' has-dock' : ''}`}
+            className={`center-stack${variantsOpen || centerDocument?.kind === 'scenes' || centerDocument?.kind === 'sound' ? ' has-dock' : ''}`}
           >
             <PreviewPanel
-              source={{ kind: 'project', revision: previewRevision }}
+              source={variants.source(previewRevision)}
               player={player}
               snapshots
               onPick={(pick, x, y) => {
@@ -232,75 +280,30 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
                   : null
               }
             />
-            {centerDocument?.kind === 'script' && (
-              <ScriptPanel
+            {variantsOpen && (
+              <VariantsDockPanel dock={variants} stages={stages} locked={locks.locked} />
+            )}
+            {centerDocument !== null && (
+              <CenterDocument
+                document={centerDocument}
                 project={project}
                 stages={stages}
-                tab={centerDocument.tab}
+                reports={reports}
+                shots={shots}
+                words={snapshot?.words}
+                sound={sound}
+                mixPreview={mixPreview}
                 onTab={(tab) => {
                   setCenterDocument({ kind: 'script', tab });
                 }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'scenes' && (
-              <ScenesPanel
-                stages={stages}
-                reports={reports}
-                totalShots={shots.length}
-                onSeekShot={(shotId, t) => {
-                  timeline.selection.set([{ kind: 'shot', id: shotId }]);
+                onSeek={(t) => {
                   player.seek(t);
                 }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'sound' && (
-              <SoundPanel
-                sound={sound}
-                preview={mixPreview}
-                stages={stages.state}
-                onAdd={(librarySound) => {
+                onSeekShot={seekShot}
+                onAddSound={(librarySound) => {
                   addSound(librarySound, time);
                 }}
-                onOpenStems={() => {
-                  void stages.open('stems');
-                }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'voiceover' && (
-              <VoiceoverPanel
-                stages={stages}
-                reports={reports}
-                onSeek={(t) => {
-                  player.seek(t);
-                }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'words' && (
-              <WordsPanel
-                words={snapshot?.words}
-                report={reports?.words ?? null}
-                busy={
-                  stages.state?.running?.stage === 'words' ||
-                  stages.state?.queue.includes('words') === true
-                }
-                onSeek={(t) => {
-                  player.seek(t);
-                }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
+                onClose={closeDocument}
               />
             )}
           </div>
@@ -313,6 +316,8 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
               setSelection(null);
             }}
             prefill={prefill}
+            collapsed={!chatDock.open}
+            onToggleCollapsed={chatDock.toggle}
           />
         }
         bottom={
@@ -324,6 +329,7 @@ export function Workspace({ project }: WorkspaceProps): JSX.Element {
             fps={fps}
             selection={timeline.selection}
             editing={timeline.editing}
+            locked={locks.locked}
             waveform={timeline.waveform}
             onSeek={(t) => {
               player.seek(t);

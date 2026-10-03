@@ -27,6 +27,7 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
+import { showChat } from './support/pipeline-rows.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const SAMPLE_FRAME = path.join(
@@ -169,7 +170,9 @@ afterAll(async () => {
 
 describe('Claude chat panel', () => {
   it('picks the calculator, makes it bigger end-to-end, hot-reloads and commits', async () => {
-    const chat = page.getByRole('region', { name: 'Claude' });
+    // 1280 px wide: the chat starts as the rail (PLAN.md#11.2).
+    expect(await page.getByRole('button', { name: 'Show chat' }).count()).toBe(1);
+    const chat = await showChat(page);
     await page.getByRole('button', { name: /^Shot s02,/ }).click();
     await page.waitForFunction(
       () =>

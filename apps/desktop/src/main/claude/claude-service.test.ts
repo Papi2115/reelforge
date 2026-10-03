@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -283,6 +283,50 @@ describe('ClaudeService queue', () => {
     await service.send(message('again'));
     await until(() => service.state().turns[1]?.status === 'done');
     expect(service.state().notice).toBeNull();
+  });
+});
+
+function lockShots(project: string, ids: readonly string[]): void {
+  const shots = ids.map((shotId) => ({ shotId, lockedAt: '2026-10-03T10:00:00.000Z' }));
+  writeFileSync(path.join(project, 'locks.json'), JSON.stringify({ version: 1, shots }));
+}
+
+describe('ClaudeService and shot locks', () => {
+  it('refuses a Shot or Selection message on a locked shot', async () => {
+    const { service, project } = harness({});
+    lockShots(project, ['s02']);
+    expect(await service.send(message('bigger', { scope: 'shot', shotIds: ['s02'] }))).toEqual({
+      status: 'error',
+      error: { kind: 'invalid-request', message: 'Shot s02 is locked — unlock it to change it.' },
+    });
+    expect(service.state().turns).toEqual([]);
+  });
+
+  it('discards a turn’s change to a locked shot before the commit and says so', async () => {
+    const script = scriptFile({
+      version: 1,
+      default: {
+        scenario: 'tools-write',
+        reply: 'Polished every shot.',
+        writes: [
+          { path: 'scenes/s01.js', content: '// s01 v2\n' },
+          { path: 'scenes/s02.js', content: '// s02 v2\n' },
+        ],
+      },
+    });
+    const { service, project, commits } = harness(fakeClaudeEnv({ script }));
+    mkdirSync(path.join(project, 'scenes'));
+    writeFileSync(path.join(project, 'scenes', 's02.js'), '// s02 v1\n');
+    lockShots(project, ['s02']);
+    await service.send(message('polish everything'));
+    await until(() => idle(service) && commits.length === 1);
+    expect(readFileSync(path.join(project, 'scenes', 's02.js'), 'utf8')).toBe('// s02 v1\n');
+    expect(readFileSync(path.join(project, 'scenes', 's01.js'), 'utf8')).toBe('// s01 v2\n');
+    expect(service.state().turns[0]?.steps.at(-1)).toEqual({
+      type: 'text',
+      id: 'locks-0',
+      text: '⚠ Claude tried to change locked shot s02; change discarded',
+    });
   });
 });
 

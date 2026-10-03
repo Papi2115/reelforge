@@ -157,6 +157,13 @@ const CRITIC_OK = JSON.stringify({
   frames: [{ path: 'sheet.png', verdict: 'ok', note: 'looks right' }],
 });
 
+/** fake-claude rule: the final review's critic finds nothing (PLAN.md#11.5). */
+export const FINAL_REVIEW_CLEAN = {
+  scenario: 'tools-write',
+  reply: '{"suspects":[]}',
+  promptIncludes: '.reelforge/frames/qa/final/sheet-1.png',
+} as const satisfies FakeClaudeStep & { promptIncludes: string };
+
 /** fake-claude rules for every Claude turn of the pipeline (never a model call). */
 export function pipelineScript(): FakeClaudeScript {
   const shots = goldenShots();
@@ -190,6 +197,8 @@ export function pipelineScript(): FakeClaudeScript {
         ...writes({ 'cues.json': golden('cues.json') }, 'sfx 4, ambience 1, music 0.'),
         promptIncludes: 'You are the sound designer',
       },
+      // The final review's batched critic after Scenes built (PLAN.md#11.5): nothing suspicious.
+      { ...FINAL_REVIEW_CLEAN },
     ],
     default: { scenario: 'tools-write', reply: CRITIC_OK },
   };

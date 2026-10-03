@@ -98,6 +98,16 @@ describe('settings', () => {
     await gate.getByText('Claude Code is not installed').waitFor();
     await gate.getByRole('button', { name: 'Skip for now' }).click();
     await gate.waitFor({ state: 'detached' });
+    // Step 2: ffmpeg / whisper.cpp status with the same install button as Settings → Tools.
+    const tools = page.getByRole('dialog', { name: 'Prepare tools' });
+    await tools.getByText('whisper.cpp (word timing)').waitFor();
+    await tools.getByText(/^(Installed, with the|Times every spoken word)/).waitFor({
+      timeout: 30_000,
+    });
+    await expectFits(page, 'Prepare tools');
+    await page.screenshot({ path: path.join(screenshotDir, 'settings-first-run-tools.png') });
+    await tools.getByRole('button', { name: 'Skip', exact: true }).click();
+    await tools.waitFor({ state: 'detached' });
     await expect
       .poll(async () => (await savedSettings())['onboarding'])
       .toEqual({ connectClaudeDone: true, welcomeDone: false, tourDone: false });
@@ -105,10 +115,16 @@ describe('settings', () => {
     const welcome = page.getByRole('region', { name: 'Welcome to ReelForge' });
     await welcome.getByRole('button', { name: 'Skip: go to the start screen' }).click();
     await page.getByRole('region', { name: 'Start' }).waitFor();
+    // The start screen shows at once (optimistic); the next test relaunches, so wait for the file.
+    await expect
+      .poll(async () => (await savedSettings())['onboarding'])
+      .toEqual({ connectClaudeDone: true, welcomeDone: true, tourDone: false });
   });
 
   it('changes language and Economy mode; both persist after a relaunch', async () => {
     let page = await open({ hook: true });
+    // Onboarding is done (previous test): the start screen, not the Welcome screen.
+    await page.getByRole('region', { name: 'Start' }).waitFor();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Settings' });
     await dialog.getByText('Claude Code is not installed').waitFor();
@@ -122,7 +138,7 @@ describe('settings', () => {
     await dialog.getByRole('tab', { name: 'Models' }).click();
     const economy = dialog.getByRole('checkbox', { name: /Economy mode/ });
     await economy.check();
-    await dialog.getByText('Economy mode is on: all stages use Sonnet.').waitFor();
+    await dialog.getByText('Economy mode is on: all steps use Sonnet.').waitFor();
     expect(await dialog.getByLabel('Scene code').isDisabled()).toBe(true);
     await expectFits(page, 'Settings');
     await page.screenshot({ path: path.join(screenshotDir, 'settings-models.png') });

@@ -1,6 +1,6 @@
 /**
- * `reelforge kit-docs ctx|camera|text|...`: reference of the scene context (`ctx.camera`,
- * `ctx.text`, `ctx.anchor`, ...), next to the kit catalog. In the first real run (PLAN.md#10.4)
+ * `reelforge kit-docs ctx|camera|text|annotate|...`: reference of the scene context (`ctx.camera`,
+ * `ctx.text`, `ctx.annotate`, `ctx.anchor`, ...), next to the kit catalog. In the first real run (PLAN.md#10.4)
  * every scene author asked `kit-docs camera` / `kit-docs text` and then guessed option names;
  * text options are generated from the engine's own schemas so they cannot drift.
  */
@@ -10,7 +10,9 @@ import {
   lowerThirdOptionsSchema,
   titleOptionsSchema,
 } from '@reelforge/engine';
+import { SFX_CATEGORY, SFX_RECIPES, SFX_USE, SFX_VARIANTS } from '@reelforge/pipeline';
 import { z } from 'zod';
+import { annotateDocs } from './annotate-docs.js';
 import { paramDocs } from './schema-docs.js';
 
 const TIMING =
@@ -56,10 +58,17 @@ const ANCHOR = [
   '  resolve anchors in build() and return them in the state; check with: reelforge anchors --shot <storyboard shot id>',
 ].join('\n');
 
-const SFX = [
-  'ctx.sfx.at(t, name) — build() only; t in local seconds (usually an anchor time)',
-  '  names: whoosh, click, hit, typewriter, riser, glitch, tick, pop',
-].join('\n');
+/** Generated from the pipeline's recipe table, so new sounds appear here automatically. */
+function sfxDocs(): string {
+  return [
+    'ctx.sfx.at(t, name) — build() only; t in local seconds (usually an anchor time)',
+    '  built-in names (category; variants, picked in cues.json by seed % count): use',
+    ...SFX_RECIPES.map(
+      (name) =>
+        `  ${name} (${SFX_CATEGORY[name]}; ${SFX_VARIANTS[name].join('/')}): ${SFX_USE[name]}`,
+    ),
+  ].join('\n');
+}
 
 const RNG = [
   'ctx.rng — seeded; never Math.random. ctx.rng() -> [0,1), rng.range(min, max), rng.int(min, max), rng.pick(list), rng.fork(label)',
@@ -79,8 +88,9 @@ const SHOT = [
 const TOPICS: Readonly<Record<string, () => string>> = {
   camera: () => CAMERA,
   text: textDocs,
+  annotate: annotateDocs,
   anchor: () => ANCHOR,
-  sfx: () => SFX,
+  sfx: sfxDocs,
   rng: () => RNG,
   ease: easeDocs,
   shot: () => SHOT,
@@ -94,7 +104,7 @@ export const CTX_TOPICS: readonly string[] = ['ctx', ...Object.keys(TOPICS)];
 export function describeCtxTopic(input: string): string | undefined {
   const name = input.replace(/^ctx\.?/, '');
   if (name === '') {
-    const parts = [CAMERA, textDocs(), ANCHOR, SFX, RNG, easeDocs(), SHOT];
+    const parts = [CAMERA, textDocs(), annotateDocs(), ANCHOR, sfxDocs(), RNG, easeDocs(), SHOT];
     return [`ctx (scene context; scenes import nothing, everything comes from ctx)`, ...parts].join(
       '\n',
     );

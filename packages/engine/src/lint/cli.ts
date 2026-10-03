@@ -5,7 +5,7 @@
  */
 import { describeError } from '../errors.js';
 import { formatDiagnostics, type LintDiagnostic } from './diagnostics.js';
-import { lintScene } from './lint-scene.js';
+import { lintModule } from './lint-prop.js';
 
 export interface LintCliIo {
   readFile(file: string): Promise<string>;
@@ -14,7 +14,8 @@ export interface LintCliIo {
 }
 
 export const LINT_USAGE = `usage: reelforge lint [--json] <scene.js>...
-Checks scene modules for non-deterministic APIs and scene-contract problems.
+Checks scene modules (and kit-ext/props/*.js prop modules) for non-deterministic APIs and
+contract problems.
   --json   print [{ "file", "diagnostics": [{ rule, severity, line, column, message, fix }] }]
 Exit code: 0 no errors, 1 lint errors, 2 usage or read failure.`;
 
@@ -54,7 +55,7 @@ export async function runLintCli(args: readonly string[], io: LintCliIo): Promis
       io.stderr(`reelforge lint: cannot read ${file}: ${describeError(error)}\n`);
       return 2;
     }
-    results.push({ file, diagnostics: lintScene(source, { filename: file }) });
+    results.push({ file, diagnostics: lintModule(source, { filename: file }) });
   }
   const errors = count(results, 'error');
   if (flags.includes('--json')) {

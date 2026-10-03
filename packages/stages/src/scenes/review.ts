@@ -36,7 +36,7 @@ export const REVIEW_REQUESTS: Readonly<Record<ReviewMode, string>> = {
 };
 
 /** Rows per contact sheet of the review (one row per shot). */
-const SHEET_ROWS = 8;
+export const SHEET_ROWS = 8;
 
 export interface ReviewSuspect {
   readonly shot: string;
@@ -115,7 +115,8 @@ function mergeSuspects(...lists: (readonly ReviewSuspect[])[]): ReviewSuspect[] 
   return [...merged].map(([shot, reasons]) => ({ shot, reason: reasons.join('; ') }));
 }
 
-async function triage(
+/** One Haiku turn over the contact sheets: the shots that look wrong (invalid reply = none). */
+export async function triage(
   job: SceneJob,
   shots: readonly StoryboardShot[],
   sheets: readonly string[],

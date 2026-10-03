@@ -24,7 +24,8 @@ export interface VoiceoverPanelProps {
 
 function Current({ reports }: { readonly reports: StageReports | undefined }): JSX.Element {
   const record = reports?.voiceover ?? null;
-  if (record === null) return <p className="muted">No recording yet.</p>;
+  if (record === null)
+    return <p className="muted">No recording yet. Record one here or import a file.</p>;
   const imported = new Date(record.importedAt).toLocaleString([], {
     dateStyle: 'medium',
     timeStyle: 'short',

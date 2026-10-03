@@ -3,13 +3,14 @@
  * placeholder scenes — plus real scene sources in variants (clean, lint error, overlapping cards,
  * blank) and fake-claude rules that "write" them per shot and turn.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { FakeClaudeScript, FakeClaudeStep } from '@reelforge/fake-claude';
 import type { WordsFile as PipelineWordsFile } from '@reelforge/pipeline';
 import type { StoryboardFile, StoryboardShot, Treatment } from '@reelforge/shared';
 import { sceneStubSource } from '../stages/scene-stub.js';
 import { writes } from './fake-claude.js';
+import { REPO_ROOT } from './project.js';
 
 const NUMBERS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 const TREATMENTS: readonly Treatment[] = ['metaphor-object', 'title-card', 'kinetic-text'];
@@ -256,3 +257,40 @@ export const EIGHT_SHOT_STATUSES = {
 } as const;
 
 export const EIGHT_SHOT_FIXES = { s03: 1, s04: 1, s05: 1, s08: 1 } as const;
+
+/** The reference project prop (`packages/kit/examples/kit-ext/fridge.js`). */
+export const FRIDGE_PROP = readFileSync(
+  path.join(REPO_ROOT, 'packages', 'kit', 'examples', 'kit-ext', 'fridge.js'),
+  'utf8',
+);
+
+/** `sceneSource(shot)` that also places `kit.props.<prop>()` next to the cube. */
+export function propSceneSource(shot: FilmShot, prop: string): string {
+  return sceneSource(shot).replace(
+    '  scene.add(desk, cube, side);',
+    `  scene.add(desk, cube, side);\n  const extra = ctx.kit.props.${prop}({ scale: 0.6 });\n  extra.position.set(2.2, 0, 0.5);\n  scene.add(extra);`,
+  );
+}
+
+/** fake-claude rule: the prop-build turn of `name` writes `content` to kit-ext/props. */
+export function propRule(
+  name: string,
+  content: string,
+  reply = 'Built it. prop-preview: all checks ok.',
+): FakeClaudeStep & { promptIncludes: string } {
+  return {
+    ...writes({ [`kit-ext/props/${name}.js`]: content }, reply),
+    promptIncludes: `Build it as a project prop: \`kit-ext/props/${name}.js\``,
+  };
+}
+
+/** fake-claude rule: the second build of `shot`, after props were built, writes `content`. */
+export function rebuildRule(
+  shot: FilmShot,
+  content: string,
+): FakeClaudeStep & { promptIncludes: string } {
+  return {
+    ...writes({ [shot.scene]: content }, 'Built with the new prop.'),
+    promptIncludes: `New project props were built for this shot`,
+  };
+}

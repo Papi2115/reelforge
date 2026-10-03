@@ -1,7 +1,8 @@
-/** @reelforge/engine: deterministic scene runtime (scene contract, clock/seek, RNG, transitions, post-fx, camera rigs, pixel text). */
+/** @reelforge/engine: deterministic scene runtime (scene contract, clock/seek, RNG, transitions, post-fx, camera rigs, pixel text, annotations). */
 export const packageName = '@reelforge/engine';
 
 export * from './anchors.js';
+export * from './annotations/index.js';
 export * from './camera/easing.js';
 export * from './camera/rigs.js';
 export type * from './contract.js';

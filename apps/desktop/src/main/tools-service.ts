@@ -44,6 +44,8 @@ export interface ToolsServiceOptions {
   readonly pickFile: (tool: ToolId) => Promise<string | undefined>;
   readonly log: Logger;
   readonly probes?: ToolProbes;
+  /** App-wide whisper options (test hooks: install root). */
+  readonly whisperBase?: WhisperLocateOptions;
 }
 
 const PATH_KEYS: Readonly<Record<ToolId, ToolPathKey>> = {
@@ -112,7 +114,7 @@ export class ToolsService {
 
   private whisperStatus(settings: AppSettings): WhisperStatus {
     return whisperStatusOf(
-      this.probes.whisper(whisperManagerOptions(settings)),
+      this.probes.whisper(whisperManagerOptions(settings, this.options.whisperBase)),
       settings.tools.whisperPath !== null,
     );
   }
@@ -151,7 +153,7 @@ export class ToolsService {
       const probed = await this.probes.ffmpeg({ configuredPath: file });
       return probed.ok ? undefined : probed.error.message;
     }
-    const located = this.probes.whisper({ configuredPath: file });
+    const located = this.probes.whisper({ ...this.options.whisperBase, configuredPath: file });
     return located.ok ? undefined : located.error.message;
   }
 }

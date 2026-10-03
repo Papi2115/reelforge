@@ -2,10 +2,18 @@
 import type { KitContext } from '../context.js';
 import { KitError } from '../errors.js';
 import { createKitObject, type KitObject } from '../object.js';
+import { Sketch } from '../props/sketch.js';
 import type { Axis, KitRng, Vec3 } from '../types.js';
 import { voxelFromGrid, voxelGenerate, type VoxelGridInput } from './grid.js';
+import { inspectObject, type KitInspection } from './inspect.js';
 import { createVoxelObject, type VoxelMeshOptions, type VoxelObject } from './mesh.js';
-import { voxelCount, type VoxelColor, type VoxelModel } from './model.js';
+import {
+  checkSize,
+  MAX_MODEL_COLORS,
+  voxelCount,
+  type VoxelColor,
+  type VoxelModel,
+} from './model.js';
 import {
   extrude,
   merge,
@@ -38,6 +46,8 @@ export interface VoxelApi {
   recolor(model: VoxelModel, mapping: Readonly<Record<string, VoxelColor>>): VoxelModel;
   speckle(model: VoxelModel, options: SpeckleOptions, rng: KitRng): VoxelModel;
   count(model: VoxelModel): number;
+  sketch<Slot extends string>(size: Vec3, colors: Readonly<Record<Slot, VoxelColor>>): Sketch<Slot>;
+  inspect(object: KitObject): KitInspection;
   mesh(model: VoxelModel, options?: VoxelMeshOptions): VoxelObject;
   group(options?: GroupOptions): KitObject;
 }
@@ -85,6 +95,17 @@ export const VOXEL_API_DOCS: Readonly<Record<keyof VoxelApi, ApiDoc>> = {
       "Pixel-art texture noise: a seeded share of 'from' voxels become 'to'. Pass ctx.rng.fork('name').",
   },
   count: { signature: 'count(model) -> number', description: 'Number of filled voxels.' },
+  sketch: {
+    signature:
+      "sketch([sx, sy, sz], { slot: color, ... }) -> sketch; sketch.box(slot | null, [x0,y0,z0], [x1,y1,z1]) / paint(slot, min, max) / set(slot, x, y, z) / cylinderY(slot, [cx, cz], r, y0, y1) / cylinderX(slot, [cz, cy], r, x0, x1) / cylinderZ(slot, [cx, cy], r, z0, z1) / pattern(rows, key, 'xy' | 'xz', [x, y, z]) / filled(x, y, z); sketch.model() -> model",
+    description:
+      "Mutable voxel canvas with named colour slots (how the kit's own props are drawn): boxes are min-inclusive, max-exclusive and clipped to the canvas; null clears; paint recolours only filled cells (labels, stripes, seams); the methods chain. Grid y is up, +z faces the camera.",
+  },
+  inspect: {
+    signature: 'inspect(object) -> { size: [x, y, z], meshes, voxels, floatingParts: [text] }',
+    description:
+      'Size of an object (its scale applied) and the parts that float (touch no other part and not the ground). Read-only; used by reelforge prop-preview.',
+  },
   mesh: {
     signature:
       "mesh(model, { voxelSize = 0.125, pivot: 'bottom' | 'center' | 'corner' | [x, y, z], anchors: { name: [x, y, z] }, ao = 0.45, mode: 'auto' | 'greedy' | 'instanced', includeHidden }) -> object",
@@ -115,6 +136,31 @@ function checkModel(value: unknown, call: string): VoxelModel {
   return candidate as VoxelModel;
 }
 
+function createSketch<Slot extends string>(
+  size: Vec3,
+  colors: Readonly<Record<Slot, VoxelColor>>,
+): Sketch<Slot> {
+  // Scenes and project props are untyped JS: check the shapes the types promise.
+  const rawSize: unknown = size;
+  if (!Array.isArray(rawSize) || rawSize.length !== 3) {
+    throw new KitError(
+      'invalid-model',
+      'kit.voxel.sketch(size, colors): size must be [sx, sy, sz]',
+    );
+  }
+  checkSize(size, 'kit.voxel.sketch');
+  const rawColors: unknown = colors;
+  const count =
+    typeof rawColors === 'object' && rawColors !== null ? Object.keys(rawColors).length : 0;
+  if (count === 0 || count > MAX_MODEL_COLORS) {
+    throw new KitError(
+      'invalid-model',
+      `kit.voxel.sketch(size, colors): colors must map 1..${String(MAX_MODEL_COLORS)} slot names to palette colours, e.g. { body: 'heroTrim', trim: 'accent1' }`,
+    );
+  }
+  return new Sketch(size, colors);
+}
+
 export function createVoxelApi(context: KitContext): VoxelApi {
   return Object.freeze({
     fromGrid: voxelFromGrid,
@@ -129,6 +175,9 @@ export function createVoxelApi(context: KitContext): VoxelApi {
     speckle: (model: VoxelModel, options: SpeckleOptions, rng: KitRng) =>
       speckle(checkModel(model, 'kit.voxel.speckle'), options, rng),
     count: (model: VoxelModel) => voxelCount(checkModel(model, 'kit.voxel.count')),
+    sketch: <Slot extends string>(size: Vec3, colors: Readonly<Record<Slot, VoxelColor>>) =>
+      createSketch(size, colors),
+    inspect: (object: KitObject) => inspectObject(context.three, object),
     mesh(model: VoxelModel, options?: VoxelMeshOptions) {
       context.assertBuildPhase('kit.voxel.mesh()');
       return createVoxelObject(context, checkModel(model, 'kit.voxel.mesh'), options);

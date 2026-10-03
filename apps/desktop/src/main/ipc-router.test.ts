@@ -6,8 +6,10 @@ import type { ProjectOpenResult } from '../shared/project-contract.js';
 import { createLogger } from './logger.js';
 import { defaultAppSettings } from '@reelforge/shared';
 import type { ToolsStatus } from '../shared/settings-contract.js';
+import type { WhisperState } from '../shared/whisper-contract.js';
 import type { SettingsHandlers } from './settings-ipc.js';
 import type { SoundHandlers } from './sound/sound-ipc.js';
+import type { VariantsHandlers } from './stages/variants-ipc.js';
 import type { ExportHandlers } from './export/export-ipc.js';
 
 type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
@@ -50,6 +52,30 @@ const opened: ProjectOpenResult = {
   },
 };
 
+const WHISPER_STATE: WhisperState = {
+  engine: {
+    installs: [],
+    problem: 'whisper.cpp is not installed',
+    configured: false,
+    installBackends: ['blas'],
+    installBytes: 21_360_234,
+    existing: [],
+    root: 'C:\\w',
+  },
+  models: [],
+  vadInstalled: false,
+  vadBytes: 885_098,
+  modelsDir: 'C:\\w\\models',
+  recommended: 'large-v3-turbo-q5_0',
+  readiness: {
+    ready: false,
+    model: 'large-v3-turbo-q5_0',
+    missing: ['engine', 'vad', 'model'],
+    bytes: 596_286_527,
+  },
+  job: null,
+};
+
 /** Settings channels (PLAN.md#6.7); their requests are checked in the test below. */
 function settingsStubs(record: <T>(request: unknown, response: T) => Promise<T>): SettingsHandlers {
   const tools: ToolsStatus = {
@@ -71,11 +97,12 @@ function settingsStubs(record: <T>(request: unknown, response: T) => Promise<T>)
     toolsStatus: (request) => record(request, tools),
     toolsBrowse: (request) => record(request, { status: 'cancelled' } as const),
     toolsReset: (request) => record(request, tools),
-    whisperModels: (request) =>
-      record(request, { modelsDir: 'C:\\m', models: [], vadInstalled: false, downloading: null }),
-    whisperDownload: (request) => record(request, { status: 'started' } as const),
+    whisperState: (request) => record(request, WHISPER_STATE),
+    whisperInstall: (request) => record(request, { status: 'started' } as const),
     whisperCancel: (request) => record(request, null),
     whisperDelete: (request) => record(request, { status: 'deleted' } as const),
+    whisperUseExisting: (request) =>
+      record(request, { status: 'invalid', message: 'not a detected install' } as const),
   };
 }
 
@@ -132,8 +159,9 @@ function soundStubs(record: <T>(request: unknown, response: T) => Promise<T>): S
         gains: { voGainDb: 0, sfxGainDb: 0, ambienceGainDb: 0, musicGainDb: 0 },
         ducking: null,
         musicCues: 0,
+        cues: null,
         cuesError: null,
-        mix: { exists: false, stale: false, result: null },
+        mix: { exists: false, stale: false, result: null, qa: null },
         stems: [],
       }),
     soundImport: (request) =>
@@ -143,6 +171,18 @@ function soundStubs(record: <T>(request: unknown, response: T) => Promise<T>): S
       record(request, { status: 'ok', message: 'Sound', committed: true } as const),
     soundRun: (request) => record(request, { status: 'queued', message: null } as const),
     mixPreview: (request) => record(request, { status: 'unavailable', reason: 'n/a' } as const),
+  };
+}
+
+/** Shot variant channels (PLAN.md#11.3). */
+function variantStubs(record: <T>(request: unknown, response: T) => Promise<T>): VariantsHandlers {
+  return {
+    variantsState: (request) => record(request, { projectDir: null, sets: [] }),
+    variantsEstimate: (request) =>
+      record(request, { text: '≈ 3 Opus turns', turns: 3, model: 'opus' }),
+    variantsRun: (request) => record(request, { status: 'queued', message: null } as const),
+    variantsClip: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+    variantsManifest: (request) => record(request, { status: 'no-storyboard' } as const),
   };
 }
 
@@ -240,11 +280,14 @@ function setup(): {
           words: null,
           scenes: null,
           sync: null,
-          missingProps: null,
+          props: null,
+          finalReview: null,
         }),
       wordsRetry: (request) => record(request, { status: 'queued', message: null } as const),
       scenesRun: (request) => record(request, { status: 'queued', message: null } as const),
+      shotsLock: (request) => record(request, { status: 'ok', message: null } as const),
       ...soundStubs(record),
+      ...variantStubs(record),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),
@@ -368,15 +411,27 @@ describe('registerIpc', () => {
       'invalid request',
     );
     await expect(
-      ipc.invoke(IPC.whisperDownload.name, APP_URL, { model: '../../evil' }),
+      ipc.invoke(IPC.whisperDelete.name, APP_URL, { model: '../../evil' }),
     ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.whisperInstall.name, APP_URL, { job: { kind: 'binary', url: 'http://x' } }),
+    ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.whisperInstall.name, APP_URL, { job: { kind: 'model', model: 'huge' } }),
+    ).rejects.toThrow('invalid request');
+    await expect(ipc.invoke(IPC.whisperState.name, APP_URL, null)).rejects.toThrow(
+      'invalid request',
+    );
+    await expect(
+      ipc.invoke(IPC.whisperInstall.name, APP_URL, { job: { kind: 'setup' } }),
+    ).resolves.toEqual({ status: 'started' });
     await expect(
       ipc.invoke(IPC.claudeOpenLogin.name, APP_URL, { command: 'calc' }),
     ).rejects.toThrow('invalid request');
     await expect(
       ipc.invoke(IPC.claudeStatus.name, APP_URL, { refresh: true }),
     ).resolves.toMatchObject({ state: 'not-installed' });
-    expect(calls).toEqual([patch, { refresh: true }]);
+    expect(calls).toEqual([patch, { job: { kind: 'setup' } }, { refresh: true }]);
   });
 
   it('validates stage requests: stage and artifact names only, never paths', async () => {

@@ -3,7 +3,7 @@
  * zod schemas with defaults, and error messages that name the call, the option and the fix.
  */
 import { z } from 'zod';
-import { EngineError } from '../errors.js';
+import { EngineError, type EngineErrorCode } from '../errors.js';
 
 export const FONT_NAMES = ['display', 'mono'] as const;
 const SLIDES = ['slide-up', 'slide-down', 'slide-left', 'slide-right'] as const;
@@ -125,8 +125,8 @@ export type ParsedKineticOptions = z.output<typeof kineticOptionsSchema>;
 export type ParsedMeasureStyle = z.output<typeof measureStyleSchema>;
 
 /**
- * Parses an argument of a `ctx.text` call (`label` names it in messages) or throws an
- * `invalid-text-options` EngineError naming the call and the offending option.
+ * Parses an argument of a `ctx.text` (or `ctx.annotate`) call (`label` names it in messages) or
+ * throws an EngineError (`code`, default `invalid-text-options`) naming the call and the option.
  */
 export function parseTextArgument<Schema extends z.ZodType>(
   schema: Schema,
@@ -134,6 +134,7 @@ export function parseTextArgument<Schema extends z.ZodType>(
   call: string,
   shotId: string,
   label = 'options',
+  code: EngineErrorCode = 'invalid-text-options',
 ): z.output<Schema> {
   const result = schema.safeParse(input);
   if (result.success) return result.data;
@@ -144,7 +145,7 @@ export function parseTextArgument<Schema extends z.ZodType>(
       return `${where}: ${issue.message}${known === undefined ? '' : ` (known options: ${known.join(', ')})`}`;
     })
     .join('; ');
-  throw new EngineError('invalid-text-options', `${call}: ${details}`, { shotId });
+  throw new EngineError(code, `${call}: ${details}`, { shotId });
 }
 
 /** Keys of the object schema at `path` (an LLM guessing `position` learns it is `pos`). */

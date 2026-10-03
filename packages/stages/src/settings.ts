@@ -36,6 +36,8 @@ export interface SceneSettings {
   /** Phone legibility: smallest integer text scale and glyph height (px at 640 wide). */
   readonly minTextScale: number;
   readonly minGlyphPx: number;
+  /** Project props (kit-ext) the scene stage may build per film (PLAN.md#7.4). */
+  readonly maxNewProps: number;
 }
 
 export interface StageSettings {
@@ -50,6 +52,8 @@ export interface StageSettings {
   /** Keep the replaced recording as `audio/vo.original.prev.<ext>`. */
   readonly archivePreviousVoiceover: boolean;
   readonly scenes: SceneSettings;
+  /** Generated background music per act in the sound-cues stage (default on). */
+  readonly music: { readonly enabled: boolean };
 }
 
 export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
@@ -58,6 +62,7 @@ export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
   critic: true,
   minTextScale: 2,
   minGlyphPx: 14,
+  maxNewProps: 12,
 };
 
 export const MIN_WORDS_COVERAGE = 0.85;
@@ -79,6 +84,7 @@ export const DEFAULT_STAGE_SETTINGS: StageSettings = {
   mixToleranceLu: 1,
   archivePreviousVoiceover: true,
   scenes: DEFAULT_SCENE_SETTINGS,
+  music: { enabled: true },
 };
 
 /** Stage settings from the desktop app settings (`settings.json`). */
@@ -88,6 +94,7 @@ export function stageSettingsFromApp(app: AppSettings): StageSettings {
     ...DEFAULT_STAGE_SETTINGS,
     economy: app.economy,
     models: app.models,
+    music: { enabled: app.music.enabled },
     whisper: {
       ...DEFAULT_STAGE_SETTINGS.whisper,
       model,

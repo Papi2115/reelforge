@@ -1,8 +1,10 @@
 /**
  * The preview's render manifest for the open project (PLAN.md#6.3): project.json + storyboard +
- * scene sources + timed words, inlined so the sandboxed engine never touches the disk (ADR-004).
+ * scene sources + timed words + project props (kit-ext/props, PLAN.md#7.4), inlined so the
+ * sandboxed engine never touches the disk (ADR-004).
  * Any reason the video cannot be built is returned as text for the preview's note.
  */
+import { describeUnknown, readKitExtensions, type KitExtensionFiles } from '@reelforge/cli/service';
 import {
   projectFileSchema,
   renderManifestSchema,
@@ -57,6 +59,12 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
     });
   }
 
+  let props: KitExtensionFiles;
+  try {
+    props = await readKitExtensions(dir);
+  } catch (error) {
+    return unavailable(`kit-ext/props cannot be read: ${describeUnknown(error)}`);
+  }
   const { style, fps, seed, palette } = project.data;
   const manifest = renderManifestSchema.safeParse({
     version: 1,
@@ -65,6 +73,7 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
     seed,
     ...(palette ? { palette } : {}),
     ...(words.status === 'ok' ? { words: words.data } : {}),
+    ...(props.extensions.length > 0 ? { kitExtensions: props.extensions } : {}),
     shots: manifestShots,
   });
   if (!manifest.success) {

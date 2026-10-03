@@ -133,6 +133,7 @@
 /* Player overlays (PLAN.md#6.4) */
 .preview-stats,
 .preview-reload,
+.preview-audio-problem,
 .preview-snapshot {
   position: absolute;
   margin: 0;
@@ -153,6 +154,18 @@
   bottom: 8px;
   right: 8px;
   color: var(--ok);
+}
+
+/* Below the preview note (top left), above the snapshot notice (bottom left). */
+.preview-audio-problem {
+  top: 40px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 16px);
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 .preview-snapshot {

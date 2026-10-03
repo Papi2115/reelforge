@@ -16,6 +16,11 @@
     "shotId": "s03_agc",
     "imagePaths": ["out/frames/s03_agc/0.000.png", "out/frames/s03_agc/4.160.png"]
   },
+  "propBuild": {
+    "name": "lunarModule",
+    "description": "The Apollo lunar module: gold-foil octagonal descent stage on four splayed legs with footpads, a grey angular ascent cabin with a dark window on top.",
+    "shotIds": ["s02_moon"]
+  },
   "replies": {
     "research": "Zapisano research.md: 9 faktów ze źródłami.\nGłówne źródła: Wikipedia (AGC, Apollo 11).\nNiepewne: porównanie mocy telefonu i AGC.",
     "script": "Liczba słów: 71. Szacowany czas: ok. 30 sekund.\nWszystkie fakty mają źródła w research.md.",
@@ -70,6 +75,7 @@
         "margaret hamilton",
         "historia informatyki"
       ]
-    }
+    },
+    "prop-build": "Zbudowany lunarModule: 1.6 x 1.5 x 1.6 j., złoty stopień z 4 nogami, szara kabina z oknem.\nprop-preview: wszystkie testy ok; od frontu i z 3/4 czytelny jako lądownik."
   }
 }

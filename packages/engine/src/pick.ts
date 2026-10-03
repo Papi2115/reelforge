@@ -102,7 +102,7 @@ function pickText(input: PickInput): PickResult | undefined {
     parent: undefined,
     position: undefined,
     size: undefined,
-    description: `${card.kind} text card "${text}" (id ${card.id}) at ${String(card.box.x)},${String(card.box.y)} px, ${String(card.box.w)}x${String(card.box.h)} px`,
+    description: `${card.annotation ? `${card.annotation.type} annotation` : `${card.kind} text card`} "${text}" (id ${card.id}) at ${String(card.box.x)},${String(card.box.y)} px, ${String(card.box.w)}x${String(card.box.h)} px`,
   };
 }
 

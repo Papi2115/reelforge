@@ -1,6 +1,7 @@
 /**
  * Overlays over the preview frame (PLAN.md#6.4): the fps debug readout, the hot-reload status /
- * engine error list (the last working frame stays visible underneath) and the snapshot notice.
+ * engine error list (the last working frame stays visible underneath), the preview audio warning
+ * and the snapshot notice.
  */
 import { useEffect, useState, type JSX } from 'react';
 import type { SnapshotSaveResult } from '../../shared/player-contract.js';
@@ -68,6 +69,29 @@ export function ReloadNotice({
       </div>
       <pre>{status.message}</pre>
     </div>
+  );
+}
+
+/** Why the preview has no (more) sound (PLAN.md#11.1): never silent without saying so. */
+export function AudioProblemNotice({
+  message,
+  onDismiss,
+}: {
+  readonly message: string;
+  readonly onDismiss: () => void;
+}): JSX.Element {
+  return (
+    <p className="preview-audio-problem" role="alert" data-testid="preview-audio-problem">
+      <span>{message}</span>
+      <button
+        type="button"
+        className="link-button"
+        aria-label="Dismiss audio warning"
+        onClick={onDismiss}
+      >
+        ×
+      </button>
+    </p>
   );
 }
 

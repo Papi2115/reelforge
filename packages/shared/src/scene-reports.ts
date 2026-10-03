@@ -63,6 +63,8 @@ export const shotBuildRecordSchema = z.object({
   fixIterations: z.int().nonnegative(),
   /** Props the scene needed but the kit lacks (`MISSING:` reply line / unknown kit calls). */
   missingProps: z.array(z.string().min(1)),
+  /** Project-local props built for this shot (`kit-ext/props/<name>.js`, PLAN.md#7.4). */
+  builtProps: z.array(z.string().min(1)).optional(),
   /** Last critic verdicts (empty when the critic did not run). */
   critic: z.array(criticVerdictRecordSchema),
   /** Project-relative contact sheet of the last QA round, when one was rendered. */
@@ -83,9 +85,10 @@ export type ScenesReport = z.infer<typeof scenesReportSchema>;
 
 /**
  * `anchor`: a scene's `anchor(phrase)` (its visual hit) checked against the words file;
- * `sfx`: a scene's `sfx.at(t, name)`; `cue`: an sfx entry of `cues.json`.
+ * `sfx`: a scene's `sfx.at(t, name)`; `cue`: an sfx entry of `cues.json`; `annotation`: a
+ * `ctx.annotate.*` mark with a `phrase` (its `at` against the spoken phrase).
  */
-export const syncEventKindSchema = z.enum(['anchor', 'sfx', 'cue']);
+export const syncEventKindSchema = z.enum(['anchor', 'sfx', 'cue', 'annotation']);
 export type SyncEventKind = z.infer<typeof syncEventKindSchema>;
 
 /**
@@ -98,7 +101,7 @@ export type SyncVerdict = z.infer<typeof syncVerdictSchema>;
 
 export const syncEventSchema = z.object({
   kind: syncEventKindSchema,
-  /** Anchor phrase or sfx name. */
+  /** Anchor phrase, sfx name or annotation id. */
   label: z.string(),
   /** Global event time (s). */
   t: z.number(),

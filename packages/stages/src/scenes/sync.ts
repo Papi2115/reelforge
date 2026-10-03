@@ -2,9 +2,10 @@
  * Sync check (PLAN.md §3.3, #7.7): does every event of a shot land on its spoken word within
  * ±150 ms? Events: the scene's anchors (its visual hits; their time is checked against the words
  * file through the fuzzy resolver), the scene's `sfx.at` cues and the `cues.json` sfx of the shot,
- * each measured against the nearest anchor of the shot. Pure, so it is unit-tested directly.
+ * each measured against the nearest anchor of the shot, and annotations with a `phrase` (their
+ * `at` against that phrase, PLAN.md#11.8). Pure, so it is unit-tested directly.
  */
-import type { ResolvedAnchor } from '@reelforge/engine';
+import type { CardDiagnostic, ResolvedAnchor } from '@reelforge/engine';
 import type { AnchorIndex } from '@reelforge/pipeline';
 import type { QaFinding, ShotSync, SyncEvent, SyncVerdict } from '@reelforge/shared';
 import { finding } from './checks.js';
@@ -36,6 +37,8 @@ export interface ShotSyncInput {
   readonly projectCues?: readonly TimedCue[];
   /** Fuzzy resolver over `timing/words.json` (absent: anchors are taken as resolved). */
   readonly words?: AnchorIndex | undefined;
+  /** The engine's card QA of the shot: annotation phrase records (`annotation-*anchor`). */
+  readonly cards?: readonly CardDiagnostic[] | undefined;
 }
 
 const ms = (seconds: number): number => Math.round(seconds * 1000);
@@ -88,10 +91,32 @@ function cueEvent(
   };
 }
 
+/** An annotation with a `phrase`: its `at` against the time the phrase is spoken (local -> global). */
+function annotationEvents(shot: ShotRange, cards: readonly CardDiagnostic[]): SyncEvent[] {
+  return cards.flatMap((card) => {
+    if (card.anchor === undefined) return [];
+    const t = shot.t0 + card.anchor.at;
+    const spokenT = shot.t0 + card.anchor.spokenT;
+    const inside = spokenT >= shot.t0 && spokenT < shot.t1;
+    return [
+      {
+        kind: 'annotation' as const,
+        label: card.cards[0] ?? 'annotation',
+        t,
+        spokenT,
+        phrase: card.anchor.phrase,
+        deltaMs: ms(t - spokenT),
+        verdict: inside ? verdictOf(t - spokenT) : 'outside-shot',
+      },
+    ];
+  });
+}
+
 export function shotSyncEvents(input: ShotSyncInput): SyncEvent[] {
   const anchors = input.anchors.filter((anchor) => anchor.shotId === input.shot.id);
   return [
     ...anchors.map((anchor) => anchorEvent(input, anchor)),
+    ...annotationEvents(input.shot, input.cards ?? []),
     ...input.sceneCues.map((cue) => cueEvent(input.shot, anchors, cue, 'sfx')),
     ...(input.projectCues ?? []).map((cue) => cueEvent(input.shot, anchors, cue, 'cue')),
   ].sort((first, second) => first.t - second.t);
@@ -119,6 +144,9 @@ export function shotSync(shot: ShotRange, events: readonly SyncEvent[], error?: 
 export function describeSyncEvent(event: SyncEvent, shot: ShotRange): string {
   const what =
     event.kind === 'anchor' ? `anchor "${event.label}"` : `${event.kind} "${event.label}"`;
+  if (event.kind === 'annotation' && event.verdict === 'off') {
+    return `${what} at ${event.t.toFixed(2)} s (local ${(event.t - shot.t0).toFixed(2)} s) misses its phrase "${event.phrase ?? ''}" (spoken ${(event.spokenT ?? 0).toFixed(2)} s) by ${String(event.deltaMs)} ms; drop its at (phrase sets it)`;
+  }
   const at = `at ${event.t.toFixed(2)} s (local ${(event.t - shot.t0).toFixed(2)} s)`;
   switch (event.verdict) {
     case 'ok':
@@ -134,9 +162,13 @@ export function describeSyncEvent(event: SyncEvent, shot: ShotRange): string {
   }
 }
 
+/**
+ * Findings of the sync problems. Annotation events are left out: the engine's card QA already
+ * reports them (`annotation-off-anchor` warnings), so they are not fixed twice.
+ */
 export function syncFindings(events: readonly SyncEvent[], shot: ShotRange): QaFinding[] {
   return events
-    .filter(isSyncProblem)
+    .filter((event) => isSyncProblem(event) && event.kind !== 'annotation')
     .map((event) =>
       finding('sync', 'error', describeSyncEvent(event, shot), { t: event.t - shot.t0 }),
     );

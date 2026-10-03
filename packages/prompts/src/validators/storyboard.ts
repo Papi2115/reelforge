@@ -1,10 +1,11 @@
 /**
  * `storyboard.json` written by the storyboard stage: the shared schema plus the prompt's rules
  * (contiguous shots from 0, boundaries on word starts, shot lengths, no treatment more than twice
- * in a row, scene paths, transitions).
+ * in a row, scene paths, transitions) and the annotation plans' phrase and variety rules.
  */
 import { storyboardFileSchema, type StoryboardShot, type WordsFile } from '@reelforge/shared';
 import { z } from 'zod';
+import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
 import {
   issue,
   parseJsonText,
@@ -235,6 +236,7 @@ export interface StoryboardCheckOptions {
   /** `timing/words.json`; enables the boundary and end checks. */
   readonly words?: WordsFile;
   readonly rules?: Partial<StoryboardRules>;
+  readonly annotationRules?: Partial<AnnotationRules>;
 }
 
 /** Rule checks on an already parsed storyboard. */
@@ -250,6 +252,7 @@ export function checkStoryboard(
     ...identityIssues(shots),
     ...transitionIssues(shots, rules),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
+    ...checkAnnotationPlans(shots, options.words, options.annotationRules),
   ];
 }
 

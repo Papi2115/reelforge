@@ -1,7 +1,8 @@
 /**
  * Per-shot cache keys. A shot's segment is re-rendered only when something that can change its
  * pixels or its encoding changes: scene source, engine/kit version, style preset, palette
- * overrides, project seed, the anchor times the scene uses, the shot's own manifest params, fps,
+ * overrides, project seed, the anchor times the scene uses, the project props (kit-ext) it may
+ * call, the shot's own manifest params, fps,
  * render size, and the output settings (preset, encoder, quality). Shots that transition in also
  * depend on the previous shot's content.
  */
@@ -98,6 +99,21 @@ function anchorInputs(
   });
 }
 
+/**
+ * Project props (`kitExtensions`) a scene may call: those whose name it mentions, or all of them
+ * when it indexes `props[...]` dynamically. Undefined without project props (keys unchanged).
+ */
+export function kitExtensionInputs(
+  source: string,
+  extensions: RenderManifest['kitExtensions'],
+): { name: string; source: string }[] | undefined {
+  if (extensions === undefined || extensions.length === 0) return undefined;
+  const dynamic = /\bprops\s*\[/.test(source);
+  return extensions
+    .filter((extension) => dynamic || new RegExp(`\\b${extension.name}\\b`).test(source))
+    .map((extension) => ({ name: extension.name, source: sha256Hex(extension.source) }));
+}
+
 function shotContent(
   shot: ManifestShot,
   manifest: RenderManifest,
@@ -110,6 +126,7 @@ function shotContent(
     transitionIn: shot.transitionIn ?? null,
     scene: sha256Hex(shot.scene.source),
     anchors: anchorInputs(shot, manifest, resolveAnchor),
+    kitExtensions: kitExtensionInputs(shot.scene.source, manifest.kitExtensions),
   };
 }
 

@@ -5,6 +5,7 @@
  */
 import { createKitContext } from './context.js';
 import { ENV_DEFINITIONS } from './env/index.js';
+import { checkExtensionNames } from './extensions.js';
 import { FX_DEFINITIONS } from './fx/index.js';
 import type { Three } from './object.js';
 import { PROP_DEFINITIONS } from './props/index.js';
@@ -13,6 +14,7 @@ import {
   catalogEntries,
   type BoundRegistry,
   type KitCatalogEntry,
+  type KitDefinition,
 } from './registry.js';
 import type { KitPalette, KitRng } from './types.js';
 import { createVoxelApi, VOXEL_API_DOCS, type ApiDoc, type VoxelApi } from './voxel/api.js';
@@ -35,6 +37,11 @@ export interface KitOptions {
   readonly palette: KitPalette;
   /** Seeded stream reserved for the kit (not the scene's ctx.rng). */
   readonly rng: KitRng;
+  /**
+   * Project-local props (`kit-ext/props/*.js`, see extensions.ts), callable as
+   * `kit.props.<name>` next to the kit's own; a name of a kit prop is an error.
+   */
+  readonly extraProps?: readonly KitDefinition[] | undefined;
 }
 
 /** Engine-side handle of a kit instance. */
@@ -51,11 +58,21 @@ export { ENV_DEFINITIONS, FX_DEFINITIONS, PROP_DEFINITIONS };
 export function createKit(options: KitOptions): KitHandle {
   const context = createKitContext(options.three, options.palette, options.rng);
   const voxel = createVoxelApi(context);
+  const extraProps = options.extraProps ?? [];
+  checkExtensionNames(
+    PROP_DEFINITIONS.map((definition) => definition.name),
+    extraProps,
+  );
+  // Project props are untyped for TypeScript (scenes are plain JS); the kit's own keep their types.
+  const props: BoundRegistry<typeof PROP_DEFINITIONS> = Object.freeze({
+    ...bindRegistry(context, voxel, PROP_DEFINITIONS),
+    ...bindRegistry(context, voxel, extraProps),
+  });
   const api: KitApi = Object.freeze({
     version: KIT_VERSION,
     voxel,
     env: bindRegistry(context, voxel, ENV_DEFINITIONS),
-    props: bindRegistry(context, voxel, PROP_DEFINITIONS),
+    props,
     fx: bindRegistry(context, voxel, FX_DEFINITIONS),
   });
   return {
@@ -77,13 +94,16 @@ export interface KitCatalog {
   readonly fx: readonly KitCatalogEntry[];
 }
 
-/** Machine-readable description of everything in ctx.kit (source of kit-docs, PLAN.md#3.3). */
-export function kitCatalog(): KitCatalog {
+/**
+ * Machine-readable description of everything in ctx.kit (source of kit-docs, PLAN.md#3.3);
+ * `projectProps`: catalog entries of the project's own props, listed after the kit's.
+ */
+export function kitCatalog(projectProps: readonly KitCatalogEntry[] = []): KitCatalog {
   return {
     version: KIT_VERSION,
     voxel: VOXEL_API_DOCS,
     env: catalogEntries(ENV_DEFINITIONS),
-    props: catalogEntries(PROP_DEFINITIONS),
+    props: [...catalogEntries(PROP_DEFINITIONS), ...projectProps],
     fx: catalogEntries(FX_DEFINITIONS),
   };
 }

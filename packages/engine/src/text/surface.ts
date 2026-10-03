@@ -15,6 +15,8 @@ export interface Paint {
   readonly opacity: number;
   /** Only pixels inside this rectangle are drawn. */
   readonly clip?: PixelRect | undefined;
+  /** Only pixels nothing was drawn on yet (behind earlier text: highlights, spotlight dimming). */
+  readonly under?: boolean | undefined;
 }
 
 export const SOLID: Paint = { opacity: 1 };
@@ -27,6 +29,8 @@ export interface TextSurface {
   readonly empty: boolean;
   clear(): void;
   fillRect(rect: PixelRect, color: Rgb8, paint?: Paint): void;
+  /** One pixel (no clip): drawn when the dissolve keeps it at `opacity` (and, with `under`, when empty). */
+  plot(x: number, y: number, color: Rgb8, opacity: number, under: boolean): void;
   /** Draws the glyph with its cap line at y = `capY`, each font cell `scale` x `scale` pixels. */
   drawGlyph(glyph: Glyph, x: number, capY: number, scale: number, color: Rgb8, paint?: Paint): void;
 }
@@ -60,10 +64,12 @@ export function createTextSurface(width: number, height: number): TextSurface {
     const top = Math.max(0, y0, clip ? clip.y : 0);
     const right = Math.min(width, x1, clip ? clip.x + clip.w : width);
     const bottom = Math.min(height, y1, clip ? clip.y + clip.h : height);
+    const under = paint.under === true;
     for (let y = top; y < bottom; y += 1) {
       for (let x = left; x < right; x += 1) {
         if (!dissolveVisible(x, y, paint.opacity)) continue;
         const offset = (y * width + x) * 4;
+        if (under && pixels[offset + 3] !== 0) continue;
         pixels[offset] = color[0];
         pixels[offset + 1] = color[1];
         pixels[offset + 2] = color[2];
@@ -87,6 +93,17 @@ export function createTextSurface(width: number, height: number): TextSurface {
     },
     fillRect(rect, color, paint = SOLID) {
       fill(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, color, paint);
+    },
+    plot(x, y, color, opacity, under) {
+      if (x < 0 || y < 0 || x >= width || y >= height || opacity <= 0) return;
+      if (!dissolveVisible(x, y, opacity)) return;
+      const offset = (y * width + x) * 4;
+      if (under && pixels[offset + 3] !== 0) return;
+      pixels[offset] = color[0];
+      pixels[offset + 1] = color[1];
+      pixels[offset + 2] = color[2];
+      pixels[offset + 3] = 255;
+      empty = false;
     },
     drawGlyph(glyph, x, capY, scale, color, paint = SOLID) {
       for (let row = 0; row < glyph.height; row += 1) {

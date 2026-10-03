@@ -1,11 +1,11 @@
 /**
  * What the main layout shows of the open project (PLAN.md#6.3): the file listing (pipeline stage
  * status is computed from it in the renderer) and storyboard / words / cues, each validated with
- * the schema its writer uses (shared for storyboard and words, the pipeline's for cues), plus the
+ * the schema its writer uses (shared for storyboard, words and shot locks, the pipeline's for cues), plus the
  * damaged files with the fix the app offers (PLAN.md#10.2).
  */
 import { CuesFileSchema, type CuesFile } from '@reelforge/pipeline';
-import { storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
+import { shotLocksFileSchema, storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
 import {
   SNAPSHOT_FILES,
   type CuesView,
@@ -54,11 +54,12 @@ function documentProblem<T>(file: RepairableFile, state: FileState<T>): FileProb
 
 /** Throws only when the project folder itself is unreadable. */
 export async function readProjectSnapshot(dir: string): Promise<ProjectSnapshot> {
-  const [listing, storyboard, words, cues, checked] = await Promise.all([
+  const [listing, storyboard, words, cues, locks, checked] = await Promise.all([
     listProjectFiles(dir),
     readProjectJson(dir, SNAPSHOT_FILES.storyboard, storyboardFileSchema),
     readProjectJson(dir, SNAPSHOT_FILES.words, wordsFileSchema),
     readProjectJson(dir, SNAPSHOT_FILES.cues, CuesFileSchema),
+    readProjectJson(dir, SNAPSHOT_FILES.locks, shotLocksFileSchema),
     Promise.all(CHECKED_FILES.map((file) => fileProblem(dir, file))),
   ]);
   const problems = [
@@ -74,6 +75,7 @@ export async function readProjectSnapshot(dir: string): Promise<ProjectSnapshot>
     storyboard,
     words,
     cues: mapState(cues, cuesView),
+    locks,
     problems,
   };
 }

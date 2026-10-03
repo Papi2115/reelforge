@@ -1,20 +1,26 @@
 /**
  * Main-side backend of Settings (PLAN.md#6.7): builds the Claude connection, tools and whisper
- * model services around the SettingsService and returns their IPC handlers (merged into
+ * setup services around the SettingsService and returns their IPC handlers (merged into
  * `registerIpc` by main.ts). Electron-free: dialogs, pushes and the env come in as options.
  */
 import { checkConnection } from '@reelforge/claude-bridge';
-import { WhisperManager } from '@reelforge/pipeline';
-import type { WhisperProgress, ToolId } from '../shared/settings-contract.js';
+import {
+  WhisperManager,
+  discoverWhisperInstalls,
+  type WhisperManagerOptions,
+} from '@reelforge/pipeline';
+import type { ToolId } from '../shared/settings-contract.js';
+import type { WhisperProgress } from '../shared/whisper-contract.js';
 import { CLAUDE_SEARCH_DIR_ENV } from './app-paths.js';
 import { ClaudeConnectionService, detectionEnv } from './claude-connection.js';
 import type { InvokeHandlers } from './ipc-router.js';
 import type { Logger } from './logger.js';
 import { openLoginTerminal } from './login-terminal.js';
-import { whisperManagerOptions } from './settings-consumers.js';
+import { whisperManagerOptions, whisperModel } from './settings-consumers.js';
 import type { SettingsService } from './settings-service.js';
 import { ToolsService } from './tools-service.js';
-import { WhisperModelsService, whisperModelStore } from './whisper-models.js';
+import { diskFreeBytes } from './whisper/test-hooks.js';
+import { WhisperSetupService } from './whisper/whisper-setup.js';
 
 type SettingsHandlerKey =
   | 'settingsGet'
@@ -24,10 +30,11 @@ type SettingsHandlerKey =
   | 'toolsStatus'
   | 'toolsBrowse'
   | 'toolsReset'
-  | 'whisperModels'
-  | 'whisperDownload'
+  | 'whisperState'
+  | 'whisperInstall'
   | 'whisperCancel'
-  | 'whisperDelete';
+  | 'whisperDelete'
+  | 'whisperUseExisting';
 
 export type SettingsHandlers = Pick<InvokeHandlers, SettingsHandlerKey>;
 
@@ -47,12 +54,17 @@ export interface SettingsBackendOptions {
   readonly log: Logger;
   /** Monotonic ms clock. */
   readonly now: () => number;
+  /** App-wide whisper options (test hooks: install root, download mirror). */
+  readonly whisperBase?: WhisperManagerOptions;
+  /** Test hook: Words timed counts as ready (recorded transcriptions without a whisper root). */
+  readonly whisperAssumeReady?: boolean;
 }
 
 export interface SettingsBackend {
   readonly handlers: SettingsHandlers;
   readonly claude: ClaudeConnectionService;
-  /** Aborts a running model download (app quit). */
+  readonly whisper: WhisperSetupService;
+  /** Aborts a running whisper install (app quit). */
   dispose(): void;
 }
 
@@ -85,16 +97,36 @@ export function createSettingsBackend(options: SettingsBackendOptions): Settings
     log: log.child('claude'),
     now: options.now,
   });
+  const whisperBase = options.whisperBase ?? {};
   const tools = new ToolsService({
     settings,
     pickFile: options.pickToolFile,
     log: log.child('tools'),
+    whisperBase,
   });
-  const whisper = new WhisperModelsService({
-    store: whisperModelStore(new WhisperManager(whisperManagerOptions(settings.get()))),
+  const whisper = new WhisperSetupService({
+    manager: () => new WhisperManager(whisperManagerOptions(settings.get(), whisperBase)),
+    model: () => whisperModel(settings.get()),
+    configured: () => settings.get().tools.whisperPath !== null,
+    saveConfiguredPath: async (cliPath) => {
+      if (cliPath !== null) {
+        const located = new WhisperManager({ ...whisperBase, configuredPath: cliPath }).locate();
+        if (!located.ok) return located.error.message;
+      }
+      const saved = await settings.setToolPath('whisperPath', cliPath);
+      return saved.status === 'error' ? saved.message : undefined;
+    },
+    discover: () =>
+      discoverWhisperInstalls({
+        env,
+        platform: options.platform,
+        ...(whisperBase.root === undefined ? {} : { root: whisperBase.root }),
+      }),
+    freeBytes: diskFreeBytes,
     push: options.pushWhisperProgress,
     log: log.child('whisper'),
     now: options.now,
+    ...(options.whisperAssumeReady === true ? { assumeReady: true } : {}),
   });
 
   const handlers: SettingsHandlers = {
@@ -110,17 +142,19 @@ export function createSettingsBackend(options: SettingsBackendOptions): Settings
     toolsStatus: (request) => tools.status(request.refresh),
     toolsBrowse: (request) => tools.browse(request.tool),
     toolsReset: (request) => tools.reset(request.tool),
-    whisperModels: () => Promise.resolve(whisper.state()),
-    whisperDownload: (request) => Promise.resolve(whisper.download(request.model)),
-    whisperCancel: (request) => {
-      whisper.cancel(request.model);
+    whisperState: (request) => whisper.state(request.refresh),
+    whisperInstall: (request) => whisper.install(request.job),
+    whisperCancel: () => {
+      whisper.cancel();
       return Promise.resolve(null);
     },
     whisperDelete: (request) => whisper.delete(request.model),
+    whisperUseExisting: (request) => whisper.useExisting(request.path),
   };
   return {
     handlers,
     claude,
+    whisper,
     dispose: () => {
       whisper.abortAll();
     },

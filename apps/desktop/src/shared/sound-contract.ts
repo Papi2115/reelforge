@@ -80,6 +80,28 @@ export const mixResultSchema = z.object({
 });
 export type MixResult = z.infer<typeof mixResultSchema>;
 
+/** What cues.json holds, for the panel's summary line (the generated sound design at a glance). */
+export const cueSummarySchema = z.object({
+  sfx: z.int().min(0),
+  ambience: z.int().min(0),
+  music: z.int().min(0),
+  /** Built-in SFX names by use, most used first. */
+  sounds: z.array(z.object({ name: z.string(), count: z.int().min(1) })),
+  /** Mood per act of the generated music (empty: none / the user's own music). */
+  moods: z.array(z.string()),
+});
+export type CueSummary = z.infer<typeof cueSummarySchema>;
+
+/** One check of `.reelforge/mix-report.json` (pipeline MixQaCheckSchema). */
+export const mixQaCheckSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  status: z.enum(['pass', 'warn', 'fail', 'skip']),
+  value: z.string(),
+  limit: z.string(),
+});
+export type MixQaCheckView = z.infer<typeof mixQaCheckSchema>;
+
 export const soundStateSchema = z.object({
   projectDir: z.string().nullable(),
   library: z.array(librarySoundSchema),
@@ -87,6 +109,8 @@ export const soundStateSchema = z.object({
   /** Ducking of the first music cue (all get the same from the panel); null: no music cue. */
   ducking: duckingSchema.nullable(),
   musicCues: z.int().min(0),
+  /** cues.json at a glance; null when there is none (or it is invalid). */
+  cues: cueSummarySchema.nullable(),
   /** cues.json problem (missing is not one: the defaults apply). */
   cuesError: z.string().nullable(),
   mix: z.object({
@@ -94,6 +118,8 @@ export const soundStateSchema = z.object({
     /** cues.json changed after the last full mix render. */
     stale: z.boolean(),
     result: mixResultSchema.nullable(),
+    /** The mix QA checks of the last render (`.reelforge/mix-report.json`); null when absent. */
+    qa: z.array(mixQaCheckSchema).nullable(),
   }),
   /** Stem files of the last render with stems (project-relative). */
   stems: z.array(z.string()),

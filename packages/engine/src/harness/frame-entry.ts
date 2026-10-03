@@ -6,7 +6,7 @@
 import { sceneSourceSchema } from '@reelforge/shared';
 import { describeError, EngineError, type EngineErrorData } from '../errors.js';
 import { createRuntime, type EngineRuntime, type LoadInfo } from '../runtime.js';
-import { importSceneSource } from './module-loader.js';
+import { importKitExtensionSource, importSceneSource } from './module-loader.js';
 import { RPC_CHANNEL, requestSchema, type RpcRequest } from './protocol.js';
 
 let runtime: EngineRuntime | undefined;
@@ -37,6 +37,7 @@ async function load(manifest: unknown): Promise<LoadInfo> {
   const next = await createRuntime(manifest, {
     canvas: freshCanvas(),
     importScene: importSceneSource,
+    importKitExtension: importKitExtensionSource,
   });
   runtime = next;
   return next.info;

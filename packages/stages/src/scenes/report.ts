@@ -67,6 +67,7 @@ export async function saveShotRecord(
   shot: StoryboardShot,
   record: ShotBuildRecord,
   verb: string,
+  commit = true,
 ): Promise<Result<void, StageError>> {
   const { ctx } = job;
   const order = job.shots.map((entry) => entry.id);
@@ -74,7 +75,7 @@ export async function saveShotRecord(
     records.set(record.shotId, record);
   });
   if (!written.ok) return written;
-  await ctx.commit(commitSubject(shot, record.status, verb));
+  if (commit) await ctx.commit(commitSubject(shot, record.status, verb));
   ctx.shot(shot.id, 'finished', record.status);
   return ok(undefined);
 }

@@ -7,6 +7,7 @@
 import { KitError } from '../errors.js';
 import type { Vec3 } from '../types.js';
 import type { VoxelApi } from '../voxel/api.js';
+import { voxelGenerate } from '../voxel/grid.js';
 import type { VoxelColor, VoxelModel } from '../voxel/model.js';
 
 /** 'xy': a front view at a fixed z (rows top-down); 'xz': a top view at a fixed y (rows back-to-front). */
@@ -150,7 +151,7 @@ export class Sketch<Slot extends string> {
   }
 
   /** The immutable model (validated by kit.voxel.generate). */
-  model(voxel: VoxelApi): VoxelModel {
+  model(voxel: Pick<VoxelApi, 'generate'> = { generate: voxelGenerate }): VoxelModel {
     return voxel.generate(
       this.size,
       (x, y, z) => this.cells[this.index(x, y, z)] ?? 0,

@@ -1,8 +1,9 @@
 /**
  * One shot of "Scenes built" (PLAN.md#7.4, §4.4): the scene-build turn (Opus, fresh session),
- * missing props (the handler decides: kit extended → build again, else ⚠), then QA rounds by
- * code and scene-fix turns with the findings, at most `maxFixIterations`. The result is ✓ (clean),
- * ⚠ (findings left, missing props) or ✗ (lint/runtime error persisted, no scene).
+ * missing props (built as project props in kit-ext → the shot is built again with them; a prop
+ * that cannot be built leaves a fallback and ⚠), then QA rounds by code and scene-fix turns with
+ * the findings, at most `maxFixIterations`. The result is ✓ (clean), ⚠ (findings left, missing
+ * props) or ✗ (lint/runtime error persisted, no scene).
  * `refineShot` is the same verify/fix loop, used by the whole-video review.
  */
 import { ok, type Result } from '@reelforge/claude-bridge';
@@ -12,18 +13,46 @@ import {
   type QaFinding,
   type ShotBuildRecord,
   type ShotBuildStatus,
+  normalizePropName,
   type StoryboardShot,
 } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
+import { projectPropNames } from '../props/builder.js';
 import { render } from '../stages/repair.js';
 import type { StageError } from '../types.js';
 import { fatalFindings, finding, fixableFindings, formatFinding } from './checks.js';
 import type { SceneJob } from './job.js';
 import { qaRound, type QaResult } from './qa.js';
-import { unknownKitNames } from './source-checks.js';
+import { unknownKitCalls } from './source-checks.js';
+import { missingPropsOutcome } from './tools.js';
 
 /** Turn failures that end the shot (✗) instead of the whole stage. */
 const SHOT_LEVEL_FAILURES = new Set<StageError['kind']>(['claude', 'validation', 'invalid-input']);
+
+/**
+ * One alternative version of a shot (PLAN.md#11.3): built from a creative direction into its own
+ * file (the shot's `scene` passed to `buildShot` is that file), never into `scenes/`.
+ */
+export interface ShotVariantBrief {
+  /** 1-based variant number. */
+  readonly index: number;
+  readonly direction: { readonly label: string; readonly brief: string };
+  /** The user's note for every variant. */
+  readonly note?: string | undefined;
+}
+
+function variantTag(variant: ShotVariantBrief | undefined): string {
+  return variant === undefined ? '' : ` v${String(variant.index)}`;
+}
+
+function variantVars(variant: ShotVariantBrief | undefined): Record<string, string> {
+  if (variant === undefined) return {};
+  return {
+    direction: `${variant.direction.label}. ${variant.direction.brief}`,
+    variantIndex: String(variant.index),
+    ...(variant.note === undefined || variant.note === '' ? {} : { variantNote: variant.note }),
+  };
+}
 
 function shotWords(
   job: SceneJob,
@@ -43,18 +72,43 @@ function neighbours(job: SceneJob, shot: StoryboardShot): object[] {
   );
 }
 
+/** The shot as the build prompt shows it: its annotation plan goes in its own section. */
+function shotForPrompt(shot: StoryboardShot): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(shot).filter(([key]) => key !== 'annotations'));
+}
+
+/** The storyboard's annotation plan as hint lines (PLAN.md#11.8); undefined when there is none. */
+export function annotationPlanText(shot: StoryboardShot): string | undefined {
+  const plans = shot.annotations ?? [];
+  if (plans.length === 0) return undefined;
+  return plans
+    .map((plan) => {
+      const target = plan.target === undefined ? '' : ` on ${plan.target}`;
+      const text = plan.text === undefined ? '' : `, text "${plan.text}"`;
+      return `- "${plan.phrase}" (${plan.reason}): ${plan.kind}${target}${text}`;
+    })
+    .join('\n');
+}
+
 /** The build turn's reply, or a ✗ finding when the turn failed for this shot only. */
 async function buildTurn(
   job: SceneJob,
   shot: StoryboardShot,
+  newProps: readonly string[] = [],
+  variant?: ShotVariantBrief,
 ): Promise<Result<{ reply: string } | { failure: QaFinding }, StageError>> {
   const prompt = render('scene-build', {
     shotId: shot.id,
     shotScene: shot.scene,
-    shotJson: shot,
+    shotJson: shotForPrompt(shot),
     shotWords: shotWords(job, shot),
     neighbours: neighbours(job, shot),
     styleId: job.styleId,
+    annotationPlan: annotationPlanText(shot),
+    ...(newProps.length === 0
+      ? {}
+      : { newProps: newProps.map((name) => `kit.props.${name}`).join(', ') }),
+    ...variantVars(variant),
   });
   if (!prompt.ok) return prompt;
   const turn = await job.ctx.claude({
@@ -62,7 +116,7 @@ async function buildTurn(
     text: prompt.value,
     purpose: 'main',
     newSession: true,
-    label: `scene-build ${shot.id}`,
+    label: `scene-build ${shot.id}${variantTag(variant)}`,
     commit: false,
     detached: true,
   });
@@ -110,9 +164,13 @@ export interface RefineOptions {
   /** Findings sent with that first request. */
   readonly requestFindings?: readonly QaFinding[];
   readonly missingProps?: readonly string[];
+  /** Project props built for this shot (kit-ext). */
+  readonly builtProps?: readonly string[];
   readonly notes?: readonly string[];
   /** Extra code checks per round (e.g. phone legibility). */
   readonly extraChecks?: ((source: string) => QaFinding[]) | undefined;
+  /** Appended to every QA fix request (a variant: which file to edit). */
+  readonly fixHint?: string | undefined;
 }
 
 function statusOf(findings: readonly QaFinding[]): ShotBuildStatus {
@@ -125,7 +183,7 @@ function missingPropFindings(names: readonly string[]): QaFinding[] {
     finding(
       'missing-prop',
       'warning',
-      `missing prop: ${name} (the kit has no "${name}"; the shot uses what exists. Extending the kit is a repo change, not a project edit)`,
+      `missing prop: ${name} (the kit has no "${name}" and it could not be built as a project prop; the shot uses what exists)`,
     ),
   );
 }
@@ -147,6 +205,9 @@ function record(
     findings,
     fixIterations: fixes,
     missingProps: [...missing],
+    ...(options.builtProps === undefined || options.builtProps.length === 0
+      ? {}
+      : { builtProps: [...options.builtProps] }),
     critic: [...(qa?.verdicts ?? [])],
     ...(qa?.sheet === undefined ? {} : { contactSheet: qa.sheet }),
     notes: [...(options.notes ?? []), ...(qa?.notes ?? [])],
@@ -184,13 +245,15 @@ export async function refineShot(
       return ok(record(job, shot, qa.value, fixes, { ...options, notes }));
     }
     fixes += 1;
-    const request = fixRequest(shot, fixes, max);
+    const hint = options.fixHint === undefined ? '' : ` ${options.fixHint}`;
+    const request = `${fixRequest(shot, fixes, max)}${hint}`;
+    const tag = options.fixHint === undefined ? '' : `${options.label} `;
     const failed = await fixTurn(
       job,
       shot,
       request,
       errors,
-      `scene-fix ${shot.id} ${String(fixes)}`,
+      `scene-fix ${shot.id} ${tag}${String(fixes)}`,
     );
     if (!failed.ok) return failed;
     if (failed.value !== undefined) {
@@ -200,41 +263,84 @@ export async function refineShot(
   }
 }
 
-/** Props named on the reply's `MISSING:` line or called but absent from the kit. */
+/**
+ * Props named on the reply's `MISSING:` line or called as `kit.<kind>.X` but neither in the kit
+ * nor in the project's kit-ext (environments/effects cannot be built: they stay as reported).
+ */
 async function missingProps(job: SceneJob, shot: StoryboardShot, reply: string): Promise<string[]> {
   const source = await readProjectText(job.ctx.projectDir, shot.scene);
+  const project = await projectPropNames(job.ctx.projectDir);
+  const kit = { ...job.kitNames, props: new Set([...job.kitNames.props, ...project]) };
   const called =
-    source.ok && source.value !== undefined ? unknownKitNames(source.value, job.kitNames) : [];
-  return [...new Set([...parseMissing(reply), ...called])];
+    source.ok && source.value !== undefined
+      ? unknownKitCalls(source.value, kit).map((call) => call.name)
+      : [];
+  const named = parseMissing(reply).filter(
+    (name) => !kit.props.has(name) && !kit.props.has(normalizePropName(name) ?? name),
+  );
+  return [...new Set([...named, ...called])];
 }
 
+/** Builds the missing props (or asks the custom handler): built kit names and failed names. */
+async function provideProps(
+  job: SceneJob,
+  shot: StoryboardShot,
+  names: readonly string[],
+): Promise<Result<{ built: readonly string[]; failed: readonly string[] }, StageError>> {
+  if (job.onMissingProps !== undefined) {
+    return ok(missingPropsOutcome(names, await job.onMissingProps(names, shot)));
+  }
+  job.ctx.step(`${shot.id}: building props ${names.join(', ')}`);
+  return job.props.ensureNames(names, shot);
+}
+
+function variantFixHint(shot: StoryboardShot, variant: ShotVariantBrief): string {
+  return `This is variant ${String(variant.index)} of the shot: edit only \`${shot.scene}\` (never \`scenes/\`) and keep its creative direction (${variant.direction.label}).`;
+}
+
+/** Builds a shot (or, with `variant`, one alternative version into `shot.scene`) and QA's it. */
 export async function buildShot(
   job: SceneJob,
   shot: StoryboardShot,
+  variant?: ShotVariantBrief,
 ): Promise<Result<ShotBuildRecord, StageError>> {
-  job.ctx.step(`${shot.id}: building the scene`);
-  let built = await buildTurn(job, shot);
+  const label = variant === undefined ? 'build' : `v${String(variant.index)}-build`;
+  const fixHint = variant === undefined ? undefined : variantFixHint(shot, variant);
+  job.ctx.step(
+    variant === undefined
+      ? `${shot.id}: building the scene`
+      : `${shot.id}: building variant ${String(variant.index)} (${variant.direction.label})`,
+  );
+  let built = await buildTurn(job, shot, [], variant);
   if (!built.ok) return built;
   if ('failure' in built.value) {
-    return ok(record(job, shot, undefined, 0, { label: 'build' }, [built.value.failure]));
+    return ok(record(job, shot, undefined, 0, { label }, [built.value.failure]));
   }
   let missing = await missingProps(job, shot, built.value.reply);
   const notes: string[] = [];
+  let builtProps: readonly string[] = [];
   if (missing.length > 0) {
-    const decision = await job.onMissingProps(missing, shot);
-    notes.push(`missing props ${missing.join(', ')}: kit extension ${decision}`);
-    if (decision === 'added') {
-      built = await buildTurn(job, shot);
+    const provided = await provideProps(job, shot, missing);
+    if (!provided.ok) return provided;
+    builtProps = provided.value.built;
+    const failed = provided.value.failed;
+    notes.push(
+      `missing props ${missing.join(', ')}: built ${builtProps.join(', ') || 'none'}${failed.length > 0 ? `, could not build ${failed.join(', ')}` : ''}`,
+    );
+    if (builtProps.length > 0) {
+      built = await buildTurn(job, shot, builtProps, variant);
       if (!built.ok) return built;
       if ('failure' in built.value) {
-        return ok(
-          record(job, shot, undefined, 0, { label: 'build', notes }, [built.value.failure]),
-        );
+        const options = { label, notes, builtProps };
+        return ok(record(job, shot, undefined, 0, options, [built.value.failure]));
       }
-      missing = await missingProps(job, shot, built.value.reply);
+      // A prop that could not be built stays missing even when the new reply omits it.
+      missing = [...new Set([...failed, ...(await missingProps(job, shot, built.value.reply))])];
+    } else {
+      missing = [...failed];
     }
   }
-  return refineShot(job, shot, { label: 'build', missingProps: missing, notes });
+  return refineShot(job, shot, { label, missingProps: missing, builtProps, notes, fixHint });
 }
 
 export function commitSubject(

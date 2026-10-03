@@ -1,6 +1,6 @@
 /**
  * The Sound panel's main side (PLAN.md#8.2): its state (library, bus gains and ducking from
- * cues.json, the last mix render, stems), importing files, built-in previews, writing gains /
+ * cues.json, a summary of the cues, the last mix render with its QA checks, stems), importing files, built-in previews, writing gains /
  * ducking into cues.json (raw JSON edited so unknown keys survive, validated with the pipeline's
  * CuesFileSchema, atomic, committed, in the timeline editor's write queue) and the stage runs
  * behind its buttons. Electron-free: the picker, the queue and the commit come in as options.
@@ -9,6 +9,7 @@ import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
   CuesFileSchema,
+  MixQaReportSchema,
   MixReportSchema,
   type CuesFile,
   type MixReport,
@@ -16,6 +17,7 @@ import {
 import { FILES, REPORTS, type StageRequest } from '@reelforge/stages';
 import {
   MIX_GAIN_KEYS,
+  type CueSummary,
   type LibrarySound,
   type MixGainKey,
   type MixResult,
@@ -132,14 +134,32 @@ function mixResult(dirReport: MixReport): MixResult {
   };
 }
 
+/** cues.json at a glance: counts, the built-in SFX by use and the music moods. */
+export function cueSummary(cues: CuesFile): CueSummary {
+  const counts = new Map<string, number>();
+  for (const cue of cues.sfx) {
+    if (cue.name !== undefined) counts.set(cue.name, (counts.get(cue.name) ?? 0) + 1);
+  }
+  return {
+    sfx: cues.sfx.length,
+    ambience: cues.ambience.length,
+    music: cues.music.length,
+    sounds: [...counts]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+    moods: [...(cues.moods ?? [])],
+  };
+}
+
 const EMPTY_STATE: SoundState = {
   projectDir: null,
   library: [],
   gains: { voGainDb: 0, sfxGainDb: 0, ambienceGainDb: 0, musicGainDb: 0 },
   ducking: null,
   musicCues: 0,
+  cues: null,
   cuesError: null,
-  mix: { exists: false, stale: false, result: null },
+  mix: { exists: false, stale: false, result: null, qa: null },
   stems: [],
 };
 
@@ -159,10 +179,11 @@ export class SoundService {
   async state(): Promise<SoundState> {
     const dir = this.options.currentProject();
     if (dir === undefined) return EMPTY_STATE;
-    const [library, cues, report, mixTime, cuesTime, stems] = await Promise.all([
+    const [library, cues, report, qa, mixTime, cuesTime, stems] = await Promise.all([
       listLibrary(dir),
       readProjectJson(dir, FILES.cues, CuesFileSchema),
       readProjectJson(dir, REPORTS.mix, MixReportSchema),
+      readProjectJson(dir, FILES.mixQaReport, MixQaReportSchema),
       mtime(path.join(dir, ...FILES.mix.split('/'))),
       mtime(path.join(dir, FILES.cues)),
       stemFiles(dir),
@@ -175,11 +196,16 @@ export class SoundService {
       gains: gainsOf(data),
       ducking: ducking === undefined ? null : { ...ducking },
       musicCues: data?.music.length ?? 0,
+      cues: data === undefined ? null : cueSummary(data),
       cuesError: cues.status === 'error' ? cues.error.message : null,
       mix: {
         exists: mixTime !== null,
         stale: mixTime !== null && cuesTime !== null && cuesTime > mixTime,
         result: mixTime !== null && report.status === 'ok' ? mixResult(report.data) : null,
+        qa:
+          mixTime !== null && qa.status === 'ok'
+            ? qa.data.checks.map((check) => ({ ...check }))
+            : null,
       },
       stems,
     };

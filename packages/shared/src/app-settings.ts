@@ -116,6 +116,10 @@ export const appSettingsSchema = z.object({
       whisperModel: settingsWhisperModelSchema.default('large-v3-turbo-q5_0'),
     })
     .prefault({}),
+  /** Sound design: generated background music per act (the sound-cues stage). */
+  music: z.object({ enabled: z.boolean().default(true) }).prefault({}),
+  /** Scenes built: the quiet final review after a whole-film build (PLAN.md#11.5). */
+  scenes: z.object({ finalReview: z.boolean().default(true) }).prefault({}),
   /** Last choices of the export dialog (PLAN.md#9.1); encoder and workers live in `performance`. */
   export: z
     .object({
@@ -186,6 +190,8 @@ export const appSettingsPatchSchema = z.strictObject({
     .partial()
     .optional(),
   tools: z.strictObject({ whisperModel: settingsWhisperModelSchema }).partial().optional(),
+  music: z.strictObject({ enabled: z.boolean() }).partial().optional(),
+  scenes: z.strictObject({ finalReview: z.boolean() }).partial().optional(),
   // The output folder is absent on purpose: main sets it only from its own folder picker.
   export: z
     .strictObject({
@@ -219,6 +225,8 @@ export function applyAppSettingsPatch(settings: AppSettings, patch: AppSettingsP
     usage: { ...settings.usage, ...patch.usage },
     performance: { ...settings.performance, ...patch.performance },
     tools: { ...settings.tools, ...patch.tools },
+    music: { ...settings.music, ...patch.music },
+    scenes: { ...settings.scenes, ...patch.scenes },
     export: { ...settings.export, ...patch.export },
     onboarding: { ...settings.onboarding, ...patch.onboarding },
   });

@@ -1,11 +1,14 @@
 /** Pixel-font text system: `ctx.text` (titles, lower thirds, kinetic text), measuring and card QA. */
 export {
+  CARD_RULES,
+  cardProblems,
   checkCards,
   collectCardTimeline,
   formatCardDiagnostics,
   type CardDiagnostic,
   type CardFrame,
   type CardRule,
+  type CardSeverity,
   type CardSource,
   type ShotCardTimeline,
 } from './check-cards.js';

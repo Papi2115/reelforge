@@ -172,6 +172,45 @@ export function inkBox(
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
+/**
+ * Ink box of every source token (space-separated word, in reading order) of the block placed at
+ * (left, top); a word broken across lines gets the union of its pieces.
+ */
+export function tokenInkBoxes(
+  layout: TextLayout,
+  align: TextAlign,
+  scale: number,
+  left: number,
+  top: number,
+): PixelRect[] {
+  const boxes: (PixelRect | undefined)[] = [];
+  for (const word of layout.words) {
+    const lineX = left + lineOffset(layout, word.line, align, scale) + word.x * scale;
+    const cap = top + capLine(layout, word.line, scale);
+    const inked = word.glyphs.filter(({ glyph }) => glyph.inkBottom >= glyph.inkTop);
+    if (inked.length === 0) continue;
+    const glyphTop = Math.min(...inked.map(({ glyph }) => glyph.inkTop));
+    const glyphBottom = Math.max(...inked.map(({ glyph }) => glyph.inkBottom + 1));
+    const box = {
+      x: lineX,
+      y: cap + glyphTop * scale,
+      w: word.width * scale,
+      h: (glyphBottom - glyphTop) * scale,
+    };
+    const previous = boxes[word.token];
+    boxes[word.token] = previous ? unionRect(previous, box) : box;
+  }
+  return Array.from(boxes, (box) => box ?? { x: left, y: top, w: 0, h: 0 });
+}
+
+function unionRect(first: PixelRect, second: PixelRect): PixelRect {
+  const x = Math.min(first.x, second.x);
+  const y = Math.min(first.y, second.y);
+  const right = Math.max(first.x + first.w, second.x + second.w);
+  const bottom = Math.max(first.y + first.h, second.y + second.h);
+  return { x, y, w: right - x, h: bottom - y };
+}
+
 export function measureLayout(layout: TextLayout, scale: number): TextMetrics {
   const { w, h } = blockSize(layout, scale);
   return { w, h, lines: layout.lines.map((line) => line.text) };

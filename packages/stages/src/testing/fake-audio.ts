@@ -11,6 +11,7 @@ import {
   MIX_REPORT_VERSION,
   WORDS_RAW_VERSION,
   type CleanReport,
+  type MixQaMeasurements,
   type MixReport,
   type RawWord,
   type WhisperModelId,
@@ -128,6 +129,15 @@ export class FakeAudioTools implements AudioTools {
   transcriptions: (WordsRaw | ToolError)[] = [];
   installedModels = new Set<WhisperModelId>(['large-v3-turbo-q5_0']);
   mixLoudness = { lufs: -14.2, truePeakDbtp: -1.4 };
+  /** QA measurements of the fake mix (undefined = the analysis "failed"). */
+  mixQa: MixQaMeasurements | undefined = {
+    speechS: 30,
+    musicLowShare: 0.05,
+    duckingDepthDb: 9.5,
+    speechMarginDb: 21,
+    speechMarginMinDb: 17,
+    clippedSamples: 0,
+  };
   readonly transcribeCalls: TranscribeRequest[] = [];
   readonly cleanCalls: CleanRequest[] = [];
   readonly mixCalls: MixRequest[] = [];
@@ -158,6 +168,7 @@ export class FakeAudioTools implements AudioTools {
   async mix(_cues: unknown, request: MixRequest): Promise<Result<MixReport, ToolError>> {
     this.mixCalls.push(request);
     await touch(request.outputPath, 'RIFF mix');
-    return ok(mixReport(this.mixLoudness.lufs, this.mixLoudness.truePeakDbtp));
+    const report = mixReport(this.mixLoudness.lufs, this.mixLoudness.truePeakDbtp);
+    return ok(this.mixQa === undefined ? report : { ...report, qa: this.mixQa });
   }
 }

@@ -86,7 +86,7 @@ export function SoundLibrary(props: SoundLibraryProps): JSX.Element {
   };
 
   return (
-    <section className="sound-library" aria-label="Sound library">
+    <div className="sound-library">
       <div className="sound-tabs" role="tablist" aria-label="Sound kinds">
         {SOUND_KINDS.map((id) => (
           <button
@@ -159,6 +159,6 @@ export function SoundLibrary(props: SoundLibraryProps): JSX.Element {
           Drag onto the timeline
         </span>
       </div>
-    </section>
+    </div>
   );
 }

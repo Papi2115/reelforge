@@ -100,7 +100,7 @@ describe('locateWhisper', () => {
     expect(result.ok).toBe(false);
     if (!result.ok && result.error.kind === 'not-installed') {
       expect(result.error.searched).toContain(cli(cuda));
-      expect(result.error.message).toContain(WHISPER_ENV_VAR);
+      expect(result.error.message).toBe('whisper.cpp is not installed');
     }
   });
 });

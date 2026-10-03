@@ -19,6 +19,8 @@ interface Item {
   readonly label: string;
   readonly run: () => void;
   readonly disabled?: string;
+  /** Keyboard shortcut shown next to the label. */
+  readonly keys?: string;
 }
 
 export function HelpMenu({ onTour, onDialog }: HelpMenuProps): JSX.Element {
@@ -33,6 +35,7 @@ export function HelpMenu({ onTour, onDialog }: HelpMenuProps): JSX.Element {
     },
     {
       label: 'Keyboard shortcuts',
+      keys: '?',
       run: () => {
         onDialog('shortcuts');
       },
@@ -125,6 +128,7 @@ export function HelpMenu({ onTour, onDialog }: HelpMenuProps): JSX.Element {
               }}
             >
               {item.label}
+              {item.keys !== undefined && <kbd className="menu-keys">{item.keys}</kbd>}
             </button>
           ))}
         </div>

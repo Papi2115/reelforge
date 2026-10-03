@@ -16,6 +16,7 @@ export const PROJECT_PATHS = {
   cues: 'cues.json',
   words: 'timing/words.json',
   scenes: 'scenes',
+  kitExtProps: 'kit-ext/props',
   audio: 'audio',
   voClean: 'audio/vo.clean.wav',
   mix: 'audio/mix.wav',

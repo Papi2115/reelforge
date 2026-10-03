@@ -126,6 +126,8 @@ export function describeSelection(selection: ChatSelection, hint: SourceHint | u
 export interface ChatPromptInput {
   readonly request: ChatSendRequest;
   readonly hint: SourceHint | undefined;
+  /** Whole video: the project's locked shots, which the turn must leave alone (PLAN.md#11.4). */
+  readonly lockedNote?: string;
 }
 
 export type ChatPromptResult =
@@ -155,11 +157,12 @@ export function buildChatPrompt(input: ChatPromptInput): ChatPromptResult {
       : undefined;
   const shotIds =
     scope === 'video' || request.shotIds.length === 0 ? 'all' : request.shotIds.join(', ');
+  const note = scope === 'video' ? (input.lockedNote ?? '') : '';
   const rendered = renderPrompt('scene-fix', {
     scope: SCOPE_LABELS[scope],
     shotIds,
     selection,
-    request: requestText(request),
+    request: note === '' ? requestText(request) : `${requestText(request)}\n\n${note}`,
   });
   return rendered.ok
     ? { ok: true, prompt: rendered.value }

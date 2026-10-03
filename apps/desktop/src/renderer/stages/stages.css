@@ -1,118 +1,4 @@
-/* Pipeline sidebar states, the Brief -> Script view and the words viewer (PLAN.md#6.8, #7.1). */
-
-.heading-action {
-  margin-left: auto;
-  padding: 1px 8px;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-/* Status colours: dot + chip */
-.stage-item.status-review .stage-dot,
-.stage-item.status-ready .stage-dot {
-  border-color: var(--accent);
-  background: var(--accent);
-}
-
-.stage-item.status-running .stage-dot,
-.stage-item.status-queued .stage-dot {
-  border-color: var(--accent);
-  border-radius: 50%;
-}
-
-.stage-item.status-paused .stage-dot,
-.stage-item.status-stale .stage-dot,
-.stage-item.status-interrupted .stage-dot {
-  border-color: var(--warn);
-}
-
-.stage-item.status-failed .stage-dot {
-  border-color: var(--error);
-  background: var(--error);
-}
-
-.stage-item.status-loading .stage-label {
-  color: var(--muted);
-}
-
-.status-chip.status-review,
-.status-chip.status-running,
-.status-chip.status-queued {
-  color: var(--accent-text);
-  background: var(--accent-soft);
-}
-
-.status-chip.status-paused,
-.status-chip.status-stale,
-.status-chip.status-interrupted {
-  color: var(--warn);
-  background: rgb(242 193 78 / 14%);
-}
-
-.status-chip.status-failed {
-  color: var(--error);
-  background: rgb(255 138 138 / 14%);
-}
-
-.stage-actions .small-button {
-  padding: 2px 8px;
-}
-
-.stage-detail {
-  padding: 0 12px 6px;
-  font-size: 12px;
-}
-
-.stage-detail-line {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  color: var(--muted);
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.stage-detail.status-failed .stage-detail-line,
-.stage-detail.status-interrupted .stage-detail-line {
-  color: var(--error);
-}
-
-.stage-detail .link-button {
-  padding: 0;
-  font-size: 12px;
-}
-
-.stage-issues {
-  max-height: 96px;
-  margin: 4px 0 0;
-  padding-left: 16px;
-  overflow-y: auto;
-  overflow-wrap: anywhere;
-}
-
-.stage-notice {
-  margin: 0;
-  padding: 0 12px 6px;
-  font-size: 12px;
-}
-
-.stage-progress {
-  height: 3px;
-  margin: 4px 0 2px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--panel-raised);
-}
-
-.stage-progress > span {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-}
+/* The Brief -> Script view, documents over the preview and the words viewer (PLAN.md#7.1). */
 
 /* Documents over the preview */
 .center-stack {
@@ -360,4 +246,41 @@
 .word-missing {
   border-color: var(--error);
   border-style: dashed;
+}
+
+/* Words timed needs whisper.cpp: "Download and continue" (layout/WordsSetupNotice.tsx) */
+.words-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 12px;
+  padding: 8px;
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  font-size: 12px;
+}
+
+.words-setup-text,
+.words-setup-detail {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.words-setup-detail {
+  font-size: 11px;
+}
+
+.words-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.words-setup .link-button {
+  align-self: flex-start;
+}
+
+.words-setup .stage-progress {
+  height: 5px;
 }

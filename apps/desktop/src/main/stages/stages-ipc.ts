@@ -11,6 +11,7 @@ import { describeError, type Logger } from '../logger.js';
 import type { MicPermissionGate } from '../mic-permission.js';
 import type { ScriptDocuments } from './script-documents.js';
 import { artifactPath } from './stage-artifacts.js';
+import { lockShots } from './shot-locks.js';
 import { readStageReports } from './stage-reports.js';
 import type { StageService } from './stage-service.js';
 import {
@@ -38,6 +39,7 @@ export type StagesHandlers = Pick<
   | 'stagesReports'
   | 'wordsRetry'
   | 'scenesRun'
+  | 'shotsLock'
 >;
 
 export type ReplacePick = 'script' | 'voiceover';
@@ -76,6 +78,8 @@ export interface StagesHandlerOptions {
   readonly probe: AudioProbe;
   readonly hasWhisperModel: (model: WhisperModelId) => boolean;
   readonly mic: MicPermissionGate;
+  /** Autocommit of a project (shot locks). */
+  readonly commit: (dir: string, message: string) => Promise<void>;
   readonly log: Logger;
   readonly now?: () => Date;
 }
@@ -176,5 +180,13 @@ export function stagesHandlers(options: StagesHandlerOptions): StagesHandlers {
           ...(request.shots === null ? {} : { shots: request.shots }),
         },
       ]),
+    shotsLock: (request) =>
+      lockShots({
+        dir: options.currentProject(),
+        shotIds: request.shotIds,
+        locked: request.locked,
+        now: options.now?.() ?? new Date(),
+        commit: options.commit,
+      }),
   };
 }

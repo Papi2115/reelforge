@@ -1,7 +1,8 @@
 /**
  * Runs a per-shot job (build or review fix) for a set of shots through the persistent queue:
  * bounded concurrency (settings, capped by the LimitGuard), shot events for the UI, and every
- * finished shot stored in the scenes report + autocommitted.
+ * finished shot stored in the scenes report + autocommitted. Locked shots (PLAN.md#11.4) never
+ * run: they are left out of the queue and returned as `locked`.
  */
 import { ok, type Result } from '@reelforge/claude-bridge';
 import type { ShotBuildRecord, StoryboardShot } from '@reelforge/shared';
@@ -18,6 +19,8 @@ export interface ShotJobs {
   readonly resume: boolean;
   /** Commit subject verb: "Scene s03 <verb> ✓". */
   readonly verb: string;
+  /** Autocommit every finished shot (default true; the final review commits once at the end). */
+  readonly commit?: boolean;
   readonly work: (shot: StoryboardShot) => Promise<Result<ShotBuildRecord, StageError>>;
 }
 
@@ -27,6 +30,8 @@ export interface ShotJobsResult {
   /** Shots an interrupted earlier run had finished (skipped now). */
   readonly skipped: readonly string[];
   readonly resumed: boolean;
+  /** Requested shots that are locked (not run). */
+  readonly locked: readonly string[];
 }
 
 /** Shots built at once: the setting, capped by the account-wide Claude concurrency. */
@@ -39,12 +44,13 @@ export async function runShotJobs(
   jobs: ShotJobs,
 ): Promise<Result<ShotJobsResult, StageError>> {
   const { ctx } = job;
+  const unlocked = (shot: StoryboardShot): boolean => !job.locked.has(shot.id);
   const prepared = await prepareShotQueue({
     store: ctx.store,
     projectDir: ctx.projectDir,
     queue: jobs.queue,
-    storyboardIds: job.shots.map((shot) => shot.id),
-    targets: jobs.shots.map((shot) => shot.id),
+    storyboardIds: job.shots.filter(unlocked).map((shot) => shot.id),
+    targets: jobs.shots.filter(unlocked).map((shot) => shot.id),
     resume: jobs.resume,
     now: ctx.now(),
   });
@@ -65,7 +71,7 @@ export async function runShotJobs(
       const done = await jobs.work(shot);
       if (!done.ok) return done;
       ran.push(id);
-      return saveShotRecord(job, shot, done.value, jobs.verb);
+      return saveShotRecord(job, shot, done.value, jobs.verb, jobs.commit ?? true);
     },
     onStart: (id) => {
       ctx.shot(id, 'started');
@@ -78,5 +84,10 @@ export async function runShotJobs(
     },
   });
   if (!result.ok) return result;
-  return ok({ ran, skipped: prepared.value.finished, resumed: prepared.value.resumed });
+  return ok({
+    ran,
+    skipped: prepared.value.finished,
+    resumed: prepared.value.resumed,
+    locked: jobs.shots.filter((shot) => !unlocked(shot)).map((shot) => shot.id),
+  });
 }

@@ -112,7 +112,7 @@ export function ScriptEditor(props: ScriptEditorProps): JSX.Element {
             title={
               empty
                 ? 'Write or paste a script first'
-                : 'Later stages (words, storyboard, scenes) use the approved script'
+                : 'Later steps (words, storyboard, scenes) use the approved script'
             }
             onClick={() => {
               setProblem(undefined);

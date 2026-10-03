@@ -1,15 +1,13 @@
 /**
- * IPC payloads of Settings (PLAN.md#6.7): app settings, the "Connect Claude" status, ffmpeg /
- * whisper.cpp detection and the whisper model manager. Merged into the registry of
+ * IPC payloads of Settings (PLAN.md#6.7): app settings, the "Connect Claude" status and ffmpeg /
+ * whisper.cpp detection (the whisper setup is in whisper-contract.ts). Merged into the registry of
  * ipc-contract.ts. The Claude status carries only non-identifying fields (never e-mail/org).
  */
 import {
   appSettingsPatchSchema,
   appSettingsSchema,
-  settingsWhisperModelSchema,
   type AppSettings,
   type AppSettingsPatch,
-  type SettingsWhisperModel,
 } from '@reelforge/shared';
 import { z } from 'zod';
 
@@ -115,49 +113,6 @@ export const toolBrowseResultSchema = z.discriminatedUnion('status', [
 ]);
 export type ToolBrowseResult = z.infer<typeof toolBrowseResultSchema>;
 
-export const whisperModelsStateSchema = z.object({
-  modelsDir: z.string(),
-  models: z.array(
-    z.object({
-      id: settingsWhisperModelSchema,
-      /** Approximate download size (for the UI only). */
-      approxBytes: z.number().nonnegative(),
-      installed: z.boolean(),
-    }),
-  ),
-  /** The voice-activity model every transcription needs (downloaded with the first model). */
-  vadInstalled: z.boolean(),
-  /** At most one download runs at a time. */
-  downloading: settingsWhisperModelSchema.nullable(),
-});
-export type WhisperModelsState = z.infer<typeof whisperModelsStateSchema>;
-
-export const whisperModelRequestSchema = z.strictObject({ model: settingsWhisperModelSchema });
-
-export const whisperDownloadResultSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('started') }),
-  z.object({ status: z.literal('installed') }),
-  z.object({ status: z.literal('busy'), downloading: settingsWhisperModelSchema }),
-]);
-export type WhisperDownloadResult = z.infer<typeof whisperDownloadResultSchema>;
-
-export const whisperDeleteResultSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('deleted') }),
-  z.object({ status: z.literal('error'), message: z.string() }),
-]);
-export type WhisperDeleteResult = z.infer<typeof whisperDeleteResultSchema>;
-
-export const whisperProgressSchema = z.object({
-  model: settingsWhisperModelSchema,
-  phase: z.enum(['downloading', 'done', 'failed', 'cancelled']),
-  /** Asset being fetched (the model or the VAD model). */
-  asset: z.string(),
-  receivedBytes: z.number().nonnegative(),
-  totalBytes: z.number().nonnegative().nullable(),
-  message: z.string().optional(),
-});
-export type WhisperProgress = z.infer<typeof whisperProgressSchema>;
-
 export const SETTINGS_IPC = {
   settingsGet: { name: 'settings:get', request: noPayload, response: settingsStateSchema },
   settingsUpdate: {
@@ -190,23 +145,6 @@ export const SETTINGS_IPC = {
   },
   /** Back to auto-detection. */
   toolsReset: { name: 'tools:reset', request: toolRequestSchema, response: toolsStatusSchema },
-  whisperModels: { name: 'whisper:models', request: noPayload, response: whisperModelsStateSchema },
-  whisperDownload: {
-    name: 'whisper:download',
-    request: whisperModelRequestSchema,
-    response: whisperDownloadResultSchema,
-  },
-  whisperCancel: { name: 'whisper:cancel', request: whisperModelRequestSchema, response: z.null() },
-  whisperDelete: {
-    name: 'whisper:delete',
-    request: whisperModelRequestSchema,
-    response: whisperDeleteResultSchema,
-  },
-} as const;
-
-export const SETTINGS_PUSH = {
-  /** Whisper model download progress / end. */
-  whisperProgress: { name: 'whisper:progress', payload: whisperProgressSchema },
 } as const;
 
 /** Settings part of `window.reelforge`. */
@@ -218,12 +156,6 @@ export interface SettingsApi {
   getToolsStatus(refresh: boolean): Promise<ToolsStatus>;
   browseToolPath(tool: ToolId): Promise<ToolBrowseResult>;
   resetToolPath(tool: ToolId): Promise<ToolsStatus>;
-  getWhisperModels(): Promise<WhisperModelsState>;
-  downloadWhisperModel(model: SettingsWhisperModel): Promise<WhisperDownloadResult>;
-  cancelWhisperDownload(model: SettingsWhisperModel): Promise<null>;
-  deleteWhisperModel(model: SettingsWhisperModel): Promise<WhisperDeleteResult>;
-  /** Subscribes to download progress; returns the unsubscribe function. */
-  onWhisperProgress(listener: (progress: WhisperProgress) => void): () => void;
 }
 
 export type { AppSettings, AppSettingsPatch };

@@ -12,7 +12,7 @@ stage at a time on a project folder; export is in `@reelforge/pipeline`.
 | Audio cleaned (`clean`)    | `audio/vo.original.*`                                                        | `audio/vo.clean.wav`, `.reelforge/reports/clean.json` (LUFS before/after)                               | pipeline `cleanAudio`, preset from settings                                                              | loudness outside target ± tolerance → warning                                                                                                                                                     |
 | Words timed (`words`)      | `audio/vo.original.*` (cleaned audio if pauses were shortened), `script.txt` | `timing/words.raw.json`, `timing/words.json`, `.reelforge/reports/words.json`                           | whisper.cpp (model from settings or the request's `model`, language from `project.json`) + align         | coverage < 0.85 or decoder loop → retry `-bs 5 -tp 0.2`, then the fallback model (if installed); best kept; mismatch regions reported; coverage added to the VO report                            |
 | Storyboard (`storyboard`)  | `script.txt`, `timing/words.json`, style, kit catalog (`reelforge kit-docs`) | `storyboard.json`, stub `scenes/<shot>.js` for new shots, `.reelforge/reports/storyboard.json`          | `storyboard` prompt, Sonnet, `main` session (Economy: leaner storyboard)                                 | `validateStoryboard` (schema, contiguous from 0, boundaries on word starts, ≤ 2 same treatments in a row, scene paths) + 1 repair, then **fail**; `missingProps` collected                        |
-| Scenes built (`scenes`)    | `storyboard.json`, `timing/words.json`, style, kit                           | `scenes/<shot>.js`, `.reelforge/scenes-report.json` (✓ ⚠ ✗ per shot), QA sheets `.reelforge/frames/qa/` | per shot: `scene-build` (Opus) → QA by code → `critic` (Haiku) → `scene-fix` (Opus) ≤ 2; `FrameRenderer` | see [Scenes built](#scenes-built-74-77); ✗ shots → **fail** (`quality`), ⚠ → warnings                                                                                                             |
+| Scenes built (`scenes`)    | `storyboard.json`, `timing/words.json`, `locks.json`, style, kit             | `scenes/<shot>.js`, `.reelforge/scenes-report.json` (✓ ⚠ ✗ per shot), QA sheets `.reelforge/frames/qa/` | per shot: `scene-build` (Opus) → QA by code → `critic` (Haiku) → `scene-fix` (Opus) ≤ 2; `FrameRenderer` | see [Scenes built](#scenes-built-74-77); ✗ shots → **fail** (`quality`), ⚠ → warnings                                                                                                             |
 | Sound cues (`sound-cues`)  | `storyboard.json`, `timing/words.json`, `audio/music/*`, scene sfx events    | `cues.json`                                                                                             | `sound-cues` prompt, Sonnet; **`generateDefaultCues`** in Economy mode, without Claude, or as fallback   | `validateCues` (`CuesFileSchema`, ambience ≤ −20 dB, music files exist, inside the timeline) + 1 repair; still invalid → default cues + warning                                                   |
 | Sound design mixed (`mix`) | `cues.json`, `audio/vo.clean.wav`                                            | `audio/mix.wav`, `.reelforge/reports/mix.json`                                                          | pipeline `mixAudio`                                                                                      | **fail** unless loudness = target (−14) ± 1 LU and true peak ≤ −1 dBTP                                                                                                                            |
 
@@ -34,18 +34,22 @@ await runner.run({ stage: 'scenes', action: 'fix-what-looks-wrong' }); // a "Who
   then QA rounds run **by code** (`scenes/qa.ts`, Claude's self-report is not trusted): engine
   `lintScene` (errors are fatal) → smoke render at start, 25 %, 50 %, 75 %, end − 0.1 s through the
   `FrameRenderer` (console errors captured) → blank/uniform frames (colour stats + content share of
-  8×8 blocks, robust to dithering) → `checkCards` (overlap, safe area, clipped) → anchors vs sfx
+  8×8 blocks, robust to dithering) → `checkCards` (overlap, safe area, clipped; annotation targets off
+  screen/hidden and marks off their phrase as warnings, ADR-008) → anchors vs sfx
   (±150 ms) → only when all that is clean, the Haiku critic on a contact sheet
   (`.reelforge/frames/qa/<shot>/<label>.png`, critic JSON validated; an invalid reply is a note).
   Error findings → `scene-fix` turn with the findings, at most `maxFixIterations` (2). Result:
   ✓ clean · ⚠ findings left or missing props · ✗ lint/runtime error persisted (or a Claude turn
   failed). Stored in `.reelforge/scenes-report.json` and autocommitted `Scene s03 built ✓` (with two
   shots in flight a commit can also carry the other shot's file).
-- **Missing props**: `MISSING:` reply line or `kit.<env|props|fx>.<name>(` calls the catalogue lacks
-  → `onMissingProps(names, shot)`: `'added'` builds the shot again, `'skipped'` (default
-  `skipMissingProps`) keeps it ⚠ "missing prop: …" and the build goes on. Extending the kit is a
-  repo-level change (a developer/Coder task in `packages/kit` with its tests), never an edit inside a
-  user project.
+- **Missing props** (ADR-007): the storyboard's `missingProps` first, then a `MISSING:` reply line
+  or `kit.props.<name>(` calls that neither the kit nor `kit-ext/props` has → `PropBuilder`: a
+  `prop-build` turn writes `kit-ext/props/<name>.js`, QA by code (prop lint, turntable render,
+  size, floating parts, determinism, Haiku critic), one fix turn, then "Prop <name> built ✓" and the
+  shot is built again with it; a prop that still fails moves to `.reelforge/props-failed/` and the
+  shot keeps ⚠ "missing prop: …". One build per name per run, `maxNewProps` (12) per film, all in
+  `.reelforge/props-report.json`. A custom `onMissingProps(names, shot)` replaces the builder
+  (`'added'` / `'skipped'` / `{ built, failed }`).
 - **FrameRenderer**: `renderShot({ projectDir, shotId, times, cards }, signal)` — the same engine as
   preview/export. The app passes its render service; tests and `run-stage` use
   `src/cli/playwright-renderer.ts` (Playwright + SwiftShader, `planServiceShot` manifests).
@@ -62,6 +66,30 @@ await runner.run({ stage: 'scenes', action: 'fix-what-looks-wrong' }); // a "Who
   scene's anchors (checked against `timing/words.json` through the fuzzy resolver), its `sfx.at`
   cues and the `cues.json` sfx of the shot, each against the nearest anchor (`ok` ≤ 150 ms, `off`,
   `free` > 0.5 s from any anchor, `outside-shot`) → `.reelforge/sync-report.json`.
+- **Shot locks** (#11.4, `locks.ts`, `lock-guard.ts`): `locks.json` in the project root (zod
+  `shotLocksFileSchema`, **tracked by git** so revert/history bring locks back with the scenes they
+  protect; `.reelforge/` is ignored). Locked shots are skipped by builds (`…; 1 locked (kept)`,
+  "Rebuild this shot" → `Nothing to build: s03 is locked`), by every review fix (`runShotJobs`
+  drops them) and looked at only by `sync-check` (reported: "locked and may be out of sync").
+  Enforced in code: `TurnDriver` snapshots the locked files (scene + the `kit-ext` props it calls)
+  before every Claude turn and puts back whatever the turn changed, created or deleted before the
+  autocommit (warning "Claude tried to change locked shot s03; change discarded").
+- **Final review** (#11.5, `action: 'final-review'`, `trigger: 'auto' | 'manual'`): sync report →
+  per shot lint + 3-frame render (blank/cards/console) + phone legibility + sync findings → ONE
+  Haiku `review-triage` turn over the contact sheets (`.reelforge/frames/qa/final/`) → one Opus
+  `scene-fix` (+ re-QA) for unlocked shots with confirmed findings (`maxFixIterations` 1, queue
+  `scenes-final-review`, no per-shot commits) → scenes report updated, `.reelforge/final-review.json`
+  (`finalReviewSchema`), one commit `Final review: fixed N shots`. Works without Claude (checks
+  only). A review run (chips or final) that is stopped or fails leaves the Scenes status as it was.
+- **Shot variants** (#11.3, `action: 'variants'`, one shot in `shots`, `variants: VariantOp`):
+  `generate` builds 2–3 variants in parallel from the direction library (`variants/directions.ts`),
+  each through the normal QA loop with ≤ 1 fix into a work file `.variants/<shot>/v<n>.js`
+  (git-excluded; the runtime Claude may not write `.reelforge/`), stored in
+  `.reelforge/variants/<shot>/` with `variants.json`; the shot's scene is never touched and nothing
+  is committed (`keepStatus`). `pick` copies one to the scene, updates the scenes report, commits
+  `Shot s03: picked variant 2 (<direction>)` and optionally locks; `keep-current` / `discard` drop
+  the set. Every decision goes to `.reelforge/taste.json`. Locked shots are refused. Details:
+  `docs/shot-variants.md`.
 
 ## Runner
 

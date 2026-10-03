@@ -6,11 +6,12 @@ Reply in the user's language (default: English). Be brief: say what you changed 
 
 ## What you may edit
 - `scenes/*.js` — scene modules (the main thing you write)
+- `kit-ext/props/<name>.js` — project props, only when the kit has no fitting prop (see "Missing props")
 - `storyboard.json`, `cues.json`, `script.txt`, `beats.md`, `research.md`
 - the shot you were asked to change — do not "improve" other shots unless the scope says "Whole video".
 
 ## What you must NOT touch
-`project.json`, `audio/**`, `timing/**`, `out/**`, `.reelforge/**`, `.git/**`, and anything outside this folder. The kit and engine are read-only; if a prop you need does not exist, say so (the app will extend the kit) — do not reimplement it badly inside a scene.
+`project.json`, `locks.json`, `audio/**`, `timing/**`, `out/**`, `.reelforge/**`, `.git/**`, and anything outside this folder. Shots listed in `locks.json` are locked by the user: never edit their scene files or the `kit-ext` props they use (the app discards such changes). The kit and engine are read-only; if a prop you need does not exist, see "Missing props" — never fake it with loose boxes inside a scene.
 
 ## Scene contract (the ONLY thing you write)
 ```js
@@ -29,17 +30,38 @@ export function update(t, s, ctx) {     // pure function of local time t (second
   ctx.camera.pushIn({ from: 0, to: s.hit.t, dist: [6, 3.5] })(t);
 }
 ```
-- No `import`/`require`. Everything comes from `ctx`: `three`, `scene`, `camera`, `kit`, `text`, `palette`, `ease`, `anchor`, `sfx`, `rng`, `shot`.
+- No `import`/`require`. Everything comes from `ctx`: `three`, `scene`, `camera`, `kit`, `text`, `annotate`, `palette`, `ease`, `anchor`, `sfx`, `rng`, `shot`.
 - **Deterministic**: the same `t` must give the same image, bit for bit. Forbidden: `Date`, `Math.random` (use `ctx.rng`), `performance.now`, `requestAnimationFrame`, `setTimeout/Interval`, `fetch`, Node APIs, `window/document/globalThis`, CSS animations. `reelforge lint` enforces this and explains each violation.
 - `update` runs for arbitrary `t` in any order (scrubbing, parallel rendering). No hidden state.
 - Time: `t` is local to the shot; `ctx.shot.duration` is its length. Sync visuals to speech with `ctx.anchor("phrase", nth)` — never hard-code seconds that come from the voiceover.
 - Colours: only `ctx.palette` tokens (`sky, ground, groundAlt, hero, heroTrim, accent1–4, keyLight, fillLight, shadow, text, textDim, outline`). The style post-pass snaps everything to a small palette; max ~5 colours per shot.
 - Easing: `ctx.ease.*` (`easeOutCubic`, `easeInOutCubic`, `easeOutBack`, `smoothstep`, …).
 - Text: `ctx.text.title/lowerThird/kinetic(...)` in `update()` (not in `build`). Display font is capital letters only; Polish diacritics work. Keep text inside the safe area, at most two text levels, and never two cards overlapping in time.
+- Annotations: `ctx.annotate.callout/arrow/ring/bracket/pin/underline/highlight/badge/stamp/dimension/spotlight({...})` in `update()`, like text. They point at a kit object (`target: s.calc` or `{ object: s.calc, anchor: 'screen' }`), a world point, a frame region or a text card, follow the camera, and appear on a spoken phrase with `phrase: "the keypad"`. Options and examples: `reelforge kit-docs annotate`.
+
+## Annotations: when to use what
+Pick the form from what the narration does, and vary it (never the same form 3 times in a row within 20 s, at most ~8 marks a minute, 0–2 per shot, many shots need none):
+| The narration… | Use |
+| --- | --- |
+| names a person / product / place | `pin` on the object (or a small `ctx.text.lowerThird`) |
+| says a number, amount, date | `kit.fx.counter` or a big `ctx.text.title`; `badge` for steps |
+| explains a term | `callout` with the term as `title` and a short definition |
+| points at a part or place ("here", "this chip") | `arrow` or `ring` |
+| compares or groups ("these three") | `bracket` over the group, two `callout`s, `dimension` for sizes |
+| lists items | numbered `badge`s, one per spoken item |
+| states a claim, verdict, quote | `stamp` ("CONFIRMED") or `underline` the key word of a title |
+| stresses ("the only one") | `spotlight`, `ring` or `highlight` |
+The shot's annotation plan from `storyboard.json` (`annotations`) is a hint: implement it, or adapt/drop a mark that would cover the subject or clutter the frame. Labels ≤ 3 words, scale ≥ 2; one or two marks on screen at a time; never leave a mark over the hero for long. `reelforge frames` reports annotation labels overlapping cards or leaving the safe area, targets off screen or hidden, and marks off their phrase.
 
 ## The kit (compose, don't hand-build)
 Use `reelforge kit-docs` to list what exists (environments, props, effects, voxel tools) and `reelforge kit-docs <name>` for parameters and anchor points. Prefer kit props/environments over raw Three.js. Props attach with `.on(surface)`. Build once in `build()`, animate in `update()`. Calling kit constructors inside `update()` is an error.
-Camera rigs, `ctx.text` options, anchors, sfx, rng and easings: `reelforge kit-docs ctx` (or `camera`, `text`, …). Look them up before you write the scene — do not guess option names (unknown options throw and the frame fails).
+Camera rigs, `ctx.text` and `ctx.annotate` options, anchors, sfx, rng and easings: `reelforge kit-docs ctx` (or `camera`, `text`, `annotate`, …). Look them up before you write the scene — do not guess option names (unknown options throw and the frame fails).
+
+## Missing props (project props in `kit-ext/props/`)
+`reelforge kit-docs` lists the kit's props and this project's own (marked project-local). When the narration needs an object neither has:
+- **While building a shot for the app** (the prompt says "Build the scene module for ONE shot"): build the best scene with what exists and end your reply with `MISSING: <name>`. The app then builds the prop (prop-build), checks it and asks you to build the shot again with `ctx.kit.props.<name>`.
+- **When the user asks you directly** (chat) or a prompt asks you to build a prop: write `kit-ext/props/<name>.js` yourself — `reelforge kit-docs prop-module` has the contract, scale rules and an example. One file per prop, camelCase name = file name, `export const prop = { name, description, params, anchors, methods, build(ctx, params) }`, drawn only with `ctx.kit.voxel` (sketch, fromGrid, generate, mesh, group), deterministic like scenes. Check it with `reelforge lint kit-ext/props/<name>.js` and `reelforge prop-preview <name>`, Read the turntable sheet (it must be unmistakably that object from every angle, nothing floating), max 2 fix iterations. Then use `ctx.kit.props.<name>()` in the scene.
+- A project prop is shared by every shot: change an existing one only when asked, and keep its params/anchors compatible.
 
 ## Style bible
 Read `styles/<style id>/STYLE.md` (path given in `project.json` → `style`). Short version: strong composition (thirds, depth), camera is always moving smoothly (never static > 3 s), change the visual pattern every ≤ 6–8 s, flat-shaded voxel look, neon accents on dark backgrounds, no more than two shots in a row with the same treatment.
@@ -49,8 +71,9 @@ Read `styles/<style id>/STYLE.md` (path given in `project.json` → `style`). Sh
 1. `reelforge lint scenes/sNN_slug.js` — must have 0 errors.
 2. `reelforge frames --scene scenes/sNN_slug.js --at 0,<mid>,<end-0.1>` — then **Read the PNG paths it prints** and look at them: not blank, not cropped, text legible and inside the frame, the subject is the focus, colours match the style. Fix and re-render (max 2 fix iterations per shot).
 3. `reelforge anchors --shot <shot id>` (the full id from `storyboard.json`, e.g. `s03_calc_desk`) — every key visual event must land within ±150 ms of its spoken word.
-4. `reelforge validate` after editing `storyboard.json` / `cues.json`.
-5. For a whole-video review: `reelforge contact-sheet --all` and Read the sheets.
+4. Project props: `reelforge lint kit-ext/props/<name>.js` and `reelforge prop-preview <name>` (Read the sheet).
+5. `reelforge validate` after editing `storyboard.json` / `cues.json`.
+6. For a whole-video review: `reelforge contact-sheet --all` and Read the sheets.
 `reelforge status` shows what exists and what is missing.
 
 ## Working rules

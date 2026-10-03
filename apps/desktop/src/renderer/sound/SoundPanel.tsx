@@ -1,30 +1,29 @@
 /**
- * Sound design (PLAN.md#8.2), docked under the preview: the library (drag onto the timeline),
- * "Generate cues" (Claude, or the deterministic default cues without it), "Render mix" (with
- * stems) and its loudness readout, the level sliders (voice-over + SFX / ambience / music buses)
- * and the music ducking presets, and what the player monitors (full mix with the preview of the
- * latest edits, or the voice-over only).
+ * Sound design (PLAN.md#8.2, #11.2), docked under the preview. On top: the main actions
+ * ("Generate cues", "Render mix"; the deterministic default cues and the stems as secondary ones),
+ * what the player monitors (full mix with the latest edits, or the voice only), the mix report as
+ * a ✓/⚠ checklist and the cue summary. In sections that open and close (remembered): the levels,
+ * the library (drag onto the timeline) and the music ducking.
  */
 import { type JSX } from 'react';
-import type { Ducking, LibrarySound, SoundAction } from '../../shared/sound-contract.js';
-import {
-  DUCKING_OFF,
-  DUCKING_PRESET_VALUES,
-  DUCKING_PRESETS,
-  duckingPresetOf,
-} from '../../shared/sound-library.js';
+import { z } from 'zod';
+import type { LibrarySound, SoundAction } from '../../shared/sound-contract.js';
 import type { StagesState } from '../../shared/stages-contract.js';
-import type { MonitorMode } from '../preview/audio-source.js';
+import { Disclosure } from '../layout/Disclosure.js';
+import { usePref } from '../layout/ui-prefs.js';
+import { plural } from '../../shared/plural.js';
 import { STAGE_LABELS } from '../stages/pipeline-view.js';
+import { DuckingField, MonitorToggle } from './SoundControls.js';
 import { SoundLibrary } from './SoundLibrary.js';
 import {
+  cueSummaryText,
   formatDb,
   GAIN_RANGE,
   GAIN_ROWS,
   gainPatch,
   loudnessReadout,
-  withDuckingField,
-  type DuckingNumberField,
+  QA_MARKS,
+  topSoundsText,
 } from './sound-view.js';
 import type { MixPreviewControls } from './use-mix-preview.js';
 import type { SoundControls } from './use-sound.js';
@@ -38,26 +37,43 @@ export interface SoundPanelProps {
   readonly onClose: () => void;
 }
 
+const SECTIONS_KEY = 'reelforge.layout.sound.v1';
+const sectionsSchema = z.object({
+  levels: z.boolean(),
+  library: z.boolean(),
+  ducking: z.boolean(),
+});
+const DEFAULT_SECTIONS = { levels: true, library: false, ducking: false };
+
 const ACTIONS: readonly {
   readonly action: SoundAction;
   readonly label: string;
   readonly hint: string;
+  readonly kind: 'primary' | 'main' | 'secondary';
 }[] = [
   {
     action: 'generate-cues',
     label: 'Generate cues',
-    hint: 'Claude writes cues.json from the storyboard',
+    hint: 'Claude places sound effects, ambience and music from the storyboard (cues.json)',
+    kind: 'main',
   },
   {
     action: 'default-cues',
     label: 'Default cues (no Claude)',
-    hint: 'Deterministic cues: hits on anchors, whooshes on transitions, ambience per act',
+    hint: 'Deterministic sound design: SFX on scene events and transitions, ambience, generated music per act',
+    kind: 'secondary',
   },
-  { action: 'mix', label: 'Render mix', hint: 'audio/mix.wav at −14 LUFS, true peak ≤ −1 dBTP' },
+  {
+    action: 'mix',
+    label: 'Render mix',
+    hint: 'Mix everything into audio/mix.wav at −14 LUFS, true peak ≤ −1 dBTP',
+    kind: 'primary',
+  },
   {
     action: 'mix-stems',
     label: 'Render mix + stems',
     hint: 'Also vo/sfx/ambience/music stems in out/stems',
+    kind: 'secondary',
   },
 ];
 
@@ -81,7 +97,11 @@ function MixReadout({
 }: Pick<SoundPanelProps, 'sound' | 'onOpenStems'>): JSX.Element {
   const mix = sound.state?.mix;
   if (mix === undefined || !mix.exists) {
-    return <p className="muted mix-readout">No mix yet: Render mix writes audio/mix.wav.</p>;
+    return (
+      <p className="muted mix-readout">
+        No mix yet. Generate cues (or use the default ones), then Render mix.
+      </p>
+    );
   }
   const readout = mix.result === null ? null : loudnessReadout(mix.result);
   const stems = sound.state?.stems ?? [];
@@ -104,107 +124,38 @@ function MixReadout({
       {mix.stale && <span className="qa-warning">Cues changed since this render.</span>}
       {stems.length > 0 && (
         <button type="button" className="link-button" onClick={onOpenStems}>
-          {stems.length} stems
+          {plural(stems.length, 'stem')}
         </button>
       )}
     </div>
   );
 }
 
-function DuckingField(props: {
-  readonly ducking: Ducking | null;
-  readonly onChange: (ducking: Ducking) => void;
-}): JSX.Element {
-  const { ducking } = props;
-  const current = ducking === null ? null : duckingPresetOf(ducking);
-  const base = ducking ?? DUCKING_PRESET_VALUES.medium;
-  const number = (
-    field: DuckingNumberField,
-    label: string,
-    min: number,
-    max: number,
-  ): JSX.Element => (
-    <label className="ducking-number">
-      {label}
-      <input
-        type="number"
-        min={min}
-        max={max}
-        step={field === 'ratio' ? 0.5 : 1}
-        value={base[field]}
-        disabled={ducking === null}
-        onChange={(event) => {
-          const value = Number(event.target.value);
-          if (Number.isFinite(value) && value >= min && value <= max) {
-            props.onChange(withDuckingField(base, field, value));
-          }
-        }}
-      />
-    </label>
-  );
+function CueSummaryLine({ sound }: Pick<SoundPanelProps, 'sound'>): JSX.Element | null {
+  const summary = sound.state?.cues;
+  if (summary === null || summary === undefined) return null;
   return (
-    <fieldset className="sound-ducking" disabled={ducking === null}>
-      <legend>Music ducking</legend>
-      <div className="segmented" role="group" aria-label="Music ducking amount">
-        <button
-          type="button"
-          aria-pressed={current === 'off'}
-          onClick={() => {
-            props.onChange(DUCKING_OFF);
-          }}
-        >
-          Off
-        </button>
-        {DUCKING_PRESETS.map((preset) => (
-          <button
-            key={preset}
-            type="button"
-            aria-pressed={current === preset}
-            onClick={() => {
-              props.onChange(DUCKING_PRESET_VALUES[preset]);
-            }}
-          >
-            {preset[0]?.toUpperCase()}
-            {preset.slice(1)}
-          </button>
-        ))}
-        {current === 'custom' && <span className="chip">Custom</span>}
-      </div>
-      {ducking === null ? (
-        <p className="muted">No music cue yet: drop music on the timeline.</p>
-      ) : (
-        <details className="ducking-advanced">
-          <summary>Advanced</summary>
-          {number('thresholdDb', 'Threshold (dB)', -60, 0)}
-          {number('ratio', 'Ratio', 1, 20)}
-          {number('attackMs', 'Attack (ms)', 0.01, 2000)}
-          {number('releaseMs', 'Release (ms)', 0.01, 9000)}
-        </details>
-      )}
-    </fieldset>
+    <p className="cue-summary" data-testid="cue-summary">
+      <span>{cueSummaryText(summary)}</span>
+      {summary.sounds.length > 0 && <span className="muted"> — {topSoundsText(summary)}</span>}
+    </p>
   );
 }
 
-function MonitorToggle({ preview }: { readonly preview: MixPreviewControls }): JSX.Element {
-  const modes: readonly [MonitorMode, string][] = [
-    ['mix', 'Full mix'],
-    ['vo', 'Voice-over only'],
-  ];
+function MixQaList({ sound }: Pick<SoundPanelProps, 'sound'>): JSX.Element | null {
+  const checks = sound.state?.mix.qa;
+  if (checks === null || checks === undefined || checks.length === 0) return null;
   return (
-    <div className="segmented" role="group" aria-label="Listen to">
-      {modes.map(([mode, label]) => (
-        <button
-          key={mode}
-          type="button"
-          aria-pressed={preview.monitor === mode}
-          onClick={() => {
-            preview.setMonitor(mode);
-          }}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+    <ul className="mix-qa" aria-label="Mix report">
+      {checks.map((check) => {
+        const mark = QA_MARKS[check.status];
+        return (
+          <li key={check.id} className={mark.className} title={`want ${check.limit}`}>
+            <span aria-hidden="true">{mark.mark}</span> {check.label}: {check.value}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -217,11 +168,42 @@ function previewText(preview: MixPreviewControls): string | null {
   return `Preview mix ${last.startS.toFixed(1)}–${end.toFixed(1)} s updated (${(last.ms / 1000).toFixed(1)} s)`;
 }
 
+function LevelSliders({ sound }: Pick<SoundPanelProps, 'sound'>): JSX.Element {
+  const state = sound.state;
+  return (
+    <div className="sound-levels">
+      {GAIN_ROWS.map((row) => {
+        const value = state?.gains[row.key] ?? 0;
+        return (
+          <label key={row.key} className="level-row">
+            <span className="level-label">{row.label}</span>
+            <input
+              type="range"
+              min={GAIN_RANGE.min}
+              max={GAIN_RANGE.max}
+              step={GAIN_RANGE.step}
+              value={value}
+              disabled={state === undefined}
+              aria-label={`${row.label} level (dB)`}
+              onChange={(event) => {
+                sound.setMix(gainPatch(row.key, Number(event.target.value)));
+              }}
+            />
+            <output className="mono">{formatDb(value)}</output>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SoundPanel(props: SoundPanelProps): JSX.Element {
   const { sound, preview } = props;
   const state = sound.state;
   const busy = busyText(props.stages);
   const status = previewText(preview);
+  const [open, setOpen] = usePref(SECTIONS_KEY, sectionsSchema, DEFAULT_SECTIONS);
+  const library = state?.library ?? [];
   return (
     <section className="doc-panel docked sound-panel" aria-label="Sound design">
       <div className="doc-header">
@@ -235,19 +217,13 @@ export function SoundPanel(props: SoundPanelProps): JSX.Element {
         </button>
       </div>
       <div className="doc-body sound-body">
-        <SoundLibrary
-          library={state?.library ?? []}
-          preview={sound.preview}
-          onAdd={props.onAdd}
-          onImport={sound.importFiles}
-        />
-        <div className="sound-controls">
+        <div className="sound-main">
           <div className="sound-actions" role="group" aria-label="Sound actions">
             {ACTIONS.map((entry) => (
               <button
                 key={entry.action}
                 type="button"
-                className={`small-button${entry.action === 'mix' ? ' primary' : ''}`}
+                className={`small-button sound-action-${entry.kind}${entry.kind === 'primary' ? ' primary' : ''}`}
                 aria-disabled={busy !== null}
                 title={busy ?? entry.hint}
                 onClick={() => {
@@ -273,37 +249,51 @@ export function SoundPanel(props: SoundPanelProps): JSX.Element {
               {state.cuesError}
             </p>
           )}
+          <h3 className="sound-heading">Mix report</h3>
           <MixReadout sound={sound} onOpenStems={props.onOpenStems} />
-          <fieldset className="sound-levels">
-            <legend>Levels</legend>
-            {GAIN_ROWS.map((row) => {
-              const value = state?.gains[row.key] ?? 0;
-              return (
-                <label key={row.key} className="level-row">
-                  <span className="level-label">{row.label}</span>
-                  <input
-                    type="range"
-                    min={GAIN_RANGE.min}
-                    max={GAIN_RANGE.max}
-                    step={GAIN_RANGE.step}
-                    value={value}
-                    disabled={state === undefined}
-                    aria-label={`${row.label} level (dB)`}
-                    onChange={(event) => {
-                      sound.setMix(gainPatch(row.key, Number(event.target.value)));
-                    }}
-                  />
-                  <output className="mono">{formatDb(value)}</output>
-                </label>
-              );
-            })}
-          </fieldset>
-          <DuckingField
-            ducking={state?.ducking ?? null}
-            onChange={(ducking) => {
-              sound.setMix({ ducking });
+          <MixQaList sound={sound} />
+          <CueSummaryLine sound={sound} />
+        </div>
+        <div className="sound-sections">
+          <Disclosure
+            title="Levels"
+            open={open.levels}
+            onToggle={(levels) => {
+              setOpen((current) => ({ ...current, levels }));
             }}
-          />
+          >
+            <LevelSliders sound={sound} />
+          </Disclosure>
+          <Disclosure
+            title="Sound library"
+            summary={`${plural(library.length, 'sound')} · drag onto the timeline`}
+            open={open.library}
+            onToggle={(libraryOpen) => {
+              setOpen((current) => ({ ...current, library: libraryOpen }));
+            }}
+          >
+            <SoundLibrary
+              library={library}
+              preview={sound.preview}
+              onAdd={props.onAdd}
+              onImport={sound.importFiles}
+            />
+          </Disclosure>
+          <Disclosure
+            title="Music ducking"
+            summary="music dips under your voice"
+            open={open.ducking}
+            onToggle={(ducking) => {
+              setOpen((current) => ({ ...current, ducking }));
+            }}
+          >
+            <DuckingField
+              ducking={state?.ducking ?? null}
+              onChange={(ducking) => {
+                sound.setMix({ ducking });
+              }}
+            />
+          </Disclosure>
         </div>
       </div>
     </section>

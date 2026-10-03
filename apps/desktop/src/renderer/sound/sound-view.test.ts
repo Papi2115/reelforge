@@ -7,11 +7,13 @@ import {
   libraryCue,
 } from '../../shared/sound-library.js';
 import {
+  cueSummaryText,
   decodeSoundDrag,
   encodeSoundDrag,
   formatDb,
   libraryByKind,
   loudnessReadout,
+  topSoundsText,
 } from './sound-view.js';
 
 const result: MixResult = {
@@ -116,5 +118,29 @@ describe('libraryCue', () => {
         ducking: DUCKING_PRESET_VALUES.strong,
       },
     });
+  });
+});
+
+describe('cue summary', () => {
+  it('describes the generated sound design in one line', () => {
+    const summary = {
+      sfx: 14,
+      ambience: 1,
+      music: 2,
+      sounds: ['tick', 'pop', 'glitch', 'hit', 'whoosh', 'chime', 'click'].map((name, index) => ({
+        name,
+        count: 7 - index,
+      })),
+      moods: ['calm-tech', 'retro-wave'],
+    };
+    expect(cueSummaryText(summary)).toBe(
+      '14 SFX · 1 ambience bed · 2 music beds (calm-tech, retro-wave)',
+    );
+    expect(topSoundsText(summary)).toBe(
+      'tick ×7, pop ×6, glitch ×5, hit ×4, whoosh ×3, chime ×2 +1 more',
+    );
+    expect(cueSummaryText({ ...summary, music: 0, ambience: 0, moods: [] })).toBe(
+      '14 SFX · 0 ambience beds · 0 music beds',
+    );
   });
 });

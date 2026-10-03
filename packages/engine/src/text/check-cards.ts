@@ -1,8 +1,10 @@
 /**
  * Programmatic text QA (PLAN.md §4.4): samples a shot's cards over time and reports cards that
- * overlap each other while both are on screen, or that leave the safe area. Messages are written
- * for the scene author (an LLM): card ids, time range, how far off, and how to fix it.
+ * overlap each other while both are on screen, or that leave the safe area; annotations add target
+ * and anchor checks (annotations/check.ts). Messages are written for the scene author (an LLM):
+ * card ids, time range, how far off, and how to fix it.
  */
+import { checkAnnotations } from '../annotations/check.js';
 import type { PixelRect, TextCard } from './types.js';
 
 export interface CardFrame {
@@ -21,11 +23,22 @@ export interface ShotCardTimeline {
   readonly frames: readonly CardFrame[];
 }
 
-export type CardRule = 'card-overlap' | 'card-outside-safe-area';
+export const CARD_RULES = [
+  'card-overlap',
+  'card-outside-safe-area',
+  'annotation-target-offscreen',
+  'annotation-target-hidden',
+  'annotation-off-anchor',
+  'annotation-anchor',
+] as const;
+export type CardRule = (typeof CARD_RULES)[number];
+
+/** `info`: not a problem, a record for reports (an annotation landing on its anchor). */
+export type CardSeverity = 'error' | 'warning' | 'info';
 
 export interface CardDiagnostic {
   readonly rule: CardRule;
-  readonly severity: 'error';
+  readonly severity: CardSeverity;
   readonly shotId: string;
   readonly cards: readonly string[];
   /** Local time range (s) of the problem: [t0, t1). */
@@ -33,6 +46,9 @@ export interface CardDiagnostic {
   readonly t1: number;
   readonly message: string;
   readonly fix: string;
+  /** Annotation anchor rules: the phrase, when the annotation appears and when it is spoken (local s). */
+  readonly anchor?:
+    { readonly phrase: string; readonly at: number; readonly spokenT: number } | undefined;
 }
 
 /** What `collectCardTimeline` needs from a built shot. */
@@ -152,6 +168,7 @@ function collectRuns<T>(
 interface OverlapDetail {
   readonly ids: readonly [string, string];
   readonly area: PixelRect;
+  readonly annotation: boolean;
 }
 
 function overlapsIn(frame: CardFrame): Map<string, OverlapDetail> {
@@ -162,7 +179,8 @@ function overlapsIn(frame: CardFrame): Map<string, OverlapDetail> {
       const area = intersection(first.box, second.box);
       if (!area) continue;
       const ids = [first.id, second.id].sort() as [string, string];
-      found.set(JSON.stringify(ids), { ids, area });
+      const annotation = first.kind === 'annotation' || second.kind === 'annotation';
+      found.set(JSON.stringify(ids), { ids, area, annotation });
     }
   });
   return found;
@@ -192,7 +210,9 @@ export function checkCards(timeline: ShotCardTimeline): CardDiagnostic[] {
       t0,
       t1,
       message: `cards "${first}" and "${second}" overlap by ${String(area.w)}x${String(area.h)} px (${rect(area)}) during t=${seconds(t0)}–${seconds(t1)} s of shot ${shotId}`,
-      fix: 'Move one card (pos / side / valign), make their at–until windows not overlap, or shrink one (scale / maxWidth) so both stay readable.',
+      fix: run.detail.annotation
+        ? 'Move one of them (annotation pos / side / nudge, or the text card pos), make their at–until windows not overlap, or drop one: one label at a time reads best.'
+        : 'Move one card (pos / side / valign), make their at–until windows not overlap, or shrink one (scale / maxWidth) so both stay readable.',
     });
   }
 
@@ -223,14 +243,20 @@ export function checkCards(timeline: ShotCardTimeline): CardDiagnostic[] {
     });
   }
 
+  diagnostics.push(...checkAnnotations(timeline));
   return diagnostics.sort(
     (first, second) => first.t0 - second.t0 || first.rule.localeCompare(second.rule),
   );
 }
 
-/** One line per diagnostic (`[rule] message — fix`), for logs and LLM prompts. */
+/** Diagnostics that are problems (errors and warnings, not `info` records). */
+export function cardProblems(diagnostics: readonly CardDiagnostic[]): CardDiagnostic[] {
+  return diagnostics.filter((diagnostic) => diagnostic.severity !== 'info');
+}
+
+/** One line per problem (`[rule] message. Fix: ...`), for logs and LLM prompts; info is skipped. */
 export function formatCardDiagnostics(diagnostics: readonly CardDiagnostic[]): string {
-  return diagnostics
+  return cardProblems(diagnostics)
     .map((diagnostic) => `[${diagnostic.rule}] ${diagnostic.message}. Fix: ${diagnostic.fix}`)
     .join('\n');
 }

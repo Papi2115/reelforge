@@ -43,6 +43,10 @@ that produced it. The harness always renders with SwiftShader, so goldens live i
 `packages/engine/test/goldens/swiftshader/<name>.png`. Never compare them with GPU renders
 (e.g. frames from the app's hidden export window); a future GPU suite gets its own directory.
 
+Annotation goldens (`annotations-<style>-sheet`) are 2x2 contact sheets of
+`examples/s02_annotations.js` (one settled frame per act, every `ctx.annotate` type) per style,
+which keeps them small (`packages/engine/test/render/annotations.test.ts`).
+
 The kit's goldens (`kit-*`) live next to the kit, in `packages/kit/test/goldens/swiftshader/`
 (`compareWithGolden(name, frame, undefined, { goldenDir })`), rendered by the same harness.
 The kit's voxel perf test (`packages/kit/test/render/kit-perf.test.ts`) writes its numbers to

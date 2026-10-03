@@ -133,7 +133,20 @@ export {
   type DownloadProgress,
   type FetchLike,
 } from './asr/download.js';
-export type { WhisperAttemptFailure, WhisperError, WhisperErrorKind } from './asr/errors.js';
+export {
+  systemErrorCode,
+  type WhisperAttemptFailure,
+  type WhisperError,
+  type WhisperErrorKind,
+} from './asr/errors.js';
+export {
+  discoverWhisperInstalls,
+  type DiscoveredSource,
+  type DiscoveredWhisper,
+  type DiscoverOptions,
+} from './asr/discover.js';
+export { cpuFallbackReason } from './asr/gpu-plan.js';
+export { parseWhisperProbe, type CudaState, type WhisperProbe } from './asr/probe.js';
 export {
   BACKEND_ORDER,
   WHISPER_ENV_VAR,
@@ -147,6 +160,9 @@ export {
 export {
   WhisperManager,
   type InstallOptions,
+  type InstallPart,
+  type InstallRequest,
+  type InstallStep,
   type WhisperManagerOptions,
   type WhisperTranscribeOptions,
 } from './asr/manager.js';
@@ -189,16 +205,46 @@ export {
   type SfxCue,
 } from './mix/cues.js';
 export {
+  SFX_CATEGORY,
   SFX_DEFAULT_DURATION_S,
+  SFX_LEVEL_DB,
   SFX_MAX_DURATION_S,
   SFX_MIN_DURATION_S,
   SFX_PEAK,
   SFX_RECIPES,
+  SFX_USE,
+  SFX_VARIANTS,
+  sfxVariantIndex,
   synthesizeSfx,
   writeSfxWav,
+  type SfxCategory,
   type SfxRecipe,
   type SfxSynthOptions,
 } from './mix/sfx.js';
+export {
+  MAX_MUSIC_DURATION_S,
+  MIN_MUSIC_DURATION_S,
+  MUSIC_ENGINE_VERSION,
+  MUSIC_FOLDER,
+  MUSIC_MOODS,
+  generateActMusic,
+  generateMusic,
+  musicCacheKey,
+  musicFilePath,
+  planActMusic,
+  writeMusicFile,
+  type ActMusicOptions,
+  type ActMusicPlan,
+  type ActSpan,
+  type GenerateMusicOptions,
+  type GeneratedMusic,
+  type MusicCueInput,
+  type MusicFile,
+  type MusicMood,
+} from './mix/music/music.js';
+export { MUSIC_TARGET_LUFS } from './mix/music/render.js';
+export type { SectionSpec, Score } from './mix/music/score.js';
+export type { MusicKey, ScaleMode } from './mix/music/theory.js';
 export {
   AMBIENCE_RECIPES,
   synthesizeAmbience,
@@ -206,10 +252,37 @@ export {
   type AmbienceSynthOptions,
 } from './mix/ambience.js';
 export { MIX_SAMPLE_RATE, hashSeed, mulberry32 } from './mix/dsp.js';
+export { renameRetrying } from './fs-retry.js';
+export {
+  bandShare,
+  integratedLufs,
+  mixToMono,
+  powerSpectrum,
+  spectralCentroid,
+  type PowerSpectrum,
+} from './mix/analysis.js';
 export { makeSeamlessLoop, type LoopCurve, type StereoClip } from './mix/clip.js';
 export { encodeWav, writeWavAtomic, type WavSampleFormat } from './mix/wav.js';
 export {
+  MIX_QA_CHECK_IDS,
+  MIX_QA_LIMITS,
+  MIX_QA_REPORT_VERSION,
+  MixQaCheckSchema,
+  MixQaReportSchema,
+  MixQaStatusSchema,
+  buildMixQaReport,
+  soundMoments,
+  type MixQaCheck,
+  type MixQaCheckId,
+  type MixQaOptions,
+  type MixQaReport,
+  type MixQaStatus,
+} from './mix/qa-report.js';
+export { analyzeMix, type MixQaInputs, type MixQaMeasurements } from './mix/qa.js';
+export { WavReader, parseWavHeader, type WavInfo } from './mix/wav-reader.js';
+export {
   MIX_REPORT_VERSION,
+  MixQaMeasurementsSchema,
   MixReportSchema,
   STEM_NAMES,
   type MixReport,

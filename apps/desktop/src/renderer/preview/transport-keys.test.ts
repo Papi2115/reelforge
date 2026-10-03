@@ -34,6 +34,7 @@ describe('transportAction', () => {
     expect(transportAction(key('j'))).toEqual({ kind: 'slower' });
     expect(transportAction(key('K'))).toEqual({ kind: 'pause' });
     expect(transportAction(key('l'))).toEqual({ kind: 'faster' });
+    expect(transportAction({ ...key('L'), shiftKey: true })).toBeUndefined();
     expect(transportAction(key('m'))).toEqual({ kind: 'mute' });
     expect(transportAction(key('x'))).toBeUndefined();
   });

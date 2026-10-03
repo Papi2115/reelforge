@@ -45,6 +45,54 @@ export type Transition = z.infer<typeof transitionSchema>;
 
 export const CUT: Transition = { type: 'cut' };
 
+/**
+ * On-screen forms an annotation plan can ask for (PLAN.md#11.8): the `ctx.annotate.*` marks plus
+ * `caption` (small text / lower third), `big-text` (a big title or 3D text) and `counter`.
+ */
+export const ANNOTATION_PLAN_KINDS = [
+  'callout',
+  'arrow',
+  'ring',
+  'bracket',
+  'pin',
+  'underline',
+  'highlight',
+  'badge',
+  'stamp',
+  'dimension',
+  'spotlight',
+  'caption',
+  'big-text',
+  'counter',
+] as const;
+export type AnnotationPlanKind = (typeof ANNOTATION_PLAN_KINDS)[number];
+
+/** What the narration does at the phrase: the meaning the form is chosen for. */
+export const ANNOTATION_REASONS = [
+  'name',
+  'number',
+  'definition',
+  'place',
+  'comparison',
+  'list',
+  'claim',
+  'emphasis',
+] as const;
+export type AnnotationReason = (typeof ANNOTATION_REASONS)[number];
+
+/** One planned on-screen annotation of a shot: a hint for the scene author, not a command. */
+export const annotationPlanSchema = z.object({
+  kind: z.enum(ANNOTATION_PLAN_KINDS),
+  /** Spoken phrase it lands on, copied from the narration (words.json). */
+  phrase: z.string().min(1),
+  /** What it points at: an object of the shot ("calculator keypad") or `screen:<region>`. */
+  target: z.string().min(1).optional(),
+  /** Its text, when it has one (label, value, stamp word). */
+  text: z.string().min(1).optional(),
+  reason: z.enum(ANNOTATION_REASONS),
+});
+export type AnnotationPlan = z.infer<typeof annotationPlanSchema>;
+
 export const storyboardShotSchema = z
   .object({
     id: shotIdSchema,
@@ -56,6 +104,8 @@ export const storyboardShotSchema = z
     /** Scene module path relative to the project root, e.g. `scenes/s03_calc_desk.js`. */
     scene: z.string().min(1),
     transitionIn: transitionSchema.optional(),
+    /** Planned annotations (optional; storyboards written before PLAN.md#11.8 have none). */
+    annotations: z.array(annotationPlanSchema).optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

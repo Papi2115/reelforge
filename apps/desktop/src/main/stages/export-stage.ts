@@ -5,6 +5,7 @@
  * to a stage step + percent, and the status persisted in pipeline.json like every other stage
  * (running -> done | failed | idle when stopped; a crash leaves `running`, recovered as interrupted).
  */
+import { plural } from '../../shared/plural.js';
 import path from 'node:path';
 import type { PipelineStateStore } from '@reelforge/claude-bridge';
 import type { ExportProgress } from '@reelforge/pipeline';
@@ -53,7 +54,7 @@ export function exportStep(event: ExportProgress): ExportStep | null {
   switch (event.type) {
     case 'plan':
       return {
-        label: `Planning: ${String(event.shots)} shots, ${String(event.cachedShots)} cached, ${event.encoder}`,
+        label: `Planning: ${plural(event.shots, 'shot')}, ${String(event.cachedShots)} cached, ${event.encoder}`,
         percent: event.framesToRender === 0 ? RENDER_TO : RENDER_FROM,
       };
     case 'frame': {
@@ -106,7 +107,7 @@ function resultOf(dir: string, outcome: ExportOutcome): ExportStageResult {
       const cached = outcome.cachedShots.length;
       return {
         status: 'done',
-        message: `${projectRelative(dir, outcome.output)} (${String(outcome.height)}p, ${outcome.durationS.toFixed(1)} s, ${outcome.encoder}${cached > 0 ? `, ${String(cached)} shots cached` : ''})`,
+        message: `${projectRelative(dir, outcome.output)} (${String(outcome.height)}p, ${outcome.durationS.toFixed(1)} s, ${outcome.encoder}${cached > 0 ? `, ${plural(cached, 'shot')} cached` : ''})`,
       };
     }
     case 'cancelled':

@@ -2,8 +2,9 @@
  * Spawning ffmpeg-like binaries: no shell (argv array, safe for spaces / non-ASCII paths),
  * hidden console window, cancellation via AbortSignal that kills the whole process tree.
  */
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess, type ChildProcessByStdio } from 'node:child_process';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
 import { describeError, stderrTail, type FfmpegError } from './errors.js';
 import { err, ok, type Result } from '../result.js';
 
@@ -66,13 +67,27 @@ export function runProcess(
     let stderr = '';
     let stopReason: 'cancelled' | 'timeout' | null = null;
     let settled = false;
-    const child = spawn(command, [...args], {
-      cwd: options.cwd,
-      env: options.env ?? process.env,
-      shell: false,
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    let child: ChildProcessByStdio<null, Readable, Readable>;
+    try {
+      child = spawn(command, [...args], {
+        cwd: options.cwd,
+        env: options.env ?? process.env,
+        shell: false,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      // Windows throws synchronously for files it cannot run at all (`spawn UNKNOWN`: not an
+      // executable, blocked by antivirus software).
+      resolve(
+        err({
+          kind: 'spawn-failed',
+          message: `failed to start ${label}: ${describeError(error)}`,
+          command,
+        }),
+      );
+      return;
+    }
 
     const stop = (reason: 'cancelled' | 'timeout'): void => {
       if (stopReason !== null || settled) return;

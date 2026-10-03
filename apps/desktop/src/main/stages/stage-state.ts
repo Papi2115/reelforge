@@ -45,6 +45,19 @@ export function runRequestFor(stage: PipelineStage): AppStageRequest | undefined
   return run === 'replace-only' ? undefined : run;
 }
 
+/**
+ * The quiet final review (PLAN.md#11.5) that follows a successful whole-film Scenes build when the
+ * setting is on (a "Rebuild this shot" or a review run is not followed by one).
+ */
+export function followUpReview(
+  request: AppStageRequest,
+  enabled: boolean,
+): AppStageRequest | undefined {
+  if (!enabled || request.stage !== 'scenes') return undefined;
+  if ((request.action ?? 'build') !== 'build' || request.shots !== undefined) return undefined;
+  return { stage: 'scenes', action: 'final-review', trigger: 'auto' };
+}
+
 export const INTERRUPTED_MESSAGE = 'Interrupted: the app closed while it was running.';
 export const INTERRUPTED_PAUSE_MESSAGE =
   'Interrupted: the app closed while it waited for the usage limit to reset.';

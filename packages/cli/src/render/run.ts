@@ -3,7 +3,13 @@
  * scene first (errors block that shot), render the rest in one browser, and turn the results into
  * a flat list of issues (blank frames, card QA, console errors, load failures).
  */
-import { formatCardDiagnostics, formatDiagnostics, hasErrors, lintScene } from '@reelforge/engine';
+import {
+  cardProblems,
+  formatCardDiagnostics,
+  formatDiagnostics,
+  hasErrors,
+  lintScene,
+} from '@reelforge/engine';
 import type { LintDiagnostic } from '@reelforge/engine';
 import { UsageError } from '../errors.js';
 import { plural, seconds } from '../format.js';
@@ -107,7 +113,8 @@ export function shotIssues(outcome: ShotOutcome): ShotIssue[] {
     const note = blankFrameNote(frame.stats);
     if (note) issues.push({ kind: 'blank-frame', message: `t=${seconds(frame.t)} ${note}` });
   }
-  for (const card of render.cards) {
+  // Info records (annotations landing on their phrase) are not problems.
+  for (const card of cardProblems(render.cards)) {
     issues.push({ kind: 'card', message: formatCardDiagnostics([card]) });
   }
   return issues;
@@ -123,7 +130,7 @@ export function formatQa(outcome: ShotOutcome, issues: readonly ShotIssue[]): st
     const cards = of('card');
     lines.push(
       cards.length === 0
-        ? 'text cards: ok (no overlaps, all inside the safe area)'
+        ? 'text cards: ok (no overlaps, all inside the safe area; annotation targets on screen)'
         : `text cards: ${plural(cards.length, 'problem')}`,
       ...cards.map((issue) => `  ${issue.message}`),
     );

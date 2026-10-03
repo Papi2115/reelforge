@@ -39,6 +39,7 @@ export function settingsBackupFile(file: string, reason: string, now: Date): str
 export class SettingsService {
   private current: AppSettings;
   private writes: Promise<unknown> = Promise.resolve();
+  private pendingWrites = 0;
 
   private constructor(
     private readonly options: SettingsServiceOptions,
@@ -134,8 +135,16 @@ export class SettingsService {
     await this.writes;
   }
 
+  /** A write is queued or running (quitting now would lose it). */
+  get saving(): boolean {
+    return this.pendingWrites > 0;
+  }
+
   private enqueue(task: () => Promise<SettingsWriteResult>): Promise<SettingsWriteResult> {
-    const result = this.writes.then(task);
+    this.pendingWrites += 1;
+    const result = this.writes.then(task).finally(() => {
+      this.pendingWrites -= 1;
+    });
     this.writes = result.catch(() => undefined);
     return result;
   }

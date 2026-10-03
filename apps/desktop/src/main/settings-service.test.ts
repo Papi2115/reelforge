@@ -110,6 +110,16 @@ describe('SettingsService', () => {
     expect(existsSync(settingsBackupFile(file, 'newer-version', fixedNow()))).toBe(true);
   });
 
+  it('says while a write is pending, so quitting can wait for it', async () => {
+    const service = SettingsService.load({ file, log: log() });
+    expect(service.saving).toBe(false);
+    const write = service.update({ economy: true });
+    expect(service.saving).toBe(true);
+    await write;
+    expect(service.saving).toBe(false);
+    expect(await readSaved()).toMatchObject({ economy: true });
+  });
+
   it('rewrites a migrated file in the current version', async () => {
     await writeFile(file, JSON.stringify({ language: 'pl' }), 'utf8');
     const service = SettingsService.load({ file, log: log() });

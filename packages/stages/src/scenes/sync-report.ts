@@ -1,7 +1,8 @@
 /**
  * Sync report (PLAN.md §3.3, #7.7): loads every shot through the engine (build only, no frames:
- * the dry run records the anchors and sfx cues each scene declares), compares every event with
- * its spoken word (±150 ms) and writes `.reelforge/sync-report.json` for the UI. No Claude.
+ * the dry run records the anchors and sfx cues each scene declares; scenes that use ctx.annotate
+ * also get the card QA, which times their annotations), compares every event with its spoken word
+ * (±150 ms) and writes `.reelforge/sync-report.json` for the UI. No Claude.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { AnchorIndex, CuesFileSchema } from '@reelforge/pipeline';
@@ -14,13 +15,16 @@ import {
   type ShotSync,
   type SyncReport,
 } from '@reelforge/shared';
-import { requireProjectJson, writeProjectJson } from '../files.js';
+import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
 import { FILES, inProject } from '../paths.js';
 import { loadJson } from '../snapshot.js';
 import { stageError, type StageError } from '../types.js';
 import { SYNC_TOLERANCE_S, shotSync, shotSyncEvents, type TimedCue } from './sync.js';
 import { renderShot } from './render.js';
 import type { FrameRenderer } from './tools.js';
+
+/** Scenes calling ctx.annotate get the (per-frame) card QA that times their annotations. */
+const ANNOTATE_CALL = /\bannotate\s*\.\s*[a-z]+\s*\(/;
 
 export interface SyncReportOptions {
   readonly projectDir: string;
@@ -59,9 +63,11 @@ export async function syncReport(
   const results: ShotSync[] = [];
   for (const shot of shots) {
     if (signal.aborted) return err(stageError('cancelled', 'cancelled'));
+    const source = await readProjectText(projectDir, shot.scene);
+    const annotated = source.ok && source.value !== undefined && ANNOTATE_CALL.test(source.value);
     const rendered = await renderShot(
       frames,
-      { projectDir, shotId: shot.id, times: [], cards: false },
+      { projectDir, shotId: shot.id, times: [], cards: annotated },
       signal,
     );
     if (!rendered.ok) return rendered;
@@ -76,6 +82,7 @@ export async function syncReport(
       sceneCues: render.cues,
       projectCues: cues.filter((cue) => cue.t >= shot.t0 && cue.t < shot.t1),
       words,
+      cards: render.cards,
     });
     results.push(shotSync(shot, events));
   }

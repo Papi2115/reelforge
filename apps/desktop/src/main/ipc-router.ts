@@ -89,10 +89,11 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.toolsStatus, handlers.toolsStatus);
   registerInvoke(IPC.toolsBrowse, handlers.toolsBrowse);
   registerInvoke(IPC.toolsReset, handlers.toolsReset);
-  registerInvoke(IPC.whisperModels, handlers.whisperModels);
-  registerInvoke(IPC.whisperDownload, handlers.whisperDownload);
+  registerInvoke(IPC.whisperState, handlers.whisperState);
+  registerInvoke(IPC.whisperInstall, handlers.whisperInstall);
   registerInvoke(IPC.whisperCancel, handlers.whisperCancel);
   registerInvoke(IPC.whisperDelete, handlers.whisperDelete);
+  registerInvoke(IPC.whisperUseExisting, handlers.whisperUseExisting);
   registerInvoke(IPC.exportStart, handlers.exportStart);
   registerInvoke(IPC.exportCancel, handlers.exportCancel);
   registerInvoke(IPC.exportOptions, handlers.exportOptions);
@@ -129,6 +130,12 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.stagesReports, handlers.stagesReports);
   registerInvoke(IPC.wordsRetry, handlers.wordsRetry);
   registerInvoke(IPC.scenesRun, handlers.scenesRun);
+  registerInvoke(IPC.shotsLock, handlers.shotsLock);
+  registerInvoke(IPC.variantsState, handlers.variantsState);
+  registerInvoke(IPC.variantsEstimate, handlers.variantsEstimate);
+  registerInvoke(IPC.variantsRun, handlers.variantsRun);
+  registerInvoke(IPC.variantsClip, handlers.variantsClip);
+  registerInvoke(IPC.variantsManifest, handlers.variantsManifest);
   registerInvoke(IPC.soundState, handlers.soundState);
   registerInvoke(IPC.soundImport, handlers.soundImport);
   registerInvoke(IPC.soundPreview, handlers.soundPreview);

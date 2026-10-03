@@ -58,13 +58,7 @@ export interface RenderSession {
   close(): Promise<void>;
 }
 
-/** A frame that is (nearly) one colour is almost certainly a broken scene. */
-const BLANK_DOMINANT_SHARE = 0.97;
-
-export function blankFrameNote(stats: FrameStats): string | undefined {
-  if (stats.dominantColorShare < BLANK_DOMINANT_SHARE && stats.uniqueColors > 2) return undefined;
-  return `looks blank: ${String(Math.round(stats.dominantColorShare * 100))}% of the pixels are one colour (${String(stats.uniqueColors)} colours)`;
-}
+export { blankFrameNote } from './blank.js';
 
 /** Engine errors arrive wrapped by Playwright (`page.evaluate: Error: [shot s01] ...`). */
 export function cleanEngineError(error: unknown): string {
@@ -102,7 +96,8 @@ async function openPlaywrightSession(setup: RenderSetup): Promise<RenderSession>
   const { computeFrameStats } = await engineCli();
   return {
     async render(plan, options) {
-      const page = await browser.open();
+      // lint: project props (kit-ext) are checked by the engine like in the app's render windows.
+      const page = await browser.open({ lint: true });
       try {
         const loaded = await page.load(isolatedManifest(setup, plan)).then(
           (info) => ({ info }),

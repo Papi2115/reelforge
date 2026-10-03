@@ -10,11 +10,19 @@ import { errorMessage } from '../log.js';
 
 export type HelpDialogKind = 'shortcuts' | 'about' | 'report';
 
-/** Shortcut sheet: the player (transport-keys.ts), the timeline and the chat composer. */
+/** Shortcut sheet: the window (app-keys.ts), the player (transport-keys.ts), shots, the timeline
+ *  and the chat composer. */
 export const SHORTCUT_GROUPS: readonly {
   readonly title: string;
   readonly keys: readonly (readonly [string, string])[];
 }[] = [
+  {
+    title: 'Window',
+    keys: [
+      ['?', 'This list of shortcuts'],
+      ['Ctrl + Shift + C', 'Show / hide the chat'],
+    ],
+  },
   {
     title: 'Player',
     keys: [
@@ -24,6 +32,13 @@ export const SHORTCUT_GROUPS: readonly {
       ['Home / End', 'Start / end of the video'],
       ['J / K / L', 'Slower / pause / play faster'],
       ['M', 'Mute'],
+    ],
+  },
+  {
+    title: 'Shots',
+    keys: [
+      ['Shift + L', 'Lock / unlock the selected shot'],
+      ['V', 'Variants of the selected shot'],
     ],
   },
   {

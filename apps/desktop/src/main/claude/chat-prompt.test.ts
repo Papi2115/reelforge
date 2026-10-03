@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ChatSelection, ChatSendRequest } from '../../shared/chat-contract.js';
+import { lockedShotsNote } from './chat-locks.js';
 import {
   buildChatPrompt,
   CHIP_INSTRUCTIONS,
@@ -168,5 +169,24 @@ describe('buildChatPrompt', () => {
       hint: undefined,
     });
     expect(result.ok && result.prompt).toContain('Request: use {{selection}} literally');
+  });
+
+  it('tells a Whole-video turn which shots are locked (not a Shot turn)', () => {
+    const lockedNote = lockedShotsNote(['s02', 's05']);
+    const video = buildChatPrompt({
+      request: request({ scope: 'video' }),
+      hint: undefined,
+      lockedNote,
+    });
+    expect(video.ok && video.prompt).toContain(
+      'Locked shots (approved by the user): s02, s05. Do not edit their scene files',
+    );
+    const shot = buildChatPrompt({
+      request: request({ scope: 'shot', shotIds: ['s01'] }),
+      hint: undefined,
+      lockedNote,
+    });
+    expect(shot.ok && shot.prompt).not.toContain('Locked shots');
+    expect(lockedShotsNote([])).toBe('');
   });
 });

@@ -56,6 +56,7 @@ export default defineConfig({
           environment: 'node',
           // DSP/zip/ffmpeg tests get slow when the whole suite runs in parallel.
           testTimeout: 30_000,
+          hookTimeout: 60_000,
         },
       },
       {

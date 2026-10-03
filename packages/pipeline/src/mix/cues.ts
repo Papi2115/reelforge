@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { readJsonFile, writeJsonAtomic, type JsonFileError } from '../schemas/json-file.js';
 import type { Result } from '../result.js';
 import { AMBIENCE_RECIPES } from './ambience.js';
+import { MUSIC_MOODS } from './music/moods.js';
 import { SFX_MAX_DURATION_S, SFX_MIN_DURATION_S, SFX_RECIPES } from './sfx.js';
 
 export const CUES_FILE_VERSION = 1;
@@ -124,6 +125,12 @@ export const CuesFileSchema = z.strictObject({
   sfx: z.array(SfxCueSchema).default([]),
   ambience: z.array(AmbienceCueSchema).default([]),
   music: z.array(MusicCueSchema).default([]),
+  /**
+   * Mood of the generated music bed of each act, in act order: the sound-cues stage renders the
+   * beds, and when Claude's turn changes a mood here it re-renders that act's bed. Optional, not
+   * defaulted: files without generated music keep the same bytes when re-serialized.
+   */
+  moods: z.array(z.enum(MUSIC_MOODS)).max(100).optional(),
 });
 
 export type SfxCue = z.output<typeof SfxCueSchema>;

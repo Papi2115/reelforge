@@ -2,11 +2,12 @@
  * View model of Scenes built in the UI (PLAN.md#7.4-7.7): the ✓/⚠/✗ badge of every shot (the
  * scenes report, overlaid with the live run: building / left for later), its findings for the
  * popover and the "Fix with Claude…" prefill, the build progress line (shot n/m, current step),
- * the missing-props banner and the sync report rows (deltas in ms against ±150 ms). Pure.
+ * the project-props banner (built / could not build) and the sync report rows (deltas in ms
+ * against ±150 ms). Pure.
  */
 import {
   SHOT_STATUS_SYMBOLS,
-  type MissingPropsFile,
+  type PropsReport,
   type ScenesReport,
   type ShotBuildRecord,
   type SyncReport,
@@ -23,6 +24,8 @@ export interface ShotBadge {
   readonly findings: readonly string[];
   readonly critic: readonly string[];
   readonly missingProps: readonly string[];
+  /** Project props (kit-ext) built for this shot. */
+  readonly builtProps: readonly string[];
   readonly notes: readonly string[];
 }
 
@@ -47,6 +50,7 @@ function recordBadge(record: ShotBuildRecord): ShotBadge {
       .filter((verdict) => verdict.verdict !== 'ok' || verdict.note !== '')
       .map((verdict) => `${verdict.verdict}: ${verdict.note}`),
     missingProps: record.missingProps,
+    builtProps: record.builtProps ?? [],
     notes: record.notes,
   };
 }
@@ -59,6 +63,7 @@ function liveBadge(tone: 'running' | 'pending'): ShotBadge {
     findings: [],
     critic: [],
     missingProps: [],
+    builtProps: [],
     notes: [],
   };
 }
@@ -86,32 +91,99 @@ export function fixPrompt(shotId: string, badge: ShotBadge | undefined): string 
   return `Fix shot ${shotId}. QA found:\n${lines.map((line) => `- ${line}`).join('\n')}`;
 }
 
-/** `Building shot 3/8 · s03: QA build round 1`, or null when no scene build runs. */
-export function buildProgress(running: StageRunView | null, totalShots: number): string | null {
+/** A runner step label in plain words ("Claude: critic s03" -> "Claude checks the frames"). */
+export function stepText(label: string | null): string {
+  if (label === null) return 'starting';
+  if (/^Claude: scene-build\b/.test(label)) return 'Claude writes the scene';
+  if (/^Claude: critic\b/.test(label)) return 'Claude checks the frames';
+  const qa = /QA \S+ round (\d+)/.exec(label);
+  if (qa) return `checking frames (round ${qa[1] ?? '1'})`;
+  if (label.startsWith('Claude: ')) return label;
+  // "s03: building the scene" -> "building the scene" (the shot is in the title).
+  return label.replace(/^[A-Za-z0-9_-]+: /, '');
+}
+
+export interface BuildProgressView {
+  /** "Shot 3 of 8" (the final review: "Final review"). */
+  readonly title: string;
+  /** What happens now, in plain words. */
+  readonly step: string;
+  /** Building / reviewing / final review. */
+  readonly what: string;
+  /** Finished share of the run's shots, 0..100. */
+  readonly percent: number;
+}
+
+/** Progress of a running scene build or review, or null when none runs. */
+export function buildProgressView(
+  running: StageRunView | null,
+  totalShots: number,
+): BuildProgressView | null {
   if (running?.stage !== 'scenes') return null;
-  const total = running.targets?.length ?? totalShots;
+  // The final review counts its shots in its own step label ("Reviewing… 7/16").
+  if (running.action === 'final-review') {
+    return {
+      title: 'Final review',
+      step: running.label ?? 'starting',
+      what: 'Final review',
+      percent: running.percent ?? 0,
+    };
+  }
+  const total = Math.max(running.targets?.length ?? totalShots, 1);
   const states = Object.values(running.shots);
   const finished = states.filter((state) => state !== 'running' && state !== 'requeued').length;
-  const current = Math.min(total, finished + (states.includes('running') ? 1 : 0));
-  const what = running.action === null ? 'Building' : 'Reviewing';
-  const step = running.label === null ? '' : ` · ${running.label}`;
-  return `${what} shot ${String(Math.max(current, 1))}/${String(total)}${step}`;
+  const current = Math.max(1, Math.min(total, finished + (states.includes('running') ? 1 : 0)));
+  return {
+    title: `Shot ${String(current)} of ${String(total)}`,
+    step: stepText(running.label),
+    what: running.action === null ? 'Building' : 'Reviewing',
+    percent: Math.min(100, (100 * finished) / total),
+  };
 }
 
-/** Props the kit lacks (scenes report + the app's log), sorted. */
-export function missingProps(
-  report: ScenesReport | null,
-  log: MissingPropsFile | null,
-): readonly string[] {
-  const names = new Set<string>();
-  for (const record of report?.shots ?? []) for (const name of record.missingProps) names.add(name);
-  for (const entry of log?.entries ?? []) names.add(entry.name);
-  return [...names].sort();
+/** `Building · shot 3 of 8 · checking frames`, or null when no scene build runs. */
+export function buildProgress(running: StageRunView | null, totalShots: number): string | null {
+  const view = buildProgressView(running, totalShots);
+  if (view === null) return null;
+  if (view.what === 'Final review') return `Final review · ${view.step}`;
+  return `${view.what} · ${view.title.toLowerCase()} · ${view.step}`;
 }
 
-export function missingPropsBanner(names: readonly string[]): string | null {
-  if (names.length === 0) return null;
-  return `Kit is missing: ${names.join(', ')} — these shots use a fallback. (Extending the kit is done by the developer.)`;
+export interface PropsSummary {
+  /** Project props that passed QA (kit-ext/props). */
+  readonly built: readonly string[];
+  /** Props that could not be built (failed QA or budget) or are still missing in a shot. */
+  readonly failed: readonly string[];
+}
+
+/** Built and missing props of the project (props report + scenes report), sorted. */
+export function propsSummary(report: ScenesReport | null, props: PropsReport | null): PropsSummary {
+  const built = new Set<string>();
+  const failed = new Set<string>();
+  for (const entry of props?.props ?? [])
+    (entry.status === 'built' ? built : failed).add(entry.name);
+  for (const record of report?.shots ?? []) {
+    for (const name of record.missingProps) if (!built.has(name)) failed.add(name);
+  }
+  return { built: [...built].sort(), failed: [...failed].sort() };
+}
+
+function plural(count: number, noun: string): string {
+  return `${String(count)} new ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** "Built 2 new props: fridge, printer · Could not build: shed — its shots use a fallback." */
+export function propsBanner(summary: PropsSummary): string | null {
+  const parts: string[] = [];
+  if (summary.built.length > 0) {
+    parts.push(`Built ${plural(summary.built.length, 'prop')}: ${summary.built.join(', ')}`);
+  }
+  if (summary.failed.length > 0) {
+    parts.push(
+      `Could not build: ${summary.failed.join(', ')} — ${summary.failed.length === 1 ? 'its shots use' : 'their shots use'} a fallback`,
+    );
+  }
+  return parts.length === 0 ? null : parts.join(' · ');
 }
 
 export interface SyncRow {

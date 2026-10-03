@@ -2,8 +2,10 @@
  * Sound-design mix (PLAN 4.6): cues -> SFX / ambience / music buses rendered offline in Node ->
  * ffmpeg premix (VO + buses, music ducked by the VO) -> master: measure -> gain -> alimiter to the
  * target loudness with a true-peak ceiling (ADR-003, not two-pass loudnorm) -> `mix.wav`
- * (48 kHz 16-bit stereo) + optional float32 stems with the same master gain. Deterministic: the
- * same cues and inputs give a byte-identical `mix.wav`. Never throws for expected failures.
+ * (48 kHz 16-bit stereo) + optional float32 stems with the same master gain, plus the QA
+ * measurements of `qa.ts` (ducking depth, speech-band margin, music low band, clipping).
+ * Deterministic: the same cues and inputs give a byte-identical `mix.wav`. Never throws for
+ * expected failures.
  */
 import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -24,6 +26,7 @@ import { MIX_SAMPLE_RATE, secondsToFrames } from './dsp.js';
 import { MIX_REQUIRED_FILTERS, premixArgs, type MusicBusInput } from './graph.js';
 import { STEM_FILE_NAMES, masterMix, writeStems } from './master.js';
 import { cueFiles, planMix, type MixPlan } from './plan.js';
+import { analyzeMix } from './qa.js';
 import { MIX_REPORT_VERSION, MixReportSchema, type MixReport, type StemName } from './report.js';
 
 export type MixStage =
@@ -282,6 +285,16 @@ export class MixRun {
       },
     );
     if (!mastered.ok) return mastered;
+    this.progress('verify');
+    const qa = await analyzeMix({
+      voStem: this.files.voStem,
+      musicStem: this.files.musicStem,
+      musicBuses: plan.value.music.map((_, index) => this.files.music(index)),
+      mix: partialPath,
+      totalFrames,
+      signal: this.options.signal,
+    });
+    if (!qa.ok && qa.error.kind === 'cancelled') return qa;
     const stems =
       this.options.stemsDir === undefined
         ? ok<StemName[]>([])
@@ -322,7 +335,8 @@ export class MixRun {
         duckedMusicBuses: plan.value.music.filter((bus) => bus.ducking !== null).length,
       },
       stems: stems.value,
-      warnings: [...plan.value.warnings],
+      ...(qa.ok ? { qa: qa.value } : {}),
+      warnings: [...plan.value.warnings, ...(qa.ok ? [] : [qa.error.message])],
     };
     const checked = MixReportSchema.safeParse(report);
     return checked.success

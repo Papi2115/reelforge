@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import type { StageRunView } from '../../shared/stages-contract.js';
 import {
   buildProgress,
+  buildProgressView,
   fixPrompt,
-  missingProps,
-  missingPropsBanner,
+  propsBanner,
+  propsSummary,
   shotBadges,
+  stepText,
   syncProblemShots,
   syncRows,
 } from './scenes-view.js';
@@ -85,27 +87,63 @@ describe('scenes view', () => {
     expect(fixPrompt('s09', undefined)).toBe('Shot s09 needs a fix: ');
   });
 
-  it('shows the build progress as shot n/m with the current step', () => {
+  it('shows the build progress as shot n of m with the current step in plain words', () => {
     expect(buildProgress(run({ shots: { s01: 'ok', s02: 'running' } }), 8)).toBe(
-      'Building shot 2/8 · s03: building the scene',
+      'Building · shot 2 of 8 · building the scene',
     );
     expect(buildProgress(run({ targets: ['s05'], action: 'sync-check', label: null }), 8)).toBe(
-      'Reviewing shot 1/1',
+      'Reviewing · shot 1 of 1 · starting',
     );
     expect(buildProgress(null, 8)).toBeNull();
   });
 
-  it('lists the props the kit lacks in the banner', () => {
-    const names = missingProps(REPORT, {
+  it('keeps the step out of the title, so the progress never says it twice', () => {
+    const view = buildProgressView(
+      run({ shots: { s01: 'ok', s02: 'ok', s03: 'running' }, label: 'Claude: critic s03' }),
+      16,
+    );
+    expect(view).toEqual({
+      title: 'Shot 3 of 16',
+      step: 'Claude checks the frames',
+      what: 'Building',
+      percent: 12.5,
+    });
+    expect(view?.title).not.toContain(view?.step ?? '');
+  });
+
+  it('says runner steps in plain words', () => {
+    expect(stepText('Claude: scene-build s01_hook')).toBe('Claude writes the scene');
+    expect(stepText('s03: QA build round 2')).toBe('checking frames (round 2)');
+    expect(stepText('Claude: review plan')).toBe('Claude: review plan');
+    expect(stepText(null)).toBe('starting');
+  });
+
+  it('says which project props were built and which could not be built', () => {
+    const record = {
+      file: 'kit-ext/props/x.js',
+      description: 'x',
+      shots: ['s01'],
+      attempts: 1,
+      findings: [],
+      notes: [],
+      updatedAt: STAMP,
+    };
+    const summary = propsSummary(REPORT, {
       version: 1,
       updatedAt: STAMP,
-      entries: [{ name: 'abacus', shots: ['s05'], firstSeenAt: STAMP, lastSeenAt: STAMP }],
+      props: [
+        { ...record, name: 'fridge', status: 'built' },
+        { ...record, name: 'abacus', status: 'failed' },
+        { ...record, name: 'printer', status: 'built' },
+      ],
     });
-    expect(names).toEqual(['abacus', 'prism']);
-    expect(missingPropsBanner(names)).toBe(
-      'Kit is missing: abacus, prism — these shots use a fallback. (Extending the kit is done by the developer.)',
+    expect(summary).toEqual({ built: ['fridge', 'printer'], failed: ['abacus', 'prism'] });
+    expect(propsBanner(summary)).toBe(
+      'Built 2 new props: fridge, printer · Could not build: abacus, prism — their shots use a fallback',
     );
-    expect(missingPropsBanner([])).toBeNull();
+    expect(propsBanner({ built: ['fridge'], failed: [] })).toBe('Built 1 new prop: fridge');
+    expect(propsBanner(propsSummary(null, null))).toBeNull();
+    expect(shotBadges(REPORT, null).get('s01')?.builtProps).toEqual([]);
   });
 
   it('turns the sync report into rows with signed deltas and the ±150 ms verdict', () => {

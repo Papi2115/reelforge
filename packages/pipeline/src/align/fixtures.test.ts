@@ -79,7 +79,7 @@ describe('alignment performance', () => {
     const started = process.hrtime.bigint();
     const { coverage } = alignScript(script, asr, { lang: 'en' }).stats;
     const ms = elapsedMs(started);
-    expect(ms).toBeLessThan(2000);
+    expect(ms).toBeLessThan(8000); // ~0.15 s unloaded; the bar is loose for busy CI runners
     expect(coverage).toBeGreaterThan(0.9);
   });
 
@@ -88,7 +88,7 @@ describe('alignment performance', () => {
     const started = process.hrtime.bigint();
     const { coverage } = alignScript(script, asr, { lang: 'en' }).stats;
     const ms = elapsedMs(started);
-    expect(ms).toBeLessThan(2000);
+    expect(ms).toBeLessThan(8000); // ~0.15 s unloaded; the bar is loose for busy CI runners
     expect(coverage).toBeGreaterThan(0.85);
   });
 
@@ -101,7 +101,7 @@ describe('alignment performance', () => {
     const started = process.hrtime.bigint();
     const result = alignScript(script, asr, { lang: 'en' });
     const ms = elapsedMs(started);
-    expect(ms).toBeLessThan(2000);
+    expect(ms).toBeLessThan(8000); // ~0.15 s unloaded; the bar is loose for busy CI runners
     const single = alignScript(doom.script, doom.asr, { lang: 'en' });
     expect(result.stats.coverage).toBeCloseTo(single.stats.coverage, 2);
   });

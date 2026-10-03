@@ -18,6 +18,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { stageRow } from './support/pipeline-rows.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const GOLDEN = path.join(
@@ -121,10 +122,9 @@ describe('Brief -> Script and the pipeline sidebar', () => {
 
     const brief = page.getByRole('form', { name: 'Brief' });
     await brief.waitFor();
-    const pipeline = page.getByRole('region', { name: 'Pipeline' });
     await expect
-      .poll(() => pipeline.getByRole('button', { name: 'Script written' }).textContent())
-      .toBe('Script writtenWaiting');
+      .poll(() => stageRow(page, 'Script written').textContent())
+      .toBe('Script writtenWaiting for the brief');
     await brief
       .getByLabel('What is the video about?')
       .fill(
@@ -140,8 +140,8 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     await progress.waitFor({ timeout: 15_000 });
     await progress.locator('.step-tool').first().waitFor({ timeout: 15_000 });
     await expect
-      .poll(() => pipeline.getByRole('button', { name: 'Script written' }).textContent())
-      .toBe('Script writtenRunning');
+      .poll(() => stageRow(page, 'Script written').textContent())
+      .toMatch(/^Script writtenRunning…/);
     await shot('progress');
 
     const editor = page.getByRole('textbox', { name: 'Script' });
@@ -158,8 +158,8 @@ describe('Brief -> Script and the pipeline sidebar', () => {
       .poll(gitSubjects)
       .toEqual(expect.arrayContaining(['Claude turn: research', 'Claude turn: script']));
     await expect
-      .poll(() => pipeline.getByRole('button', { name: 'Script written' }).textContent())
-      .toBe('Script writtenReview');
+      .poll(() => stageRow(page, 'Script written').textContent())
+      .toBe('Script writtenReview & approve');
     await shot('script');
 
     const view = page.getByRole('region', { name: 'Script' });
@@ -185,9 +185,8 @@ describe('Brief -> Script and the pipeline sidebar', () => {
 
     await page.getByRole('button', { name: 'Approve script' }).click();
     await page.getByText('Approved ✓').waitFor();
-    const pipeline = page.getByRole('region', { name: 'Pipeline' });
     await expect
-      .poll(() => pipeline.getByRole('button', { name: 'Script written' }).textContent())
+      .poll(() => stageRow(page, 'Script written').textContent())
       .toBe('Script writtenDone');
     await shot('approved');
   });
@@ -195,7 +194,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
   it('explains a blocked stage and asks before Redo', async () => {
     const pipeline = page.getByRole('region', { name: 'Pipeline' });
     await page.getByRole('button', { name: 'Back to preview' }).click();
-    await pipeline.getByRole('button', { name: 'Storyboard' }).click();
+    await stageRow(page, 'Storyboard').click();
     const actions = pipeline.getByRole('group', { name: 'Storyboard actions' });
     const run = actions.getByRole('button', { name: 'Run' });
     expect(await run.getAttribute('aria-disabled')).toBe('true');
@@ -204,7 +203,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     await run.hover();
     await shot('gating');
 
-    await pipeline.getByRole('button', { name: 'Script written' }).click();
+    await stageRow(page, 'Script written').click();
     await pipeline
       .getByRole('group', { name: 'Script written actions' })
       .getByRole('button', { name: 'Redo' })

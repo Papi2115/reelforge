@@ -91,6 +91,8 @@ export function kitCatalogMarkdown(
     'Scenes call `ctx.kit.<namespace>.<name>(params)` in `build()`; every result is a kit object',
     '(`.on(surface)`, `.mount(child, anchor)`, `.anchor(name)`). Animated objects have `update(t)`:',
     "call it from the scene's `update(t)` on every frame, like every other hook (pure functions of t).",
+    'Props a video needs that the kit lacks are built per project as `kit-ext/props/<name>.js`',
+    '(project-local, ADR-007); they are not listed here: `reelforge kit-docs` shows them.',
     '',
     '## Props',
     '',

@@ -28,6 +28,41 @@ export function toneWav(seconds: number, sampleRate = 48_000): Buffer {
   return buffer;
 }
 
+/**
+ * 48 kHz 16-bit stereo PCM WAV of `seconds` (the format of a real mix.wav: 192 KB per second) with
+ * a quiet 440 Hz tone. One second is computed (440 whole periods) and repeated, so a 15-minute
+ * file (≈ 173 MB) is made in well under a second.
+ */
+export function stereoToneWav(seconds: number): Buffer {
+  const sampleRate = 48_000;
+  const frameBytes = 4;
+  const secondBytes = sampleRate * frameBytes;
+  const dataBytes = Math.round(seconds * sampleRate) * frameBytes;
+  const buffer = Buffer.alloc(44 + dataBytes);
+  buffer.write('RIFF', 0, 'ascii');
+  buffer.writeUInt32LE(36 + dataBytes, 4);
+  buffer.write('WAVEfmt ', 8, 'ascii');
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(2, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(secondBytes, 28);
+  buffer.writeUInt16LE(frameBytes, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36, 'ascii');
+  buffer.writeUInt32LE(dataBytes, 40);
+  const second = Buffer.alloc(secondBytes);
+  for (let index = 0; index < sampleRate; index += 1) {
+    const value = Math.round(Math.sin((2 * Math.PI * 440 * index) / sampleRate) * 33);
+    second.writeInt16LE(value, index * frameBytes);
+    second.writeInt16LE(value, index * frameBytes + 2);
+  }
+  for (let offset = 0; offset < dataBytes; offset += secondBytes) {
+    second.copy(buffer, 44 + offset, 0, Math.min(secondBytes, dataBytes - offset));
+  }
+  return buffer;
+}
+
 export interface PlaybackRun {
   /** Seconds of video time advanced during the measurement. */
   readonly advanced: number;

@@ -1,10 +1,18 @@
 /**
  * Sound design mixed (PLAN.md#8.3): `cues.json` + `audio/vo.clean.wav` (+ SFX/ambience recipes,
- * music files) -> pipeline `mixAudio` -> `audio/mix.wav` and `.reelforge/reports/mix.json`. The
- * stage fails when the master misses the loudness bar: target (−14 LUFS) ± 1 LU, true peak ≤ −1 dBTP.
+ * music files) -> pipeline `mixAudio` -> `audio/mix.wav`, `.reelforge/reports/mix.json` and the QA
+ * verdict `.reelforge/mix-report.json` (ducking, speech clarity, music low band, clipping, SFX
+ * density: warnings). The stage fails when the master misses the loudness bar: target (−14 LUFS)
+ * ± 1 LU, true peak ≤ −1 dBTP.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
-import { CuesFileSchema, MixReportSchema, type MixReport } from '@reelforge/pipeline';
+import {
+  CuesFileSchema,
+  MixQaReportSchema,
+  MixReportSchema,
+  buildMixQaReport,
+  type MixReport,
+} from '@reelforge/pipeline';
 import { requireProjectJson, writeProjectJson } from '../files.js';
 import { FILES, REPORTS, inProject } from '../paths.js';
 import {
@@ -59,6 +67,12 @@ async function run(
   if (!report.ok) return err(toolFailure('mix', report.error));
   const saved = await writeProjectJson(ctx.projectDir, REPORTS.mix, MixReportSchema, report.value);
   if (!saved.ok) return saved;
+  const qa = buildMixQaReport(report.value, cues.value, {
+    toleranceLu: ctx.settings.mixToleranceLu,
+    createdAt: ctx.now().toISOString(),
+  });
+  const savedQa = await writeProjectJson(ctx.projectDir, FILES.mixQaReport, MixQaReportSchema, qa);
+  if (!savedQa.ok) return savedQa;
   const problems = loudnessProblems(report.value, ctx.settings.mixToleranceLu);
   if (problems.length > 0) {
     return err(
@@ -66,12 +80,16 @@ async function run(
     );
   }
   const { after } = report.value;
+  const measured = report.value.qa;
   return ok({
     message: `${String(after.integratedLufs)} LUFS, true peak ${String(after.truePeakDbtp)} dBTP`,
     outputs: [FILES.mix],
     changed: true,
-    warnings: report.value.warnings,
+    warnings: [...report.value.warnings, ...qa.warnings],
     metrics: {
+      duckingDb: measured?.duckingDepthDb ?? null,
+      speechMarginDb: measured?.speechMarginDb ?? null,
+      musicLowShare: measured?.musicLowShare ?? null,
       lufs: after.integratedLufs,
       truePeakDbtp: after.truePeakDbtp,
       durationS: report.value.durationS,
@@ -85,6 +103,6 @@ async function run(
 export const mixStage: StageDefinition<'mix'> = {
   id: 'mix',
   inputs: [FILES.cues, FILES.voClean, 'audio/music/*, audio/sfx/* (referenced by cues)'],
-  outputs: [FILES.mix, REPORTS.mix],
+  outputs: [FILES.mix, REPORTS.mix, FILES.mixQaReport],
   run,
 };

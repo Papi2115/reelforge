@@ -38,6 +38,7 @@ import {
 import { StageRun } from './stage-run.js';
 import {
   buildStageInfos,
+  followUpReview,
   gateReasons,
   recoverPipeline,
   runRequestFor,
@@ -57,6 +58,8 @@ export interface StageServiceOptions {
   readonly guard: LimitGuard;
   readonly push: (state: StagesState) => void;
   readonly log: Logger;
+  /** Settings → "Run final review after building scenes" (default off here, on in the app). */
+  readonly finalReview?: () => boolean;
   /** Epoch ms. */
   readonly now?: () => number;
   readonly pushDelayMs?: number;
@@ -320,6 +323,9 @@ export class StageService {
     pipeline.warnings.set(stage, [...run.warnings]);
     if (outcome.status === 'done') {
       this.options.log.info(`${stage}: ${outcome.message}`);
+      const review = followUpReview(next.request, this.options.finalReview?.() === true);
+      // Runs next, before the rest of the group (its fixes change what sound cues read).
+      if (review !== undefined) pipeline.queue.unshift({ request: review, group: next.group });
       return outcome;
     }
     this.dropGroup(pipeline, next.group);

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PipelineStateStore } from '@reelforge/claude-bridge';
 import { lintScene } from '@reelforge/engine';
-import { storyboardReportSchema } from '@reelforge/shared';
+import { storyboardFileSchema, storyboardReportSchema } from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { SCENE_STUB_MARKER } from './stages/scene-stub.js';
@@ -32,6 +32,41 @@ const THREE_IN_A_ROW = GOLDEN.replace(
   '"treatment": "data-chart-3d"',
   '"treatment": "3d-reconstruction"',
 );
+/** Annotation plan per shot of the golden storyboard (PLAN.md#11.8): varied forms on real phrases. */
+const PLANS: Readonly<Record<string, readonly object[]>> = {
+  s01_hook: [
+    { kind: 'big-text', phrase: 'quick experiment', text: 'TRY THIS', reason: 'emphasis' },
+  ],
+  s02_glass: [
+    { kind: 'pin', phrase: 'glass of water', target: 'glass', text: 'WATER', reason: 'name' },
+  ],
+  s03_flashlight: [
+    { kind: 'arrow', phrase: 'at an angle', target: 'flashlight beam', reason: 'place' },
+  ],
+  s04_rainbow: [{ kind: 'ring', phrase: 'tiny rainbow', target: 'rainbow', reason: 'emphasis' }],
+  s05_spectrum: [
+    { kind: 'callout', phrase: 'white light', text: 'MIX OF COLOURS', reason: 'definition' },
+  ],
+  s06_red_violet: [
+    {
+      kind: 'bracket',
+      phrase: 'violet bends the most',
+      target: 'red and violet rays',
+      reason: 'comparison',
+    },
+  ],
+  s07_newton: [
+    { kind: 'pin', phrase: 'Isaac Newton', target: 'Newton', text: 'ISAAC NEWTON', reason: 'name' },
+    { kind: 'counter', phrase: '1672', text: '1672', reason: 'number' },
+  ],
+};
+
+function planned(plans: Readonly<Record<string, readonly object[]>>): string {
+  const storyboard = JSON.parse(GOLDEN) as { shots: { id: string }[] };
+  const shots = storyboard.shots.map((shot) => ({ ...shot, annotations: plans[shot.id] ?? [] }));
+  return JSON.stringify({ ...storyboard, shots }, null, 2);
+}
+
 /** fake-claude's `rate-limit` reset time (epoch s). */
 const FAKE_RESETS_AT = 1_790_902_800;
 
@@ -113,6 +148,30 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
     const result = await runner.run({ stage: 'storyboard' });
     expect(result.ok && result.value.metrics['repairs']).toBe(1);
     expect(harness.specs[1]?.prompt).toContain('treatment-run');
+  });
+
+  it('keeps an annotation plan with varied forms, repairs one that repeats a form or misses a phrase', async () => {
+    const repeated = planned({
+      ...PLANS,
+      s02_glass: [{ kind: 'ring', phrase: 'a glass of water', reason: 'place' }],
+      s03_flashlight: [{ kind: 'ring', phrase: 'flashlight', reason: 'place' }],
+      s05_spectrum: [{ kind: 'callout', phrase: 'white lights', reason: 'definition' }],
+    });
+    const { dir, harness, runner } = await setup('storyboard annotations', [
+      writes({ 'storyboard.json': repeated }),
+      writes({ 'storyboard.json': planned(PLANS) }),
+    ]);
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok && result.value.metrics).toMatchObject({ repairs: 1, annotations: 8 });
+    expect(harness.specs[0]?.prompt).toContain('`definition` (a term is explained) → `callout`');
+    const repair = harness.specs[1]?.prompt ?? '';
+    expect(repair).toContain('annotation-run');
+    expect(repair).toContain('annotation phrase "white lights" is not spoken');
+    const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
+    const kinds = written.shots.flatMap((shot) =>
+      (shot.annotations ?? []).map((plan) => plan.kind),
+    );
+    expect(new Set(kinds).size).toBeGreaterThanOrEqual(6);
   });
 
   it('pauses on a usage limit mid-stage, persists it, resumes at the reset time and finishes', async () => {

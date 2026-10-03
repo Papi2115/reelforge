@@ -30,7 +30,9 @@ describe('templates/project/CLAUDE.md', () => {
 
   it('points to the ctx reference and states the one-command Bash rule', () => {
     expect(text).toContain('`reelforge kit-docs ctx`');
-    expect(CTX_TOPICS).toEqual(expect.arrayContaining(['ctx', 'camera', 'text']));
+    expect(CTX_TOPICS).toEqual(expect.arrayContaining(['ctx', 'camera', 'text', 'annotate']));
+    expect(text).toContain('`reelforge kit-docs annotate`');
+    expect(text).toContain('## Annotations: when to use what');
     expect(text).toMatch(/exactly ONE plain `reelforge …` command — no `cd`, no `&&`/);
   });
 });

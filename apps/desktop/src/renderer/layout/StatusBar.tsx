@@ -22,11 +22,7 @@ export interface StatusBarProps {
 export function StatusBar(props: StatusBarProps): JSX.Element {
   const chip = claudeChip(props.claude);
   const models =
-    props.economy === undefined
-      ? 'Models: —'
-      : props.economy
-        ? 'Economy mode'
-        : 'Models: per stage';
+    props.economy === undefined ? 'Models: —' : props.economy ? 'Economy mode' : 'Models: per step';
   return (
     <footer className="status-bar" aria-label="Status">
       {props.projectOpen && (
@@ -39,7 +35,7 @@ export function StatusBar(props: StatusBarProps): JSX.Element {
           Saved locally · git history
         </button>
       )}
-      <span className="status-item" title="Models per stage and Economy mode: Settings → Models">
+      <span className="status-item" title="Models per step and Economy mode: Settings → Models">
         {models} · Usage: —
       </span>
       <button

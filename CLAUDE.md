@@ -86,7 +86,7 @@ Scena to **czysta funkcja czasu** `t`. Zakazane w scenach: `Date`, `Math.random`
 Jeden silnik (`packages/engine`) dla podglądu i renderu. Żadnych "specjalnych" ścieżek eksportu, które wyglądają inaczej niż preview.
 
 ### 3.4 Local-first
-Projekt = folder na dysku + repo git (autocommit po każdym kroku pipeline'u i turze Claude). Zero telemetrii, zero chmury poza samym Claude CLI.
+Projekt = folder na dysku + repo git (autocommit po każdym kroku pipeline'u i turze Claude). Zero telemetrii, zero chmury poza samym Claude CLI. Wyjątek (od fazy 12): jawne pobieranie assetów przez `reelforge fetch-asset`, sterowane trybem researchu projektu (tryb „wyłączone" = zero sieci); nigdy yt-dlp/YouTube.
 
 ### 3.5 Dane na dysku
 Każdy plik JSON ma wersję + schemat **zod** w `packages/shared`. Zapis atomowy (tmp + rename). Brak "ręcznego" parsowania.
@@ -166,3 +166,10 @@ pnpm test:packaged       # smoke spakowanej aplikacji + instalatora
 - 2026-10-02 · Electron 44 + plain Vite/esbuild, protokoły `reelforge://` i `reelforge-media://`; zegarem mastera jest <audio> · 6.1–6.4
 - 2026-10-02 · `.reelforge/` w całości poza gitem; revert = nowy commit przywracający drzewo (bez reset --hard) · 6.2
 - 2026-10-02 · v1.0.0: wydanie dla użytku własnego; CI (verify win+ubuntu, e2e win) zielone; otwarte: instalator na czystej VM, brak LICENSE, nieobserwowany realny limit użycia · 10.5
+- 2026-10-03 · Plan v1.2 zatwierdzony (faza 11): P0 bug dźwięku w podglądzie, UX, warianty shotu, zamki, auto-przegląd, podpis+auto-update, ścieżka szybkości; pomysły 2.0 w docs/roadmap-2.0.md; zasada: nie psuć obecnego wyglądu · polecenie usera
+- 2026-10-03 · Kierunek 2.0 (faza 12): jeden Styl + wiele Looków (wszystkie 7), role rolek A/B/C, ambient variation, 4 tryby researchu assetów (pytaj/auto-źródła/pełne auto ⚠/wyłączone), asset osadzony w scenie po filtrze, taste learning, live co-direction; wyjątek sieciowy w §3.4, nigdy yt-dlp · polecenie usera
+- 2026-10-03 · Faza 12 podzielona na wersje 2.0 Looki → 2.1 Assety → 2.2 Reżyseria → 2.3 Personalizacja (po 7 tasków, wg zależności); Shorts factory → 3.0, retention coach → backlog 2.x; odrzucone: AI miniatury/tytuły, napisy brandowe · polecenie usera
+- 2026-10-03 · Series memory (12.20) przeniesione do osobnej wersji 2.3.5 i oparte na gotowej paczce postaci/maskotki Papiego (import, bez przeprojektowania) · polecenie usera
+- 2026-10-03 · 11.7 (ścieżka szybkości) odłożone: realny pomiar Papiego — film 8 min w ok. 20 min, szybkość wystarcza; priorytet = jakość/różnorodność adnotacji, biblioteka obiektów, 11.6 · polecenie usera
+- 2026-10-03 · 11.8 (słownik adnotacji) dodane do 1.2; biblioteka propsów (11.9) odłożona do czasu ustabilizowania stylu modeli; po 11.8 w 1.2 zostaje tylko 11.6 (czeka na decyzje Papiego); pomiar: film 8 min ≈ 2–3% limitu tygodniowego (plan 20x) · polecenie usera
+- 2026-10-03 · Koncepty postaci (docs/concepts/characters.html) przeniesione na 2.3.5 (seria/postacie, zadanie 12.20) · polecenie usera

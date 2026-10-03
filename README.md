@@ -34,7 +34,10 @@ or stores your Claude credentials. v1 is for personal use (see "Licensing and te
 - [Claude Code](https://claude.com/claude-code) installed and logged in (`npm install -g @anthropic-ai/claude-code`
   then run `claude` once). The app has a Connect Claude wizard that checks this.
 - Git, and ffmpeg (a build with libx264; encoders for NVENC/AMF/QSV are used when present).
-  whisper.cpp and its models are downloaded on demand from the official sources.
+  whisper.cpp and its models are downloaded on demand (≈ 600 MB once, ≈ 870 MB with an NVIDIA GPU)
+  from the official sources (GitHub, Hugging Face) and checked against pinned SHA-256 hashes: from
+  Settings → Tools, the first-run "Prepare tools" step, or Words timed's "Download and continue"
+  (`docs/whisper.md`).
 
 ## Quick start
 

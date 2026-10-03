@@ -3,7 +3,7 @@
  * frames, text cards outside the safe area or overlapping (engine `checkCards`), console errors.
  * Findings are written for the scene author (an LLM): what, where (local time), how to fix.
  */
-import type { CardDiagnostic, LintDiagnostic } from '@reelforge/engine';
+import { cardProblems, type CardDiagnostic, type LintDiagnostic } from '@reelforge/engine';
 import { computeFrameStats } from '@reelforge/engine/raster';
 import type { QaFinding, QaFindingSource } from '@reelforge/shared';
 import { contentShare } from './frame-content.js';
@@ -72,9 +72,15 @@ export function blankFrameFindings(frames: readonly RenderedFrame[]): QaFinding[
   });
 }
 
+/** Card QA problems (annotation warnings stay warnings; `info` records are not findings). */
 export function cardFindings(cards: readonly CardDiagnostic[]): QaFinding[] {
-  return cards.map((card) =>
-    finding('cards', 'error', `[${card.rule}] ${card.message}. Fix: ${card.fix}`, { t: card.t0 }),
+  return cardProblems(cards).map((card) =>
+    finding(
+      'cards',
+      card.severity === 'warning' ? 'warning' : 'error',
+      `[${card.rule}] ${card.message}. Fix: ${card.fix}`,
+      { t: card.t0 },
+    ),
   );
 }
 

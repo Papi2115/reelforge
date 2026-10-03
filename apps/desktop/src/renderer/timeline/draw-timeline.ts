@@ -1,20 +1,23 @@
 /**
  * Draws the timeline lanes onto a 2D canvas (PLAN.md#6.5): ruler, shots, narration (sentences when
  * zoomed out, words when zoomed in), sfx markers, waveform, cards, ambience/music ranges, snap
- * guide and playhead. Only what is in view is drawn (binary search for words), labels are fitted
- * by an average glyph width (no per-label measureText), so a 10-minute project draws in a few ms.
+ * guide and playhead, in the rows the user shows (PLAN.md#11.2). Only what is in view is drawn
+ * (binary search for words), labels are fitted by an average glyph width (no per-label
+ * measureText) and thinned when zoomed out (shot names, then ids, then numbers like "s01"), so a
+ * 10-minute project draws in a few ms.
  */
 import { formatRulerLabel, rulerTicks } from '../layout/timeline-scale.js';
 import { peakColumns, type PeakSource } from './peak-columns.js';
+import { fitLabel, LABEL_PAD, shotLabel } from './timeline-labels.js';
 import { itemKey } from './selection.js';
 import {
+  DEFAULT_TRACK_LAYOUT,
+  findTrackRow,
   rangeLane,
-  trackRow,
-  TRACK_ROWS,
-  LANES_HEIGHT,
   type TimelineHit,
   type TimelineModel,
   type TrackId,
+  type TrackLayout,
 } from './timeline-model.js';
 import { timeToX, visibleRange, type TimelineView } from './timeline-view.js';
 import { visibleSpans, WORD_DETAIL_PX_PER_SECOND } from './word-index.js';
@@ -57,6 +60,8 @@ export interface DrawInput {
   readonly snapAt: number | undefined;
   /** Shown in rows without content. */
   readonly emptyText: Readonly<Partial<Record<TrackId, string>>>;
+  /** The shown rows (default: all). */
+  readonly layout?: TrackLayout;
 }
 
 export interface DrawStats {
@@ -88,20 +93,11 @@ const COLORS = {
 
 const UI_FONT = "11px system-ui, 'Segoe UI', Roboto, sans-serif";
 const MONO_FONT = "10px ui-monospace, 'Cascadia Mono', Consolas, monospace";
-/** Average glyph width of UI_FONT, slightly generous so fitted labels never spill. */
-const CHAR_PX = 6;
-const LABEL_PAD = 3;
-
-/** `text` cut (with an ellipsis) to roughly `px` pixels; empty when nothing useful fits. */
-export function fitLabel(text: string, px: number): string {
-  const chars = Math.floor((px - 2 * LABEL_PAD) / CHAR_PX);
-  if (chars >= text.length) return text;
-  return chars >= 3 ? `${text.slice(0, chars - 1)}…` : '';
-}
 
 interface Lane {
   readonly ctx: DrawContext;
   readonly view: TimelineView;
+  readonly layout: TrackLayout;
 }
 
 function block(
@@ -111,7 +107,9 @@ function block(
   top: number,
   height: number,
   colors: readonly [string, string],
-  label: string,
+  label: string | ((px: number) => string),
+  /** Pixels kept free at the right end (e.g. for the padlock). */
+  reserve = 0,
 ): void {
   const { ctx, view } = lane;
   const x0 = Math.max(timeToX(view, from), -2);
@@ -121,14 +119,15 @@ function block(
   ctx.fillRect(x0, top, width, height);
   ctx.strokeStyle = colors[1];
   ctx.strokeRect(x0 + 0.5, top + 0.5, Math.max(width - 1, 0), height - 1);
-  const text = fitLabel(label, width);
+  const text =
+    typeof label === 'string' ? fitLabel(label, width - reserve) : label(width - reserve);
   if (text === '') return;
   ctx.fillStyle = COLORS.text;
   ctx.fillText(text, Math.max(x0, 0) + LABEL_PAD, top + height / 2 + 0.5);
 }
 
-function drawRows(ctx: DrawContext, view: TimelineView): void {
-  TRACK_ROWS.forEach((row, index) => {
+function drawRows(ctx: DrawContext, view: TimelineView, layout: TrackLayout): void {
+  layout.rows.forEach((row, index) => {
     ctx.fillStyle = row.id === 'ruler' ? COLORS.ruler : index % 2 ? COLORS.lane : COLORS.laneAlt;
     ctx.fillRect(0, row.top, view.width, row.height);
     ctx.fillStyle = COLORS.separator;
@@ -136,8 +135,9 @@ function drawRows(ctx: DrawContext, view: TimelineView): void {
   });
 }
 
-function drawRuler(ctx: DrawContext, view: TimelineView): void {
-  const row = trackRow('ruler');
+function drawRuler(ctx: DrawContext, view: TimelineView, layout: TrackLayout): void {
+  const row = findTrackRow('ruler', layout);
+  if (!row) return;
   const { from, to } = visibleRange(view);
   ctx.font = MONO_FONT;
   for (const tick of rulerTicks(from, Math.min(to, view.duration), view.pxPerSecond)) {
@@ -150,15 +150,33 @@ function drawRuler(ctx: DrawContext, view: TimelineView): void {
   ctx.font = UI_FONT;
 }
 
+const PADLOCK_PX = 12;
+
+/** A small padlock at the right end of a locked shot's block (when the block is wide enough). */
+function drawPadlock(lane: Lane, from: number, to: number, top: number, height: number): void {
+  const { ctx, view } = lane;
+  const x0 = Math.max(timeToX(view, from), 0);
+  const x1 = Math.min(timeToX(view, to), view.width);
+  if (x1 - x0 < PADLOCK_PX * 2) return;
+  const x = Math.round(x1 - PADLOCK_PX + 2);
+  const y = Math.round(top + height / 2);
+  ctx.fillStyle = COLORS.text;
+  ctx.fillRect(x, y - 1, 7, 5);
+  ctx.strokeStyle = COLORS.text;
+  ctx.strokeRect(x + 1.5, y - 4.5, 4, 4);
+}
+
 function drawShots(lane: Lane, input: DrawInput): number {
   const { model, view, selected, hover } = input;
-  const row = trackRow('shots');
+  const row = findTrackRow('shots', lane.layout);
+  if (!row) return 0;
   const { from, to } = visibleRange(view);
   let drawn = 0;
   model.shots.forEach((shot, index) => {
     if (shot.t1 < from || shot.t0 > to) return;
     const isSelected = selected.has(itemKey({ kind: 'shot', id: shot.id }));
     const colors = isSelected ? COLORS.shotSelected : COLORS.shot;
+    const locked = model.locked?.has(shot.id) === true;
     block(
       lane,
       shot.t0,
@@ -166,12 +184,14 @@ function drawShots(lane: Lane, input: DrawInput): number {
       row.top + 3,
       row.height - 6,
       colors,
-      `${shot.id} · ${shot.treatment}`,
+      (px) => shotLabel(shot.id, shot.treatment, index, px),
+      locked ? PADLOCK_PX : 0,
     );
+    if (locked) drawPadlock(lane, shot.t0, shot.t1, row.top + 3, row.height - 6);
     drawn += 1;
     if (hover?.kind === 'boundary' && hover.left === index) {
       lane.ctx.fillStyle = COLORS.accent;
-      lane.ctx.fillRect(Math.round(timeToX(view, shot.t1)) - 1, row.top + 1, 3, row.height - 2);
+      lane.ctx.fillRect(Math.round(timeToX(view, shot.t1)) - 2, row.top + 1, 4, row.height - 2);
     }
   });
   return drawn;
@@ -179,9 +199,10 @@ function drawShots(lane: Lane, input: DrawInput): number {
 
 function drawNarration(lane: Lane, input: DrawInput): { items: number; words: boolean } {
   const { model, view, selected } = input;
-  const row = trackRow('narration');
-  const { from, to } = visibleRange(view);
+  const row = findTrackRow('narration', lane.layout);
   const words = view.pxPerSecond >= WORD_DETAIL_PX_PER_SECOND;
+  if (!row) return { items: 0, words };
+  const { from, to } = visibleRange(view);
   const spans = words ? model.words : model.sentences;
   const { start, end } = visibleSpans(spans, from, to);
   for (let index = start; index < end; index += 1) {
@@ -203,7 +224,8 @@ function drawNarration(lane: Lane, input: DrawInput): { items: number; words: bo
 
 function drawSfx(lane: Lane, input: DrawInput): number {
   const { ctx, view } = lane;
-  const row = trackRow('cues');
+  const row = findTrackRow('cues', lane.layout);
+  if (!row) return 0;
   const { from, to } = visibleRange(view);
   let drawn = 0;
   input.model.cues.sfx.forEach((cue, index) => {
@@ -229,9 +251,11 @@ function drawSfx(lane: Lane, input: DrawInput): number {
   return drawn;
 }
 
-function drawWaveform(ctx: DrawContext, view: TimelineView, waveform: WaveformView): boolean {
+function drawWaveform(lane: Lane, waveform: WaveformView): boolean {
+  const { ctx, view } = lane;
   if (waveform.kind !== 'ok') return false;
-  const row = trackRow('audio');
+  const row = findTrackRow('audio', lane.layout);
+  if (!row) return true;
   const { from } = visibleRange(view);
   const columns = peakColumns(waveform.source, from, 1 / view.pxPerSecond, Math.ceil(view.width));
   const middle = row.top + row.height / 2;
@@ -251,7 +275,8 @@ function drawRanges(lane: Lane, input: DrawInput): number {
   const { from, to } = visibleRange(view);
   let drawn = 0;
   for (const track of ['ambience', 'music'] as const) {
-    const area = rangeLane(track);
+    const area = rangeLane(track, lane.layout);
+    if (!area) continue;
     input.model.cues[track].forEach((range, index) => {
       if (range.to < from || range.from > to) return;
       const isSelected = input.selected.has(itemKey({ kind: 'cue', track, index }));
@@ -283,14 +308,15 @@ function drawRanges(lane: Lane, input: DrawInput): number {
   return drawn;
 }
 
-function drawEmpty(ctx: DrawContext, id: TrackId, text: string | undefined): void {
-  if (text === undefined) return;
-  const row = trackRow(id);
+function drawEmpty(lane: Lane, id: TrackId, text: string | undefined): void {
+  const { ctx } = lane;
+  const row = findTrackRow(id, lane.layout);
+  if (text === undefined || !row) return;
   ctx.fillStyle = COLORS.muted;
   ctx.fillText(text, 8, row.top + row.height / 2 + 0.5);
 }
 
-function drawGuides(ctx: DrawContext, input: DrawInput): void {
+function drawGuides(ctx: DrawContext, input: DrawInput, height: number): void {
   const { view } = input;
   if (input.snapAt !== undefined) {
     const x = Math.round(timeToX(view, input.snapAt)) + 0.5;
@@ -298,18 +324,21 @@ function drawGuides(ctx: DrawContext, input: DrawInput): void {
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, LANES_HEIGHT);
+    ctx.lineTo(x, height);
     ctx.stroke();
     ctx.setLineDash([]);
   }
   const x = Math.round(timeToX(view, input.time));
   if (x < -6 || x > view.width + 6) return;
   ctx.fillStyle = COLORS.accent;
-  ctx.fillRect(x - 1, 0, 2, LANES_HEIGHT);
+  ctx.fillRect(x - 1, 0, 2, height);
+  // A wider grip on the ruler; the playhead can be dragged anywhere along its line.
   ctx.beginPath();
-  ctx.moveTo(x - 5, 0);
-  ctx.lineTo(x + 5, 0);
-  ctx.lineTo(x, 7);
+  ctx.moveTo(x - 6, 0);
+  ctx.lineTo(x + 6, 0);
+  ctx.lineTo(x + 6, 6);
+  ctx.lineTo(x, 12);
+  ctx.lineTo(x - 6, 6);
   ctx.closePath();
   ctx.fill();
 }
@@ -317,30 +346,31 @@ function drawGuides(ctx: DrawContext, input: DrawInput): void {
 /** Draws everything (CSS px coordinates: the caller applies the device pixel ratio). */
 export function drawTimeline(ctx: DrawContext, input: DrawInput): DrawStats {
   const { view, model, emptyText } = input;
-  const lane: Lane = { ctx, view };
+  const layout = input.layout ?? DEFAULT_TRACK_LAYOUT;
+  const lane: Lane = { ctx, view, layout };
   ctx.lineWidth = 1;
   ctx.textBaseline = 'middle';
   ctx.font = UI_FONT;
-  drawRows(ctx, view);
+  drawRows(ctx, view, layout);
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, 0, view.width, LANES_HEIGHT);
+  ctx.rect(0, 0, view.width, layout.height);
   ctx.clip();
-  drawRuler(ctx, view);
+  drawRuler(ctx, view, layout);
   const shots = drawShots(lane, input);
   const narration = drawNarration(lane, input);
   const sfx = drawSfx(lane, input);
-  const wave = drawWaveform(ctx, view, input.waveform);
+  const wave = drawWaveform(lane, input.waveform);
   const ranges = drawRanges(lane, input);
-  if (model.shots.length === 0) drawEmpty(ctx, 'shots', emptyText.shots);
-  if (model.words.length === 0) drawEmpty(ctx, 'narration', emptyText.narration);
-  if (model.cues.sfx.length === 0) drawEmpty(ctx, 'cues', emptyText.cues);
-  if (!wave) drawEmpty(ctx, 'audio', input.waveform.kind === 'message' ? input.waveform.text : '');
-  drawEmpty(ctx, 'cards', emptyText.cards);
+  if (model.shots.length === 0) drawEmpty(lane, 'shots', emptyText.shots);
+  if (model.words.length === 0) drawEmpty(lane, 'narration', emptyText.narration);
+  if (model.cues.sfx.length === 0) drawEmpty(lane, 'cues', emptyText.cues);
+  if (!wave) drawEmpty(lane, 'audio', input.waveform.kind === 'message' ? input.waveform.text : '');
+  drawEmpty(lane, 'cards', emptyText.cards);
   if (model.cues.ambience.length + model.cues.music.length === 0) {
-    drawEmpty(ctx, 'ambience', emptyText.ambience);
+    drawEmpty(lane, 'ambience', emptyText.ambience);
   }
-  drawGuides(ctx, input);
+  drawGuides(ctx, input, layout.height);
   ctx.restore();
   return {
     narration: narration.words ? 'words' : 'sentences',

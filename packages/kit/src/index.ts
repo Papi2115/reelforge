@@ -12,6 +12,7 @@ export {
   type EnvObject,
 } from './env/index.js';
 export * from './errors.js';
+export * from './extensions.js';
 export {
   glitchPixels,
   textPixels,
@@ -51,6 +52,8 @@ export * from './registry.js';
 export type * from './types.js';
 export { KIT_VERSION } from './version.js';
 export { VOXEL_API_DOCS, type ApiDoc, type GroupOptions, type VoxelApi } from './voxel/api.js';
+export { componentFloors, inspectObject, type KitInspection } from './voxel/inspect.js';
+export type { Sketch, SketchPlane } from './props/sketch.js';
 export {
   aoLevelsFor,
   greedyMesh,

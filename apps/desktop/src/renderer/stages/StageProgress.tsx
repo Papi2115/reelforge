@@ -14,6 +14,12 @@ export interface StageProgressProps {
   /** null while the stage waits in the queue. */
   readonly run: StageRunView | null;
   readonly onStop: () => void;
+  /** The current step in plain words (default: the runner's step label). */
+  readonly step?: string | undefined;
+  /** Progress bar value 0..100 (default: the runner's percent). */
+  readonly percent?: number | null;
+  /** Label of the Stop button (default "Stop"). */
+  readonly stopLabel?: string;
 }
 
 function useSecondClock(): number {
@@ -29,7 +35,8 @@ function useSecondClock(): number {
   return now;
 }
 
-export function StageProgress({ title, run, onStop }: StageProgressProps): JSX.Element {
+export function StageProgress(props: StageProgressProps): JSX.Element {
+  const { title, run, onStop } = props;
   const now = useSecondClock();
   const listRef = useRef<HTMLOListElement>(null);
   const steps = run?.steps ?? [];
@@ -44,12 +51,13 @@ export function StageProgress({ title, run, onStop }: StageProgressProps): JSX.E
   const paused = run?.paused ?? null;
   const state =
     run === null
-      ? 'Queued: starts when the running stage finishes.'
+      ? 'Queued: starts when the running step finishes.'
       : paused !== null
         ? paused.until === null
           ? 'Paused by the Claude usage limit.'
           : `Paused by the Claude usage limit until ${new Date(paused.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
-        : (run.label ?? 'Starting…');
+        : (props.step ?? run.label ?? 'Starting…');
+  const percent = props.percent === undefined ? (run?.percent ?? null) : props.percent;
 
   return (
     <section className="stage-run" aria-label={`${title} progress`}>
@@ -60,19 +68,31 @@ export function StageProgress({ title, run, onStop }: StageProgressProps): JSX.E
             {state}
             {run !== null && (
               <span className="mono muted">
-                {run.percent === null ? '' : ` · ${String(Math.round(run.percent))} %`} ·{' '}
+                {percent === null ? '' : ` · ${String(Math.round(percent))} %`} ·{' '}
                 {elapsedText(run.startedAt, now)}
               </span>
             )}
           </p>
         </div>
-        <button type="button" className="small-button" onClick={onStop}>
-          <StopIcon /> Stop
+        <button
+          type="button"
+          className="small-button stop-button"
+          title="Stop now; what is finished so far is kept"
+          onClick={onStop}
+        >
+          <StopIcon /> {props.stopLabel ?? 'Stop'}
         </button>
       </div>
-      {run?.percent !== null && run?.percent !== undefined && (
-        <div className="stage-progress" aria-hidden="true">
-          <span style={{ width: `${String(run.percent)}%` }} />
+      {run !== null && percent !== null && (
+        <div
+          className="stage-progress"
+          role="progressbar"
+          aria-label={`${title} progress`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(percent)}
+        >
+          <span style={{ width: `${String(percent)}%` }} />
         </div>
       )}
       {steps.length === 0 ? (

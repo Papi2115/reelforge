@@ -4,8 +4,10 @@
  * time in the open project's `main` session (stage `chat`, model from Settings, "Think harder" =
  * boost model). Stop kills the turn's process tree; whatever it changed stays and is committed
  * like every finished turn (`kind: claude-turn`). A usage limit pauses the queue until the reset
- * time (or "Try now") and re-queues the interrupted message. Electron-free: the CLI launcher, env
- * and commits come in through the options; state goes out through `push`.
+ * time (or "Try now") and re-queues the interrupted message. Locked shots (PLAN.md#11.4) cannot be
+ * the target of a message, and a turn's changes to them are discarded before the commit.
+ * Electron-free: the CLI launcher, env and commits come in through the options; state goes out
+ * through `push`.
  */
 import { randomUUID } from 'node:crypto';
 import {
@@ -37,6 +39,7 @@ import {
 } from '../../shared/chat-contract.js';
 import type { Logger } from '../logger.js';
 import { chatTurnModel, usageBudgetFor } from '../settings-consumers.js';
+import { chatLocks, lockedShotsNote, lockSteps, startChatLockGuard } from './chat-locks.js';
 import { buildChatPrompt, findSourceHint, requestTitle, selectionLabel } from './chat-prompt.js';
 import { startChatTurn } from './chat-resume.js';
 import { toChatSteps } from './chat-steps.js';
@@ -201,8 +204,16 @@ export class ClaudeService {
       const message = 'nothing is selected: click an object in the preview first';
       return { status: 'error', error: { kind: 'invalid-request', message } };
     }
+    const locks = await chatLocks(dir, scope, request.shotIds, selection);
+    if (locks.refusal !== null) {
+      return { status: 'error', error: { kind: 'invalid-request', message: locks.refusal } };
+    }
     const hint = selection === null ? undefined : await findSourceHint(dir, selection);
-    const built = buildChatPrompt({ request: { ...request, scope, selection }, hint });
+    const built = buildChatPrompt({
+      request: { ...request, scope, selection },
+      hint,
+      lockedNote: lockedShotsNote(locks.locked),
+    });
     if (!built.ok) {
       return { status: 'error', error: { kind: 'invalid-request', message: built.message } };
     }
@@ -373,6 +384,7 @@ export class ClaudeService {
     for (const other of this.transcripts.of(projectKey(record.projectDir))) {
       if (other !== record && other.turn.resumable) this.update(other, { resumable: false });
     }
+    const locks = await startChatLockGuard(record.projectDir);
     const started = await startChatTurn(manager.value, record, this.options.settings().economy);
     if ('error' in started) {
       this.update(record, { status: 'failed', finishedAt: this.now(), error: started.error });
@@ -386,16 +398,23 @@ export class ClaudeService {
       view = reduceTurn(view, event);
       this.update(record, { steps: toChatSteps(view, record.projectDir) });
     }
-    await this.finish(record, await handle.outcome);
+    const outcome = await handle.outcome;
+    await this.finish(record, outcome, await locks.finish());
   }
 
-  private async finish(record: TurnRecord, outcome: TurnOutcome): Promise<void> {
+  /** `lockNotes`: changes to locked shots that were discarded (shown as the turn's last steps). */
+  private async finish(
+    record: TurnRecord,
+    outcome: TurnOutcome,
+    lockNotes: readonly string[],
+  ): Promise<void> {
     const status = turnStatusOf(outcome);
     const error = turnErrorOf(outcome);
+    for (const note of lockNotes) this.options.log.warn(`chat turn ${record.turn.id}: ${note}`);
     this.update(record, {
       status,
       finishedAt: this.now(),
-      steps: toChatSteps(outcome.view, record.projectDir),
+      steps: [...toChatSteps(outcome.view, record.projectDir), ...lockSteps(lockNotes)],
       usage: turnUsageOf(outcome),
       error,
       resumable: isResumableOutcome(outcome),

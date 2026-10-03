@@ -1,8 +1,9 @@
 import type { StoryboardShot, TimedWord } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import type { CuesView } from '../../shared/snapshot-contract.js';
-import { drawTimeline, fitLabel, type DrawContext, type DrawInput } from './draw-timeline.js';
-import { wordParts, type TimelineModel } from './timeline-model.js';
+import { drawTimeline, type DrawContext, type DrawInput } from './draw-timeline.js';
+import { fitLabel, shotLabel } from './timeline-labels.js';
+import { trackLayout, wordParts, type TimelineModel } from './timeline-model.js';
 import { fitView, zoomAround, type TimelineView } from './timeline-view.js';
 
 /** Counts drawing calls; no pixels. */
@@ -129,9 +130,41 @@ describe('drawTimeline', () => {
     expect(perFrame).toBeLessThan(4);
   });
 
+  it('draws a padlock on locked shots and keeps their label clear of it', () => {
+    const shot = model.shots[0];
+    if (shot === undefined) throw new Error('no shot');
+    const view = zoomAround(fit, 4, 0);
+    const plain = new CountingContext();
+    drawTimeline(plain, input(model, view));
+    const locked = new CountingContext();
+    drawTimeline(locked, input({ ...model, locked: new Set([shot.id]) }, view));
+    // The padlock: one filled body + one stroked shackle.
+    expect(locked.calls - plain.calls).toBe(2);
+  });
+
   it('fits labels by an average glyph width', () => {
     expect(fitLabel('calculator', 200)).toBe('calculator');
     expect(fitLabel('calculator', 40)).toBe('calc…');
     expect(fitLabel('calculator', 20)).toBe('');
+  });
+
+  it('thins shot labels when zoomed out: name, then id, then number, never a cut-off name', () => {
+    expect(shotLabel('s04_rainbow', '3d-reconstruction', 3, 400)).toBe(
+      's04_rainbow · 3d-reconstruction',
+    );
+    expect(shotLabel('s04_rainbow', '3d-reconstruction', 3, 90)).toBe('s04_rainbow');
+    expect(shotLabel('s04_rainbow', '3d-reconstruction', 3, 40)).toBe('s04');
+    expect(shotLabel('intro', 'title-card', 0, 20)).toBe('1');
+    expect(shotLabel('s04_rainbow', '3d-reconstruction', 3, 10)).toBe('');
+  });
+
+  it('draws only the rows that are shown', () => {
+    const view = fitView(10, 1000);
+    const all = drawTimeline(new CountingContext(), input(model, view));
+    const without = drawTimeline(new CountingContext(), {
+      ...input(model, view),
+      layout: trackLayout(new Set(['narration'] as const)),
+    });
+    expect(without.items).toBeLessThan(all.items);
   });
 });

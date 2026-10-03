@@ -1,7 +1,7 @@
 /**
  * What the timeline draws (PLAN.md#6.5): shots, words (+ sentences, snap boundaries) and cues of
  * the project, with pending edits applied on top (shared/timeline-edits.ts, lenient), and the
- * track rows with hit testing. Pure.
+ * track rows (some can be hidden, PLAN.md#11.2) with hit testing. Pure.
  */
 import type { StoryboardShot, TimedWord } from '@reelforge/shared';
 import type { CuesView, RangeCueView, SfxCueView } from '../../shared/snapshot-contract.js';
@@ -24,6 +24,8 @@ export interface TimelineModel {
   /** Sorted word starts/ends (snapping). */
   readonly boundaries: Float64Array;
   readonly cues: CuesView;
+  /** Locked shot ids (a padlock on their blocks, PLAN.md#11.4). */
+  readonly locked?: ReadonlySet<string>;
 }
 
 /** Words-derived parts, rebuilt only when the words change. */
@@ -100,39 +102,78 @@ const ROW_HEIGHTS: readonly (readonly [TrackId, string, number])[] = [
   ['narration', 'Narration', 24],
   ['cues', 'Cues', 22],
   ['audio', 'Audio', 30],
-  ['cards', 'Cards', 18],
+  ['cards', 'Cards', 20],
   ['ambience', 'Ambience', 30],
 ];
 
-export const TRACK_ROWS: readonly TrackRow[] = ROW_HEIGHTS.reduce<TrackRow[]>(
-  (rows, [id, label, height]) => {
-    const previous = rows[rows.length - 1];
-    rows.push({ id, label, height, top: previous ? previous.top + previous.height : 0 });
-    return rows;
-  },
-  [],
-);
+/** Tracks the user can hide (the ruler always shows). */
+export type ToggleTrack = Exclude<TrackId, 'ruler'>;
 
-export const LANES_HEIGHT = TRACK_ROWS.reduce((sum, row) => sum + row.height, 0);
+export const TOGGLE_TRACKS: readonly { readonly id: ToggleTrack; readonly label: string }[] = [
+  { id: 'shots', label: 'Shots' },
+  { id: 'narration', label: 'Narration' },
+  { id: 'cues', label: 'Cues (sound effects)' },
+  { id: 'audio', label: 'Audio (waveform)' },
+  { id: 'cards', label: 'Cards' },
+  { id: 'ambience', label: 'Ambience / Music' },
+];
+
+export interface TrackLayout {
+  readonly rows: readonly TrackRow[];
+  /** Height of all shown rows (CSS px). */
+  readonly height: number;
+}
+
+/** The shown rows, stacked from the top. */
+export function trackLayout(hidden: ReadonlySet<TrackId> = new Set()): TrackLayout {
+  const rows: TrackRow[] = [];
+  let top = 0;
+  for (const [id, label, height] of ROW_HEIGHTS) {
+    if (id !== 'ruler' && hidden.has(id)) continue;
+    rows.push({ id, label, height, top });
+    top += height;
+  }
+  return { rows, height: top };
+}
+
+export const DEFAULT_TRACK_LAYOUT = trackLayout();
+export const TRACK_ROWS: readonly TrackRow[] = DEFAULT_TRACK_LAYOUT.rows;
+export const LANES_HEIGHT = DEFAULT_TRACK_LAYOUT.height;
+
+/** The row of a track, undefined while it is hidden. */
+export function findTrackRow(
+  id: TrackId,
+  layout: TrackLayout = DEFAULT_TRACK_LAYOUT,
+): TrackRow | undefined {
+  return layout.rows.find((candidate) => candidate.id === id);
+}
 
 export function trackRow(id: TrackId): TrackRow {
-  const row = TRACK_ROWS.find((candidate) => candidate.id === id);
+  const row = findTrackRow(id);
   if (!row) throw new Error(`unknown track ${id}`);
   return row;
 }
 
 /** Ambience row halves: ambience on top, music below. */
-export function rangeLane(track: RangeTrack): { readonly top: number; readonly height: number } {
-  const row = trackRow('ambience');
+export function rangeLane(
+  track: RangeTrack,
+  layout: TrackLayout = DEFAULT_TRACK_LAYOUT,
+): { readonly top: number; readonly height: number } | undefined {
+  const row = findTrackRow('ambience', layout);
+  if (!row) return undefined;
   const half = row.height / 2;
   return { top: row.top + (track === 'ambience' ? 0 : half), height: half };
 }
 
 /** Grab distance of boundaries, markers and range edges (CSS px). */
-export const HANDLE_PX = 5;
+export const HANDLE_PX = 7;
+
+/** Grab distance of the playhead (CSS px): dragging it scrubs. */
+export const PLAYHEAD_GRAB_PX = 6;
 
 export type TimelineHit =
   | { readonly kind: 'ruler' }
+  | { readonly kind: 'playhead' }
   | { readonly kind: 'boundary'; readonly left: number }
   | { readonly kind: 'shot'; readonly index: number }
   | { readonly kind: 'word'; readonly index: number }
@@ -186,8 +227,14 @@ function hitNarration(
   return { kind: 'lane', track: 'narration' };
 }
 
-function hitRanges(model: TimelineModel, view: TimelineView, x: number, y: number): TimelineHit {
-  const track: RangeTrack = y < rangeLane('music').top ? 'ambience' : 'music';
+function hitRanges(
+  model: TimelineModel,
+  view: TimelineView,
+  x: number,
+  y: number,
+  layout: TrackLayout,
+): TimelineHit {
+  const track: RangeTrack = y < (rangeLane('music', layout)?.top ?? 0) ? 'ambience' : 'music';
   const ranges = model.cues[track];
   for (const edge of ['from', 'to'] as const) {
     const hit = nearest(
@@ -201,18 +248,15 @@ function hitRanges(model: TimelineModel, view: TimelineView, x: number, y: numbe
   return index >= 0 ? { kind: 'range', track, index } : { kind: 'lane', track: 'ambience' };
 }
 
-/** What is under lane position (x, y). */
-export function hitTest(
+function rowHit(
+  row: TrackRow,
   model: TimelineModel,
   view: TimelineView,
   x: number,
   y: number,
   wordsLevel: boolean,
-): TimelineHit | undefined {
-  const row = TRACK_ROWS.find(
-    (candidate) => y >= candidate.top && y < candidate.top + candidate.height,
-  );
-  if (!row) return undefined;
+  layout: TrackLayout,
+): TimelineHit {
   switch (row.id) {
     case 'ruler':
       return { kind: 'ruler' };
@@ -228,9 +272,40 @@ export function hitTest(
       return marker ? { kind: 'sfx', index: marker.index } : { kind: 'lane', track: 'cues' };
     }
     case 'ambience':
-      return hitRanges(model, view, x, y);
+      return hitRanges(model, view, x, y, layout);
     case 'audio':
     case 'cards':
       return { kind: 'lane', track: row.id };
   }
+}
+
+/** Hits that win over the playhead (their handles are what the pointer is aiming at). */
+const HANDLE_HITS = new Set<TimelineHit['kind']>(['boundary', 'sfx', 'range-edge']);
+
+/**
+ * What is under lane position (x, y). Within PLAYHEAD_GRAB_PX of the playhead at `playheadT`, the
+ * playhead itself (drag to scrub), unless a boundary, marker or range edge is there.
+ */
+export function hitTest(
+  model: TimelineModel,
+  view: TimelineView,
+  x: number,
+  y: number,
+  wordsLevel: boolean,
+  layout: TrackLayout = DEFAULT_TRACK_LAYOUT,
+  playheadT?: number,
+): TimelineHit | undefined {
+  const row = layout.rows.find(
+    (candidate) => y >= candidate.top && y < candidate.top + candidate.height,
+  );
+  if (!row) return undefined;
+  const hit = rowHit(row, model, view, x, y, wordsLevel, layout);
+  if (
+    playheadT !== undefined &&
+    !HANDLE_HITS.has(hit.kind) &&
+    Math.abs(x - timeToX(view, playheadT)) <= PLAYHEAD_GRAB_PX
+  ) {
+    return { kind: 'playhead' };
+  }
+  return hit;
 }
