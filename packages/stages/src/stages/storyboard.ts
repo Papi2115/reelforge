@@ -1,18 +1,22 @@
 /**
  * Storyboard (PLAN.md#7.3): Claude (storyboard prompt; script, words, style bible, kit catalog via
  * `reelforge kit-docs`) writes `storyboard.json`; it is validated (schema, contiguous shots from 0,
- * boundaries on word starts, no treatment more than twice in a row, scene paths) with one repair
- * turn. Then stub scene modules are created for new shots and `missingProps` is collected.
+ * boundaries on word starts, no treatment more than twice in a row, scene paths; in `mixed` look
+ * mode rolls, looks and their rhythm, ADR-009) with one repair turn. Then stub scene modules are
+ * created for new shots and `missingProps` is collected.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { validateStoryboard, type StoryboardOutput } from '@reelforge/prompts';
 import {
+  projectLookMode,
   STORYBOARD_REPORT_VERSION,
   storyboardReportSchema,
   wordsFileSchema,
+  type LookMode,
   type WordsFile,
 } from '@reelforge/shared';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
+import { storyboardLookOptions, storyboardLookVars } from '../looks.js';
 import { FILES, REPORTS } from '../paths.js';
 import {
   stageError,
@@ -31,13 +35,14 @@ export const ECONOMY_STORYBOARD_HINT =
 async function checkStoryboard(
   ctx: StageContext,
   words: WordsFile,
+  lookMode: LookMode,
 ): Promise<OutputCheck<StoryboardOutput>> {
   const text = await readProjectText(ctx.projectDir, FILES.storyboard);
   if (!text.ok) return { value: undefined, problems: [text.error.message], warnings: [] };
   if (text.value === undefined) {
     return { value: undefined, problems: [`${FILES.storyboard} was not written`], warnings: [] };
   }
-  const report = validateStoryboard(text.value, { words });
+  const report = validateStoryboard(text.value, { words, ...storyboardLookOptions(lookMode) });
   return {
     value: report.value,
     problems: errorLines(report.issues),
@@ -56,7 +61,11 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
   if (project.status !== 'ok') return err(stageError('not-ready', 'project.json is invalid'));
   const words = await requireProjectJson(ctx.projectDir, FILES.words, wordsFileSchema);
   if (!words.ok) return words;
-  const prompt = render('storyboard', { styleId: project.value.style });
+  const lookMode = projectLookMode(project.value);
+  const prompt = render('storyboard', {
+    styleId: project.value.style,
+    ...storyboardLookVars(lookMode),
+  });
   if (!prompt.ok) return prompt;
   ctx.step('Writing the storyboard', 10);
   const turn = await ctx.claude({
@@ -74,7 +83,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     purpose: 'main',
     file: FILES.storyboard,
     label: 'storyboard',
-    check: () => checkStoryboard(ctx, words.value),
+    check: () => checkStoryboard(ctx, words.value, lookMode),
   });
   if (!checked.ok) return checked;
   const { value: storyboard, problems, repairs } = checked.value;

@@ -26,3 +26,4 @@ export { parseManifest, type LoadInfo } from './runtime.js';
 export * from './style.js';
 export * from './text/index.js';
 export * from './timeline.js';
+export * from './vibe.js';

@@ -1,6 +1,6 @@
 ---
 id: critic
-version: 1
+version: 2
 model: haiku
 tools: [Read]
 output: json
@@ -15,5 +15,7 @@ For each image decide exactly one verdict:
 - `overlap` — text/cards overlapping each other or hiding the subject
 - `off-intent` — clearly does not match the shot intent
 - `ok`
+
+Vibe check (every look of the film must feel like one film): the same limited palette, the same chunky pixel fonts, the same ordered (Bayer) dithering, hard pixel edges. Smooth gradients, anti-aliased or blurry edges, photo-realistic textures or a non-pixel font break the style: answer `off-intent` with a note starting `vibe:`.
 
 Return ONLY JSON, no prose: `{"frames":[{"path":"…","verdict":"ok","note":"≤15 words"}]}`

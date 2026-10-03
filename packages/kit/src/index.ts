@@ -30,9 +30,11 @@ export {
   PROP_DEFINITIONS,
   type KitApi,
   type KitCatalog,
+  type KitCatalogLook,
   type KitHandle,
   type KitOptions,
 } from './kit.js';
+export * from './looks/index.js';
 export {
   isKitObject,
   STANDARD_ANCHORS,

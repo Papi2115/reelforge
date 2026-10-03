@@ -4,5 +4,6 @@
   "language": "en",
   "style": "voxel-pixel-crisp640",
   "fps": 30,
-  "seed": 1
+  "seed": 1,
+  "lookMode": "mixed"
 }

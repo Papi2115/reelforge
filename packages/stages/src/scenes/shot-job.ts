@@ -17,6 +17,7 @@ import {
   type StoryboardShot,
 } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
+import { sceneLookVars } from '../looks.js';
 import { projectPropNames } from '../props/builder.js';
 import { render } from '../stages/repair.js';
 import type { StageError } from '../types.js';
@@ -104,6 +105,7 @@ async function buildTurn(
     shotWords: shotWords(job, shot),
     neighbours: neighbours(job, shot),
     styleId: job.styleId,
+    ...sceneLookVars(job.lookMode, shot),
     annotationPlan: annotationPlanText(shot),
     ...(newProps.length === 0
       ? {}

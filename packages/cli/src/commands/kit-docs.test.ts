@@ -21,6 +21,7 @@ const calculator = {
 
 const catalog: KitCatalog = {
   version: '9.9.9',
+  looks: [],
   voxel: { box: { signature: 'box([sx, sy, sz], color) -> model', description: 'Solid box.' } },
   env: [],
   props: [calculator],
@@ -42,6 +43,20 @@ describe('kit-docs formatting', () => {
       'kit.props.calculator({ screen: "off"|"doom", size?: number = 1, at?: [number, number] }) — Graphing calculator with a screen.',
     );
     expect(text).toContain('kit.env: (none yet)');
+  });
+
+  it('marks entries of looks other than voxel (ADR-009)', () => {
+    const tagged: KitCatalog = {
+      ...catalog,
+      props: [
+        { ...calculator, look: 'voxel' },
+        { ...calculator, name: 'crtMonitor', look: 'retro-ui' },
+      ],
+    };
+    const text = formatCatalog(tagged);
+    expect(text).toContain('kit.props.calculator({ screen: "off"|"doom", size?: number = 1');
+    expect(text).not.toContain('(look voxel)');
+    expect(text).toContain('}) (look retro-ui) — Graphing calculator');
   });
 
   it('describes a function by any of its names, with anchors and an example', () => {

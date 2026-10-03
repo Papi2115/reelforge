@@ -93,6 +93,22 @@ export const annotationPlanSchema = z.object({
 });
 export type AnnotationPlan = z.infer<typeof annotationPlanSchema>;
 
+/**
+ * Roll of a shot (PLAN.md phase 12): `A` = the main visual story (voxel 3D, the anchor), `B` =
+ * proof and illustration, `C` = atmosphere and rhythm. See docs/looks.md.
+ */
+export const ROLLS = ['A', 'B', 'C'] as const;
+export const rollSchema = z.enum(ROLLS);
+export type Roll = z.infer<typeof rollSchema>;
+
+/** Look a shot is built in when the storyboard names none (ADR-009). */
+export const DEFAULT_LOOK_ID = 'voxel';
+
+/** Look id: lower-case kebab case, e.g. `voxel`, `retro-ui`. */
+export const lookIdSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, 'look id must be kebab case, e.g. retro-ui');
+
 export const storyboardShotSchema = z
   .object({
     id: shotIdSchema,
@@ -106,9 +122,18 @@ export const storyboardShotSchema = z
     transitionIn: transitionSchema.optional(),
     /** Planned annotations (optional; storyboards written before PLAN.md#11.8 have none). */
     annotations: z.array(annotationPlanSchema).optional(),
+    /** A/B/C roll (optional; storyboards written before ReelForge 2.0 have none). */
+    roll: rollSchema.optional(),
+    /** Look id (optional; absent = `voxel`, see `shotLook`). */
+    look: lookIdSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
+
+/** The look a shot is built in: its `look`, or `voxel` when the storyboard names none. */
+export function shotLook(shot: Pick<StoryboardShot, 'look'>): string {
+  return shot.look ?? DEFAULT_LOOK_ID;
+}
 
 export const storyboardFileSchema = z.object({
   version: z.literal(STORYBOARD_FILE_VERSION),

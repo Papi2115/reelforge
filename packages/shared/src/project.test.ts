@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { briefFileSchema, projectFileSchema } from './index.js';
+import { briefFileSchema, projectFileSchema, projectLookMode } from './index.js';
 
 describe('projectFileSchema', () => {
   const project = {
@@ -19,6 +19,16 @@ describe('projectFileSchema', () => {
       palette: { wood: '#8a5a2b', woodDark: '#4a2a10' },
     };
     expect(projectFileSchema.safeParse(full).success).toBe(true);
+  });
+
+  it('reads a missing lookMode as voxel-only and accepts mixed', () => {
+    const old = projectFileSchema.parse(project);
+    expect(old.lookMode).toBeUndefined();
+    expect(projectLookMode(old)).toBe('voxel-only');
+    expect(projectLookMode(projectFileSchema.parse({ ...project, lookMode: 'mixed' }))).toBe(
+      'mixed',
+    );
+    expect(projectFileSchema.safeParse({ ...project, lookMode: 'looks' }).success).toBe(false);
   });
 
   it('reports wrong versions, languages and seeds by path', () => {

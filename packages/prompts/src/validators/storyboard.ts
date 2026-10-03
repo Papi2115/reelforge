@@ -1,9 +1,16 @@
 /**
  * `storyboard.json` written by the storyboard stage: the shared schema plus the prompt's rules
  * (contiguous shots from 0, boundaries on word starts, shot lengths, no treatment more than twice
- * in a row, scene paths, transitions) and the annotation plans' phrase and variety rules.
+ * in a row, scene paths, transitions) and the annotation plans' phrase and variety rules; in
+ * `mixed` look mode also the look/roll rhythm (rhythm.ts, ADR-009).
  */
-import { storyboardFileSchema, type StoryboardShot, type WordsFile } from '@reelforge/shared';
+import {
+  DEFAULT_LOOK_ID,
+  storyboardFileSchema,
+  type LookMode,
+  type StoryboardShot,
+  type WordsFile,
+} from '@reelforge/shared';
 import { z } from 'zod';
 import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
 import {
@@ -14,6 +21,7 @@ import {
   type ValidationIssue,
   type ValidationReport,
 } from './issues.js';
+import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from './rhythm.js';
 
 /** The storyboard file plus the prompt's optional top-level `missingProps` list. */
 export const storyboardOutputSchema = storyboardFileSchema.extend({
@@ -21,7 +29,8 @@ export const storyboardOutputSchema = storyboardFileSchema.extend({
 });
 export type StoryboardOutput = z.infer<typeof storyboardOutputSchema>;
 
-export interface StoryboardRules {
+/** The look rhythm fields (rhythm.ts) apply only in `mixed` look mode. */
+export interface StoryboardRules extends LookRhythmRules {
   /** Hard shot length limits (error), seconds. Default 1 / 10. */
   readonly minShotS: number;
   readonly maxShotS: number;
@@ -49,6 +58,7 @@ export const DEFAULT_STORYBOARD_RULES: StoryboardRules = {
   maxTailS: 1,
   minTransitionS: 0.2,
   maxTransitionS: 0.6,
+  ...DEFAULT_LOOK_RHYTHM_RULES,
 };
 
 const EPSILON = 1e-3;
@@ -237,6 +247,10 @@ export interface StoryboardCheckOptions {
   readonly words?: WordsFile;
   readonly rules?: Partial<StoryboardRules>;
   readonly annotationRules?: Partial<AnnotationRules>;
+  /** `mixed` adds the look/roll rhythm checks (ADR-009); absent = `voxel-only` (pre-2.0 checks). */
+  readonly lookMode?: LookMode;
+  /** Available look ids in `mixed` mode (default: voxel only). */
+  readonly looks?: readonly string[];
 }
 
 /** Rule checks on an already parsed storyboard. */
@@ -253,6 +267,9 @@ export function checkStoryboard(
     ...transitionIssues(shots, rules),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),
+    ...(options.lookMode === 'mixed'
+      ? checkLookRhythm(shots, { looks: options.looks ?? [DEFAULT_LOOK_ID], rules })
+      : []),
   ];
 }
 

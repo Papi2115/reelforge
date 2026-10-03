@@ -14,6 +14,17 @@ export const BRIEF_FILE_VERSION = 1;
 export const videoLanguageSchema = z.enum(['en', 'pl']);
 export type VideoLanguage = z.infer<typeof videoLanguageSchema>;
 
+/**
+ * How the storyboard picks looks (ADR-009): `voxel-only` = every shot in the voxel look, exactly
+ * as before ReelForge 2.0; `mixed` = A/B/C rolls and the registered looks with rhythm rules.
+ */
+export const LOOK_MODES = ['voxel-only', 'mixed'] as const;
+export const lookModeSchema = z.enum(LOOK_MODES);
+export type LookMode = z.infer<typeof lookModeSchema>;
+
+/** Projects without the field (made before 2.0) keep their exact behaviour. */
+export const DEFAULT_LOOK_MODE: LookMode = 'voxel-only';
+
 export const projectFileSchema = z.object({
   version: z.literal(PROJECT_FILE_VERSION),
   title: z.string().min(1),
@@ -27,8 +38,14 @@ export const projectFileSchema = z.object({
   palette: paletteSchema.optional(),
   /** Model per pipeline stage (app setting), e.g. `{ "scenes": "opus" }`. */
   models: z.record(z.string().min(1), z.string().min(1)).optional(),
+  /** Look mode (absent = `voxel-only`; new projects get `mixed` from the template). */
+  lookMode: lookModeSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
+
+export function projectLookMode(project: Pick<ProjectFile, 'lookMode'>): LookMode {
+  return project.lookMode ?? DEFAULT_LOOK_MODE;
+}
 
 export const briefFileSchema = z.object({
   version: z.literal(BRIEF_FILE_VERSION),

@@ -75,7 +75,7 @@ Tests and CI never call the real Claude: they use `tools/fake-claude`, which rep
 ```
 apps/desktop            Electron app (main / preload / renderer, React)
 packages/engine         Three.js engine: scene contract, clock/seek, post-fx, cameras, text, lint
-packages/kit            voxel tools, environments, props, effects
+packages/kit            voxel tools, environments, props, effects; look registry (looks/<id>/)
 packages/pipeline       ffmpeg, whisper.cpp, alignment, anchors, mixer, export
 packages/claude-bridge  spawns the local `claude` CLI: sessions, limits, permissions
 packages/prompts        versioned stage prompts, validators, evals
@@ -91,7 +91,7 @@ docs/                   spikes, ADRs, kit catalog, perf, packaging, real-run rep
 
 ## Docs
 
-`docs/decisions/` (ADR-001…006) · `docs/kit-catalog.md` · `docs/cli.md` · `docs/export.md` ·
+`docs/decisions/` (ADR-001…009) · `docs/looks.md` · `docs/kit-catalog.md` · `docs/cli.md` · `docs/export.md` ·
 `docs/golden-frames.md` · `docs/perf.md` · `docs/packaging.md` · `docs/real-run-report.md` ·
 `docs/licenses.md`. Roadmap in `PLAN.md`, contributor rules in `CLAUDE.md`.
 

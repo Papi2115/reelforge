@@ -7,6 +7,7 @@ import { extractPropMeta } from '@reelforge/engine';
 import {
   kitCatalog,
   propExtensionCatalogEntry,
+  VOXEL_LOOK_ID,
   type KitCatalog,
   type KitCatalogEntry,
 } from '@reelforge/kit';
@@ -39,7 +40,9 @@ function callName(entry: KitCatalogEntry): string {
 }
 
 function originNote(entry: KitCatalogEntry): string {
-  return entry.origin === 'project' ? ' (project-local, kit-ext/props)' : '';
+  if (entry.origin === 'project') return ' (project-local, kit-ext/props)';
+  // Voxel entries carry no note: with only the voxel look the text reads as before looks.
+  return entry.look === undefined || entry.look === VOXEL_LOOK_ID ? '' : ` (look ${entry.look})`;
 }
 
 function entryLine(entry: KitCatalogEntry): string {

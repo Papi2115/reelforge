@@ -5,8 +5,10 @@
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { AnchorIndex } from '@reelforge/pipeline';
 import {
+  projectLookMode,
   storyboardFileSchema,
   wordsFileSchema,
+  type LookMode,
   type StoryboardShot,
   type WordsFile,
 } from '@reelforge/shared';
@@ -34,6 +36,8 @@ export interface SceneJob {
   readonly kitNames: KitNames;
   readonly settings: SceneSettings;
   readonly styleId: string;
+  /** Project look mode (ADR-009): `voxel-only` builds every shot as before looks. */
+  readonly lookMode: LookMode;
   readonly shots: readonly StoryboardShot[];
   readonly words: WordsFile | undefined;
   /** Fuzzy anchor resolver over the words (sync checks); undefined before "Words timed". */
@@ -78,6 +82,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     kitNames,
     settings,
     styleId,
+    lookMode: projectLookMode(project.value),
     shots: storyboard.value.shots,
     words: words.value,
     anchorIndex:

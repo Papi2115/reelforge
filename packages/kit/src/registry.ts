@@ -184,9 +184,15 @@ export interface KitCatalogEntry {
   readonly methods?: Readonly<Record<string, string>>;
   /** `project`: a project-local prop (`kit-ext/props/<name>.js`); absent for the kit's own. */
   readonly origin?: 'project';
+  /** Look the entry belongs to (ADR-009); absent for project props. */
+  readonly look?: string;
 }
 
-export function catalogEntries(definitions: readonly KitDefinition[]): KitCatalogEntry[] {
+/** Catalog entries of definitions, tagged with their look when `look` is given. */
+export function catalogEntries(
+  definitions: readonly KitDefinition[],
+  look?: string,
+): KitCatalogEntry[] {
   return definitions.map((definition) => ({
     kind: definition.kind,
     name: definition.name,
@@ -196,5 +202,6 @@ export function catalogEntries(definitions: readonly KitDefinition[]): KitCatalo
     params: z.toJSONSchema(definition.params, { io: 'input', unrepresentable: 'any' }),
     anchors: definition.anchors ?? {},
     methods: definition.methods ?? {},
+    ...(look === undefined ? {} : { look }),
   }));
 }

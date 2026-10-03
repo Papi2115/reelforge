@@ -3,14 +3,15 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PipelineStateStore } from '@reelforge/claude-bridge';
 import { lintScene } from '@reelforge/engine';
-import { storyboardFileSchema, storyboardReportSchema } from '@reelforge/shared';
+import { renderPrompt } from '@reelforge/prompts';
+import { storyboardFileSchema, storyboardReportSchema, type Roll } from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { SCENE_STUB_MARKER } from './stages/scene-stub.js';
 import { continuationPrompt } from './turns.js';
 import { FakeClaudeHarness, writes, type Step } from './testing/fake-claude.js';
 import { ManualClock } from './testing/manual-clock.js';
-import { TestProjects, goldenFile, readProject } from './testing/project.js';
+import { TestProjects, goldenFile, readProject, writeProject } from './testing/project.js';
 import type { StageEvent } from './types.js';
 
 const projects = new TestProjects();
@@ -64,6 +65,24 @@ const PLANS: Readonly<Record<string, readonly object[]>> = {
 function planned(plans: Readonly<Record<string, readonly object[]>>): string {
   const storyboard = JSON.parse(GOLDEN) as { shots: { id: string }[] };
   const shots = storyboard.shots.map((shot) => ({ ...shot, annotations: plans[shot.id] ?? [] }));
+  return JSON.stringify({ ...storyboard, shots }, null, 2);
+}
+
+/** Rolls of the golden storyboard (ADR-009): a C-roll hook and act change, B proof, A anchor. */
+const ROLLS: Readonly<Record<string, Roll>> = {
+  s01_hook: 'C',
+  s02_glass: 'A',
+  s03_flashlight: 'A',
+  s04_rainbow: 'B',
+  s05_spectrum: 'C',
+  s06_red_violet: 'B',
+  s07_newton: 'A',
+};
+
+/** The golden storyboard with a roll and the voxel look on every shot. */
+function rolled(rolls: Readonly<Record<string, Roll>>): string {
+  const storyboard = JSON.parse(GOLDEN) as { shots: { id: string }[] };
+  const shots = storyboard.shots.map((shot) => ({ ...shot, roll: rolls[shot.id], look: 'voxel' }));
   return JSON.stringify({ ...storyboard, shots }, null, 2);
 }
 
@@ -172,6 +191,40 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
       (shot.annotations ?? []).map((plan) => plan.kind),
     );
     expect(new Set(kinds).size).toBeGreaterThanOrEqual(6);
+  });
+
+  it('assigns rolls and looks in a new (mixed) project and repairs a missing A-roll', async () => {
+    const noAnchor = rolled({ ...ROLLS, s02_glass: 'B', s03_flashlight: 'B', s07_newton: 'B' });
+    const { dir, harness, runner } = await setup('storyboard looks', [
+      writes({ 'storyboard.json': noAnchor }),
+      writes({ 'storyboard.json': rolled(ROLLS) }),
+    ]);
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok && result.value.metrics['repairs']).toBe(1);
+    const prompt = harness.specs[0]?.prompt ?? '';
+    expect(prompt).toContain('- `A` = the main visual story');
+    expect(prompt).toContain('- `voxel` (Voxel 3D):');
+    expect(prompt).toContain('Only `voxel` is available for now');
+    expect(harness.specs[1]?.prompt).toContain('roll-a-gap');
+    const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
+    expect(written.shots.map((shot) => [shot.roll, shot.look])).toEqual(
+      Object.values(ROLLS).map((roll) => [roll, 'voxel']),
+    );
+  });
+
+  it('keeps a voxel-only project (no lookMode) on the pre-2.0 prompt and checks', async () => {
+    const { dir, harness, runner } = await setup('storyboard voxel only', [
+      writes({ 'storyboard.json': GOLDEN }),
+    ]);
+    const projectFile = JSON.parse(readProject(dir, 'project.json')) as Record<string, unknown>;
+    delete projectFile['lookMode'];
+    writeProject(dir, 'project.json', JSON.stringify(projectFile, null, 2));
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok).toBe(true);
+    const prompt = harness.specs[0]?.prompt ?? '';
+    const expected = renderPrompt('storyboard', { styleId: 'voxel-pixel-crisp640' });
+    expect(expected.ok && prompt.includes(expected.value)).toBe(true);
+    expect(prompt).not.toContain('Rolls and looks');
   });
 
   it('pauses on a usage limit mid-stage, persists it, resumes at the reset time and finishes', async () => {

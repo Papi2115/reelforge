@@ -1,6 +1,6 @@
 ---
 id: scene-build
-version: 5
+version: 6
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: {{shotScene}}
@@ -10,7 +10,9 @@ Build the scene module for ONE shot. Follow `CLAUDE.md` in this project exactly 
 Shot: {{shotJson}}
 Narration during this shot (with word times): {{shotWords}}
 Style bible: `styles/{{styleId}}/STYLE.md`. Neighbouring shots (for continuity, do not edit): {{neighbours}}
-{{#annotationPlan}}
+{{#lookDocs}}Look of this shot: `{{lookId}}`. Every look renders through the same style (palette, pixel fonts, dithering): build in the look, never imitate other effects or bring outside colours. How to build in it:
+{{lookDocs}}
+{{/lookDocs}}{{#annotationPlan}}
 Annotation plan from the storyboard (hints, not orders): implement them with `ctx.annotate.*` (`caption`/`big-text`: `ctx.text`; `counter`: `kit.fx.counter`), each timed with `phrase:` (the spoken phrase), on the named target. Adapt the form, or drop a mark, when it does not fit the picture (it would cover the subject or clutter the frame). Options: `reelforge kit-docs annotate`.
 {{annotationPlan}}
 {{/annotationPlan}}
