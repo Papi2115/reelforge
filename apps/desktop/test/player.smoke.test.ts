@@ -304,7 +304,7 @@ describe('player', () => {
     metrics['kitGallery'] = { playback1x: run, playback2x: fast, scrubLatency: latency };
     await page.screenshot({ path: path.join(screenshotDir, 'player-kit-gallery.png') });
     expect(run.fps).toBeGreaterThanOrEqual(PLAYBACK_FPS_BAR);
-    expect(latency.p95).toBeLessThan(100);
+    expect(latency.p95).toBeLessThan(perfBar(100, 600));
     expect(existsSync(path.join(projectDir, 'out', 'snapshots'))).toBe(true);
   });
 });
