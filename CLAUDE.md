@@ -172,3 +172,4 @@ pnpm test:packaged       # smoke spakowanej aplikacji + instalatora
 - 2026-10-03 · Series memory (12.20) przeniesione do osobnej wersji 2.3.5 i oparte na gotowej paczce postaci/maskotki Papiego (import, bez przeprojektowania) · polecenie usera
 - 2026-10-03 · 11.7 (ścieżka szybkości) odłożone: realny pomiar Papiego — film 8 min w ok. 20 min, szybkość wystarcza; priorytet = jakość/różnorodność adnotacji, biblioteka obiektów, 11.6 · polecenie usera
 - 2026-10-03 · 11.8 (słownik adnotacji) dodane do 1.2; biblioteka propsów (11.9) odłożona do czasu ustabilizowania stylu modeli; po 11.8 w 1.2 zostaje tylko 11.6 (czeka na decyzje Papiego); pomiar: film 8 min ≈ 2–3% limitu tygodniowego (plan 20x) · polecenie usera
+- 2026-10-03 · Koncepty postaci (docs/concepts/characters.html) przeniesione na 2.3.5 (seria/postacie, zadanie 12.20) · polecenie usera
