@@ -88,3 +88,97 @@ anti-aliasing → `off-intent` with a `vibe:` note).
    golden frame; check the thumbnails/contact sheets by eye.
 6. Run `pnpm kit:catalog` (the look gets its catalog section), `pnpm typecheck && pnpm lint &&
    pnpm test && pnpm test:render`; existing goldens must not change.
+
+## Look: retro-ui
+
+Code: `packages/kit/src/looks/retro-ui/`; example `packages/kit/examples/look_retro_ui.js` (one setup
+per template); render test and goldens `packages/kit/test/render/look-retro-ui.test.ts`,
+`look-retro-ui-*`. Rolls B and C; treatments `ui-mockup`, `kinetic-text`, `title-card`,
+`montage/transition`; sound palette and variation budget `retro-ui`.
+
+- **Templates** (`kit.props.*`): `retroWindow` (dialog / progress / icons / text / image, stacked
+  windows, zoom open/close, pointer click), `retroTerminal` (typed commands, printed output in
+  tones, scrollback), `retroBrowser` (typed URL, interlaced page load, headline, photo, hit
+  counter), `retroDocument` (newspaper, dossier with redaction bars, memo; rubber stamp),
+  `retroCrt` (voxel monitor/TV casing or bare tube; `crt.show(child)` shows another template
+  through the tube). Backdrop: `kit.env.retroDesktop` (`os` desktop or `desk` wall + voxel desk).
+- **How it renders.** Each template is a painter: a pure function `paint(canvas, t)` over a
+  canvas of colour-role indices (22 roles, each a palette chain "Crisp swatch, Noir swatch, Soft
+  swatch, token"), uploaded to an unlit, nearest-filtered plane only when a pixel changed. The
+  CRT paints at 2x density for 1-px scanlines; curvature, glow, flicker and power animations are
+  one-tone steps along the palette (`DIM`), so the vibe guard passes by construction. In-world
+  text uses the kit's own CC0 bitmap fonts (5x7 caps, 3x5 caps; the engine's `ctx.text` fonts live
+  in the engine, which the kit cannot import) plus a few glyphs they lack (`\`, `|`, `"`...).
+- **Anchors** move with t and exist in every state (a closed window keeps `button` where it will
+  be): `title`, `close`, `button`, `bar`, `line:<i>`, `cursor`, `url`, `headline`, `photo`,
+  `stamp`, `field:<i>`, `icon:<i>`, `mark:<text>` (phrases listed in `marks`); a container
+  (window, CRT) passes its child's anchors through, mapped through the tube curvature.
+- **Camera.** `obj.fitDistance(px)` gives the distance at which one UI pixel is `px` frame
+  pixels (fov 50, 360-px frame). Integer ratios keep the pixel grid crisp; pans move camera and
+  target together; push-ins jump between integer ratios quickly.
+
+## Look: diorama
+
+Code: `packages/kit/src/looks/diorama/`; render test and goldens
+`packages/kit/test/render/look-diorama.test.ts`, `look-diorama-*` (inline scene, one setup per
+diorama/time of day; contact sheet `packages/kit/out/contact/look-diorama.png`). Rolls A and B;
+treatments `3d-reconstruction`, `metaphor-object`, `character-scene`, `map`; sound palette and
+variation budget `diorama`.
+
+- **Environments** (`kit.env.*`): `dioramaOffice` (desks with flickering monitors, staff, raised
+  meeting corner, whiteboard), `dioramaServerRoom` (two rack rows with blinking LEDs, cable trays,
+  cooling units, status screen with live bars, pacing technician, `alarm(amount)`), `dioramaCity`
+  (ring road with looping cars, park with fountain, landmark tower with a marquee sign, frame of
+  buildings, lamps, traffic light, pedestrians, chimney smoke; `traffic`), `dioramaRoom` (bed,
+  rug with a cat, bookshelf, desk with computer and steaming mug; `occupied`). Shared params:
+  `seed`, `accent`, `density`, `time` (`day` / `dusk` / `night`), `base` (`earth` / `concrete` /
+  `wood` slab), `lights`, `shadow`.
+- **How it renders.** A diorama is a tile grid parsed from ASCII rows (kind + floor height, so
+  raised floors and curbs are steps) drawn into one voxel canvas (1/8-unit voxels, a tile is 8):
+  display plate, cross-section slab, patterned floor, cut-away back/left walls with a light cap,
+  windows, and every static object through stamps that face +z or +x. The canvas is one greedy
+  mesh. Animated lights (LEDs, screens, windows, signs, traffic light) are unlit palette quads on
+  voxel faces repainted from t; cars, walkers and smoke are small voxel meshes posed from t and
+  snapped to whole voxels. The diorama carries its own light rig per time of day (bright tops,
+  mid left faces, dark right faces) and a dithered base shadow (a Bayer-thresholded rounded
+  rectangle in one palette colour, no depth write), so the vibe guard passes by construction.
+- **Camera.** `diorama.camera({ t, zoom, focus, offset, drift, screen })` returns a pose for
+  `ctx.camera.set()`: azimuth 45°, elevation 30° (2:1 pixel-art ground lines), fov 12° (close to
+  orthographic), framed on the platform bounds with an 8 % margin, the target snapped to whole
+  output pixels in the image plane (a pan moves the plate by whole pixels), and an idle pan of
+  `drift` pixels (sine, 12 s). `focus` takes an anchor name; `offset` moves the subject in frame
+  fractions (thirds). Orbiting would break the iso read: animate `zoom`/`focus` instead.
+- **Anchors** are fixed points of the plate (`desk0..3`, `monitor0..3`, `rack0..11`,
+  `building0..11`, `landmark`, `cat`, …, listed per env in the catalog); moving parts are
+  `diorama.part('car0' | 'walker0' | 'tech' | 'steam' | 'smoke')`.
+
+## Look: blueprint
+
+`packages/kit/src/looks/blueprint/` (PLAN.md#12.4; goldens `look-blueprint-*`, contact sheets
+`packages/kit/out/contact/look-blueprint-<style>.png`). Rolls B and C; treatments
+`data-chart-3d`, `map`, `node-graph/timeline`, `counter/odometer`, `3d-reconstruction`,
+`title-card`; sound palette and variation budget `blueprint`.
+
+- **Templates** (each a full-frame board): `kit.fx.blueprintChart` (bar / line / area / hbar from
+  a pasted `csv` string or `values`/`series`; `highlight` for the punchline), `blueprintCounter`
+  (2D odometer with classic carries), `blueprintGraph` (flow chart: boxes trace in, arrows draw,
+  pulses flow, highlights), `blueprintTimeline` (events on an axis, `views` zoom/pan, now-marker),
+  `blueprintMap` (embedded Natural Earth countries: views, markers, arcing routes, country or
+  continent highlights), `blueprintSchematic` (parts traced in order, hatch fills, dimension lines,
+  callouts with balloons) and `kit.env.blueprintSheet` (bare sheet; `headline` = title card).
+- **How it renders.** A board is a CPU raster at the shot's low-res size (`size: [ctx.shot.width,
+  ctx.shot.height]`), repainted from scratch for every t (paper, drifting grid, border, rulers,
+  title block, then the template) with integer primitives (Bresenham lines, scanline polygons,
+  midpoint circles, Bayer patterns) and the kit's 5x7 caps font at integer scales, in palette
+  colours only (role chains per style). It is shown on a clip-space quad (no depth write,
+  camera-independent, 1 texel = 1 frame pixel), so it stays pixel-exact, passes through the shared
+  post pass (dither, LUT, vignette) and never triggers the depth outline; voxel objects, `ctx.text`
+  and `ctx.annotate` (frame targets) draw on top. `region` + `paper: false` make overlays.
+- **Data and sync.** Times are seconds or spoken phrases (`"phrase#2"` = 2nd occurrence) resolved
+  in build through `anchor: ctx.anchor`, so the sync report sees them. CSV: optional header, first
+  column = labels, other numeric columns = series, `at`/`time` (seconds) or `say`/`phrase` columns
+  time each row; numbers may carry `$ € £ %`, digit groups and decimal commas (`;` files).
+- **Map data.** Natural Earth 1:110m countries (public domain), simplified topology-preserving and
+  stored as encoded polylines (~13 KB); land is rasterised into a country mask, so coasts, borders
+  and highlights are 1-px edges at any zoom. Views: world, europe, africa, asia, middle-east,
+  north-america, south-america, oceania or a `[w, s, e, n]` box (no Pacific-centred views).
