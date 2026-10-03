@@ -51,7 +51,12 @@ export {
 } from './scenes/critic.js';
 export { qaRound, qaSheetFile, smokeTimes, type QaResult } from './scenes/qa.js';
 export { loadSceneJob, type SceneJob } from './scenes/job.js';
-export { buildShot, refineShot, type RefineOptions } from './scenes/shot-job.js';
+export {
+  buildShot,
+  refineShot,
+  type RefineOptions,
+  type ShotVariantBrief,
+} from './scenes/shot-job.js';
 export { readScenesReport } from './scenes/report.js';
 export {
   parsePropEntry,
@@ -104,6 +109,25 @@ export {
   snapshotLockedFiles,
   type LockSnapshot,
 } from './lock-guard.js';
+export {
+  VARIANT_DIRECTIONS,
+  directionById,
+  pickDirections,
+  type VariantDirection,
+} from './variants/directions.js';
+export {
+  readVariantSets,
+  settleInterruptedVariants,
+  type VariantSets,
+} from './variants/current.js';
+export { VARIANT_WORK_DIR, variantWorkFile } from './variants/store.js';
+export { readTasteLog } from './variants/taste.js';
+export {
+  averageTurnSeconds,
+  estimateVariants,
+  type EstimateInput,
+  type VariantEstimate,
+} from './variants/estimate.js';
 export {
   FINAL_REVIEW_QUEUE,
   finalReview,

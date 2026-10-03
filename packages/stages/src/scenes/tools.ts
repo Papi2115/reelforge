@@ -20,6 +20,11 @@ export interface ShotRenderRequest {
    * for `duration` seconds; project-relative path.
    */
   readonly standalone?: { readonly scene: string; readonly duration: number } | undefined;
+  /**
+   * Render the storyboard shot with this scene file instead of its own (a shot variant,
+   * PLAN.md#11.3): same times, anchors and seed; project-relative path.
+   */
+  readonly scene?: string | undefined;
   /** Local shot times (s) to render; empty = load only (anchors, cues, errors). */
   readonly times: readonly number[];
   /** Run the engine's text-card QA (overlaps, safe area). */
@@ -100,10 +105,13 @@ export function renderTarget(request: ShotRenderRequest): {
   readonly scene?: string;
   readonly duration?: number;
 } {
-  const { projectDir, standalone } = request;
-  return standalone === undefined
+  const { projectDir, standalone, scene } = request;
+  if (standalone !== undefined) {
+    return { projectDir, scene: standalone.scene, duration: standalone.duration };
+  }
+  return scene === undefined
     ? { projectDir, shot: request.shotId }
-    : { projectDir, scene: standalone.scene, duration: standalone.duration };
+    : { projectDir, shot: request.shotId, scene };
 }
 
 /** Names callable as `kit.env.<name>`, `kit.props.<name>`, `kit.fx.<name>`. */

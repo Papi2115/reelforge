@@ -1,6 +1,6 @@
 ---
 id: scene-build
-version: 3
+version: 4
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: {{shotScene}}
@@ -13,6 +13,12 @@ Style bible: `styles/{{styleId}}/STYLE.md`. Neighbouring shots (for continuity, 
 {{#newProps}}
 New project props were built for this shot: {{newProps}}. Use them (`reelforge kit-docs <name>` for params and anchors) instead of the stand-in of the previous attempt.
 {{/newProps}}
+{{#direction}}
+VARIANT {{variantIndex}}: the user will compare several alternative versions of this shot side by side, each built from a different creative direction. Build yours clearly in this direction (composition, camera, text vs 3D), still communicating the shot's intent and syncing to its words: {{direction}}
+{{#variantNote}}The user's note for every variant: {{variantNote}}
+{{/variantNote}}
+Write the variant ONLY to `{{shotScene}}`; never edit `scenes/` (the current scene stays as it is). Self-QA it with `reelforge lint {{shotScene}}` and `reelforge frames --shot {{shotId}} --scene {{shotScene}} --at …` (skip `reelforge anchors`: it reads `scenes/`; the app checks this file's anchors).
+{{/direction}}
 
 Steps:
 1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs and `ctx.text` options — never guess option names). Compose from the kit.

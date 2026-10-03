@@ -157,6 +157,8 @@ describe('path helpers', () => {
     expect(isIgnoredChange('cues.json.123.tmp')).toBe(true);
     expect(isIgnoredChange('.gitignore')).toBe(false);
     expect(isIgnoredChange('.reelforge/pipeline.json')).toBe(false);
+    expect(isIgnoredChange('.variants/s03/v1.js')).toBe(true);
+    expect(isIgnoredChange('.reelforge/variants/s03/variants.json')).toBe(false);
   });
 });
 

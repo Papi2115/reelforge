@@ -121,6 +121,11 @@ const api: ReelforgeApi = {
   runScenes: (action, shots) =>
     invoke(IPC.scenesRun, { action, shots: shots === null ? null : [...shots] }),
   lockShots: (shotIds, locked) => invoke(IPC.shotsLock, { shotIds: [...shotIds], locked }),
+  getVariantsState: () => invoke(IPC.variantsState, null),
+  estimateVariants: (count) => invoke(IPC.variantsEstimate, { count }),
+  runVariants: (shotId, op) => invoke(IPC.variantsRun, { shotId, op }),
+  getVariantClip: (shotId, key) => invoke(IPC.variantsClip, { shotId, key }),
+  getVariantManifest: (shotId, key) => invoke(IPC.variantsManifest, { shotId, key }),
   getSoundState: () => invoke(IPC.soundState, null),
   importSounds: (kind) => invoke(IPC.soundImport, { kind }),
   previewSound: (sound) => invoke(IPC.soundPreview, { sound }),

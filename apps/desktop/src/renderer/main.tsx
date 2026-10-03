@@ -11,6 +11,7 @@ import './preview/preview.css';
 import './settings/settings.css';
 import './stages/stages.css';
 import './stages/panels.css';
+import './stages/variants.css';
 import './sound/sound.css';
 import './export/export.css';
 import './onboarding/onboarding.css';

@@ -80,6 +80,15 @@ await runner.run({ stage: 'scenes', action: 'fix-what-looks-wrong' }); // a "Who
   `scenes-final-review`, no per-shot commits) → scenes report updated, `.reelforge/final-review.json`
   (`finalReviewSchema`), one commit `Final review: fixed N shots`. Works without Claude (checks
   only). A review run (chips or final) that is stopped or fails leaves the Scenes status as it was.
+- **Shot variants** (#11.3, `action: 'variants'`, one shot in `shots`, `variants: VariantOp`):
+  `generate` builds 2–3 variants in parallel from the direction library (`variants/directions.ts`),
+  each through the normal QA loop with ≤ 1 fix into a work file `.variants/<shot>/v<n>.js`
+  (git-excluded; the runtime Claude may not write `.reelforge/`), stored in
+  `.reelforge/variants/<shot>/` with `variants.json`; the shot's scene is never touched and nothing
+  is committed (`keepStatus`). `pick` copies one to the scene, updates the scenes report, commits
+  `Shot s03: picked variant 2 (<direction>)` and optionally locks; `keep-current` / `discard` drop
+  the set. Every decision goes to `.reelforge/taste.json`. Locked shots are refused. Details:
+  `docs/shot-variants.md`.
 
 ## Runner
 

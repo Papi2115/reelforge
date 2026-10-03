@@ -185,7 +185,7 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
     if (signal.aborted) {
       return this.fail(stage, stageError('cancelled', 'cancelled'), true, keep);
     }
-    return ok(await this.finish(stage, result.value, driver));
+    return ok(await this.finish(stage, result.value, driver, keep));
   }
 
   private async execute(
@@ -229,8 +229,11 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
     stage: StageId,
     summary: StageSummary,
     driver: TurnDriver | undefined,
+    keep: StageState | undefined,
   ): Promise<StageSuccess> {
-    await this.writeStage(stage, 'done', summary.message);
+    if (summary.keepStatus !== true) await this.writeStage(stage, 'done', summary.message);
+    else if (keep !== undefined) await this.restoreStage(stage, keep);
+    else await this.writeStage(stage, 'idle');
     let invalidated: StageSuccess['invalidated'] = [];
     if (summary.changed) {
       invalidated = stagesToInvalidate(stage, await this.snapshot());

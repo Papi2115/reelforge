@@ -60,7 +60,9 @@ function engineFrameUrl(): string {
 }
 
 function sourceKey(source: PreviewSource): string {
-  return source.kind === 'demo' ? 'demo' : `project:${String(source.revision)}`;
+  if (source.kind === 'demo') return 'demo';
+  const variant = source.kind === 'variant' ? `:${source.shotId}:${source.key}` : '';
+  return `project:${String(source.revision)}${variant}`;
 }
 
 /** A point of the frame to mark (the object picked for the chat), normalized 0..1. */

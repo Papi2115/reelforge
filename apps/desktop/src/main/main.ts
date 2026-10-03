@@ -71,6 +71,7 @@ import {
 } from './stages/stage-runtime.js';
 import { StageService } from './stages/stage-service.js';
 import { replacementDialogOptions, stagesHandlers, type ReplacePick } from './stages/stages-ipc.js';
+import { variantsHandlers } from './stages/variants-ipc.js';
 import { createExportBackend } from './export/export-backend.js';
 import { createSoundBackend, settingsFfmpeg } from './sound/sound-backend.js';
 import { soundPickerOptions } from './sound/sound-ipc.js';
@@ -402,6 +403,14 @@ function main(): void {
           if (!committed.ok)
             stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
         },
+        log: stagesLog,
+      }),
+      ...variantsHandlers({
+        service: stages,
+        currentProject: () => projects.currentProject()?.dir,
+        settings: () => settings.get(),
+        claudeConcurrency: () => claude.guard.concurrency,
+        frames: renderBackend.frames,
         log: stagesLog,
       }),
     },

@@ -3,7 +3,7 @@
  * #6.4) and the timeline (selection, edits, waveform; PLAN.md#6.5) into the panels of the shell.
  */
 import type { StoryboardShot } from '@reelforge/shared';
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import type { LibrarySound } from '../../shared/sound-contract.js';
 import { DUCKING_PRESET_VALUES, libraryCue } from '../../shared/sound-library.js';
 import type { ChatSelection } from '../../shared/chat-contract.js';
@@ -27,6 +27,8 @@ import {
 import { useShotLocks } from '../stages/use-shot-locks.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
+import { useVariantsDock } from '../stages/use-variants-dock.js';
+import { VariantsDockPanel } from '../stages/VariantsPanel.js';
 import { VoiceoverPanel } from '../stages/VoiceoverPanel.js';
 import { WordsPanel } from '../stages/WordsPanel.js';
 import { ExportDialog } from '../export/ExportDialog.js';
@@ -132,6 +134,21 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   // The marker shows only on the frame the object was picked on (it may move elsewhere).
   const markerVisible = selection !== null && Math.abs(time - selection.t) < 0.5 / Math.max(fps, 1);
 
+  const closeDocument = useCallback(() => {
+    setCenterDocument(null);
+  }, []);
+  const variants = useVariantsDock({
+    dir: project.dir,
+    stages: stages.state,
+    player,
+    time,
+    playing,
+    shots,
+    selectedShotId: timeline.selectedShotId,
+    onOpen: closeDocument,
+  });
+  const variantsOpen = variants.shotId !== null && centerDocument === null;
+
   const selectShot = (shot: StoryboardShot): void => {
     timeline.selection.set([{ kind: 'shot', id: shot.id }]);
     player.seek(shot.t0);
@@ -235,6 +252,8 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               onLock={(shotIds, lock) => {
                 void locks.setLocked(shotIds, lock);
               }}
+              onVariants={variants.open}
+              withVariants={variants.withVariants}
               onUnlockAndFix={(shotId) => {
                 void locks.setLocked([shotId], false).then((unlocked) => {
                   if (unlocked) runScenes('sync-check', shotId);
@@ -253,10 +272,10 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         }
         center={
           <div
-            className={`center-stack${centerDocument?.kind === 'scenes' || centerDocument?.kind === 'sound' ? ' has-dock' : ''}`}
+            className={`center-stack${variantsOpen || centerDocument?.kind === 'scenes' || centerDocument?.kind === 'sound' ? ' has-dock' : ''}`}
           >
             <PreviewPanel
-              source={{ kind: 'project', revision: previewRevision }}
+              source={variants.source(previewRevision)}
               player={player}
               snapshots
               onPick={(pick, x, y) => {
@@ -268,6 +287,9 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
                   : null
               }
             />
+            {variantsOpen && (
+              <VariantsDockPanel dock={variants} stages={stages} locked={locks.locked} />
+            )}
             {centerDocument?.kind === 'script' && (
               <ScriptPanel
                 project={project}

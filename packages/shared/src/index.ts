@@ -12,6 +12,7 @@ export * from './render-manifest.js';
 export * from './scene-reports.js';
 export * from './sessions.js';
 export * from './shot-locks.js';
+export * from './shot-variants.js';
 export * from './stage-records.js';
 export * from './storyboard.js';
 export * from './style-preset.js';

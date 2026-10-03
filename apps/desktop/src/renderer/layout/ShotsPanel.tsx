@@ -2,18 +2,21 @@
  * Shots of storyboard.json (PLAN.md#6.3, #7.4): id, time range, treatment, intent and scene file,
  * with the ✓/⚠/✗ QA badge of Scenes built (click it for the findings, critic notes and missing
  * props, "Rebuild this shot" and "Fix with Claude…"), the lock of each shot (PLAN.md#11.4, plus
- * "Lock all ✓"), the build progress and the missing-props banner. Clicking a shot selects it and
+ * "Lock all ✓"), "Variants…" (2–3 alternatives to pick from, PLAN.md#11.3; also in the right-click
+ * menu and on V), the build progress and the missing-props banner. Clicking a shot selects it and
  * moves the preview to its start.
  */
 import type { StoryboardShot } from '@reelforge/shared';
-import { useState, type JSX } from 'react';
+import { useCallback, useState, type JSX } from 'react';
 import type { FileState } from '../../shared/snapshot-contract.js';
 import type { ShotBadge } from '../stages/scenes-view.js';
 import { LockIcon } from './icons.js';
+import { ShotContextMenu, type ShotMenuAnchor } from './ShotContextMenu.js';
 import { formatTime } from './timeline-scale.js';
 
 const LOCKED_REBUILD = 'Shot is locked — unlock it to rebuild.';
 const LOCKED_FIX = 'Shot is locked — unlock it to change it.';
+const LOCKED_VARIANTS = 'Shot is locked — unlock first';
 
 export interface ShotsPanelProps {
   readonly storyboard: FileState<{ readonly shots: readonly StoryboardShot[] }> | undefined;
@@ -36,6 +39,10 @@ export interface ShotsPanelProps {
   readonly lockable: readonly string[];
   readonly onLock: (shotIds: readonly string[], locked: boolean) => void;
   readonly onUnlockAndFix: (shotId: string) => void;
+  /** Opens the Variants view of a shot (PLAN.md#11.3). */
+  readonly onVariants: (shotId: string) => void;
+  /** Shots with variants waiting for a decision. */
+  readonly withVariants: ReadonlySet<string>;
 }
 
 function Placeholder({ storyboard }: Pick<ShotsPanelProps, 'storyboard'>): JSX.Element {
@@ -83,6 +90,7 @@ function ShotDetails(props: {
   readonly onRebuild: (shotId: string) => void;
   readonly onFix: (shotId: string) => void;
   readonly onUnlockAndFix: (shotId: string) => void;
+  readonly onVariants: (shotId: string) => void;
 }): JSX.Element {
   const { badge } = props;
   const rebuildBlocked = props.locked ? LOCKED_REBUILD : props.blocked;
@@ -127,6 +135,21 @@ function ShotDetails(props: {
           className="small-button"
           aria-disabled={props.locked}
           title={
+            props.locked
+              ? LOCKED_VARIANTS
+              : 'Build 2–3 alternative versions side by side and pick one (V)'
+          }
+          onClick={() => {
+            if (!props.locked) props.onVariants(props.shotId);
+          }}
+        >
+          Variants…
+        </button>
+        <button
+          type="button"
+          className="small-button"
+          aria-disabled={props.locked}
+          title={
             props.locked ? LOCKED_FIX : 'Ask Claude in the chat, with these findings (scope Shot)'
           }
           onClick={() => {
@@ -156,6 +179,10 @@ function ShotDetails(props: {
 export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
   const { storyboard, selectedId, time, onSelect, badges } = props;
   const [openId, setOpenId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<ShotMenuAnchor | null>(null);
+  const closeMenu = useCallback(() => {
+    setMenu(null);
+  }, []);
   const shots = storyboard?.status === 'ok' ? storyboard.data.shots : [];
   return (
     <section className="panel shots-panel" aria-label="Shots">
@@ -205,6 +232,11 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                   onClick={() => {
                     onSelect(shot);
                   }}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    onSelect(shot);
+                    setMenu({ shotId: shot.id, x: event.clientX, y: event.clientY });
+                  }}
                 >
                   <span className="shot-line">
                     <span className="shot-id mono">{shot.id}</span>
@@ -212,6 +244,11 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                       {formatTime(shot.t0)}–{formatTime(shot.t1)}
                     </span>
                     <span className="chip">{shot.treatment}</span>
+                    {props.withVariants.has(shot.id) && (
+                      <span className="chip variants-chip" title="Variants wait for your pick">
+                        variants
+                      </span>
+                    )}
                   </span>
                   <span className="shot-intent">{shot.intent}</span>
                   <span className="shot-scene mono">{shot.scene}</span>
@@ -255,12 +292,24 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                     onRebuild={props.onRebuild}
                     onFix={props.onFix}
                     onUnlockAndFix={props.onUnlockAndFix}
+                    onVariants={props.onVariants}
                   />
                 )}
               </li>
             );
           })}
         </ul>
+      )}
+      {menu !== null && (
+        <ShotContextMenu
+          anchor={menu}
+          locked={props.locked.has(menu.shotId)}
+          blocked={props.actionsBlocked}
+          onVariants={props.onVariants}
+          onRebuild={props.onRebuild}
+          onLock={props.onLock}
+          onClose={closeMenu}
+        />
       )}
     </section>
   );

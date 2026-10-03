@@ -29,6 +29,31 @@ import { missingPropsOutcome } from './tools.js';
 /** Turn failures that end the shot (✗) instead of the whole stage. */
 const SHOT_LEVEL_FAILURES = new Set<StageError['kind']>(['claude', 'validation', 'invalid-input']);
 
+/**
+ * One alternative version of a shot (PLAN.md#11.3): built from a creative direction into its own
+ * file (the shot's `scene` passed to `buildShot` is that file), never into `scenes/`.
+ */
+export interface ShotVariantBrief {
+  /** 1-based variant number. */
+  readonly index: number;
+  readonly direction: { readonly label: string; readonly brief: string };
+  /** The user's note for every variant. */
+  readonly note?: string | undefined;
+}
+
+function variantTag(variant: ShotVariantBrief | undefined): string {
+  return variant === undefined ? '' : ` v${String(variant.index)}`;
+}
+
+function variantVars(variant: ShotVariantBrief | undefined): Record<string, string> {
+  if (variant === undefined) return {};
+  return {
+    direction: `${variant.direction.label}. ${variant.direction.brief}`,
+    variantIndex: String(variant.index),
+    ...(variant.note === undefined || variant.note === '' ? {} : { variantNote: variant.note }),
+  };
+}
+
 function shotWords(
   job: SceneJob,
   shot: StoryboardShot,
@@ -52,6 +77,7 @@ async function buildTurn(
   job: SceneJob,
   shot: StoryboardShot,
   newProps: readonly string[] = [],
+  variant?: ShotVariantBrief,
 ): Promise<Result<{ reply: string } | { failure: QaFinding }, StageError>> {
   const prompt = render('scene-build', {
     shotId: shot.id,
@@ -63,6 +89,7 @@ async function buildTurn(
     ...(newProps.length === 0
       ? {}
       : { newProps: newProps.map((name) => `kit.props.${name}`).join(', ') }),
+    ...variantVars(variant),
   });
   if (!prompt.ok) return prompt;
   const turn = await job.ctx.claude({
@@ -70,7 +97,7 @@ async function buildTurn(
     text: prompt.value,
     purpose: 'main',
     newSession: true,
-    label: `scene-build ${shot.id}`,
+    label: `scene-build ${shot.id}${variantTag(variant)}`,
     commit: false,
     detached: true,
   });
@@ -123,6 +150,8 @@ export interface RefineOptions {
   readonly notes?: readonly string[];
   /** Extra code checks per round (e.g. phone legibility). */
   readonly extraChecks?: ((source: string) => QaFinding[]) | undefined;
+  /** Appended to every QA fix request (a variant: which file to edit). */
+  readonly fixHint?: string | undefined;
 }
 
 function statusOf(findings: readonly QaFinding[]): ShotBuildStatus {
@@ -197,13 +226,15 @@ export async function refineShot(
       return ok(record(job, shot, qa.value, fixes, { ...options, notes }));
     }
     fixes += 1;
-    const request = fixRequest(shot, fixes, max);
+    const hint = options.fixHint === undefined ? '' : ` ${options.fixHint}`;
+    const request = `${fixRequest(shot, fixes, max)}${hint}`;
+    const tag = options.fixHint === undefined ? '' : `${options.label} `;
     const failed = await fixTurn(
       job,
       shot,
       request,
       errors,
-      `scene-fix ${shot.id} ${String(fixes)}`,
+      `scene-fix ${shot.id} ${tag}${String(fixes)}`,
     );
     if (!failed.ok) return failed;
     if (failed.value !== undefined) {
@@ -244,15 +275,27 @@ async function provideProps(
   return job.props.ensureNames(names, shot);
 }
 
+function variantFixHint(shot: StoryboardShot, variant: ShotVariantBrief): string {
+  return `This is variant ${String(variant.index)} of the shot: edit only \`${shot.scene}\` (never \`scenes/\`) and keep its creative direction (${variant.direction.label}).`;
+}
+
+/** Builds a shot (or, with `variant`, one alternative version into `shot.scene`) and QA's it. */
 export async function buildShot(
   job: SceneJob,
   shot: StoryboardShot,
+  variant?: ShotVariantBrief,
 ): Promise<Result<ShotBuildRecord, StageError>> {
-  job.ctx.step(`${shot.id}: building the scene`);
-  let built = await buildTurn(job, shot);
+  const label = variant === undefined ? 'build' : `v${String(variant.index)}-build`;
+  const fixHint = variant === undefined ? undefined : variantFixHint(shot, variant);
+  job.ctx.step(
+    variant === undefined
+      ? `${shot.id}: building the scene`
+      : `${shot.id}: building variant ${String(variant.index)} (${variant.direction.label})`,
+  );
+  let built = await buildTurn(job, shot, [], variant);
   if (!built.ok) return built;
   if ('failure' in built.value) {
-    return ok(record(job, shot, undefined, 0, { label: 'build' }, [built.value.failure]));
+    return ok(record(job, shot, undefined, 0, { label }, [built.value.failure]));
   }
   let missing = await missingProps(job, shot, built.value.reply);
   const notes: string[] = [];
@@ -266,10 +309,10 @@ export async function buildShot(
       `missing props ${missing.join(', ')}: built ${builtProps.join(', ') || 'none'}${failed.length > 0 ? `, could not build ${failed.join(', ')}` : ''}`,
     );
     if (builtProps.length > 0) {
-      built = await buildTurn(job, shot, builtProps);
+      built = await buildTurn(job, shot, builtProps, variant);
       if (!built.ok) return built;
       if ('failure' in built.value) {
-        const options = { label: 'build', notes, builtProps };
+        const options = { label, notes, builtProps };
         return ok(record(job, shot, undefined, 0, options, [built.value.failure]));
       }
       // A prop that could not be built stays missing even when the new reply omits it.
@@ -278,7 +321,7 @@ export async function buildShot(
       missing = [...failed];
     }
   }
-  return refineShot(job, shot, { label: 'build', missingProps: missing, builtProps, notes });
+  return refineShot(job, shot, { label, missingProps: missing, builtProps, notes, fixHint });
 }
 
 export function commitSubject(

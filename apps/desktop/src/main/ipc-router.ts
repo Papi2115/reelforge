@@ -131,6 +131,11 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.wordsRetry, handlers.wordsRetry);
   registerInvoke(IPC.scenesRun, handlers.scenesRun);
   registerInvoke(IPC.shotsLock, handlers.shotsLock);
+  registerInvoke(IPC.variantsState, handlers.variantsState);
+  registerInvoke(IPC.variantsEstimate, handlers.variantsEstimate);
+  registerInvoke(IPC.variantsRun, handlers.variantsRun);
+  registerInvoke(IPC.variantsClip, handlers.variantsClip);
+  registerInvoke(IPC.variantsManifest, handlers.variantsManifest);
   registerInvoke(IPC.soundState, handlers.soundState);
   registerInvoke(IPC.soundImport, handlers.soundImport);
   registerInvoke(IPC.soundPreview, handlers.soundPreview);

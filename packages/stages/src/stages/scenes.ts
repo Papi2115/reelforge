@@ -5,7 +5,7 @@
  * `.reelforge/scenes-report.json` + "Scene sNN built ✓" autocommit), resumable after a
  * limit/cancel/crash without redoing finished shots. Locked shots (`locks.json`) are never built
  * or fixed. The `action` runs a whole-video review mode instead (the "Whole video" chat chips) or
- * the final review (PLAN.md#11.5).
+ * the final review (PLAN.md#11.5), or works on one shot's variants (PLAN.md#11.3).
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
@@ -24,6 +24,8 @@ import { finalReview, finalReviewWarnings } from '../scenes/final-review.js';
 import { reviewVideo, type ReviewOutcome } from '../scenes/review.js';
 import { runShotJobs } from '../scenes/run-shots.js';
 import { buildShot } from '../scenes/shot-job.js';
+import { dismissVariants, pickVariant } from '../variants/decide.js';
+import { generateVariants } from '../variants/generate.js';
 import {
   stageError,
   type RequestOf,
@@ -255,12 +257,39 @@ async function final(
 /** Actions that work without Claude (code checks only). */
 const WITHOUT_CLAUDE = new Set<SceneAction>(['sync-check', 'final-review']);
 
+function needsClaude(request: RequestOf<'scenes'>): boolean {
+  const action = request.action ?? 'build';
+  if (action === 'variants') return request.variants?.kind === 'generate';
+  return !WITHOUT_CLAUDE.has(action);
+}
+
+/** Shot variants (PLAN.md#11.3): one shot, `request.variants` says what to do. */
+function variants(
+  job: SceneJob,
+  request: RequestOf<'scenes'>,
+): Promise<Result<StageSummary, StageError>> {
+  const op = request.variants;
+  const shots = request.shots ?? [];
+  const shotId = shots.length === 1 ? shots[0] : undefined;
+  if (op === undefined) {
+    return Promise.resolve(err(stageError('invalid-input', 'variants: no operation given')));
+  }
+  switch (op.kind) {
+    case 'generate':
+      return generateVariants(job, shotId, op);
+    case 'pick':
+      return pickVariant(job, shotId, op.index, op.lock === true);
+    default:
+      return dismissVariants(job, shotId, op.kind);
+  }
+}
+
 async function run(
   ctx: StageContext,
   request: RequestOf<'scenes'>,
 ): Promise<Result<StageSummary, StageError>> {
   const action = request.action ?? 'build';
-  if (!WITHOUT_CLAUDE.has(action) && !ctx.hasClaude) {
+  if (needsClaude(request) && !ctx.hasClaude) {
     return err(stageError('missing-tool', 'Claude is not connected'));
   }
   const job = await loadSceneJob(ctx);
@@ -270,6 +299,8 @@ async function run(
       return build(job.value, request.shots);
     case 'final-review':
       return final(job.value, request.trigger ?? 'manual');
+    case 'variants':
+      return variants(job.value, request);
     default:
       return review(job.value, action, request.shots);
   }
@@ -286,6 +317,8 @@ export const scenesStage: StageDefinition<'scenes'> = {
     FILES.syncReport,
     FILES.finalReview,
     `${FILES.qaFramesDir}/…`,
+    '.reelforge/variants/<shot>/…',
+    '.reelforge/taste.json',
   ],
   run,
 };

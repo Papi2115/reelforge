@@ -46,7 +46,10 @@ export function normalizeChangedPath(relative: string): string {
   return relative.replace(/\\/g, '/').replace(/^(\.\/)+/, '');
 }
 
-/** Git internals, in-flight atomic writes, QA frame dumps and caches never matter to the layout. */
+/**
+ * Git internals, in-flight atomic writes, QA frame dumps, caches and variant work files never
+ * matter to the layout.
+ */
 export function isIgnoredChange(relative: string): boolean {
   const lower = relative.toLowerCase();
   return (
@@ -54,6 +57,8 @@ export function isIgnoredChange(relative: string): boolean {
     lower.startsWith('.git/') ||
     lower.startsWith('.reelforge/frames/') ||
     lower.startsWith('.reelforge/cache/') ||
+    // Work files of shot variants in progress (PLAN.md#11.3); the stored ones are reported.
+    lower.startsWith('.variants/') ||
     lower.endsWith('.tmp')
   );
 }

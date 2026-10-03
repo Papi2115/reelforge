@@ -9,6 +9,7 @@ import type { ToolsStatus } from '../shared/settings-contract.js';
 import type { WhisperState } from '../shared/whisper-contract.js';
 import type { SettingsHandlers } from './settings-ipc.js';
 import type { SoundHandlers } from './sound/sound-ipc.js';
+import type { VariantsHandlers } from './stages/variants-ipc.js';
 import type { ExportHandlers } from './export/export-ipc.js';
 
 type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
@@ -173,6 +174,18 @@ function soundStubs(record: <T>(request: unknown, response: T) => Promise<T>): S
   };
 }
 
+/** Shot variant channels (PLAN.md#11.3). */
+function variantStubs(record: <T>(request: unknown, response: T) => Promise<T>): VariantsHandlers {
+  return {
+    variantsState: (request) => record(request, { projectDir: null, sets: [] }),
+    variantsEstimate: (request) =>
+      record(request, { text: '≈ 3 Opus turns', turns: 3, model: 'opus' }),
+    variantsRun: (request) => record(request, { status: 'queued', message: null } as const),
+    variantsClip: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+    variantsManifest: (request) => record(request, { status: 'no-storyboard' } as const),
+  };
+}
+
 function setup(): {
   ipc: FakeIpcMain;
   logs: RendererLogEntry[];
@@ -274,6 +287,7 @@ function setup(): {
       scenesRun: (request) => record(request, { status: 'queued', message: null } as const),
       shotsLock: (request) => record(request, { status: 'ok', message: null } as const),
       ...soundStubs(record),
+      ...variantStubs(record),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),

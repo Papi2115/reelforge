@@ -106,7 +106,8 @@ export class ScriptedFrameRenderer implements FrameRenderer {
     const shot = storyboard.shots.find((candidate) => candidate.id === request.shotId);
     if (shot === undefined)
       return { ok: false, error: `unknown shot ${request.shotId}`, errors: [] };
-    const source = await readFile(path.join(request.projectDir, ...shot.scene.split('/')), 'utf8');
+    const scene = request.scene ?? shot.scene;
+    const source = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
     if (source.includes('// render:fail')) {
       return { ok: false, error: `[shot ${shot.id}] build() threw: scripted failure`, errors: [] };
     }

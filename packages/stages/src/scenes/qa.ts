@@ -67,9 +67,18 @@ export async function qaRound(
   const lint = lintFindings(lintScene(source, { filename: shot.scene }), shot.scene);
   if (lint.length > 0) return ok(early(lint, source));
   const times = smokeTimes(shot.t1 - shot.t0);
+  // A variant (PLAN.md#11.3) is checked from its own file at the storyboard shot's place.
+  const own = job.shots.find((candidate) => candidate.id === shot.id)?.scene;
+  const scene = own === undefined || own === shot.scene ? undefined : shot.scene;
   const rendered = await renderShot(
     job.frames,
-    { projectDir: ctx.projectDir, shotId: shot.id, times, cards: true },
+    {
+      projectDir: ctx.projectDir,
+      shotId: shot.id,
+      times,
+      cards: true,
+      ...(scene === undefined ? {} : { scene }),
+    },
     ctx.signal,
   );
   if (!rendered.ok) return rendered;

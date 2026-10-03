@@ -10,10 +10,14 @@ const manifest = (id: string): RenderManifest => ({
   shots: [{ id, t0: 0, t1: 1, scene: { file: `scenes/${id}.js`, source: 'x' } }],
 });
 
-function api(result: ProjectManifestResult): Parameters<typeof resolvePreview>[1] {
+function api(
+  result: ProjectManifestResult,
+  variant: ProjectManifestResult = { status: 'no-storyboard' },
+): Parameters<typeof resolvePreview>[1] {
   return {
     getDemoManifest: () => Promise.resolve(manifest('demo')),
     getProjectManifest: () => Promise.resolve(result),
+    getVariantManifest: () => Promise.resolve(variant),
   };
 }
 
@@ -44,6 +48,23 @@ describe('resolvePreview', () => {
     expect(broken.note).toBe(
       'Project preview unavailable (shot s02: scenes/s02.js is missing) · showing the demo scene',
     );
+  });
+});
+
+describe('variant preview', () => {
+  it('plays the variant manifest with a note, else the project video', async () => {
+    const source = { kind: 'variant', revision: 3, shotId: 's01', key: 'v2' } as const;
+    const ready = { status: 'ready', manifest: manifest('s01') } as const;
+    const variant = { status: 'ready', manifest: manifest('v2') } as const;
+    expect(await resolvePreview(source, api(ready, variant))).toEqual({
+      manifest: manifest('v2'),
+      note: 'Previewing variant 2 of s01 · not saved until you pick it',
+    });
+    const gone = { status: 'unavailable', reason: 'removed' } as const;
+    expect(await resolvePreview(source, api(ready, gone))).toEqual({
+      manifest: manifest('s01'),
+      note: undefined,
+    });
   });
 });
 

@@ -55,6 +55,7 @@ import { SOUND_IPC, type SoundApi } from './sound-contract.js';
 import { YOUTUBE_IPC, type YoutubeApi } from './youtube-contract.js';
 import { STAGES_IPC, STAGES_PUSH, type StagesApi } from './stages-contract.js';
 import { VOICEOVER_IPC, type VoiceoverApi } from './voiceover-contract.js';
+import { VARIANTS_IPC, type VariantsApi } from './variants-contract.js';
 import {
   timelineEditRequestSchema,
   timelineEditResultSchema,
@@ -219,6 +220,8 @@ export const IPC = {
   ...STAGES_IPC,
   /** Voice-over import/recording, stage reports, words retry, scene runs (PLAN.md#7.2-7.7). */
   ...VOICEOVER_IPC,
+  /** Shot variants: cards, estimate, generate / pick, clips, preview manifest (PLAN.md#11.3). */
+  ...VARIANTS_IPC,
   /** Sound panel: library, bus gains, ducking, mix renders and the preview mix (PLAN.md#8.2). */
   ...SOUND_IPC,
   /** YouTube suggestions of an export and copying text (PLAN.md#9.2). */
@@ -257,6 +260,7 @@ export interface ReelforgeApi
     ChatApi,
     StagesApi,
     VoiceoverApi,
+    VariantsApi,
     SoundApi,
     YoutubeApi,
     OnboardingApi {

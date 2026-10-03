@@ -34,6 +34,8 @@ export type StageRequest =
       readonly shots?: readonly string[];
       /** `final-review` only: started by the app after a build (`auto`) or by the user. */
       readonly trigger?: 'auto' | 'manual';
+      /** `variants` only (one shot in `shots`): what to do with the shot's variants. */
+      readonly variants?: VariantOp;
     }
   | {
       readonly stage: 'sound-cues';
@@ -52,8 +54,27 @@ export type StageRequest =
  */
 export const REVIEW_MODES = ['fix-what-looks-wrong', 'phone-legibility', 'sync-check'] as const;
 export type ReviewMode = (typeof REVIEW_MODES)[number];
-/** `final-review`: the quiet pass after a build (PLAN.md#11.5), one commit at the end. */
-export type SceneAction = 'build' | ReviewMode | 'final-review';
+/**
+ * `final-review`: the quiet pass after a build (PLAN.md#11.5), one commit at the end.
+ * `variants`: alternative versions of one shot to compare and pick from (PLAN.md#11.3).
+ */
+export type SceneAction = 'build' | ReviewMode | 'final-review' | 'variants';
+
+/**
+ * Shot variants (PLAN.md#11.3): `generate` builds `count` variants (or rebuilds variant `only`
+ * of the current set), `pick` copies one to the shot's scene (optionally locking it),
+ * `keep-current` / `discard` drop the set (recorded differently in the taste log).
+ */
+export type VariantOp =
+  | {
+      readonly kind: 'generate';
+      readonly count: number;
+      readonly note?: string | undefined;
+      readonly only?: number | undefined;
+    }
+  | { readonly kind: 'pick'; readonly index: number; readonly lock?: boolean | undefined }
+  | { readonly kind: 'keep-current' }
+  | { readonly kind: 'discard' };
 
 export type RequestOf<S extends StageId> = Extract<StageRequest, { readonly stage: S }>;
 
@@ -103,6 +124,11 @@ export interface StageSummary {
   readonly metrics: Readonly<Record<string, Metric>>;
   /** Subject of the stage's autocommit instead of "<Stage title>: <message>". */
   readonly commitMessage?: string;
+  /**
+   * The run did not change the stage's outputs (e.g. shot variants were generated or dropped):
+   * the stage keeps the status it had instead of becoming `done`.
+   */
+  readonly keepStatus?: boolean;
 }
 
 export interface StageSuccess extends StageSummary {
