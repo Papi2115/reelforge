@@ -177,6 +177,26 @@ describe('segmentCacheKey', () => {
     expect(keyOf({ manifest: editA(cut) }, 1)).toBe(keyOf({ manifest: cut }, 1));
     expect(keyOf({ manifest: editA(crossfade) }, 1)).not.toBe(keyOf({ manifest: crossfade }, 1));
   });
+
+  it('depends on ambient variation only when the manifest has it (PLAN.md#12.8)', () => {
+    const off = manifest();
+    const ambientShots = off.shots.map((s, index) => ({ ...s, ambient: { index, act: 0 } }));
+    // Shot positions without the switch never reach the key: old keys stay valid.
+    expect(keyOf({ manifest: { ...off, shots: ambientShots } })).toBe(base);
+    const on: RenderManifest = {
+      ...off,
+      ambientVariation: { enabled: true, seed: 1 },
+      shots: ambientShots,
+    };
+    expect(keyOf({ manifest: on })).not.toBe(base);
+    const reseeded = { ...on, ambientVariation: { enabled: true, seed: 2 } };
+    expect(keyOf({ manifest: reseeded })).not.toBe(keyOf({ manifest: on }));
+    const moved: RenderManifest = {
+      ...on,
+      shots: on.shots.map((s, index) => ({ ...s, ambient: { index: index + 1, act: 0 } })),
+    };
+    expect(keyOf({ manifest: moved })).not.toBe(keyOf({ manifest: on }));
+  });
 });
 
 describe('planShots', () => {

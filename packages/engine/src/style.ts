@@ -10,6 +10,7 @@ import {
   type PaletteToken,
   type SafeAreaMargins,
   type StylePreset,
+  type VariationBudget,
 } from '@reelforge/shared';
 import { EngineError } from './errors.js';
 import {
@@ -53,6 +54,8 @@ export interface ResolvedStyle {
   readonly post: PostFxSettings;
   /** Text safe-area margins (shares of the frame size). */
   readonly safeArea: SafeAreaMargins;
+  /** Ambient variation budgets by key (PLAN.md#12.8); empty when the style has none. */
+  readonly variation: Readonly<Record<string, VariationBudget>>;
 }
 
 export interface StyleRequest {
@@ -145,6 +148,7 @@ export function resolveStyle(request: StyleRequest): ResolvedStyle {
       vignette: preset.vignette,
     },
     safeArea: preset.safeArea ?? DEFAULT_SAFE_AREA,
+    variation: preset.variation ?? {},
   };
 }
 

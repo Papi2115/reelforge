@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { KitError } from '../errors.js';
 import { createKitObject } from '../object.js';
 import { defineEnv, type KitTools } from '../registry.js';
+import { toneOf } from '../variation/ambient.js';
 import { asEnv, colorOf, colorParam } from './shared.js';
 
 /** Colour chains per variant: floor, lines, horizon (fade target). */
@@ -130,27 +131,46 @@ function scrollAt(scroll: NeonGridParams['scroll'], t: number): number {
   return offset;
 }
 
+/** Colour of a grid part: the scene's override as given, else the variant's (toned) default. */
+function gridColor(
+  tools: KitTools,
+  override: string | undefined,
+  chain: readonly string[],
+): THREE.Color {
+  const name = override ?? toneOf(tools.variation, colorParam(tools.palette, undefined, chain));
+  return colorOf(tools, name);
+}
+
+/** Cell size and disc radius with the shot's ambient variation (density, fade distance). */
+export function gridMetrics(
+  tools: KitTools,
+  params: NeonGridParams,
+): { cell: number; radius: number } {
+  const variation = tools.variation;
+  if (variation === undefined) return { cell: params.cell, radius: params.horizon };
+  return {
+    cell: Math.min(20, Math.max(0.25, params.cell * variation.cell)),
+    radius: Math.min(500, Math.max(5, params.horizon * variation.fade)),
+  };
+}
+
 function createGridMaterial(tools: KitTools, params: NeonGridParams): THREE.ShaderMaterial {
   const variant = GRID_VARIANTS[params.variant];
-  const { palette } = tools;
+  const { cell, radius } = gridMetrics(tools, params);
   return tools.track(
     new tools.three.ShaderMaterial({
       vertexShader: VERTEX,
       fragmentShader: FRAGMENT,
       uniforms: {
-        floorColor: {
-          value: colorOf(tools, colorParam(palette, params.floorColor, variant.floor)),
-        },
-        lineColor: { value: colorOf(tools, colorParam(palette, params.lineColor, variant.line)) },
-        horizonColor: {
-          value: colorOf(tools, colorParam(palette, params.horizonColor, variant.horizon)),
-        },
-        cell: { value: params.cell },
+        floorColor: { value: gridColor(tools, params.floorColor, variant.floor) },
+        lineColor: { value: gridColor(tools, params.lineColor, variant.line) },
+        horizonColor: { value: gridColor(tools, params.horizonColor, variant.horizon) },
+        cell: { value: cell },
         lineWidth: { value: params.lineWidth },
         scroll: { value: 0 },
-        fadeStart: { value: params.horizon * (1 - params.fog) },
-        fadeEnd: { value: params.horizon * 1.0001 },
-        radius: { value: params.horizon },
+        fadeStart: { value: radius * (1 - params.fog) },
+        fadeEnd: { value: radius * 1.0001 },
+        radius: { value: radius },
       },
       depthWrite: false,
     }),
@@ -165,7 +185,7 @@ export const neonGrid = defineEnv({
   anchors: { top: 'the floor at the origin (y = 0), so kit props .on(grid) stand on it' },
   build(params, tools) {
     const { three } = tools;
-    const geometry = tools.track(new three.CircleGeometry(params.horizon, 96));
+    const geometry = tools.track(new three.CircleGeometry(gridMetrics(tools, params).radius, 96));
     geometry.rotateX(-Math.PI / 2);
     const material = createGridMaterial(tools, params);
     const floor = new three.Mesh(geometry, material);

@@ -4,6 +4,7 @@
  * words; scene module sources are inlined so the sandboxed engine never touches the disk.
  */
 import { z } from 'zod';
+import { ambientShotSchema, ambientVariationSettingsSchema } from './ambient-variation.js';
 import { kitExtensionSchema } from './kit-extensions.js';
 import { paletteSchema } from './palette.js';
 import { shotIdSchema, transitionSchema } from './storyboard.js';
@@ -30,6 +31,8 @@ export const manifestShotSchema = z
     t1: z.number().positive(),
     transitionIn: transitionSchema.optional(),
     scene: sceneSourceSchema,
+    /** Storyboard position of the shot for ambient variation (absent: derived from the order). */
+    ambient: ambientShotSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type ManifestShot = z.infer<typeof manifestShotSchema>;
@@ -50,6 +53,8 @@ export const renderManifestSchema = z
     words: wordsFileSchema.optional(),
     /** Project-local props (`kit-ext/props/*.js`), registered before any scene is built. */
     kitExtensions: z.array(kitExtensionSchema).optional(),
+    /** Ambient variation switch (PLAN.md#12.8); absent or disabled = every shot as authored. */
+    ambientVariation: ambientVariationSettingsSchema.optional(),
     shots: z.array(manifestShotSchema).min(1),
   })
   .superRefine((manifest, issues) => {

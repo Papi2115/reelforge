@@ -3,7 +3,7 @@
  * `update(t, state, ctx)`. `update` must be a pure function of the local time `t` (seconds):
  * set every time-dependent property absolutely from `t`, never incrementally.
  */
-import type { KitApi } from '@reelforge/kit';
+import type { AmbientVariation, KitApi } from '@reelforge/kit';
 import type { AnnotateApi } from './annotations/types.js';
 import type { Treatment } from '@reelforge/shared';
 import type * as THREE from 'three';
@@ -133,6 +133,20 @@ export interface ShotInfo {
   readonly fps: number;
 }
 
+/**
+ * `ctx.ambient` (PLAN.md#12.8): the shot's ambient variation, read-only. Kit environments apply it
+ * by themselves (do not hard-code the same background in every shot); a scene that paints its own
+ * background colour can follow the shot's tones with `ctx.ambient.tone(name)`.
+ */
+export interface AmbientApi {
+  /** True when the project varies its environments and this shot's look has a budget. */
+  readonly enabled: boolean;
+  /** The parameter set (undefined when off). */
+  readonly params: AmbientVariation | undefined;
+  /** The palette name used for `name` in this shot (a member of its family, or `name`). */
+  tone(name: string): string;
+}
+
 export interface SceneContext {
   /** Three.js namespace (scenes must not import modules; everything comes through ctx). */
   readonly three: typeof THREE;
@@ -165,6 +179,8 @@ export interface SceneContext {
    */
   readonly rng: Rng;
   readonly shot: ShotInfo;
+  /** Ambient variation of the shot (read-only; environments already apply it). */
+  readonly ambient: AmbientApi;
 }
 
 export interface SceneModule {

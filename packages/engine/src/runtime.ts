@@ -4,6 +4,7 @@
  */
 import type { KitDefinition } from '@reelforge/kit';
 import { renderManifestSchema, type RenderManifest, type SceneSource } from '@reelforge/shared';
+import { shotAmbient } from './ambient.js';
 import { createExactAnchorResolver, NO_ANCHORS } from './anchors.js';
 import type { ResolvedAnchor, SfxCue } from './contract.js';
 import { describeError, EngineError } from './errors.js';
@@ -81,7 +82,11 @@ export function parseManifest(input: unknown): RenderManifest {
 }
 
 /** Builds one manifest shot from its imported scene module namespace. */
-type ShotBuilder = (shot: RenderManifest['shots'][number], namespace: unknown) => BuiltShot;
+type ShotBuilder = (
+  shot: RenderManifest['shots'][number],
+  namespace: unknown,
+  index: number,
+) => BuiltShot;
 
 function createShotBuilder(
   manifest: RenderManifest,
@@ -91,7 +96,7 @@ function createShotBuilder(
   const resolveAnchor = manifest.words
     ? createExactAnchorResolver(manifest.words.words)
     : NO_ANCHORS;
-  return (shot, namespace) =>
+  return (shot, namespace, index) =>
     buildShot({
       shot: {
         id: shot.id,
@@ -107,6 +112,7 @@ function createShotBuilder(
       safeArea: style.safeArea,
       resolveAnchor,
       kitExtensions,
+      ambient: shotAmbient(manifest, style, index),
     });
 }
 
@@ -118,7 +124,7 @@ async function buildShots(
   const namespaces = await Promise.all(
     manifest.shots.map((shot) => dependencies.importScene(shot.scene, shot.id)),
   );
-  return manifest.shots.map((shot, index) => build(shot, namespaces[index]));
+  return manifest.shots.map((shot, index) => build(shot, namespaces[index], index));
 }
 
 function createRendererOrThrow(options: FrameRendererOptions): FrameRenderer {
@@ -235,7 +241,7 @@ export async function createRuntime(
       if (!shot) throw new EngineError('not-loaded', `no shot "${shotId}" in the loaded video`);
       const namespace = await dependencies.importScene(scene, shotId);
       // Built before it replaces the old shot: a broken scene leaves the video as it was.
-      shots[index] = build({ ...shot, scene }, namespace);
+      shots[index] = build({ ...shot, scene }, namespace, index);
       info = describe();
       return info;
     },

@@ -52,6 +52,7 @@ export {
 } from './props/index.js';
 export * from './registry.js';
 export type * from './types.js';
+export * from './variation/index.js';
 export { KIT_VERSION } from './version.js';
 export { VOXEL_API_DOCS, type ApiDoc, type GroupOptions, type VoxelApi } from './voxel/api.js';
 export { componentFloors, inspectObject, type KitInspection } from './voxel/inspect.js';

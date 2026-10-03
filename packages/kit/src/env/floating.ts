@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { createKitObject } from '../object.js';
 import { defineEnv, type KitTools } from '../registry.js';
 import type { KitRng, Vec3 } from '../types.js';
+import { debrisCount, layoutLabel } from '../variation/ambient.js';
 import type { VoxelColor } from '../voxel/model.js';
 import { asEnv, colorOf, type EnvObject } from './shared.js';
 
@@ -109,8 +110,8 @@ export type FloatingCubesParams = z.output<typeof floatingCubesParams>;
 
 /** Builds the cube cloud (also used by kit.env.void). */
 export function buildFloatingCubes(params: FloatingCubesParams, tools: KitTools): EnvObject {
-  const rng = tools.rng.fork(`seed:${String(params.seed)}`);
-  const floaters = scatterFloaters(rng, params.count, {
+  const rng = tools.rng.fork(layoutLabel(tools.variation, `seed:${String(params.seed)}`));
+  const floaters = scatterFloaters(rng, debrisCount(tools.variation, params.count, 1), {
     area: params.area,
     clear: params.clear,
     size: params.size,

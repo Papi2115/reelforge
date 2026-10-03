@@ -2,11 +2,13 @@
  * Per-shot runtime: builds a scene module once (collecting sfx cues) and evaluates it at a local
  * time. GL-free, so it runs (and is tested) in Node as well as in the engine page.
  */
-import { createKit, type KitDefinition } from '@reelforge/kit';
+import { createKit, type AmbientVariation, type KitDefinition } from '@reelforge/kit';
 import { DEFAULT_SAFE_AREA, type SafeAreaMargins } from '@reelforge/shared';
 import * as THREE from 'three';
+import { createAmbientApi } from './ambient.js';
 import type { AnchorResolver } from './anchors.js';
 import { createCameraApi } from './camera/camera-api.js';
+import { createCameraDrift } from './camera/drift.js';
 import { EASINGS } from './camera/easing.js';
 import type {
   AnchorHit,
@@ -38,6 +40,8 @@ export interface ShotInput {
   readonly resolveAnchor: AnchorResolver;
   /** Project props (manifest `kitExtensions`), registered as ctx.kit.props.<name>. */
   readonly kitExtensions?: readonly KitDefinition[] | undefined;
+  /** Ambient variation of the shot (PLAN.md#12.8); absent = the scene exactly as authored. */
+  readonly ambient?: AmbientVariation | undefined;
 }
 
 export interface BuiltShot {
@@ -157,7 +161,9 @@ export function buildShot(input: ShotInput): BuiltShot {
     palette,
     rng: createRng(hashString('kit', seed)),
     extraProps: input.kitExtensions,
+    variation: input.ambient,
   });
+  const drift = input.ambient && createCameraDrift(camera, input.ambient.cameraDrift, duration);
   const base = {
     three: THREE,
     scene,
@@ -167,6 +173,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     ease: EASINGS,
     anchor: createAnchor(input),
     shot: info,
+    ambient: createAmbientApi(input.ambient),
   };
   const buildContext: SceneContext = {
     ...base,
@@ -216,7 +223,9 @@ export function buildShot(input: ShotInput): BuiltShot {
         rng: createRng(seed).fork('update'),
       };
       try {
+        drift?.begin();
         module.update(localTime, state, updateContext);
+        drift?.apply(localTime);
         annotations.endFrame(updateOptions?.probe === true);
       } catch (error) {
         if (error instanceof EngineError) throw error;

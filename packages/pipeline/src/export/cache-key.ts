@@ -2,7 +2,7 @@
  * Per-shot cache keys. A shot's segment is re-rendered only when something that can change its
  * pixels or its encoding changes: scene source, engine/kit version, style preset, palette
  * overrides, project seed, the anchor times the scene uses, the project props (kit-ext) it may
- * call, the shot's own manifest params, fps,
+ * call, the shot's own manifest params, ambient variation (switch + storyboard position), fps,
  * render size, and the output settings (preset, encoder, quality). Shots that transition in also
  * depend on the previous shot's content.
  */
@@ -127,6 +127,8 @@ function shotContent(
     scene: sha256Hex(shot.scene.source),
     anchors: anchorInputs(shot, manifest, resolveAnchor),
     kitExtensions: kitExtensionInputs(shot.scene.source, manifest.kitExtensions),
+    // Undefined (left out of the key) unless ambient variation is on: old keys stay valid.
+    ambient: manifest.ambientVariation === undefined ? undefined : (shot.ambient ?? null),
   };
 }
 
@@ -148,6 +150,7 @@ export function segmentCacheKey(input: SegmentKeyInput): string {
     style: identity.style,
     palette: manifest.palette ?? null,
     seed: manifest.seed,
+    ambientVariation: manifest.ambientVariation,
     fps: manifest.fps,
     frames: [planned.startFrame, planned.endFrame],
     shot: shotContent(planned.shot, manifest, input.resolveAnchor),

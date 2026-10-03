@@ -4,6 +4,7 @@
  * presets as JSON (`packages/engine/src/presets/*.json`); a render manifest selects one by id.
  */
 import { z } from 'zod';
+import { variationBudgetKeySchema, variationBudgetSchema } from './ambient-variation.js';
 import { paletteSchema } from './palette.js';
 import { treatmentSchema } from './storyboard.js';
 
@@ -103,9 +104,26 @@ export const stylePresetSchema = z
     vignette: vignetteSettingsSchema.optional(),
     /** Where text cards must stay (QA, `ctx.text.safeArea`); defaults to DEFAULT_SAFE_AREA. */
     safeArea: safeAreaSchema.optional(),
+    /**
+     * Ambient variation budgets by key (a look's `variationBudget`, e.g. `voxel`; PLAN.md#12.8).
+     * A look without a budget in the style never varies.
+     */
+    variation: z.record(variationBudgetKeySchema, variationBudgetSchema).optional(),
   })
   .superRefine((preset, issues) => {
     const swatches = new Set(Object.keys(preset.palette));
+    for (const [key, budget] of Object.entries(preset.variation ?? {})) {
+      for (const [family, members] of Object.entries(budget.tones)) {
+        for (const [index, name] of [family, ...members].entries()) {
+          if (swatches.has(name)) continue;
+          issues.addIssue({
+            code: 'custom',
+            message: `variation tone "${name}" is not a swatch of the palette`,
+            path: ['variation', key, 'tones', family, ...(index === 0 ? [] : [index - 1])],
+          });
+        }
+      }
+    }
     const tokens = new Set<string>(PALETTE_TOKENS);
     for (const name of swatches) {
       if (tokens.has(name)) {

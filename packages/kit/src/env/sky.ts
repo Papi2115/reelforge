@@ -7,6 +7,7 @@ import type * as THREE from 'three';
 import { z } from 'zod';
 import { createKitObject, type Disposable } from '../object.js';
 import { defineEnv, type KitTools } from '../registry.js';
+import { debrisCount, toneOf } from '../variation/ambient.js';
 import { asEnv, colorOf, emptyBounds, pickColor, type EnvObject } from './shared.js';
 
 /** Colour chains per style, top of the sky -> horizon (see pickColor). */
@@ -129,7 +130,17 @@ void main() {
 
 function skyColors(tools: KitTools, params: SkyParams): string[] {
   if (params.colors) return params.colors;
-  return SKY_STYLES[params.style].map((chain) => pickColor(tools.palette, chain));
+  return SKY_STYLES[params.style].map((chain) =>
+    toneOf(tools.variation, pickColor(tools.palette, chain)),
+  );
+}
+
+/** Horizon and gradient top of the dome, shifted by the shot's ambient variation. */
+function skyElevations(tools: KitTools, params: SkyParams): { horizon: number; top: number } {
+  const shift = tools.variation?.horizon ?? 0;
+  const horizon = Math.min(0.5, Math.max(-0.5, params.horizon + shift));
+  const top = Math.min(1, Math.max(0.1, params.top + shift));
+  return { horizon, top: Math.max(top, horizon + 0.05) };
 }
 
 function createDome(
@@ -141,6 +152,7 @@ function createDome(
   const colors = Array.from({ length: MAX_COLORS }, (_, index) =>
     colorOf(tools, names[Math.min(index, names.length - 1)] ?? 'sky'),
   );
+  const elevations = skyElevations(tools, params);
   const geometry = tools.track(new three.SphereGeometry(params.radius, 48, 24));
   const material = tools.track(
     new three.ShaderMaterial({
@@ -149,8 +161,8 @@ function createDome(
       uniforms: {
         colors: { value: colors },
         count: { value: names.length },
-        horizon: { value: params.horizon },
-        top: { value: Math.max(params.top, params.horizon + 0.05) },
+        horizon: { value: elevations.horizon },
+        top: { value: elevations.top },
         dither: { value: params.dither },
       },
       side: three.BackSide,
@@ -171,15 +183,16 @@ interface Stars {
 }
 
 function createStars(tools: KitTools, params: SkyParams): Stars | undefined {
-  if (params.stars === 0) return undefined;
+  const count = debrisCount(tools.variation, params.stars);
+  if (count === 0) return undefined;
   const { three, rng } = tools;
-  const count = params.stars;
+  const { horizon } = skyElevations(tools, params);
   const positions = new Float32Array(count * 3);
   const phases = new Float32Array(count);
   const speeds = new Float32Array(count);
   const radius = params.radius * 0.97;
   for (let index = 0; index < count; index += 1) {
-    const elevation = rng.range(Math.max(params.horizon + 0.06, 0.04), 0.98);
+    const elevation = rng.range(Math.max(horizon + 0.06, 0.04), 0.98);
     const azimuth = rng.range(0, Math.PI * 2);
     const ring = Math.sqrt(1 - elevation * elevation);
     positions.set(

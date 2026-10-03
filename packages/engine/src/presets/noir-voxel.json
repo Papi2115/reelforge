@@ -45,5 +45,31 @@
   "outline": { "color": "outline", "threshold": 0.06 },
   "ao": { "strength": 0.6, "radius": 2, "range": 1.5 },
   "scanlines": { "period": 3, "strength": 0.25 },
-  "vignette": { "strength": 0.55, "radius": 0.45, "softness": 0.6 }
+  "vignette": { "strength": 0.55, "radius": 0.45, "softness": 0.6 },
+  "variation": {
+    "voxel": {
+      "tones": {
+        "black": ["ink"],
+        "ink": ["charcoal", "black"],
+        "charcoal": ["ink", "slate"],
+        "slate": ["charcoal", "steel"],
+        "steel": ["slate", "fog"],
+        "ash": ["fog"],
+        "bloodDark": ["blood"],
+        "blood": ["bloodDark", "red"],
+        "tealDark": ["teal", "ink"],
+        "teal": ["tealDark"],
+        "ember": ["brown", "copper"]
+      },
+      "toneShare": 0.3,
+      "steps": 5,
+      "cell": [0.85, 1.2],
+      "horizon": [-0.05, 0.06],
+      "fade": [0.9, 1.15],
+      "lightAzimuth": [-18, 18],
+      "lightElevation": [-6, 6],
+      "debris": [0.8, 1.25],
+      "cameraDrift": [0.8, 0.3]
+    }
+  }
 }

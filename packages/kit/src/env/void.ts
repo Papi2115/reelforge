@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { createKitObject } from '../object.js';
 import { defineEnv } from '../registry.js';
+import { debrisCount, layoutLabel, toneOf } from '../variation/ambient.js';
 import { buildFloatingCubes, buildShards, floatingCubesParams } from './floating.js';
 import { asEnv, pickColor } from './shared.js';
 import { buildSky, skyParams } from './sky.js';
@@ -34,7 +35,8 @@ export const voidScene = defineEnv({
   params: voidParams,
   anchors: { top: 'the origin (centre of the clear stage)' },
   build(params, tools) {
-    const { palette } = tools;
+    const { palette, variation } = tools;
+    const tone = (chain: readonly string[]): string => toneOf(variation, pickColor(palette, chain));
     const sky = buildSky(
       skyParams.parse({ style: 'void', stars: params.stars, starColor: 'textDim' }),
       tools,
@@ -48,8 +50,8 @@ export const voidScene = defineEnv({
         clear: params.clear,
         size: [0.15, 0.6],
         colors: [
-          pickColor(palette, ['indigo', 'slate', 'plum', 'groundAlt']),
-          pickColor(palette, ['violet', 'steel', 'mauve', 'ground']),
+          tone(['indigo', 'slate', 'plum', 'groundAlt']),
+          tone(['violet', 'steel', 'mauve', 'ground']),
           'accent1',
           'accent4',
         ],
@@ -60,11 +62,12 @@ export const voidScene = defineEnv({
     );
     cubes.position.y = -height / 2;
     cubes.visible = params.cubes > 0;
-    const shards = buildShards(tools, tools.rng.fork(`shards:${String(params.seed)}`), {
-      count: Math.max(1, params.shards),
+    const shardRng = tools.rng.fork(layoutLabel(variation, `shards:${String(params.seed)}`));
+    const shards = buildShards(tools, shardRng, {
+      count: debrisCount(variation, Math.max(1, params.shards), 1),
       colors: [
-        pickColor(palette, ['slateGrey', 'ash', 'ice', 'textDim']),
-        pickColor(palette, ['teal', 'tealDark', 'cornflower', 'accent3']),
+        tone(['slateGrey', 'ash', 'ice', 'textDim']),
+        tone(['teal', 'tealDark', 'cornflower', 'accent3']),
         'heroTrim',
       ],
       area: { area: params.area, clear: params.clear, size: [0.12, 0.3], spin: 0.6 },

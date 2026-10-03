@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -160,6 +160,23 @@ describe('buildProjectManifest', () => {
     ]);
     expect(manifest.shots[1]?.transitionIn).toEqual({ type: 'crossfade', duration: 0.4 });
     expect(manifest.shots[0]?.scene.source).toContain('export function build');
+    // No `ambientVariation` in project.json: the manifest is exactly as before 2.0.
+    expect(manifest.ambientVariation).toBeUndefined();
+    expect(manifest.shots.map((shot) => shot.ambient)).toEqual([undefined, undefined]);
+  });
+
+  it('turns ambient variation on from project.json with storyboard positions', async () => {
+    const file = path.join(dir, 'project.json');
+    const project = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>;
+    await writeFile(file, JSON.stringify({ ...project, ambientVariation: true }));
+    const result = await buildProjectManifest(dir);
+    if (result.status !== 'ready') throw new Error(result.status);
+    expect(result.manifest.ambientVariation).toEqual({ enabled: true, seed: 2115 });
+    // s02 transitions in with a crossfade: a new act.
+    expect(result.manifest.shots.map((shot) => shot.ambient)).toEqual([
+      { index: 0, act: 0 },
+      { index: 1, act: 1 },
+    ]);
   });
 
   it('says why a project cannot be previewed', async () => {

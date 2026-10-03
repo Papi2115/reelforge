@@ -182,3 +182,17 @@ variation budget `diorama`.
   stored as encoded polylines (~13 KB); land is rasterised into a country mask, so coasts, borders
   and highlights are 1-px edges at any zoom. Views: world, europe, africa, asia, middle-east,
   north-america, south-america, oceania or a `[w, s, e, n]` box (no Pacific-centred views).
+
+## Ambient variation
+
+PLAN.md#12.8, ADR-010. With `"ambientVariation": true` in project.json (new projects; absent =
+off, frame for frame as before) the environments of a look drift from shot to shot inside the
+style's budget `variation.<variationBudget>` in the engine preset: tone families (swatches of the
+palette only), sky horizon, grid density and fade, light turn, debris/stars, layout of seeded
+backdrops and a slow camera drift. Neighbouring shots always differ (two axes step through seeded
+permutations); acts and rolls give each stretch a coherent mood. Only `voxel` has budgets today;
+a look opts in by adding a budget under its key in the presets and reading `tools.variation`
+(helpers `toneOf`, `debrisCount`, `layoutLabel` in `packages/kit/src/variation/`). Scenes read
+`ctx.ambient` (read-only) and must not hard-code one background for every shot. Render test and
+goldens: `packages/kit/test/render/kit-ambient.test.ts`, `ambient-*`; contact sheets
+`packages/kit/out/contact/ambient-<style>.png`.

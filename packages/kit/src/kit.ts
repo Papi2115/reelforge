@@ -19,6 +19,7 @@ import {
   type KitKind,
 } from './registry.js';
 import type { KitPalette, KitRng } from './types.js';
+import type { AmbientVariation } from './variation/types.js';
 import { createVoxelApi, VOXEL_API_DOCS, type ApiDoc, type VoxelApi } from './voxel/api.js';
 import { KIT_VERSION } from './version.js';
 
@@ -50,6 +51,10 @@ export interface KitOptions {
    * API is exactly the voxel kit.
    */
   readonly looks?: readonly Look[] | undefined;
+  /**
+   * Ambient variation of the shot (PLAN.md#12.8); absent = environments exactly as authored.
+   */
+  readonly variation?: AmbientVariation | undefined;
 }
 
 /** Engine-side handle of a kit instance. */
@@ -64,7 +69,7 @@ export interface KitHandle {
 export { ENV_DEFINITIONS, FX_DEFINITIONS, PROP_DEFINITIONS };
 
 export function createKit(options: KitOptions): KitHandle {
-  const context = createKitContext(options.three, options.palette, options.rng);
+  const context = createKitContext(options.three, options.palette, options.rng, options.variation);
   const voxel = createVoxelApi(context);
   const extraProps = options.extraProps ?? [];
   const looks = extraLookDefinitions(options.looks);

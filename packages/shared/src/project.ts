@@ -4,6 +4,7 @@
  * (6.2/7.1) may add optional fields; required ones are what rendering and the pipeline rely on.
  */
 import { z } from 'zod';
+import { DEFAULT_AMBIENT_VARIATION } from './ambient-variation.js';
 import { paletteSchema } from './palette.js';
 import { stylePresetIdSchema } from './style-preset.js';
 
@@ -40,11 +41,21 @@ export const projectFileSchema = z.object({
   models: z.record(z.string().min(1), z.string().min(1)).optional(),
   /** Look mode (absent = `voxel-only`; new projects get `mixed` from the template). */
   lookMode: lookModeSchema.optional(),
+  /**
+   * Ambient variation (PLAN.md#12.8): environments drift from shot to shot within the style's
+   * budget. Absent = off (existing projects render frame for frame as before); new projects get
+   * `true` from the template.
+   */
+  ambientVariation: z.boolean().optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 
 export function projectLookMode(project: Pick<ProjectFile, 'lookMode'>): LookMode {
   return project.lookMode ?? DEFAULT_LOOK_MODE;
+}
+
+export function projectAmbientVariation(project: Pick<ProjectFile, 'ambientVariation'>): boolean {
+  return project.ambientVariation ?? DEFAULT_AMBIENT_VARIATION;
 }
 
 export const briefFileSchema = z.object({

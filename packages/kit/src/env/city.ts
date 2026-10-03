@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { createKitObject } from '../object.js';
 import { defineEnv } from '../registry.js';
+import { toneOf } from '../variation/ambient.js';
 import type { VoxelColor } from '../voxel/model.js';
 import { asEnv, hashCell, pickColor, voxels } from './shared.js';
 
@@ -106,15 +107,19 @@ export const blockCity = defineEnv({
     const sizeY = 1 + maxH + ANTENNA;
     const seed = tools.rng.fork(`seed:${String(params.seed)}`);
     const lots = cityLots(params, seed, lotsPerSide);
-    const windowSeed = seed.int(0, 0x7fffffff);
+    // Ambient variation (PLAN.md#12.8) re-rolls the lit windows and tones the tower bodies; the
+    // street layout stays the scene's.
+    const windowSeed = (seed.int(0, 0x7fffffff) ^ (tools.variation?.layout ?? 0)) >>> 0;
+    const body = (chain: readonly string[]): string =>
+      toneOf(tools.variation, pickColor(palette, chain));
     const colors: VoxelColor[] = [
       pickColor(palette, ['shadow']),
       'ground',
       'accent3',
-      pickColor(palette, ['darkSlate', 'charcoal', 'umber', 'shadow']),
-      pickColor(palette, ['darkSlate', 'slate', 'plum', 'groundAlt']),
-      pickColor(palette, ['slateGrey', 'steel', 'mauve', 'textDim']),
-      pickColor(palette, ['slateBlue', 'charcoal', 'dusk', 'groundAlt']),
+      body(['darkSlate', 'charcoal', 'umber', 'shadow']),
+      body(['darkSlate', 'slate', 'plum', 'groundAlt']),
+      body(['slateGrey', 'steel', 'mauve', 'textDim']),
+      body(['slateBlue', 'charcoal', 'dusk', 'groundAlt']),
       'groundAlt',
       { color: 'keyLight', glow: true },
       { color: 'accent1', glow: true },

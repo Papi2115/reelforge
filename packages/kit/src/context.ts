@@ -6,6 +6,7 @@ import type * as THREE from 'three';
 import { KitError } from './errors.js';
 import type { Disposable, Three } from './object.js';
 import type { KitPalette, KitRng } from './types.js';
+import type { AmbientVariation } from './variation/types.js';
 import type { ShadedColor } from './voxel/greedy.js';
 import type { VoxelColor } from './voxel/model.js';
 
@@ -27,6 +28,8 @@ export interface KitContext {
   readonly palette: KitPalette;
   /** The kit's own stream; factories fork it per call (never the scene's ctx.rng). */
   readonly rng: KitRng;
+  /** Ambient variation of the shot (PLAN.md#12.8); undefined when the project has it off. */
+  readonly variation: AmbientVariation | undefined;
   materials(): KitMaterials;
   /** Registers a resource freed by the kit's dispose(). */
   track<T extends Disposable>(resource: T): T;
@@ -36,7 +39,12 @@ export interface KitContext {
   dispose(): void;
 }
 
-export function createKitContext(three: Three, palette: KitPalette, rng: KitRng): KitContext {
+export function createKitContext(
+  three: Three,
+  palette: KitPalette,
+  rng: KitRng,
+  variation?: AmbientVariation,
+): KitContext {
   const resources: Disposable[] = [];
   let materials: KitMaterials | undefined;
   let sealed = false;
@@ -48,6 +56,7 @@ export function createKitContext(three: Three, palette: KitPalette, rng: KitRng)
     three,
     palette,
     rng,
+    variation,
     track,
     materials() {
       materials ??= {

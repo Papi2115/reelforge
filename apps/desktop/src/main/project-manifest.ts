@@ -6,6 +6,8 @@
  */
 import { describeUnknown, readKitExtensions, type KitExtensionFiles } from '@reelforge/cli/service';
 import {
+  ambientShotInputs,
+  projectAmbientVariation,
   projectFileSchema,
   renderManifestSchema,
   storyboardFileSchema,
@@ -43,6 +45,8 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
 
   const shots = storyboard.data.shots;
   const sources = await Promise.all(shots.map((shot) => readProjectText(dir, shot.scene)));
+  // Ambient variation (PLAN.md#12.8): off (and the manifest unchanged) unless project.json asks.
+  const ambient = projectAmbientVariation(project.data) ? ambientShotInputs(shots) : undefined;
   const manifestShots = [];
   for (const [index, shot] of shots.entries()) {
     const source = sources[index];
@@ -56,6 +60,7 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
       t1: shot.t1,
       ...(shot.transitionIn ? { transitionIn: shot.transitionIn } : {}),
       scene: { file: shot.scene, source: source.data },
+      ...(ambient?.[index] ? { ambient: ambient[index] } : {}),
     });
   }
 
@@ -74,6 +79,7 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
     ...(palette ? { palette } : {}),
     ...(words.status === 'ok' ? { words: words.data } : {}),
     ...(props.extensions.length > 0 ? { kitExtensions: props.extensions } : {}),
+    ...(ambient ? { ambientVariation: { enabled: true, seed } } : {}),
     shots: manifestShots,
   });
   if (!manifest.success) {

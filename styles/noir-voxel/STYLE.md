@@ -30,3 +30,9 @@ For true-crime, espionage, heists, manhunts. Same 640×360 voxel engine, but low
 
 ## Avoid
 Bright backgrounds, neon violet/teal, bouncy easing (`easeOutBack`), cartoon characters in comedic poses, more than one red element per shot, text over bright areas without a plate.
+
+## Ambient variation budget (`variation.voxel` in the engine preset)
+When `project.json` has `"ambientVariation": true` (new projects), the environments of voxel shots drift from shot to shot — deterministically, from the project seed and the shot's place in the storyboard (index, act, roll); neighbouring shots always differ. Off (field missing, e.g. older projects) = every shot exactly as authored.
+- **Tones:** black→ink; ink→charcoal/black; charcoal→ink/slate; slate→charcoal/steel; steel→slate/fog; ash→fog; bloodDark→blood; blood→bloodDark/red; tealDark→teal/ink; teal→tealDark; ember→brown/copper. About 30 % of the families swap in a shot.
+- **Ranges (scale 1):** horizon −0.05…+0.06, grid cell ×0.85…1.2, grid fade ×0.9…1.15, light turn ±18°, light elevation ±6°, debris/stars ×0.8…1.25, camera drift ≤ 0.8° / 0.3°, 5 levels per axis. Kept tighter than Crisp: the noir mood relies on its low key.
+- **Scenes:** do not hard-code the same background in every shot and do not re-implement variation by hand — the kit environments (`sky`, `neonGrid`, `lights`, `floatingCubes`, `void`, `blockCity`, `room`) vary automatically. Colours you pass explicitly (`colors`, `lineColor`, `wall`…) are kept as given, so leave them at their defaults unless the shot needs a specific colour. A scene that paints its own background can follow the shot with `palette[ctx.ambient.tone('<swatch>')]`; `ctx.ambient.enabled` / `ctx.ambient.params` are read-only.

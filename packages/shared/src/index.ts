@@ -1,6 +1,7 @@
 /** Shared types and zod schemas (CLAUDE.md §3.5: every JSON file is versioned + validated). */
 export const packageName = '@reelforge/shared';
 
+export * from './ambient-variation.js';
 export * from './app-settings.js';
 export * from './final-review.js';
 export * from './kit-extensions.js';
