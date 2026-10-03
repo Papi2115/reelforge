@@ -107,7 +107,9 @@ describe('final review view', () => {
     expect(exportPreflight(review, scenes, shots).blocker).toBeNull();
     const without = exportPreflight(null, scenes, shots);
     expect(without.items).toEqual([]);
-    expect(without.summary).toBe('No final review yet (Scenes panel → Run final review).');
+    expect(without.summary).toBe(
+      'No final review yet: open Scenes built and press Run final review.',
+    );
   });
 });
 

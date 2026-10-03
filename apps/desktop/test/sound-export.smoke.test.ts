@@ -26,6 +26,7 @@ import {
   stubFolderPicker,
 } from './support/electron-app.js';
 import { ffprobe, synthesizeVoiceover } from './support/pipeline-film.js';
+import { showStage } from './support/pipeline-rows.js';
 
 const VIDEO_SECONDS = 33;
 const SUGGESTION = {
@@ -80,7 +81,7 @@ function pipeline() {
 }
 
 async function openRow(label: string): Promise<void> {
-  await pipeline().getByRole('button', { name: label }).first().click();
+  await (await showStage(page, label)).click();
   await pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: 'Open' })
@@ -168,6 +169,11 @@ describe('sound design', () => {
     await openRow('Sound design mixed');
     const panel = page.getByRole('region', { name: 'Sound design' });
     await panel.waitFor();
+    // Calm default (PLAN.md#11.2): the library and the ducking start folded away.
+    expect(
+      await panel.getByRole('button', { name: /^Sound library/ }).getAttribute('aria-expanded'),
+    ).toBe('false');
+    await shot('sound-default');
     const before = JSON.stringify(await cues());
     await panel.getByRole('button', { name: 'Default cues (no Claude)' }).click();
     const generated = await poll(cues, (value) => (value.music?.length ?? 0) > 0, 60_000);
@@ -217,6 +223,7 @@ describe('sound design', () => {
     const pxPerSecond = Number(await canvas.getAttribute('data-px-per-second'));
     const scrollX = Number(await canvas.getAttribute('data-scroll-x'));
     if (box === null) throw new Error('no timeline');
+    await panel.getByRole('button', { name: /^Sound library/ }).click();
     const item = panel.locator('.sound-item', { hasText: 'pop' });
     await item.dragTo(canvas, { targetPosition: { x: 15 * pxPerSecond - scrollX, y: 83 } });
     const added = await poll(cues, (value) => value.sfx.length > count);
@@ -254,6 +261,7 @@ describe('sound design', () => {
     await panel.getByRole('button', { name: 'Import Music files…' }).click();
     await panel.getByRole('button', { name: 'Add bed music.wav at the playhead' }).click();
     await poll(cues, (value) => (value.music?.length ?? 0) === beds + 1);
+    await panel.getByRole('button', { name: /^Music ducking/ }).click();
     const ducking = panel.getByRole('group', { name: 'Music ducking amount' });
     await expect
       .poll(() => ducking.getByRole('button', { name: 'Medium' }).getAttribute('aria-pressed'))

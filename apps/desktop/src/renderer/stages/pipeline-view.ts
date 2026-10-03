@@ -1,8 +1,9 @@
 /**
  * View model of the pipeline sidebar (PLAN.md#6.8): the eight rows of the reference app, each
  * backed by one or more runner stages (one line each in PIPELINE_ROWS), with a status (Done /
- * Review / Running / Paused / Queued / Ready / Waiting / Failed / Stale / Interrupted), a one-line
- * detail and the Open / Replace / Run / Redo / Stop actions with the gating hint. Pure.
+ * Review / Running / Paused / Queued / Ready / Waiting / Failed / Stale / Interrupted; the words
+ * the UI shows for them are in status-view.ts), a one-line detail and the Open / Replace / Run /
+ * Redo / Stop actions with the gating hint. Pure.
  */
 import type {
   PipelineStageKey,
@@ -127,20 +128,6 @@ export type RowStatus =
   | 'stale'
   | 'interrupted';
 
-export const STATUS_TEXT: Readonly<Record<RowStatus, string>> = {
-  loading: '…',
-  done: 'Done',
-  review: 'Review',
-  running: 'Running',
-  paused: 'Paused',
-  queued: 'Queued',
-  ready: 'Ready',
-  waiting: 'Waiting',
-  failed: 'Failed',
-  stale: 'Stale',
-  interrupted: 'Interrupted',
-};
-
 export interface ActionView {
   readonly enabled: boolean;
   /** Tooltip: what it does, or why it is not available. */
@@ -155,6 +142,8 @@ export interface RowView {
   readonly percent: number | null;
   /** Epoch ms the running stage started. */
   readonly startedAt: number | null;
+  /** Epoch ms a usage-limit pause ends (null: unknown or not paused). */
+  readonly pausedUntil: number | null;
   readonly error: StageErrorInfo | null;
   readonly warnings: readonly string[];
   /** Stages Run starts (the unfinished ones) and Redo starts (all). */
@@ -236,7 +225,7 @@ function rowDetail(
     }
     case 'queued': {
       const position = state.queue.findIndex((stage) => spec.stages.includes(stage)) + 1;
-      return `Queued: starts when the running stage finishes (#${String(position)}).`;
+      return `Queued: starts when the running step finishes (#${String(position)}).`;
     }
     case 'interrupted':
     case 'failed': {
@@ -324,6 +313,7 @@ export function pipelineRows(state: StagesState | undefined): RowView[] {
         detail: null,
         percent: null,
         startedAt: null,
+        pausedUntil: null,
         error: null,
         warnings: [],
         runStages: [],
@@ -349,6 +339,7 @@ export function pipelineRows(state: StagesState | undefined): RowView[] {
       detail: rowDetail(status, spec, infos, state),
       percent: running ? (state.running?.percent ?? null) : null,
       startedAt: running ? (state.running?.startedAt ?? null) : null,
+      pausedUntil: running ? (state.running?.paused?.until ?? null) : null,
       error: failedInfo(infos)?.error ?? null,
       warnings: infos.flatMap((info) => info.warnings),
       runStages: todo.map((info) => info.stage),

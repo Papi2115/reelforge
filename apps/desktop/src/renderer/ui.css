@@ -1,0 +1,104 @@
+/* Shared UI pieces of PLAN.md#11.2: shortcut hints, info buttons, disclosures, segmented toggles. */
+kbd,
+.menu-keys {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.help-menu-list [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-keys {
+  margin-left: auto;
+}
+
+/* An icon-only "why?" button: the explanation is its tooltip. */
+.info-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+
+.info-button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+/* A section that opens and closes (remembered by the panel). */
+.disclosure {
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+}
+
+.disclosure-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.disclosure-toggle .muted {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.disclosure-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px 8px 8px;
+}
+
+/* A thin progress bar (stages, downloads, exports). */
+.stage-progress {
+  height: 4px;
+  margin: 4px 0 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--panel-raised);
+}
+
+.stage-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* Stop of a running step: clearly visible. */
+.stop-button {
+  flex-shrink: 0;
+  color: var(--error);
+  border-color: rgb(255 138 138 / 55%);
+}
+
+.stop-button .icon {
+  color: var(--error);
+}

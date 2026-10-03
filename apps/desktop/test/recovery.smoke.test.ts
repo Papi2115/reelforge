@@ -30,6 +30,7 @@ import {
 } from './support/crash-recovery.js';
 import { fixtureProject, launchApp, screenshotDir } from './support/electron-app.js';
 import { ffprobe, golden, GOLDEN, synthesizeVoiceover } from './support/pipeline-film.js';
+import { showStage } from './support/pipeline-rows.js';
 
 const profiles: string[] = [];
 const apps: ElectronApplication[] = [];
@@ -71,11 +72,11 @@ function pipeline(page: Page) {
 }
 
 async function rowText(page: Page, label: string): Promise<string> {
-  return (await pipeline(page).getByRole('button', { name: label }).first().textContent()) ?? '';
+  return (await (await showStage(page, label)).textContent()) ?? '';
 }
 
 async function rowAction(page: Page, label: string, action: RegExp): Promise<void> {
-  await pipeline(page).getByRole('button', { name: label }).first().click();
+  await (await showStage(page, label)).click();
   const button = pipeline(page)
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: action });

@@ -27,6 +27,7 @@ import {
 } from '../src/main/whisper/test-hooks.js';
 import { writeFakeMirror } from '../src/main/whisper/testing/fake-mirror.js';
 import { appRoot, closeApp, launchApp, screenshotDir } from './support/electron-app.js';
+import { showStage } from './support/pipeline-rows.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -42,7 +43,7 @@ async function shot(name: string): Promise<void> {
 const pipeline = () => page.getByRole('region', { name: 'Pipeline' });
 
 async function rowText(label: string): Promise<string> {
-  return (await pipeline().getByRole('button', { name: label }).first().textContent()) ?? '';
+  return (await (await showStage(page, label)).textContent()) ?? '';
 }
 
 /** `words.raw.json` replayed by the transcription hook: the example's own timing, on the CPU. */
@@ -134,7 +135,7 @@ async function openTools(): Promise<ReturnType<Page['getByRole']>> {
 }
 
 async function redoWords(): Promise<void> {
-  await pipeline().getByRole('button', { name: 'Words timed' }).first().click();
+  await (await showStage(page, 'Words timed')).click();
   await pipeline()
     .getByRole('group', { name: 'Words timed actions' })
     .getByRole('button', { name: 'Redo' })

@@ -149,163 +149,6 @@
   margin: 0;
 }
 
-/* Shots: QA badges, details, progress, missing props */
-.shot-entry {
-  position: relative;
-}
-
-.shot-entry .shot-item {
-  padding-right: 34px;
-}
-
-.shot-entry .shot-line {
-  overflow: hidden;
-}
-
-.shots-panel .shot-list {
-  overflow-x: hidden;
-}
-
-.shot-badge {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  width: 24px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.shot-badge.qa-ok,
-.qa-ok {
-  color: var(--ok);
-}
-
-.shot-badge.qa-warning,
-.qa-warning {
-  color: var(--warn);
-}
-
-.shot-badge.qa-failed,
-.qa-failed {
-  color: var(--error);
-}
-
-.shot-badge.qa-running {
-  color: var(--accent-text);
-}
-
-/* Shot locks (PLAN.md#11.4) */
-.shot-lock {
-  position: absolute;
-  top: 31px;
-  right: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--border-soft);
-  border-radius: 4px;
-  background: var(--panel);
-  color: var(--muted);
-  opacity: 0.7;
-  cursor: pointer;
-}
-
-.shot-lock .icon {
-  width: 13px;
-  height: 13px;
-}
-
-.shot-lock:hover,
-.shot-lock:focus-visible {
-  opacity: 1;
-}
-
-.shot-lock.on {
-  border-color: var(--accent);
-  color: var(--accent-text);
-  opacity: 1;
-}
-
-.shot-lock.on.out-of-sync {
-  border-color: var(--warn);
-  color: var(--warn);
-}
-
-.shot-item.locked {
-  border-left-color: var(--accent-text);
-}
-
-.shots-lock-all {
-  margin-left: auto;
-  letter-spacing: 0;
-  text-transform: none;
-  font-weight: 500;
-}
-
-.shots-lock-all .icon {
-  width: 12px;
-  height: 12px;
-}
-
-.shot-lock-note {
-  margin: 4px 0 0;
-  color: var(--accent-text);
-}
-
-.shot-qa {
-  margin: -2px 0 6px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--panel-raised);
-  font-size: 12px;
-}
-
-.shot-qa-title {
-  margin: 4px 0 2px;
-  font-weight: 600;
-}
-
-.shot-qa-list {
-  margin: 0;
-  padding-left: 18px;
-  overflow-wrap: anywhere;
-}
-
-.shot-qa-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.shots-progress,
-.shots-banner {
-  margin: 0 8px 6px;
-  font-size: 12px;
-}
-
-.shots-progress {
-  color: var(--accent-text);
-}
-
-.shots-banner {
-  padding: 6px 8px;
-  border-left: 3px solid var(--warn);
-  border-radius: 4px;
-  background: var(--panel-raised);
-}
-
 /* Scenes built: docked under the preview */
 .center-stack.has-dock {
   flex-direction: column;
@@ -390,4 +233,15 @@
   color: var(--muted);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A run's progress in a docked panel keeps its own height (it used to shrink to nothing in the
+   scrolling body and its two text lines overlapped the totals under it, PLAN.md#11.2). */
+.doc-panel.docked .stage-run {
+  flex: none;
+}
+
+.doc-panel.docked .stage-run-log {
+  flex: none;
+  max-height: 140px;
 }

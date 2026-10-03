@@ -1,21 +1,22 @@
 /**
- * Timeline (PLAN.md#6.5): toolbar (zoom, fit, undo/redo, gain of the selected cue, save status),
- * track labels, the canvas lanes (timeline/TimelineCanvas.tsx) with a horizontal scrollbar, and
+ * Timeline (PLAN.md#6.5, #11.2): toolbar (zoom, fit, undo/redo, gain of the selected cue, the
+ * Tracks menu that shows / hides rows (remembered), save status), track labels, the canvas lanes (timeline/TimelineCanvas.tsx) with a horizontal scrollbar, and
  * the sound picker opened by double-clicking the Cues track. The playhead follows the player;
  * clicks and ruler drags seek / scrub through the player API. A boundary move that changes a locked
  * shot's length asks first (PLAN.md#11.4).
  */
-import { useEffect, useRef, useState, type JSX, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type JSX, type RefObject } from 'react';
+import { z } from 'zod';
 import type { LibrarySound } from '../../shared/sound-contract.js';
-import { BUILTIN_SFX_NAMES, type FileEdits } from '../../shared/timeline-contract.js';
+import type { FileEdits } from '../../shared/timeline-contract.js';
 import { ConfirmDialog } from '../project/ConfirmDialog.js';
 import { lockedLengthChanges, lockedLengthQuestion } from '../stages/locks-view.js';
 import { decodeSoundDrag, SOUND_DRAG_TYPE } from '../sound/sound-view.js';
 import type { WaveformView } from '../timeline/draw-timeline.js';
 import { itemKey, selectedCues, useSelection, type SelectionStore } from '../timeline/selection.js';
-import { addSfxChange, gainChange, type CueRef } from '../timeline/timeline-changes.js';
+import { addSfxChange } from '../timeline/timeline-changes.js';
 import { TimelineCanvas } from '../timeline/TimelineCanvas.js';
-import { TRACK_ROWS, type TimelineModel } from '../timeline/timeline-model.js';
+import { trackLayout, type TimelineModel, type ToggleTrack } from '../timeline/timeline-model.js';
 import {
   clampView,
   contentWidth,
@@ -30,6 +31,8 @@ import {
 } from '../timeline/timeline-view.js';
 import type { TimelineEditing } from '../timeline/use-timeline-edits.js';
 import { formatTime } from './timeline-scale.js';
+import { GainField, SfxPicker, ToolButton, TrackMenu } from './TimelineTools.js';
+import { usePref } from './ui-prefs.js';
 
 export interface TimelinePanelProps {
   /** Shots, words and cues with pending edits applied. */
@@ -52,12 +55,18 @@ export interface TimelinePanelProps {
 }
 
 const EMPTY_TEXT = {
-  shots: 'No storyboard yet',
-  narration: 'Words appear after the Words timed stage',
-  cues: 'No sound effects yet · double-click to add one',
+  shots: 'No shots yet: run Storyboard',
+  narration: 'No words yet: run Words timed',
+  cues: 'No sound effects yet · double-click here to add one',
   cards: 'On-screen cards are not shown here yet',
   ambience: 'No ambience or music yet',
 } as const;
+
+const TRACKS_PREFS_KEY = 'reelforge.layout.timeline.v1';
+const tracksPrefsSchema = z.object({
+  hidden: z.array(z.enum(['shots', 'narration', 'cues', 'audio', 'cards', 'ambience'])),
+});
+const DEFAULT_TRACKS_PREFS: { hidden: ToggleTrack[] } = { hidden: [] };
 
 function useLaneWidth(): [RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement>(null);
@@ -76,114 +85,11 @@ function useLaneWidth(): [RefObject<HTMLDivElement | null>, number] {
   return [ref, width];
 }
 
-function GainField({
-  model,
-  cue,
-  editing,
-}: {
-  readonly model: TimelineModel;
-  readonly cue: CueRef;
-  readonly editing: TimelineEditing;
-}): JSX.Element | null {
-  const current = model.cues[cue.track][cue.index]?.gainDb;
-  const [text, setText] = useState(current === undefined ? '' : String(current));
-  useEffect(() => {
-    setText(current === undefined ? '' : String(current));
-  }, [current]);
-  if (current === undefined) return null;
-  const commit = (): void => {
-    const change = gainChange(model.cues, cue, Number(text));
-    if (change) editing.apply(change);
-    else setText(String(current));
-  };
-  return (
-    <label className="timeline-gain">
-      Gain
-      <input
-        type="number"
-        step={0.5}
-        min={-60}
-        max={24}
-        value={text}
-        aria-label={`Gain of the selected ${cue.track} cue (dB)`}
-        onChange={(event) => {
-          setText(event.target.value);
-        }}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') commit();
-        }}
-      />
-      dB
-    </label>
-  );
-}
-
-function SfxPicker({
-  x,
-  onPick,
-  onClose,
-}: {
-  readonly x: number;
-  readonly onPick: (name: string) => void;
-  readonly onClose: () => void;
-}): JSX.Element {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.querySelector('button')?.focus();
-  }, []);
-  return (
-    <div
-      ref={ref}
-      className="sfx-picker"
-      role="dialog"
-      aria-label="Add a sound effect"
-      style={{ left: `${String(Math.max(0, x - 8))}px` }}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') onClose();
-        event.stopPropagation();
-      }}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) onClose();
-      }}
-    >
-      {BUILTIN_SFX_NAMES.map((name) => (
-        <button
-          key={name}
-          type="button"
-          onClick={() => {
-            onPick(name);
-          }}
-        >
-          {name}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function ToolButton(props: {
-  readonly label: string;
-  readonly onClick: () => void;
-  readonly disabled?: boolean;
-  readonly children: ReactNode;
-}): JSX.Element {
-  return (
-    <button
-      type="button"
-      className="tool-button"
-      aria-label={props.label}
-      title={props.label}
-      disabled={props.disabled}
-      onClick={props.onClick}
-    >
-      {props.children}
-    </button>
-  );
-}
-
 export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
   const { model, duration, time, playing, selection, editing } = props;
+  const [tracks, setTracks] = usePref(TRACKS_PREFS_KEY, tracksPrefsSchema, DEFAULT_TRACKS_PREFS);
+  const hidden = useMemo(() => new Set(tracks.hidden), [tracks.hidden]);
+  const layout = useMemo(() => trackLayout(hidden), [hidden]);
   const selected = useSelection(selection);
   const [laneRef, laneWidth] = useLaneWidth();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -245,6 +151,7 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
       <div className="timeline-toolbar" role="toolbar" aria-label="Timeline tools">
         <ToolButton
           label="Zoom out"
+          keys="−"
           onClick={() => {
             zoomBy(1 / ZOOM_STEP);
           }}
@@ -253,6 +160,7 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
         </ToolButton>
         <ToolButton
           label="Zoom in"
+          keys="+"
           onClick={() => {
             zoomBy(ZOOM_STEP);
           }}
@@ -271,10 +179,30 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
           {view.pxPerSecond >= 10 ? Math.round(view.pxPerSecond) : view.pxPerSecond.toFixed(1)} px/s
         </span>
         <span className="toolbar-gap" />
-        <ToolButton label="Undo timeline edit" disabled={!editing.canUndo} onClick={editing.undo}>
+        <TrackMenu
+          hidden={hidden}
+          onToggle={(track, shown) => {
+            setTracks((current) => ({
+              hidden: shown
+                ? current.hidden.filter((id) => id !== track)
+                : [...current.hidden.filter((id) => id !== track), track],
+            }));
+          }}
+        />
+        <ToolButton
+          label="Undo timeline edit"
+          keys="Ctrl+Z"
+          disabled={!editing.canUndo}
+          onClick={editing.undo}
+        >
           Undo
         </ToolButton>
-        <ToolButton label="Redo timeline edit" disabled={!editing.canRedo} onClick={editing.redo}>
+        <ToolButton
+          label="Redo timeline edit"
+          keys="Ctrl+Y"
+          disabled={!editing.canRedo}
+          onClick={editing.redo}
+        >
           Redo
         </ToolButton>
         {cues.length === 1 && singleCue && (
@@ -295,7 +223,7 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
       </div>
       <div className="timeline-body">
         <div className="timeline-labels" aria-hidden="true">
-          {TRACK_ROWS.map((row) => (
+          {layout.rows.map((row) => (
             <span
               key={row.id}
               className={`track-label ${row.id}`}
@@ -341,6 +269,7 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
               selected={selected}
               waveform={props.waveform}
               emptyText={EMPTY_TEXT}
+              layout={layout}
               onSeek={props.onSeek}
               onScrub={props.onScrub}
               onChange={applyEdit}

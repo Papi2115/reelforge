@@ -127,6 +127,6 @@ export function exportPreflight(
       finalReviewSummary(review) ??
       (scenes === null
         ? 'Scenes are not built yet.'
-        : 'No final review yet (Scenes panel → Run final review).'),
+        : 'No final review yet: open Scenes built and press Run final review.'),
   };
 }

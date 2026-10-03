@@ -3,6 +3,7 @@
  * and render speed, the shots being rendered, Cancel / Resume / Open folder, the final report
  * (duration, size, average fps, encoder, cache hits) and failures with what to do about them.
  */
+import { plural } from '../../shared/plural.js';
 import type { JSX } from 'react';
 import type { ExportJob, ExportQueueState } from '../../shared/export-contract.js';
 import { cacheLine, fileNameOf, progressLine, reportLine, shotsLine } from './export-view.js';
@@ -145,8 +146,8 @@ export function ExportQueueList(props: ExportQueueListProps): JSX.Element {
       {interrupted !== null && (
         <div className="export-interrupted" role="status">
           <span>
-            An export did not finish ({interrupted.finishedShots} of {interrupted.totalShots} shots
-            done): {fileNameOf(interrupted.output)}
+            An export did not finish ({interrupted.finishedShots} of{' '}
+            {plural(interrupted.totalShots, 'shot')} done): {fileNameOf(interrupted.output)}
           </span>
           <button type="button" className="small-button" onClick={props.onResumeInterrupted}>
             Resume

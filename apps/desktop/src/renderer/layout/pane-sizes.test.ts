@@ -50,6 +50,19 @@ describe('clampPaneSizes', () => {
     });
   });
 
+  it('with the chat collapsed to its rail, only the left column gives way', () => {
+    const sizes = clampPaneSizes(
+      { left: 900, right: 500, bottom: 200 },
+      { width: 1280, height: 720 },
+      44,
+    );
+    expect(sizes.right).toBe(500);
+    expect(1280 - sizes.left - 44 - 2 * PANE_LIMITS.splitterSize).toBe(PANE_LIMITS.minCenterWidth);
+    const defaults = clampPaneSizes(DEFAULT_PANE_SIZES, { width: 1280, height: 660 }, 44);
+    expect(defaults).toEqual(DEFAULT_PANE_SIZES);
+    expect(1280 - defaults.left - 44 - PANE_LIMITS.splitterSize).toBeGreaterThanOrEqual(900);
+  });
+
   it('caps the timeline so the preview keeps its minimum height', () => {
     const sizes = clampPaneSizes(
       { ...DEFAULT_PANE_SIZES, bottom: 900 },

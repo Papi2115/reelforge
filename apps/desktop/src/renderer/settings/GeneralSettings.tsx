@@ -1,4 +1,7 @@
-/** Settings pages for models / Economy / budget, project defaults and performance (PLAN.md#6.7). */
+/**
+ * Settings pages for models / Economy / budget, project defaults and performance (PLAN.md#6.7).
+ * Every model choice says what the model is good for, every step what it does (PLAN.md#11.2).
+ */
 import { findStylePreset, STYLE_PRESET_IDS } from '@reelforge/engine';
 import {
   ENCODER_PREFERENCES,
@@ -11,7 +14,7 @@ import {
   type SettingsModel,
   type SettingsStage,
 } from '@reelforge/shared';
-import { useState, type JSX } from 'react';
+import { useId, useState, type JSX } from 'react';
 import type { SettingsState } from '../../shared/settings-contract.js';
 
 export interface PageProps {
@@ -25,6 +28,13 @@ const MODEL_LABELS: Readonly<Record<SettingsModel, string>> = {
   haiku: 'Haiku',
 };
 
+/** One line per model: what it is good for. */
+export const MODEL_HINTS: Readonly<Record<SettingsModel, string>> = {
+  haiku: 'fastest, for quick checks',
+  sonnet: 'balanced, for planning and chat',
+  opus: 'most capable, for scene code (uses the most of your limit)',
+};
+
 const STAGE_LABELS: Readonly<Record<SettingsStage, string>> = {
   research: 'Research',
   script: 'Script',
@@ -35,33 +45,56 @@ const STAGE_LABELS: Readonly<Record<SettingsStage, string>> = {
   'sound-cues': 'Sound cues',
 };
 
+const STAGE_HINTS: Readonly<Record<SettingsStage, string>> = {
+  research: 'Gathers facts for the script.',
+  script: 'Writes the script you read aloud.',
+  storyboard: 'Plans the shots on your timed words.',
+  'scene-build': 'Writes the animation code of every shot.',
+  'scene-fix': 'Fixes shots that fail their checks.',
+  critic: 'Looks at frames of every shot for problems.',
+  'sound-cues': 'Places sound effects, ambience and music.',
+};
+
 function isModel(value: string): value is SettingsModel {
   return (SETTINGS_MODEL_ALIASES as readonly string[]).includes(value);
 }
 
 function ModelSelect(props: {
   readonly label: string;
+  /** What the step does. */
+  readonly hint: string;
   readonly value: SettingsModel;
   readonly disabled: boolean;
   readonly onChange: (model: SettingsModel) => void;
 }): JSX.Element {
+  const id = useId();
   return (
-    <label className="field">
-      <span>{props.label}</span>
-      <select
-        value={props.value}
-        disabled={props.disabled}
-        onChange={(event) => {
-          if (isModel(event.target.value)) props.onChange(event.target.value);
-        }}
-      >
-        {SETTINGS_MODEL_ALIASES.map((model) => (
-          <option key={model} value={model}>
-            {MODEL_LABELS[model]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="model-row">
+      <label className="model-row-label" htmlFor={id}>
+        <span className="model-row-name">{props.label}</span>
+        <span className="muted">{props.hint}</span>
+      </label>
+      <div className="model-row-choice">
+        <select
+          id={id}
+          value={props.value}
+          disabled={props.disabled}
+          aria-describedby={`${id}-hint`}
+          onChange={(event) => {
+            if (isModel(event.target.value)) props.onChange(event.target.value);
+          }}
+        >
+          {SETTINGS_MODEL_ALIASES.map((model) => (
+            <option key={model} value={model}>
+              {MODEL_LABELS[model]} — {MODEL_HINTS[model].split(',')[0]}
+            </option>
+          ))}
+        </select>
+        <span className="model-hint muted" id={`${id}-hint`}>
+          {MODEL_LABELS[props.value]}: {MODEL_HINTS[props.value]}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -97,6 +130,7 @@ export function ModelsPage({ state, update }: PageProps): JSX.Element {
   const { settings } = state;
   return (
     <div className="settings-page">
+      <h3 className="settings-heading">Usage limit</h3>
       <label className="settings-toggle">
         <input
           type="checkbox"
@@ -108,11 +142,12 @@ export function ModelsPage({ state, update }: PageProps): JSX.Element {
         <span>
           <strong>Economy mode</strong>
           <span className="muted">
-            Every stage runs on Sonnet, turns are kept short and each shot gets one QA pass. Saves
+            Every step runs on Sonnet, turns are kept short and each shot gets one QA pass. Saves
             your Claude usage limit.
           </span>
         </span>
       </label>
+      <h3 className="settings-heading">Quality</h3>
       <label className="settings-toggle">
         <input
           type="checkbox"
@@ -129,13 +164,17 @@ export function ModelsPage({ state, update }: PageProps): JSX.Element {
           </span>
         </span>
       </label>
-      <h3 className="settings-heading">Model per stage</h3>
-      {settings.economy && <p className="muted">Economy mode is on: all stages use Sonnet.</p>}
-      <div className="settings-grid">
+      <h3 className="settings-heading">Model per step</h3>
+      <p className="muted model-legend">
+        Haiku: {MODEL_HINTS.haiku} · Sonnet: {MODEL_HINTS.sonnet} · Opus: {MODEL_HINTS.opus}.
+      </p>
+      {settings.economy && <p className="muted">Economy mode is on: all steps use Sonnet.</p>}
+      <div className="model-rows">
         {SETTINGS_STAGES.map((stage) => (
           <ModelSelect
             key={stage}
             label={STAGE_LABELS[stage]}
+            hint={STAGE_HINTS[stage]}
             value={settings.models[stage]}
             disabled={settings.economy}
             onChange={(model) => {
@@ -145,9 +184,10 @@ export function ModelsPage({ state, update }: PageProps): JSX.Element {
         ))}
       </div>
       <h3 className="settings-heading">Edit chat</h3>
-      <div className="settings-grid">
+      <div className="model-rows">
         <ModelSelect
           label="Chat"
+          hint="Answers your change requests in the chat."
           value={settings.chat.model}
           disabled={settings.economy}
           onChange={(model) => {
@@ -155,7 +195,8 @@ export function ModelsPage({ state, update }: PageProps): JSX.Element {
           }}
         />
         <ModelSelect
-          label='"Harder fix" toggle'
+          label='"Think harder" toggle'
+          hint="Used for a message sent with Think harder."
           value={settings.chat.boostModel}
           disabled={settings.economy}
           onChange={(model) => {
@@ -163,7 +204,7 @@ export function ModelsPage({ state, update }: PageProps): JSX.Element {
           }}
         />
       </div>
-      <h3 className="settings-heading">Usage</h3>
+      <h3 className="settings-heading">Budget</h3>
       <BudgetField state={state} update={update} />
     </div>
   );

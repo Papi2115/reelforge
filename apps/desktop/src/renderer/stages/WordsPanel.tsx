@@ -4,6 +4,7 @@
  * every word of timing/words.json with its spoken time; words the alignment only guessed (fuzzy)
  * or could not find (missing) are marked. Clicking a word or a region moves the preview there.
  */
+import { plural } from '../../shared/plural.js';
 import { useState, type JSX } from 'react';
 import type { WordsFile, WordsReport } from '@reelforge/shared';
 import type { FileState } from '../../shared/snapshot-contract.js';
@@ -122,7 +123,7 @@ function Quality(props: {
 function Body({ words, onSeek }: Pick<WordsPanelProps, 'words' | 'onSeek'>): JSX.Element {
   if (words === undefined) return <p className="panel-empty">Reading the project…</p>;
   if (words.status === 'missing') {
-    return <p className="panel-empty">No timing/words.json yet: run Words timed.</p>;
+    return <p className="panel-empty">No words yet. Add your voiceover, then run Words timed.</p>;
   }
   if (words.status === 'error') {
     return (
@@ -136,7 +137,7 @@ function Body({ words, onSeek }: Pick<WordsPanelProps, 'words' | 'onSeek'>): JSX
   return (
     <>
       <p className="muted words-summary">
-        {list.length} words
+        {plural(list.length, 'word')}
         {list.length > 0 && ` · ${formatTime(list.at(-1)?.tEnd ?? 0)}`}
         {unsure.length > 0 && ` · ${String(unsure.length)} not heard clearly (marked)`}
       </p>

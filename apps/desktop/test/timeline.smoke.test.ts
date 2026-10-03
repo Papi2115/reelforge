@@ -280,6 +280,17 @@ describe('timeline editor', () => {
     await page.getByRole('button', { name: 'Zoom in' }).click();
     expect((await lanes()).pxPerSecond).toBeGreaterThan(fit.pxPerSecond);
     await page.screenshot({ path: path.join(screenshotDir, 'timeline-long-zoom-1920x1080.png') });
+
+    // The Tracks menu hides rows (PLAN.md#11.2); the choice is kept.
+    await page.getByRole('button', { name: /^Tracks/ }).click();
+    await page.getByRole('checkbox', { name: 'Narration' }).uncheck();
+    await page.getByRole('checkbox', { name: 'Cards' }).uncheck();
+    await waitForLanes('tracks', 'ruler,shots,cues,audio,ambience');
+    await page.screenshot({ path: path.join(screenshotDir, 'timeline-tracks-1920x1080.png') });
+    await page.getByRole('checkbox', { name: 'Narration' }).check();
+    await page.getByRole('checkbox', { name: 'Cards' }).check();
+    await page.keyboard.press('Escape');
+    await waitForLanes('tracks', 'ruler,shots,narration,cues,audio,cards,ambience');
     expect(existsSync(path.join(dir, '.git'))).toBe(true);
   });
 });

@@ -6,6 +6,7 @@ import {
   contentEnd,
   hitTest,
   rangeLane,
+  trackLayout,
   trackRow,
   wordParts,
   type TimelineModel,
@@ -63,8 +64,8 @@ describe('hitTest', () => {
 
   it('finds sfx markers, range edges and range bodies', () => {
     expect(hitTest(model, view, 372, middle('cues'), true)).toEqual({ kind: 'sfx', index: 0 });
-    const ambience = rangeLane('ambience').top + 3;
-    const music = rangeLane('music').top + 3;
+    const ambience = (rangeLane('ambience')?.top ?? 0) + 3;
+    const music = (rangeLane('music')?.top ?? 0) + 3;
     expect(hitTest(model, view, 398, ambience, true)).toEqual({
       kind: 'range-edge',
       track: 'ambience',
@@ -111,5 +112,53 @@ describe('applyChanges', () => {
 
   it('reports where the content ends', () => {
     expect(contentEnd(model)).toBe(7.5);
+  });
+});
+
+describe('track layout', () => {
+  it('stacks the shown rows, every row at least 20 px; the ruler always shows', () => {
+    const all = trackLayout();
+    expect(all.rows.map((row) => row.id)).toEqual([
+      'ruler',
+      'shots',
+      'narration',
+      'cues',
+      'audio',
+      'cards',
+      'ambience',
+    ]);
+    expect(Math.min(...all.rows.map((row) => row.height))).toBeGreaterThanOrEqual(20);
+    const some = trackLayout(new Set(['narration', 'cards', 'ruler'] as const));
+    expect(some.rows.map((row) => row.id)).toEqual(['ruler', 'shots', 'cues', 'audio', 'ambience']);
+    expect(some.rows[2]).toMatchObject({ id: 'cues', top: 48 });
+    expect(some.height).toBe(all.height - 24 - 20);
+    expect(rangeLane('music', trackLayout(new Set(['ambience'] as const)))).toBeUndefined();
+  });
+
+  it('hit-tests the shown rows only', () => {
+    const layout = trackLayout(new Set(['narration'] as const));
+    const cues = layout.rows.find((row) => row.id === 'cues');
+    expect(hitTest(model, view, 372, (cues?.top ?? 0) + 5, true, layout)).toEqual({
+      kind: 'sfx',
+      index: 0,
+    });
+  });
+
+  it('grabs the playhead nearby, but not over a boundary or a marker', () => {
+    expect(hitTest(model, view, 505, middle('audio'), true, undefined, 5)).toEqual({
+      kind: 'playhead',
+    });
+    expect(hitTest(model, view, 512, middle('audio'), true, undefined, 5)).toEqual({
+      kind: 'lane',
+      track: 'audio',
+    });
+    expect(hitTest(model, view, 222, middle('shots'), true, undefined, 2.2)).toEqual({
+      kind: 'boundary',
+      left: 0,
+    });
+    expect(hitTest(model, view, 370, middle('cues'), true, undefined, 3.7)).toEqual({
+      kind: 'sfx',
+      index: 0,
+    });
   });
 });

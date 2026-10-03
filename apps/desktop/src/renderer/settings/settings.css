@@ -1,4 +1,4 @@
-/* Settings dialog, Connect Claude wizard, tools and whisper models (PLAN.md#6.7). */
+/* Settings dialog and the Connect Claude wizard (PLAN.md#6.7); tools: tools.css. */
 .settings-dialog {
   display: flex;
   flex-direction: column;
@@ -73,9 +73,58 @@
 }
 
 .settings-heading {
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 14px;
   font-weight: 600;
+}
+
+.settings-page > .settings-heading:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Model per step: name + what the step does, the choice + what the model is good for. */
+.model-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr);
+  align-items: start;
+  gap: 4px 16px;
+}
+
+.model-row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 13px;
+}
+
+.model-row-label .muted,
+.model-hint {
+  font-size: 12px;
+}
+
+.model-row-name {
+  font-weight: 600;
+}
+
+.model-row-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-legend {
+  margin: 0;
+  font-size: 12px;
 }
 
 .settings-grid {
@@ -260,120 +309,6 @@
   border-top: 1px solid var(--border);
 }
 
-/* Tools */
-.tool-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-}
-
-.tool-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tool-card-header .connect-dot {
-  margin-top: 0;
-}
-
-.tool-card-header .settings-heading {
-  margin: 0;
-}
-
-.tool-card-actions {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.tool-facts {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px 12px;
-  margin: 0;
-  font-size: 12px;
-}
-
-.tool-facts dt {
-  color: var(--muted);
-}
-
-.tool-facts dd {
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tool-fact-row {
-  display: contents;
-}
-
-.tool-problem {
-  color: var(--warn);
-  font-size: 12px;
-}
-
-.license-badge {
-  margin-left: 4px;
-  padding: 0 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  background: var(--panel-raised);
-}
-
-.license-lgpl {
-  color: var(--ok);
-}
-
-.license-gpl {
-  color: var(--warn);
-}
-
-.license-nonfree {
-  color: var(--error);
-}
-
-.model-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.model-table th {
-  color: var(--muted);
-  font-weight: 500;
-  text-align: left;
-}
-
-.model-table th,
-.model-table td {
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--border-soft);
-}
-
-.model-table input[type='radio'] {
-  accent-color: var(--accent);
-}
-
-.model-progress {
-  display: block;
-  width: 120px;
-  height: 6px;
-  accent-color: var(--accent);
-}
-
-.model-actions {
-  text-align: right;
-  white-space: nowrap;
-}
-
 /* Status bar: Claude connection chip */
 .claude-chip {
   display: inline-flex;
@@ -390,90 +325,4 @@
   width: 8px;
   height: 8px;
   margin-top: 0;
-}
-
-/* whisper.cpp setup (Tools page, first-run, Words timed notice) */
-.engine-headline {
-  margin: 0;
-  font-weight: 600;
-}
-
-.engine-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.existing-installs {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
-.install-progress,
-.install-failed {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.install-progress .stage-progress {
-  height: 6px;
-}
-
-.install-label,
-.install-detail-line {
-  margin: 0;
-  font-size: 12px;
-}
-
-.install-detail-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.install-detail {
-  margin: 0;
-  font-size: 11px;
-  overflow-wrap: anywhere;
-}
-
-.install-failed .link-button {
-  align-self: flex-start;
-}
-
-.prepare-tools {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.prepare-row {
-  display: flex;
-  gap: 10px;
-}
-
-.prepare-row-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.prepare-row-body p {
-  margin: 0;
-}
-
-.prepare-row-body .primary {
-  align-self: flex-start;
 }

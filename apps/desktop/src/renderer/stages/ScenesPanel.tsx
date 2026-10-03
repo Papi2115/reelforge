@@ -9,11 +9,12 @@
 import type { StoryboardShot } from '@reelforge/shared';
 import { useState, type JSX } from 'react';
 import type { SceneActionKey, StageReports } from '../../shared/voiceover-contract.js';
+import { plural } from '../../shared/plural.js';
 import { FinalReviewSection } from './FinalReview.js';
 import { exportPreflight, finalReviewProgress } from './final-review-view.js';
 import { StageProgress } from './StageProgress.js';
 import {
-  buildProgress,
+  buildProgressView,
   propsBanner,
   propsSummary,
   syncProblemShots,
@@ -31,14 +32,16 @@ export interface ScenesPanelProps {
 
 function Totals({ reports }: { readonly reports: StageReports | undefined }): JSX.Element {
   const shots = reports?.scenes?.shots ?? [];
-  if (shots.length === 0) return <p className="muted">No shot built yet: run Scenes built.</p>;
+  if (shots.length === 0) {
+    return <p className="muted">No shot is built yet. Run Scenes built in the pipeline.</p>;
+  }
   const count = (status: string): number => shots.filter((shot) => shot.status === status).length;
   return (
     <p className="scenes-totals" data-testid="scenes-totals">
       <span className="qa-ok">✓ {count('ok')}</span>
       <span className="qa-warning">⚠ {count('warning')}</span>
       <span className="qa-failed">✗ {count('failed')}</span>
-      <span className="muted"> of {shots.length} shots built</span>
+      <span className="muted"> of {plural(shots.length, 'shot')} built</span>
     </p>
   );
 }
@@ -50,12 +53,16 @@ function SyncTable(props: {
   const sync = props.reports?.sync ?? null;
   const rows = syncRows(sync);
   if (sync === null) {
-    return <p className="muted">No sync report yet: use Check sync (or the chat suggestion).</p>;
+    return (
+      <p className="muted">
+        No sync report yet. Check sync measures every visual against its spoken word.
+      </p>
+    );
   }
   return (
     <table className="mismatch-table sync-table" aria-label="Sync report">
       <caption className="muted">
-        {sync.summary.ok} of {sync.summary.events} events within ±{sync.toleranceMs} ms ·{' '}
+        {sync.summary.ok} of {plural(sync.summary.events, 'event')} within ±{sync.toleranceMs} ms ·{' '}
         {sync.summary.problems} off
       </caption>
       <thead>
@@ -98,7 +105,7 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
   const state = props.stages.state;
   const running = state?.running?.stage === 'scenes' ? state.running : null;
   const busy = running !== null || state?.queue.includes('scenes') === true;
-  const progress = buildProgress(running, props.shots.length);
+  const progress = buildProgressView(running, props.shots.length);
   const banner = propsBanner(
     propsSummary(props.reports?.scenes ?? null, props.reports?.props ?? null),
   );
@@ -139,7 +146,7 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
           type="button"
           className="small-button"
           aria-disabled={busy || props.shots.length === 0}
-          title={props.shots.length === 0 ? 'No storyboard yet.' : reviewTitle}
+          title={props.shots.length === 0 ? 'No shots yet: run Storyboard first.' : reviewTitle}
           onClick={() => {
             if (!busy && props.shots.length > 0) start('final-review', null);
           }}
@@ -163,7 +170,10 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
         )}
         {busy && (
           <StageProgress
-            title={progress ?? 'Scenes built (queued)'}
+            title={progress?.title ?? 'Scenes built (queued)'}
+            step={progress === null ? undefined : `${progress.what}: ${progress.step}`}
+            percent={progress?.percent ?? null}
+            stopLabel={progress?.what === 'Building' ? 'Stop building' : 'Stop'}
             run={running}
             onStop={() => {
               props.stages.stop('scenes');
@@ -177,7 +187,7 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
             props.reports?.scenes ?? null,
             props.shots,
           )}
-          progress={finalReviewProgress(running)}
+          progress={finalReviewProgress(running) === null ? null : 'Reviewing now: progress above.'}
           onSeekShot={props.onSeekShot}
         />
         <h3 className="section-title">Sync report</h3>

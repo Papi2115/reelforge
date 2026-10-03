@@ -17,14 +17,15 @@ export interface Viewport {
   readonly height: number;
 }
 
-export const DEFAULT_PANE_SIZES: PaneSizes = { left: 272, right: 320, bottom: 216 };
+export const DEFAULT_PANE_SIZES: PaneSizes = { left: 300, right: 320, bottom: 216 };
 
 export const PANE_LIMITS = {
-  minLeft: 220,
+  minLeft: 240,
   minRight: 280,
   minBottom: 120,
-  minCenterWidth: 420,
-  minCenterHeight: 240,
+  /** Room for the preview's transport bar and a usable picture (PLAN.md#11.2). */
+  minCenterWidth: 520,
+  minCenterHeight: 260,
   /** Total width of the two vertical splitters / height of the horizontal one. */
   splitterSize: 6,
 } as const;
@@ -48,15 +49,22 @@ function clamp(value: number, min: number, max: number): number {
  * Fits `sizes` into `viewport`: side columns at least their minimum, the preview at least its
  * minimum width (shrinking the chat first, then the left column), the timeline between its
  * minimum and what leaves the preview its minimum height. Below the minimum total the side
- * columns stay at their minimums and the preview shrinks.
+ * columns stay at their minimums and the preview shrinks. With `collapsedRight` (the width of the
+ * collapsed chat rail) only the left column gives way; the stored chat width is kept for later.
  */
-export function clampPaneSizes(sizes: PaneSizes, viewport: Viewport): PaneSizes {
+export function clampPaneSizes(
+  sizes: PaneSizes,
+  viewport: Viewport,
+  collapsedRight?: number,
+): PaneSizes {
   const limits = PANE_LIMITS;
   const available = viewport.width - 2 * limits.splitterSize - limits.minCenterWidth;
   let left = Math.max(limits.minLeft, sizes.left);
   let right = Math.max(limits.minRight, sizes.right);
-  let overflow = left + right - available;
-  if (overflow > 0) {
+  let overflow = left + (collapsedRight ?? right) - available;
+  if (overflow > 0 && collapsedRight !== undefined) {
+    left -= Math.min(overflow, left - limits.minLeft);
+  } else if (overflow > 0) {
     const fromRight = Math.min(overflow, right - limits.minRight);
     right -= fromRight;
     overflow -= fromRight;

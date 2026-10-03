@@ -49,21 +49,28 @@ const APPROVED = { ...DONE, approvedAt: '2026-10-02T10:00:00.000Z' } as const;
 
 describe('nextStep', () => {
   it('starts a new project at the brief', () => {
-    expect(nextStep(pipelineRows(state({ script: { ready: true } })))).toEqual({
+    const step = nextStep(pipelineRows(state({ script: { ready: true } })));
+    expect(step).toMatchObject({
       rowId: 'script',
-      text: 'Next: fill in the brief, then run Script written.',
+      heading: 'Next',
+      text: 'Describe the video in the brief, then write the script.',
+      button: 'Open the brief',
+      action: { kind: 'brief' },
     });
+    expect(step?.why).toContain('read aloud');
   });
 
   it('asks for the voiceover once the script is approved', () => {
-    const rows = pipelineRows(state({ script: APPROVED }));
-    expect(nextStep(rows)).toEqual({
+    const step = nextStep(pipelineRows(state({ script: APPROVED })));
+    expect(step).toMatchObject({
       rowId: 'voiceover',
-      text: 'Next: add your voiceover (Voiceover added → Replace to import or record it).',
+      text: 'Record or import your voiceover.',
+      button: 'Add your voiceover',
+      action: { kind: 'open', target: { kind: 'voiceover' } },
     });
   });
 
-  it('points the example project (Script → Scenes done) at the sound design', () => {
+  it('names the step to run on the button (the example project: Sound design mixed)', () => {
     const rows = pipelineRows(
       state({
         script: APPROVED,
@@ -76,27 +83,60 @@ describe('nextStep', () => {
         mix: { ready: true },
       }),
     );
-    expect(nextStep(rows)?.rowId).toBe('sound');
-    expect(nextStep(rows)?.text).toContain('run Sound design mixed');
+    expect(nextStep(rows)).toMatchObject({
+      rowId: 'sound',
+      text: 'Mix the voice, effects and ambience.',
+      button: 'Run Sound design mixed',
+      action: { kind: 'run', stages: ['mix'] },
+    });
   });
 
-  it('says review, failed and stale rows in their own words', () => {
-    expect(nextStep(pipelineRows(state({ script: DONE })))?.text).toBe(
-      'Next: open Script written and approve it.',
-    );
+  it('shows a step that cannot run yet instead of a dead Run button', () => {
+    const rows = pipelineRows(state({ script: APPROVED, voiceover: DONE }));
+    expect(nextStep(rows)).toMatchObject({
+      rowId: 'clean',
+      button: 'Show Audio cleaned',
+      action: { kind: 'select' },
+    });
+  });
+
+  it('says review, failed, stale and interrupted steps in their own words', () => {
+    expect(nextStep(pipelineRows(state({ script: DONE })))).toMatchObject({
+      text: 'Read the script and approve it.',
+      button: 'Open the script',
+      action: { kind: 'open', target: { kind: 'script' } },
+    });
     const failed = pipelineRows(state({ script: APPROVED, voiceover: { status: 'failed' } }));
-    expect(nextStep(failed)?.text).toBe('Next: Voiceover added failed: select it to see why.');
-    const stale = pipelineRows(state({ script: { ...APPROVED, stale: true } }));
-    expect(nextStep(stale)?.text).toBe('Next: run Script written again.');
+    expect(nextStep(failed)).toMatchObject({
+      text: 'Voiceover added failed.',
+      button: 'See what failed',
+      action: { kind: 'select' },
+    });
+    const stale = pipelineRows(state({ script: { ...APPROVED, stale: true, ready: true } }));
+    expect(nextStep(stale)).toMatchObject({
+      text: 'Script written is out of date: something it uses changed.',
+      button: 'Rebuild Script written',
+      action: { kind: 'run', stages: ['script'] },
+    });
+    const interrupted = pipelineRows(
+      state({ script: APPROVED, voiceover: DONE, clean: { interrupted: true, ready: true } }),
+    );
+    expect(nextStep(interrupted)).toMatchObject({
+      button: 'Resume Audio cleaned',
+      action: { kind: 'run', stages: ['clean'] },
+    });
   });
 
-  it('stays quiet while a stage is queued and congratulates at the end', () => {
+  it('stays quiet while a step is queued and says when everything is done', () => {
     const queued = state({ script: APPROVED }, { queue: ['clean'] });
     expect(nextStep(pipelineRows(queued))).toBeNull();
     const all = Object.fromEntries(PIPELINE_STAGE_KEYS.map((stage) => [stage, APPROVED]));
-    expect(nextStep(pipelineRows(state(all)))).toEqual({
+    expect(nextStep(pipelineRows(state(all)))).toMatchObject({
       rowId: 'export',
-      text: 'Done: open Video exported to find your MP4.',
+      heading: 'All done',
+      text: 'Your video is exported.',
+      button: 'Open the export',
+      action: { kind: 'open', target: { kind: 'export' } },
     });
   });
 });

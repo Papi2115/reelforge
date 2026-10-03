@@ -1,0 +1,99 @@
+/* Collapsible chat column (PLAN.md#11.2): the open panel's body and the slim rail. */
+.chat {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-body[hidden] {
+  display: none;
+}
+
+.chat-collapse {
+  width: 26px;
+  height: 26px;
+  margin-right: -2px;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+
+.chat.collapsed {
+  border-left: 1px solid var(--border);
+}
+
+.chat-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  padding: 8px 0;
+}
+
+.chat-rail-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--text);
+}
+
+.chat-rail-unread {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  color: var(--on-accent);
+  background: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.chat-rail-state {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+}
+
+.chat-rail-state.working {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.chat-rail-state.paused {
+  border-color: var(--warn);
+  background: var(--warn);
+}
+
+.chat-rail-queue {
+  min-width: 20px;
+  padding: 0 4px;
+  border-radius: 999px;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  font-size: 12px;
+  text-align: center;
+}
+
+.chat-rail-label {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+}

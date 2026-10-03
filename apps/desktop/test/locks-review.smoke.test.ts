@@ -24,6 +24,7 @@ import {
   stubFolderPicker,
 } from './support/electron-app.js';
 import { FINAL_REVIEW_CLEAN } from './support/pipeline-film.js';
+import { showStage, stageText } from './support/pipeline-rows.js';
 
 const CRITIC_OK = JSON.stringify({
   frames: [{ path: 'sheet.png', verdict: 'ok', note: 'looks right' }],
@@ -57,14 +58,11 @@ function shots() {
 }
 
 async function rowText(label: string): Promise<string> {
-  const row = pipeline().getByRole('button', { name: label, exact: false }).first();
-  const text = (await row.textContent()) ?? '';
-  const detail = (await row.getAttribute('title')) ?? '';
-  return detail === '' ? text : `${text} (${detail})`;
+  return stageText(page, label);
 }
 
 async function openRow(label: string): Promise<void> {
-  await pipeline().getByRole('button', { name: label }).first().click();
+  await (await showStage(page, label)).click();
   await pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: 'Open' })
@@ -178,7 +176,7 @@ describe('shot locks and the final review', () => {
 
   it('builds only the unlocked shot, then the final review reports the locked one', async () => {
     // The fixture's scene files count as built: "Redo" rebuilds every unlocked shot.
-    await pipeline().getByRole('button', { name: 'Scenes built' }).first().click();
+    await (await showStage(page, 'Scenes built')).click();
     const redo = pipeline()
       .getByRole('group', { name: 'Scenes built actions' })
       .getByRole('button', { name: 'Redo' });

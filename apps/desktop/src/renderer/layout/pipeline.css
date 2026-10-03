@@ -1,0 +1,291 @@
+/* Pipeline sidebar (PLAN.md#6.8, #11.2): next-step card, steps with status words, fold, legend. */
+.pipeline-panel {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.pipeline-panel .panel-heading {
+  gap: 4px;
+}
+
+.heading-action {
+  margin-left: auto;
+  padding: 1px 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pipeline-collapse {
+  width: 26px;
+  height: 24px;
+  color: var(--muted);
+}
+
+.pipeline-summary {
+  margin: 0;
+  padding: 0 12px 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Next step: one sentence, the action button, "why?" */
+.next-step {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 8px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgb(255 138 61 / 45%);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent-soft);
+}
+
+.next-step-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.next-step-label {
+  margin-right: 6px;
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.next-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.next-step-why {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Steps */
+.stage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px;
+}
+
+.stage-item,
+.stage-fold-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  width: 100%;
+  min-height: 26px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+}
+
+.stage-item[aria-pressed='true'] {
+  border-color: var(--border);
+  background: var(--panel-raised);
+}
+
+.stage-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-fold-toggle {
+  flex-wrap: nowrap;
+  color: var(--muted);
+}
+
+.stage-fold-toggle .stage-dot {
+  border-color: var(--ok);
+  background: var(--ok);
+}
+
+/* Status: the same dot shape and colour, and chip colour, everywhere (rows and legend). */
+.stage-dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--muted);
+}
+
+.status-done .stage-dot,
+.stage-dot.status-done {
+  border-color: var(--ok);
+  background: var(--ok);
+}
+
+.status-ready .stage-dot,
+.stage-dot.status-ready,
+.status-review .stage-dot,
+.stage-dot.status-review {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.status-running .stage-dot,
+.stage-dot.status-running {
+  border-color: var(--accent);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.status-queued .stage-dot,
+.stage-dot.status-queued {
+  border-color: var(--accent);
+  border-radius: 50%;
+}
+
+.status-paused .stage-dot,
+.stage-dot.status-paused,
+.status-stale .stage-dot,
+.stage-dot.status-stale,
+.status-interrupted .stage-dot,
+.stage-dot.status-interrupted {
+  border-color: var(--warn);
+  background: rgb(242 193 78 / 35%);
+}
+
+.status-failed .stage-dot,
+.stage-dot.status-failed {
+  border-color: var(--error);
+  background: var(--error);
+}
+
+.stage-item.status-waiting .stage-label,
+.stage-item.status-loading .stage-label {
+  color: var(--muted);
+}
+
+.status-chip {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-raised);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.status-chip.status-done {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.status-chip.status-ready,
+.status-chip.status-review,
+.status-chip.status-running,
+.status-chip.status-queued {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.status-chip.status-paused,
+.status-chip.status-stale,
+.status-chip.status-interrupted {
+  color: var(--warn);
+  background: rgb(242 193 78 / 14%);
+}
+
+.status-chip.status-failed {
+  color: var(--error);
+  background: rgb(255 138 138 / 14%);
+}
+
+/* Legend */
+.status-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 8px 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  font-size: 12px;
+}
+
+.status-legend-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 2px 8px;
+}
+
+.status-legend dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-legend .status-chip {
+  margin-left: 0;
+}
+
+.status-legend dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Selected step: actions, detail, notice */
+.stage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 12px;
+}
+
+.stage-detail {
+  padding: 0 12px 8px;
+  font-size: 12px;
+}
+
+.stage-detail-line {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.stage-detail.status-failed .stage-detail-line,
+.stage-detail.status-interrupted .stage-detail-line {
+  color: var(--error);
+}
+
+.stage-detail .link-button {
+  padding: 0;
+  font-size: 12px;
+}
+
+.stage-issues {
+  max-height: 96px;
+  margin: 4px 0 0;
+  padding-left: 16px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+.stage-notice {
+  margin: 0;
+  padding: 0 12px 6px;
+  font-size: 12px;
+}

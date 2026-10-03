@@ -91,18 +91,62 @@ export function fixPrompt(shotId: string, badge: ShotBadge | undefined): string 
   return `Fix shot ${shotId}. QA found:\n${lines.map((line) => `- ${line}`).join('\n')}`;
 }
 
-/** `Building shot 3/8 · s03: QA build round 1`, or null when no scene build runs. */
-export function buildProgress(running: StageRunView | null, totalShots: number): string | null {
+/** A runner step label in plain words ("Claude: critic s03" -> "Claude checks the frames"). */
+export function stepText(label: string | null): string {
+  if (label === null) return 'starting';
+  if (/^Claude: scene-build\b/.test(label)) return 'Claude writes the scene';
+  if (/^Claude: critic\b/.test(label)) return 'Claude checks the frames';
+  const qa = /QA \S+ round (\d+)/.exec(label);
+  if (qa) return `checking frames (round ${qa[1] ?? '1'})`;
+  if (label.startsWith('Claude: ')) return label;
+  // "s03: building the scene" -> "building the scene" (the shot is in the title).
+  return label.replace(/^[A-Za-z0-9_-]+: /, '');
+}
+
+export interface BuildProgressView {
+  /** "Shot 3 of 8" (the final review: "Final review"). */
+  readonly title: string;
+  /** What happens now, in plain words. */
+  readonly step: string;
+  /** Building / reviewing / final review. */
+  readonly what: string;
+  /** Finished share of the run's shots, 0..100. */
+  readonly percent: number;
+}
+
+/** Progress of a running scene build or review, or null when none runs. */
+export function buildProgressView(
+  running: StageRunView | null,
+  totalShots: number,
+): BuildProgressView | null {
   if (running?.stage !== 'scenes') return null;
   // The final review counts its shots in its own step label ("Reviewing… 7/16").
-  if (running.action === 'final-review') return `Final review · ${running.label ?? 'starting'}`;
-  const total = running.targets?.length ?? totalShots;
+  if (running.action === 'final-review') {
+    return {
+      title: 'Final review',
+      step: running.label ?? 'starting',
+      what: 'Final review',
+      percent: running.percent ?? 0,
+    };
+  }
+  const total = Math.max(running.targets?.length ?? totalShots, 1);
   const states = Object.values(running.shots);
   const finished = states.filter((state) => state !== 'running' && state !== 'requeued').length;
-  const current = Math.min(total, finished + (states.includes('running') ? 1 : 0));
-  const what = running.action === null ? 'Building' : 'Reviewing';
-  const step = running.label === null ? '' : ` · ${running.label}`;
-  return `${what} shot ${String(Math.max(current, 1))}/${String(total)}${step}`;
+  const current = Math.max(1, Math.min(total, finished + (states.includes('running') ? 1 : 0)));
+  return {
+    title: `Shot ${String(current)} of ${String(total)}`,
+    step: stepText(running.label),
+    what: running.action === null ? 'Building' : 'Reviewing',
+    percent: Math.min(100, (100 * finished) / total),
+  };
+}
+
+/** `Building · shot 3 of 8 · checking frames`, or null when no scene build runs. */
+export function buildProgress(running: StageRunView | null, totalShots: number): string | null {
+  const view = buildProgressView(running, totalShots);
+  if (view === null) return null;
+  if (view.what === 'Final review') return `Final review · ${view.step}`;
+  return `${view.what} · ${view.title.toLowerCase()} · ${view.step}`;
 }
 
 export interface PropsSummary {

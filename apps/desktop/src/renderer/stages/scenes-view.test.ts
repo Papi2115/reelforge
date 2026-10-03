@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import type { StageRunView } from '../../shared/stages-contract.js';
 import {
   buildProgress,
+  buildProgressView,
   fixPrompt,
   propsBanner,
   propsSummary,
   shotBadges,
+  stepText,
   syncProblemShots,
   syncRows,
 } from './scenes-view.js';
@@ -85,14 +87,35 @@ describe('scenes view', () => {
     expect(fixPrompt('s09', undefined)).toBe('Shot s09 needs a fix: ');
   });
 
-  it('shows the build progress as shot n/m with the current step', () => {
+  it('shows the build progress as shot n of m with the current step in plain words', () => {
     expect(buildProgress(run({ shots: { s01: 'ok', s02: 'running' } }), 8)).toBe(
-      'Building shot 2/8 · s03: building the scene',
+      'Building · shot 2 of 8 · building the scene',
     );
     expect(buildProgress(run({ targets: ['s05'], action: 'sync-check', label: null }), 8)).toBe(
-      'Reviewing shot 1/1',
+      'Reviewing · shot 1 of 1 · starting',
     );
     expect(buildProgress(null, 8)).toBeNull();
+  });
+
+  it('keeps the step out of the title, so the progress never says it twice', () => {
+    const view = buildProgressView(
+      run({ shots: { s01: 'ok', s02: 'ok', s03: 'running' }, label: 'Claude: critic s03' }),
+      16,
+    );
+    expect(view).toEqual({
+      title: 'Shot 3 of 16',
+      step: 'Claude checks the frames',
+      what: 'Building',
+      percent: 12.5,
+    });
+    expect(view?.title).not.toContain(view?.step ?? '');
+  });
+
+  it('says runner steps in plain words', () => {
+    expect(stepText('Claude: scene-build s01_hook')).toBe('Claude writes the scene');
+    expect(stepText('s03: QA build round 2')).toBe('checking frames (round 2)');
+    expect(stepText('Claude: review plan')).toBe('Claude: review plan');
+    expect(stepText(null)).toBe('starting');
   });
 
   it('says which project props were built and which could not be built', () => {

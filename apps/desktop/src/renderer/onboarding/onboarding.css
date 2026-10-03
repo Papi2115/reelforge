@@ -253,26 +253,3 @@ kbd {
   border: 1px solid var(--border);
   border-radius: 3px;
 }
-
-/* "Next: …" at the top of the pipeline sidebar */
-.next-step {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0 6px 6px;
-  padding: 6px 8px;
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--accent-text);
-  background: var(--accent-soft);
-  border: 1px solid rgb(255 138 61 / 35%);
-  border-radius: 4px;
-}
-
-.next-step span {
-  flex: 1;
-}
-
-.next-step .link-button {
-  color: var(--accent-text);
-}

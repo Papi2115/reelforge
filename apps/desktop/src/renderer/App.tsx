@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
 import { StatusBar } from './layout/StatusBar.js';
+import { useAppShortcut } from './layout/use-app-shortcut.js';
 import { Workspace } from './layout/Workspace.js';
 import { errorMessage, rendererLog } from './log.js';
 import { PreviewPanel } from './preview/PreviewPanel.js';
@@ -58,6 +59,9 @@ export function App(): JSX.Element {
   const onboarding = appSettings?.onboarding;
   const welcome = onboarding?.connectClaudeDone === true && !onboarding.welcomeDone;
   const autoTour = project !== null && onboarding?.welcomeDone === true && !onboarding.tourDone;
+  useAppShortcut('shortcuts', () => {
+    setHelpDialog('shortcuts');
+  });
 
   useEffect(() => {
     if (autoTour && !tourClosed) setTourOpen(true);

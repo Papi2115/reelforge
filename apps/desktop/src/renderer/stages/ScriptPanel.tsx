@@ -51,7 +51,9 @@ function Sources({ document }: { readonly document: ScriptDocument }): JSX.Eleme
   if (document.sources.length === 0) {
     return (
       <p className="panel-empty">
-        {document.research === null ? 'No research yet.' : 'research.md lists no links.'}
+        {document.research === null
+          ? 'No research yet: Write script (in the brief) researches first.'
+          : 'The research lists no links.'}
       </p>
     );
   }

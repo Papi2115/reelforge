@@ -25,6 +25,7 @@ import {
   stubFolderPicker,
   waitForRenderedT,
 } from './support/electron-app.js';
+import { stageRow } from './support/pipeline-rows.js';
 
 const LAYOUT_REGIONS = ['Pipeline', 'Shots', 'Preview', 'Claude', 'Timeline', 'Status'];
 
@@ -277,7 +278,7 @@ describe('desktop app', () => {
     await page.screenshot({ path: path.join(screenshotDir, 'history-after-revert.png') });
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     // A fresh project has no storyboard: the preview falls back to the demo with a note.
-    await page.getByRole('status').filter({ hasText: 'No storyboard yet' }).waitFor();
+    await page.getByRole('status').filter({ hasText: 'No shots yet' }).waitFor();
   });
 
   it('shows the open project in the main layout and follows the preview time', async () => {
@@ -292,6 +293,14 @@ describe('desktop app', () => {
     const shots = page.getByRole('region', { name: 'Shots' });
     const shotButtons = shots.locator('.shot-item');
     await shotButtons.first().waitFor();
+    // 800 px tall: compact rows (PLAN.md#11.2); the toggle shows intent and scene file again.
+    expect(await shotButtons.allTextContents()).toEqual([
+      's01title-card0:00.00',
+      's02metaphor-object0:02.20',
+    ]);
+    const compact = shots.getByRole('button', { name: 'Compact' });
+    expect(await compact.getAttribute('aria-pressed')).toBe('true');
+    await compact.click();
     expect(await shotButtons.allTextContents()).toEqual([
       's010:00.00–0:02.20title-cardDoom runs on almost anything.scenes/s01_title.js',
       's020:02.20–0:07.50metaphor-objectA calculator with only 61 KB of memory still runs Doom.scenes/s02_calc.js',
@@ -304,16 +313,13 @@ describe('desktop app', () => {
     expect([frame.width, frame.height]).toEqual([640, 360]);
     expect(frame.distinctColours).toBeGreaterThan(4);
 
-    const pipeline = page.getByRole('region', { name: 'Pipeline' });
     for (const [label, status] of [
-      ['Script written', 'Review'],
-      ['Voiceover added', 'Waiting'],
+      ['Script written', 'Review & approve'],
+      ['Voiceover added', 'Waiting for Script'],
       ['Storyboard', 'Done'],
-      ['Video exported', 'Waiting'],
+      ['Video exported', 'Waiting for Sound mix'],
     ] as const) {
-      expect(await pipeline.getByRole('button', { name: label }).textContent()).toBe(
-        `${label}${status}`,
-      );
+      expect(await stageRow(page, label).textContent()).toBe(`${label}${status}`);
     }
     const lanes = page.getByTestId('timeline-canvas');
     await page.waitForFunction(
@@ -342,7 +348,9 @@ describe('desktop app', () => {
         expect(region, `${region.name} at ${String(width)}x${String(height)}`).toMatchObject({
           inside: true,
         });
-        expect(region.width).toBeGreaterThan(100);
+        // Below 1400 px the chat starts as a slim rail (PLAN.md#11.2).
+        if (region.name === 'Claude' && width < 1400) expect(region.width).toBeLessThan(60);
+        else expect(region.width).toBeGreaterThan(100);
         expect(region.height).toBeGreaterThan(20);
       }
       expect(layout.overflowing, `overflowing at ${String(width)}x${String(height)}`).toEqual([]);
@@ -353,6 +361,13 @@ describe('desktop app', () => {
       await page.screenshot({
         path: path.join(screenshotDir, `layout-${String(width)}x${String(height)}.png`),
       });
+      // Icon-only buttons explain themselves in a tooltip (PLAN.md#11.2).
+      const untitled = await page.evaluate(() =>
+        [...document.querySelectorAll('button')]
+          .filter((button) => button.textContent.trim() === '' && !button.title)
+          .map((button) => button.getAttribute('aria-label') ?? button.className),
+      );
+      expect(untitled).toEqual([]);
     }
 
     // An edit on disk (pipeline step, Claude turn, another editor) refreshes the panels.

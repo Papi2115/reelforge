@@ -13,10 +13,8 @@ import { playbackAudioUrl } from '../preview/audio-source.js';
 import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
 import type { OpenTarget } from '../stages/pipeline-view.js';
-import { ScriptPanel, type ScriptTab } from '../stages/ScriptPanel.js';
 import { exportPreflight } from '../stages/final-review-view.js';
 import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
-import { ScenesPanel } from '../stages/ScenesPanel.js';
 import {
   buildProgress,
   fixPrompt,
@@ -29,14 +27,14 @@ import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { useVariantsDock } from '../stages/use-variants-dock.js';
 import { VariantsDockPanel } from '../stages/VariantsPanel.js';
-import { VoiceoverPanel } from '../stages/VoiceoverPanel.js';
-import { WordsPanel } from '../stages/WordsPanel.js';
 import { ExportDialog } from '../export/ExportDialog.js';
-import { SoundPanel } from '../sound/SoundPanel.js';
 import { useMixPreview } from '../sound/use-mix-preview.js';
 import { useSound } from '../sound/use-sound.js';
 import { useTimeline } from '../timeline/use-timeline.js';
 import { AppShell } from './AppShell.js';
+import { CenterDocument, type CenterDocumentKind } from './CenterDocument.js';
+import { CHAT_RAIL_WIDTH } from './chat-dock.js';
+import { useChatDock } from './use-chat-dock.js';
 import { ChatPanel } from './ChatPanel.js';
 import { PipelineSidebar } from './PipelineSidebar.js';
 import { ShotsPanel } from './ShotsPanel.js';
@@ -49,14 +47,6 @@ export interface WorkspaceProps {
   /** Settings → Tools (e.g. a whisper.cpp install problem in the pipeline sidebar). */
   readonly onOpenToolsSettings?: () => void;
 }
-
-/** A document shown over the preview (Open of a stage, the brief). */
-type CenterDocument =
-  | { readonly kind: 'script'; readonly tab: ScriptTab }
-  | { readonly kind: 'words' }
-  | { readonly kind: 'voiceover' }
-  | { readonly kind: 'scenes' }
-  | { readonly kind: 'sound' };
 
 /** Brings the Shots panel into view (Open of the Storyboard stage). */
 function focusShots(): void {
@@ -88,7 +78,8 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   const reports = useStageReports(project.dir, reportsKey(stages.state));
   const sound = useSound(project.dir, reportsKey(stages.state));
   const [exportOpen, setExportOpen] = useState(false);
-  const [centerDocument, setCenterDocument] = useState<CenterDocument | null>(null);
+  const chatDock = useChatDock();
+  const [centerDocument, setCenterDocument] = useState<CenterDocumentKind | null>(null);
 
   // A project without a brief or a script starts at the brief (new project flow).
   const briefChecked = useRef(false);
@@ -199,6 +190,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         />
       )}
       <AppShell
+        collapsedRight={chatDock.open ? undefined : CHAT_RAIL_WIDTH}
         left={
           <div className="left-stack">
             {error !== undefined && (
@@ -266,6 +258,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
                   text: fixPrompt(shotId, badges.get(shotId)),
                   nonce: (current?.nonce ?? 0) + 1,
                 }));
+                chatDock.show();
               }}
             />
           </div>
@@ -290,72 +283,27 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             {variantsOpen && (
               <VariantsDockPanel dock={variants} stages={stages} locked={locks.locked} />
             )}
-            {centerDocument?.kind === 'script' && (
-              <ScriptPanel
+            {centerDocument !== null && (
+              <CenterDocument
+                document={centerDocument}
                 project={project}
-                stages={stages}
-                tab={centerDocument.tab}
-                onTab={(tab) => {
-                  setCenterDocument({ kind: 'script', tab });
-                }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'scenes' && (
-              <ScenesPanel
                 stages={stages}
                 reports={reports}
                 shots={shots}
-                onSeekShot={seekShot}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'sound' && (
-              <SoundPanel
+                words={snapshot?.words}
                 sound={sound}
-                preview={mixPreview}
-                stages={stages.state}
-                onAdd={(librarySound) => {
+                mixPreview={mixPreview}
+                onTab={(tab) => {
+                  setCenterDocument({ kind: 'script', tab });
+                }}
+                onSeek={(t) => {
+                  player.seek(t);
+                }}
+                onSeekShot={seekShot}
+                onAddSound={(librarySound) => {
                   addSound(librarySound, time);
                 }}
-                onOpenStems={() => {
-                  void stages.open('stems');
-                }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'voiceover' && (
-              <VoiceoverPanel
-                stages={stages}
-                reports={reports}
-                onSeek={(t) => {
-                  player.seek(t);
-                }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
-              />
-            )}
-            {centerDocument?.kind === 'words' && (
-              <WordsPanel
-                words={snapshot?.words}
-                report={reports?.words ?? null}
-                busy={
-                  stages.state?.running?.stage === 'words' ||
-                  stages.state?.queue.includes('words') === true
-                }
-                onSeek={(t) => {
-                  player.seek(t);
-                }}
-                onClose={() => {
-                  setCenterDocument(null);
-                }}
+                onClose={closeDocument}
               />
             )}
           </div>
@@ -368,6 +316,8 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               setSelection(null);
             }}
             prefill={prefill}
+            collapsed={!chatDock.open}
+            onToggleCollapsed={chatDock.toggle}
           />
         }
         bottom={

@@ -2,6 +2,7 @@
  * Claude chat panel (PLAN.md#6.6): Chat/History tabs, the queue and Stop in the header, usage-limit
  * and connection banners, the transcript with Claude's step log, and the composer (scope, chips,
  * "Think harder"). Talks to main's ClaudeService through `window.reelforge` (use-chat.ts).
+ * Collapsed, it is a slim rail (ChatRail.tsx); the transcript and the draft stay mounted.
  */
 import { useEffect, useState, type JSX } from 'react';
 import type { ChatPause, ChatScope, ChatSelection } from '../../shared/chat-contract.js';
@@ -9,7 +10,10 @@ import { ChatComposer } from '../chat/ChatComposer.js';
 import { ChatHistory } from '../chat/ChatHistory.js';
 import { ChatTranscript } from '../chat/ChatTranscript.js';
 import { useChat } from '../chat/use-chat.js';
-import { StopIcon } from './icons.js';
+import { TOGGLE_CHAT_KEYS } from './app-keys.js';
+import { unreadTurns } from './chat-dock.js';
+import { ChatRail } from './ChatRail.js';
+import { ChevronIcon, StopIcon } from './icons.js';
 
 type Tab = 'chat' | 'history';
 
@@ -21,6 +25,9 @@ export interface ChatPanelProps {
   readonly onClearSelection: () => void;
   /** "Fix with Claude…" of a shot: the text goes into the message box, scope Shot. */
   readonly prefill: { readonly text: string; readonly nonce: number } | null;
+  /** Shown as the slim rail (chat-dock.ts). */
+  readonly collapsed: boolean;
+  readonly onToggleCollapsed: () => void;
 }
 
 const MINUTE_MS = 60_000;
@@ -67,6 +74,8 @@ export function ChatPanel({
   selection,
   onClearSelection,
   prefill,
+  collapsed,
+  onToggleCollapsed,
 }: ChatPanelProps): JSX.Element {
   const [tab, setTab] = useState<Tab>('chat');
   const [scope, setScope] = useState<ChatScope>(selection === null ? 'video' : 'selection');
@@ -77,6 +86,12 @@ export function ChatPanel({
   const pause = state?.pause ?? null;
   const now = useMinuteTick(pause !== null);
   const finished = (state?.turns ?? []).filter((turn) => turn.finishedAt !== null).length;
+  // Turns finished while the chat is collapsed count as unread until it opens again.
+  const [seen, setSeen] = useState<number | null>(null);
+  useEffect(() => {
+    if (!collapsed) setSeen(finished);
+    else setSeen((current) => current ?? finished);
+  }, [collapsed, finished]);
 
   // A fresh pick in the preview aims the next message at it.
   const selectionId = selection === null ? null : `${selection.id}@${String(selection.t)}`;
@@ -91,103 +106,124 @@ export function ChatPanel({
   }, [prefillNonce]);
 
   return (
-    <section className="panel chat" aria-label="Claude">
-      <div className="chat-header">
-        <div className="tabs" role="tablist" aria-label="Claude views">
-          {(['chat', 'history'] as const).map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              id={`chat-tab-${id}`}
-              aria-selected={tab === id}
-              aria-controls={`chat-view-${id}`}
-              className="tab"
-              onClick={() => {
-                setTab(id);
-              }}
-            >
-              {id === 'chat' ? 'Chat' : 'History'}
-            </button>
-          ))}
-        </div>
-        <span
-          className={`queue-indicator${queue.length > 0 ? ' active' : ''}`}
-          title="Messages waiting for Claude"
-          aria-live="polite"
-        >
-          Queue {queue.length}
-        </span>
-        <button
-          type="button"
-          className="small-button"
-          aria-label="Stop Claude"
-          disabled={running === null}
-          title={running === null ? 'Nothing is running' : 'Stop the running turn (Esc)'}
-          onClick={chat.stop}
-        >
-          <StopIcon /> Stop
-        </button>
-      </div>
-      {pause !== null && (
-        <div className="chat-banner warn" role="status">
-          <span>{pauseText(pause, now)}</span>
-          <button type="button" className="small-button" onClick={chat.resume}>
-            Try now
+    <section className={`panel chat${collapsed ? ' collapsed' : ''}`} aria-label="Claude">
+      {collapsed && (
+        <ChatRail
+          working={running !== null}
+          queued={queue.length}
+          unread={unreadTurns(finished, seen)}
+          paused={pause !== null}
+          onShow={onToggleCollapsed}
+        />
+      )}
+      <div className="chat-body" hidden={collapsed}>
+        <div className="chat-header">
+          <button
+            type="button"
+            className="icon-button chat-collapse"
+            aria-label="Hide chat"
+            aria-expanded
+            title={`Hide chat (${TOGGLE_CHAT_KEYS}): more room for the preview`}
+            onClick={onToggleCollapsed}
+          >
+            <ChevronIcon direction="right" />
+          </button>
+          <div className="tabs" role="tablist" aria-label="Claude views">
+            {(['chat', 'history'] as const).map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`chat-tab-${id}`}
+                aria-selected={tab === id}
+                aria-controls={`chat-view-${id}`}
+                className="tab"
+                onClick={() => {
+                  setTab(id);
+                }}
+              >
+                {id === 'chat' ? 'Chat' : 'History'}
+              </button>
+            ))}
+          </div>
+          <span
+            className={`queue-indicator${queue.length > 0 ? ' active' : ''}`}
+            title="Messages waiting for Claude"
+            aria-live="polite"
+          >
+            Queue {queue.length}
+          </span>
+          <button
+            type="button"
+            className="small-button"
+            aria-label="Stop Claude"
+            disabled={running === null}
+            title={running === null ? 'Nothing is running' : 'Stop the running turn (Esc)'}
+            onClick={chat.stop}
+          >
+            <StopIcon /> Stop
           </button>
         </div>
-      )}
-      {state?.notice && (
-        <p className="chat-banner error" role="alert">
-          {state.notice.message}
-        </p>
-      )}
+        {pause !== null && (
+          <div className="chat-banner warn" role="status">
+            <span>{pauseText(pause, now)}</span>
+            <button type="button" className="small-button" onClick={chat.resume}>
+              Try now
+            </button>
+          </div>
+        )}
+        {state?.notice && (
+          <p className="chat-banner error" role="alert">
+            {state.notice.message}
+          </p>
+        )}
 
-      {tab === 'chat' ? (
-        <div
-          className="chat-view"
-          role="tabpanel"
-          id="chat-view-chat"
-          aria-labelledby="chat-tab-chat"
-        >
-          {state === undefined ? (
-            <p className="panel-empty">Connecting…</p>
-          ) : (
-            <ChatTranscript
-              turns={state.turns}
-              queue={queue}
-              onRemoveQueued={chat.remove}
-              onResumeTurn={chat.resumeTurn}
-              empty={<EmptyChat />}
+        {tab === 'chat' ? (
+          <div
+            className="chat-view"
+            role="tabpanel"
+            id="chat-view-chat"
+            aria-labelledby="chat-tab-chat"
+          >
+            {state === undefined ? (
+              <p className="panel-empty">Connecting…</p>
+            ) : (
+              <ChatTranscript
+                turns={state.turns}
+                queue={queue}
+                onRemoveQueued={chat.remove}
+                onResumeTurn={chat.resumeTurn}
+                empty={<EmptyChat />}
+              />
+            )}
+            {chat.sendError !== undefined && (
+              <p className="chat-send-error panel-error" role="alert">
+                {chat.sendError}
+              </p>
+            )}
+            <ChatComposer
+              scope={scope}
+              onScope={setScope}
+              selection={selection}
+              onClearSelection={onClearSelection}
+              shotId={shotId}
+              running={running !== null}
+              onSend={chat.send}
+              onStop={chat.stop}
+              prefill={prefill}
             />
-          )}
-          {chat.sendError !== undefined && (
-            <p className="chat-send-error panel-error" role="alert">
-              {chat.sendError}
-            </p>
-          )}
-          <ChatComposer
-            scope={scope}
-            onScope={setScope}
-            selection={selection}
-            onClearSelection={onClearSelection}
-            shotId={shotId}
-            running={running !== null}
-            onSend={chat.send}
-            onStop={chat.stop}
-            prefill={prefill}
-          />
-        </div>
-      ) : (
-        <div
-          className="chat-view"
-          role="tabpanel"
-          id="chat-view-history"
-          aria-labelledby="chat-tab-history"
-        >
-          <ChatHistory refreshKey={`${state?.projectDir ?? ''}:${String(finished)}`} />
-        </div>
-      )}
+          </div>
+        ) : (
+          <div
+            className="chat-view"
+            role="tabpanel"
+            id="chat-view-history"
+            aria-labelledby="chat-tab-history"
+          >
+            <ChatHistory refreshKey={`${state?.projectDir ?? ''}:${String(finished)}`} />
+          </div>
+        )}
+      </div>
     </section>
   );
 }

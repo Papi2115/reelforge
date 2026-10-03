@@ -16,7 +16,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'pipeline',
     target: 'section[aria-label="Pipeline"]',
     title: 'The pipeline',
-    body: 'Your video is made in stages, top to bottom. Select a stage for Open, Run and Redo; the "Next:" line above always says what to do now.',
+    body: 'Your video is made in steps, top to bottom. Select a step for Open, Run and Redo; the "Next" card above always says what to do now, and its button does it.',
   },
   {
     id: 'preview',

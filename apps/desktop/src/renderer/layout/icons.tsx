@@ -99,3 +99,66 @@ export function LockIcon({ locked }: { readonly locked: boolean }): JSX.Element 
     </Icon>
   );
 }
+
+/** A speech bubble (the Claude chat). */
+export function ChatIcon(): JSX.Element {
+  return (
+    <Icon>
+      <path
+        d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </Icon>
+  );
+}
+
+/** A chevron pointing `direction` (collapse / expand). */
+export function ChevronIcon({
+  direction,
+}: {
+  readonly direction: 'up' | 'down' | 'left' | 'right';
+}): JSX.Element {
+  const rotation = { right: 0, down: 90, left: 180, up: 270 }[direction];
+  return (
+    <Icon>
+      <path
+        d="M6 3.5L10.5 8 6 12.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        transform={`rotate(${String(rotation)} 8 8)`}
+      />
+    </Icon>
+  );
+}
+
+/** An "i" in a circle (explanations in tooltips). */
+export function InfoIcon(): JSX.Element {
+  return (
+    <Icon>
+      <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8 7v4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="8" cy="4.8" r="0.9" fill="currentColor" />
+    </Icon>
+  );
+}
+
+/** A funnel (show only some items). */
+export function FilterIcon(): JSX.Element {
+  return (
+    <Icon>
+      <path
+        d="M2.5 3.5h11L9.5 8.5v4l-3 1.5v-5.5z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </Icon>
+  );
+}

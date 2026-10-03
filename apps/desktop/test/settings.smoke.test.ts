@@ -132,7 +132,7 @@ describe('settings', () => {
     await dialog.getByRole('tab', { name: 'Models' }).click();
     const economy = dialog.getByRole('checkbox', { name: /Economy mode/ });
     await economy.check();
-    await dialog.getByText('Economy mode is on: all stages use Sonnet.').waitFor();
+    await dialog.getByText('Economy mode is on: all steps use Sonnet.').waitFor();
     expect(await dialog.getByLabel('Scene code').isDisabled()).toBe(true);
     await expectFits(page, 'Settings');
     await page.screenshot({ path: path.join(screenshotDir, 'settings-models.png') });

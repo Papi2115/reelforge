@@ -29,6 +29,7 @@ import {
   screenshotDir,
 } from './support/electron-app.js';
 import { ffprobe } from './support/pipeline-film.js';
+import { showStage } from './support/pipeline-rows.js';
 
 const DONE_ROWS = [
   'Script written',
@@ -81,7 +82,7 @@ function pipeline() {
 }
 
 async function rowText(label: string): Promise<string> {
-  return (await pipeline().getByRole('button', { name: label }).first().textContent()) ?? '';
+  return (await (await showStage(page, label)).textContent()) ?? '';
 }
 
 async function waitDone(label: string, timeout: number): Promise<void> {
@@ -91,7 +92,7 @@ async function waitDone(label: string, timeout: number): Promise<void> {
 }
 
 async function runRow(label: string): Promise<void> {
-  await pipeline().getByRole('button', { name: label }).first().click();
+  await (await showStage(page, label)).click();
   const run = pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: /^(Run|Retry|Resume)$/ });
@@ -150,7 +151,7 @@ describe('first run', () => {
     await shot('tour-preview');
 
     for (const label of DONE_ROWS) await waitDone(label, 30_000);
-    expect(await rowText('Sound design mixed')).toMatch(/^Sound design mixedReady/);
+    expect(await rowText('Sound design mixed')).toMatch(/^Sound design mixedReady to run/);
     expect(await page.getByTestId('next-step').textContent()).toContain('Sound design mixed');
 
     const preview = page.getByRole('dialog', { name: 'Preview' });
@@ -234,7 +235,7 @@ describe('first run', () => {
       height: 1080,
     });
     expect(info.streams.some((stream) => stream.codec_type === 'audio')).toBe(true);
-    expect(await page.getByTestId('next-step').textContent()).toContain('Done');
+    expect(await page.getByTestId('next-step').textContent()).toContain('All done');
     await shot('exported');
   }, 720_000);
 });

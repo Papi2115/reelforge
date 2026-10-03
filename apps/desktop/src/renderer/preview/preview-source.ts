@@ -24,7 +24,7 @@ export interface ResolvedPreview {
   readonly note: string | undefined;
 }
 
-export const NO_STORYBOARD_NOTE = 'No storyboard yet · showing the demo scene';
+export const NO_STORYBOARD_NOTE = 'No shots yet · the demo scene plays until Storyboard has run';
 
 export function previewNote(result: ProjectManifestResult): string | undefined {
   if (result.status === 'ready') return undefined;

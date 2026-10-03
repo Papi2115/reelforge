@@ -4,6 +4,7 @@
  * progress, ETA, per-shot frames, the final report ("re-rendered 1 of 12 shots"). Pure.
  */
 import type { EncoderPreference, ExportQualityProfile } from '@reelforge/shared';
+import { plural } from '../../shared/plural.js';
 import type {
   EncoderTestResult,
   ExportJob,
@@ -132,7 +133,7 @@ export function shotsLine(job: ExportJob): string | null {
   if (totalShots === 0) return null;
   const finished = shots.filter((shot) => shot.state !== 'rendering').length;
   const cached = shots.filter((shot) => shot.state === 'cached').length;
-  return `${String(finished)}/${String(totalShots)} shots${cached > 0 ? ` (${String(cached)} cached)` : ''}`;
+  return `${String(finished)}/${plural(totalShots, 'shot')}${cached > 0 ? ` (${String(cached)} cached)` : ''}`;
 }
 
 /** The final report in one line, e.g. `1:00 · 23.4 MB · 48.2 fps · h264_nvenc (final)`. */
@@ -153,7 +154,7 @@ export function reportLine(report: ExportReport): string {
 export function cacheLine(report: ExportReport): string {
   const cached = report.cachedShots > 0 ? ` (${String(report.cachedShots)} from the cache)` : '';
   const resumed = report.resumed ? ', resumed' : '';
-  return `Re-rendered ${String(report.renderedShots)} of ${String(report.totalShots)} shots${cached}${resumed}`;
+  return `Re-rendered ${String(report.renderedShots)} of ${plural(report.totalShots, 'shot')}${cached}${resumed}`;
 }
 
 /** The encoder test in one line. */

@@ -1,29 +1,30 @@
 /**
- * Pipeline stages with their real status (PLAN.md#6.8): Done / Review / Running (step, percent,
- * elapsed) / Paused (usage limit) / Queued / Ready / Waiting (why) / Failed (Show details) / Stale
- * / Interrupted. The selected stage gets Open, Replace, Run (or Stop while it runs) and Redo,
- * which asks first and names the later stages it makes out of date. Disabled actions explain
- * themselves in their tooltip and in the line under the buttons.
+ * Pipeline steps with their real status (PLAN.md#6.8, #11.2): the next-step card, the steps (the
+ * finished ones at the top folded, status words and legend in status-view.ts) and the selected
+ * step's Open, Replace, Run (or Stop while it runs) and Redo, which asks first and names the later
+ * steps it makes out of date. Disabled actions explain themselves in their tooltip and in the line
+ * under the buttons. The whole list collapses to one summary line to give the Shots panel room.
  */
 import { useEffect, useRef, useState, type JSX } from 'react';
+import { z } from 'zod';
 import type { PipelineStageKey } from '../../shared/stages-contract.js';
 import { errorMessage, rendererLog } from '../log.js';
-import { ConfirmDialog } from '../project/ConfirmDialog.js';
 import { useWhisperSetup } from '../settings/use-whisper-setup.js';
 import {
   defaultRow,
-  elapsedText,
   pipelineRows,
-  STAGE_LABELS,
-  STATUS_TEXT,
-  type ActionView,
   type OpenTarget,
   type RowView,
 } from '../stages/pipeline-view.js';
-import { nextStep } from '../stages/next-step.js';
+import { nextStep, type NextStep } from '../stages/next-step.js';
+import { pipelineSummary } from '../stages/status-view.js';
 import type { StagesControls } from '../stages/use-stages.js';
 import { needsWhisper, wordsSetupView } from '../stages/words-setup.js';
-import { StopIcon } from './icons.js';
+import { ChevronIcon, InfoIcon, StopIcon } from './icons.js';
+import { NextStepCard } from './NextStepCard.js';
+import { ActionButton, RedoConfirm, StageDetail } from './StageActions.js';
+import { StageList, StatusLegend } from './StageList.js';
+import { usePref } from './ui-prefs.js';
 import { WordsSetupNotice } from './WordsSetupNotice.js';
 
 const log = rendererLog('pipeline');
@@ -53,118 +54,9 @@ function useSecondTick(active: boolean): number {
   return now;
 }
 
-function ActionButton(props: {
-  readonly label: string;
-  readonly action: ActionView;
-  readonly onClick: () => void;
-  readonly primary?: boolean;
-}): JSX.Element {
-  return (
-    <button
-      type="button"
-      className={`small-button${props.primary === true && props.action.enabled ? ' primary' : ''}`}
-      aria-disabled={!props.action.enabled}
-      title={props.action.hint}
-      onClick={() => {
-        if (props.action.enabled) props.onClick();
-      }}
-    >
-      {props.label}
-    </button>
-  );
-}
-
-function RedoConfirm(props: {
-  readonly row: RowView;
-  readonly onConfirm: () => void;
-  readonly onCancel: () => void;
-}): JSX.Element {
-  const { row } = props;
-  return (
-    <ConfirmDialog
-      title={`Redo ${row.spec.label}?`}
-      confirmLabel="Redo"
-      busy={false}
-      onConfirm={props.onConfirm}
-      onCancel={props.onCancel}
-    >
-      <p>
-        {row.spec.label} runs again and replaces its output
-        {row.spec.id === 'script' ? ' (research.md, beats.md and script.txt, your edits too)' : ''}.
-        The current version stays in the project history.
-      </p>
-      {row.invalidates.length > 0 ? (
-        <p>
-          These stages will be marked out of date:{' '}
-          <strong>{row.invalidates.map((stage) => STAGE_LABELS[stage]).join(', ')}</strong>.
-        </p>
-      ) : (
-        <p>No later stage has output yet, so nothing else changes.</p>
-      )}
-    </ConfirmDialog>
-  );
-}
-
-function StageDetail({ row, now }: { readonly row: RowView; readonly now: number }): JSX.Element {
-  const [showDetails, setShowDetails] = useState(false);
-  const failed = row.status === 'failed' || row.status === 'interrupted';
-  const issues = row.error?.issues ?? [];
-  const hasDetails = failed && (issues.length > 0 || row.warnings.length > 0 || row.error !== null);
-  const progress =
-    row.status === 'running'
-      ? [
-          row.percent === null ? null : `${String(Math.round(row.percent))} %`,
-          row.startedAt === null ? null : elapsedText(row.startedAt, now),
-        ].filter((part) => part !== null)
-      : [];
-  return (
-    <div className={`stage-detail status-${row.status}`} aria-live="polite">
-      {row.detail !== null && (
-        <p className="stage-detail-line" title={row.detail}>
-          {row.detail}
-          {progress.length > 0 && <span className="mono muted"> · {progress.join(' · ')}</span>}
-        </p>
-      )}
-      {row.status === 'running' && row.percent !== null && (
-        <div
-          className="stage-progress"
-          role="progressbar"
-          aria-label={`${row.spec.label} progress`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(row.percent)}
-        >
-          <span style={{ width: `${String(row.percent)}%` }} />
-        </div>
-      )}
-      {hasDetails && (
-        <button
-          type="button"
-          className="link-button"
-          aria-expanded={showDetails}
-          onClick={() => {
-            setShowDetails((open) => !open);
-          }}
-        >
-          {showDetails ? 'Hide details' : 'Show details'}
-        </button>
-      )}
-      {hasDetails && showDetails && (
-        <ul className="stage-issues">
-          {row.error !== null && <li className="mono">{row.error.kind}</li>}
-          {issues.map((issue) => (
-            <li key={issue}>{issue}</li>
-          ))}
-          {row.warnings.map((warning) => (
-            <li key={warning} className="muted">
-              {warning}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+const PIPELINE_PREFS_KEY = 'reelforge.layout.pipeline.v1';
+const pipelinePrefsSchema = z.object({ collapsed: z.boolean(), doneOpen: z.boolean() });
+const DEFAULT_PIPELINE_PREFS = { collapsed: false, doneOpen: false };
 
 export function PipelineSidebar({
   stages,
@@ -180,6 +72,17 @@ export function PipelineSidebar({
   const selected = rows.find((row) => row.spec.id === selectedId) ?? defaultRow(rows);
   const hint = nextStep(rows);
   const wordsRow = rows.find((row) => row.spec.id === 'words');
+  const [prefs, setPrefs] = usePref(
+    PIPELINE_PREFS_KEY,
+    pipelinePrefsSchema,
+    DEFAULT_PIPELINE_PREFS,
+  );
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [detailsNonce, setDetailsNonce] = useState(0);
+  const select = (rowId: string): void => {
+    setSelectedId(rowId);
+    setNotice(undefined);
+  };
 
   const report = (promise: Promise<{ status: string; message: string | null }>): void => {
     setNotice(undefined);
@@ -235,10 +138,44 @@ export function PipelineSidebar({
     );
   };
 
+  const runNext = (step: NextStep): void => {
+    select(step.rowId);
+    switch (step.action.kind) {
+      case 'brief':
+        onBrief();
+        return;
+      case 'open':
+        onOpen(step.action.target);
+        return;
+      case 'run':
+        runChecked(step.action.stages);
+        return;
+      case 'select':
+        setDetailsNonce((nonce) => nonce + 1);
+        if (prefs.collapsed) setPrefs({ ...prefs, collapsed: false });
+        return;
+    }
+  };
+
   return (
-    <section className="panel pipeline-panel" aria-label="Pipeline">
+    <section
+      className={`panel pipeline-panel${prefs.collapsed ? ' collapsed' : ''}`}
+      aria-label="Pipeline"
+    >
       <h2 className="panel-heading">
         Pipeline
+        <button
+          type="button"
+          className="info-button"
+          aria-label="What the statuses mean"
+          aria-expanded={legendOpen}
+          title="What the statuses mean"
+          onClick={() => {
+            setLegendOpen((open) => !open);
+          }}
+        >
+          <InfoIcon />
+        </button>
         <button
           type="button"
           className="small-button heading-action"
@@ -247,43 +184,47 @@ export function PipelineSidebar({
         >
           Brief
         </button>
+        <button
+          type="button"
+          className="icon-button pipeline-collapse"
+          aria-label={prefs.collapsed ? 'Show the pipeline steps' : 'Hide the pipeline steps'}
+          aria-expanded={!prefs.collapsed}
+          title={
+            prefs.collapsed
+              ? 'Show the pipeline steps'
+              : 'Hide the pipeline steps: more room for the shots'
+          }
+          onClick={() => {
+            setPrefs({ ...prefs, collapsed: !prefs.collapsed });
+          }}
+        >
+          <ChevronIcon direction={prefs.collapsed ? 'down' : 'up'} />
+        </button>
       </h2>
+      {legendOpen && <StatusLegend />}
       {hint !== null && (
-        <p className="next-step" data-testid="next-step">
-          <span>{hint.text}</span>
-          <button
-            type="button"
-            className="link-button"
-            aria-label="Select the next stage"
-            onClick={() => {
-              setSelectedId(hint.rowId);
-              setNotice(undefined);
-            }}
-          >
-            Show
-          </button>
-        </p>
+        <NextStepCard
+          step={hint}
+          onAction={() => {
+            runNext(hint);
+          }}
+        />
       )}
-      <ol className="stage-list">
-        {rows.map((row) => (
-          <li key={row.spec.id} data-stage-row={row.spec.id}>
-            <button
-              type="button"
-              className={`stage-item status-${row.status}`}
-              aria-pressed={row.spec.id === selected?.spec.id}
-              title={row.detail ?? undefined}
-              onClick={() => {
-                setSelectedId(row.spec.id);
-                setNotice(undefined);
-              }}
-            >
-              <span className="stage-dot" aria-hidden="true" />
-              <span className="stage-label">{row.spec.label}</span>
-              <span className={`status-chip status-${row.status}`}>{STATUS_TEXT[row.status]}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
+      {prefs.collapsed ? (
+        <p className="pipeline-summary" data-testid="pipeline-summary">
+          {pipelineSummary(rows)}
+        </p>
+      ) : (
+        <StageList
+          rows={rows}
+          selectedId={selected?.spec.id}
+          onSelect={select}
+          doneOpen={prefs.doneOpen}
+          onDoneOpen={(doneOpen) => {
+            setPrefs({ ...prefs, doneOpen });
+          }}
+        />
+      )}
       <WordsSetupNotice
         view={setupView}
         onDownload={() => {
@@ -300,7 +241,7 @@ export function PipelineSidebar({
           onOpenSettings?.();
         }}
       />
-      {selected && (
+      {selected && !prefs.collapsed && (
         <>
           <div className="stage-actions" role="group" aria-label={`${selected.spec.label} actions`}>
             <ActionButton
@@ -355,7 +296,12 @@ export function PipelineSidebar({
               }}
             />
           </div>
-          <StageDetail key={selected.spec.id} row={selected} now={now} />
+          <StageDetail
+            key={`${selected.spec.id}:${String(detailsNonce)}`}
+            row={selected}
+            now={now}
+            detailsOpen={detailsNonce > 0}
+          />
           {notice !== undefined && (
             <p className="stage-notice panel-error" role="alert">
               {notice}
