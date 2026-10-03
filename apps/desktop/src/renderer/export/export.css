@@ -288,3 +288,17 @@
   margin: 0;
   color: var(--muted);
 }
+
+/* Pre-flight: shots the final review left ⚠/✗ (PLAN.md#11.5) */
+.export-preflight {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--warn);
+  border-radius: 4px;
+  background: var(--panel-raised);
+}
+
+.export-preflight-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+}

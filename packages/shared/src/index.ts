@@ -2,6 +2,7 @@
 export const packageName = '@reelforge/shared';
 
 export * from './app-settings.js';
+export * from './final-review.js';
 export * from './kit-extensions.js';
 export * from './palette.js';
 export * from './pipeline-state.js';
@@ -10,6 +11,7 @@ export * from './recent-projects.js';
 export * from './render-manifest.js';
 export * from './scene-reports.js';
 export * from './sessions.js';
+export * from './shot-locks.js';
 export * from './stage-records.js';
 export * from './storyboard.js';
 export * from './style-preset.js';

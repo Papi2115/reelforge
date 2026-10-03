@@ -29,6 +29,8 @@ export const FILES = {
   /** Per-shot build/QA result (✓ ⚠ ✗) and the sync report (PLAN.md#7.4, #7.7). */
   scenesReport: '.reelforge/scenes-report.json',
   syncReport: '.reelforge/sync-report.json',
+  /** The quiet review after Scenes built (PLAN.md#11.5). */
+  finalReview: '.reelforge/final-review.json',
   /** Mix QA verdict of the last mix render (ducking, speech clarity, low band, ...). */
   mixQaReport: '.reelforge/mix-report.json',
   /** Contact sheets the critic and the review read (next to the CLI's frames, readable). */

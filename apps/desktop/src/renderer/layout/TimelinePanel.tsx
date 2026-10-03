@@ -2,11 +2,14 @@
  * Timeline (PLAN.md#6.5): toolbar (zoom, fit, undo/redo, gain of the selected cue, save status),
  * track labels, the canvas lanes (timeline/TimelineCanvas.tsx) with a horizontal scrollbar, and
  * the sound picker opened by double-clicking the Cues track. The playhead follows the player;
- * clicks and ruler drags seek / scrub through the player API.
+ * clicks and ruler drags seek / scrub through the player API. A boundary move that changes a locked
+ * shot's length asks first (PLAN.md#11.4).
  */
 import { useEffect, useRef, useState, type JSX, type ReactNode, type RefObject } from 'react';
 import type { LibrarySound } from '../../shared/sound-contract.js';
-import { BUILTIN_SFX_NAMES } from '../../shared/timeline-contract.js';
+import { BUILTIN_SFX_NAMES, type FileEdits } from '../../shared/timeline-contract.js';
+import { ConfirmDialog } from '../project/ConfirmDialog.js';
+import { lockedLengthChanges, lockedLengthQuestion } from '../stages/locks-view.js';
 import { decodeSoundDrag, SOUND_DRAG_TYPE } from '../sound/sound-view.js';
 import type { WaveformView } from '../timeline/draw-timeline.js';
 import { itemKey, selectedCues, useSelection, type SelectionStore } from '../timeline/selection.js';
@@ -44,6 +47,8 @@ export interface TimelinePanelProps {
   readonly onScrub: (t: number) => void;
   /** A library sound dropped on the lanes at time `t` (PLAN.md#8.2). */
   readonly onDropSound: (sound: LibrarySound, t: number) => void;
+  /** Locked shots: changing their length needs a confirmation. */
+  readonly locked: ReadonlySet<string>;
 }
 
 const EMPTY_TEXT = {
@@ -184,6 +189,14 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<TimelineView>(() => fitView(duration, 1));
   const [picker, setPicker] = useState<{ t: number; x: number } | undefined>(undefined);
+  const [lockedEdit, setLockedEdit] = useState<
+    { readonly change: FileEdits; readonly ids: readonly string[] } | undefined
+  >(undefined);
+  const applyEdit = (change: FileEdits): void => {
+    const ids = lockedLengthChanges(change, props.locked);
+    if (ids.length > 0) setLockedEdit({ change, ids });
+    else editing.apply(change);
+  };
 
   useEffect(() => {
     if (laneWidth > 0) setView((current) => resizeView(current, duration, laneWidth));
@@ -212,6 +225,23 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
 
   return (
     <section className="panel timeline" aria-label="Timeline">
+      {lockedEdit !== undefined && (
+        <ConfirmDialog
+          title="Change a locked shot?"
+          confirmLabel="Change the length"
+          confirmClass="primary"
+          busy={false}
+          onConfirm={() => {
+            editing.apply(lockedEdit.change);
+            setLockedEdit(undefined);
+          }}
+          onCancel={() => {
+            setLockedEdit(undefined);
+          }}
+        >
+          <p>{lockedLengthQuestion(lockedEdit.ids)}</p>
+        </ConfirmDialog>
+      )}
       <div className="timeline-toolbar" role="toolbar" aria-label="Timeline tools">
         <ToolButton
           label="Zoom out"
@@ -313,7 +343,7 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
               emptyText={EMPTY_TEXT}
               onSeek={props.onSeek}
               onScrub={props.onScrub}
-              onChange={editing.apply}
+              onChange={applyEdit}
               onUndo={editing.undo}
               onRedo={editing.redo}
               onAddSfx={(t, x) => {

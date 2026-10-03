@@ -3,16 +3,24 @@
  * first (kit-ext, "Prop <name> built ✓"), then one job per storyboard shot (build turn → missing
  * props built → QA by code → Haiku critic → ≤ 2 fix turns → ✓/⚠/✗ in
  * `.reelforge/scenes-report.json` + "Scene sNN built ✓" autocommit), resumable after a
- * limit/cancel/crash without redoing finished shots. The
- * `action` runs a whole-video review mode instead (the "Whole video" chat chips).
+ * limit/cancel/crash without redoing finished shots. Locked shots (`locks.json`) are never built
+ * or fixed. The `action` runs a whole-video review mode instead (the "Whole video" chat chips) or
+ * the final review (PLAN.md#11.5).
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
-import { SHOT_STATUS_SYMBOLS, type ShotBuildRecord, type ShotBuildStatus } from '@reelforge/shared';
+import {
+  SHOT_STATUS_SYMBOLS,
+  type ShotBuildRecord,
+  type ShotBuildStatus,
+  type StoryboardShot,
+  type SyncReport,
+} from '@reelforge/shared';
 import { FILES } from '../paths.js';
 import { buildStoryboardProps } from '../props/storyboard-props.js';
 import { loadSceneJob, selectShots, type SceneJob } from '../scenes/job.js';
 import { SCENES_QUEUE } from '../scenes/queue.js';
 import { readScenesReport } from '../scenes/report.js';
+import { finalReview, finalReviewWarnings } from '../scenes/final-review.js';
 import { reviewVideo, type ReviewOutcome } from '../scenes/review.js';
 import { runShotJobs } from '../scenes/run-shots.js';
 import { buildShot } from '../scenes/shot-job.js';
@@ -20,6 +28,7 @@ import {
   stageError,
   type RequestOf,
   type ReviewMode,
+  type SceneAction,
   type StageContext,
   type StageDefinition,
   type StageError,
@@ -41,6 +50,17 @@ function statusLine(counts: Record<ShotBuildStatus, number>): string {
     .filter((status) => counts[status] > 0)
     .map((status) => `${String(counts[status])} ${SHOT_STATUS_SYMBOLS[status]}`)
     .join(', ');
+}
+
+/** Selected shots split into the ones to work on and the locked ids (PLAN.md#11.4). */
+function splitLocked(
+  job: SceneJob,
+  shots: readonly StoryboardShot[],
+): { unlocked: StoryboardShot[]; locked: string[] } {
+  return {
+    unlocked: shots.filter((shot) => !job.locked.has(shot.id)),
+    locked: shots.filter((shot) => job.locked.has(shot.id)).map((shot) => shot.id),
+  };
 }
 
 async function recordsOf(
@@ -71,14 +91,27 @@ async function build(
   const { ctx } = job;
   const selected = selectShots(job, shots);
   if (!selected.ok) return selected;
+  const { unlocked, locked } = splitLocked(job, selected.value);
+  // Asked for by name ("Rebuild this shot"): say why nothing happens to a locked shot.
+  const lockWarnings =
+    shots === undefined ? [] : locked.map((id) => `${id} is locked: not rebuilt`);
+  if (unlocked.length === 0 && locked.length > 0) {
+    return ok({
+      message: `Nothing to build: ${locked.length === 1 ? `${locked.join('')} is locked` : `${shotCount(locked.length)} are locked`}`,
+      outputs: [],
+      changed: false,
+      warnings: lockWarnings,
+      metrics: { shots: 0, built: 0, locked: locked.length },
+    });
+  }
   if (job.onMissingProps === undefined) {
     ctx.step('props flagged by the storyboard');
-    const props = await buildStoryboardProps(job.props, ctx.projectDir, selected.value);
+    const props = await buildStoryboardProps(job.props, ctx.projectDir, unlocked);
     if (!props.ok) return props;
   }
   const ran = await runShotJobs(job, {
     queue: SCENES_QUEUE,
-    shots: selected.value,
+    shots: unlocked,
     resume: shots === undefined,
     verb: 'built',
     work: (shot) => buildShot(job, shot),
@@ -101,16 +134,18 @@ async function build(
   const missing = [...new Set(records.value.flatMap((entry) => entry.missingProps))];
   const newProps = [...new Set(records.value.flatMap((entry) => entry.builtProps ?? []))];
   const propsNote = newProps.length === 0 ? '' : `; props built: ${newProps.join(', ')}`;
+  const lockNote = locked.length === 0 ? '' : `; ${String(locked.length)} locked (kept)`;
   return ok({
-    message: `${String(records.value.length)} shots: ${statusLine(counts)}${ran.value.resumed ? ` (resumed, ${String(ran.value.skipped.length)} already built)` : ''}${propsNote}`,
+    message: `${String(records.value.length)} shots: ${statusLine(counts)}${ran.value.resumed ? ` (resumed, ${String(ran.value.skipped.length)} already built)` : ''}${propsNote}${lockNote}`,
     outputs: [
-      ...new Set(selected.value.map((shot) => shot.scene)),
+      ...new Set(unlocked.map((shot) => shot.scene)),
       ...newProps.map((name) => `kit-ext/props/${name}.js`),
       FILES.scenesReport,
     ],
     changed: ran.value.ran.length > 0,
-    warnings: shotWarnings(records.value),
+    warnings: [...lockWarnings, ...shotWarnings(records.value)],
     metrics: {
+      ...(locked.length === 0 ? {} : { locked: locked.length }),
       shots: records.value.length,
       ok: counts.ok,
       warning: counts.warning,
@@ -124,7 +159,30 @@ async function build(
   });
 }
 
-function reviewSummary(outcome: ReviewOutcome, records: readonly ShotBuildRecord[]): StageSummary {
+/** What a review did not touch because of locks (and locked shots whose words moved). */
+export function lockedReviewNotes(
+  locked: readonly string[],
+  sync: SyncReport | undefined,
+): string[] {
+  if (locked.length === 0) return [];
+  const wanted = new Set(locked);
+  const offSync = (sync?.shots ?? []).filter(
+    (shot) => wanted.has(shot.shotId) && shot.problems > 0,
+  );
+  return [
+    `Locked shots not changed: ${locked.join(', ')}`,
+    ...offSync.map(
+      (shot) =>
+        `${shot.shotId} is locked and may be out of sync (${String(shot.problems)} ${shot.problems === 1 ? 'event' : 'events'} off ${shot.problems === 1 ? 'its word' : 'their words'}): unlock and fix it`,
+    ),
+  ];
+}
+
+function reviewSummary(
+  outcome: ReviewOutcome,
+  records: readonly ShotBuildRecord[],
+  lockNotes: readonly string[],
+): StageSummary {
   const counts = countStatuses(records);
   const fixed = outcome.fixed.length;
   const sync = outcome.sync?.summary;
@@ -136,7 +194,7 @@ function reviewSummary(outcome: ReviewOutcome, records: readonly ShotBuildRecord
       ...outcome.sheets,
     ],
     changed: fixed > 0,
-    warnings: [...outcome.notes, ...shotWarnings(records)],
+    warnings: [...outcome.notes, ...lockNotes, ...shotWarnings(records)],
     metrics: {
       flagged: outcome.suspects.length,
       fixed,
@@ -155,27 +213,66 @@ async function review(
 ): Promise<Result<StageSummary, StageError>> {
   const selected = selectShots(job, shots);
   if (!selected.ok) return selected;
-  const outcome = await reviewVideo(job, mode, selected.value);
+  const { unlocked, locked } = splitLocked(job, selected.value);
+  // The sync check reports locked shots too (never fixes them); the other modes skip them.
+  const outcome = await reviewVideo(job, mode, mode === 'sync-check' ? selected.value : unlocked);
   if (!outcome.ok) return outcome;
   const records = await recordsOf(job.ctx, outcome.value.fixed);
   if (!records.ok) return records;
-  return ok(reviewSummary(outcome.value, records.value));
+  return ok(
+    reviewSummary(outcome.value, records.value, lockedReviewNotes(locked, outcome.value.sync)),
+  );
 }
+
+async function final(
+  job: SceneJob,
+  trigger: 'auto' | 'manual',
+): Promise<Result<StageSummary, StageError>> {
+  const outcome = await finalReview(job, trigger);
+  if (!outcome.ok) return outcome;
+  const { review: result, sheets, sync } = outcome.value;
+  const { fixed, locked } = result.counts;
+  const statuses = statusLine({
+    ok: result.counts.ok,
+    warning: result.counts.warning,
+    failed: result.counts.failed,
+  });
+  return ok({
+    message: `Review done: ${statuses || 'no shots'}${fixed > 0 ? `; fixed ${shotCount(fixed)}` : ''}${locked > 0 ? `; ${String(locked)} locked` : ''}`,
+    outputs: [
+      FILES.scenesReport,
+      FILES.finalReview,
+      ...(sync === undefined ? [] : [FILES.syncReport]),
+      ...sheets,
+    ],
+    changed: fixed > 0,
+    warnings: [...result.notes, ...finalReviewWarnings(result)],
+    metrics: { ...result.counts, syncProblems: sync?.summary.problems ?? null },
+    commitMessage: `Final review: fixed ${shotCount(fixed)}`,
+  });
+}
+
+/** Actions that work without Claude (code checks only). */
+const WITHOUT_CLAUDE = new Set<SceneAction>(['sync-check', 'final-review']);
 
 async function run(
   ctx: StageContext,
   request: RequestOf<'scenes'>,
 ): Promise<Result<StageSummary, StageError>> {
   const action = request.action ?? 'build';
-  const needsClaude = action !== 'sync-check';
-  if (needsClaude && !ctx.hasClaude) {
+  if (!WITHOUT_CLAUDE.has(action) && !ctx.hasClaude) {
     return err(stageError('missing-tool', 'Claude is not connected'));
   }
   const job = await loadSceneJob(ctx);
   if (!job.ok) return job;
-  return action === 'build'
-    ? build(job.value, request.shots)
-    : review(job.value, action, request.shots);
+  switch (action) {
+    case 'build':
+      return build(job.value, request.shots);
+    case 'final-review':
+      return final(job.value, request.trigger ?? 'manual');
+    default:
+      return review(job.value, action, request.shots);
+  }
 }
 
 export const scenesStage: StageDefinition<'scenes'> = {
@@ -187,6 +284,7 @@ export const scenesStage: StageDefinition<'scenes'> = {
     FILES.scenesReport,
     FILES.propsReport,
     FILES.syncReport,
+    FILES.finalReview,
     `${FILES.qaFramesDir}/…`,
   ],
   run,

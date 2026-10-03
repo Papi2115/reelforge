@@ -11,7 +11,7 @@ Reply in the user's language (default: English). Be brief: say what you changed 
 - the shot you were asked to change — do not "improve" other shots unless the scope says "Whole video".
 
 ## What you must NOT touch
-`project.json`, `audio/**`, `timing/**`, `out/**`, `.reelforge/**`, `.git/**`, and anything outside this folder. The kit and engine are read-only; if a prop you need does not exist, see "Missing props" — never fake it with loose boxes inside a scene.
+`project.json`, `locks.json`, `audio/**`, `timing/**`, `out/**`, `.reelforge/**`, `.git/**`, and anything outside this folder. Shots listed in `locks.json` are locked by the user: never edit their scene files or the `kit-ext` props they use (the app discards such changes). The kit and engine are read-only; if a prop you need does not exist, see "Missing props" — never fake it with loose boxes inside a scene.
 
 ## Scene contract (the ONLY thing you write)
 ```js

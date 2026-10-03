@@ -3,10 +3,14 @@
  * current step, Claude's steps), the missing-props banner, the ✓/⚠/✗ totals and the sync report
  * ("Check every visual lands on its spoken word": every event of every shot against its spoken
  * word, ±150 ms). Clicking a row seeks the preview there and selects the shot; "Fix sync issues"
- * runs the sync-check review on the shots that are off.
+ * runs the sync-check review on the shots that are off. The final review (PLAN.md#11.5) shows its
+ * summary and the ⚠/✗ shots left; "Run final review" starts it by hand.
  */
+import type { StoryboardShot } from '@reelforge/shared';
 import { useState, type JSX } from 'react';
-import type { StageReports } from '../../shared/voiceover-contract.js';
+import type { SceneActionKey, StageReports } from '../../shared/voiceover-contract.js';
+import { FinalReviewSection } from './FinalReview.js';
+import { exportPreflight, finalReviewProgress } from './final-review-view.js';
 import { StageProgress } from './StageProgress.js';
 import {
   buildProgress,
@@ -20,7 +24,7 @@ import type { StagesControls } from './use-stages.js';
 export interface ScenesPanelProps {
   readonly stages: StagesControls;
   readonly reports: StageReports | undefined;
-  readonly totalShots: number;
+  readonly shots: readonly StoryboardShot[];
   readonly onSeekShot: (shotId: string, t: number) => void;
   readonly onClose: () => void;
 }
@@ -94,20 +98,21 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
   const state = props.stages.state;
   const running = state?.running?.stage === 'scenes' ? state.running : null;
   const busy = running !== null || state?.queue.includes('scenes') === true;
-  const progress = buildProgress(running, props.totalShots);
+  const progress = buildProgress(running, props.shots.length);
   const banner = propsBanner(
     propsSummary(props.reports?.scenes ?? null, props.reports?.props ?? null),
   );
   const offShots = syncProblemShots(props.reports?.sync ?? null);
 
-  const check = (): void => {
+  const start = (action: SceneActionKey, shots: readonly string[] | null): void => {
     setNotice(null);
-    void window.reelforge
-      .runScenes('sync-check', offShots.length > 0 ? offShots : null)
-      .then((result) => {
-        if (result.status === 'error') setNotice(result.message ?? 'Not started.');
-      });
+    void window.reelforge.runScenes(action, shots).then((result) => {
+      if (result.status === 'error') setNotice(result.message ?? 'Not started.');
+    });
   };
+  const reviewTitle = busy
+    ? 'Scenes built is running or queued.'
+    : 'Check every shot again (sync, text size, frames) and fix what is wrong; locked shots are only reported';
 
   return (
     <section className="doc-panel docked" aria-label="Scenes built">
@@ -125,10 +130,21 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
                 : 'Measure every visual against its spoken word (fixes shots that are off)'
           }
           onClick={() => {
-            if (!busy) check();
+            if (!busy) start('sync-check', offShots.length > 0 ? offShots : null);
           }}
         >
           {offShots.length > 0 ? 'Fix sync issues' : 'Check sync'}
+        </button>
+        <button
+          type="button"
+          className="small-button"
+          aria-disabled={busy || props.shots.length === 0}
+          title={props.shots.length === 0 ? 'No storyboard yet.' : reviewTitle}
+          onClick={() => {
+            if (!busy && props.shots.length > 0) start('final-review', null);
+          }}
+        >
+          Run final review
         </button>
         <button type="button" className="small-button" onClick={props.onClose}>
           Back to preview
@@ -155,6 +171,15 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
           />
         )}
         <Totals reports={props.reports} />
+        <FinalReviewSection
+          preflight={exportPreflight(
+            props.reports?.finalReview ?? null,
+            props.reports?.scenes ?? null,
+            props.shots,
+          )}
+          progress={finalReviewProgress(running)}
+          onSeekShot={props.onSeekShot}
+        />
         <h3 className="section-title">Sync report</h3>
         <SyncTable reports={props.reports} onSeekShot={props.onSeekShot} />
       </div>

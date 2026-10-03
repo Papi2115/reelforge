@@ -14,6 +14,8 @@ import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
 import type { OpenTarget } from '../stages/pipeline-view.js';
 import { ScriptPanel, type ScriptTab } from '../stages/ScriptPanel.js';
+import { exportPreflight } from '../stages/final-review-view.js';
+import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
 import { ScenesPanel } from '../stages/ScenesPanel.js';
 import {
   buildProgress,
@@ -22,6 +24,7 @@ import {
   propsSummary,
   shotBadges,
 } from '../stages/scenes-view.js';
+import { useShotLocks } from '../stages/use-shot-locks.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { VoiceoverPanel } from '../stages/VoiceoverPanel.js';
@@ -139,6 +142,17 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   const scenesBusy = running?.stage === 'scenes' || stages.state?.queue.includes('scenes') === true;
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
   const [shotNotice, setShotNotice] = useState<string | undefined>(undefined);
+  const locks = useShotLocks(snapshot?.locks, timeline.selectedShotId, reload);
+  const runScenes = (action: 'build' | 'sync-check', shotId: string): void => {
+    setShotNotice(undefined);
+    void window.reelforge.runScenes(action, [shotId]).then((result) => {
+      if (result.status === 'error') setShotNotice(result.message ?? 'Not started.');
+    });
+  };
+  const seekShot = (shotId: string, t: number): void => {
+    timeline.selection.set([{ kind: 'shot', id: shotId }]);
+    player.seek(t);
+  };
 
   /** A library sound becomes a cue at `t` (drop on the timeline or Add at the playhead). */
   const addSound = (librarySound: LibrarySound, t: number): void => {
@@ -157,6 +171,11 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         <ExportDialog
           dir={project.dir}
           playhead={time}
+          preflight={exportPreflight(reports?.finalReview ?? null, reports?.scenes ?? null, shots)}
+          onSeekShot={(shotId, t) => {
+            setExportOpen(false);
+            seekShot(shotId, t);
+          }}
           onClose={() => {
             setExportOpen(false);
           }}
@@ -187,9 +206,9 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
                 setCenterDocument({ kind: 'script', tab: 'brief' });
               }}
             />
-            {shotNotice !== undefined && (
+            {(shotNotice ?? locks.notice) !== undefined && (
               <p className="panel-error banner" role="alert">
-                {shotNotice}
+                {shotNotice ?? locks.notice}
               </p>
             )}
             <ShotsPanel
@@ -204,9 +223,21 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               )}
               actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
               onRebuild={(shotId) => {
-                setShotNotice(undefined);
-                void window.reelforge.runScenes('build', [shotId]).then((result) => {
-                  if (result.status === 'error') setShotNotice(result.message ?? 'Not started.');
+                runScenes('build', shotId);
+              }}
+              locked={locks.locked}
+              outOfSync={outOfSyncLocked(
+                locks.locked,
+                reports?.sync ?? null,
+                reports?.finalReview ?? null,
+              )}
+              lockable={lockableOkShots(shots, badges, locks.locked)}
+              onLock={(shotIds, lock) => {
+                void locks.setLocked(shotIds, lock);
+              }}
+              onUnlockAndFix={(shotId) => {
+                void locks.setLocked([shotId], false).then((unlocked) => {
+                  if (unlocked) runScenes('sync-check', shotId);
                 });
               }}
               onFix={(shotId) => {
@@ -254,11 +285,8 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               <ScenesPanel
                 stages={stages}
                 reports={reports}
-                totalShots={shots.length}
-                onSeekShot={(shotId, t) => {
-                  timeline.selection.set([{ kind: 'shot', id: shotId }]);
-                  player.seek(t);
-                }}
+                shots={shots}
+                onSeekShot={seekShot}
                 onClose={() => {
                   setCenterDocument(null);
                 }}
@@ -329,6 +357,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             fps={fps}
             selection={timeline.selection}
             editing={timeline.editing}
+            locked={locks.locked}
             waveform={timeline.waveform}
             onSeek={(t) => {
               player.seek(t);

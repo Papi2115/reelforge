@@ -2,7 +2,9 @@
  * Export dialog (PLAN.md#9.1, #9.2): preset (with the integer scale factor of the style's render
  * size; impossible ones are disabled with the reason), encoder (+ a real test encode), quality
  * profile, render workers, output folder and file name, chapters and thumbnail (any frame: "Use
- * the playhead frame"), then "Add to queue". The queue and the YouTube suggestions sit beside the
+ * the playhead frame"), then "Add to queue". Shots the final review (PLAN.md#11.5) left ⚠/✗ are
+ * listed first (click one to go to it); with any listed the button reads "Export anyway", and a
+ * scene that cannot render at all blocks it. The queue and the YouTube suggestions sit beside the
  * form. The last choices are saved by main when a job is queued.
  */
 import { useEffect, useRef, useState, type JSX } from 'react';
@@ -13,6 +15,8 @@ import {
 } from '@reelforge/shared';
 import type { ExportOptions } from '../../shared/export-contract.js';
 import { errorMessage } from '../log.js';
+import { ExportPreflight } from '../stages/FinalReview.js';
+import type { Preflight } from '../stages/final-review-view.js';
 import { ExportQueueList } from './ExportQueueList.js';
 import {
   autoWorkers,
@@ -33,6 +37,10 @@ export interface ExportDialogProps {
   readonly dir: string;
   /** Preview time (s): "Use the playhead frame" for the thumbnail. */
   readonly playhead: number;
+  /** ⚠/✗ shots left by the final review (or the last build). */
+  readonly preflight: Preflight;
+  /** A pre-flight shot was clicked: select it and seek there (the dialog closes). */
+  readonly onSeekShot: (shotId: string, t: number) => void;
   readonly onClose: () => void;
 }
 
@@ -279,7 +287,12 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
     }
   }, [options]);
 
-  const problem = form === null || options === undefined ? 'Loading…' : formProblem(form, options);
+  const { preflight } = props;
+  const problem =
+    form === null || options === undefined
+      ? 'Loading…'
+      : (formProblem(form, options) ?? preflight.blocker);
+  const anyway = preflight.items.length > 0;
   const enqueue = (): void => {
     if (form === null || problem !== null) return;
     setNotice(null);
@@ -323,6 +336,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
               enqueue();
             }}
           >
+            <ExportPreflight preflight={preflight} onSeekShot={props.onSeekShot} />
             {options === undefined || form === null ? (
               <p className="muted">Loading…</p>
             ) : (
@@ -358,9 +372,14 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
                 type="submit"
                 className="primary"
                 aria-disabled={problem !== null}
-                title={problem ?? 'Render and encode the video'}
+                title={
+                  problem ??
+                  (anyway
+                    ? 'Render and encode the video with the shots listed above as they are'
+                    : 'Render and encode the video')
+                }
               >
-                Add to queue
+                {anyway ? 'Export anyway' : 'Add to queue'}
               </button>
               {problem !== null && problem !== 'Loading…' && (
                 <span className="export-problem">{problem}</span>

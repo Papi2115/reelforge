@@ -1,7 +1,8 @@
 /**
  * One Claude turn of a stage: model from the settings (Economy = Sonnet + short-turn hint), usage
  * limit handling (stage `paused` in pipeline.json, wait for the account-wide LimitGuard to resume,
- * retry in the same session without losing work), cancellation and the `claude-turn` autocommit.
+ * retry in the same session without losing work), cancellation, the shot-lock guard (changes to
+ * locked shots are discarded) and the `claude-turn` autocommit.
  */
 import {
   ECONOMY_HINT,
@@ -15,6 +16,7 @@ import {
 import { permissionStageFor, promptModel } from '@reelforge/prompts';
 import { addUsageTotals, emptyUsageTotals, type UsageTotals } from '@reelforge/shared';
 import type { ClaudeRunner, ClaudeTurnResult } from './claude.js';
+import { guardLockedFiles } from './lock-guard.js';
 import type { StageId } from './ids.js';
 import type { StageSettings } from './settings.js';
 import { stageError, type StageError, type StageEvent, type StageTurn } from './types.js';
@@ -83,22 +85,28 @@ export class TurnDriver {
         label: `Claude: ${turn.label}`,
         percent: undefined,
       });
-      const result = await claude.run(
-        {
-          projectDir,
-          stage: permissionStageFor(turn.prompt),
-          purpose: turn.purpose,
-          prompt,
-          model,
-          newSession,
-          ...(turn.detached === true ? { detached: true } : {}),
-          ...(settings.economy ? { appendSystemPrompt: ECONOMY_HINT } : {}),
-        },
-        {
-          signal,
-          onEvent: (event) => {
-            this.options.emit({ type: 'claude', stage, event });
-          },
+      const spec = {
+        projectDir,
+        stage: permissionStageFor(turn.prompt),
+        purpose: turn.purpose,
+        prompt,
+        model,
+        newSession,
+        ...(turn.detached === true ? { detached: true } : {}),
+        ...(settings.economy ? { appendSystemPrompt: ECONOMY_HINT } : {}),
+      };
+      // Locked shots (PLAN.md#11.4): whatever the turn did to their files is put back.
+      const result = await guardLockedFiles(
+        projectDir,
+        () =>
+          claude.run(spec, {
+            signal,
+            onEvent: (event) => {
+              this.options.emit({ type: 'claude', stage, event });
+            },
+          }),
+        (message) => {
+          this.options.emit({ type: 'warning', stage, message });
         },
       );
       if (result.usage !== undefined) {

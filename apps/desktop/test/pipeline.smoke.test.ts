@@ -3,8 +3,9 @@
  * #10.1): brief -> script (fake-claude) -> approve -> record a 2 s take with Chromium's fake
  * microphone -> replace it with a file (archived, later stages stale) -> Audio cleaned (real
  * ffmpeg) -> Words timed (a recorded transcription through REELFORGE_TEST_TRANSCRIPT; no whisper
- * model) -> Storyboard -> Scenes built (QA on the app's render windows, ✓ badges) -> the "Check
- * every visual lands on its spoken word" chip (sync report in the chat and the Scenes panel) ->
+ * model) -> Storyboard -> Scenes built (QA on the app's render windows, ✓ badges, the automatic
+ * final review) -> the "Check every visual lands on its spoken word" chip (sync report in the chat
+ * and the Scenes panel) ->
  * Sound design mixed (real ffmpeg) -> Video exported -> an MP4 that ffprobe reads. Never a model
  * call. Screenshots at 1280x720 in out/test-app/pipeline-*.png.
  */
@@ -179,6 +180,10 @@ describe('the pipeline in the app', () => {
     await page.locator('.shots-progress').waitFor({ timeout: 30_000 });
     await shot('scenes-running');
     await waitDone('Scenes built', 420_000);
+    // The quiet final review follows by itself (PLAN.md#11.5).
+    await expect
+      .poll(() => rowText('Scenes built'), { timeout: 180_000, interval: 500 })
+      .toMatch(/^Scenes builtDone.*Review done: 7 ✓/);
     const shots = page.getByRole('region', { name: 'Shots' });
     await expect.poll(() => shots.locator('.shot-badge.qa-ok').count()).toBe(7);
     await shots.getByRole('button', { name: /^QA of s04_rainbow/ }).click();

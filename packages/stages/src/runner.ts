@@ -15,7 +15,7 @@ import {
   type Result,
 } from '@reelforge/claude-bridge';
 import { autocommit, type AutocommitKind, type GitOptions } from '@reelforge/project';
-import type { StageRunStatus } from '@reelforge/shared';
+import type { StageRunStatus, StageState } from '@reelforge/shared';
 import type { AudioTools } from './audio-tools.js';
 import type { ClaudeRunner } from './claude.js';
 import { canRun, type Readiness } from './gating.js';
@@ -23,6 +23,7 @@ import { STAGE_IDS, STAGE_TITLES, type StageId } from './ids.js';
 import { invalidateDownstream, stagesToInvalidate } from './invalidate.js';
 import { DEFAULT_STAGE_SETTINGS, type StageSettings } from './settings.js';
 import type { SceneTools } from './scenes/tools.js';
+import { isReviewRun, statusAfter } from './run-status.js';
 import { readProjectSnapshot, type ProjectSnapshot } from './snapshot.js';
 import { BUILT_IN_STAGES, type StageRegistry } from './stages/registry.js';
 import { TurnDriver } from './turns.js';
@@ -61,21 +62,6 @@ export interface StageRunnerOptions {
 
 export interface RunOptions {
   readonly signal?: AbortSignal | undefined;
-}
-
-/** Stage status after a failed run. */
-function statusAfter(error: StageError): StageRunStatus {
-  switch (error.kind) {
-    case 'cancelled':
-      return 'idle';
-    case 'limit':
-      return 'paused';
-    case 'blocked':
-    case 'missing-tool':
-      return 'blocked';
-    default:
-      return 'failed';
-  }
 }
 
 export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
@@ -192,9 +178,13 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
         this.emitEvent({ type: 'shot', stage, shotId, state, status });
       },
     };
+    // A review of built scenes that stops or fails leaves "Scenes built" as it was.
+    const keep = isReviewRun(request) ? snapshot.stages[stage] : undefined;
     const result = await this.execute(ctx, request);
-    if (!result.ok) return this.fail(stage, result.error, true);
-    if (signal.aborted) return this.fail(stage, stageError('cancelled', 'cancelled'), true);
+    if (!result.ok) return this.fail(stage, result.error, true, keep);
+    if (signal.aborted) {
+      return this.fail(stage, stageError('cancelled', 'cancelled'), true, keep);
+    }
     return ok(await this.finish(stage, result.value, driver));
   }
 
@@ -258,7 +248,7 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
     for (const message of summary.warnings) this.emitEvent({ type: 'warning', stage, message });
     const commit = await this.commit(
       stage,
-      `${STAGE_TITLES[stage]}: ${summary.message}`,
+      summary.commitMessage ?? `${STAGE_TITLES[stage]}: ${summary.message}`,
       'pipeline-step',
     );
     const success: StageSuccess = {
@@ -276,8 +266,10 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
     stage: StageId,
     error: StageError,
     persist: boolean,
+    keep?: StageState,
   ): Promise<Result<never, StageError>> {
-    if (persist) await this.writeStage(stage, statusAfter(error), error.message);
+    if (persist && keep?.status === 'done') await this.restoreStage(stage, keep);
+    else if (persist) await this.writeStage(stage, statusAfter(error), error.message);
     this.emitEvent({ type: 'failed', stage, error });
     return err(error);
   }
@@ -357,6 +349,14 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
     message?: string,
   ): Promise<void> {
     const written = await this.store.setStage(this.projectDir, stage, status, message);
+    if (!written.ok) this.warnStore(stage, written.error.message);
+  }
+
+  private async restoreStage(stage: StageId, previous: StageState): Promise<void> {
+    const written = await this.store.update(this.projectDir, (state) => ({
+      ...state,
+      stages: { ...state.stages, [stage]: { ...previous, updatedAt: this.now().toISOString() } },
+    }));
     if (!written.ok) this.warnStore(stage, written.error.message);
   }
 

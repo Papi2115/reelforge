@@ -1,10 +1,12 @@
 /**
  * IPC payloads of the stage panels (PLAN.md#7.2, #7.6, #7.7): voice-over import / in-app
  * recording (WAV bytes, validated again in main) and the microphone grant, the reports the panels
- * show (voice-over fit, words alignment, ✓/⚠/✗ per shot, sync report, missing props), "Retry with
- * a bigger model" and scene runs (rebuild a shot, the review modes). Merged into ipc-contract.ts.
+ * show (voice-over fit, words alignment, ✓/⚠/✗ per shot, sync report, missing props, final review),
+ * "Retry with a bigger model", scene runs (rebuild a shot, the review modes, the final review) and
+ * shot locks. Merged into ipc-contract.ts.
  */
 import {
+  finalReviewSchema,
   propsReportSchema,
   scenesReportSchema,
   settingsWhisperModelSchema,
@@ -39,6 +41,8 @@ export const stageReportsSchema = z.object({
   sync: syncReportSchema.nullable(),
   /** `.reelforge/props-report.json`: project props built by Scenes built (kit-ext). */
   props: propsReportSchema.nullable(),
+  /** `.reelforge/final-review.json`: the quiet review after Scenes built (PLAN.md#11.5). */
+  finalReview: finalReviewSchema.nullable(),
 });
 export type StageReports = z.infer<typeof stageReportsSchema>;
 
@@ -47,6 +51,7 @@ export const SCENE_ACTIONS = [
   'fix-what-looks-wrong',
   'phone-legibility',
   'sync-check',
+  'final-review',
 ] as const;
 export const sceneActionSchema = z.enum(SCENE_ACTIONS);
 export type SceneActionKey = z.infer<typeof sceneActionSchema>;
@@ -84,6 +89,15 @@ export const VOICEOVER_IPC = {
     }),
     response: stageCommandResultSchema,
   },
+  /** Locks / unlocks shots (`locks.json`, PLAN.md#11.4); main commits the change. */
+  shotsLock: {
+    name: 'shots:lock',
+    request: z.strictObject({
+      shotIds: z.array(shotIdSchema.max(64)).min(1).max(500),
+      locked: z.boolean(),
+    }),
+    response: stageCommandResultSchema,
+  },
 } as const;
 
 export interface VoiceoverApi {
@@ -97,5 +111,9 @@ export interface VoiceoverApi {
   runScenes(
     action: SceneActionKey,
     shots: readonly string[] | null,
+  ): Promise<z.infer<typeof stageCommandResultSchema>>;
+  lockShots(
+    shotIds: readonly string[],
+    locked: boolean,
   ): Promise<z.infer<typeof stageCommandResultSchema>>;
 }

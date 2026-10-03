@@ -129,6 +129,18 @@ describe('drawTimeline', () => {
     expect(perFrame).toBeLessThan(4);
   });
 
+  it('draws a padlock on locked shots and keeps their label clear of it', () => {
+    const shot = model.shots[0];
+    if (shot === undefined) throw new Error('no shot');
+    const view = zoomAround(fit, 4, 0);
+    const plain = new CountingContext();
+    drawTimeline(plain, input(model, view));
+    const locked = new CountingContext();
+    drawTimeline(locked, input({ ...model, locked: new Set([shot.id]) }, view));
+    // The padlock: one filled body + one stroked shackle.
+    expect(locked.calls - plain.calls).toBe(2);
+  });
+
   it('fits labels by an average glyph width', () => {
     expect(fitLabel('calculator', 200)).toBe('calculator');
     expect(fitLabel('calculator', 40)).toBe('calc…');

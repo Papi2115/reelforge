@@ -89,3 +89,24 @@ export {
   type LegibilityRules,
   type TextCall,
 } from './scenes/source-checks.js';
+export {
+  lockedFiles,
+  propCalls,
+  readLockedShots,
+  readShotLocks,
+  setShotsLocked,
+  type LockedFile,
+} from './locks.js';
+export {
+  discardLockedChanges,
+  guardLockedFiles,
+  lockViolationMessage,
+  snapshotLockedFiles,
+  type LockSnapshot,
+} from './lock-guard.js';
+export {
+  FINAL_REVIEW_QUEUE,
+  finalReview,
+  finalReviewWarnings,
+  type FinalReviewOutcome,
+} from './scenes/final-review.js';

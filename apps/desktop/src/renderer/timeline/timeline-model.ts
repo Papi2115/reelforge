@@ -24,6 +24,8 @@ export interface TimelineModel {
   /** Sorted word starts/ends (snapping). */
   readonly boundaries: Float64Array;
   readonly cues: CuesView;
+  /** Locked shot ids (a padlock on their blocks, PLAN.md#11.4). */
+  readonly locked?: ReadonlySet<string>;
 }
 
 /** Words-derived parts, rebuilt only when the words change. */

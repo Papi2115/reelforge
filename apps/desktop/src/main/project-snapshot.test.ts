@@ -85,6 +85,15 @@ describe('readProjectSnapshot', () => {
       /^cues\.json: sfx\.0\.t: /,
     );
     expect(snapshot.words).toEqual({ status: 'missing' });
+    expect(snapshot.locks).toEqual({ status: 'missing' });
+  });
+
+  it('reads the shot locks (locks.json)', async () => {
+    const locks = { version: 1, shots: [{ shotId: 's02', lockedAt: '2026-10-03T10:00:00.000Z' }] };
+    await writeFile(path.join(dir, 'locks.json'), JSON.stringify(locks));
+    const snapshot = await readProjectSnapshot(dir);
+    expect(snapshot.locks).toEqual({ status: 'ok', data: locks });
+    expect(snapshot.files).toContain('locks.json');
   });
 
   it('accepts a UTF-8 BOM', async () => {

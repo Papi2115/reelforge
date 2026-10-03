@@ -32,6 +32,8 @@ export type StageRequest =
       readonly action?: SceneAction;
       /** Only these storyboard shots (default: all). */
       readonly shots?: readonly string[];
+      /** `final-review` only: started by the app after a build (`auto`) or by the user. */
+      readonly trigger?: 'auto' | 'manual';
     }
   | {
       readonly stage: 'sound-cues';
@@ -50,7 +52,8 @@ export type StageRequest =
  */
 export const REVIEW_MODES = ['fix-what-looks-wrong', 'phone-legibility', 'sync-check'] as const;
 export type ReviewMode = (typeof REVIEW_MODES)[number];
-export type SceneAction = 'build' | ReviewMode;
+/** `final-review`: the quiet pass after a build (PLAN.md#11.5), one commit at the end. */
+export type SceneAction = 'build' | ReviewMode | 'final-review';
 
 export type RequestOf<S extends StageId> = Extract<StageRequest, { readonly stage: S }>;
 
@@ -98,6 +101,8 @@ export interface StageSummary {
   readonly warnings: readonly string[];
   /** Small typed numbers for the UI (word count, coverage, LUFS, …). */
   readonly metrics: Readonly<Record<string, Metric>>;
+  /** Subject of the stage's autocommit instead of "<Stage title>: <message>". */
+  readonly commitMessage?: string;
 }
 
 export interface StageSuccess extends StageSummary {

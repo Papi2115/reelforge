@@ -112,6 +112,8 @@ function block(
   height: number,
   colors: readonly [string, string],
   label: string,
+  /** Pixels kept free at the right end (e.g. for the padlock). */
+  reserve = 0,
 ): void {
   const { ctx, view } = lane;
   const x0 = Math.max(timeToX(view, from), -2);
@@ -121,7 +123,7 @@ function block(
   ctx.fillRect(x0, top, width, height);
   ctx.strokeStyle = colors[1];
   ctx.strokeRect(x0 + 0.5, top + 0.5, Math.max(width - 1, 0), height - 1);
-  const text = fitLabel(label, width);
+  const text = fitLabel(label, width - reserve);
   if (text === '') return;
   ctx.fillStyle = COLORS.text;
   ctx.fillText(text, Math.max(x0, 0) + LABEL_PAD, top + height / 2 + 0.5);
@@ -150,6 +152,22 @@ function drawRuler(ctx: DrawContext, view: TimelineView): void {
   ctx.font = UI_FONT;
 }
 
+const PADLOCK_PX = 12;
+
+/** A small padlock at the right end of a locked shot's block (when the block is wide enough). */
+function drawPadlock(lane: Lane, from: number, to: number, top: number, height: number): void {
+  const { ctx, view } = lane;
+  const x0 = Math.max(timeToX(view, from), 0);
+  const x1 = Math.min(timeToX(view, to), view.width);
+  if (x1 - x0 < PADLOCK_PX * 2) return;
+  const x = Math.round(x1 - PADLOCK_PX + 2);
+  const y = Math.round(top + height / 2);
+  ctx.fillStyle = COLORS.text;
+  ctx.fillRect(x, y - 1, 7, 5);
+  ctx.strokeStyle = COLORS.text;
+  ctx.strokeRect(x + 1.5, y - 4.5, 4, 4);
+}
+
 function drawShots(lane: Lane, input: DrawInput): number {
   const { model, view, selected, hover } = input;
   const row = trackRow('shots');
@@ -159,6 +177,7 @@ function drawShots(lane: Lane, input: DrawInput): number {
     if (shot.t1 < from || shot.t0 > to) return;
     const isSelected = selected.has(itemKey({ kind: 'shot', id: shot.id }));
     const colors = isSelected ? COLORS.shotSelected : COLORS.shot;
+    const locked = model.locked?.has(shot.id) === true;
     block(
       lane,
       shot.t0,
@@ -167,7 +186,9 @@ function drawShots(lane: Lane, input: DrawInput): number {
       row.height - 6,
       colors,
       `${shot.id} · ${shot.treatment}`,
+      locked ? PADLOCK_PX : 0,
     );
+    if (locked) drawPadlock(lane, shot.t0, shot.t1, row.top + 3, row.height - 6);
     drawn += 1;
     if (hover?.kind === 'boundary' && hover.left === index) {
       lane.ctx.fillStyle = COLORS.accent;

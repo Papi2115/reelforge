@@ -94,6 +94,8 @@ export function fixPrompt(shotId: string, badge: ShotBadge | undefined): string 
 /** `Building shot 3/8 · s03: QA build round 1`, or null when no scene build runs. */
 export function buildProgress(running: StageRunView | null, totalShots: number): string | null {
   if (running?.stage !== 'scenes') return null;
+  // The final review counts its shots in its own step label ("Reviewing… 7/16").
+  if (running.action === 'final-review') return `Final review · ${running.label ?? 'starting'}`;
   const total = running.targets?.length ?? totalShots;
   const states = Object.values(running.shots);
   const finished = states.filter((state) => state !== 'running' && state !== 'requeued').length;

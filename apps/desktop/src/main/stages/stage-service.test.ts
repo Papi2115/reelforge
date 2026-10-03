@@ -51,6 +51,7 @@ async function harness(
     brief?: boolean;
     claude?: ClaudeRunner;
     exportRun?: StageServiceOptions['exportRun'];
+    finalReview?: () => boolean;
   } = {},
 ): Promise<Harness> {
   const dir = projects.create(options.files, options.brief ?? true);
@@ -70,6 +71,7 @@ async function harness(
         autocommit: false,
       }),
     ...(options.exportRun === undefined ? {} : { exportRun: options.exportRun }),
+    ...(options.finalReview === undefined ? {} : { finalReview: options.finalReview }),
     store,
     guard,
     push: (next) => pushes.push(next),
@@ -401,5 +403,33 @@ describe('StageService', () => {
     expect(last(pushes)?.running).toMatchObject({ action: 'sync-check', targets: ['s02'] });
     expect(service.stop('scenes')).toBe(true);
     await service.whenIdle();
+  });
+
+  it('follows a whole-film scenes build with the final review when the setting is on', async () => {
+    const actions: string[] = [];
+    let enabled = true;
+    const { service, dir } = await harness(
+      {
+        scenes: {
+          ...BUILT_IN_STAGES.scenes,
+          run: (_ctx, request) => {
+            actions.push(
+              `${request.action ?? 'build'}:${request.trigger ?? '-'}:${request.shots?.join(',') ?? 'all'}`,
+            );
+            return Promise.resolve(ok(SUMMARY));
+          },
+        },
+      },
+      { files: { 'storyboard.json': '{}' }, finalReview: () => enabled },
+    );
+    await approve(dir);
+    await service.run(['scenes']);
+    await service.whenIdle();
+    await service.enqueue([{ stage: 'scenes', shots: ['s01'] }]);
+    await service.whenIdle();
+    enabled = false;
+    await service.run(['scenes']);
+    await service.whenIdle();
+    expect(actions).toEqual(['build:-:all', 'final-review:auto:all', 'build:-:s01', 'build:-:all']);
   });
 });

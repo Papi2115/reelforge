@@ -201,6 +201,67 @@
   color: var(--accent-text);
 }
 
+/* Shot locks (PLAN.md#11.4) */
+.shot-lock {
+  position: absolute;
+  top: 31px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--muted);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.shot-lock .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.shot-lock:hover,
+.shot-lock:focus-visible {
+  opacity: 1;
+}
+
+.shot-lock.on {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  opacity: 1;
+}
+
+.shot-lock.on.out-of-sync {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.shot-item.locked {
+  border-left-color: var(--accent-text);
+}
+
+.shots-lock-all {
+  margin-left: auto;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.shots-lock-all .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.shot-lock-note {
+  margin: 4px 0 0;
+  color: var(--accent-text);
+}
+
 .shot-qa {
   margin: -2px 0 6px;
   padding: 6px 8px;
@@ -296,4 +357,37 @@
   padding-left: 8px;
   border-left: 3px solid var(--warn);
   font-size: 12px;
+}
+
+/* Final review (PLAN.md#11.5): summary + the ⚠/✗ shots left (also the export pre-flight) */
+.final-review-summary {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.preflight-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.preflight-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 3px 6px;
+  border-color: var(--border-soft);
+  background: var(--bg);
+  font-size: 12px;
+  text-align: left;
+}
+
+.preflight-text {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

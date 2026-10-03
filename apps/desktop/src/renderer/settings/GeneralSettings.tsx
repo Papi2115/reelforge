@@ -113,6 +113,22 @@ export function ModelsPage({ state, update }: PageProps): JSX.Element {
           </span>
         </span>
       </label>
+      <label className="settings-toggle">
+        <input
+          type="checkbox"
+          checked={settings.scenes.finalReview}
+          onChange={(event) => {
+            update({ scenes: { finalReview: event.target.checked } });
+          }}
+        />
+        <span>
+          <strong>Run final review after building scenes</strong>
+          <span className="muted">
+            A quiet pass over every shot (sync, text size on a phone, frames) with at most one fix
+            per shot; locked shots are only reported. The result is listed before export.
+          </span>
+        </span>
+      </label>
       <h3 className="settings-heading">Model per stage</h3>
       {settings.economy && <p className="muted">Economy mode is on: all stages use Sonnet.</p>}
       <div className="settings-grid">

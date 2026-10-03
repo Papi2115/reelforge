@@ -1,6 +1,6 @@
 /**
  * Everything a scene job (build, QA, review) works with: the stage context, the scene tools with
- * their defaults, and the project inputs read once per run (storyboard, words, style).
+ * their defaults, and the project inputs read once per run (storyboard, words, style, locks).
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { AnchorIndex } from '@reelforge/pipeline';
@@ -11,6 +11,7 @@ import {
   type WordsFile,
 } from '@reelforge/shared';
 import { readProjectText, requireProjectJson } from '../files.js';
+import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
 import type { SceneSettings } from '../settings.js';
@@ -37,6 +38,8 @@ export interface SceneJob {
   readonly words: WordsFile | undefined;
   /** Fuzzy anchor resolver over the words (sync checks); undefined before "Words timed". */
   readonly anchorIndex: AnchorIndex | undefined;
+  /** Shots locked by the user (`locks.json`, PLAN.md#11.4): never built or fixed. */
+  readonly locked: ReadonlySet<string>;
 }
 
 let defaultKitNames: KitNames | undefined;
@@ -62,6 +65,8 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   if (!storyboard.ok) return storyboard;
   const words = await readWords(ctx.projectDir);
   if (!words.ok) return words;
+  const locked = await readLockedShots(ctx.projectDir);
+  if (!locked.ok) return locked;
   const kitNames = tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog());
   const settings = ctx.settings.scenes;
   const styleId = project.value.style;
@@ -79,6 +84,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
       words.value === undefined
         ? undefined
         : new AnchorIndex(words.value.words, { lang: project.value.language }),
+    locked: locked.value,
   });
 }
 

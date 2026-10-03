@@ -7,6 +7,7 @@ import type { StoryboardShot, TimedWord } from '@reelforge/shared';
 import { useEffect, useMemo, useState } from 'react';
 import type { ProjectSnapshot } from '../../shared/snapshot-contract.js';
 import { playbackAudioFile } from '../preview/audio-source.js';
+import { lockedShotSet } from '../stages/locks-view.js';
 import type { WaveformView } from './draw-timeline.js';
 import { peaksDuration } from './peak-columns.js';
 import { SelectionStore, useSelection, type TimelineItem } from './selection.js';
@@ -53,9 +54,11 @@ export function useTimeline(
   const cues = snapshot?.cues.status === 'ok' ? snapshot.cues.data : EMPTY_CUES;
   const editing = useTimelineEdits(dir, shots, cues, reload);
   const parts = useMemo(() => wordParts(words), [words]);
+  const locks = snapshot?.locks;
+  const locked = useMemo(() => lockedShotSet(locks), [locks]);
   const model = useMemo(
-    () => ({ ...parts, shots: editing.shots, cues: editing.cues }),
-    [parts, editing.shots, editing.cues],
+    () => ({ ...parts, shots: editing.shots, cues: editing.cues, locked }),
+    [parts, editing.shots, editing.cues, locked],
   );
   const waveform = useWaveform(playbackAudioFile(snapshot?.files ?? []), audioRevision);
 

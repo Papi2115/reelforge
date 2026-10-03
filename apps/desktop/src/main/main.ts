@@ -324,6 +324,7 @@ function main(): void {
       mainWindow?.webContents.send(IPC_PUSH.stagesChanged.name, state);
     },
     log: stagesLog,
+    finalReview: () => settings.get().scenes.finalReview,
   });
   const scriptDocuments = new ScriptDocuments({
     store: pipelineStore,
@@ -396,6 +397,11 @@ function main(): void {
         probe: ffmpegAudioProbe(() => settings.get()),
         hasWhisperModel: (model) => audioTools.hasWhisperModel(model),
         mic: micGate,
+        commit: async (dir, message) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step: 'locks' });
+          if (!committed.ok)
+            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+        },
         log: stagesLog,
       }),
     },

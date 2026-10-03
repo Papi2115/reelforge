@@ -1,14 +1,19 @@
 /**
  * Shots of storyboard.json (PLAN.md#6.3, #7.4): id, time range, treatment, intent and scene file,
  * with the ✓/⚠/✗ QA badge of Scenes built (click it for the findings, critic notes and missing
- * props, "Rebuild this shot" and "Fix with Claude…"), the build progress and the missing-props
- * banner. Clicking a shot selects it and moves the preview to its start.
+ * props, "Rebuild this shot" and "Fix with Claude…"), the lock of each shot (PLAN.md#11.4, plus
+ * "Lock all ✓"), the build progress and the missing-props banner. Clicking a shot selects it and
+ * moves the preview to its start.
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useState, type JSX } from 'react';
 import type { FileState } from '../../shared/snapshot-contract.js';
 import type { ShotBadge } from '../stages/scenes-view.js';
+import { LockIcon } from './icons.js';
 import { formatTime } from './timeline-scale.js';
+
+const LOCKED_REBUILD = 'Shot is locked — unlock it to rebuild.';
+const LOCKED_FIX = 'Shot is locked — unlock it to change it.';
 
 export interface ShotsPanelProps {
   readonly storyboard: FileState<{ readonly shots: readonly StoryboardShot[] }> | undefined;
@@ -23,6 +28,14 @@ export interface ShotsPanelProps {
   readonly actionsBlocked: string | null;
   readonly onRebuild: (shotId: string) => void;
   readonly onFix: (shotId: string) => void;
+  /** Locked shots (`locks.json`). */
+  readonly locked: ReadonlySet<string>;
+  /** Locked shots whose words moved (> ±150 ms): "Unlock and fix". */
+  readonly outOfSync: ReadonlySet<string>;
+  /** ✓ shots "Lock all ✓" would lock. */
+  readonly lockable: readonly string[];
+  readonly onLock: (shotIds: readonly string[], locked: boolean) => void;
+  readonly onUnlockAndFix: (shotId: string) => void;
 }
 
 function Placeholder({ storyboard }: Pick<ShotsPanelProps, 'storyboard'>): JSX.Element {
@@ -65,10 +78,14 @@ function ShotDetails(props: {
   readonly shotId: string;
   readonly badge: ShotBadge | undefined;
   readonly blocked: string | null;
+  readonly locked: boolean;
+  readonly outOfSync: boolean;
   readonly onRebuild: (shotId: string) => void;
   readonly onFix: (shotId: string) => void;
+  readonly onUnlockAndFix: (shotId: string) => void;
 }): JSX.Element {
   const { badge } = props;
+  const rebuildBlocked = props.locked ? LOCKED_REBUILD : props.blocked;
   const clean =
     badge !== undefined &&
     badge.findings.length + badge.critic.length + badge.missingProps.length === 0;
@@ -87,14 +104,20 @@ function ShotDetails(props: {
           {clean && <p className="muted">Nothing to fix.</p>}
         </>
       )}
+      {props.locked && (
+        <p className="shot-lock-note">
+          Locked: builds, reviews and Claude leave this shot as it is.
+          {props.outOfSync && ' The voice-over moved under it — it may be out of sync.'}
+        </p>
+      )}
       <div className="shot-qa-actions">
         <button
           type="button"
           className="small-button"
-          aria-disabled={props.blocked !== null}
-          title={props.blocked ?? 'Build this shot again (scene-build + QA)'}
+          aria-disabled={rebuildBlocked !== null}
+          title={rebuildBlocked ?? 'Build this shot again (scene-build + QA)'}
           onClick={() => {
-            if (props.blocked === null) props.onRebuild(props.shotId);
+            if (rebuildBlocked === null) props.onRebuild(props.shotId);
           }}
         >
           Rebuild this shot
@@ -102,13 +125,29 @@ function ShotDetails(props: {
         <button
           type="button"
           className="small-button"
-          title="Ask Claude in the chat, with these findings (scope Shot)"
+          aria-disabled={props.locked}
+          title={
+            props.locked ? LOCKED_FIX : 'Ask Claude in the chat, with these findings (scope Shot)'
+          }
           onClick={() => {
-            props.onFix(props.shotId);
+            if (!props.locked) props.onFix(props.shotId);
           }}
         >
           Fix with Claude…
         </button>
+        {props.outOfSync && (
+          <button
+            type="button"
+            className="small-button"
+            aria-disabled={props.blocked !== null}
+            title={props.blocked ?? 'Unlock the shot and move its events onto their words'}
+            onClick={() => {
+              if (props.blocked === null) props.onUnlockAndFix(props.shotId);
+            }}
+          >
+            Unlock and fix
+          </button>
+        )}
       </div>
     </div>
   );
@@ -122,6 +161,19 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
     <section className="panel shots-panel" aria-label="Shots">
       <h2 className="panel-heading">
         Shots {shots.length > 0 && <span className="count">{shots.length}</span>}
+        {props.lockable.length > 0 && (
+          <button
+            type="button"
+            className="small-button shots-lock-all"
+            title={`Lock ${props.lockable.join(', ')}: builds, reviews and Claude leave them as they are`}
+            onClick={() => {
+              props.onLock(props.lockable, true);
+            }}
+          >
+            <LockIcon locked />
+            Lock all ✓
+          </button>
+        )}
       </h2>
       {props.progress !== null && (
         <p className="shots-progress" aria-live="polite">
@@ -141,11 +193,13 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
             const playing = time >= shot.t0 && time < shot.t1;
             const badge = badges.get(shot.id);
             const open = openId === shot.id;
+            const locked = props.locked.has(shot.id);
+            const offSync = props.outOfSync.has(shot.id);
             return (
               <li key={shot.id} className="shot-entry">
                 <button
                   type="button"
-                  className={`shot-item${playing ? ' playing' : ''}`}
+                  className={`shot-item${playing ? ' playing' : ''}${locked ? ' locked' : ''}`}
                   aria-pressed={shot.id === selectedId}
                   aria-label={`Shot ${shot.id}, ${formatTime(shot.t0)} to ${formatTime(shot.t1)}: ${shot.intent}`}
                   onClick={() => {
@@ -175,13 +229,32 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                 >
                   {badge?.symbol ?? '○'}
                 </button>
+                <button
+                  type="button"
+                  className={`shot-lock${locked ? ' on' : ''}${offSync ? ' out-of-sync' : ''}`}
+                  aria-pressed={locked}
+                  aria-label={`${locked ? 'Unlock' : 'Lock'} ${shot.id}`}
+                  title={
+                    locked
+                      ? `Locked${offSync ? ', may be out of sync' : ''}: click to unlock (Shift+L)`
+                      : 'Lock this shot: builds, reviews and Claude leave it as it is (Shift+L)'
+                  }
+                  onClick={() => {
+                    props.onLock([shot.id], !locked);
+                  }}
+                >
+                  <LockIcon locked={locked} />
+                </button>
                 {open && (
                   <ShotDetails
                     shotId={shot.id}
                     badge={badge}
                     blocked={props.actionsBlocked}
+                    locked={locked}
+                    outOfSync={offSync}
                     onRebuild={props.onRebuild}
                     onFix={props.onFix}
+                    onUnlockAndFix={props.onUnlockAndFix}
                   />
                 )}
               </li>

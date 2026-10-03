@@ -120,6 +120,7 @@ const api: ReelforgeApi = {
   retryWords: (model) => invoke(IPC.wordsRetry, { model }),
   runScenes: (action, shots) =>
     invoke(IPC.scenesRun, { action, shots: shots === null ? null : [...shots] }),
+  lockShots: (shotIds, locked) => invoke(IPC.shotsLock, { shotIds: [...shotIds], locked }),
   getSoundState: () => invoke(IPC.soundState, null),
   importSounds: (kind) => invoke(IPC.soundImport, { kind }),
   previewSound: (sound) => invoke(IPC.soundPreview, { sound }),

@@ -1,7 +1,8 @@
 /**
  * Keyboard shortcuts of the player (PLAN.md#6.4): Space play/pause, ←/→ one frame, Shift+←/→ one
- * second, Home/End, J/K/L (slower / pause / play-faster), M mute. Text fields keep their keys, and
- * a focused scrub slider keeps its own arrow/Home/End handling. Pure: maps a key event to an action.
+ * second, Home/End, J/K/L (slower / pause / play-faster; Shift+L is the shot lock), M mute. Text
+ * fields keep their keys, and a focused scrub slider keeps its own arrow/Home/End handling. Pure:
+ * maps a key event to an action.
  */
 
 export type TransportAction =
@@ -47,7 +48,7 @@ const SLIDER_KEYS = new Set([
   'PageDown',
 ]);
 
-function isTextEntry(target: KeyTarget): boolean {
+export function isTextEntry(target: KeyTarget): boolean {
   if (target.contentEditable) return true;
   const tag = target.tagName.toUpperCase();
   if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
@@ -81,7 +82,8 @@ export function transportAction(event: TransportKey): TransportAction | undefine
     case 'k':
       return { kind: 'pause' };
     case 'l':
-      return { kind: 'faster' };
+      // Shift+L locks / unlocks the selected shot (PLAN.md#11.4).
+      return event.shiftKey ? undefined : { kind: 'faster' };
     case 'm':
       return { kind: 'mute' };
     default:

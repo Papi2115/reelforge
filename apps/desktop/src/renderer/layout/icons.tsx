@@ -83,3 +83,19 @@ export function SendIcon(): JSX.Element {
     </Icon>
   );
 }
+
+/** A padlock, closed when `locked` (shot locks, PLAN.md#11.4). */
+export function LockIcon({ locked }: { readonly locked: boolean }): JSX.Element {
+  return (
+    <Icon>
+      <rect x="3" y="7" width="10" height="7" rx="1" fill="currentColor" />
+      <path
+        d={locked ? 'M5 7V5a3 3 0 0 1 6 0v2' : 'M5 7V5a3 3 0 0 1 6 0'}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        transform={locked ? undefined : 'translate(3 -1.5)'}
+      />
+    </Icon>
+  );
+}
