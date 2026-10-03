@@ -3,12 +3,31 @@
  * keeps the important ones within the density budget (about one gesture per 3 s, at most
  * three per 4 s, nothing in the first 0.3 s of a shot except transitions, cues of different gestures
  * >= 150 ms apart) and picks recipe variants by a seed derived from shot id + event index, never
- * repeating the previous cue's variant unless a series is designed that way.
+ * repeating the previous cue's variant unless a series is designed that way. Each cue is voiced by
+ * its shot's sound palette (`palettes/`); without palettes every shot is `voxel` (the rule table).
  */
 import { SFX_VARIANTS, hashSeed, type SfxRecipe } from '@reelforge/pipeline';
 import type { StoryboardShot } from '@reelforge/shared';
-import { CUE_RULES, DENSITY, HEAVY_VARIANTS, ruleGainDb, type CueEventKind } from './cue-rules.js';
+import {
+  CUE_RULES,
+  DENSITY,
+  HEAVY_VARIANTS,
+  LIST_PITCH_ORDER,
+  ruleGainDb,
+  type CueEventKind,
+} from './cue-rules.js';
 import type { EventCue, Gesture } from './cue-events.js';
+import {
+  NO_HISTORY,
+  VOXEL_PALETTE,
+  lookChangeSlot,
+  paletteSlots,
+  pickRecipe,
+  sceneRecipe,
+  type PaletteSlot,
+  type ShotPalettes,
+  type SoundPalette,
+} from './palettes/index.js';
 
 export interface DirectedCue {
   /** Start time (s, rounded to ms). */
@@ -58,30 +77,79 @@ function variantIndices(recipe: SfxRecipe, names: readonly string[]): number[] {
   return light.length > 0 ? light : all.map((_, index) => index);
 }
 
-function resolveCue(gesture: Gesture, cue: EventCue, position: number): ResolvedCue | null {
+/** Palette of each shot and the look-change slot of shots entered from another look. */
+interface SoundContext {
+  readonly palette: (shotId: string) => SoundPalette;
+  readonly lookChange: (shotId: string) => PaletteSlot | undefined;
+}
+
+function soundContext(shots: readonly StoryboardShot[], palettes: ShotPalettes): SoundContext {
+  const paletteOf = (shotId: string): SoundPalette => palettes.get(shotId) ?? VOXEL_PALETTE;
+  const changes = new Map<string, PaletteSlot>();
+  shots.forEach((shot, index) => {
+    const previous = shots[index - 1];
+    if (previous === undefined) return;
+    const slot = lookChangeSlot(paletteOf(previous.id), paletteOf(shot.id), shot);
+    if (slot !== undefined) changes.set(shot.id, slot);
+  });
+  return { palette: paletteOf, lookChange: (shotId) => changes.get(shotId) };
+}
+
+/** A designed variant (list pitch) in the palette's recipe: the voxel pop order maps onto it. */
+function forcedVariant(
+  palette: SoundPalette,
+  cue: EventCue,
+  recipe: SfxRecipe,
+): number | undefined {
+  if (cue.variant === undefined) return undefined;
+  let name = cue.variant;
+  const order = palette.listPitch;
+  if (cue.kind === 'list-item' && palette.sfx['list-item'] !== undefined && order !== undefined) {
+    const step = (LIST_PITCH_ORDER as readonly string[]).indexOf(cue.variant);
+    const top = LIST_PITCH_ORDER.length - 1;
+    name = order[Math.round((Math.max(0, step) * (order.length - 1)) / top)] ?? name;
+  }
+  const index = SFX_VARIANTS[recipe].indexOf(name);
+  return index < 0 ? undefined : index;
+}
+
+function resolveCue(
+  gesture: Gesture,
+  cue: EventCue,
+  position: number,
+  sound: SoundContext,
+): ResolvedCue | null {
   const rule = CUE_RULES[cue.kind];
+  const palette = sound.palette(gesture.shotId);
+  const salt = `${gesture.shotId}|${String(gesture.index)}|${String(position)}`;
   let recipe: SfxRecipe;
   let names: readonly string[] = [];
-  if (rule.choices === 'event') {
+  let leadS = rule.leadS;
+  let choiceTrimDb = 0;
+  if (cue.kind === 'scene') {
     if (cue.recipe === undefined) return null;
-    recipe = cue.recipe;
+    recipe = sceneRecipe(palette, cue.recipe);
   } else {
-    const choice = rule.choices[cue.choice ?? 0] ?? rule.choices[0];
+    const lookChange = rule.transition === true ? sound.lookChange(gesture.shotId) : undefined;
+    const slots = lookChange === undefined ? paletteSlots(palette, cue.kind) : [lookChange];
+    const slot = slots[cue.choice ?? 0] ?? slots[0] ?? [];
+    const choice = pickRecipe({ candidates: slot, salt, history: NO_HISTORY });
     if (choice === undefined) return null;
     recipe = choice.recipe;
     names = choice.variants;
+    leadS = choice.leadS ?? leadS;
+    choiceTrimDb = choice.trimDb ?? 0;
   }
-  const forced = cue.variant === undefined ? undefined : SFX_VARIANTS[recipe].indexOf(cue.variant);
   return {
-    start: round3(Math.max(0, cue.t - rule.leadS)),
+    start: round3(Math.max(0, cue.t - leadS)),
     recipe,
     allowed: variantIndices(recipe, names),
-    forced: forced === undefined || forced < 0 ? undefined : forced,
-    gainDb: round1(ruleGainDb(rule, recipe) + (cue.trimDb ?? 0)),
+    forced: forcedVariant(palette, cue, recipe),
+    gainDb: round1(ruleGainDb(rule, recipe) + choiceTrimDb + (cue.trimDb ?? 0)),
     pan: round2(Math.max(-1, Math.min(1, cue.pan ?? 0))),
     durationS: cue.durationS ?? rule.durationS,
     kind: cue.kind,
-    salt: `${gesture.shotId}|${String(gesture.index)}|${String(position)}|${recipe}`,
+    salt: `${salt}|${recipe}`,
   };
 }
 
@@ -111,11 +179,12 @@ function candidates(
   gestures: readonly Gesture[],
   shots: readonly StoryboardShot[],
   durationS: number,
+  sound: SoundContext,
 ): Candidate[] {
   return gestures.flatMap((gesture): Candidate[] => {
     const cues = gesture.cues
       .map((cue, position) => {
-        const resolved = resolveCue(gesture, cue, position);
+        const resolved = resolveCue(gesture, cue, position, sound);
         return resolved === null ? null : placeCue(resolved, shots, durationS);
       })
       .filter((cue): cue is ResolvedCue => cue !== null);
@@ -187,13 +256,18 @@ export function variantSeed(recipe: SfxRecipe, variant: number, salt: string): n
   return Math.floor(base / count) * count + variant;
 }
 
-/** Applies the rule table and density control to `gestures` (see the module comment). */
+/**
+ * Applies the rule table and density control to `gestures` (see the module comment); `palettes`
+ * voices each shot (missing shots = `voxel`).
+ */
 export function directCues(
   gestures: readonly Gesture[],
   shots: readonly StoryboardShot[],
   durationS: number,
+  palettes: ShotPalettes = new Map(),
 ): DirectedCue[] {
-  const kept = selectGestures(candidates(gestures, shots, durationS), durationS);
+  const sound = soundContext(shots, palettes);
+  const kept = selectGestures(candidates(gestures, shots, durationS, sound), durationS);
   const timeline = kept
     .flatMap((candidate) => candidate.cues.map((cue) => ({ cue, gesture: candidate.gesture })))
     .sort((a, b) => a.cue.start - b.cue.start || a.cue.salt.localeCompare(b.cue.salt));

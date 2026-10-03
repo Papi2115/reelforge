@@ -65,6 +65,34 @@ const CENTROID_HZ: Readonly<Record<SfxRecipe, readonly [number, number]>> = {
   chime: [1000, 2500],
   coin: [1200, 3000],
   sparkle: [3000, 7000],
+  // retro-ui palette
+  'key-click': [600, 4000],
+  keyboard: [1000, 4000],
+  'mouse-click': [1500, 4500],
+  'window-open': [500, 2000],
+  'window-close': [400, 2000],
+  'disk-seek': [300, 2500],
+  modem: [1200, 3000],
+  'crt-zap': [300, 6500],
+  'error-beep': [350, 1500],
+  'terminal-tick': [900, 3000],
+  // diorama palette
+  'soft-keys': [700, 2500],
+  chair: [400, 2500],
+  'paper-shuffle': [1800, 5500],
+  'server-whir': [700, 1600],
+  'led-blip': [1200, 3500],
+  'traffic-pass': [600, 1600],
+  'horn-blip': [400, 1500],
+  'bird-chirp': [2500, 5000],
+  servo: [600, 1200],
+  // blueprint palette
+  'pencil-scratch': [3000, 6500],
+  'plotter-pen': [700, 1500],
+  'ruler-tick': [2000, 5500],
+  'measure-blip': [700, 2000],
+  'relay-click': [2500, 4500],
+  'data-ping': [900, 2000],
 };
 
 /** Minimum power share above 150 Hz (phone speakers); impacts are allowed a heavier sub. */

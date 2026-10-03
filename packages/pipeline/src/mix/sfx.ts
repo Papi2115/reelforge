@@ -36,11 +36,34 @@ import {
   tick,
   tock,
 } from './sfx/ui.js';
+import {
+  dataPing,
+  measureBlipSfx,
+  pencilScratch,
+  plotterPen,
+  relayClick,
+  rulerTickSfx,
+} from './sfx/blueprint.js';
+import { chair, ledBlipSfx, paperShuffle, serverWhir, softKeys } from './sfx/diorama.js';
+import { birdChirp, hornBlip, servoSfx, trafficPass } from './sfx/diorama-world.js';
+import {
+  errorBeep,
+  keyClick,
+  keyboard,
+  mouseClick,
+  terminalTickSfx,
+  windowClose,
+  windowOpen,
+} from './sfx/retro-ui.js';
+import { crtZap, diskSeek, modemHandshake } from './sfx/retro-ui-machines.js';
 import { writeWavAtomic } from './wav.js';
 
 export type { SfxCategory } from './sfx/layers.js';
 
-/** The first eight are the original v1 names (kept in this order); new names are appended. */
+/**
+ * The first eight are the original v1 names (kept in this order); new names are appended. The
+ * look palettes' recipes (PLAN.md#12.24: retro-ui, diorama, blueprint) follow the voxel set.
+ */
 export const SFX_RECIPES = [
   'whoosh',
   'click',
@@ -74,6 +97,34 @@ export const SFX_RECIPES = [
   'chime',
   'coin',
   'sparkle',
+  // retro-ui palette
+  'key-click',
+  'keyboard',
+  'mouse-click',
+  'window-open',
+  'window-close',
+  'disk-seek',
+  'modem',
+  'crt-zap',
+  'error-beep',
+  'terminal-tick',
+  // diorama palette
+  'soft-keys',
+  'chair',
+  'paper-shuffle',
+  'server-whir',
+  'led-blip',
+  'traffic-pass',
+  'horn-blip',
+  'bird-chirp',
+  'servo',
+  // blueprint palette
+  'pencil-scratch',
+  'plotter-pen',
+  'ruler-tick',
+  'measure-blip',
+  'relay-click',
+  'data-ping',
 ] as const;
 export type SfxRecipe = (typeof SFX_RECIPES)[number];
 
@@ -110,6 +161,31 @@ const DEFINITIONS: Readonly<Record<SfxRecipe, SfxDefinition>> = {
   chime,
   coin,
   sparkle,
+  'key-click': keyClick,
+  keyboard,
+  'mouse-click': mouseClick,
+  'window-open': windowOpen,
+  'window-close': windowClose,
+  'disk-seek': diskSeek,
+  modem: modemHandshake,
+  'crt-zap': crtZap,
+  'error-beep': errorBeep,
+  'terminal-tick': terminalTickSfx,
+  'soft-keys': softKeys,
+  chair,
+  'paper-shuffle': paperShuffle,
+  'server-whir': serverWhir,
+  'led-blip': ledBlipSfx,
+  'traffic-pass': trafficPass,
+  'horn-blip': hornBlip,
+  'bird-chirp': birdChirp,
+  servo: servoSfx,
+  'pencil-scratch': pencilScratch,
+  'plotter-pen': plotterPen,
+  'ruler-tick': rulerTickSfx,
+  'measure-blip': measureBlipSfx,
+  'relay-click': relayClick,
+  'data-ping': dataPing,
 };
 
 const mapRecipes = <T>(pick: (definition: SfxDefinition) => T): Readonly<Record<SfxRecipe, T>> =>

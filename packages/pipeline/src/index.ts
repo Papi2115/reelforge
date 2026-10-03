@@ -262,6 +262,8 @@ export {
   type PowerSpectrum,
 } from './mix/analysis.js';
 export { makeSeamlessLoop, type LoopCurve, type StereoClip } from './mix/clip.js';
+export { planMix } from './mix/plan.js';
+export { mixBlock, type BusEvent } from './mix/bus.js';
 export { encodeWav, writeWavAtomic, type WavSampleFormat } from './mix/wav.js';
 export {
   MIX_QA_CHECK_IDS,

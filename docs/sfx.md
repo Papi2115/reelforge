@@ -65,6 +65,54 @@ prompt (checked by a test); `reelforge kit-docs sfx` prints it from `SFX_RECIPES
 | `coin` | tonal | 0.6 | 0·classic, 1·high, 2·triple, 3·gem | Money, points, reward, collected item (retro). |
 | `sparkle` | tonal | 1 | 0·dense, 1·sparse, 2·rising, 3·magic | Shine, magic, "new!", clean / polished result. |
 
+### Look palette recipes (PLAN.md#12.24)
+
+Appended after the voxel set; recipes in `mix/sfx/retro-ui.ts`, `retro-ui-machines.ts`,
+`diorama.ts`, `diorama-world.ts`, `blueprint.ts`. They share one finish (`mix/sfx/pixel.ts`):
+a light 7-bit / 16 kHz bit-crush and the same small dry room, plus the category levels above, so
+every look sounds like one film. Lows are kept modest (high-passed bodies, no sub). The QA suite
+covers them like the voxel set.
+
+**retro-ui**
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `key-click` | ui | 0.08 | 0·mechanical, 1·membrane, 2·terminal | Retro UI: one key press (menu choice, prompt confirmed). |
+| `keyboard` | texture | 1.2 | 0·mechanical, 1·membrane, 2·terminal | Retro UI: typing on a beige keyboard (match the duration to the typing). |
+| `mouse-click` | ui | 0.1 | 0·ball, 1·micro, 2·double | Retro UI: mouse button click on an icon or a button. |
+| `window-open` | ui | 0.22 | 0·chime, 1·chirp, 2·pop | Retro UI: a window, dialog or menu opens (rising chip blip). |
+| `window-close` | ui | 0.22 | 0·chime, 1·chirp, 2·pop | Retro UI: a window or dialog closes, minimizes or goes away (falling chip blip). |
+| `disk-seek` | texture | 0.6 | 0·floppy, 1·hard-disk, 2·stepper | Retro UI: floppy / hard-disk access while something loads or saves. |
+| `modem` | texture | 1.2 | 0·dialup, 1·carrier, 2·fax | Retro UI: going online, connecting, data being sent (short modem handshake). |
+| `crt-zap` | texture | 0.8 | 0·degauss, 1·power-on, 2·static | Retro UI: CRT degauss / power-on / static (a screen wakes up, a hard visual switch). |
+| `error-beep` | ui | 0.35 | 0·beep, 1·double, 2·low | Retro UI: PC-speaker beep (error dialog, invalid input, alert). |
+| `terminal-tick` | ui | 0.06 | 0·low, 1·mid, 2·high | Retro UI: terminal cursor / line tick; list items (low -> mid -> high). |
+
+**diorama**
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `soft-keys` | texture | 1.2 | 0·office, 1·laptop, 2·burst | Diorama: soft office typing a few desks away (match the duration to the typing). |
+| `chair` | texture | 0.6 | 0·creak, 1·roll, 2·swivel | Diorama: office chair creak, roll or swivel (someone sits, turns, leans back). |
+| `paper-shuffle` | texture | 0.5 | 0·shuffle, 1·stack, 2·flip | Diorama: papers shuffled, a stack set down, a sheet flipped over. |
+| `server-whir` | texture | 1 | 0·fan, 1·rack, 2·spin-up | Diorama: server / computer fan whir (a machine works, the server room hums). |
+| `led-blip` | ui | 0.08 | 0·low, 1·mid, 2·high | Diorama: a status LED blinks; list items (low -> mid -> high). |
+| `traffic-pass` | motion | 1.6 | 0·car, 1·scooter, 2·distant | Diorama: a car or scooter drives past in the little city. |
+| `horn-blip` | ui | 0.35 | 0·car, 1·toy, 2·double | Diorama: a small car horn (traffic, a playful "hey!"). |
+| `bird-chirp` | tonal | 0.5 | 0·sparrow, 1·tweet, 2·trill | Diorama: little birds outside (city morning, a park, a cheerful landing). |
+| `servo` | motion | 0.5 | 0·up, 1·down, 2·step | Diorama: a small motor / servo moves (model parts turn, doors slide, a camera pans). |
+
+**blueprint**
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `pencil-scratch` | texture | 0.7 | 0·line, 1·hatch, 2·circle | Blueprint: a drafting pencil draws a line, hatches or circles something. |
+| `plotter-pen` | texture | 1 | 0·line, 1·curve, 2·pen-up | Blueprint: a pen plotter draws (diagram lines, charts being plotted). |
+| `ruler-tick` | ui | 0.04 | 0·plastic, 1·metal, 2·double | Blueprint: a ruler / scale tick, a dimension snaps into place, a counter step. |
+| `measure-blip` | ui | 0.15 | 0·low, 1·mid, 2·high | Blueprint: a measurement / data point appears; list items (low -> mid -> high). |
+| `relay-click` | ui | 0.1 | 0·small, 1·latch, 2·bank | Blueprint: a relay / switch clicks (a node turns on, a circuit closes). |
+| `data-ping` | tonal | 0.7 | 0·ping, 1·double, 2·soft | Blueprint: a data ping (result found, value highlighted, closing card). |
+
 ## How cues are chosen (the sound director)
 
 The **Sound design mixed** stage writes a deterministic `cues.json` first (no Claude; same inputs ->
@@ -111,7 +159,49 @@ the chosen variant; the previous cue's variant of the same recipe is never repea
 designed series).
 
 **Ambience:** one quiet bed per shot group (room-tone / hum at -28 dB), or, under generated music,
-one faint room-tone bed (-32 dB) for the whole film.
+one faint room-tone bed (-32 dB) for the whole film. In other looks see "Sound palettes".
+
+## Sound palettes (PLAN.md#12.24)
+
+Every look has a sound palette (the look's `soundPalette`, code `packages/stages/src/sound/palettes/`).
+The director finds the same events and keeps the same rule table (levels, leads, priorities,
+density, transition handling); the shot's palette only decides **which recipe** an event gets.
+
+- **Which palette:** `project.json` `lookMode: mixed` -> the shot's look (`shot.look`, absent =
+  voxel) -> its `soundPalette`. `voxel-only` projects (every pre-2.0 project), shots without a
+  look, unknown or not-yet-available looks -> `voxel`. The palette changes at shot boundaries.
+- **voxel** = the 1.x sound design exactly (a no-harm test pins the cues and the synthesized SFX +
+  ambience buses of the example film and a broad test film, captured before palettes existed).
+- **Slots:** a palette lists, per event kind, the candidates of each rule choice slot (same
+  meaning as the rule's choices: cut into UI-like / 3D shot, tick / tock, ding / hit, pop / bubble /
+  blip). Several candidates are drawn by weight from a hash of the cue (`pickRecipe`, the one place
+  recipes are chosen; it takes a recently-used history for PLAN.md#12.23, empty today). A choice may
+  override the rule's lead (sounds that hit at their start land on the cut instead of leading it).
+- **Scene sounds** (`ctx.sfx.at`) in a non-voxel shot are translated into the palette: its own
+  recipes play as asked, generic ones map (e.g. `click` -> `mouse-click` in retro-ui), anything
+  else falls back by category. List reveals rise through the palette's low / mid / high variants.
+- **Look accents:** a transition into a non-voxel look from another look plays the entered look's
+  signature sound (diorama: by diorama type). Hook for 12.15 (transitions per look pair):
+  `lookChangeSlot(from, to, shot)`.
+- **Ambience:** groups also split where the palette ambience changes; beds meeting at a look
+  boundary overlap by 1 s and crossfade with their 1 s fades. Diorama beds follow the type in the
+  shot's intent (server / rack -> `server-room`, city / street / traffic -> `city`, office / desk ->
+  `office`, else `room-tone`). Look beds (`crt-hum`, `office`, `server-room`,
+  `electric-tick`) keep < 5 % of their energy below 120 Hz, so they can sit under the music.
+
+| Event | voxel | retro-ui | diorama | blueprint |
+| --- | --- | --- | --- | --- |
+| Cut (UI-like / 3D) | `swoosh-in` / `whoosh` | `window-open`, `mouse-click` / `crt-zap`, `window-close` | `servo` | `pencil-scratch`, `ruler-tick` / `relay-click` |
+| Crossfade, glitch, wipe | `whoosh`, `glitch`, `swoosh-in` | `crt-zap` degauss, `crt-zap` static, `window-open` | `traffic-pass` distant, `server-whir` spin-up, `paper-shuffle` flip | `plotter-pen`, `relay-click` bank, `pencil-scratch` |
+| Into the look from another | (usual) | `crt-zap`, `disk-seek` | by type: `server-whir`/`led-blip`, `traffic-pass`/`bird-chirp`, `chair`/`paper-shuffle`, `servo`/`chair` | `plotter-pen` pen-up, `data-ping` soft |
+| Appear (pop / bubble / blip) | `pop` / `bubble` / `blip` | `window-open` pop / `mouse-click` / `key-click` | `led-blip` / `paper-shuffle` / `led-blip` | `measure-blip` / `data-ping` / `relay-click` |
+| List items (rising) | `pop` | `terminal-tick` | `led-blip` | `measure-blip` |
+| Counter step / landing | `tick`, `tock` / `ding`, `hit` | `terminal-tick`, `key-click` / `window-open`, `error-beep` | `led-blip` / `horn-blip`, `servo` | `ruler-tick`, `relay-click` / `data-ping`, `relay-click` |
+| Number / big number | `hit-soft` / `whoosh-impact` | `mouse-click` / `window-open` | `paper-shuffle` stack / `horn-blip` | `ruler-tick` / `data-ping` |
+| Text in / typed | `swoosh-in` / `typewriter` | `window-open` / `keyboard` | `paper-shuffle` / `soft-keys` | `pencil-scratch` / `plotter-pen` |
+| Emphasis riser / hit | `riser` / `hit-soft` | `modem` / `crt-zap` power-on | `server-whir` spin-up / `horn-blip` | `pencil-scratch` hatch / `relay-click` latch |
+| End card | `chime` | `window-open` chime | `bird-chirp` | `data-ping` double |
+| Ambience (bed / under music) | room-tone, hum -28 / room-tone -32 | `crt-hum` -30 / -34 | by type -28 / -33 | `electric-tick` -30 / -33 |
 
 ## Mix QA (`.reelforge/mix-report.json`)
 

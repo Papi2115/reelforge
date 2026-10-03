@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { CuesFileSchema, MUSIC_MOODS, type CuesFile } from '@reelforge/pipeline';
 import { validateCues } from '@reelforge/prompts';
-import { storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
+import { projectLookMode, storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
 import { FILES, inProject } from '../paths.js';
 import { applyMoodHint, designSound, type SoundDesign } from '../sound/design.js';
@@ -146,6 +146,7 @@ async function prepare(ctx: StageContext): Promise<Result<Prepared, StageError>>
     styleId,
     seed,
     musicEnabled: ctx.settings.music.enabled,
+    lookMode: projectLookMode(project.value),
     sceneSfx: ctx.sceneSfx,
     signal: ctx.signal,
     onStep: (label) => {

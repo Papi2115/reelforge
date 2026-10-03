@@ -5,6 +5,7 @@ import {
   AMBIENCE_RMS_DB,
   synthesizeAmbience,
 } from './ambience.js';
+import { bandShare, mixToMono, powerSpectrum } from './analysis.js';
 import { makeSeamlessLoop, monoClip } from './clip.js';
 import { Oscillator, secondsToFrames } from './dsp.js';
 
@@ -45,6 +46,19 @@ describe('synthesizeAmbience', () => {
       synthesizeAmbience(recipe, { seed: 4 }),
     );
   });
+
+  it.each(['crt-hum', 'office', 'server-room', 'electric-tick'] as const)(
+    '%s (look bed): little below 120 Hz, nothing fizzy, decorrelated channels',
+    (recipe) => {
+      for (const humHz of [50, 60] as const) {
+        const clip = synthesizeAmbience(recipe, { seed: 7, humHz });
+        const spectrum = powerSpectrum(mixToMono(clip), 4096);
+        expect(bandShare(spectrum, 0, 120)).toBeLessThanOrEqual(0.05);
+        expect(bandShare(spectrum, 10_000, 24_000)).toBeLessThanOrEqual(0.2);
+        expect(clip.left).not.toEqual(clip.right);
+      }
+    },
+  );
 
   it('uses decorrelated channels and different seeds for noise beds', () => {
     const clip = synthesizeAmbience('wind', { seed: 4 });

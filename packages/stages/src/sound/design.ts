@@ -11,7 +11,7 @@ import {
   type CuesFileInput,
   type MusicMood,
 } from '@reelforge/pipeline';
-import type { StoryboardShot } from '@reelforge/shared';
+import type { LookMode, StoryboardShot } from '@reelforge/shared';
 import { FILES, inProject } from '../paths.js';
 import {
   defaultDurationS,
@@ -34,6 +34,8 @@ export interface SoundDesignInput {
   /** Project seed (music beds). */
   readonly seed: number;
   readonly musicEnabled: boolean;
+  /** The project's look mode: sound palettes per look in `mixed` (absent = `voxel-only`). */
+  readonly lookMode?: LookMode | undefined;
   readonly sceneSfx: SceneSfxProvider | undefined;
   readonly signal: AbortSignal;
   readonly onStep?: ((label: string) => void) | undefined;
@@ -91,6 +93,7 @@ export async function designSound(
     musicFiles: userMusic,
     music,
     durationS,
+    palettes: { lookMode: input.lookMode },
   });
   return ok({ cues, durationS, acts, moods, userMusic });
 }

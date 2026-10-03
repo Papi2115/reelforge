@@ -1,8 +1,17 @@
 /**
- * Built-in ambience beds (room tone, hum, wind, city), synthesized offline as seamless stereo
- * loops (deterministic per seed). Channels use independent noise streams for width. Every bed is
- * normalized to -30 dBFS RMS, so `gainDb: 0` sits quietly under a -16 LUFS voice-over.
+ * Built-in ambience beds (room tone, hum, wind, city, and the look palettes' beds from
+ * `ambience-looks.ts`), synthesized offline as seamless stereo loops (deterministic per seed).
+ * Channels use independent noise streams for width. Every bed is normalized to -30 dBFS RMS, so
+ * `gainDb: 0` sits quietly under a -16 LUFS voice-over.
  */
+import {
+  crtHum,
+  electricTick,
+  office,
+  serverRoom,
+  type ChannelContext,
+  type ChannelRecipe,
+} from './ambience-looks.js';
 import { makeSeamlessLoop, type LoopCurve, type StereoClip } from './clip.js';
 import {
   Biquad,
@@ -14,10 +23,19 @@ import {
   mulberry32,
   secondsToFrames,
   whiteNoise,
-  type Rng,
 } from './dsp.js';
 
-export const AMBIENCE_RECIPES = ['room-tone', 'hum', 'wind', 'city'] as const;
+/** The first four are the v1 beds; the look palettes' beds (PLAN.md#12.24) follow. */
+export const AMBIENCE_RECIPES = [
+  'room-tone',
+  'hum',
+  'wind',
+  'city',
+  'crt-hum',
+  'office',
+  'server-room',
+  'electric-tick',
+] as const;
 export type AmbienceRecipe = (typeof AMBIENCE_RECIPES)[number];
 
 export const AMBIENCE_LOOP_S = 8;
@@ -26,18 +44,9 @@ export const AMBIENCE_RMS_DB = -30;
 
 export interface AmbienceSynthOptions {
   readonly seed: number;
-  /** Mains frequency for `hum` (default 50 Hz). */
+  /** Mains frequency for `hum`, `crt-hum` and `electric-tick` (default 50 Hz). */
   readonly humHz?: 50 | 60;
 }
-
-interface ChannelContext {
-  readonly rng: Rng;
-  /** Per-channel deterministic phase offsets for slow modulations. */
-  readonly phase: number;
-  readonly humHz: number;
-}
-
-type ChannelRecipe = (frames: number, ctx: ChannelContext) => Float32Array;
 
 const SR = MIX_SAMPLE_RATE;
 const SWEEP_STEP = 32;
@@ -119,6 +128,11 @@ const RECIPES: Readonly<Record<AmbienceRecipe, { render: ChannelRecipe; curve: L
   hum: { render: hum, curve: 'linear' },
   wind: { render: wind, curve: 'equal-power' },
   city: { render: city, curve: 'equal-power' },
+  // Tone-led beds (whole-Hz partials, correlated across the loop point) crossfade linearly.
+  'crt-hum': { render: crtHum, curve: 'linear' },
+  office: { render: office, curve: 'equal-power' },
+  'server-room': { render: serverRoom, curve: 'linear' },
+  'electric-tick': { render: electricTick, curve: 'equal-power' },
 };
 
 function scaleToRms(clip: StereoClip, targetRms: number): StereoClip {
