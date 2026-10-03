@@ -151,6 +151,8 @@ describe('ScriptDocuments', () => {
     expect(readFileSync(path.join(h.dir, 'script.txt'), 'utf8')).toBe('Third draft.');
     await until(() => h.commits.length > 0);
     expect(h.commits).toEqual(['Edit script']);
+    // The dirty flag clears just after the commit is recorded: wait instead of racing it.
+    await until(() => !h.docs.dirty);
     expect(h.docs.dirty).toBe(false);
     const stages = await scriptState(h);
     expect(stages['script']).toMatchObject({ status: 'done', message: 'edited by hand' });
