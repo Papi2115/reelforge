@@ -6,7 +6,7 @@ import type { RenderManifest, SceneSource } from '@reelforge/shared';
 import { z } from 'zod';
 import { ENGINE_ERROR_CODES } from '../errors.js';
 import type { LoadInfo } from '../runtime.js';
-import type { CardDiagnostic } from '../text/check-cards.js';
+import { CARD_RULES, type CardDiagnostic } from '../text/check-cards.js';
 
 export const RPC_CHANNEL = 'reelforge-engine/1';
 
@@ -20,7 +20,7 @@ export interface ReelforgeHarness {
   readonly duration: number;
   /** RGBA8 top-down pixels of the last seeked frame (width*height*4 bytes). */
   frame(): Uint8Array<ArrayBuffer>;
-  /** Text-card QA (overlaps, safe area) of one loaded shot, sampled every frame. */
+  /** Text-card and annotation QA (overlaps, safe area, targets, anchors) of one loaded shot. */
   checkCards(shotId: string): Promise<readonly CardDiagnostic[]>;
   /**
    * Hot reload (PLAN.md#6.4): rebuilds one shot of the loaded video from new scene source, keeping
@@ -100,14 +100,15 @@ export const loadInfoSchema = z.object({
 });
 
 export const cardDiagnosticSchema = z.object({
-  rule: z.enum(['card-overlap', 'card-outside-safe-area']),
-  severity: z.literal('error'),
+  rule: z.enum(CARD_RULES),
+  severity: z.enum(['error', 'warning', 'info']),
   shotId: z.string(),
   cards: z.array(z.string()),
   t0: z.number(),
   t1: z.number(),
   message: z.string(),
   fix: z.string(),
+  anchor: z.object({ phrase: z.string(), at: z.number(), spokenT: z.number() }).optional(),
 });
 
 const vec3Schema = z.tuple([z.number(), z.number(), z.number()]);

@@ -20,5 +20,11 @@ Warmer and friendlier. Renders at 480×270 (bigger pixels, ×4 to 1080p). Rose/p
 ## Pacing
 - Relaxed: 5–9 s shots, new pattern every 7–10 s; transitions mostly crossfade/wipe 0.4–0.6 s. SFX soft: pop, click, tick; light ambience; warm music beds.
 
+## Annotations (`ctx.annotate`, `reelforge kit-docs annotate`)
+- **Sizes:** the frame is small — labels at scale 2 are already big here; keep labels ≤ 2 words, callout text ≤ 6 words (`maxWidth` 0.4). Prefer `curve: 'curved'` arrows and `corner: 'round'` callouts (softer).
+- **Colours:** sage `accent1` for arrows/pins/callouts, peach `accent2` rings/underlines, rose `accent4` highlights; the warm `umber` plate behind labels. Avoid red stamps — a stamp is rare here (once per video, as a wink).
+- **Density:** 0–1 mark per shot, at most ~6 per minute; calm `fade`/`draw` entries; `pulse: false` on rings when the shot is very quiet.
+- **Don'ts:** no spotlight dimming (it turns the warm palette muddy) except for one big reveal, no glitchy or shaking marks, no labels over faces/characters.
+
 ## Avoid
 Harsh red/black contrast, glitch effects (except as a single joke), fast camera moves, tiny text, clutter. If the olive horizon band of the teal grid shows, switch to the rose/plum sky.

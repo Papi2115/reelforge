@@ -25,7 +25,7 @@ import {
   parseTextArgument,
   titleOptionsSchema,
 } from './options.js';
-import { createTextSurface, hexToRgb8, type Rgb8 } from './surface.js';
+import { createTextSurface, hexToRgb8, type Rgb8, type TextSurface } from './surface.js';
 import type { PixelRect, TextApi, TextCard, TextCardKind, TextMetrics } from './types.js';
 
 /** What the renderer needs from a shot's text layer. */
@@ -47,6 +47,8 @@ export interface TextLayerOptions {
 
 export interface TextLayer {
   readonly overlay: TextOverlay;
+  /** The overlay's raster target (the annotation layer draws into it too). */
+  readonly surface: TextSurface;
   readonly safeArea: PixelRect;
   /** `ctx.text` during build: measuring only. */
   readonly buildApi: TextApi;
@@ -194,6 +196,7 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
 
   return {
     overlay: surface,
+    surface,
     safeArea,
     buildApi,
     frameApi,

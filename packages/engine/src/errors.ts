@@ -13,6 +13,8 @@ export const ENGINE_ERROR_CODES = [
   'sfx-outside-build',
   'text-outside-update',
   'invalid-text-options',
+  'annotate-outside-update',
+  'invalid-annotation-options',
   'webgl',
   'protocol',
 ] as const;

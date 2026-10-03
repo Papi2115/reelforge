@@ -4,6 +4,7 @@
  * set every time-dependent property absolutely from `t`, never incrementally.
  */
 import type { KitApi } from '@reelforge/kit';
+import type { AnnotateApi } from './annotations/types.js';
 import type { Treatment } from '@reelforge/shared';
 import type * as THREE from 'three';
 import type { EaseFunction, EaseName } from './camera/easing.js';
@@ -90,6 +91,27 @@ export interface SfxApi {
 export type { KitApi };
 
 export type {
+  AnnotateApi,
+  AnnotationAnimation,
+  AnnotationHandle,
+  AnnotationTarget,
+  AnnotationType,
+  ArrowOptions,
+  BadgeOptions,
+  BracketOptions,
+  CalloutOptions,
+  DimensionOptions,
+  HighlightOptions,
+  PinOptions,
+  RingOptions,
+  SpotlightOptions,
+  StampOptions,
+  UnderlineOptions,
+} from './annotations/types.js';
+
+export type {
+  AnnotationCardInfo,
+  AnnotationTargetProbe,
   KineticOptions,
   KineticWord,
   LowerThirdOptions,
@@ -120,6 +142,12 @@ export interface SceneContext {
   readonly kit: KitApi;
   /** Pixel-font titles, lower thirds and kinetic text (call the drawing methods in `update`). */
   readonly text: TextApi;
+  /**
+   * Pixel-art annotations (callout, arrow, ring, bracket, pin, underline, highlight, badge, stamp,
+   * dimension, spotlight) pointing at kit objects, world points, frame regions or text cards; call
+   * them in `update` like ctx.text.
+   */
+  readonly annotate: AnnotateApi;
   /**
    * Colours of the active style (hex strings): semantic tokens (`sky`, `ground`, `hero`,
    * `accent1`..`accent4`, `keyLight`, `text`, ...; prefer these, they exist in every style) and the

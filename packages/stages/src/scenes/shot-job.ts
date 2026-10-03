@@ -72,6 +72,24 @@ function neighbours(job: SceneJob, shot: StoryboardShot): object[] {
   );
 }
 
+/** The shot as the build prompt shows it: its annotation plan goes in its own section. */
+function shotForPrompt(shot: StoryboardShot): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(shot).filter(([key]) => key !== 'annotations'));
+}
+
+/** The storyboard's annotation plan as hint lines (PLAN.md#11.8); undefined when there is none. */
+export function annotationPlanText(shot: StoryboardShot): string | undefined {
+  const plans = shot.annotations ?? [];
+  if (plans.length === 0) return undefined;
+  return plans
+    .map((plan) => {
+      const target = plan.target === undefined ? '' : ` on ${plan.target}`;
+      const text = plan.text === undefined ? '' : `, text "${plan.text}"`;
+      return `- "${plan.phrase}" (${plan.reason}): ${plan.kind}${target}${text}`;
+    })
+    .join('\n');
+}
+
 /** The build turn's reply, or a ✗ finding when the turn failed for this shot only. */
 async function buildTurn(
   job: SceneJob,
@@ -82,10 +100,11 @@ async function buildTurn(
   const prompt = render('scene-build', {
     shotId: shot.id,
     shotScene: shot.scene,
-    shotJson: shot,
+    shotJson: shotForPrompt(shot),
     shotWords: shotWords(job, shot),
     neighbours: neighbours(job, shot),
     styleId: job.styleId,
+    annotationPlan: annotationPlanText(shot),
     ...(newProps.length === 0
       ? {}
       : { newProps: newProps.map((name) => `kit.props.${name}`).join(', ') }),

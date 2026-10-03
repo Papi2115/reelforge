@@ -25,5 +25,11 @@ Default style. Renders at 640×360, integer-upscaled ×3 to 1080p. Chunky voxel 
 - New visual pattern at least every 6–8 s; never three shots in a row with the same treatment. Impact moments (a number, a reveal) land exactly on the spoken word via `ctx.anchor`, with a matching `sfx.at`.
 - Enter/exit animations 0.25–0.5 s; hold the key visual ≥ 1 s before cutting.
 
+## Annotations (`ctx.annotate`, `reelforge kit-docs annotate`)
+- **Sizes:** strokes 2 px (default), label text scale 2 (names, pins, callouts), stamps scale 3; arrows ~0.2 of the frame height long; rings fit the target (whole object) or `radius: 0.06–0.1` around an anchor.
+- **Colours:** defaults are tuned for this palette — teal `accent1` for arrows/pins/callouts/brackets, magenta `accent2` for rings, underlines and stamps, `accent4` marker highlights, `accent3` check badges; the dark 1 px `outline` rim keeps them readable over any background. One annotation colour per shot besides the text.
+- **Density:** 0–2 marks per shot, at most ~8 per minute; one label on screen at a time; show a mark on its spoken phrase (`phrase:`) and take it off within 2–4 s unless it carries the whole shot.
+- **Don'ts:** no mark over the hero for long (point at it from the free side), no stacked labels, no arrow + ring + spotlight on the same thing, no mark whose target is off screen, never the same form 3 times in a row.
+
 ## Avoid
 Pure black or pure white fills, more than ~4 simultaneous moving things, text smaller than scale 2, hand-picked hex colours, static wide shots, objects clipping through each other, scenes that need > 250 lines (build a kit prop instead and say it is missing).

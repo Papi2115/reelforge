@@ -26,20 +26,55 @@ export interface PixelRect {
   readonly h: number;
 }
 
-export type TextCardKind = 'title' | 'lower-third' | 'kinetic';
+/** `annotation`: a `ctx.annotate.*` mark (arrow, callout, pin, ...), see `annotation`. */
+export type TextCardKind = 'title' | 'lower-third' | 'kinetic' | 'annotation';
 
 /** A text card drawn (or scheduled) in the current frame. */
 export interface TextCard {
   readonly id: string;
   readonly kind: TextCardKind;
   readonly text: string;
-  /** Pixels the card covers when fully on screen (glyph ink, shadow and plate), unclipped. */
+  /**
+   * Pixels the card covers when fully on screen (glyph ink, shadow and plate), unclipped. For
+   * annotations: the label part (callout box, pin label, badge, stamp); empty (w = h = 0) for pure
+   * strokes (arrow without text, ring, underline, spotlight), which may cross other cards.
+   */
   readonly box: PixelRect;
   readonly at: number;
   /** Local time the card is gone (Infinity = end of the shot). */
   readonly until: number;
   /** True when the card is on screen at the current t (at <= t < until). */
   readonly visible: boolean;
+  /** Titles and kinetic text: ink box of every word (space-separated), in reading order. */
+  readonly words?: readonly PixelRect[] | undefined;
+  /** Annotations: what they point at and how they are timed (QA). */
+  readonly annotation?: AnnotationCardInfo | undefined;
+}
+
+/** Where an annotation target is in the current frame. */
+export interface AnnotationTargetProbe {
+  /** Which option it came from: `target`, `from` or `to`. */
+  readonly role: string;
+  /** Short description for QA messages, e.g. `kit.props.calculator() anchor "top"`. */
+  readonly label: string;
+  /** Projected point, low-res pixels (may be outside the frame). */
+  readonly x: number;
+  readonly y: number;
+  /** In front of the camera and inside the frame. */
+  readonly onScreen: boolean;
+  /** Behind other geometry; undefined when not tested (screen/card targets, no QA probe). */
+  readonly occluded: boolean | undefined;
+}
+
+export interface AnnotationCardInfo {
+  readonly type: string;
+  readonly targets: readonly AnnotationTargetProbe[];
+  /** The spoken phrase the annotation illustrates (`anchor` option) and its local time. */
+  readonly anchor?: { readonly phrase: string; readonly spokenT: number } | undefined;
+  /** Pixel scale of its label text (display/mono font), when it has text. */
+  readonly textScale?: number | undefined;
+  /** Every pixel it may draw at rest (strokes included), for picking. */
+  readonly extent: PixelRect;
 }
 
 /** Size of a text block in low-res pixels (line boxes, incl. room for accents and descenders). */

@@ -85,9 +85,10 @@ export type ScenesReport = z.infer<typeof scenesReportSchema>;
 
 /**
  * `anchor`: a scene's `anchor(phrase)` (its visual hit) checked against the words file;
- * `sfx`: a scene's `sfx.at(t, name)`; `cue`: an sfx entry of `cues.json`.
+ * `sfx`: a scene's `sfx.at(t, name)`; `cue`: an sfx entry of `cues.json`; `annotation`: a
+ * `ctx.annotate.*` mark with a `phrase` (its `at` against the spoken phrase).
  */
-export const syncEventKindSchema = z.enum(['anchor', 'sfx', 'cue']);
+export const syncEventKindSchema = z.enum(['anchor', 'sfx', 'cue', 'annotation']);
 export type SyncEventKind = z.infer<typeof syncEventKindSchema>;
 
 /**
@@ -100,7 +101,7 @@ export type SyncVerdict = z.infer<typeof syncVerdictSchema>;
 
 export const syncEventSchema = z.object({
   kind: syncEventKindSchema,
-  /** Anchor phrase or sfx name. */
+  /** Anchor phrase, sfx name or annotation id. */
   label: z.string(),
   /** Global event time (s). */
   t: z.number(),

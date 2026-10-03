@@ -90,4 +90,29 @@ describe('kit-docs formatting', () => {
     expect(formatCatalog(catalog)).toContain('reelforge kit-docs ctx');
     expect(() => describeKitName(catalog, 'cam')).toThrow(/scene context: ctx, camera, text/);
   });
+
+  it('documents ctx.annotate from the engine schemas, with targets and when to use what', () => {
+    const annotate = describeKitName(catalog, 'annotate');
+    expect(describeKitName(catalog, 'ctx.annotate')).toBe(annotate);
+    expect(annotate).toMatch(/Target: a kit object .*\{ card: "<ctx\.text card id>"/);
+    expect(annotate).toMatch(
+      /arrow\(\{ .*target: Target, from\?: Target, curve\?: "straight"\|"curved"\|"elbow"/,
+    );
+    expect(annotate).toMatch(/badge\(\{ value: int\|"check"\|"cross"\|"!"\|"\?"/);
+    for (const type of [
+      'callout',
+      'ring',
+      'bracket',
+      'pin',
+      'underline',
+      'highlight',
+      'stamp',
+      'dimension',
+      'spotlight',
+    ]) {
+      expect(annotate).toContain(`  ${type}({ `);
+    }
+    expect(annotate).toContain('a definition / "what is X" -> callout');
+    expect(describeKitName(catalog, 'ctx')).toContain('ctx.annotate');
+  });
 });

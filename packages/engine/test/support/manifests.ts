@@ -12,6 +12,7 @@ function sceneFile(relativePath: string): SceneSource {
 export const HELLO_SCENE = sceneFile('examples/s00_hello.js');
 export const STRIPES_SCENE = sceneFile('test/fixtures/s01_stripes.js');
 export const TEXT_SCENE = sceneFile('examples/s01_text.js');
+export const ANNOTATIONS_SCENE = sceneFile('examples/s02_annotations.js');
 
 /** Words with the phrase anchored by s00_hello ("hello world" at 1.0–1.6 s). */
 export const HELLO_WORDS: RenderManifest['words'] = {
@@ -61,5 +62,11 @@ export function transitionsManifest(): RenderManifest {
 /** The text example scene alone (title, lower third, kinetic text) in a style preset. */
 export function textManifest(style: string): RenderManifest {
   const shots = [{ id: 's01', t0: 0, t1: 6, scene: TEXT_SCENE }];
+  return { version: 1, style, fps: 30, seed: DEFAULT_SEED, shots };
+}
+
+/** The annotation example scene alone (every ctx.annotate type, 4 acts of 3 s) in a style preset. */
+export function annotationsManifest(style: string): RenderManifest {
+  const shots = [{ id: 's02', t0: 0, t1: 12, scene: ANNOTATIONS_SCENE }];
   return { version: 1, style, fps: 30, seed: DEFAULT_SEED, shots };
 }

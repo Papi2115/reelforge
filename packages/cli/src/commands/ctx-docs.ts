@@ -1,6 +1,6 @@
 /**
- * `reelforge kit-docs ctx|camera|text|...`: reference of the scene context (`ctx.camera`,
- * `ctx.text`, `ctx.anchor`, ...), next to the kit catalog. In the first real run (PLAN.md#10.4)
+ * `reelforge kit-docs ctx|camera|text|annotate|...`: reference of the scene context (`ctx.camera`,
+ * `ctx.text`, `ctx.annotate`, `ctx.anchor`, ...), next to the kit catalog. In the first real run (PLAN.md#10.4)
  * every scene author asked `kit-docs camera` / `kit-docs text` and then guessed option names;
  * text options are generated from the engine's own schemas so they cannot drift.
  */
@@ -12,6 +12,7 @@ import {
 } from '@reelforge/engine';
 import { SFX_CATEGORY, SFX_RECIPES, SFX_USE, SFX_VARIANTS } from '@reelforge/pipeline';
 import { z } from 'zod';
+import { annotateDocs } from './annotate-docs.js';
 import { paramDocs } from './schema-docs.js';
 
 const TIMING =
@@ -87,6 +88,7 @@ const SHOT = [
 const TOPICS: Readonly<Record<string, () => string>> = {
   camera: () => CAMERA,
   text: textDocs,
+  annotate: annotateDocs,
   anchor: () => ANCHOR,
   sfx: sfxDocs,
   rng: () => RNG,
@@ -102,7 +104,7 @@ export const CTX_TOPICS: readonly string[] = ['ctx', ...Object.keys(TOPICS)];
 export function describeCtxTopic(input: string): string | undefined {
   const name = input.replace(/^ctx\.?/, '');
   if (name === '') {
-    const parts = [CAMERA, textDocs(), ANCHOR, sfxDocs(), RNG, easeDocs(), SHOT];
+    const parts = [CAMERA, textDocs(), annotateDocs(), ANCHOR, sfxDocs(), RNG, easeDocs(), SHOT];
     return [`ctx (scene context; scenes import nothing, everything comes from ctx)`, ...parts].join(
       '\n',
     );

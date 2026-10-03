@@ -23,7 +23,7 @@ export { paramDocs, typeSummary } from './schema-docs.js';
 export const KIT_DOCS_USAGE = `usage: reelforge kit-docs [--json] [name]
 Without a name: every ctx.kit function (kit.voxel.*, kit.env.*, kit.props.*, kit.fx.*) with its
 params. With a name (e.g. calculator, props.calculator, fromGrid): details and an example call.
-The rest of the scene context: reelforge kit-docs ctx (or camera, text, anchor, sfx, rng, ease, shot).
+The rest of the scene context: reelforge kit-docs ctx (or camera, text, annotate, anchor, sfx, rng, ease, shot).
 Project props (kit-ext/props/*.js) are listed as project-local; writing one: reelforge kit-docs prop-module.
 Exit code: 0 ok, 2 usage error (unknown name).`;
 
@@ -66,7 +66,7 @@ export function formatCatalog(catalog: KitCatalog): string {
   }
   lines.push(
     'details + example: reelforge kit-docs <name>; a missing prop can be built: reelforge kit-docs prop-module',
-    'camera rigs, ctx.text options, anchors, sfx, rng, easings: reelforge kit-docs ctx (or camera, text, ...)',
+    'camera rigs, ctx.text options, ctx.annotate (arrows, callouts, pins...), anchors, sfx, rng, easings: reelforge kit-docs ctx (or camera, text, annotate, ...)',
   );
   return lines.join('\n');
 }
@@ -155,7 +155,7 @@ export async function projectProps(
 export const kitDocsCommand: Command = {
   name: 'kit-docs',
   summary:
-    'reference of ctx.kit (voxel tools, environments, props, effects) and ctx (camera, text, ...)',
+    'reference of ctx.kit (voxel tools, environments, props, effects) and ctx (camera, text, annotate, ...)',
   usage: KIT_DOCS_USAGE,
   async run(argv, context) {
     const { positionals } = parseCommandArgs(argv, COMMON_OPTIONS, true);

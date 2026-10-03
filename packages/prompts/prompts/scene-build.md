@@ -1,6 +1,6 @@
 ---
 id: scene-build
-version: 4
+version: 5
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: {{shotScene}}
@@ -10,6 +10,10 @@ Build the scene module for ONE shot. Follow `CLAUDE.md` in this project exactly 
 Shot: {{shotJson}}
 Narration during this shot (with word times): {{shotWords}}
 Style bible: `styles/{{styleId}}/STYLE.md`. Neighbouring shots (for continuity, do not edit): {{neighbours}}
+{{#annotationPlan}}
+Annotation plan from the storyboard (hints, not orders): implement them with `ctx.annotate.*` (`caption`/`big-text`: `ctx.text`; `counter`: `kit.fx.counter`), each timed with `phrase:` (the spoken phrase), on the named target. Adapt the form, or drop a mark, when it does not fit the picture (it would cover the subject or clutter the frame). Options: `reelforge kit-docs annotate`.
+{{annotationPlan}}
+{{/annotationPlan}}
 {{#newProps}}
 New project props were built for this shot: {{newProps}}. Use them (`reelforge kit-docs <name>` for params and anchors) instead of the stand-in of the previous attempt.
 {{/newProps}}
@@ -21,7 +25,7 @@ Write the variant ONLY to `{{shotScene}}`; never edit `scenes/` (the current sce
 {{/direction}}
 
 Steps:
-1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs and `ctx.text` options — never guess option names). Compose from the kit.
+1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.
 2. Write `{{shotScene}}`: `meta`, `build`, `update`. Sync key moments to words with `ctx.anchor("phrase")`; register matching `sfx.at(...)`. Camera always moving. Text inside the safe area.
 3. Self-QA loop: `reelforge lint` → `reelforge frames --at` (start, key anchor moments, end−0.1) → Read the PNGs → fix → `reelforge anchors --shot {{shotId}}`. Max 2 fix iterations.
 4. If an object the narration needs has no kit prop (kit and project-local props), do NOT fake it with loose boxes: build the best scene with what exists and end your reply with one line `MISSING: <prop names>` — short names only, comma-separated, no explanations (e.g. `MISSING: chip, file-icon`). The app then builds each as a project prop (`kit-ext/props/`) and asks you to build the shot again with it. Leave the line out when nothing is missing.

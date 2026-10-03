@@ -17,7 +17,7 @@ const SYNC_FIX =
 const USE_RNG =
   'Use ctx.rng() instead — it is seeded per shot (also ctx.rng.range(min, max), ctx.rng.int(min, max), ctx.rng.pick(list)). In update() it restarts from the same seed on every call, so values are stable for a given t.';
 const USE_CTX =
-  'Remove it. Everything a scene needs comes through ctx: ctx.three (Three.js), ctx.scene, ctx.camera, ctx.kit, ctx.text, ctx.palette, ctx.shot (width/height/fps/duration).';
+  'Remove it. Everything a scene needs comes through ctx: ctx.three (Three.js), ctx.scene, ctx.camera, ctx.kit, ctx.text, ctx.annotate, ctx.palette, ctx.shot (width/height/fps/duration).';
 const NO_DATA =
   'Scenes cannot load anything at render time. Put the data in the scene source as constants and use ctx.kit / ctx.palette for assets.';
 

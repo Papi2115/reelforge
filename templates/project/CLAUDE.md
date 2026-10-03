@@ -30,17 +30,32 @@ export function update(t, s, ctx) {     // pure function of local time t (second
   ctx.camera.pushIn({ from: 0, to: s.hit.t, dist: [6, 3.5] })(t);
 }
 ```
-- No `import`/`require`. Everything comes from `ctx`: `three`, `scene`, `camera`, `kit`, `text`, `palette`, `ease`, `anchor`, `sfx`, `rng`, `shot`.
+- No `import`/`require`. Everything comes from `ctx`: `three`, `scene`, `camera`, `kit`, `text`, `annotate`, `palette`, `ease`, `anchor`, `sfx`, `rng`, `shot`.
 - **Deterministic**: the same `t` must give the same image, bit for bit. Forbidden: `Date`, `Math.random` (use `ctx.rng`), `performance.now`, `requestAnimationFrame`, `setTimeout/Interval`, `fetch`, Node APIs, `window/document/globalThis`, CSS animations. `reelforge lint` enforces this and explains each violation.
 - `update` runs for arbitrary `t` in any order (scrubbing, parallel rendering). No hidden state.
 - Time: `t` is local to the shot; `ctx.shot.duration` is its length. Sync visuals to speech with `ctx.anchor("phrase", nth)` — never hard-code seconds that come from the voiceover.
 - Colours: only `ctx.palette` tokens (`sky, ground, groundAlt, hero, heroTrim, accent1–4, keyLight, fillLight, shadow, text, textDim, outline`). The style post-pass snaps everything to a small palette; max ~5 colours per shot.
 - Easing: `ctx.ease.*` (`easeOutCubic`, `easeInOutCubic`, `easeOutBack`, `smoothstep`, …).
 - Text: `ctx.text.title/lowerThird/kinetic(...)` in `update()` (not in `build`). Display font is capital letters only; Polish diacritics work. Keep text inside the safe area, at most two text levels, and never two cards overlapping in time.
+- Annotations: `ctx.annotate.callout/arrow/ring/bracket/pin/underline/highlight/badge/stamp/dimension/spotlight({...})` in `update()`, like text. They point at a kit object (`target: s.calc` or `{ object: s.calc, anchor: 'screen' }`), a world point, a frame region or a text card, follow the camera, and appear on a spoken phrase with `phrase: "the keypad"`. Options and examples: `reelforge kit-docs annotate`.
+
+## Annotations: when to use what
+Pick the form from what the narration does, and vary it (never the same form 3 times in a row within 20 s, at most ~8 marks a minute, 0–2 per shot, many shots need none):
+| The narration… | Use |
+| --- | --- |
+| names a person / product / place | `pin` on the object (or a small `ctx.text.lowerThird`) |
+| says a number, amount, date | `kit.fx.counter` or a big `ctx.text.title`; `badge` for steps |
+| explains a term | `callout` with the term as `title` and a short definition |
+| points at a part or place ("here", "this chip") | `arrow` or `ring` |
+| compares or groups ("these three") | `bracket` over the group, two `callout`s, `dimension` for sizes |
+| lists items | numbered `badge`s, one per spoken item |
+| states a claim, verdict, quote | `stamp` ("CONFIRMED") or `underline` the key word of a title |
+| stresses ("the only one") | `spotlight`, `ring` or `highlight` |
+The shot's annotation plan from `storyboard.json` (`annotations`) is a hint: implement it, or adapt/drop a mark that would cover the subject or clutter the frame. Labels ≤ 3 words, scale ≥ 2; one or two marks on screen at a time; never leave a mark over the hero for long. `reelforge frames` reports annotation labels overlapping cards or leaving the safe area, targets off screen or hidden, and marks off their phrase.
 
 ## The kit (compose, don't hand-build)
 Use `reelforge kit-docs` to list what exists (environments, props, effects, voxel tools) and `reelforge kit-docs <name>` for parameters and anchor points. Prefer kit props/environments over raw Three.js. Props attach with `.on(surface)`. Build once in `build()`, animate in `update()`. Calling kit constructors inside `update()` is an error.
-Camera rigs, `ctx.text` options, anchors, sfx, rng and easings: `reelforge kit-docs ctx` (or `camera`, `text`, …). Look them up before you write the scene — do not guess option names (unknown options throw and the frame fails).
+Camera rigs, `ctx.text` and `ctx.annotate` options, anchors, sfx, rng and easings: `reelforge kit-docs ctx` (or `camera`, `text`, `annotate`, …). Look them up before you write the scene — do not guess option names (unknown options throw and the frame fails).
 
 ## Missing props (project props in `kit-ext/props/`)
 `reelforge kit-docs` lists the kit's props and this project's own (marked project-local). When the narration needs an object neither has:

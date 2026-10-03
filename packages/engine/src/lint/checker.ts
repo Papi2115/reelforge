@@ -11,7 +11,7 @@ import type { ScopeTree, Scope } from './scope.js';
 import { checkUpdateCall, checkUpdateWrite, type UpdateContext } from './update-rules.js';
 
 const IMPORT_FIX =
-  'Remove the import. Three.js is ctx.three, voxel props/environments are ctx.kit, text is ctx.text, colours are ctx.palette; helpers must be written inside the scene file.';
+  'Remove the import. Three.js is ctx.three, voxel props/environments are ctx.kit, text is ctx.text, arrows/callouts/pins are ctx.annotate, colours are ctx.palette; helpers must be written inside the scene file.';
 
 export interface CheckOptions extends RuleContext {
   readonly tree: ScopeTree;

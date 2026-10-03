@@ -44,7 +44,10 @@ export interface EngineRuntime {
   seek(t: number): void;
   /** Copy of the last rendered frame (RGBA8, top-down, width*height*4 bytes). */
   readFrame(): Uint8Array<ArrayBuffer>;
-  /** Text-card QA of one shot (overlaps, safe area), sampled every frame (PLAN.md §4.4). */
+  /**
+   * Text-card QA of one shot (overlaps, safe area; annotation targets and anchors), sampled every
+   * frame (PLAN.md §4.4).
+   */
   checkCards(shotId: string): CardDiagnostic[];
   /**
    * What is at normalized frame point (x, y) (0..1, top-left origin) at global time t: a text
@@ -215,7 +218,16 @@ export async function createRuntime(
     checkCards(shotId) {
       const shot = shots.find((candidate) => candidate.info.id === shotId);
       if (!shot) throw new EngineError('not-loaded', `no shot "${shotId}" in the loaded video`);
-      return checkCards(collectCardTimeline(shot));
+      // QA probe: annotation targets are also raycast for occlusion.
+      const probing = {
+        info: shot.info,
+        safeArea: shot.safeArea,
+        cards: () => shot.cards(),
+        update: (localTime: number) => {
+          shot.update(localTime, { probe: true });
+        },
+      };
+      return checkCards(collectCardTimeline(probing));
     },
     async reloadShot(shotId, scene) {
       const index = manifest.shots.findIndex((shot) => shot.id === shotId);

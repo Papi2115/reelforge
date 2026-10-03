@@ -19,6 +19,7 @@ import type {
   ShotInfo,
 } from './contract.js';
 import { describeError, EngineError } from './errors.js';
+import { createAnnotationLayer } from './annotations/layer.js';
 import { createRng, hashString, shotSeed } from './rng.js';
 import type { ScenePalette } from './style.js';
 import { createTextLayer, type TextOverlay } from './text/text-layer.js';
@@ -51,9 +52,12 @@ export interface BuiltShot {
   readonly overlay: TextOverlay;
   /** Text safe area in low-res pixels. */
   readonly safeArea: PixelRect;
-  /** Evaluates the scene at local time t (seconds). */
-  update(localTime: number): void;
-  /** Text cards registered by the last `update`. */
+  /**
+   * Evaluates the scene at local time t (seconds). `probe` (QA) also tests whether annotation
+   * targets are hidden behind geometry.
+   */
+  update(localTime: number, options?: { readonly probe?: boolean }): void;
+  /** Text cards and annotations registered by the last `update`. */
   cards(): readonly TextCard[];
 }
 
@@ -134,6 +138,19 @@ export function buildShot(input: ShotInput): BuiltShot {
     palette,
     seed: hashString('text', seed),
   });
+  const annotations = createAnnotationLayer({
+    shotId: id,
+    width,
+    height,
+    safeArea: text.safeArea,
+    palette,
+    seed: hashString('annotate', seed),
+    surface: text.surface,
+    scene,
+    camera,
+    textCards: () => text.cards(),
+    anchor: createAnchor(input),
+  });
   // One kit per shot, with its own seeded stream; sealed after build() (no new objects in update).
   const kit = createKit({
     three: THREE,
@@ -155,6 +172,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     ...base,
     anchor: recordingAnchor(input, anchors),
     text: text.buildApi,
+    annotate: annotations.buildApi,
     sfx: collectingSfx(shot, cues),
     rng: createRng(seed),
   };
@@ -183,17 +201,23 @@ export function buildShot(input: ShotInput): BuiltShot {
     anchors,
     overlay: text.overlay,
     safeArea: text.safeArea,
-    cards: () => text.cards(),
-    update(localTime) {
+    cards: () => {
+      const drawn = annotations.cards();
+      return drawn.length === 0 ? text.cards() : [...text.cards(), ...drawn];
+    },
+    update(localTime, updateOptions) {
       text.beginFrame(localTime);
+      annotations.beginFrame(localTime);
       const updateContext: SceneContext = {
         ...base,
         text: text.frameApi,
+        annotate: annotations.frameApi,
         sfx: updateSfx,
         rng: createRng(seed).fork('update'),
       };
       try {
         module.update(localTime, state, updateContext);
+        annotations.endFrame(updateOptions?.probe === true);
       } catch (error) {
         if (error instanceof EngineError) throw error;
         throw new EngineError(

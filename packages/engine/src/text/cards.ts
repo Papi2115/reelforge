@@ -16,7 +16,7 @@ import {
 import type { BitmapFont } from './font.js';
 import { DISPLAY_FONT } from './font-display.js';
 import { MONO_FONT } from './font-mono.js';
-import { blockSize, inkBox, layoutText, type TextLayout } from './layout.js';
+import { blockSize, inkBox, layoutText, tokenInkBoxes, type TextLayout } from './layout.js';
 import type {
   KineticWord,
   ParsedKineticOptions,
@@ -44,6 +44,8 @@ export interface CardResult {
   readonly at: number;
   readonly until: number;
   readonly visible: boolean;
+  /** Rest ink box of every word (titles, kinetic text). */
+  readonly words?: readonly PixelRect[];
 }
 
 /** Lower third: plate padding, accent bar width and gap above the secondary line (pixels). */
@@ -116,7 +118,8 @@ export function renderTitle(env: CardEnv, text: string, options: ParsedTitleOpti
     exitDuration: options.exitDuration,
   };
   const transform = cardTransform(env.t, timing, { ...env, scale });
-  const result = { box, at: options.at, until, visible: transform.visible };
+  const words = tokenInkBoxes(layout, options.align, scale, rest.left, rest.top);
+  const result = { box, at: options.at, until, visible: transform.visible, words };
   if (!transform.visible || transform.scale < 1) return result;
   const drawScale = transform.scale;
   const place = drawScale === scale ? rest : placeBlock(layout, drawScale, options, env);
@@ -336,7 +339,8 @@ export function renderKinetic(
     exitDuration: options.exitDuration,
   };
   const transform = cardTransform(env.t, timing, { ...env, scale });
-  const result = { box, at, until, visible: transform.visible };
+  const wordBoxes = tokenInkBoxes(layout, options.align, scale, rest.left, rest.top);
+  const result = { box, at, until, visible: transform.visible, words: wordBoxes };
   if (!transform.visible) return result;
   const latest = Math.max(...starts.filter((start) => start <= env.t));
   const looks = layout.words.map((word, index) => {

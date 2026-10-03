@@ -121,6 +121,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
       missingProps: missingProps.length,
       stubs: stubs.value.length,
       repairs,
+      annotations: storyboard.shots.reduce((sum, shot) => sum + (shot.annotations?.length ?? 0), 0),
     },
   });
 }

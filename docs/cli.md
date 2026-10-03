@@ -20,7 +20,7 @@ error (wrong option; stderr says which). Every command accepts `--help` and `--j
 | `reelforge render-shot s03` / `--step 0.25`                      | judge motion and timing: one strip image of frames every step                                |
 | `reelforge anchors --phrase "61 KB"`                             | find when a phrase is spoken (fuzzy: `61KB`, `sixty one kilobytes` match too) and in which shot |
 | `reelforge anchors` / `--shot s03`                               | list the anchors and sfx cues each scene declares in `build()` with the ±150 ms landing check |
-| `reelforge kit-docs` / `reelforge kit-docs desk`                 | the `ctx.kit` reference (project props marked project-local); with a name: params, anchors and an example call; `kit-docs prop-module`: how to write a project prop |
+| `reelforge kit-docs` / `reelforge kit-docs desk`                 | the `ctx.kit` reference (project props marked project-local); with a name: params, anchors and an example call; `kit-docs prop-module`: how to write a project prop; `kit-docs ctx` / `annotate`: the scene context and `ctx.annotate` |
 | `reelforge prop-preview fridge` / `--angles 0,45,90`             | a project prop (`kit-ext/props/fridge.js`) alone on a neutral stage from 4 angles, one sheet to Read, plus checks: lint, not blank, size 0.3–4 units, no floating parts, deterministic |
 
 ## Reading the output
@@ -31,7 +31,9 @@ error (wrong option; stderr says which). Every command accepts `--help` and `--j
 - **Frames**: `frames` prints one absolute PNG path per line — Read them. A `! looks blank` note
   means the frame is (almost) one colour.
 - **Text cards**: `[card-overlap]` / `[card-outside-safe-area]` lines name the card ids (`id` option
-  of `ctx.text.*`), the time range and the fix.
+  of `ctx.text.*` / `ctx.annotate.*`), the time range and the fix. Annotations add
+  `[annotation-target-offscreen]`, `[annotation-target-hidden]` and `[annotation-off-anchor]`
+  warnings (ADR-008).
 - **Lint**: `file:line:col  error  rule  message` + a `fix:` line. A scene with lint errors is not
   rendered at all.
 - **Scene failed to load/build**: the engine error, e.g.

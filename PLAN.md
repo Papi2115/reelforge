@@ -314,6 +314,9 @@ Osobna wersja, bo opiera się na **gotowej paczce pakietów z postaciami i masko
 Branch: `phase-12/v2.3.5-series`. Wydanie: tag, release notes, film testowy oceniony przez Papiego, test „bez szkody" na projekcie wzorcowym (Nokia, 16 shotów).
 - [ ] **12.20** [O] **Series memory**: kanał/seria jako obiekt: import paczki postaci i maskotki od Papiego (bez przeprojektowywania — dopasowanie do looków i palety stylu tylko tam, gdzie konieczne, za zgodą), powracające propsy, intro/outro, ciągłość między odcinkami; projekty dziedziczą z serii. — AC: dwa projekty tej samej serii dzielą bohatera i intro; zmiana w serii propaguje się do projektów bez ruszania zamków (11.4); paczka Papiego renderuje się w co najmniej 2 looki z vibe guardem.
 
+- [x] **11.8** [O] **Słownik adnotacji (zatwierdzony przez Papiego 2026-10-03)**: ramki/callouty, strzałki, obwódki (pulsujące), nawiasy, etykiety przypięte do obiektów 3D z linią prowadzącą, podkreślenia/zaznaczenia słów, odznaki z numerem, stemple, linie wymiarowe, ptaszki/krzyżyki, spotlight; wszystko w palecie stylu, deterministyczne, świadome safe area i kolizji; **otagowanie skryptu znaczeniem** (nazwa, liczba, definicja, miejsce/wskazanie, porównanie, lista, twierdzenie, akcent) i dobór formy z regułami różnorodności; plan adnotacji w storyboardzie. — AC: golden frames każdej adnotacji, storyboard na fake-claude zawiera plan adnotacji z różnorodnością, scena z realnego przebiegu używa ich sensownie, obecne sceny bez zmian klatka w klatkę.
+- (nie dodane, odłożone przez Papiego) **11.9 biblioteka propsów**: za wcześnie — styl modeli produkcyjnych jeszcze się rozwija, nie mieszać starego z nowym.
+
 ## 7. Budżety i cele jakości
 - Podgląd ≥ 30 fps przy 640×360 na laptopie Papiego; scrub < 100 ms do klatki.
 - Eksport 10-min filmu 1080p30 ≲ 20 min (GPU) / ≲ 45 min (CPU).

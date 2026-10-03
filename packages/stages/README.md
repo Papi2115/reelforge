@@ -34,7 +34,8 @@ await runner.run({ stage: 'scenes', action: 'fix-what-looks-wrong' }); // a "Who
   then QA rounds run **by code** (`scenes/qa.ts`, Claude's self-report is not trusted): engine
   `lintScene` (errors are fatal) → smoke render at start, 25 %, 50 %, 75 %, end − 0.1 s through the
   `FrameRenderer` (console errors captured) → blank/uniform frames (colour stats + content share of
-  8×8 blocks, robust to dithering) → `checkCards` (overlap, safe area, clipped) → anchors vs sfx
+  8×8 blocks, robust to dithering) → `checkCards` (overlap, safe area, clipped; annotation targets off
+  screen/hidden and marks off their phrase as warnings, ADR-008) → anchors vs sfx
   (±150 ms) → only when all that is clean, the Haiku critic on a contact sheet
   (`.reelforge/frames/qa/<shot>/<label>.png`, critic JSON validated; an invalid reply is a note).
   Error findings → `scene-fix` turn with the findings, at most `maxFixIterations` (2). Result:

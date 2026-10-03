@@ -24,6 +24,15 @@ export function update(t, s, ctx) {
 }
 `;
 
+const ANNOTATED = `export function update(t, s, ctx) {
+  ctx.annotate.pin({ target: s.calc, text: 'LCD' });
+  ctx.annotate.callout({ text: 'Tiny', scale: 1 });
+  ctx.annotate.badge({ value: 2, target: s.calc, size: 0.03 });
+  ctx.annotate.badge({ value: 3, target: s.calc });
+  ctx.annotate.ring({ target: s.calc });
+}
+`;
+
 describe('unknownKitNames', () => {
   it('lists kit calls the catalogue does not have, once each', () => {
     const kit = kitNamesFromCatalog();
@@ -73,5 +82,24 @@ describe('legibility', () => {
       frameWidth: 1280,
     });
     expect(wide.map((entry) => entry.message.split(' ')[0])).toContain('scenes/s01.js:11');
+  });
+
+  it('checks annotation labels and badge numbers too', () => {
+    expect(findTextCalls(ANNOTATED).map((call) => call.kind)).toEqual([
+      'annotate.pin',
+      'annotate.callout',
+      'annotate.badge',
+      'annotate.badge',
+    ]);
+    const findings = legibilityFindings(ANNOTATED, 'scenes/s02.js', {
+      minScale: 2,
+      minGlyphPx: 14,
+      frameWidth: 640,
+    });
+    expect(findings.map((entry) => entry.message.split(':').slice(0, 2).join(':'))).toEqual([
+      'scenes/s02.js:3 ctx.annotate.callout',
+      'scenes/s02.js:4 ctx.annotate.badge',
+    ]);
+    expect(findings[1]?.message).toContain('Make the badge bigger');
   });
 });
