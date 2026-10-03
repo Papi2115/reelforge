@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -74,6 +75,18 @@ describe('wav splicing', () => {
 const created = await FfmpegManager.create();
 const ffmpeg = created.ok ? created.value : null;
 
+/** Duration in seconds as ffprobe reads the file (null without ffprobe). */
+function probedSeconds(file: string): number | null {
+  const ffprobe = ffmpeg?.binary.ffprobePath ?? null;
+  if (ffprobe === null) return null;
+  const output = execFileSync(
+    ffprobe,
+    ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file],
+    { encoding: 'utf8' },
+  );
+  return Number(output.trim());
+}
+
 describe.skipIf(ffmpeg === null)('MixPreviewService (real ffmpeg)', () => {
   let root = '';
   let dir = '';
@@ -106,6 +119,9 @@ describe.skipIf(ffmpeg === null)('MixPreviewService (real ffmpeg)', () => {
     expect(first).toMatchObject({ startS: 5, durationS: 20 });
     const preview = await readFile(path.join(dir, ...first.file.split('/')));
     expect(preview.length).toBe(mix.length);
+    // The spliced copy is a valid WAV of the same length (what the player's <audio> reads).
+    const probed = probedSeconds(path.join(dir, ...first.file.split('/')));
+    if (probed !== null) expect(probed).toBeCloseTo(30, 3);
     // Outside the window: the mix as it was.
     const before = 44 + 4 * 48_000 * 4;
     expect(Buffer.compare(preview.subarray(0, before), mix.subarray(0, before))).toBe(0);

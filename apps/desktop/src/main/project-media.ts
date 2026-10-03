@@ -87,14 +87,6 @@ export function resolveProjectMedia(
   );
 }
 
-/**
- * Longest range one response carries. Chromium asks the media player's audio as `bytes=N-`
- * and reads it lazily: a streamed response would keep the file open for the whole playback, and
- * on Windows an open file cannot be replaced (a new mix.wav rename fails with EPERM). A capped
- * 206 answer is read into memory at once; the player asks for the next range itself.
- */
-export const MAX_RANGE_BYTES = 4 * 1024 * 1024;
-
 export interface ByteRange {
   readonly start: number;
   /** Inclusive. */
@@ -125,9 +117,4 @@ export function parseByteRange(
   const end = last === '' ? size - 1 : Math.min(Number(last), size - 1);
   if (end < start) return 'unsatisfiable';
   return { start, end };
-}
-
-/** The range shortened to at most `maxBytes` (HTTP lets a server answer less than asked). */
-export function limitRange(range: ByteRange, maxBytes: number = MAX_RANGE_BYTES): ByteRange {
-  return { start: range.start, end: Math.min(range.end, range.start + maxBytes - 1) };
 }

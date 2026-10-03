@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FakeMedia, ManualEnvironment } from './fake-media.js';
+import { STALL_TIMEOUT_MS } from './media-watch.js';
 import { Player, SCRUB_SNIPPET_INTERVAL_MS, SCRUB_SNIPPET_MS } from './player.js';
 
 const FRAME_MS = 1000 / 60;
@@ -214,15 +215,77 @@ describe('Player with audio as the master clock', () => {
     expect(media.paused).toBe(false);
   });
 
-  it('falls back to the system clock when the audio fails to load', () => {
+  it('reloads failed audio once and resumes it at the current time', () => {
     const { player, env, errors } = setup();
     const media = new FakeMedia(10);
     player.attachMedia(media);
     player.play();
+    run(env, 30, FRAME_MS, media);
+    media.error = { message: 'PIPELINE_ERROR_READ' };
     media.emit('error');
     expect(errors).toHaveLength(1);
+    expect(media.loads).toBe(1);
+    // While the source reloads, the picture goes on on the system clock.
     expect(player.getState().clock).toBe('system');
     run(env, 30);
+    expect(player.getState().time).toBeCloseTo(1, 1);
+    media.loaded();
+    expect(player.getState()).toMatchObject({ clock: 'audio', audioProblem: null });
+    expect(media.plays.at(-1)).toBeCloseTo(1, 1);
+    run(env, 30, FRAME_MS, media);
+    expect(player.getState().time).toBeCloseTo(1.5, 1);
+  });
+
+  it('gives up with a visible warning when the reloaded audio fails too', () => {
+    const { player, env, errors } = setup();
+    const media = new FakeMedia(10);
+    player.attachMedia(media);
+    player.play();
+    media.error = { message: 'PIPELINE_ERROR_READ' };
+    media.emit('error');
+    media.error = { message: 'MEDIA_ERR_SRC_NOT_SUPPORTED' };
+    media.emit('error');
+    expect(errors).toHaveLength(2);
+    expect(media.loads).toBe(1);
+    expect(player.getState()).toMatchObject({
+      clock: 'system',
+      audioProblem:
+        'Preview audio failed: MEDIA_ERR_SRC_NOT_SUPPORTED. The preview plays on without sound.',
+    });
+    run(env, 30);
     expect(player.getState().time).toBeCloseTo(0.5, 1);
+    player.dismissAudioProblem();
+    expect(player.getState().audioProblem).toBeNull();
+    // A new source (e.g. after Render mix) starts with a clean slate.
+    player.attachMedia(new FakeMedia(10));
+    expect(player.getState().clock).toBe('audio');
+  });
+
+  it('reloads audio that waits for data without progress, not audio that recovers', () => {
+    const { player, env } = setup();
+    const media = new FakeMedia(10);
+    player.attachMedia(media);
+    player.play();
+    media.emit('waiting');
+    // It catches up on its own: no reload.
+    run(env, Math.ceil(STALL_TIMEOUT_MS / FRAME_MS) + 1, FRAME_MS, media);
+    expect(media.loads).toBe(0);
+    media.emit('stalled');
+    // No progress (the media is not advanced) for the whole timeout.
+    run(env, Math.ceil(STALL_TIMEOUT_MS / FRAME_MS) + 1);
+    expect(media.loads).toBe(1);
+  });
+
+  it('notes audio that ends well before the video', () => {
+    const { player, env } = setup(10);
+    const media = new FakeMedia(4);
+    player.attachMedia(media);
+    player.play();
+    run(env, 5 * 60, FRAME_MS, media);
+    expect(player.getState()).toMatchObject({
+      playing: true,
+      clock: 'system',
+      audioProblem: 'Preview audio ends at 4.0 s, the video runs to 10.0 s: no sound after that.',
+    });
   });
 });

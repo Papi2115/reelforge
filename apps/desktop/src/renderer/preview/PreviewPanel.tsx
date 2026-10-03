@@ -13,6 +13,7 @@ import { integerDisplaySize, type DisplaySize } from './integer-scale.js';
 import type { Player } from './player.js';
 import { PreviewController, type FrameSink } from './preview-controller.js';
 import {
+  AudioProblemNotice,
   ReloadNotice,
   SnapshotNotice,
   StatsOverlay,
@@ -257,6 +258,14 @@ export function PreviewPanel({
           </p>
         )}
         {statsVisible && <StatsOverlay player={player} clock={playerState.clock} />}
+        {playerState.audioProblem !== null && (
+          <AudioProblemNotice
+            message={playerState.audioProblem}
+            onDismiss={() => {
+              player.dismissAudioProblem();
+            }}
+          />
+        )}
         {reload && (
           <ReloadNotice
             status={reload}

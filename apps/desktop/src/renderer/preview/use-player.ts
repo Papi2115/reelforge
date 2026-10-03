@@ -43,6 +43,10 @@ export function usePlayer(audioUrl: string | undefined): Player {
     const audio = new Audio();
     audio.preload = 'auto';
     audio.src = audioUrl;
+    // Hidden, in the DOM only so the app tests can inspect the master clock element.
+    audio.hidden = true;
+    audio.dataset['testid'] = 'player-audio';
+    document.body.appendChild(audio);
     player.attachMedia(audio);
     log.info(`master clock: ${audioUrl}`);
     return () => {
@@ -50,6 +54,7 @@ export function usePlayer(audioUrl: string | undefined): Player {
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
+      audio.remove();
     };
   }, [player, audioUrl]);
 

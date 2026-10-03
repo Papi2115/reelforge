@@ -129,10 +129,10 @@ describe('sound cues stage', { timeout: 60_000 }, () => {
     // The scene's pop, transition sounds and a soft hit on a number; one generated bed.
     expect(cues.sfx.find((cue) => cue.name === 'pop')?.t).toBe(12.6);
     expect(cues.sfx.some((cue) => cue.name === 'swoosh-in')).toBe(true);
-    expect(cues.moods).toEqual(['bright-explainer']);
+    expect(cues.moods).toEqual(['calm-tech']);
     expect(cues.music).toHaveLength(1);
     expect(existsSync(path.join(dir, ...(cues.music[0]?.file ?? '').split('/')))).toBe(true);
-    expect(result.ok && result.value.metrics).toMatchObject({ acts: 1, moods: 'bright-explainer' });
+    expect(result.ok && result.value.metrics).toMatchObject({ acts: 1, moods: 'calm-tech' });
     const [latest] = await projects.history(dir);
     expect(latest).toMatchObject({ kind: 'pipeline-step', step: 'sound-cues' });
   });

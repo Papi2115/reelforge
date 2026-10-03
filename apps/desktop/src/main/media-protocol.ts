@@ -5,13 +5,12 @@
  * files strictly inside the open project folder are served (also after following links); there is
  * no file:// access from the renderer.
  */
-import { createReadStream } from 'node:fs';
-import { open, realpath, stat } from 'node:fs/promises';
-import { Readable } from 'node:stream';
+import { realpath, stat } from 'node:fs/promises';
 import { nativeImage, type Session } from 'electron';
 import { describeError, type Logger } from './logger.js';
+import { mediaFileResponse } from './media-response.js';
 import { isInsideFolder } from './project-files.js';
-import { limitRange, parseByteRange, resolveProjectMedia } from './project-media.js';
+import { resolveProjectMedia } from './project-media.js';
 import { MEDIA_SCHEME } from '../shared/player-contract.js';
 
 function text(status: number, body: string): Response {
@@ -20,27 +19,6 @@ function text(status: number, body: string): Response {
 
 function isMissingFile(error: unknown): boolean {
   return error instanceof Error && 'code' in error && error.code === 'ENOENT';
-}
-
-function fileBody(file: string, start: number, end: number): ReadableStream<Uint8Array> {
-  return Readable.toWeb(createReadStream(file, { start, end })) as ReadableStream<Uint8Array>;
-}
-
-/** Bytes [start, end] read at once: the file is closed before the response is sent. */
-async function fileBytes(file: string, start: number, end: number): Promise<Uint8Array> {
-  const handle = await open(file, 'r');
-  try {
-    const bytes = new Uint8Array(end - start + 1);
-    let read = 0;
-    while (read < bytes.length) {
-      const result = await handle.read(bytes, read, bytes.length - read, start + read);
-      if (result.bytesRead === 0) break;
-      read += result.bytesRead;
-    }
-    return bytes.subarray(0, read);
-  } finally {
-    await handle.close();
-  }
 }
 
 async function serve(
@@ -65,27 +43,10 @@ async function serve(
   if (media.value.thumbnailWidth !== undefined) {
     return thumbnail(realFile, media.value.thumbnailWidth);
   }
-  const size = info.size;
-  const headers = new Headers({
-    'content-type': contentType,
-    'accept-ranges': 'bytes',
-    'cache-control': 'no-cache',
-    'x-content-type-options': 'nosniff',
-  });
-  const asked = parseByteRange(request.headers.get('range'), size);
-  const range = asked === undefined || asked === 'unsatisfiable' ? asked : limitRange(asked);
-  if (range === 'unsatisfiable') {
-    headers.set('content-range', `bytes */${String(size)}`);
-    return new Response(null, { status: 416, headers });
-  }
-  const start = range?.start ?? 0;
-  const end = range?.end ?? size - 1;
-  headers.set('content-length', String(Math.max(end - start + 1, 0)));
-  if (range) headers.set('content-range', `bytes ${String(start)}-${String(end)}/${String(size)}`);
-  const status = range ? 206 : 200;
-  if (request.method === 'HEAD' || size === 0) return new Response(null, { status, headers });
-  if (range) return new Response(await fileBytes(realFile, start, end), { status, headers });
-  return new Response(fileBody(realFile, start, end), { status, headers });
+  return mediaFileResponse(
+    { file: realFile, contentType, size: info.size, mtimeMs: info.mtimeMs },
+    { method: request.method, range: request.headers.get('range') },
+  );
 }
 
 /** A frame PNG scaled down to `width` (small chat thumbnails instead of full 640/1080p frames). */
