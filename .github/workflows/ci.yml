@@ -129,3 +129,43 @@ jobs:
           name: e2e-artifacts
           path: apps/desktop/out/test-app/
           if-no-files-found: ignore
+
+  # Clean-machine check: build the NSIS installer, install it silently on a fresh Windows image,
+  # run the packaged smoke tests against the installed app, then uninstall (closes PLAN 9.3's AC).
+  installer:
+    name: installer (windows-latest, clean machine)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm (version from packageManager)
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the installer
+        run: pnpm dist
+
+      - name: Packaged smoke tests (unpacked app, silent install, uninstall)
+        run: pnpm test:packaged
+
+      - name: Upload packaged test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-artifacts
+          path: apps/desktop/out/test-packaged/
+          if-no-files-found: ignore
