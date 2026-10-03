@@ -116,7 +116,10 @@ describe('statusLabel', () => {
     const paused = pipelineRows(
       state({ script: APPROVED }, { running: { ...running, paused: { until, message: 'limit' } } }),
     );
-    expect(labels(paused)['words']).toMatch(/^Paused \(usage limit\) — resumes \S*14.05/);
+    // The clock follows the locale: 24 h ("14:05") or 12 h ("02:05 PM" on en-US CI runners).
+    expect(labels(paused)['words']).toMatch(
+      /^Paused \(usage limit\) — resumes (?:\S*14.05|0?2.05\s?PM)/i,
+    );
   });
 
   it('has a legend entry for every status the rows show', () => {

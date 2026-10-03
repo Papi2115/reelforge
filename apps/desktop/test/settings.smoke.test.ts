@@ -115,10 +115,16 @@ describe('settings', () => {
     const welcome = page.getByRole('region', { name: 'Welcome to ReelForge' });
     await welcome.getByRole('button', { name: 'Skip: go to the start screen' }).click();
     await page.getByRole('region', { name: 'Start' }).waitFor();
+    // The start screen shows at once (optimistic); the next test relaunches, so wait for the file.
+    await expect
+      .poll(async () => (await savedSettings())['onboarding'])
+      .toEqual({ connectClaudeDone: true, welcomeDone: true, tourDone: false });
   });
 
   it('changes language and Economy mode; both persist after a relaunch', async () => {
     let page = await open({ hook: true });
+    // Onboarding is done (previous test): the start screen, not the Welcome screen.
+    await page.getByRole('region', { name: 'Start' }).waitFor();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Settings' });
     await dialog.getByText('Claude Code is not installed').waitFor();

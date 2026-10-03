@@ -426,7 +426,13 @@ function main(): void {
   });
   let childrenKilled = false;
   app.on('before-quit', (event) => {
-    const idle = children.size === 0 && !claude.busy && !stages.busy && !scriptDocuments.dirty;
+    // A settings change made just before quitting (e.g. Welcome → Skip) must reach the disk.
+    const idle =
+      children.size === 0 &&
+      !claude.busy &&
+      !stages.busy &&
+      !scriptDocuments.dirty &&
+      !settings.saving;
     if (childrenKilled || idle) return;
     event.preventDefault();
     childrenKilled = true;
@@ -435,6 +441,7 @@ function main(): void {
       children.killAll(),
       stages.dispose().then(() => claude.dispose()),
       scriptDocuments.flush(),
+      settings.whenSaved(),
     ]).finally(() => {
       app.quit();
     });
