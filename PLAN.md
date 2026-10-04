@@ -3,7 +3,7 @@
 Legenda ról przy taskach: **[S]** Sonnet 5.5 (manager) · **[O]** Opus 5.5 (coder) · **[H]** Haiku (scout/runner). Format taska: `- [ ] **id** [rola] opis — AC: kryterium`.
 Manager hakuje checkboxy dopiero po spełnieniu AC i zielonej weryfikacji (patrz `CLAUDE.md` §2).
 
-**Bieżąca faza: 11 (v1.2) — v1.0.0 wydane, v1.1 w PR #3; najpierw 11.1 (błąd dźwięku w podglądzie)**
+**Bieżąca faza: 12 — v2.3.0 wydane (2.0–2.3); zostaje 2.3.5 (serie i postacie, 12.20) — wymaga paczki postaci od Papiego**
 
 ---
 
