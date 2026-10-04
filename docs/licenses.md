@@ -23,6 +23,16 @@ audit is PLAN.md#9.4 — rows marked _to verify_ must be checked there before an
 | Example project voice-over (30.5 s, 16 kHz mono WAV, ~0.95 MB) | `templates/examples/doom-on-a-calculator/audio/vo.original.wav` | Synthesized locally on 2026-10-02 with the Windows built-in SAPI voice "Microsoft David Desktop" (System.Speech, the `spikes/03-audio/synth.ps1` approach) | _to verify_ (9.4) | Machine speech from the voice that ships with Windows; no recording of a person. Microsoft's terms for redistributing synthesized output must be checked before any public distribution; if not allowed, replace it with a recorded CC0 voice-over (same script) and re-time the words. |
 | _(sfx library — PLAN.md phase 8)_ | | | | |
 
+## Downloaded assets (ReelForge 2.1, PLAN.md#12.9)
+
+No downloaded asset is bundled with the app or committed to this repo. Inside a user's project,
+`reelforge fetch-asset` only downloads what the project's research mode allows: items the user
+approved (mode `ask`) or items from allowlisted open-licence sources with verified licences (mode
+`allowlist`); mode `full-auto` downloads are marked `unverified` and flagged in the credits (and, from
+PLAN.md#12.10, at export). Each file's source, author and licence are stored in the project's `assets.json`, and
+`reelforge assets credits` writes the attribution. Responsibility for published videos stays with
+the user. Details: `docs/assets.md`, ADR-012.
+
 ## npm dependencies (runtime)
 
 | Package | Version | License | Used by |

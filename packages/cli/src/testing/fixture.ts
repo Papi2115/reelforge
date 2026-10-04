@@ -6,7 +6,7 @@
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { CliIo } from '../command.js';
+import type { CliIo, CliServices } from '../command.js';
 import { runReelforgeCli } from '../cli.js';
 
 export const FIXTURE_PROJECT = path.resolve(
@@ -53,7 +53,16 @@ export interface CliRun {
 }
 
 /** Runs the CLI in-process with captured output. */
-export async function runCli(root: string, ...argv: string[]): Promise<CliRun> {
+export function runCli(root: string, ...argv: string[]): Promise<CliRun> {
+  return runCliWith(root, {}, ...argv);
+}
+
+/** Same, with injected services (e.g. the asset runtime of a local test server). */
+export async function runCliWith(
+  root: string,
+  services: CliServices,
+  ...argv: string[]
+): Promise<CliRun> {
   let stdout = '';
   let stderr = '';
   const io: CliIo = {
@@ -64,6 +73,6 @@ export async function runCli(root: string, ...argv: string[]): Promise<CliRun> {
       stderr += text;
     },
   };
-  const code = await runReelforgeCli(argv, io, root);
+  const code = await runReelforgeCli(argv, io, root, services);
   return { code, stdout, stderr };
 }

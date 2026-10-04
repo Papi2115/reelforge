@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { briefFileSchema, projectFileSchema, projectLookMode } from './index.js';
+import {
+  briefFileSchema,
+  projectFileSchema,
+  projectLookMode,
+  projectResearchMode,
+} from './index.js';
 
 describe('projectFileSchema', () => {
   const project = {
@@ -29,6 +34,21 @@ describe('projectFileSchema', () => {
       'mixed',
     );
     expect(projectFileSchema.safeParse({ ...project, lookMode: 'looks' }).success).toBe(false);
+  });
+
+  it('reads a missing researchMode as off (zero network) and accepts the four modes', () => {
+    expect(projectResearchMode(projectFileSchema.parse(project))).toBe('off');
+    for (const mode of ['ask', 'allowlist', 'full-auto', 'off'] as const) {
+      expect(projectResearchMode(projectFileSchema.parse({ ...project, researchMode: mode }))).toBe(
+        mode,
+      );
+    }
+    expect(projectFileSchema.safeParse({ ...project, researchMode: 'auto' }).success).toBe(false);
+    const sources = { ...project, researchSources: ['wikimedia', 'nasa'] };
+    expect(projectFileSchema.parse(sources).researchSources).toEqual(['wikimedia', 'nasa']);
+    expect(projectFileSchema.safeParse({ ...project, researchSources: ['youtube'] }).success).toBe(
+      false,
+    );
   });
 
   it('reports wrong versions, languages and seeds by path', () => {

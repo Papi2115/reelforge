@@ -1,0 +1,135 @@
+{
+  "batchcomplete": "",
+  "continue": {
+    "gsroffset": 2,
+    "continue": "gsroffset||"
+  },
+  "query": {
+    "pages": {
+      "47962045": {
+        "pageid": 47962045,
+        "ns": 6,
+        "title": "File:Nokia 3310 grey front (tidied and enhanced).jpg",
+        "index": 1,
+        "imagerepository": "local",
+        "imageinfo": [
+          {
+            "size": 3025610,
+            "width": 2704,
+            "height": 4056,
+            "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/Nokia_3310_grey_front_%28tidied_and_enhanced%29.jpg/330px-Nokia_3310_grey_front_%28tidied_and_enhanced%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "thumbwidth": 320,
+            "thumbheight": 480,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Nokia_3310_grey_front_%28tidied_and_enhanced%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Nokia_3310_grey_front_(tidied_and_enhanced).jpg",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=47962045",
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Nokia 3310 grey front (tidied and enhanced)",
+                "source": "mediawiki-metadata"
+              },
+              "ImageDescription": {
+                "value": "Front of a Nokia 3310 mobile phone in its original grey case, bought in June 2001. (Note \"Orange\" branding complete with their \"3310e\" designation though internally it's still marked as just a 3310.)",
+                "source": "commons-desc-page"
+              },
+              "Credit": {
+                "value": "<span class=\"int-own-work\" lang=\"en\">Own work</span>. Modified version of another of my uploads. This file was derived from:  <a href=\"//commons.wikimedia.org/wiki/File:Nokia_3310_grey_front.jpg\" titl",
+                "source": "commons-desc-page"
+              },
+              "Artist": {
+                "value": "<a href=\"//commons.wikimedia.org/wiki/User:Multicherry\" title=\"User:Multicherry\">Multicherry</a>",
+                "source": "commons-desc-page"
+              },
+              "LicenseShortName": {
+                "value": "CC BY-SA 4.0",
+                "source": "commons-desc-page",
+                "hidden": ""
+              },
+              "UsageTerms": {
+                "value": "Creative Commons Attribution-Share Alike 4.0",
+                "source": "commons-desc-page"
+              },
+              "AttributionRequired": {
+                "value": "true",
+                "source": "commons-desc-page",
+                "hidden": ""
+              },
+              "LicenseUrl": {
+                "value": "https://creativecommons.org/licenses/by-sa/4.0",
+                "source": "commons-desc-page"
+              },
+              "Copyrighted": {
+                "value": "True",
+                "source": "commons-desc-page",
+                "hidden": ""
+              }
+            },
+            "mime": "image/jpeg"
+          }
+        ]
+      },
+      "105654713": {
+        "pageid": 105654713,
+        "ns": 6,
+        "title": "File:Nokia 3310 Blue R7309170 (retouch).png",
+        "index": 2,
+        "imagerepository": "local",
+        "imageinfo": [
+          {
+            "size": 3260558,
+            "width": 948,
+            "height": 2160,
+            "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Nokia_3310_Blue_R7309170_%28retouch%29.png/330px-Nokia_3310_Blue_R7309170_%28retouch%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "thumbwidth": 320,
+            "thumbheight": 729,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Nokia_3310_Blue_R7309170_%28retouch%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Nokia_3310_Blue_R7309170_(retouch).png",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=105654713",
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Nokia 3310 Blue R7309170 (retouch)",
+                "source": "mediawiki-metadata"
+              },
+              "ImageDescription": {
+                "value": "Blue version of the Nokia 3310 with German menu.",
+                "source": "commons-desc-page"
+              },
+              "Credit": {
+                "value": "This file was derived from:  <a href=\"//commons.wikimedia.org/wiki/File:Nokia_3310_blue_R7309170_wp.png\" title=\"File:Nokia 3310 blue R7309170 wp.png\">Nokia 3310 blue R7309170 wp.png</a>: <span typeof=",
+                "source": "commons-desc-page"
+              },
+              "Artist": {
+                "value": "<a href=\"//commons.wikimedia.org/wiki/User:Smial\" title=\"User:Smial\">smial</a> (<a href=\"//commons.wikimedia.org/wiki/User_talk:Smial\" title=\"User talk:Smial\"><span class=\"signature-talk\">talk</span></a>)",
+                "source": "commons-desc-page"
+              },
+              "LicenseShortName": {
+                "value": "FAL",
+                "source": "commons-desc-page",
+                "hidden": ""
+              },
+              "UsageTerms": {
+                "value": "Free Art License",
+                "source": "commons-desc-page"
+              },
+              "AttributionRequired": {
+                "value": "true",
+                "source": "commons-desc-page",
+                "hidden": ""
+              },
+              "LicenseUrl": {
+                "value": "http://artlibre.org/licence/lal/en",
+                "source": "commons-desc-page"
+              },
+              "Copyrighted": {
+                "value": "True",
+                "source": "commons-desc-page",
+                "hidden": ""
+              }
+            },
+            "mime": "image/png"
+          }
+        ]
+      }
+    }
+  }
+}

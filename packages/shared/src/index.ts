@@ -3,6 +3,7 @@ export const packageName = '@reelforge/shared';
 
 export * from './ambient-variation.js';
 export * from './app-settings.js';
+export * from './assets.js';
 export * from './final-review.js';
 export * from './kit-extensions.js';
 export * from './palette.js';

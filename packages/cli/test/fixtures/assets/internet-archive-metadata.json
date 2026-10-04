@@ -1,0 +1,69 @@
+{
+  "created": 1791079109,
+  "dir": "/0/items/Magpie3Explanation",
+  "server": "dn800204.us.archive.org",
+  "files": [
+    {
+      "name": "Magpie3Explanation.gif",
+      "source": "derivative",
+      "format": "Animated GIF",
+      "size": "98013"
+    },
+    {
+      "name": "Magpie3Explanation.mp4",
+      "source": "original",
+      "format": "MPEG4",
+      "size": "53147138"
+    },
+    {
+      "name": "Magpie3Explanation.ogv",
+      "source": "derivative",
+      "format": "Ogg Video",
+      "size": "22223449"
+    },
+    {
+      "name": "Magpie3Explanation.thumbs/Magpie3Explanation_000045.jpg",
+      "source": "derivative",
+      "format": "Thumbnail",
+      "size": "6247"
+    },
+    {
+      "name": "Magpie3Explanation_archive.torrent",
+      "source": "metadata",
+      "format": "Archive BitTorrent",
+      "size": "5064"
+    },
+    {
+      "name": "Magpie3Explanation_files.xml",
+      "source": "original",
+      "format": "Metadata"
+    },
+    {
+      "name": "Magpie3Explanation_meta.sqlite",
+      "source": "original",
+      "format": "Metadata",
+      "size": "11264"
+    },
+    {
+      "name": "Magpie3Explanation_meta.xml",
+      "source": "original",
+      "format": "Metadata",
+      "size": "1144"
+    },
+    {
+      "name": "__ia_thumb.jpg",
+      "source": "original",
+      "format": "Item Tile",
+      "size": "6787"
+    }
+  ],
+  "metadata": {
+    "identifier": "Magpie3Explanation",
+    "mediatype": "movies",
+    "creator": "Chris Thiel",
+    "date": "2015-09-15",
+    "description": "Magpie2 had a bug which is fixed in Magpie 3.  Using the debugger, the fix is explained",
+    "licenseurl": "http://creativecommons.org/publicdomain/mark/1.0/",
+    "title": "Magpie 3 Explanation"
+  }
+}

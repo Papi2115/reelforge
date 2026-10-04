@@ -5,6 +5,12 @@
  */
 import { z } from 'zod';
 import { DEFAULT_AMBIENT_VARIATION } from './ambient-variation.js';
+import {
+  ALLOWLIST_SOURCES,
+  DEFAULT_RESEARCH_MODE,
+  researchModeSchema,
+  type ResearchMode,
+} from './assets.js';
 import { paletteSchema } from './palette.js';
 import { stylePresetIdSchema } from './style-preset.js';
 
@@ -47,8 +53,19 @@ export const projectFileSchema = z.object({
    * `true` from the template.
    */
   ambientVariation: z.boolean().optional(),
+  /**
+   * Asset research mode (PLAN.md#12.9, ADR-012). Absent = `off` (projects made before 2.1 never
+   * touch the network); new projects get `ask` from the template.
+   */
+  researchMode: researchModeSchema.optional(),
+  /** Sources the `allowlist` mode may use (subset of the global allowlist). */
+  researchSources: z.array(z.enum(ALLOWLIST_SOURCES)).optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
+
+export function projectResearchMode(project: Pick<ProjectFile, 'researchMode'>): ResearchMode {
+  return project.researchMode ?? DEFAULT_RESEARCH_MODE;
+}
 
 export function projectLookMode(project: Pick<ProjectFile, 'lookMode'>): LookMode {
   return project.lookMode ?? DEFAULT_LOOK_MODE;

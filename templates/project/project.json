@@ -6,5 +6,6 @@
   "fps": 30,
   "seed": 1,
   "lookMode": "mixed",
-  "ambientVariation": true
+  "ambientVariation": true,
+  "researchMode": "ask"
 }

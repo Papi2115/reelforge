@@ -22,6 +22,12 @@ error (wrong option; stderr says which). Every command accepts `--help` and `--j
 | `reelforge anchors` / `--shot s03`                               | list the anchors and sfx cues each scene declares in `build()` with the ±150 ms landing check |
 | `reelforge kit-docs` / `reelforge kit-docs desk`                 | the `ctx.kit` reference (project props marked project-local); with a name: params, anchors and an example call; `kit-docs prop-module`: how to write a project prop; `kit-docs ctx` / `annotate` / `ambient`: the scene context, `ctx.annotate` and `ctx.ambient`; entries of looks other than voxel are marked `(look <id>)` |
 | `reelforge looks`                                                | the available looks (2.0: `voxel`, `retro-ui`, `diorama`, `blueprint`) with their rolls, treatments and sound palette, what rolls A/B/C mean, and the project's look mode (`voxel-only` / `mixed`) |
+| `reelforge assets search --query "apollo 11"` / `--source nasa` / `--kind video` / `--limit 5` | find open-licence images/footage (Wikimedia Commons, Openverse, Internet Archive public domain, NASA, Library of Congress); prints keys `<source>:<id>`, size, licence (verified/UNVERIFIED); titles/authors inside an `UNTRUSTED EXTERNAL DATA` block |
+| `reelforge assets propose --ids wikimedia:105654713,nasa:jsc2007e034221` | research mode `ask`: a proposal package (fresh metadata + thumbnails) the user approves in the app |
+| `reelforge assets list`                                          | research mode, the project's asset catalogue (`assets.json`) and pending proposals; no network |
+| `reelforge assets credits` / `--all`                             | the "Credits" text (title, author, licence, link) of the assets the scenes/storyboard name; unverified licences flagged; no network |
+| `reelforge fetch-asset --source nasa --id jsc2007e034221` / `--as apollo-pad` | download one asset into `.reelforge/assets/<id>.<ext>` and record it in `assets.json` (mode `ask`: approved items only) |
+| `reelforge fetch-asset --url https://… [--kind video]`           | research mode `full-auto` only: a direct https file, licence `unverified` |
 | `reelforge prop-preview fridge` / `--angles 0,45,90`             | a project prop (`kit-ext/props/fridge.js`) alone on a neutral stage from 4 angles, one sheet to Read, plus checks: lint, not blank, size 0.3–4 units, no floating parts, deterministic |
 
 ## Reading the output
@@ -65,4 +71,15 @@ Read the sheet → fix. Design: `docs/decisions/ADR-007-project-props.md`.
 ## Files it writes
 
 Only `.reelforge/frames/` inside the project (frames, contact sheets, strips, prop turntables in
-`.reelforge/frames/props/<name>/`; regenerated on every run). It never edits project files.
+`.reelforge/frames/props/<name>/`; regenerated on every run). It never edits project files —
+except the asset commands: `fetch-asset` writes the file to `.reelforge/assets/` and its record to
+`assets.json` (tracked), `assets propose` writes `.reelforge/assets/proposals/<n>.json` and
+thumbnails in `.reelforge/assets/thumbnails/`.
+
+## Asset research and the network
+
+`reelforge assets search|propose` and `reelforge fetch-asset` are the only network path of the
+runtime Claude (WebFetch/WebSearch exist only in the research/script stages; curl, wget,
+PowerShell and every other shell command are blocked by the bash guard). What they may do is set
+by the project's research mode (`project.json` `researchMode`, chosen by the user in the app; absent
+= `off`). Guard matrix, sources, safety limits and the metadata format: [`docs/assets.md`](assets.md).
