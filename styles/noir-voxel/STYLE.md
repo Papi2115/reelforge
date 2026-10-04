@@ -15,6 +15,14 @@ For true-crime, espionage, heists, manhunts. Same 640×360 voxel engine, but low
 ## Camera
 - Slower than Crisp 640: `pushIn` over the full shot, `dolly` along corridors, occasional `shake` on violence or error. Never whip. Hold still only with a tiny drift (≤ 1°).
 
+## Camera moves (`reelforge kit-docs camera`)
+- **Rack focus** is the signature move: evidence in the foreground, then the suspect/document behind it. Pull slowly (1.5–2.5 s), `bokeh` 3–4, and let the frame sit in focus ≥ 1.5 s.
+- **Dolly zoom:** reserved for the single biggest reveal of the video (once), 2–3 s, subject dead centre in a deep corridor or room.
+- **Orbit move:** ≤ 30° over ≥ 3 s; never a full turn. **Parallax:** subtle, `amount` ≤ 1.5 units over the shot, foreground `ratio` ≤ 1.6.
+- **Max duration:** rack focus ≤ 3 s, dolly zoom ≤ 3 s; orbit and parallax ≤ the shot. Never two moves at once except parallax + rack focus.
+- **Never during annotations that point at moving targets:** while an orbit, dolly zoom or parallax moves a target across the frame, do not point at it (`arrow`, `pin`, `callout`, `ring`); start the mark after the move's `t1`, or point at a fixed screen region. A rack focus is fine while the mark's target is the one in focus.
+- Moves modify the pose you set: set the base pose (`set` or a rig) first in `update`, then call the move. Backdrops without depth (`kit.env.sky`, `neonGrid`) count as infinitely far for the focus.
+
 ## Typography
 - Sparse. Titles only for chapter beats, dates and names (`lowerThird` with plate). Typewriter reveals (`fx.typewriterBlock`) for documents and transcripts. Redaction-style bars are a good motif.
 

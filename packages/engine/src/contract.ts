@@ -9,6 +9,13 @@ import type { Treatment } from '@reelforge/shared';
 import type * as THREE from 'three';
 import type { EaseFunction, EaseName } from './camera/easing.js';
 import type {
+  CameraMove,
+  DollyZoomOptions,
+  OrbitMoveOptions,
+  ParallaxOptions,
+  RackFocusOptions,
+} from './camera/moves.js';
+import type {
   CameraRig,
   CraneOptions,
   DollyOptions,
@@ -20,6 +27,18 @@ import type {
 import type { Rng } from './rng.js';
 import type { ScenePalette } from './style.js';
 import type { TextApi } from './text/types.js';
+
+export type {
+  CameraMove,
+  DollyZoomOptions,
+  MoveSubject,
+  MoveTime,
+  OrbitAxis,
+  OrbitMoveOptions,
+  ParallaxLayer,
+  ParallaxOptions,
+  RackFocusOptions,
+} from './camera/moves.js';
 
 export interface SceneMeta {
   readonly id: string;
@@ -50,17 +69,29 @@ export type AppliedRig = (t: number) => CameraPose;
  * Camera of the shot. Rigs are pure functions of t: create and call them in `update`, e.g.
  * `ctx.camera.pushIn({ from: 0, to: hit.t, dist: [6, 3.5] })(t)`. `to` defaults to the shot
  * length, `ease` to 'easeInOutCubic'; angles are degrees.
+ *
+ * Cinematic moves (`rackFocus`, `dollyZoom`, `orbit` with `t0`, `parallax`; PLAN.md#12.28) are
+ * immediate mode like ctx.text: call them in `update` every frame; they modify the pose the scene
+ * set (rig, `set` or the build pose) for that frame only. `t0`/`t1` are local seconds or anchors.
  */
 export interface CameraApi {
   readonly object: THREE.PerspectiveCamera;
   set(pose: CameraPose): void;
   dolly(options: DollyOptions): AppliedRig;
   orbit(options: OrbitOptions): AppliedRig;
+  /** Orbit move: turns the scene's pose around its target by `degrees` over [t0, t1]. */
+  orbit(options: OrbitMoveOptions): CameraMove;
   pushIn(options: PushInOptions): AppliedRig;
   crane(options: CraneOptions): AppliedRig;
   lookAt(options: LookAtOptions): AppliedRig;
   /** Seeded handheld/impact shake on top of a rig (e.g. `ctx.camera.orbit(...)`) or a fixed pose. */
   shake(base: CameraRig | CameraPose, options: ShakeOptions): AppliedRig;
+  /** Moves the focus from `from` to `to` (distance, point or object); the rest blurs (dither bokeh). */
+  rackFocus(options: RackFocusOptions): CameraMove;
+  /** Vertigo: camera distance to the subject goes `from` -> `to`, the fov keeps the subject's size. */
+  dollyZoom(options: DollyZoomOptions): CameraMove;
+  /** Lateral camera travel by `amount`; `layers` move at their own parallax ratio. */
+  parallax(options: ParallaxOptions): CameraMove;
 }
 
 /** A sound-effect cue, in global video time (seconds). */

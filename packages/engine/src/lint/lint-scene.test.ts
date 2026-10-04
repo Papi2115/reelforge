@@ -138,6 +138,30 @@ describe('lintScene: imports', () => {
   });
 });
 
+describe('lintScene: camera API (camera-api)', () => {
+  it.each([
+    ['unknown member write', 'ctx.camera.fov = 30;'],
+    ['guessed method', 'ctx.camera.zoom({ t0: 0, t1: 1 });'],
+    ['internal state', 'const f = ctx.camera.focus;'],
+  ])('flags %s', (_name, code) => {
+    expect(errorRules(scene('', code))).toEqual(['camera-api']);
+  });
+
+  it('allows every move and the camera object, and other objects named camera', () => {
+    const code = [
+      'ctx.camera.set({ position: [0, 2, 8] });',
+      'ctx.camera.object.fov = 40;',
+      'ctx.camera.rackFocus({ from: 2, to: 6, t0: 0, t1: 1 });',
+      'ctx.camera.dollyZoom({ from: 3, to: 8, t0: state.hit, t1: state.hit });',
+      "ctx.camera.orbit({ degrees: 40, t0: 0, t1: 2, axis: 'x' });",
+      'ctx.camera.parallax({ amount: 2, t0: 0, t1: 3, layers: [{ far: 5, ratio: 1.6 }] });',
+      'ctx.camera.shake(ctx.camera.orbit({ radius: 5, degrees: [0, 30] }), { amplitude: 0.1 })(t);',
+      'const rig = { camera: { zoom: 1 } }; rig.camera.zoom;',
+    ].join('\n');
+    expect(lint(scene('', code))).toEqual([]);
+  });
+});
+
 describe('lintScene: allowed code (not flagged)', () => {
   it.each([
     [
@@ -147,6 +171,10 @@ describe('lintScene: allowed code (not flagged)', () => {
     [
       'fixture s01_stripes',
       readFileSync(path.join(engineRoot, 'test', 'fixtures', 's01_stripes.js'), 'utf8'),
+    ],
+    [
+      'camera moves example s03_camera',
+      readFileSync(path.join(engineRoot, 'examples', 's03_camera.js'), 'utf8'),
     ],
   ])('%s passes without errors', (_name, source) => {
     expect(errorRules(source)).toEqual([]);

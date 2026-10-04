@@ -7,9 +7,11 @@ import { DEFAULT_SAFE_AREA, type SafeAreaMargins } from '@reelforge/shared';
 import * as THREE from 'three';
 import { createAmbientApi } from './ambient.js';
 import type { AnchorResolver } from './anchors.js';
+import type { FocusState } from './camera/bokeh.js';
 import { createCameraApi } from './camera/camera-api.js';
 import { createCameraDrift } from './camera/drift.js';
 import { EASINGS } from './camera/easing.js';
+import { createCameraMoveLayer } from './camera/move-layer.js';
 import type {
   AnchorHit,
   CameraPose,
@@ -19,6 +21,7 @@ import type {
   SfxApi,
   SfxCue,
   ShotInfo,
+  Vec3,
 } from './contract.js';
 import { describeError, EngineError } from './errors.js';
 import { createAnnotationLayer } from './annotations/layer.js';
@@ -56,6 +59,8 @@ export interface BuiltShot {
   readonly overlay: TextOverlay;
   /** Text safe area in low-res pixels. */
   readonly safeArea: PixelRect;
+  /** Depth of field of the last `update` (`ctx.camera.rackFocus`); undefined = all sharp. */
+  readonly focus: FocusState | undefined;
   /**
    * Evaluates the scene at local time t (seconds). `probe` (QA) also tests whether annotation
    * targets are hidden behind geometry.
@@ -130,7 +135,16 @@ export function buildShot(input: ShotInput): BuiltShot {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(DEFAULT_CAMERA_POSE.fov, width / height, 0.1, 1000);
   const seed = shotSeed(input.projectSeed, id);
-  const cameraApi = createCameraApi(camera, { duration, seed });
+  let lookTarget: Vec3 = DEFAULT_CAMERA_POSE.target ?? [0, 0, 0];
+  const moves = createCameraMoveLayer({ shotId: id, camera, scene, lookTarget: () => lookTarget });
+  const cameraApi = createCameraApi(camera, {
+    duration,
+    seed,
+    moves,
+    onPose: (pose) => {
+      lookTarget = pose.target ?? [0, 0, 0];
+    },
+  });
   cameraApi.set(DEFAULT_CAMERA_POSE);
   const cues: SfxCue[] = [];
   const anchors: ResolvedAnchor[] = [];
@@ -208,6 +222,9 @@ export function buildShot(input: ShotInput): BuiltShot {
     anchors,
     overlay: text.overlay,
     safeArea: text.safeArea,
+    get focus() {
+      return moves.focus();
+    },
     cards: () => {
       const drawn = annotations.cards();
       return drawn.length === 0 ? text.cards() : [...text.cards(), ...drawn];
@@ -224,8 +241,11 @@ export function buildShot(input: ShotInput): BuiltShot {
       };
       try {
         drift?.begin();
+        moves.beginFrame(localTime);
         module.update(localTime, state, updateContext);
+        moves.applyMoves();
         drift?.apply(localTime);
+        moves.endFrame();
         annotations.endFrame(updateOptions?.probe === true);
       } catch (error) {
         if (error instanceof EngineError) throw error;

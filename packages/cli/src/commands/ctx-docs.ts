@@ -28,6 +28,14 @@ const CAMERA = [
   '  lookAt({ position: [x,y,z], target: [x,y,z], targetEnd?, ...common })',
   '  shake(rigOrPose, { amplitude, frequency? = 8, from?, to?, decay? }) — e.g. ctx.camera.shake(ctx.camera.orbit({...}), { amplitude: 0.05 })(t)',
   '  set({ position: [x,y,z], target?: [x,y,z], fov? }) — fixed pose',
+  'cinematic moves — call in update() every frame AFTER setting the pose (rig/set); they modify that pose for the frame and return { progress }',
+  '  t0/t1: local seconds or anchors (ctx.anchor(...) from build: t0 = hit.t, t1 = hit.tEnd); ease? = "easeInOutCubic"; hold start before t0, end after t1',
+  '  subject/target: [x,y,z] or an object (kit prop: its bounding-box centre); default = the look-at target of the pose',
+  '  rackFocus({ from, to, t0, t1, ease?, bokeh? = 3 }) — focus moves from→to (distance in units, [x,y,z] or object); the rest blurs into dithered bokeh (bokeh = blur px at 2x/0.5x the focus distance, 0..6); sky/neonGrid count as infinitely far',
+  '  dollyZoom({ from, to, t0, t1, subject?, ease? }) — camera distance to the subject from→to along the view axis, fov compensates: the subject keeps its size, the background stretches (from < to: background closes in)',
+  "  orbit({ degrees, t0, t1, axis? = 'y', radius?, target?, ease? }) — turns the pose around its target ('y' turntable, 'x' arc over the subject, or [x,y,z]); with { radius, degrees: [a, b] } it is the rig above",
+  '  parallax({ amount, t0, t1, layers?, ease? }) — camera travels amount units to its right (negative = left); layers: [{ kit: "floatingCubes" | "env" | ..., ratio }, { objects: [a, b], ratio }, { near?, far?, ratio }] (ratio 0 = pinned to the frame, 1 = natural, 2 = foreground races past)',
+  '  one rackFocus and one dollyZoom hold a frame (the latest started); orbits and parallaxes add up; order: orbit -> dollyZoom -> parallax',
 ].join('\n');
 
 function optionLine(schema: z.ZodType): string {

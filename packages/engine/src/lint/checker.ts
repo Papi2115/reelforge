@@ -6,6 +6,7 @@
 import type { AnyNode, Pattern } from 'acorn';
 import { checkDestructure, checkIdentifier, checkMember, type RuleContext } from './api-rules.js';
 import { childNodes, isFunctionNode } from './ast.js';
+import { checkCameraMember } from './camera-rules.js';
 import { checkKeyframes, checkStyleAssignment, checkStyleCall } from './css-rules.js';
 import type { ScopeTree, Scope } from './scope.js';
 import { checkUpdateCall, checkUpdateWrite, type UpdateContext } from './update-rules.js';
@@ -93,6 +94,7 @@ export function checkProgram(program: AnyNode, options: CheckOptions): void {
         checkIdentifier(node, scope, options);
         return;
       case 'MemberExpression':
+        checkCameraMember(node, scope, options);
         if (!checkMember(node, scope, options)) walk(node.object, scope, update);
         if (node.computed) walk(node.property, scope, update);
         return;

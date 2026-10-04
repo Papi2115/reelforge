@@ -17,6 +17,7 @@ export const LINT_RULES = [
   'scene-contract',
   'no-module-state-in-update',
   'no-incremental-update',
+  'camera-api',
   'prop-contract',
   'no-module-state-in-prop',
 ] as const;

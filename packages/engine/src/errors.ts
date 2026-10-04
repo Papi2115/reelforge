@@ -15,6 +15,8 @@ export const ENGINE_ERROR_CODES = [
   'invalid-text-options',
   'annotate-outside-update',
   'invalid-annotation-options',
+  'camera-move-outside-update',
+  'invalid-camera-move',
   'webgl',
   'protocol',
 ] as const;

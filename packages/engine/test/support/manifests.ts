@@ -13,6 +13,7 @@ export const HELLO_SCENE = sceneFile('examples/s00_hello.js');
 export const STRIPES_SCENE = sceneFile('test/fixtures/s01_stripes.js');
 export const TEXT_SCENE = sceneFile('examples/s01_text.js');
 export const ANNOTATIONS_SCENE = sceneFile('examples/s02_annotations.js');
+export const CAMERA_SCENE = sceneFile('examples/s03_camera.js');
 
 /** Words with the phrase anchored by s00_hello ("hello world" at 1.0–1.6 s). */
 export const HELLO_WORDS: RenderManifest['words'] = {
@@ -69,4 +70,14 @@ export function textManifest(style: string): RenderManifest {
 export function annotationsManifest(style: string): RenderManifest {
   const shots = [{ id: 's02', t0: 0, t1: 12, scene: ANNOTATIONS_SCENE }];
   return { version: 1, style, fps: 30, seed: DEFAULT_SEED, shots };
+}
+
+/** Acts of the camera example scene (examples/s03_camera.js), 3 s each, in order. */
+export const CAMERA_ACTS = ['rack-focus', 'dolly-zoom', 'orbit', 'parallax'] as const;
+export const CAMERA_ACT_LENGTH = 3;
+
+/** The camera moves example alone (12 s) in Crisp 640; `source` swaps in a modified scene. */
+export function cameraManifest(source = CAMERA_SCENE.source): RenderManifest {
+  const shots = [{ id: 's03', t0: 0, t1: 12, scene: { ...CAMERA_SCENE, source } }];
+  return { version: 1, style: 'voxel-pixel-crisp640', fps: 30, seed: DEFAULT_SEED, shots };
 }
