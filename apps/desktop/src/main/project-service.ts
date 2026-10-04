@@ -191,11 +191,11 @@ export class ProjectService {
     }
   }
 
-  /** Render manifest of the open project for the preview. */
+  /** Render manifest of the open project for the preview (unbuilt shots as placeholders). */
   async manifest(): Promise<ProjectManifestResult> {
     const project = this.current;
     if (!project) return { status: 'unavailable', reason: noProject().message };
-    return buildProjectManifest(project.dir);
+    return buildProjectManifest(project.dir, { previewPlaceholders: true });
   }
 
   async history(limit: number): Promise<HistoryResult> {

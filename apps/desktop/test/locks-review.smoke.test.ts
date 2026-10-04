@@ -123,6 +123,20 @@ async function start(): Promise<void> {
   await waitForProjectPreview(page);
 }
 
+/** Tries of the first test so far: CI retries it (vitest `retry`), and a retry starts clean. */
+let lockTries = 0;
+
+/**
+ * A fresh copy of the project in a relaunched app: a retried try must not find the locks, the
+ * commits or the selection of the try before (a lock left by it turns Shift+L into an unlock).
+ */
+async function restartClean(): Promise<void> {
+  await closeApp(app);
+  await rm(dir, { recursive: true, force: true, maxRetries: 5 });
+  await createProject(dir);
+  await start();
+}
+
 beforeAll(async () => {
   userDataDir = await mkdtemp(path.join(tmpdir(), 'reelforge locks ż-'));
   dir = path.join(userDataDir, 'Zamki i przegląd');
@@ -148,23 +162,29 @@ afterAll(async () => {
 
 describe('shot locks and the final review', () => {
   it('locks shots with Shift+L and the lock button (locks.json + commit)', async () => {
+    if (lockTries > 0) await restartClean();
+    lockTries += 1;
     await shots()
       .getByRole('button', { name: /^Shot s01,/ })
       .click();
     await page.keyboard.press('Shift+L');
     await expect.poll(lockedIds, { timeout: 10_000 }).toEqual(['s01']);
+    // The button follows the snapshot reloaded after the lock's commit (slow on CI runners), so
+    // it may lag locks.json by seconds.
     const lockS01 = shots().getByRole('button', { name: /^(Lock|Unlock) s01$/ });
-    await expect.poll(() => lockS01.getAttribute('aria-pressed')).toBe('true');
+    await expect.poll(() => lockS01.getAttribute('aria-pressed'), { timeout: 10_000 }).toBe('true');
     await page.keyboard.press('Shift+L');
     await expect.poll(lockedIds, { timeout: 10_000 }).toEqual([]);
     await expect.poll(() => subjects()[0], { timeout: 10_000 }).toBe('Unlock shot s01');
     await shots().getByRole('button', { name: 'Lock s02', exact: true }).click();
     await expect.poll(lockedIds, { timeout: 10_000 }).toEqual(['s02']);
     await expect
-      .poll(() =>
-        shots()
-          .getByRole('button', { name: 'Unlock s02', exact: true })
-          .getAttribute('aria-pressed'),
+      .poll(
+        () =>
+          shots()
+            .getByRole('button', { name: 'Unlock s02', exact: true })
+            .getAttribute('aria-pressed'),
+        { timeout: 10_000 },
       )
       .toBe('true');
     await expect.poll(() => subjects()[0], { timeout: 10_000 }).toBe('Lock shot s02');

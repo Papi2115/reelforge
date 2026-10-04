@@ -35,6 +35,26 @@ describe('resolvePreview', () => {
     expect(resolved).toEqual({ manifest: manifest('s01'), note: undefined });
   });
 
+  it("shows the project's video with placeholders and says how many shots are built", async () => {
+    const three: RenderManifest = {
+      ...manifest('s01'),
+      shots: ['s01', 's02', 's03'].map((id, index) => ({
+        id,
+        t0: index,
+        t1: index + 1,
+        scene: { file: `scenes/${id}.js`, source: 'x' },
+      })),
+    };
+    const resolved = await resolvePreview(
+      { kind: 'project', revision: 1 },
+      api({ status: 'ready', manifest: three, placeholderShots: ['s02', 's03'] }),
+    );
+    expect(resolved).toEqual({
+      manifest: three,
+      note: '1 of 3 shots built — the rest show placeholders',
+    });
+  });
+
   it('falls back to the demo with a note', async () => {
     const source = { kind: 'project', revision: 2 } as const;
     expect(await resolvePreview(source, api({ status: 'no-storyboard' }))).toEqual({

@@ -1,6 +1,7 @@
 /**
  * What the preview shows (PLAN.md#6.3): the demo video on the start screen; the open project's
- * video once its storyboard can be built, otherwise the demo with a note saying why.
+ * video once its storyboard can be built (shots without a scene yet as placeholder cards, with a
+ * note), otherwise the demo with a note saying why.
  */
 import type { RenderManifest } from '@reelforge/shared';
 import type { ProjectChangedEvent, ProjectManifestResult } from '../../shared/snapshot-contract.js';
@@ -20,14 +21,24 @@ export type PreviewSource =
 
 export interface ResolvedPreview {
   readonly manifest: RenderManifest;
-  /** Shown over the preview when it is not the project's own video. */
+  /** Shown over the preview when it is not (all of) the project's own video. */
   readonly note: string | undefined;
 }
 
 export const NO_STORYBOARD_NOTE = 'No shots yet · the demo scene plays until Storyboard has run';
 
+/** Note of a project video in which some shots are placeholders (scenes not built yet). */
+export function placeholderNote(placeholders: number, total: number): string {
+  return `${String(total - placeholders)} of ${String(total)} shots built — the rest show placeholders`;
+}
+
 export function previewNote(result: ProjectManifestResult): string | undefined {
-  if (result.status === 'ready') return undefined;
+  if (result.status === 'ready') {
+    const placeholders = result.placeholderShots?.length ?? 0;
+    return placeholders > 0
+      ? placeholderNote(placeholders, result.manifest.shots.length)
+      : undefined;
+  }
   if (result.status === 'no-storyboard') return NO_STORYBOARD_NOTE;
   return `Project preview unavailable (${result.reason}) · showing the demo scene`;
 }
@@ -54,7 +65,7 @@ export async function resolvePreview(
     }
   }
   const result = await api.getProjectManifest();
-  if (result.status === 'ready') return { manifest: result.manifest, note: undefined };
+  if (result.status === 'ready') return { manifest: result.manifest, note: previewNote(result) };
   return { manifest: await api.getDemoManifest(), note: previewNote(result) };
 }
 

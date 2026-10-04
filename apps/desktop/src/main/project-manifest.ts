@@ -5,7 +5,9 @@
  * pictures the scenes name (PLAN.md#12.11), inlined so the sandboxed engine never touches the
  * disk (ADR-004). With the tension map on (PLAN.md#12.22) each shot's ambient inputs carry its
  * tension; an invalid tension.json renders as if there were none (the Tension panel reports it).
- * Any reason the video cannot be built is returned as text for the preview's note.
+ * Any reason the video cannot be built is returned as text for the preview's note. Only the preview
+ * asks for `previewPlaceholders`: shots whose scene file is missing or unreadable then show a
+ * placeholder card (placeholder-scene.ts) instead; export and render keep refusing them.
  */
 import {
   describeUnknown,
@@ -36,6 +38,7 @@ import {
   wordsFileSchema,
   type AmbientShot,
   type ProjectFile,
+  type SceneSource,
   type ShotMomentEffects,
   type StoryboardShot,
 } from '@reelforge/shared';
@@ -44,10 +47,36 @@ import {
   type FileState,
   type ProjectManifestResult,
 } from '../shared/snapshot-contract.js';
+import { placeholderSceneSource } from './placeholder-scene.js';
 import { describeIssues, readProjectJson, readProjectText } from './project-files.js';
+
+export interface ProjectManifestOptions {
+  /**
+   * Preview only: a shot whose scene file is missing, unreadable or empty plays a placeholder
+   * card instead of making the whole video unavailable. Export, render and review never set it.
+   */
+  readonly previewPlaceholders?: boolean;
+}
 
 function unavailable(reason: string): ProjectManifestResult {
   return { status: 'unavailable', reason };
+}
+
+/** The shot's scene, its placeholder (preview), or why the video cannot be built. */
+function shotScene(
+  shot: StoryboardShot,
+  source: FileState<string> | undefined,
+  previewPlaceholders: boolean,
+): { scene: SceneSource; placeholder: boolean } | { problem: string } {
+  if (source?.status === 'ok' && (!previewPlaceholders || source.data.trim() !== '')) {
+    return { scene: { file: shot.scene, source: source.data }, placeholder: false };
+  }
+  if (previewPlaceholders) {
+    // Same file name: when the scene appears, the preview hot-reloads just this shot.
+    return { scene: { file: shot.scene, source: placeholderSceneSource(shot) }, placeholder: true };
+  }
+  const problem = source ? stateProblem(source, shot.scene) : undefined;
+  return { problem: `shot ${shot.id}: ${problem ?? `${shot.scene} is missing`}` };
 }
 
 function stateProblem(state: FileState<unknown>, file: string): string | undefined {
@@ -83,7 +112,10 @@ async function momentEffects(
   return moments.status === 'ok' ? momentRenderEffects(moments.data.moments, shots) : new Map();
 }
 
-export async function buildProjectManifest(dir: string): Promise<ProjectManifestResult> {
+export async function buildProjectManifest(
+  dir: string,
+  options: ProjectManifestOptions = {},
+): Promise<ProjectManifestResult> {
   const [project, storyboard, words] = await Promise.all([
     readProjectJson(dir, SNAPSHOT_FILES.project, projectFileSchema),
     readProjectJson(dir, SNAPSHOT_FILES.storyboard, storyboardFileSchema),
@@ -108,18 +140,17 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
     shots,
   );
   const manifestShots = [];
+  const placeholderShots: string[] = [];
   for (const [index, shot] of shots.entries()) {
-    const source = sources[index];
-    if (source?.status !== 'ok') {
-      const problem = source ? stateProblem(source, shot.scene) : undefined;
-      return unavailable(`shot ${shot.id}: ${problem ?? `${shot.scene} is missing`}`);
-    }
+    const resolved = shotScene(shot, sources[index], options.previewPlaceholders === true);
+    if ('problem' in resolved) return unavailable(resolved.problem);
+    if (resolved.placeholder) placeholderShots.push(shot.id);
     manifestShots.push({
       id: shot.id,
       t0: shot.t0,
       t1: shot.t1,
       ...(shot.transitionIn ? { transitionIn: shot.transitionIn } : {}),
-      scene: { file: shot.scene, source: source.data },
+      scene: resolved.scene,
       ...(ambient?.[index] ? { ambient: ambient[index] } : {}),
       ...moments.get(shot.id),
       ...(directions.has(shot.id) ? { direction: directions.get(shot.id) } : {}),
@@ -166,5 +197,9 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
   if (!manifest.success) {
     return unavailable(`storyboard cannot be previewed: ${describeIssues(manifest.error)}`);
   }
-  return { status: 'ready', manifest: manifest.data };
+  return {
+    status: 'ready',
+    manifest: manifest.data,
+    ...(placeholderShots.length > 0 ? { placeholderShots } : {}),
+  };
 }

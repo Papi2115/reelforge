@@ -4,9 +4,9 @@
  * Claude (director SFX + a generated music bed, summarized in the panel), Render mix (−14 LUFS ±1,
  * TP ≤ −1) and its QA report in the panel, a library sound dragged onto the timeline (cue +
  * commit + preview mix of the edit), bus gain and music ducking written to cues.json, then the
- * export dialog: a 1080p30 export (ffprobe, chapters.txt, thumb.png, metadata), cancel + resume,
- * and YouTube suggestions from fake-claude. Never a model call. Screenshots at 1280×720 in
- * out/test-app/sound-export-*.png.
+ * export dialog: a 1080p30 export (ffprobe, chapters.txt with spoken titles, thumb.png, metadata),
+ * cancel + resume, and YouTube suggestions from fake-claude. Never a model call. Screenshots at
+ * 1280×720 in out/test-app/sound-export-*.png.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -14,6 +14,8 @@ import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/pr
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fakeClaudeBinPath, type FakeClaudeScript } from '@reelforge/fake-claude';
+import { MAX_TITLE_WORDS, spokenChapterTitle } from '@reelforge/pipeline';
+import { wordsFileSchema } from '@reelforge/shared';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, settingsFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
@@ -313,9 +315,23 @@ describe('export dialog', () => {
       height: 1080,
     });
     expect(info.streams.some((stream) => stream.codec_type === 'audio')).toBe(true);
+    // Chapter titles: the key phrase spoken at the chapter's start (the fixture's timing/words.json),
+    // else the scene's title. The fixture's words end at 7.1 s, so 0:11 and 0:22 keep theirs.
     const chapters = await readFile(path.join(dir, 'out', 'chapters.txt'), 'utf8');
+    const lines = chapters
+      .trimEnd()
+      .split('\n')
+      .map((line) => /^(\d+:\d\d) (.+)$/.exec(line));
+    expect(lines.map((match) => match?.[1])).toEqual(['0:00', '0:11', '0:22']);
+    for (const match of lines) {
+      const titleWords = (match?.[2] ?? '').split(' ').filter((word) => word !== '');
+      expect(titleWords.length).toBeGreaterThan(0);
+      expect(titleWords.length).toBeLessThanOrEqual(MAX_TITLE_WORDS);
+    }
+    const timed = wordsFileSchema.parse(await json(path.join(dir, 'timing', 'words.json'))).words;
+    expect(lines[0]?.[2]).toBe(spokenChapterTitle(timed, 0, 11, MAX_TITLE_WORDS));
     expect(chapters).toBe(
-      '0:00 Doom runs everywhere\n0:11 Calculator with 61 KB\n0:22 Calculator with 61 KB\n',
+      '0:00 Doom Runs\n0:11 Calculator with 61 KB\n0:22 Calculator with 61 KB\n',
     );
     const thumb = await readFile(path.join(dir, 'out', 'thumb.png'));
     expect(thumb.readUInt32BE(16)).toBe(1280);
