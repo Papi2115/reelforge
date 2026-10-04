@@ -26,7 +26,7 @@ import {
   type ProjectError,
   type Result,
 } from '@reelforge/project';
-import type { CharacterMode, MascotChoice } from '@reelforge/shared';
+import type { CharacterMode, MascotChoice, ShotsPerMinute } from '@reelforge/shared';
 import type {
   HistoryResult,
   NewProjectRequest,
@@ -60,10 +60,16 @@ export interface ProjectServiceOptions {
   readonly pickFolder: (purpose: FolderPurpose) => Promise<string | undefined>;
   /** Style preset of new projects (app settings); the template's when omitted. */
   readonly defaultStyle?: () => string;
-  /** Characters and mascot of new projects (app settings, PLAN.md#12.20); the template's if omitted. */
+  /**
+   * Characters and mascot (PLAN.md#12.20), scenes per minute and faster checks (ADR-027) of new
+   * projects (app settings); the template's if omitted. The New project form may override the
+   * last two.
+   */
   readonly newProjectDefaults?: () => {
     readonly characters: CharacterMode;
     readonly mascot: MascotChoice;
+    readonly shotsPerMinute?: ShotsPerMinute | null;
+    readonly fasterChecks?: boolean;
   };
   readonly log: Logger;
   readonly git?: GitOptions;
@@ -117,6 +123,8 @@ export class ProjectService {
       language: request.language,
       ...(this.options.defaultStyle === undefined ? {} : { style: this.options.defaultStyle() }),
       ...this.options.newProjectDefaults?.(),
+      ...(request.shotsPerMinute === undefined ? {} : { shotsPerMinute: request.shotsPerMinute }),
+      ...(request.fasterChecks === undefined ? {} : { fasterChecks: request.fasterChecks }),
       templateDir: this.options.templateDir,
       stylesDir: this.options.stylesDir,
       ...this.gitOption(),

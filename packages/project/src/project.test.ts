@@ -104,6 +104,33 @@ describe('createProject', () => {
     expect(chosen.value.project).toMatchObject({ characters: 'pack', mascot: 'fox' });
   });
 
+  it('writes the scenes per minute and faster checks only when chosen (ADR-027)', async () => {
+    const plain = await createProject({
+      dir: projectDir('scene count none'),
+      title: 'Plain',
+      shotsPerMinute: null,
+      fasterChecks: false,
+      git: sandbox.git,
+    });
+    if (!plain.ok) throw new Error(plain.error.message);
+    const json = await readFile(path.join(plain.value.dir, 'project.json'), 'utf8');
+    const raw = JSON.parse(json) as Record<string, unknown>;
+    expect(raw).not.toHaveProperty('shotsPerMinute');
+    expect(raw).not.toHaveProperty('fasterChecks');
+    const calm = await createProject({
+      dir: projectDir('scene count calm'),
+      title: 'Calm',
+      shotsPerMinute: { min: 3, max: 5 },
+      fasterChecks: true,
+      git: sandbox.git,
+    });
+    if (!calm.ok) throw new Error(calm.error.message);
+    expect(calm.value.project).toMatchObject({
+      shotsPerMinute: { min: 3, max: 5 },
+      fasterChecks: true,
+    });
+  });
+
   it('copies the style bible of every preset (styles/<id>/STYLE.md)', async () => {
     const dir = projectDir();
     const created = await create(dir);

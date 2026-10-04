@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { characterModeSchema, mascotChoiceSchema } from './characters.js';
 import { videoLanguageSchema } from './project.js';
+import { shotsPerMinuteSchema } from './scene-count.js';
 import { stylePresetIdSchema } from './style-preset.js';
 import { tasteLearningSchema } from './taste-profile.js';
 
@@ -120,12 +121,15 @@ export const appSettingsSchema = z.object({
     .prefault({}),
   /**
    * Characters and mascot new projects start with (PLAN.md#12.20), so a channel mascot carries
-   * over from project to project; each project keeps its own choice afterwards.
+   * over from project to project; each project keeps its own choice afterwards. Scenes per
+   * minute and faster checks (ADR-027): what the New project form starts with (null = no range).
    */
   newProjectDefaults: z
     .object({
       characters: characterModeSchema.default('pack'),
       mascot: mascotChoiceSchema.default('none'),
+      shotsPerMinute: shotsPerMinuteSchema.nullable().default(null),
+      fasterChecks: z.boolean().default(false),
     })
     .prefault({}),
   /** Sound design: generated background music per act (the sound-cues stage). */
@@ -219,7 +223,12 @@ export const appSettingsPatchSchema = z.strictObject({
     .optional(),
   tools: z.strictObject({ whisperModel: settingsWhisperModelSchema }).partial().optional(),
   newProjectDefaults: z
-    .strictObject({ characters: characterModeSchema, mascot: mascotChoiceSchema })
+    .strictObject({
+      characters: characterModeSchema,
+      mascot: mascotChoiceSchema,
+      shotsPerMinute: shotsPerMinuteSchema.nullable(),
+      fasterChecks: z.boolean(),
+    })
     .partial()
     .optional(),
   music: z.strictObject({ enabled: z.boolean() }).partial().optional(),

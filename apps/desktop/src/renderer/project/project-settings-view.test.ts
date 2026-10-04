@@ -66,6 +66,8 @@ describe('withProjectSettingsPatch', () => {
       repetitionControl: 'off',
       characters: 'classic',
       mascot: 'none',
+      shotsPerMinute: null,
+      fasterChecks: false,
     };
     expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
       ...settings,
@@ -86,6 +88,19 @@ describe('withProjectSettingsPatch', () => {
       ...settings,
       characters: 'pack',
       mascot: 'fox',
+    });
+    const calm = withProjectSettingsPatch(settings, {
+      shotsPerMinute: { min: 3, max: 5 },
+      fasterChecks: true,
+    });
+    expect(calm).toEqual({ ...settings, shotsPerMinute: { min: 3, max: 5 }, fasterChecks: true });
+    expect(withProjectSettingsPatch(calm, { shotsPerMinute: null })).toEqual({
+      ...settings,
+      fasterChecks: true,
+    });
+    expect(withProjectSettingsPatch(calm, { fasterChecks: false }).shotsPerMinute).toEqual({
+      min: 3,
+      max: 5,
     });
   });
 });

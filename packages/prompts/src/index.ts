@@ -24,6 +24,8 @@ export * from './validators/asset-needs.js';
 export * from './validators/storyboard.js';
 export * from './validators/rhythm.js';
 export * from './validators/tension.js';
+export * from './validators/shot-range.js';
+export * from './shot-range-vars.js';
 export * from './validators/dramaturgy.js';
 export * from './validators/characters.js';
 export * from './validators/mascot-words.js';

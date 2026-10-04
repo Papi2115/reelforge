@@ -30,9 +30,17 @@ const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 const round2 = (value: number): number => Math.round(value * 100) / 100;
 const round3 = (value: number): number => Math.round(value * 1000) / 1000;
 
+/** Shot-length targets at tension 0 and 1 (s); a lean project has longer ones (pace.ts). */
+export interface ShotTempo {
+  readonly calmS: number;
+  readonly peakS: number;
+}
+
+export const STANDARD_TEMPO: ShotTempo = { calmS: CALM_SHOT_S, peakS: PEAK_SHOT_S };
+
 /** Target shot length L(v) in seconds: 7.5 s at v = 0 down to 3 s at v = 1 (linear). */
-export function targetShotLength(tension: number): number {
-  return round2(CALM_SHOT_S - (CALM_SHOT_S - PEAK_SHOT_S) * clamp01(tension));
+export function targetShotLength(tension: number, tempo: ShotTempo = STANDARD_TEMPO): number {
+  return round2(tempo.calmS - (tempo.calmS - tempo.peakS) * clamp01(tension));
 }
 
 /** Ambient variation budget multiplier of a shot: 0.6 (calm) .. 1.4 (peak). */
@@ -66,6 +74,7 @@ function span(
   from: number,
   to: number,
   kind: TensionSegmentKind,
+  tempo: ShotTempo,
   label?: string,
 ): TensionSpan {
   const mean = round3(meanTension(points, from, to));
@@ -75,17 +84,19 @@ function span(
     kind,
     ...(label === undefined ? {} : { label }),
     mean,
-    targetS: targetShotLength(mean),
+    targetS: targetShotLength(mean, tempo),
   };
 }
 
 /**
  * Segments of the film [0, durationS]: the curve's labelled segments (gaps between them become
- * auto segments), or windows of about TENSION_WINDOW_S classified from the curve.
+ * auto segments), or windows of about TENSION_WINDOW_S classified from the curve. `tempo` sets
+ * the shot-length targets (default: the standard pace).
  */
 export function tensionSpans(
   file: Pick<TensionFile, 'points' | 'segments'>,
   durationS: number,
+  tempo: ShotTempo = STANDARD_TEMPO,
 ): TensionSpan[] {
   const end = Math.max(durationS, 1e-3);
   const auto = (from: number, to: number): TensionSpan[] => {
@@ -94,7 +105,7 @@ export function tensionSpans(
     return Array.from({ length: count }, (_, index) => {
       const left = from + ((to - from) * index) / count;
       const right = from + ((to - from) * (index + 1)) / count;
-      return span(file.points, left, right, autoKind(file.points, left, right));
+      return span(file.points, left, right, autoKind(file.points, left, right), tempo);
     });
   };
   const labelled = (file.segments ?? [])
@@ -111,7 +122,7 @@ export function tensionSpans(
     const from = Math.max(cursor, segment.from);
     spans.push(...auto(cursor, from));
     if (segment.to > from)
-      spans.push(span(file.points, from, segment.to, segment.kind, segment.label));
+      spans.push(span(file.points, from, segment.to, segment.kind, tempo, segment.label));
     cursor = Math.max(cursor, segment.to);
   }
   spans.push(...auto(cursor, end));
@@ -146,8 +157,9 @@ export function cutTempoReport(
   shots: readonly TempoShot[],
   file: Pick<TensionFile, 'points' | 'segments'>,
   durationS = shots.at(-1)?.t1 ?? 0,
+  tempo: ShotTempo = STANDARD_TEMPO,
 ): CutTempoReport {
-  const spans = tensionSpans(file, durationS);
+  const spans = tensionSpans(file, durationS, tempo);
   const segments = spans.map((segment, index): SegmentTempo => {
     const last = index === spans.length - 1;
     const inside = shots.filter((shot) => {

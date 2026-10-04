@@ -73,6 +73,8 @@ describe('effectiveProjectSettings', () => {
       repetitionControl: 'off',
       characters: 'classic',
       mascot: 'none',
+      shotsPerMinute: null,
+      fasterChecks: false,
     });
     expect(
       effectiveProjectSettings({
@@ -93,6 +95,8 @@ describe('effectiveProjectSettings', () => {
       repetitionControl: 'off',
       characters: 'classic',
       mascot: 'none',
+      shotsPerMinute: null,
+      fasterChecks: false,
     });
   });
 });
@@ -130,6 +134,8 @@ describe('describeSettingsChange', () => {
       repetitionControl: 'off',
       characters: 'classic',
       mascot: 'none',
+      shotsPerMinute: null,
+      fasterChecks: false,
     };
     expect(
       describeSettingsChange(before, { ...before, lookMode: 'mixed', ambientVariation: true }),
@@ -162,6 +168,8 @@ describe('describeSettingsChange', () => {
         repetitionControl: 'off',
         characters: 'classic',
         mascot: 'none',
+        shotsPerMinute: null,
+        fasterChecks: false,
       }),
     ).toBe('Project settings: pattern interrupts on, reveal moments on');
     expect(
@@ -175,6 +183,30 @@ describe('describeSettingsChange', () => {
       version: 1,
       openLoops: 'auto',
     });
+  });
+
+  it('sets and removes the scenes per minute and faster checks (ADR-027)', () => {
+    const set = applyProjectSettingsPatch(
+      { version: 1 },
+      { shotsPerMinute: { min: 3, max: 5 }, fasterChecks: true },
+    );
+    expect(set).toEqual({ version: 1, shotsPerMinute: { min: 3, max: 5 }, fasterChecks: true });
+    expect(applyProjectSettingsPatch(set, { shotsPerMinute: null, fasterChecks: false })).toEqual({
+      version: 1,
+    });
+    const before = effectiveProjectSettings(BASE_PROJECT);
+    expect(before).toMatchObject({ shotsPerMinute: null, fasterChecks: false });
+    expect(
+      describeSettingsChange(before, {
+        ...before,
+        shotsPerMinute: { min: 4, max: 6.5 },
+        fasterChecks: true,
+      }),
+    ).toBe('Project settings: scenes per minute 4–6.5, faster checks on');
+    const calm = { ...before, shotsPerMinute: { min: 3, max: 5 } };
+    expect(describeSettingsChange(calm, before)).toBe(
+      'Project settings: scenes per minute no limit',
+    );
   });
 });
 
@@ -196,6 +228,8 @@ describe('ProjectSettingsService', () => {
         repetitionControl: 'off',
         characters: 'classic',
         mascot: 'none',
+        shotsPerMinute: null,
+        fasterChecks: false,
       },
       looks: LOOKS,
     });
@@ -218,6 +252,8 @@ describe('ProjectSettingsService', () => {
         repetitionControl: 'off',
         characters: 'classic',
         mascot: 'none',
+        shotsPerMinute: null,
+        fasterChecks: false,
       },
       committed: true,
     });
@@ -252,6 +288,8 @@ describe('ProjectSettingsService', () => {
         repetitionControl: 'off',
         characters: 'classic',
         mascot: 'none',
+        shotsPerMinute: null,
+        fasterChecks: false,
       },
       committed: false,
     });

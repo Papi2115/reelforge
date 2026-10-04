@@ -1,6 +1,7 @@
 /**
  * "Project settings": options stored in the open project's project.json (look mode, ambient
- * variation, characters and mascot, research assets, tension map, dramaturgy, editing). Sections
+ * variation, characters and mascot, research assets, tension map, dramaturgy, editing, scenes per
+ * minute and faster checks). Sections
  * and rows are data (project-settings-view.ts): a later option adds a row to `rows` with its
  * section, and the section appears. Every change is saved and committed by main
  * right away; it applies to future builds and marks no step out of date.
@@ -28,6 +29,8 @@ import {
   researchModePatch,
   researchSourcePatch,
 } from './research-settings-view.js';
+import { SceneCountFields } from './SceneCountFields.js';
+import { SCENE_COUNT_HINT, SCENE_COUNT_NOTE } from './scene-count-view.js';
 import { SettingRow, type RowProps } from './SettingRow.js';
 import { useProjectSettings } from './use-project-settings.js';
 
@@ -238,6 +241,29 @@ function EditingRow({ settings, update }: RowProps): JSX.Element {
   );
 }
 
+/** Scenes per minute and faster checks (ADR-027). */
+function SceneCountRow({ settings, update }: RowProps): JSX.Element {
+  return (
+    <SettingRow title="Scenes per minute" note={SCENE_COUNT_NOTE}>
+      {() => (
+        <>
+          <p className="muted">{SCENE_COUNT_HINT}</p>
+          <SceneCountFields
+            range={settings.shotsPerMinute}
+            fasterChecks={settings.fasterChecks}
+            onRange={(range) => {
+              update({ shotsPerMinute: range });
+            }}
+            onFasterChecks={(on) => {
+              update({ fasterChecks: on });
+            }}
+          />
+        </>
+      )}
+    </SettingRow>
+  );
+}
+
 interface RowDefinition extends SectionRow {
   readonly Row: (props: RowProps) => JSX.Element;
 }
@@ -252,6 +278,7 @@ const ROWS: readonly RowDefinition[] = [
   { id: 'tension-map', section: 'direction', Row: TensionMapRow },
   { id: 'dramaturgy', section: 'direction', Row: DramaturgyRow },
   { id: 'editing', section: 'direction', Row: EditingRow },
+  { id: 'scene-count', section: 'build', Row: SceneCountRow },
 ];
 
 export interface ProjectSettingsDialogProps {

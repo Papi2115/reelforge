@@ -167,7 +167,7 @@ describe('curve math', () => {
 
 describe('what the curve steers', () => {
   it('maps tension to shot length 7.5 s .. 3 s and ambient scale 0.6 .. 1.4 (1 at neutral)', () => {
-    expect([0, 0.5, 1].map(targetShotLength)).toEqual([7.5, 5.25, 3]);
+    expect([0, 0.5, 1].map((v) => targetShotLength(v))).toEqual([7.5, 5.25, 3]);
     expect([0, NEUTRAL_TENSION, 1].map(tensionAmbientScale)).toEqual([0.6, 1, 1.4]);
   });
 

@@ -19,6 +19,7 @@ import {
   tensionFileSchema,
   tensionSpans,
   type ProjectFile,
+  type ShotTempo,
   type StoryboardShot,
   type TensionFile,
   type WordsFile,
@@ -81,12 +82,16 @@ function clock(seconds: number): string {
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-/** The curve as the storyboard prompt reads it: one line per segment. */
+/**
+ * The curve as the storyboard prompt reads it: one line per segment; `tempo` = the shot-length
+ * targets (a shots-per-minute range, ADR-027; default: the standard ones).
+ */
 export function tensionTable(
   file: Pick<TensionFile, 'points' | 'segments'>,
   durationS: number,
+  tempo?: ShotTempo,
 ): string {
-  return tensionSpans(file, durationS)
+  return tensionSpans(file, durationS, tempo)
     .map((span) => {
       const label = span.label === undefined ? '' : ` "${span.label}"`;
       return `- ${span.from.toFixed(1)}–${span.to.toFixed(1)} s (${clock(span.from)}–${clock(span.to)}): ${span.kind}${label}, tension ${span.mean.toFixed(2)}, target shot length ~${span.targetS.toFixed(1)} s`;
@@ -292,8 +297,9 @@ export async function storyboardTension(
 export function storyboardTensionVars(
   curve: Pick<TensionFile, 'points' | 'segments'> | undefined,
   words: WordsFile,
+  tempo?: ShotTempo,
 ): Readonly<Record<string, string>> {
-  return curve === undefined ? {} : { tension: tensionTable(curve, narrationS(words)) };
+  return curve === undefined ? {} : { tension: tensionTable(curve, narrationS(words), tempo) };
 }
 
 function peakLine(file: TensionFile): string {

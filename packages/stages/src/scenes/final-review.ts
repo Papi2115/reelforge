@@ -124,6 +124,19 @@ function fixRequest(shot: StoryboardShot): string {
   return `Final review of shot ${shot.id} (\`${shot.scene}\`): make every finding below go away with the smallest change. Keep what the shot must communicate: ${shot.intent}`;
 }
 
+/**
+ * Confirmed findings worth a fix turn; with faster checks (ADR-027) a shot whose only errors are
+ * legibility hints gets none (they stay ⚠ in the report).
+ */
+export function needsFinalFix(
+  job: Pick<SceneJob, 'settings'>,
+  findings: readonly QaFinding[],
+): boolean {
+  const errors = fixableFindings(findings);
+  if (job.settings.skipLegibilityOnlyFixes !== true) return errors.length > 0;
+  return errors.some((entry) => entry.source !== 'legibility');
+}
+
 /** One fix turn + re-QA per unlocked shot with confirmed findings; returns the fixed ids. */
 async function fixShots(
   job: SceneJob,
@@ -131,8 +144,7 @@ async function fixShots(
   notes: string[],
 ): Promise<Result<readonly string[], StageError>> {
   const targets = job.shots.filter(
-    (shot) =>
-      !job.locked.has(shot.id) && fixableFindings(checked.findings.get(shot.id) ?? []).length > 0,
+    (shot) => !job.locked.has(shot.id) && needsFinalFix(job, checked.findings.get(shot.id) ?? []),
   );
   if (targets.length === 0) return ok([]);
   if (!job.ctx.hasClaude) {

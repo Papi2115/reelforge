@@ -1,7 +1,9 @@
 /**
- * Start screen (PLAN.md#6.2): new project (title + language, then a folder picker in main), open an
- * existing project folder, or reopen a recent one. Plain on purpose; 6.3 does the real layout.
+ * Start screen (PLAN.md#6.2): new project (title + language, scenes per minute and faster checks
+ * (ADR-027), then a folder picker in main), open an existing project folder, or reopen a recent
+ * one. Plain on purpose; 6.3 does the real layout.
  */
+import type { ShotsPerMinute } from '@reelforge/shared';
 import { useEffect, useState, type JSX, type SyntheticEvent } from 'react';
 import type {
   ProjectOpenResult,
@@ -9,6 +11,8 @@ import type {
   RecentProjectEntry,
 } from '../../shared/project-contract.js';
 import { errorMessage, rendererLog } from '../log.js';
+import { SceneCountFields } from './SceneCountFields.js';
+import { SCENE_COUNT_HINT } from './scene-count-view.js';
 
 const log = rendererLog('start');
 
@@ -16,13 +20,25 @@ export interface StartScreenProps {
   readonly onOpened: (project: ProjectSummary) => void;
   /** From the app settings; undefined until they are loaded. */
   readonly defaultLanguage: Language | undefined;
+  /** Settings → Projects defaults (ADR-027); undefined until loaded. */
+  readonly defaultShotsPerMinute?: ShotsPerMinute | null | undefined;
+  readonly defaultFasterChecks?: boolean | undefined;
 }
 
 type Language = ProjectSummary['language'];
 
-export function StartScreen({ onOpened, defaultLanguage }: StartScreenProps): JSX.Element {
+export function StartScreen({
+  onOpened,
+  defaultLanguage,
+  defaultShotsPerMinute,
+  defaultFasterChecks,
+}: StartScreenProps): JSX.Element {
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState<Language>(defaultLanguage ?? 'en');
+  const [shotsPerMinute, setShotsPerMinute] = useState<ShotsPerMinute | null>(
+    defaultShotsPerMinute ?? null,
+  );
+  const [fasterChecks, setFasterChecks] = useState(defaultFasterChecks ?? false);
   const [recent, setRecent] = useState<RecentProjectEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -30,6 +46,14 @@ export function StartScreen({ onOpened, defaultLanguage }: StartScreenProps): JS
   useEffect(() => {
     if (defaultLanguage !== undefined) setLanguage(defaultLanguage);
   }, [defaultLanguage]);
+
+  useEffect(() => {
+    if (defaultShotsPerMinute !== undefined) setShotsPerMinute(defaultShotsPerMinute);
+  }, [defaultShotsPerMinute]);
+
+  useEffect(() => {
+    if (defaultFasterChecks !== undefined) setFasterChecks(defaultFasterChecks);
+  }, [defaultFasterChecks]);
 
   useEffect(() => {
     window.reelforge.getRecentProjects().then(setRecent, (reason: unknown) => {
@@ -57,7 +81,9 @@ export function StartScreen({ onOpened, defaultLanguage }: StartScreenProps): JS
   const create = (event: SyntheticEvent): void => {
     event.preventDefault();
     if (title.trim() === '') return;
-    run(() => window.reelforge.newProject({ title: title.trim(), language }));
+    run(() =>
+      window.reelforge.newProject({ title: title.trim(), language, shotsPerMinute, fasterChecks }),
+    );
   };
 
   return (
@@ -87,6 +113,17 @@ export function StartScreen({ onOpened, defaultLanguage }: StartScreenProps): JS
             <option value="pl">Polski</option>
           </select>
         </label>
+        <fieldset className="start-scene-count">
+          <legend>Scenes and checks</legend>
+          <p className="muted">{SCENE_COUNT_HINT}</p>
+          <SceneCountFields
+            range={shotsPerMinute}
+            fasterChecks={fasterChecks}
+            onRange={setShotsPerMinute}
+            onFasterChecks={setFasterChecks}
+            disabled={busy}
+          />
+        </fieldset>
         <button type="submit" className="primary" disabled={busy || title.trim() === ''}>
           New project…
         </button>

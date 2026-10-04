@@ -9,7 +9,9 @@ import {
   CALM_BELOW,
   cutTempoReport,
   HIGH_TENSION,
+  STANDARD_TEMPO,
   tensionFileSchema,
+  type ShotTempo,
   type StoryboardShot,
   type TensionFile,
 } from '@reelforge/shared';
@@ -144,9 +146,11 @@ export function checkTensionTempo(
   shots: readonly StoryboardShot[],
   tension: Pick<TensionFile, 'points' | 'segments'>,
   rules: Partial<TensionTempoRules> = {},
+  tempo: ShotTempo = STANDARD_TEMPO,
 ): ValidationIssue[] {
   const limits = { ...DEFAULT_TENSION_TEMPO_RULES, ...rules };
-  return cutTempoReport(shots, tension).segments.flatMap((segment): ValidationIssue[] => {
+  const report = cutTempoReport(shots, tension, undefined, tempo);
+  return report.segments.flatMap((segment): ValidationIssue[] => {
     if (segment.shotIds.length === 0) return [];
     const where = `${fmt(segment.from)}–${fmt(segment.to)} s (${segment.kind}, tension ${segment.mean.toFixed(2)})`;
     const measured = `shots last ${fmt(segment.meanShotS)} s on average, target ~${fmt(segment.targetS)} s`;

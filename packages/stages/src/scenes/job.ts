@@ -5,6 +5,7 @@
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { AnchorIndex } from '@reelforge/pipeline';
 import {
+  projectFasterChecks,
   projectLookMode,
   projectResearchMode,
   storyboardFileSchema,
@@ -23,7 +24,7 @@ import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
 import { RoleBuilder } from '../roles/builder.js';
 import { sceneAssetCatalogue } from './shot-assets.js';
-import type { SceneSettings } from '../settings.js';
+import { fasterSceneSettings, type SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
 import {
   kitNamesFromCatalog,
@@ -89,7 +90,10 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   const locked = await readLockedShots(ctx.projectDir);
   if (!locked.ok) return locked;
   const kitNames = tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog());
-  const settings = ctx.settings.scenes;
+  // Faster checks (ADR-027): lighter QA for this project; off = the settings as they are.
+  const settings = projectFasterChecks(project.value)
+    ? fasterSceneSettings(ctx.settings.scenes)
+    : ctx.settings.scenes;
   const styleId = project.value.style;
   const assets = await sceneAssetCatalogue(ctx.projectDir);
   return ok({

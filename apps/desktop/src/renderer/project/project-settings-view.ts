@@ -17,6 +17,7 @@ export const PROJECT_SETTINGS_SECTIONS = [
   'mascot',
   'research',
   'direction',
+  'build',
   'taste',
 ] as const;
 export type ProjectSettingsSectionId = (typeof PROJECT_SETTINGS_SECTIONS)[number];
@@ -27,6 +28,7 @@ export const SECTION_TITLES: Readonly<Record<ProjectSettingsSectionId, string>> 
   mascot: 'Mascot',
   research: 'Research',
   direction: 'Direction',
+  build: 'Scenes and checks',
   taste: 'Taste',
 };
 
@@ -70,6 +72,9 @@ export function withProjectSettingsPatch(
     repetitionControl: patch.repetitionControl ?? settings.repetitionControl,
     characters: patch.characters ?? settings.characters,
     mascot: patch.mascot ?? settings.mascot,
+    shotsPerMinute:
+      patch.shotsPerMinute === undefined ? settings.shotsPerMinute : patch.shotsPerMinute,
+    fasterChecks: patch.fasterChecks ?? settings.fasterChecks,
   };
 }
 

@@ -26,6 +26,7 @@ export * from './project.js';
 export * from './recent-projects.js';
 export * from './render-manifest.js';
 export * from './repetition.js';
+export * from './scene-count.js';
 export * from './scene-reports.js';
 export * from './sessions.js';
 export * from './shot-locks.js';

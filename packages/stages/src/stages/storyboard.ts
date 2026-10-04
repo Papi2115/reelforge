@@ -15,6 +15,7 @@ import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
   storyboardCharacterVars,
   storyboardOutputSchema,
+  storyboardShotRangeVars,
   validateStoryboard,
   type CharacterCheckOptions,
   type InterruptCheckOptions,
@@ -26,7 +27,10 @@ import {
   DEFAULT_MAX_ASSET_NEEDS,
   projectLookMode,
   projectResearchMode,
+  projectShotsPerMinute,
   projectTensionMap,
+  shotRangeRules,
+  shotsSummary,
   storyboardAssetIds,
   storyboardAssetNeeds,
   STORYBOARD_REPORT_VERSION,
@@ -91,6 +95,9 @@ async function validateFile(
   characters: CharacterCheckOptions,
   interrupts?: InterruptCheckOptions,
 ): Promise<FileCheck> {
+  const { project } = ctx.snapshot;
+  // Scenes per minute (ADR-027): absent = the checks as before.
+  const range = project.status === 'ok' ? projectShotsPerMinute(project.value) : undefined;
   const text = await readProjectText(ctx.projectDir, FILES.storyboard);
   if (!text.ok)
     return { value: undefined, issues: [], problems: [text.error.message], warnings: [] };
@@ -107,6 +114,7 @@ async function validateFile(
     ...beatSyncCheckOptions(ctx.snapshot.project),
     ...(interrupts === undefined ? {} : { interrupts }),
     characters,
+    ...(range === undefined ? {} : { shotsPerMinute: range }),
   });
   return fileCheck(report.value, report.issues);
 }
@@ -200,15 +208,23 @@ async function run(
   // Characters and mascot (PLAN.md#12.20); classic without a mascot = nothing changes.
   const characters = await loadCharacterSettings(ctx.projectDir, project.value);
   const characterChecks = storyboardCharacterOptions(characters);
+  // Scenes per minute (ADR-027); no range = nothing changes.
+  const range = projectShotsPerMinute(project.value);
+  const narrationEnd = words.value.words.at(-1)?.tEnd ?? 0;
   const prompt = render('storyboard', {
     styleId: project.value.style,
-    ...storyboardLookVars(lookMode, undefined, (words.value.words.at(-1)?.tEnd ?? 0) + 0.5),
-    ...storyboardTensionVars(curve, words.value),
+    ...storyboardLookVars(lookMode, undefined, narrationEnd + 0.5),
+    ...storyboardTensionVars(
+      curve,
+      words.value,
+      range === undefined ? undefined : shotRangeRules(range).tempo,
+    ),
     ...(research ? { assetResearch: true, maxAssetNeeds: DEFAULT_MAX_ASSET_NEEDS } : {}),
     ...(await storyboardAssetVars(ctx, research)),
     ...(await storyboardSourceChipVars(ctx.projectDir)),
     ...drama.value.vars,
     ...storyboardCharacterVars(characters),
+    ...storyboardShotRangeVars(range, narrationEnd),
     // The user's taste profile (PLAN.md#12.13); absent = the prompt is exactly as without it.
     tasteProfile: ctx.taste?.profile(),
   });
@@ -310,14 +326,20 @@ async function run(
   );
   if (!report.ok) return report;
   const last = storyboard.shots.at(-1);
+  const durationS = last?.t1 ?? 0;
+  const summary = `${String(storyboard.shots.length)} shots, ${String(Object.keys(treatments).length)} treatments${missingProps.length > 0 ? `, ${String(missingProps.length)} missing props` : ''}`;
   return ok({
-    message: `${String(storyboard.shots.length)} shots, ${String(Object.keys(treatments).length)} treatments${missingProps.length > 0 ? `, ${String(missingProps.length)} missing props` : ''}`,
+    // With a range (ADR-027) the line the user checks the effect by comes first.
+    message:
+      range === undefined
+        ? summary
+        : `${shotsSummary(storyboard.shots.length, durationS, range)} · ${summary}`,
     outputs: [FILES.storyboard, ...synced.value.outputs, ...stubs.value],
     changed: true,
     warnings,
     metrics: {
       shots: storyboard.shots.length,
-      durationS: last?.t1 ?? 0,
+      durationS,
       missingProps: missingProps.length,
       stubs: stubs.value.length,
       repairs,

@@ -8,17 +8,21 @@
  * Invalidation: the settings only steer FUTURE builds (look mode: the next storyboard / scene
  * build / sound cues; ambient variation: the render manifest, so the preview and the next export;
  * tension map: the next storyboard and sound cues, and the manifest's per-shot tension;
- * characters and mascot: the next storyboard and scene build).
+ * characters and mascot: the next storyboard and scene build; scenes per minute: the next
+ * storyboard; faster checks: the next scene build and final review, ADR-027).
  * No pipeline step is marked out of date.
  */
 import path from 'node:path';
 import { writeJsonAtomic } from '@reelforge/project';
 import {
   DEFAULT_MASCOT_CHOICE,
+  formatShotRange,
   MASCOT_PROFILES,
   projectAmbientVariation,
   projectCharacters,
   projectBeatSync,
+  projectFasterChecks,
+  projectShotsPerMinute,
   projectRepetitionControl,
   projectFileSchema,
   projectLookMode,
@@ -81,6 +85,8 @@ export function effectiveProjectSettings(project: ProjectFile): ProjectSettings 
     repetitionControl: projectRepetitionControl(project),
     characters: projectCharacters(project),
     mascot: project.mascot ?? DEFAULT_MASCOT_CHOICE,
+    shotsPerMinute: projectShotsPerMinute(project) ?? null,
+    fasterChecks: projectFasterChecks(project),
   };
 }
 
@@ -101,6 +107,11 @@ export function applyProjectSettingsPatch(
   }
   if (patch.characters !== undefined) next['characters'] = patch.characters;
   if (patch.mascot !== undefined) next['mascot'] = patch.mascot;
+  // Off = the field is removed: a project without it builds exactly as before 2.3.6 (ADR-027).
+  if (patch.shotsPerMinute === null) delete next['shotsPerMinute'];
+  else if (patch.shotsPerMinute !== undefined) next['shotsPerMinute'] = { ...patch.shotsPerMinute };
+  if (patch.fasterChecks === false) delete next['fasterChecks'];
+  else if (patch.fasterChecks === true) next['fasterChecks'] = true;
   return next;
 }
 
@@ -174,7 +185,21 @@ export function describeSettingsChange(before: ProjectSettings, after: ProjectSe
     parts.push(`characters ${CHARACTER_WORDS[after.characters]}`);
   }
   if (before.mascot !== after.mascot) parts.push(`mascot ${mascotWords(after.mascot)}`);
+  if (!sameRange(before.shotsPerMinute, after.shotsPerMinute)) {
+    const range = after.shotsPerMinute;
+    parts.push(`scenes per minute ${range === null ? 'no limit' : formatShotRange(range)}`);
+  }
+  if (before.fasterChecks !== after.fasterChecks) {
+    parts.push(`faster checks ${after.fasterChecks ? 'on' : 'off'}`);
+  }
   return `Project settings: ${parts.length === 0 ? 'no change' : parts.join(', ')}`;
+}
+
+function sameRange(
+  left: ProjectSettings['shotsPerMinute'],
+  right: ProjectSettings['shotsPerMinute'],
+): boolean {
+  return left?.min === right?.min && left?.max === right?.max;
 }
 
 function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
@@ -187,7 +212,9 @@ function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
     DRAMATURGY_KEYS.every((key) => left[key] === right[key]) &&
     EDITING_KEYS.every((key) => left[key] === right[key]) &&
     left.characters === right.characters &&
-    left.mascot === right.mascot
+    left.mascot === right.mascot &&
+    sameRange(left.shotsPerMinute, right.shotsPerMinute) &&
+    left.fasterChecks === right.fasterChecks
   );
 }
 
