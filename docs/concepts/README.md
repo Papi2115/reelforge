@@ -1,4 +1,4 @@
-# Character concepts (parked for 2.0.5-test)
+# Character concepts (ported to kit.cast in 2.3.5)
 
 Status: **ported** (2026-10-04, ReelForge 2.3.5, PLAN.md#12.20 part 1): the mascots, the side cast, the mannequin,
 the 8 poses and the expressions live in `packages/kit/src/characters/` as `kit.cast` (docs/characters.md, ADR-024).

@@ -3,7 +3,7 @@
 Legenda ról przy taskach: **[S]** Sonnet 5.5 (manager) · **[O]** Opus 5.5 (coder) · **[H]** Haiku (scout/runner). Format taska: `- [ ] **id** [rola] opis — AC: kryterium`.
 Manager hakuje checkboxy dopiero po spełnieniu AC i zielonej weryfikacji (patrz `CLAUDE.md` §2).
 
-**Bieżąca faza: 12 — v2.3.0 wydane (2.0–2.3); zostaje 2.3.5 (serie i postacie, 12.20) — wymaga paczki postaci od Papiego**
+**Bieżąca faza: 12 — wydane 2.0–2.3.5; zostaje kontynuacja serii (wspólne intro/outro, ciągłość odcinków) jako rozszerzenie 12.20**
 
 ---
 
@@ -312,7 +312,7 @@ Branch: `phase-12/v2.3-personal`. Wydanie: tag, release notes, film testowy ocen
 #### Wersja 2.3.5 — Serie i postacie
 Osobna wersja, bo opiera się na **gotowej paczce pakietów z postaciami i maskotką przygotowanej przez Papiego** — format i zawartość paczki trzeba poznać przed startem (zadanie wstępne: Papi dostarcza paczkę, scout robi jej inwentarz), a nie projektować postaci od zera. Po 2.3. **Wejście:** koncepty postaci Papiego w `docs/concepts/characters.html` (plik lokalny, nieśledzony w git do czasu startu 2.3.5; wcześniej nie ruszać).
 Branch: `phase-12/v2.3.5-series`. Wydanie: tag, release notes, film testowy oceniony przez Papiego, test „bez szkody" na projekcie wzorcowym (Nokia, 16 shotów).
-- [ ] **12.20** [O] **Series memory**: kanał/seria jako obiekt: import paczki postaci i maskotki od Papiego (bez przeprojektowywania — dopasowanie do looków i palety stylu tylko tam, gdzie konieczne, za zgodą), powracające propsy, intro/outro, ciągłość między odcinkami; projekty dziedziczą z serii. — AC: dwa projekty tej samej serii dzielą bohatera i intro; zmiana w serii propaguje się do projektów bez ruszania zamków (11.4); paczka Papiego renderuje się w co najmniej 2 looki z vibe guardem.
+- [x] **12.20** [O] **Series memory**: kanał/seria jako obiekt: import paczki postaci i maskotki od Papiego (bez przeprojektowywania — dopasowanie do looków i palety stylu tylko tam, gdzie konieczne, za zgodą), powracające propsy, intro/outro, ciągłość między odcinkami; projekty dziedziczą z serii. — AC: dwa projekty tej samej serii dzielą bohatera i intro; zmiana w serii propaguje się do projektów bez ruszania zamków (11.4); paczka Papiego renderuje się w co najmniej 2 looki z vibe guardem.
 
 - [x] **11.8** [O] **Słownik adnotacji (zatwierdzony przez Papiego 2026-10-03)**: ramki/callouty, strzałki, obwódki (pulsujące), nawiasy, etykiety przypięte do obiektów 3D z linią prowadzącą, podkreślenia/zaznaczenia słów, odznaki z numerem, stemple, linie wymiarowe, ptaszki/krzyżyki, spotlight; wszystko w palecie stylu, deterministyczne, świadome safe area i kolizji; **otagowanie skryptu znaczeniem** (nazwa, liczba, definicja, miejsce/wskazanie, porównanie, lista, twierdzenie, akcent) i dobór formy z regułami różnorodności; plan adnotacji w storyboardzie. — AC: golden frames każdej adnotacji, storyboard na fake-claude zawiera plan adnotacji z różnorodnością, scena z realnego przebiegu używa ich sensownie, obecne sceny bez zmian klatka w klatkę.
 - (nie dodane, odłożone przez Papiego) **11.9 biblioteka propsów**: za wcześnie — styl modeli produkcyjnych jeszcze się rozwija, nie mieszać starego z nowym.
