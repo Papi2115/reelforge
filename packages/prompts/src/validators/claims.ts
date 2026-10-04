@@ -169,10 +169,31 @@ export function claimsFileFromReply(reply: ClaimsReply, input: ClaimsFileInput):
   });
 }
 
-/** The numbered sentences and the source lines the `claims` prompt shows. */
+/** Characters of research lines shown per source (a source cited on many lines is cut here). */
+export const CLAIMS_SOURCE_TEXT_MAX = 3000;
+
+/** What the notes say with one source: every line citing its URL, `|` separated, capped. */
+function sourceText(
+  source: ClaimSource,
+  excerpts: ReadonlyMap<string, readonly string[]> | undefined,
+): string {
+  const lines = source.url === undefined ? undefined : excerpts?.get(source.url);
+  if (lines === undefined || lines.length === 0) return source.excerpt ?? source.url ?? '';
+  const joined = lines.join(' | ');
+  return joined.length <= CLAIMS_SOURCE_TEXT_MAX
+    ? joined
+    : `${joined.slice(0, CLAIMS_SOURCE_TEXT_MAX - 3)}...`;
+}
+
+/**
+ * The numbered sentences and the source lines the `claims` prompt shows. `excerpts`
+ * (`researchSourceExcerpts`): every research line citing a source's URL; without it only the
+ * first line (`ClaimSource.excerpt`) is shown.
+ */
 export function claimsPromptVars(
   sentences: readonly ScriptSentence[],
   sources: readonly ClaimSource[],
+  excerpts?: ReadonlyMap<string, readonly string[]>,
 ): { sentences: string; sources: string } {
   return {
     sentences: sentences
@@ -182,9 +203,7 @@ export function claimsPromptVars(
       sources.length === 0
         ? '(the research notes list no sources)'
         : sources
-            .map(
-              (source) => `${source.id} · ${source.name} · ${source.excerpt ?? source.url ?? ''}`,
-            )
+            .map((source) => `${source.id} · ${source.name} · ${sourceText(source, excerpts)}`)
             .join('\n'),
   };
 }

@@ -1,7 +1,12 @@
-import { researchClaimSources, scriptSentences } from '@reelforge/shared';
+import { researchClaimSources, researchSourceExcerpts, scriptSentences } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { renderPrompt } from '../catalog.js';
-import { claimsFileFromReply, claimsPromptVars, validateClaimsReply } from './claims.js';
+import {
+  CLAIMS_SOURCE_TEXT_MAX,
+  claimsFileFromReply,
+  claimsPromptVars,
+  validateClaimsReply,
+} from './claims.js';
 
 const SCRIPT = 'Doom came out in 1993. It needed four megabytes of memory.\n\nIt runs everywhere.';
 const SOURCES = researchClaimSources(
@@ -98,5 +103,33 @@ describe('validateClaimsReply', () => {
     expect(prompt.value).toContain('r1 · doomwiki.org · Doom released December 1993');
     expect(prompt.value).toContain('do not browse the web');
     expect(claimsPromptVars([], []).sources).toBe('(the research notes list no sources)');
+  });
+
+  it('shows every research line of a source, capped', () => {
+    const long = Array.from(
+      { length: 10 },
+      (_, index) => `- ${String(index)} ${'x'.repeat(380)} — https://example.org/long`,
+    );
+    const research = [
+      '- Doom released December 1993 — https://en.wikipedia.org/wiki/Doom',
+      '- It needed 4 MB of RAM — https://en.wikipedia.org/wiki/Doom',
+      ...long,
+    ].join(String.fromCharCode(10));
+    const vars = claimsPromptVars(
+      OPTIONS.sentences,
+      researchClaimSources(research),
+      researchSourceExcerpts(research),
+    );
+    const lines = vars.sources.split(String.fromCharCode(10));
+    expect(lines[0]).toBe(
+      'r1 · en.wikipedia.org · Doom released December 1993 | It needed 4 MB of RAM',
+    );
+    expect(lines[1]?.endsWith('...')).toBe(true);
+    expect(lines[1]?.length).toBeLessThan(CLAIMS_SOURCE_TEXT_MAX + 40);
+    // Without the excerpts only the first line shows (the stored ClaimSource.excerpt).
+    const firstOnly = claimsPromptVars(OPTIONS.sentences, researchClaimSources(research));
+    expect(firstOnly.sources.split(String.fromCharCode(10))[0]).toBe(
+      'r1 · en.wikipedia.org · Doom released December 1993',
+    );
   });
 });

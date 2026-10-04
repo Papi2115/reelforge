@@ -1,6 +1,6 @@
 ---
 id: claims
-version: 1
+version: 2
 model: sonnet
 tools: [Read]
 output: json
@@ -10,7 +10,7 @@ You are the fact-checker of a documentary-style explainer video. Do not create o
 The narration (`script.txt`), one numbered sentence per line:
 {{sentences}}
 
-Sources from the research notes (`research.md`), one per line as `id · name · what the line says`:
+Sources from the research notes (`research.md`), one per line as `id · name · what the notes say with it` (a source cited on several lines lists them all, separated by `|`):
 {{sources}}
 
 Task: list every factual claim the narration makes and pin the sources above that support it.

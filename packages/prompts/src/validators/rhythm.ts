@@ -2,8 +2,8 @@
  * Look and roll rhythm of a storyboard in `mixed` look mode (ADR-009, PLAN.md phase 12): known
  * looks; a roll-A shot at least every N shots (an untagged voxel shot counts as A); and, once two
  * or more looks are available, every shot tagged, no look more than N shots in a row (A-roll voxel
- * may run one longer), a new pattern (roll + look + treatment) at least every 6–8 s, and a C-roll
- * at act changes (warning). Projects in `voxel-only` mode never reach these checks.
+ * may run one longer), a new pattern (roll + look + treatment) at least every 6–8 s, a C-roll
+ * at act changes (warning) and mostly hard cuts (one non-cut transition per ~20 s). Projects in `voxel-only` mode never reach these checks.
  */
 import { DEFAULT_LOOK_ID, shotLook, type Roll, type StoryboardShot } from '@reelforge/shared';
 import { issue, type ValidationIssue } from './issues.js';
@@ -17,6 +17,8 @@ export interface LookRhythmRules {
   readonly rollAEvery: number;
   /** Shots in a row with one roll + look + treatment may last at most this long, s. Default 8. */
   readonly maxPatternS: number;
+  /** At most one non-cut transition per this many seconds of film (min. 3 in any film). Default 20. */
+  readonly transitionEveryS: number;
 }
 
 export const DEFAULT_LOOK_RHYTHM_RULES: LookRhythmRules = {
@@ -24,7 +26,13 @@ export const DEFAULT_LOOK_RHYTHM_RULES: LookRhythmRules = {
   maxAnchorLookRun: 4,
   rollAEvery: 6,
   maxPatternS: 8,
+  transitionEveryS: 20,
 };
+
+/** Non-cut transitions a film of `durationS` may have (act changes and look-change interrupts). */
+export function maxNonCutTransitions(durationS: number, everyS: number): number {
+  return Math.max(3, Math.ceil(durationS / everyS));
+}
 
 export interface LookRhythmOptions {
   /** Ids of the available looks (voxel first). */
@@ -156,6 +164,30 @@ function actChangeIssues(shots: readonly StoryboardShot[]): ValidationIssue[] {
   );
 }
 
+/**
+ * Transitions are mostly hard cuts (storyboard prompt); a non-cut one marks an act change or a
+ * look-change interrupt. Real run 2.3: 24 of 28 cuts were dissolves/wipes, one every 5.8 s.
+ */
+function transitionDensityIssues(
+  shots: readonly StoryboardShot[],
+  everyS: number,
+): ValidationIssue[] {
+  const durationS = shots.at(-1)?.t1 ?? 0;
+  const nonCut = shots.filter(
+    (shot) => shot.transitionIn !== undefined && shot.transitionIn.type !== 'cut',
+  ).length;
+  const max = maxNonCutTransitions(durationS, everyS);
+  if (nonCut <= max) return [];
+  return [
+    issue(
+      'error',
+      'transition-density',
+      `${String(nonCut)} non-cut transitions in ${durationS.toFixed(0)} s (at most ${String(max)}, about one per ${String(everyS)} s): keep them for act changes and look-change interrupts (crt-zoom, tile-flip, draw-over, pixel-sort-melt) and make every other transitionIn { "type": "cut" }; a look change alone is a hard cut`,
+      'shots',
+    ),
+  ];
+}
+
 /** The `mixed` look-mode checks; the multi-look ones only once a second look is available. */
 export function checkLookRhythm(
   shots: readonly StoryboardShot[],
@@ -170,5 +202,6 @@ export function checkLookRhythm(
     ...(multiLook ? lookRunIssues(shots, rules) : []),
     ...(multiLook ? patternIssues(shots, rules.maxPatternS) : []),
     ...(multiLook ? actChangeIssues(shots) : []),
+    ...(multiLook ? transitionDensityIssues(shots, rules.transitionEveryS) : []),
   ];
 }

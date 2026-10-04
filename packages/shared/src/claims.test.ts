@@ -6,6 +6,7 @@ import {
   formatClaimsReport,
   mergeClaims,
   researchClaimSources,
+  researchSourceExcerpts,
   sourceDisplayName,
   urlHost,
 } from './claims-ops.js';
@@ -126,6 +127,19 @@ describe('research sources', () => {
     expect(
       sourceDisplayName('A very long source name that goes on and on beyond the limit of the chip'),
     ).toBe('A very long source name that goes on and on beyond the...');
+  });
+
+  it('keeps every line that cites a link (real run 2.3: one article backed 15 facts)', () => {
+    const excerpts = researchSourceExcerpts(RESEARCH);
+    expect(excerpts.get('https://doomwiki.org/wiki/Doom')).toEqual([
+      'Doom (1993) needed 4 MB of RAM',
+      'Same link again',
+    ]);
+    expect(excerpts.get('https://education.ti.com/en/products/ti-84')).toEqual([
+      'The TI-84 Plus CE has 154 KB of user RAM (TI specs.)',
+    ]);
+    const twice = ['- a — https://x.org/a', '- a — https://x.org/a'].join('\n');
+    expect(researchSourceExcerpts(twice).get('https://x.org/a')).toEqual(['a']);
   });
 });
 

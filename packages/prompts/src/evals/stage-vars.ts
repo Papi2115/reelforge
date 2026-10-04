@@ -5,7 +5,12 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
-import { researchClaimSources, scriptSentences, type StoryboardShot } from '@reelforge/shared';
+import {
+  researchClaimSources,
+  researchSourceExcerpts,
+  scriptSentences,
+  type StoryboardShot,
+} from '@reelforge/shared';
 import { renderOutputPaths, type PromptId } from '../catalog.js';
 import type { TemplateVars } from '../template.js';
 import { claimsPromptVars } from '../validators/claims.js';
@@ -143,6 +148,7 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         claimsPromptVars(
           scriptSentences(read('script.txt')),
           researchClaimSources(read('research.md')),
+          researchSourceExcerpts(read('research.md')),
         ),
       );
     }

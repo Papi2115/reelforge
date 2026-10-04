@@ -1,6 +1,6 @@
 import type { Roll, StoryboardShot, Transition, Treatment } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LOOK_RHYTHM_RULES } from './rhythm.js';
+import { DEFAULT_LOOK_RHYTHM_RULES, maxNonCutTransitions } from './rhythm.js';
 import {
   checkStoryboard,
   DEFAULT_STORYBOARD_RULES,
@@ -45,6 +45,7 @@ const RHYTHM_CODES = new Set([
   'look-run',
   'pattern-run',
   'act-change-roll',
+  'transition-density',
 ]);
 
 const MIXED: StoryboardCheckOptions = { lookMode: 'mixed' };
@@ -134,5 +135,28 @@ describe('look rhythm rules', () => {
       'warning:act-change-roll@shots[1].roll',
     ]);
     expect(rhythm([A, { roll: 'C', transitionIn: wipe }, B], TWO_LOOKS)).toEqual([]);
+  });
+
+  it('allows about one non-cut transition per 20 s (real run 2.3: 24 in 139 s)', () => {
+    const wipe: Transition = { type: 'wipe', duration: 0.3 };
+    const cut: Transition = { type: 'cut' };
+    // 12 shots of 5 s = 60 s: at most 3 non-cut transitions.
+    const film = (nonCut: number): Spec[] =>
+      Array.from({ length: 12 }, (_, index) => ({
+        ...(index % 2 === 0 ? A : B),
+        length: 5,
+        ...(index === 0 ? {} : { transitionIn: index <= nonCut ? wipe : cut }),
+      }));
+    const density = (specs: readonly Spec[]): string[] =>
+      rhythm(specs, TWO_LOOKS).filter((code) => code.includes('transition-density'));
+    expect(density(film(3))).toEqual([]);
+    expect(density(film(4))).toEqual(['error:transition-density@shots']);
+    expect(maxNonCutTransitions(139, 20)).toBe(7);
+    // voxel-only projects never get the rule (byte-identical prompts and checks).
+    expect(
+      checkStoryboard({ version: 1, shots: shots(film(11)) }, {}).filter(
+        (entry) => entry.code === 'transition-density',
+      ),
+    ).toEqual([]);
   });
 });

@@ -49,6 +49,39 @@ export function sourceDisplayName(name: string): string {
   return `${(space > 12 ? cut.slice(0, space) : cut).replace(/[\s,;:.-]+$/, '')}...`;
 }
 
+/** A research.md line without its links and list marker: what the line says (≤ 400 chars). */
+function lineExcerpt(line: string): string {
+  return line
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(URL_PATTERN, '')
+    .replace(/\(\s*\)/g, '')
+    .replace(/^\s*(?:[-*+]|\d+[.)])\s*/, '')
+    .replace(/[\s—–:(.-]+$/, '')
+    .trim()
+    .slice(0, 400);
+}
+
+/**
+ * Every line of research.md that cites a link, per link (cleaned URL → excerpts in order, no
+ * duplicates). One link usually backs many facts (a Wikipedia article on 15 lines); the claims
+ * prompt needs all of them, not only the first line kept in `ClaimSource.excerpt`.
+ */
+export function researchSourceExcerpts(markdown: string): Map<string, string[]> {
+  const excerpts = new Map<string, string[]>();
+  for (const line of markdown.split(/\r?\n/)) {
+    const excerpt = lineExcerpt(line);
+    if (excerpt === '') continue;
+    for (const match of line.matchAll(URL_PATTERN)) {
+      const url = cleanUrl(match[0]);
+      if (urlHost(url) === null) continue;
+      const list = excerpts.get(url) ?? [];
+      if (!list.includes(excerpt)) list.push(excerpt);
+      excerpts.set(url, list);
+    }
+  }
+  return excerpts;
+}
+
 /** Every distinct link of research.md as a `research` source (`r1`, `r2`, … in order). */
 export function researchClaimSources(markdown: string): ClaimSource[] {
   const sources: ClaimSource[] = [];
@@ -63,14 +96,7 @@ export function researchClaimSources(markdown: string): ClaimSource[] {
       const host = urlHost(url);
       if (seen.has(url) || host === null || sources.length >= MAX_RESEARCH_SOURCES) continue;
       seen.add(url);
-      const excerpt = line
-        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(URL_PATTERN, '')
-        .replace(/\(\s*\)/g, '')
-        .replace(/^\s*(?:[-*+]|\d+[.)])\s*/, '')
-        .replace(/[\s—–:(.-]+$/, '')
-        .trim()
-        .slice(0, 400);
+      const excerpt = lineExcerpt(line);
       sources.push({
         id: `r${String(sources.length + 1)}`,
         kind: 'research',

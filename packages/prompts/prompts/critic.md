@@ -1,6 +1,6 @@
 ---
 id: critic
-version: 3
+version: 4
 model: haiku
 tools: [Read]
 output: json
@@ -20,5 +20,6 @@ Vibe check (every look of the film must feel like one film): the same limited pa
 
 {{#lookId}}Look of this shot: `{{lookId}}`{{#roll}} (roll {{roll}}){{/roll}}. The film mixes looks: judge the frame against this look, not against voxel. {{lookRules}}
 Look checks: text, a window title or a headline cut by the frame edge or by a camera push-in → `clipped`; labels, pins or captions colliding with each other or sitting on busy detail where they cannot be read → `overlap`; an element of another look faking this one (e.g. voxel boxes standing in for a retro-UI window, a chart or a map) → `off-intent` with a note starting `look:`.
-
+{{#sourceChip}}The plan gives this shot a source credit: a small "SOURCE: {{sourceChip}}" plate in a corner is intended (not a watermark, not an overlap).
+{{/sourceChip}}
 {{/lookId}}Return ONLY JSON, no prose: `{"frames":[{"path":"…","verdict":"ok","note":"≤15 words"}]}`

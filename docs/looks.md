@@ -70,6 +70,7 @@ Rhythm rules (`packages/prompts/src/validators/rhythm.ts`, `StoryboardRules`), `
 | `look-run`: one look > 3 shots in a row (A-roll voxel: 4) | error | ≥ 2 looks available |
 | `pattern-run`: one roll + look + treatment > 8 s over several shots | error | ≥ 2 looks available |
 | `act-change-roll`: a non-cut transition into a non-C shot | warning | ≥ 2 looks available |
+| `transition-density`: more than `max(3, ceil(film s / 20))` non-cut transitions | error | ≥ 2 looks available |
 
 Errors go to the storyboard repair turn; warnings land in the stage record. With voxel as the
 only look, rolls are optional and every shot is `voxel`.
