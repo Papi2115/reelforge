@@ -2,7 +2,7 @@
  * Per-shot cache keys. A shot's segment is re-rendered only when something that can change its
  * pixels or its encoding changes: scene source, engine/kit version, style preset, palette
  * overrides, project seed, the anchor times the scene uses, the project props (kit-ext) it may
- * call, the shot's own manifest params, ambient variation (switch + storyboard position), fps,
+ * call, the project roles (characters/) it may show, the shot's own manifest params, ambient variation (switch + storyboard position), fps,
  * render size, the asset pictures it names (hash, still time, decoded size, decoder version) and
  * the output settings (preset, encoder, quality). Shots that transition in also depend on the
  * previous shot's content.
@@ -126,6 +126,43 @@ function calledExtensions(source: string, extensions: KitExtensions): KitExtensi
   );
 }
 
+type CastFiles = NonNullable<RenderManifest['castRoles']>['roles'];
+
+/** True when `text` names `id` (camelCase, or kebab case: `policeOfficer` / `police-officer`). */
+function namesCastId(text: string, id: string): boolean {
+  const kebab = id.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  return [id, kebab].some((form) => new RegExp(String.raw`(?<![\w-])${form}(?![\w-])`).test(text));
+}
+
+/** A `kit.cast` call whose id/spec is not a literal: any project role may be shown. */
+const DYNAMIC_CAST = /\bcast\s*(?:\[|\.\s*(?:person|role|spec)\s*\(\s*(?![\s'"`{]))/;
+
+function castHashes(files: CastFiles): { id: string; source: string }[] {
+  return files.map((file) => ({ id: file.id, source: sha256Hex(file.source) }));
+}
+
+/**
+ * Project roles (`castRoles`, ADR-026) a scene may show: the roles whose id it names (all of them
+ * when a `kit.cast` call takes a computed id) and the accessory extensions the scene or those
+ * roles name. Undefined without project roles (keys unchanged).
+ */
+export function castRoleInputs(
+  source: string,
+  castRoles: RenderManifest['castRoles'],
+):
+  | { roles: { id: string; source: string }[]; accessories: { id: string; source: string }[] }
+  | undefined {
+  if (castRoles === undefined) return undefined;
+  if (castRoles.roles.length === 0 && castRoles.accessories.length === 0) return undefined;
+  const dynamic = DYNAMIC_CAST.test(source);
+  const roles = castRoles.roles.filter((role) => dynamic || namesCastId(source, role.id));
+  const texts = [source, ...roles.map((role) => role.source)];
+  const accessories = castRoles.accessories.filter((accessory) =>
+    texts.some((text) => namesCastId(text, accessory.id)),
+  );
+  return { roles: castHashes(roles), accessories: castHashes(accessories) };
+}
+
 /**
  * Asset pictures a shot can show (PLAN.md#12.11): the manifest refs its scene or the project props
  * it calls name as string literals. Stylisation options are part of the scene source, the
@@ -164,6 +201,8 @@ function shotContent(
     scene: sha256Hex(shot.scene.source),
     anchors: anchorInputs(shot, manifest, resolveAnchor),
     kitExtensions: kitExtensionInputs(shot.scene.source, manifest.kitExtensions),
+    // Project roles (ADR-026): undefined (left out) without any, so old keys stay valid.
+    castRoles: castRoleInputs(shot.scene.source, manifest.castRoles),
     assets: assetInputs(shot.scene.source, manifest),
     // Undefined (left out of the key) unless ambient variation is on: old keys stay valid.
     ambient: manifest.ambientVariation === undefined ? undefined : (shot.ambient ?? null),

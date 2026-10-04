@@ -3,6 +3,7 @@
  * id/description listing of everything a scene or a role spec can name. Generated from the pack's
  * own tables, so it cannot drift from the code.
  */
+import { ACCESSORY_SLOTS, MAX_ACCESSORY_BOXES, SLOT_FRAMES } from './accessory-extension.js';
 import { CAST, CAST_SPECS, EXAMPLE_ROLES } from './cast-presets.js';
 import { EXPRESSIONS, POSES } from './clips.js';
 import { MANNEQUIN_INFO } from './mannequin.js';
@@ -10,6 +11,7 @@ import { MASCOT_INFO, MASCOTS } from './mascots.js';
 import { ACCESSORY_ITEMS } from './role-accessories.js';
 import { HELD_ITEMS } from './role-held.js';
 import { HAIR_ITEMS, HEADGEAR_ITEMS } from './role-head.js';
+import { NO_PROJECT_CAST, type ProjectCast } from './project-roles.js';
 import { LAYER_ITEMS } from './role-layers.js';
 import {
   BODY_INFO,
@@ -25,6 +27,7 @@ export interface CastListingEntry {
     | 'mascot'
     | 'person'
     | 'mannequin'
+    | 'role'
     | 'body'
     | 'hair'
     | 'headgear'
@@ -41,8 +44,11 @@ function items(kind: CastListingEntry['kind'], list: readonly RoleItem[]): CastL
     .map((item) => ({ kind, id: item.id, description: item.description }));
 }
 
-/** Everything a scene (`kit.cast.*`) or a role spec can name, with one line each. */
-export function castListing(): CastListingEntry[] {
+/**
+ * Everything a scene (`kit.cast.*`) or a role spec can name, with one line each; with a project
+ * cast also its roles (`role`) and accessories (`accessory`, marked as project ones).
+ */
+export function castListing(project: ProjectCast = NO_PROJECT_CAST): CastListingEntry[] {
   return [
     ...MASCOTS.map((id) => ({ kind: 'mascot' as const, id, description: MASCOT_INFO[id] })),
     ...CAST.map((id) => ({
@@ -51,12 +57,22 @@ export function castListing(): CastListingEntry[] {
       description: CAST_SPECS[id].description ?? '',
     })),
     { kind: 'mannequin', id: 'mannequin', description: MANNEQUIN_INFO },
+    ...[...project.roles.values()].map((role) => ({
+      kind: 'role' as const,
+      id: role.spec.id,
+      description: `${role.spec.label}: ${role.spec.description} (project role, ${role.file})`,
+    })),
     ...BODY_PRESETS.map((id) => ({ kind: 'body' as const, id, description: BODY_INFO[id] })),
     ...items('hair', HAIR_ITEMS),
     ...items('headgear', HEADGEAR_ITEMS),
     ...items('layer', LAYER_ITEMS),
     ...items('accessory', ACCESSORY_ITEMS),
     ...items('held', HELD_ITEMS),
+    ...[...project.accessories.values()].map((accessory) => ({
+      kind: accessory.slot === 'hand' ? ('held' as const) : ('accessory' as const),
+      id: accessory.id,
+      description: `${accessory.description} (project accessory, ${accessory.slot})`,
+    })),
   ];
 }
 
@@ -74,8 +90,36 @@ function section(title: string, list: readonly RoleItem[]): string[] {
   ];
 }
 
-/** `reelforge kit-docs characters`. */
-export function charactersDocs(): string {
+/** The project's roles and accessories (empty without any). */
+function projectSection(project: ProjectCast): string[] {
+  const roles = [...project.roles.values()];
+  const accessories = [...project.accessories.values()];
+  if (roles.length === 0 && accessories.length === 0) return [];
+  return [
+    'project roles (characters/roles/<id>.json; kit.cast.person(id) or kit.cast.role(id), kit.cast.spec(id) for a variant):',
+    ...roles.map((role) => `  ${role.spec.id} — ${role.spec.label}: ${role.spec.description}`),
+    ...(accessories.length === 0
+      ? []
+      : [
+          'project accessories (characters/accessories/<id>.json; hand ones go in held, the others in accessories):',
+          ...accessories.map(
+            (accessory) => `  ${accessory.id} (${accessory.slot}) — ${accessory.description}`,
+          ),
+        ]),
+  ];
+}
+
+/** The accessory extension format (for professions the vocabulary lacks). */
+function accessoryFormat(): string[] {
+  return [
+    `accessory extension (only when the vocabulary lacks an essential piece): characters/accessories/<id>.json = { id, description, slot: ${ACCESSORY_SLOTS.join('|')}, colors: { color, trim?, detail? }, boxes: [{ color: color|trim|detail|swatch, at: [x, bottomY, z], size: [w, h, d], glow? }] }`,
+    `  1-${String(MAX_ACCESSORY_BOXES)} boxes in voxels (1/12 unit), each touching the body part or another box; frames:`,
+    ...ACCESSORY_SLOTS.map((slot) => `  ${slot}: ${SLOT_FRAMES[slot].frame}`),
+  ];
+}
+
+/** `reelforge kit-docs characters` (with the project's roles and accessories when given). */
+export function charactersDocs(project: ProjectCast = NO_PROJECT_CAST): string {
   const example = EXAMPLE_ROLES[0];
   return [
     'kit.cast — the character pack (voxel look; build() only, then call .update(t) every frame)',
@@ -95,6 +139,7 @@ export function charactersDocs(): string {
     'cast (kit.cast.person):',
     ...CAST.map((id) => `  ${id} — ${CAST_SPECS[id].description ?? ''}`),
     `mannequin — ${MANNEQUIN_INFO}`,
+    ...projectSection(project),
     'role spec (JSON, validated; colours = pack swatches like cream/brightTeal/darkSlate or style tokens like accent1):',
     '  { id: camelCase, label, description?, body?, skin?, hair?: { style, color? }, headgear?: item, top: { color },',
     '    layers?: [item], legs: { style?: pants|shorts, color }, shoes: { style?: shoes|boots, color },',
@@ -108,6 +153,7 @@ export function charactersDocs(): string {
     ...section('  layers (over the top colour, in order):', LAYER_ITEMS),
     ...section('  accessories:', ACCESSORY_ITEMS),
     ...section('  held props:', HELD_ITEMS),
+    ...accessoryFormat(),
     `example: kit.cast.role(${JSON.stringify(example)}, { pose: 'point' })`,
   ].join('\n');
 }

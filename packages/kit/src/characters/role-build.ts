@@ -19,13 +19,21 @@ import {
   LAYER_TABLE,
   SKIN_COLORS,
   slotColor,
+  type AnyRoleSpec,
   type BodyPreset,
   type ItemRef,
-  type RoleSpec,
 } from './role-spec.js';
-import type { BodyAdjust, ColorSlot, Dims, RoleItem } from './role-types.js';
+import type { BodyAdjust, ColorSlot, Dims, HeldItem, RoleItem } from './role-types.js';
 
 const UNIT = 1 / 12;
+
+/** Accessory and held-prop tables a role draws from: the kit's own, or with project extensions. */
+export interface RoleVocabulary {
+  readonly accessories: ReadonlyMap<string, RoleItem>;
+  readonly held: ReadonlyMap<string, HeldItem>;
+}
+
+export const KIT_VOCABULARY: RoleVocabulary = { accessories: ACCESSORY_TABLE, held: HELD_TABLE };
 /** Joint of the held prop (child of the holding forearm, no offset). */
 const PROP_JOINT = 'prop';
 
@@ -101,13 +109,17 @@ function slotOf(placed: Placed | undefined, which: 'sleeves' | 'hands', fallback
   return slotColor(placed.item, placed.ref, slot) ?? fallback;
 }
 
-export function buildRole(tools: KitTools, spec: RoleSpec): CharacterBuild {
+export function buildRole(
+  tools: KitTools,
+  spec: AnyRoleSpec,
+  vocabulary: RoleVocabulary = KIT_VOCABULARY,
+): CharacterBuild {
   const p = PRESETS[spec.body];
   const layers = spec.layers.map((ref) => lookup(LAYER_TABLE, ref)).filter((x) => x !== undefined);
   const hair = lookup(HAIR_TABLE, { id: spec.hair.style, color: spec.hair.color });
   const headgear = lookup(HEADGEAR_TABLE, spec.headgear);
   const accessories = spec.accessories
-    .map((ref) => lookup(ACCESSORY_TABLE, ref))
+    .map((ref) => lookup(vocabulary.accessories, ref))
     .filter((x) => x !== undefined);
   const items = [
     ...layers,
@@ -180,7 +192,7 @@ export function buildRole(tools: KitTools, spec: RoleSpec): CharacterBuild {
   };
   for (const placed of items) draw(placed);
   let held: HeldPoint | undefined;
-  const heldItem = spec.held ? HELD_TABLE.get(spec.held.id) : undefined;
+  const heldItem = spec.held ? vocabulary.held.get(spec.held.id) : undefined;
   if (spec.held && heldItem) {
     // The prop gets its own joint on the holding forearm, so its centre (the 'prop' anchor) is
     // known; the item draws into it whichever forearm it names.

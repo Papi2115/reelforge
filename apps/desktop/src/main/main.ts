@@ -222,6 +222,7 @@ function main(): void {
     stylesDir: layout.stylesDir,
     pickFolder,
     defaultStyle: () => settings.get().defaultStyle,
+    newProjectDefaults: () => settings.get().newProjectDefaults,
     log: log.child('project'),
     onCurrentChanged: (dir) => {
       projectWatcher.follow(dir);

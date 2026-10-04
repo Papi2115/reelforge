@@ -32,6 +32,7 @@ error (wrong option; stderr says which). Every command accepts `--help` and `--j
 | `reelforge fetch-asset --source nasa --id jsc2007e034221` / `--as apollo-pad` | download one asset into `.reelforge/assets/<id>.<ext>` and record it in `assets.json` (mode `ask`: approved items only) |
 | `reelforge fetch-asset --url https://… [--kind video]`           | research mode `full-auto` only: a direct https file, licence `unverified` |
 | `reelforge prop-preview fridge` / `--angles 0,45,90`             | a project prop (`kit-ext/props/fridge.js`) alone on a neutral stage from 4 angles, one sheet to Read, plus checks: lint, not blank, size 0.3–4 units, no floating parts, deterministic |
+| `reelforge cast list` / `cast check characters/roles/chef.json` / `cast preview chef` | people for scenes (`kit.cast`: mascots, cast, mannequin, project roles and accessories); check a role or accessory file ("did you mean" for unknown ids, spec checks); a role alone, 4 angles + 2 poses, one sheet to Read, plus checks: outfit colours, palette, face, accessories, height within the pack's range, not blank, vibe guard, deterministic |
 
 ## Reading the output
 
@@ -71,10 +72,18 @@ carries the props (`kitExtensions`), so scenes call `ctx.kit.props.<name>()` in 
 the CLI alike. Loop: `reelforge lint kit-ext/props/<name>.js` → `reelforge prop-preview <name>` →
 Read the sheet → fix. Design: `docs/decisions/ADR-007-project-props.md`.
 
+## Project roles (`characters/roles/<id>.json`)
+
+A person the character pack lacks is a role spec (JSON, the kit's vocabulary), optionally with an
+accessory extension `characters/accessories/<id>.json` (boxes on a slot). Every render manifest
+carries them (`castRoles`), so scenes call `ctx.kit.cast.person('<id>')` in preview, export and the
+CLI alike. Loop: `reelforge cast check characters/roles/<id>.json` → `reelforge cast preview <id>`
+→ Read the sheet → fix. Design: `docs/decisions/ADR-026-cast-roles.md`, `docs/characters.md`.
+
 ## Files it writes
 
 Only `.reelforge/frames/` inside the project (frames, contact sheets, strips, prop turntables in
-`.reelforge/frames/props/<name>/`; regenerated on every run). It never edits project files —
+`.reelforge/frames/props/<name>/`, role lineups in `.reelforge/frames/roles/<id>/`; regenerated on every run). It never edits project files —
 except the asset commands: `fetch-asset` writes the file to `.reelforge/assets/` and its record to
 `assets.json` (tracked), `assets propose` writes `.reelforge/assets/proposals/<n>.json` and
 thumbnails in `.reelforge/assets/thumbnails/`.

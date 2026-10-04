@@ -7,14 +7,14 @@ import { z } from 'zod';
 import { KitError } from '../errors.js';
 import { scaleParam } from '../props/shared.js';
 import { defineProp, type KitTools } from '../registry.js';
-import { CAST, CAST_SPECS } from './cast-presets.js';
+import { CAST, CAST_SPECS, type CastId } from './cast-presets.js';
 import { createCharacter, type CharacterObject } from './character.js';
 import { EXPRESSIONS, POSES } from './clips.js';
 import { buildMannequin } from './mannequin.js';
 import { buildMascot, MASCOTS } from './mascots.js';
 import { buildRole } from './role-build.js';
-import { HELD_PROPS } from './role-held.js';
-import { roleSpecSchema, type RoleSpecInput } from './role-spec.js';
+import { NO_PROJECT_CAST, type ProjectCast } from './project-roles.js';
+import type { AnyRoleSpec, RoleSpecInput } from './role-spec.js';
 
 const common = {
   pose: z
@@ -92,36 +92,70 @@ export const mascot = defineProp({
   },
 });
 
-export const person = defineProp({
-  name: 'person',
-  description:
-    'A side-cast member (~1.7 units tall, faces +z): scientist, doctor, engineer, finance, teacher, historian, kid, hacker, detective, astronaut; same 8 poses, blinking dot eyes.',
-  params: z.object({
-    id: z.enum(CAST).describe('Which cast member'),
-    held: z
-      .enum(['none', ...HELD_PROPS])
-      .optional()
-      .describe("Swap the held prop (default: the member's own)"),
-    hand: z.enum(['left', 'right']).optional().describe("Hand that holds it (default: the prop's)"),
-    ...common,
-  }),
-  anchors: ANCHORS,
-  methods: METHODS,
-  build(params, tools): CharacterObject {
-    const preset = CAST_SPECS[params.id];
-    const held = params.held ?? (typeof preset.held === 'string' ? preset.held : preset.held?.id);
-    const spec: RoleSpecInput = {
-      ...preset,
-      held:
-        held === undefined || held === 'none'
-          ? undefined
-          : params.hand === undefined
-            ? held
-            : { id: held, hand: params.hand },
-    };
-    return role.build({ ...params, spec: roleSpecSchema.parse(spec) }, tools);
-  },
-});
+type Ids = readonly [string, ...string[]];
+
+/** `kit.cast.role`: a person from a role spec over the project's vocabulary. */
+function roleDefinition(project: ProjectCast) {
+  return defineProp({
+    name: 'role',
+    description:
+      'A person built from a role spec (body, skin, hair, headgear, top + layers, legs, shoes, accessories, held prop; <= 4 outfit colours) in the cast style: new professions as siblings of the pack.',
+    params: z.object({
+      spec: project.specSchema.describe('Role spec (reelforge kit-docs characters)'),
+      ...common,
+    }),
+    anchors: ANCHORS,
+    methods: METHODS,
+    build(params, tools): CharacterObject {
+      return createCharacter(tools, buildRole(tools, params.spec, project.vocabulary), {
+        kitType: params.spec.id,
+        pose: params.pose,
+        expression: 'auto',
+        energy: params.energy,
+        scale: params.scale,
+        seed: phaseSeed(tools, params.seed),
+      });
+    },
+  });
+}
+
+/** `kit.cast.person`: a cast member or a project role by id. */
+function personDefinition(project: ProjectCast, role: ReturnType<typeof roleDefinition>) {
+  const ids = [...CAST, ...project.roles.keys()] as unknown as Ids;
+  const held = ['none', ...project.lists.held] as unknown as Ids;
+  return defineProp({
+    name: 'person',
+    description:
+      'A side-cast member (~1.7 units tall, faces +z): scientist, doctor, engineer, finance, teacher, historian, kid, hacker, detective, astronaut; same 8 poses, blinking dot eyes.',
+    params: z.object({
+      id: z.enum(ids).describe('Which cast member'),
+      held: z.enum(held).optional().describe("Swap the held prop (default: the member's own)"),
+      hand: z
+        .enum(['left', 'right'])
+        .optional()
+        .describe("Hand that holds it (default: the prop's)"),
+      ...common,
+    }),
+    anchors: ANCHORS,
+    methods: METHODS,
+    build(params, tools): CharacterObject {
+      const preset: RoleSpecInput | AnyRoleSpec =
+        project.roles.get(params.id)?.spec ?? CAST_SPECS[params.id as CastId];
+      const own = typeof preset.held === 'string' ? preset.held : preset.held?.id;
+      const held = params.held ?? own;
+      const spec = {
+        ...preset,
+        held:
+          held === undefined || held === 'none'
+            ? undefined
+            : params.hand === undefined
+              ? held
+              : { id: held, hand: params.hand },
+      };
+      return role.build({ ...params, spec: project.specSchema.parse(spec) }, tools);
+    },
+  });
+}
 
 export const mannequin = defineProp({
   name: 'mannequin',
@@ -142,29 +176,23 @@ export const mannequin = defineProp({
   },
 });
 
-export const role = defineProp({
-  name: 'role',
-  description:
-    'A person built from a role spec (body, skin, hair, headgear, top + layers, legs, shoes, accessories, held prop; <= 4 outfit colours) in the cast style: new professions as siblings of the pack.',
-  params: z.object({
-    spec: roleSpecSchema.describe('Role spec (reelforge kit-docs characters)'),
-    ...common,
-  }),
-  anchors: ANCHORS,
-  methods: METHODS,
-  build(params, tools): CharacterObject {
-    return createCharacter(tools, buildRole(tools, params.spec), {
-      kitType: params.spec.id,
-      pose: params.pose,
-      expression: 'auto',
-      energy: params.energy,
-      scale: params.scale,
-      seed: phaseSeed(tools, params.seed),
-    });
-  },
-});
+const definitions = new WeakMap<ProjectCast, ReturnType<typeof castDefinitionsOf>>();
 
-export const CAST_DEFINITIONS = [mascot, person, mannequin, role] as const;
+function castDefinitionsOf(project: ProjectCast) {
+  const role = roleDefinition(project);
+  return [mascot, personDefinition(project, role), mannequin, role] as const;
+}
+
+/** The four `kit.cast` definitions over a project's roles and accessories (cached per project). */
+export function castDefinitions(project: ProjectCast = NO_PROJECT_CAST) {
+  const cached = definitions.get(project);
+  if (cached !== undefined) return cached;
+  const created = castDefinitionsOf(project);
+  definitions.set(project, created);
+  return created;
+}
+
+export const CAST_DEFINITIONS = castDefinitions();
 
 /** A copy of a cast member's role spec (to derive a variant: kit.cast.role({ ...spec, ... })). */
 export function castSpec(id: string): RoleSpecInput {

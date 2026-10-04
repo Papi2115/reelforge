@@ -2,6 +2,7 @@ import type { RenderManifest } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import {
   extractAnchorUses,
+  castRoleInputs,
   kitExtensionInputs,
   segmentCacheKey,
   stableStringify,
@@ -146,6 +147,44 @@ describe('segmentCacheKey', () => {
     // No project props at all: the same keys as before kit-ext existed.
     expect(keyOf({ manifest: { ...m, kitExtensions: [] } })).toBe(base);
     expect(kitExtensionInputs('const p = kit.props[name]();', [fridge, lamp])).toHaveLength(2);
+  });
+
+  it('depends on the project roles (characters/) a shot shows, not on the others', () => {
+    const role = (id: string, source: string) => ({
+      id,
+      file: `characters/roles/${id}.json`,
+      source,
+    });
+    const radio = {
+      id: 'shoulderRadio',
+      file: 'characters/accessories/shoulderRadio.json',
+      source: 'r1',
+    };
+    const firefighter = role('firefighter', '{"id":"firefighter"}');
+    const officer = role('policeOfficer', '{"id":"policeOfficer","accessories":["shoulderRadio"]}');
+    const m = manifest();
+    const shots = m.shots.map((s, i) =>
+      i === 0 ? { ...s, scene: { ...s.scene, source: "kit.cast.person('police-officer');" } } : s,
+    );
+    const castRoles = { roles: [firefighter, officer], accessories: [radio] };
+    const withRoles = { ...m, shots, castRoles };
+    const key = keyOf({ manifest: withRoles });
+    const otherKey = keyOf({ manifest: withRoles }, 1);
+    const radioChanged = {
+      ...withRoles,
+      castRoles: { ...castRoles, accessories: [{ ...radio, source: 'r2' }] },
+    };
+    expect(keyOf({ manifest: radioChanged })).not.toBe(key);
+    expect(keyOf({ manifest: radioChanged }, 1)).toBe(otherKey);
+    const fireChanged = {
+      ...withRoles,
+      castRoles: { ...castRoles, roles: [role('firefighter', '{"v":2}'), officer] },
+    };
+    expect(keyOf({ manifest: fireChanged })).toBe(key);
+    // No project roles at all: the same keys as before characters/ existed.
+    expect(keyOf({ manifest: { ...m, castRoles: { roles: [], accessories: [] } } })).toBe(base);
+    expect(castRoleInputs('kit.cast.person(who);', castRoles)?.roles).toHaveLength(2);
+    expect(castRoleInputs("kit.cast.role({ id: 'x' });", castRoles)?.roles).toEqual([]);
   });
 
   it('with a resolver, depends on used anchor spans only', () => {

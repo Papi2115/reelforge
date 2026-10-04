@@ -19,8 +19,10 @@ import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
 import {
   buildProgress,
   fixPrompt,
+  joinBanners,
   propsBanner,
   propsSummary,
+  rolesBanner,
   shotBadges,
 } from '../stages/scenes-view.js';
 import { useShotLocks } from '../stages/use-shot-locks.js';
@@ -282,8 +284,9 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               onSelect={selectShot}
               badges={badges}
               progress={buildProgress(running, shots.length)}
-              propsBanner={propsBanner(
-                propsSummary(reports?.scenes ?? null, reports?.props ?? null),
+              propsBanner={joinBanners(
+                propsBanner(propsSummary(reports?.scenes ?? null, reports?.props ?? null)),
+                rolesBanner(reports?.roles ?? null),
               )}
               actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
               onRebuild={(shotId) => {

@@ -6,12 +6,15 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
+  projectCharacters,
+  projectMascot,
   researchClaimSources,
   researchSourceExcerpts,
   scriptSentences,
   type StoryboardShot,
 } from '@reelforge/shared';
 import { renderOutputPaths, type PromptId } from '../catalog.js';
+import { criticCharacterVars, sceneCharacterVars, storyboardCharacterVars } from '../characters.js';
 import type { TemplateVars } from '../template.js';
 import { claimsPromptVars } from '../validators/claims.js';
 import { hooksPromptVars } from '../validators/hooks.js';
@@ -50,6 +53,11 @@ function neighbours(
 export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateVars, string> {
   const { brief, project, file } = evalCase;
   const styleId = project.style;
+  // The case's characters and mascot (PLAN.md#12.20); no roles are built in an eval case.
+  const characters = {
+    characters: projectCharacters(project),
+    mascot: projectMascot(project),
+  } as const;
   switch (stage) {
     case 'research':
       return ok({ brief });
@@ -66,6 +74,7 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
       });
     }
     case 'storyboard':
+      return ok({ styleId, ...storyboardCharacterVars(characters) });
     case 'sound-cues':
       return ok({ styleId });
     case 'scene-build': {
@@ -78,6 +87,7 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         shotWords: shotWords(evalCase, shot.value),
         neighbours: neighbours(evalCase, shot.value),
         styleId,
+        ...sceneCharacterVars(characters, shot.value),
       });
     }
     case 'scene-fix':
@@ -95,6 +105,7 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         imagePaths: file.critic.imagePaths.join(', '),
         intent: shot.value.intent,
         styleId,
+        ...criticCharacterVars(characters, shot.value),
       });
     }
     case 'review-triage':
@@ -121,6 +132,21 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
       return ok({
         propName: file.propBuild.name,
         description: file.propBuild.description,
+        shots: shots.join('; '),
+        styleId,
+      });
+    }
+    case 'roles': {
+      const shots: string[] = [];
+      for (const shotId of file.roleBuild.shotIds) {
+        const shot = findShot(evalCase, shotId);
+        if (!shot.ok) return shot;
+        shots.push(`${shot.value.id}: ${shot.value.intent}`);
+      }
+      return ok({
+        roleId: file.roleBuild.id,
+        label: file.roleBuild.label,
+        description: file.roleBuild.description,
         shots: shots.join('; '),
         styleId,
       });

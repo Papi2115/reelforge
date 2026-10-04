@@ -71,6 +71,8 @@ describe('effectiveProjectSettings', () => {
       revealMoments: 'off',
       beatSync: 'off',
       repetitionControl: 'off',
+      characters: 'classic',
+      mascot: 'none',
     });
     expect(
       effectiveProjectSettings({
@@ -89,6 +91,8 @@ describe('effectiveProjectSettings', () => {
       revealMoments: 'off',
       beatSync: 'off',
       repetitionControl: 'off',
+      characters: 'classic',
+      mascot: 'none',
     });
   });
 });
@@ -124,6 +128,8 @@ describe('describeSettingsChange', () => {
       revealMoments: 'off',
       beatSync: 'off',
       repetitionControl: 'off',
+      characters: 'classic',
+      mascot: 'none',
     };
     expect(
       describeSettingsChange(before, { ...before, lookMode: 'mixed', ambientVariation: true }),
@@ -154,6 +160,8 @@ describe('describeSettingsChange', () => {
         revealMoments: 'auto',
         beatSync: 'off',
         repetitionControl: 'off',
+        characters: 'classic',
+        mascot: 'none',
       }),
     ).toBe('Project settings: pattern interrupts on, reveal moments on');
     expect(
@@ -186,6 +194,8 @@ describe('ProjectSettingsService', () => {
         revealMoments: 'off',
         beatSync: 'off',
         repetitionControl: 'off',
+        characters: 'classic',
+        mascot: 'none',
       },
       looks: LOOKS,
     });
@@ -206,6 +216,8 @@ describe('ProjectSettingsService', () => {
         revealMoments: 'off',
         beatSync: 'off',
         repetitionControl: 'off',
+        characters: 'classic',
+        mascot: 'none',
       },
       committed: true,
     });
@@ -238,6 +250,8 @@ describe('ProjectSettingsService', () => {
         revealMoments: 'off',
         beatSync: 'off',
         repetitionControl: 'off',
+        characters: 'classic',
+        mascot: 'none',
       },
       committed: false,
     });
@@ -261,6 +275,27 @@ describe('ProjectSettingsService', () => {
     await service.update({ researchMode: 'off' });
     expect(await readProject()).toMatchObject({ researchMode: 'off' });
     expect(commits.at(-1)).toBe('Project settings: research assets off');
+  });
+
+  it('writes the characters and the mascot (PLAN.md#12.20)', async () => {
+    await writeProject(BASE_PROJECT);
+    await service.update({ characters: 'pack' });
+    await expect(service.update({ mascot: 'fox' })).resolves.toMatchObject({
+      status: 'ok',
+      settings: { characters: 'pack', mascot: 'fox' },
+      committed: true,
+    });
+    expect(await readProject()).toMatchObject({ characters: 'pack', mascot: 'fox' });
+    // Back to classic keeps the chosen mascot stored (in effect only with the pack).
+    await service.update({ characters: 'classic' });
+    expect(await readProject()).toMatchObject({ characters: 'classic', mascot: 'fox' });
+    expect(commits).toEqual([
+      'Project settings: characters pack style',
+      'Project settings: mascot Fox',
+      'Project settings: characters classic',
+    ]);
+    await service.update({ mascot: 'none' });
+    expect(commits.at(-1)).toBe('Project settings: mascot none');
   });
 
   it('reports a failed commit but keeps the saved file', async () => {

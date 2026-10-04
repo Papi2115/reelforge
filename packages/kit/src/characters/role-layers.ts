@@ -2,8 +2,8 @@
  * Clothing layers of the role vocabulary (ADR-024), worn over the top (shirt) colour. The page's
  * cast wear exactly these boxes (labCoat = Scientist, scrubs = the plain top, hiVis = Engineer,
  * suit + tie = Finance, vNeck + skirt = Teacher, tweed = Historian, hoodie = Hacker, trenchCoat =
- * Detective, spaceSuit = Astronaut); turnoutCoat, chefJacket and apron are new pieces in the same
- * idiom. Coordinates: voxels in the torso joint's space (torso box y 0..th, z +-td/2).
+ * Detective, spaceSuit = Astronaut); turnoutCoat, chefJacket, apron, overalls and robe are new
+ * pieces in the same idiom. Coordinates: voxels in the torso joint's space (torso box y 0..th, z +-td/2).
  */
 import type { RoleItem } from './role-types.js';
 
@@ -21,6 +21,8 @@ export const LAYERS = [
   'turnoutCoat',
   'chefJacket',
   'apron',
+  'overalls',
+  'robe',
 ] as const;
 
 export type Layer = (typeof LAYERS)[number];
@@ -178,6 +180,37 @@ export const LAYER_ITEMS: readonly RoleItem[] = [
         .cb(color, [0, -3.4, d.td / 2 + 0.25], [d.tw - 1.2, d.th + 1.6, 0.3])
         .cb(color, [0, d.th - 1.8, d.td / 2 + 0.25], [d.tw - 2.6, 1.6, 0.3])
         .cb(color, [0, 1.2, 0], [d.tw + 0.5, 0.5, d.td + 0.5]);
+    },
+  },
+  {
+    id: 'overalls',
+    description:
+      'dungarees: waist, bib and straps (color) with a bib pocket (trim); give the legs the same colour (farmer, mechanic, painter)',
+    colors: { color: 'teal', trim: 'lightOrange' },
+    draw({ shapes, d, color, trim }) {
+      const torso = shapes('torso')
+        .cb(color, [0, 0, 0], [d.tw + 0.3, 2.4, d.td + 0.3])
+        .cb(color, [0, 2.4, d.td / 2 + 0.1], [d.tw - 2, d.th - 4, 0.3])
+        .cb(trim, [0, 3.2, d.td / 2 + 0.3], [1.8, 1.4, 0.15]);
+      for (const x of [-1.7, 1.7]) {
+        torso
+          .cb(color, [x, d.th - 1.6, d.td / 2 + 0.1], [0.7, 1.6, 0.3])
+          .cb(color, [x, d.th - 0.3, 0], [0.7, 0.6, d.td + 0.4])
+          .cb(color, [x, 2.4, -d.td / 2 - 0.1], [0.7, d.th - 2.4, 0.3]);
+      }
+    },
+  },
+  {
+    id: 'robe',
+    description:
+      'long gown to the shins with wide sleeves (color) and white collar tabs (trim) (judge, graduate)',
+    colors: { color: 'black', trim: 'cream' },
+    adjust: { armW: 0.4, sleeves: 'color' },
+    draw({ shapes, d, color, trim }) {
+      shapes('torso')
+        .cb(color, [0, -4.6, 0], [d.tw + 1, d.th + 4.6, d.td + 1])
+        .cb(color, [0, d.th - 0.8, -0.3], [d.tw + 1.4, 1.2, d.td + 0.6])
+        .cb(trim, [0, d.th - 2.2, d.td / 2 + 0.55], [1.4, 1.6, 0.15]);
     },
   },
 ];

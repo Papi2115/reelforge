@@ -1,6 +1,7 @@
 /**
- * Scenes built (PLAN.md#7.4-7.7): the storyboard's missing props are built as project props
- * first (kit-ext, "Prop <name> built ✓"), then one job per storyboard shot (build turn → missing
+ * Scenes built (PLAN.md#7.4-7.7): the storyboard's new roles are built as project roles
+ * (characters/roles, PLAN.md#12.20, "Role <id> built ✓") and its missing props as project props
+ * (kit-ext, "Prop <name> built ✓") first, then one job per storyboard shot (build turn → missing
  * props built → QA by code → Haiku critic → ≤ 2 fix turns → ✓/⚠/✗ in
  * `.reelforge/scenes-report.json` + "Scene sNN built ✓" autocommit), resumable after a
  * limit/cancel/crash without redoing finished shots. Locked shots (`locks.json`) are never built
@@ -14,9 +15,12 @@ import {
   type ShotBuildStatus,
   type StoryboardShot,
   type SyncReport,
+  castRoleFile,
 } from '@reelforge/shared';
 import { FILES } from '../paths.js';
 import { buildStoryboardProps } from '../props/storyboard-props.js';
+import type { RoleOutcome } from '../roles/builder.js';
+import { buildStoryboardRoles } from '../roles/storyboard-roles.js';
 import { loadSceneJob, selectShots, type SceneJob } from '../scenes/job.js';
 import { SCENES_QUEUE } from '../scenes/queue.js';
 import { readScenesReport } from '../scenes/report.js';
@@ -86,6 +90,30 @@ function shotWarnings(records: readonly ShotBuildRecord[]): string[] {
     );
 }
 
+/** The storyboard roles in the stage summary; nothing when the storyboard asked for none. */
+function rolesNote(outcomes: readonly RoleOutcome[]): {
+  text: string;
+  outputs: string[];
+  metrics: Record<string, number>;
+} {
+  if (outcomes.length === 0) return { text: '', outputs: [], metrics: {} };
+  const usable = outcomes.filter((outcome) => outcome.status !== 'failed');
+  const failed = outcomes.filter((outcome) => outcome.status === 'failed');
+  const text = [
+    usable.length === 0
+      ? ''
+      : `; roles: ${usable.map((outcome) => `${outcome.id}${outcome.status === 'warning' ? ' ⚠' : ''}`).join(', ')}`,
+    failed.length === 0
+      ? ''
+      : `; roles not built: ${failed.map((outcome) => outcome.id).join(', ')}`,
+  ].join('');
+  return {
+    text,
+    outputs: [...usable.map((outcome) => castRoleFile(outcome.id)), FILES.rolesReport],
+    metrics: { builtRoles: usable.length, failedRoles: failed.length },
+  };
+}
+
 async function build(
   job: SceneJob,
   shots: readonly string[] | undefined,
@@ -106,6 +134,9 @@ async function build(
       metrics: { shots: 0, built: 0, locked: locked.length },
     });
   }
+  ctx.step('roles the storyboard needs');
+  const roles = await buildStoryboardRoles(job.roles, ctx.projectDir, unlocked);
+  if (!roles.ok) return roles;
   if (job.onMissingProps === undefined) {
     ctx.step('props flagged by the storyboard');
     const props = await buildStoryboardProps(job.props, ctx.projectDir, unlocked);
@@ -137,11 +168,13 @@ async function build(
   const newProps = [...new Set(records.value.flatMap((entry) => entry.builtProps ?? []))];
   const propsNote = newProps.length === 0 ? '' : `; props built: ${newProps.join(', ')}`;
   const lockNote = locked.length === 0 ? '' : `; ${String(locked.length)} locked (kept)`;
+  const roleNote = rolesNote(roles.value);
   return ok({
-    message: `${String(records.value.length)} shots: ${statusLine(counts)}${ran.value.resumed ? ` (resumed, ${String(ran.value.skipped.length)} already built)` : ''}${propsNote}${lockNote}`,
+    message: `${String(records.value.length)} shots: ${statusLine(counts)}${ran.value.resumed ? ` (resumed, ${String(ran.value.skipped.length)} already built)` : ''}${propsNote}${roleNote.text}${lockNote}`,
     outputs: [
       ...new Set(unlocked.map((shot) => shot.scene)),
       ...newProps.map((name) => `kit-ext/props/${name}.js`),
+      ...roleNote.outputs,
       FILES.scenesReport,
     ],
     changed: ran.value.ran.length > 0,
@@ -157,6 +190,7 @@ async function build(
       fixIterations: records.value.reduce((sum, entry) => sum + entry.fixIterations, 0),
       missingProps: missing.length,
       builtProps: newProps.length,
+      ...roleNote.metrics,
     },
   });
 }
@@ -312,8 +346,10 @@ export const scenesStage: StageDefinition<'scenes'> = {
   outputs: [
     'scenes/<shot>.js',
     'kit-ext/props/<name>.js',
+    'characters/roles/<id>.json',
     FILES.scenesReport,
     FILES.propsReport,
+    FILES.rolesReport,
     FILES.syncReport,
     FILES.finalReview,
     `${FILES.qaFramesDir}/…`,

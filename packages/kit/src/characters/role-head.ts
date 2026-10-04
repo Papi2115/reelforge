@@ -2,8 +2,9 @@
  * Hair styles and headgear of the role vocabulary (ADR-024). The styles the page's cast wears are
  * its exact boxes (messy = Scientist, slick = Finance, bun = Teacher, bald = Historian, cropped =
  * Engineer, neckline = Detective, fringe = Kid; scrubCap, hardHat, capBack, hood, fedora,
- * spaceHelmet); the others (short, long, cap, beanie, fireHelmet, chefHat) are new pieces in the
- * same idiom. Coordinates: voxels in the neck joint's space (head box from y 0 to hh, z +-hd/2).
+ * spaceHelmet); the others (short, long, cap, beanie, fireHelmet, chefHat, peakedCap, strawHat)
+ * are new pieces in the same idiom. Coordinates: voxels in the neck joint's space (head box from y
+ * 0 to hh, z +-hd/2).
  */
 import type { RoleItem } from './role-types.js';
 
@@ -32,6 +33,8 @@ export const HEADGEAR = [
   'spaceHelmet',
   'fireHelmet',
   'chefHat',
+  'peakedCap',
+  'strawHat',
 ] as const;
 
 export type HairStyle = (typeof HAIR_STYLES)[number];
@@ -269,6 +272,30 @@ export const HEADGEAR_ITEMS: readonly RoleItem[] = [
         .cb(color, [0, d.hh + 0.3, 0], [d.hw - 0.6, 2.4, d.hd - 0.6])
         .cb(color, [0, d.hh + 2.4, 0], [d.hw + 1.2, 2.2, d.hd + 1.2])
         .cb(color, [0, d.hh + 4.6, 0], [d.hw - 0.6, 0.6, d.hd - 0.6]);
+    },
+  },
+  {
+    id: 'peakedCap',
+    description:
+      'peaked uniform cap: flat crown, black visor, badge (trim) (police, pilot, captain, guard)',
+    colors: { color: 'navy', trim: 'lightOrange' },
+    draw({ shapes, d, color, trim }) {
+      shapes('neck')
+        .cb(color, [0, d.hh - 1.6, 0], [d.hw + 0.3, 1.8, d.hd + 0.3])
+        .cb(color, [0, d.hh + 0.2, -0.2], [d.hw + 1.2, 1.2, d.hd + 1])
+        .cb('black', [0, d.hh - 1.7, d.hd / 2 + 0.9], [d.hw - 1.6, 0.4, 1.8])
+        .cb(trim, [0, d.hh - 0.6, d.hd / 2 + 0.3], [1.2, 1.2, 0.3]);
+    },
+  },
+  {
+    id: 'strawHat',
+    description: 'wide-brimmed straw hat with a band (trim) (farmer, gardener)',
+    colors: { color: 'lightOrange', trim: 'rust' },
+    draw({ shapes, d, color, trim }) {
+      shapes('neck')
+        .cb(color, [0, d.hh - 1.2, 0], [d.hw + 4, 0.5, d.hd + 4])
+        .cb(color, [0, d.hh - 1.2, 0], [d.hw - 0.4, 2.8, d.hd - 0.4])
+        .cb(trim, [0, d.hh - 0.7, 0], [d.hw - 0.2, 0.7, d.hd - 0.2]);
     },
   },
 ];

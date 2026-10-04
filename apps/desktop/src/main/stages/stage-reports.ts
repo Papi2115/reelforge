@@ -7,6 +7,7 @@ import { readFile } from 'node:fs/promises';
 import {
   finalReviewSchema,
   propsReportSchema,
+  rolesReportSchema,
   scenesReportSchema,
   syncReportSchema,
   voiceoverRecordSchema,
@@ -40,17 +41,29 @@ export async function readStageReports(dir: string | undefined): Promise<StageRe
       scenes: null,
       sync: null,
       props: null,
+      roles: null,
       finalReview: null,
     };
   }
-  const [voiceover, voReport, words, scenes, sync, props, finalReview] = await Promise.all([
+  const [voiceover, voReport, words, scenes, sync, props, roles, finalReview] = await Promise.all([
     readReport(dir, FILES.voiceoverRecord, voiceoverRecordSchema),
     readReport(dir, REPORTS.voiceover, voReportSchema),
     readReport(dir, REPORTS.words, wordsReportSchema),
     readReport(dir, FILES.scenesReport, scenesReportSchema),
     readReport(dir, FILES.syncReport, syncReportSchema),
     readReport(dir, FILES.propsReport, propsReportSchema),
+    readReport(dir, FILES.rolesReport, rolesReportSchema),
     readReport(dir, FILES.finalReview, finalReviewSchema),
   ]);
-  return { projectDir: dir, voiceover, voReport, words, scenes, sync, props, finalReview };
+  return {
+    projectDir: dir,
+    voiceover,
+    voReport,
+    words,
+    scenes,
+    sync,
+    props,
+    roles,
+    finalReview,
+  };
 }

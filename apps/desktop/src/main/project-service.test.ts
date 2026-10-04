@@ -81,11 +81,18 @@ describe('ProjectService', () => {
       stylesDir: DEFAULT_STYLES_DIR,
       pickFolder: () => Promise.resolve(root),
       defaultStyle: () => 'noir-voxel',
+      newProjectDefaults: () => ({ characters: 'pack', mascot: 'fox' }),
       log: createLogger((line) => lines.push(line)),
       git,
     });
     const result = await projects.newProject({ title: 'Noir', language: 'en' });
     expect(result).toMatchObject({ status: 'opened', project: { style: 'noir-voxel' } });
+    if (result.status !== 'opened') throw new Error('not created');
+    // The channel mascot carries over to new projects (PLAN.md#12.20).
+    const written: unknown = JSON.parse(
+      await readFile(path.join(result.project.dir, 'project.json'), 'utf8'),
+    );
+    expect(written).toMatchObject({ characters: 'pack', mascot: 'fox' });
   });
 
   it('autocommits for later stages and reverts the scene (restores content, new commit)', async () => {

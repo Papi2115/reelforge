@@ -1,0 +1,27 @@
+{
+  "id": "optician",
+  "label": "Optician",
+  "description": "white lab coat, round glasses, magnifying glass",
+  "skin": "peach",
+  "hair": {
+    "style": "short",
+    "color": "rust"
+  },
+  "top": {
+    "color": "brightTeal"
+  },
+  "layers": [
+    {
+      "id": "labCoat",
+      "color": "cream"
+    }
+  ],
+  "legs": {
+    "color": "darkSlate"
+  },
+  "shoes": {
+    "color": "black"
+  },
+  "accessories": ["glassesRound"],
+  "held": "magnifier"
+}

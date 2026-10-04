@@ -7,7 +7,7 @@
  * `refineShot` is the same verify/fix loop, used by the whole-video review.
  */
 import { ok, type Result } from '@reelforge/claude-bridge';
-import { parseMissing } from '@reelforge/prompts';
+import { parseMissing, sceneCharacterVars } from '@reelforge/prompts';
 import {
   SHOT_STATUS_SYMBOLS,
   type QaFinding,
@@ -20,6 +20,7 @@ import { sceneDramaturgyVars } from '../dramaturgy.js';
 import { readProjectText } from '../files.js';
 import { sceneLookVars } from '../looks.js';
 import { projectPropNames } from '../props/builder.js';
+import { provideSceneRoles } from '../roles/scene-roles.js';
 import { render } from '../stages/repair.js';
 import type { StageError } from '../types.js';
 import { fatalFindings, finding, fixableFindings, formatFinding } from './checks.js';
@@ -114,6 +115,7 @@ async function buildTurn(
     ...sceneLookVars(job.lookMode, shot),
     annotationPlan: annotationPlanText(shot),
     ...sceneDramaturgyVars(job.dramaturgy, job.shots, shot),
+    ...sceneCharacterVars(job.characters, shot),
     ...shotAssetVars(shot, job.research, job.assets),
     ...(newProps.length === 0
       ? {}
@@ -352,6 +354,10 @@ export async function buildShot(
       missing = [...failed];
     }
   }
+  // Roles the scene calls by id that nobody has yet (PLAN.md#12.20): built before its QA.
+  const roles = await provideSceneRoles(job, shot);
+  if (!roles.ok) return roles;
+  notes.push(...roles.value);
   return refineShot(job, shot, { label, missingProps: missing, builtProps, notes, fixHint });
 }
 

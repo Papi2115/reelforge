@@ -1,7 +1,7 @@
 /**
  * IPC payloads of the per-project settings dialog: options stored in the open project's
- * `project.json` (2.x: look mode, ambient variation, research mode + sources, tension map; later
- * taste).
+ * `project.json` (2.x: look mode, ambient variation, research mode + sources, tension map,
+ * dramaturgy, editing, characters and mascot).
  * Main reads and writes the file (zod-validated, atomic, autocommitted); the renderer only sees
  * the effective values and sends patches. Changes apply to future builds: nothing is marked
  * out of date. Merged into ipc-contract.ts.
@@ -9,8 +9,10 @@
 import {
   ALLOWLIST_SOURCES,
   beatSyncModeSchema,
+  characterModeSchema,
   dramaturgyModeSchema,
   lookModeSchema,
+  mascotChoiceSchema,
   repetitionControlModeSchema,
   researchModeSchema,
   tensionMapModeSchema,
@@ -41,6 +43,10 @@ export const projectSettingsSchema = z.object({
   /** Beat sync (PLAN.md#12.21), repetition control (#12.23); absent in project.json = `off`. */
   beatSync: beatSyncModeSchema,
   repetitionControl: repetitionControlModeSchema,
+  /** Characters (PLAN.md#12.20); absent in project.json = `classic`. */
+  characters: characterModeSchema,
+  /** The chosen mascot as stored (absent = `none`); in effect only with `pack`. */
+  mascot: mascotChoiceSchema,
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 
@@ -57,6 +63,8 @@ export const projectSettingsPatchSchema = z
     revealMoments: dramaturgyModeSchema.optional(),
     beatSync: beatSyncModeSchema.optional(),
     repetitionControl: repetitionControlModeSchema.optional(),
+    characters: characterModeSchema.optional(),
+    mascot: mascotChoiceSchema.optional(),
   })
   .refine((patch) => Object.values(patch).some((value) => value !== undefined), {
     message: 'the patch changes nothing',

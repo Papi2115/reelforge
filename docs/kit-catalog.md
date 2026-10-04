@@ -1246,7 +1246,7 @@ A side-cast member (~1.7 units tall, faces +z): scientist, doctor, engineer, fin
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | "scientist" \| "doctor" \| "engineer" \| "finance" \| "teacher" \| "historian" \| "kid" \| "hacker" \| "detective" \| "astronaut" |  | Which cast member |
-| `held` | "none" \| "flask" \| "clipboard" \| "wrench" \| "briefcase" \| "pointer" \| "scroll" \| "tablet" \| "magnifier" \| "hammer" \| "hose" \| "axe" \| "microphone" \| "laptop" \| "book" \| "phone" \| "spatula" |  | Swap the held prop (default: the member's own) |
+| `held` | "none" \| "flask" \| "clipboard" \| "wrench" \| "briefcase" \| "pointer" \| "scroll" \| "tablet" \| "magnifier" \| "hammer" \| "hose" \| "axe" \| "microphone" \| "laptop" \| "book" \| "phone" \| "spatula" \| "gavel" \| "pitchfork" \| "parcel" |  | Swap the held prop (default: the member's own) |
 | `hand` | "left" \| "right" |  | Hand that holds it (default: the prop's) |
 | `pose` | "calm" \| "wave" \| "think" \| "point" \| "shrug" \| "joy" \| "walk" \| "eureka" | `"calm"` | Pose from t = 0; later changes: .pose(name, { at }) |
 | `energy` | number (0..1) |  | Personality 0..1: anticipation, overshoot, head tilts (default: mascots 1, cast 0.45, mannequin 0.25) |

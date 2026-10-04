@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { ambientShotSchema, ambientVariationSettingsSchema } from './ambient-variation.js';
 import { assetIdSchema, assetMimeSchema } from './assets.js';
+import { manifestCastRolesSchema } from './cast-roles.js';
 import { kitExtensionSchema } from './kit-extensions.js';
 import { shotDirectionSchema } from './live-direction.js';
 import { paletteSchema } from './palette.js';
@@ -112,6 +113,11 @@ export const renderManifestSchema = z
     words: wordsFileSchema.optional(),
     /** Project-local props (`kit-ext/props/*.js`), registered before any scene is built. */
     kitExtensions: z.array(kitExtensionSchema).optional(),
+    /**
+     * Project roles and accessory extensions (`characters/`, PLAN.md#12.20, ADR-026), resolved by
+     * id in every shot's `kit.cast`; absent = the pack only.
+     */
+    castRoles: manifestCastRolesSchema.optional(),
     /** Ambient variation switch (PLAN.md#12.8); absent or disabled = every shot as authored. */
     ambientVariation: ambientVariationSettingsSchema.optional(),
     /** Decoded pictures the scenes reference (PLAN.md#12.11); absent = none. */

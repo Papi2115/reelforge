@@ -59,12 +59,13 @@ export async function resolvePreview(
 }
 
 /**
- * Project props (kit-ext/props) count: every shot may call them (a change reloads the video); so
- * does the tension curve (per-shot background tone and ambient budget, PLAN.md#12.22). Live
- * directions (directions.json, PLAN.md#12.14) are swapped in without a rebuild.
+ * Project props (kit-ext/props) and roles (characters/, PLAN.md#12.20) count: every shot may call
+ * them (a change reloads the video); so does the tension curve (per-shot background tone and
+ * ambient budget, PLAN.md#12.22). Live directions (directions.json, PLAN.md#12.14) are swapped in
+ * without a rebuild.
  */
 const PREVIEW_INPUTS =
-  /^(project\.json|storyboard\.json|tension\.json|directions\.json|timing\/words\.json|scenes\/.+|kit-ext\/props\/.+)$/i;
+  /^(project\.json|storyboard\.json|tension\.json|directions\.json|timing\/words\.json|scenes\/.+|kit-ext\/props\/.+|characters\/(?:roles|accessories)\/.+)$/i;
 
 /** True when a change can alter the project's video (or the change list is incomplete). */
 export function affectsPreview(event: ProjectChangedEvent): boolean {

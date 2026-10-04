@@ -10,6 +10,7 @@ import { isSpecColor } from './palette.js';
 import { ACCESSORIES, ACCESSORY_ITEMS } from './role-accessories.js';
 import { HELD_ITEMS, HELD_PROPS } from './role-held.js';
 import { HAIR_ITEMS, HAIR_STYLES, HEADGEAR, HEADGEAR_ITEMS } from './role-head.js';
+import { roleIssueMessages } from './role-errors.js';
 import { LAYER_ITEMS, LAYERS } from './role-layers.js';
 import { itemTable, type ColorSlot, type RoleItem } from './role-types.js';
 
@@ -53,67 +54,80 @@ function itemRef<const T extends readonly [string, ...string[]]>(ids: T) {
     .transform((value) => (typeof value === 'string' ? { id: value } : value));
 }
 
-export const roleSpecSchema = z
-  .object({
-    version: z.literal(1).default(1),
-    id: z
-      .string()
-      .regex(/^[a-z][a-zA-Z0-9]*$/, 'camelCase id, e.g. firefighter')
-      .max(32),
-    label: z.string().min(1).max(40).describe('Display name, e.g. "Firefighter"'),
-    description: z.string().max(200).default(''),
-    body: z.enum(BODY_PRESETS).default('standard'),
-    skin: z.enum(SKIN_TONES).default('peach'),
-    hair: z
-      .object({ style: z.enum(HAIR_STYLES), color: colorName.optional() })
-      .strict()
-      .default({ style: 'short' }),
-    headgear: itemRef(HEADGEAR).default({ id: 'none' }),
-    top: z.object({ color: colorName }).strict().describe('Shirt / torso colour'),
-    layers: z.array(itemRef(LAYERS)).max(4).default([]),
-    legs: z
-      .object({ style: z.enum(['pants', 'shorts']).default('pants'), color: colorName })
-      .strict(),
-    shoes: z
-      .object({ style: z.enum(['shoes', 'boots']).default('shoes'), color: colorName })
-      .strict(),
-    eyes: z
-      .object({
-        style: z.enum(['dots', 'glow', 'none']).default('dots'),
-        color: colorName.optional(),
-      })
-      .strict()
-      .default({ style: 'dots' }),
-    accessories: z.array(itemRef(ACCESSORIES)).max(4).default([]),
-    held: z
-      .union([
-        z.enum(HELD_PROPS),
-        z
-          .object({
-            id: z.enum(HELD_PROPS),
-            hand: z.enum(['left', 'right']).optional(),
-            color: colorName.optional(),
-            trim: colorName.optional(),
-          })
-          .strict(),
-      ])
-      .transform((value) => (typeof value === 'string' ? { id: value } : value))
-      .optional(),
-  })
-  .strict()
-  .superRefine((spec, context) => {
-    const colors = outfitColors(spec);
-    if (colors.length > MAX_OUTFIT_COLORS) {
-      context.addIssue({
-        code: 'custom',
-        path: ['layers'],
-        message: `the outfit uses ${String(colors.length)} colours (${colors.join(', ')}); at most ${String(MAX_OUTFIT_COLORS)} (top, layers with their trim/detail, legs, headgear)`,
-      });
-    }
-  });
+/** Ids a schema accepts (the vocabulary, plus project accessories for project roles). */
+type Ids = readonly [string, ...string[]];
+
+/**
+ * The role spec schema over an accessory and a held-prop vocabulary: the kit's own
+ * (`roleSpecSchema`) or the kit's plus a project's accessory extensions (project-roles.ts).
+ */
+export function createRoleSpecSchema<A extends Ids, H extends Ids>(accessoryIds: A, heldIds: H) {
+  return z
+    .object({
+      version: z.literal(1).default(1),
+      id: z
+        .string()
+        .regex(/^[a-z][a-zA-Z0-9]*$/, 'camelCase id, e.g. firefighter')
+        .max(32),
+      label: z.string().min(1).max(40).describe('Display name, e.g. "Firefighter"'),
+      description: z.string().max(200).default(''),
+      body: z.enum(BODY_PRESETS).default('standard'),
+      skin: z.enum(SKIN_TONES).default('peach'),
+      hair: z
+        .object({ style: z.enum(HAIR_STYLES), color: colorName.optional() })
+        .strict()
+        .default({ style: 'short' }),
+      headgear: itemRef(HEADGEAR).default({ id: 'none' }),
+      top: z.object({ color: colorName }).strict().describe('Shirt / torso colour'),
+      layers: z.array(itemRef(LAYERS)).max(4).default([]),
+      legs: z
+        .object({ style: z.enum(['pants', 'shorts']).default('pants'), color: colorName })
+        .strict(),
+      shoes: z
+        .object({ style: z.enum(['shoes', 'boots']).default('shoes'), color: colorName })
+        .strict(),
+      eyes: z
+        .object({
+          style: z.enum(['dots', 'glow', 'none']).default('dots'),
+          color: colorName.optional(),
+        })
+        .strict()
+        .default({ style: 'dots' }),
+      accessories: z.array(itemRef(accessoryIds)).max(4).default([]),
+      held: z
+        .union([
+          z.enum(heldIds),
+          z
+            .object({
+              id: z.enum(heldIds),
+              hand: z.enum(['left', 'right']).optional(),
+              color: colorName.optional(),
+              trim: colorName.optional(),
+            })
+            .strict(),
+        ])
+        .transform((value) => (typeof value === 'string' ? { id: value } : value))
+        .optional(),
+    })
+    .strict()
+    .superRefine((spec, context) => {
+      const colors = outfitColors(spec);
+      if (colors.length > MAX_OUTFIT_COLORS) {
+        context.addIssue({
+          code: 'custom',
+          path: ['layers'],
+          message: `the outfit uses ${String(colors.length)} colours (${colors.join(', ')}); at most ${String(MAX_OUTFIT_COLORS)} (top, layers with their trim/detail, legs, headgear)`,
+        });
+      }
+    });
+}
+
+export const roleSpecSchema = createRoleSpecSchema(ACCESSORIES, HELD_PROPS);
 
 export type RoleSpecInput = z.input<typeof roleSpecSchema>;
 export type RoleSpec = z.output<typeof roleSpecSchema>;
+/** A role spec over any vocabulary (project accessories included): what the builder draws. */
+export type AnyRoleSpec = z.output<ReturnType<typeof createRoleSpecSchema<Ids, Ids>>>;
 
 export interface ItemRef {
   readonly id: string;
@@ -164,14 +178,9 @@ export type RoleSpecResult =
   | { readonly ok: true; readonly spec: RoleSpec }
   | { readonly ok: false; readonly errors: readonly string[] };
 
-/** Validates a role spec (untyped JSON) with readable errors. */
+/** Validates a role spec (untyped JSON) with readable errors ("did you mean" for vocabulary ids). */
 export function validateRoleSpec(input: unknown): RoleSpecResult {
   const parsed = roleSpecSchema.safeParse(input);
   if (parsed.success) return { ok: true, spec: parsed.data };
-  return {
-    ok: false,
-    errors: parsed.error.issues.map(
-      (issue) => `${issue.path.join('.') || '(spec)'}: ${issue.message}`,
-    ),
-  };
+  return { ok: false, errors: roleIssueMessages(parsed.error, input) };
 }

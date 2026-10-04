@@ -2,7 +2,12 @@
  * Per-shot runtime: builds a scene module once (collecting sfx cues) and evaluates it at a local
  * time. GL-free, so it runs (and is tested) in Node as well as in the engine page.
  */
-import { createKit, type AmbientVariation, type KitDefinition } from '@reelforge/kit';
+import {
+  createKit,
+  type AmbientVariation,
+  type KitDefinition,
+  type ProjectCast,
+} from '@reelforge/kit';
 import { DEFAULT_SAFE_AREA, type SafeAreaMargins } from '@reelforge/shared';
 import * as THREE from 'three';
 import { createAmbientApi } from './ambient.js';
@@ -45,6 +50,8 @@ export interface ShotInput {
   readonly resolveAnchor: AnchorResolver;
   /** Project props (manifest `kitExtensions`), registered as ctx.kit.props.<name>. */
   readonly kitExtensions?: readonly KitDefinition[] | undefined;
+  /** Project roles (manifest `castRoles`), resolved by id in ctx.kit.cast. */
+  readonly cast?: ProjectCast | undefined;
   /** Ambient variation of the shot (PLAN.md#12.8); absent = the scene exactly as authored. */
   readonly ambient?: AmbientVariation | undefined;
   /** The video's asset pictures (PLAN.md#12.11); absent = none. */
@@ -179,6 +186,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     palette,
     rng: createRng(hashString('kit', seed)),
     extraProps: input.kitExtensions,
+    cast: input.cast,
     variation: input.ambient,
   });
   const drift = input.ambient && createCameraDrift(camera, input.ambient.cameraDrift, duration);

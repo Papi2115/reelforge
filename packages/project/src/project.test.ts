@@ -90,6 +90,20 @@ describe('createProject', () => {
     expect((await gitOutput(dir, ['branch', '--show-current'])).stdout).toBe('main');
   });
 
+  it('starts with the pack and no mascot, or the characters asked for (PLAN.md#12.20)', async () => {
+    const created = await create(projectDir('characters template'));
+    expect(created.project).toMatchObject({ characters: 'pack', mascot: 'none' });
+    const chosen = await createProject({
+      dir: projectDir('characters fox'),
+      title: 'Fox',
+      characters: 'pack',
+      mascot: 'fox',
+      git: sandbox.git,
+    });
+    if (!chosen.ok) throw new Error(chosen.error.message);
+    expect(chosen.value.project).toMatchObject({ characters: 'pack', mascot: 'fox' });
+  });
+
   it('copies the style bible of every preset (styles/<id>/STYLE.md)', async () => {
     const dir = projectDir();
     const created = await create(dir);

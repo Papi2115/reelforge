@@ -2,7 +2,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PromptId } from '../catalog.js';
-import { researchClaimSources, scriptOpening, scriptSentences } from '@reelforge/shared';
+import {
+  projectCharacters,
+  projectMascot,
+  researchClaimSources,
+  scriptOpening,
+  scriptSentences,
+} from '@reelforge/shared';
 import { validateClaimsReply } from '../validators/claims.js';
 import { validateCriticReply } from '../validators/critic.js';
 import { validateHooksReply } from '../validators/hooks.js';
@@ -12,6 +18,7 @@ import { validatePlanReply, validateTriageReply } from '../validators/review.js'
 import { targetWordsFor, validateScript } from '../validators/script.js';
 import { validateStoryboard } from '../validators/storyboard.js';
 import { validateTension } from '../validators/tension.js';
+import { validateRoleFile } from '../validators/roles.js';
 import { validateYoutubeMetaReply } from '../validators/youtube-meta.js';
 import {
   parseMissing,
@@ -42,6 +49,7 @@ const MAX_REPLY_LINES: Partial<Record<PromptId, number>> = {
   'scene-build': 5,
   'scene-fix': 4,
   'prop-build': 4,
+  roles: 4,
   tension: 3,
 };
 
@@ -99,7 +107,13 @@ function fileIssues<T extends CuesLike>(
     const minutes = evalCase.brief.targetMinutes ?? 1;
     return validateScript(text, { targetWords: targetWordsFor(minutes) }).issues;
   }
-  if (file === 'storyboard.json') return validateStoryboard(text, { words: evalCase.words }).issues;
+  if (file === 'storyboard.json') {
+    const characters = {
+      characters: projectCharacters(evalCase.project),
+      mascot: projectMascot(evalCase.project),
+    };
+    return validateStoryboard(text, { words: evalCase.words, characters }).issues;
+  }
   if (file === 'tension.json') {
     return validateTension(text, { durationS: evalCase.words.words.at(-1)?.tEnd ?? 0 }).issues;
   }
@@ -112,6 +126,9 @@ function fileIssues<T extends CuesLike>(
   }
   if (file.startsWith('kit-ext/props/') && file.endsWith('.js')) {
     return validatePropModule(text, evalCase.file.propBuild.name).issues;
+  }
+  if (file.startsWith('characters/roles/') && file.endsWith('.json')) {
+    return validateRoleFile(text, { roleId: evalCase.file.roleBuild.id }).issues;
   }
   if (file.endsWith('.js')) return validateSceneModule(text).issues;
   return [];

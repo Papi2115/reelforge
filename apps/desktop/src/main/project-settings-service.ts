@@ -7,13 +7,17 @@
  *
  * Invalidation: the settings only steer FUTURE builds (look mode: the next storyboard / scene
  * build / sound cues; ambient variation: the render manifest, so the preview and the next export;
- * tension map: the next storyboard and sound cues, and the manifest's per-shot tension).
+ * tension map: the next storyboard and sound cues, and the manifest's per-shot tension;
+ * characters and mascot: the next storyboard and scene build).
  * No pipeline step is marked out of date.
  */
 import path from 'node:path';
 import { writeJsonAtomic } from '@reelforge/project';
 import {
+  DEFAULT_MASCOT_CHOICE,
+  MASCOT_PROFILES,
   projectAmbientVariation,
+  projectCharacters,
   projectBeatSync,
   projectRepetitionControl,
   projectFileSchema,
@@ -23,7 +27,9 @@ import {
   projectResearchMode,
   projectRevealMoments,
   projectTensionMap,
+  type CharacterMode,
   type LookMode,
+  type MascotChoice,
   type ResearchMode,
   type ProjectFile,
 } from '@reelforge/shared';
@@ -73,6 +79,8 @@ export function effectiveProjectSettings(project: ProjectFile): ProjectSettings 
     revealMoments: projectRevealMoments(project),
     beatSync: projectBeatSync(project),
     repetitionControl: projectRepetitionControl(project),
+    characters: projectCharacters(project),
+    mascot: project.mascot ?? DEFAULT_MASCOT_CHOICE,
   };
 }
 
@@ -91,6 +99,8 @@ export function applyProjectSettingsPatch(
     const value = patch[key];
     if (value !== undefined) next[key] = value;
   }
+  if (patch.characters !== undefined) next['characters'] = patch.characters;
+  if (patch.mascot !== undefined) next['mascot'] = patch.mascot;
   return next;
 }
 
@@ -117,6 +127,15 @@ const EDITING_WORDS: Readonly<Record<(typeof EDITING_KEYS)[number], string>> = {
   beatSync: 'beat sync',
   repetitionControl: 'repetition control',
 };
+
+const CHARACTER_WORDS: Readonly<Record<CharacterMode, string>> = {
+  pack: 'pack style',
+  classic: 'classic',
+};
+
+function mascotWords(mascot: MascotChoice): string {
+  return mascot === 'none' ? 'none' : MASCOT_PROFILES[mascot].label;
+}
 
 const LOOK_MODE_WORDS: Readonly<Record<LookMode, string>> = {
   'voxel-only': 'voxel only',
@@ -151,6 +170,10 @@ export function describeSettingsChange(before: ProjectSettings, after: ProjectSe
       parts.push(`${EDITING_WORDS[key]} ${after[key] === 'auto' ? 'on' : 'off'}`);
     }
   }
+  if (before.characters !== after.characters) {
+    parts.push(`characters ${CHARACTER_WORDS[after.characters]}`);
+  }
+  if (before.mascot !== after.mascot) parts.push(`mascot ${mascotWords(after.mascot)}`);
   return `Project settings: ${parts.length === 0 ? 'no change' : parts.join(', ')}`;
 }
 
@@ -162,7 +185,9 @@ function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
     left.researchSources.join(',') === right.researchSources.join(',') &&
     left.tensionMap === right.tensionMap &&
     DRAMATURGY_KEYS.every((key) => left[key] === right[key]) &&
-    EDITING_KEYS.every((key) => left[key] === right[key])
+    EDITING_KEYS.every((key) => left[key] === right[key]) &&
+    left.characters === right.characters &&
+    left.mascot === right.mascot
   );
 }
 

@@ -6,6 +6,7 @@
  */
 import { lintScene } from '@reelforge/engine';
 import { ok, type Result } from '@reelforge/claude-bridge';
+import { criticCharacterVars } from '@reelforge/prompts';
 import type { CriticVerdictRecord, QaFinding, StoryboardShot } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
 import { criticLookVars } from '../looks.js';
@@ -24,6 +25,7 @@ import type { SceneJob } from './job.js';
 import { renderShot } from './render.js';
 import { assetSizeFindings } from './source-checks.js';
 import { cameraInterruptFindings } from './source-checks-camera.js';
+import { characterSourceFindings } from './source-checks-characters.js';
 import { shotSyncEvents, syncFindings } from './sync.js';
 import type { ShotRender } from './tools.js';
 
@@ -102,11 +104,12 @@ export async function qaRound(
     return ok({ ...early([runtime, ...consoleFindings(render.errors)], source), render });
   }
   // Embedded photos too small to read, unreadable camera interrupts (warnings: no fix turn,
-  // PLAN real-run v2.3).
+  // PLAN real-run v2.3), characters and mascot that do not match the project (PLAN.md#12.20).
   const extra = [
     ...(extraChecks?.(source) ?? []),
     ...assetSizeFindings(source, shot.scene),
     ...cameraInterruptFindings(source, shot.scene, shot.interrupt),
+    ...characterSourceFindings(source, shot.scene, shot, job.characters),
   ];
   const sync = syncFindings(
     shotSyncEvents({
@@ -129,7 +132,10 @@ export async function qaRound(
       shotId: shot.id,
       intent: shot.intent,
       styleId: job.styleId,
-      lookVars: criticLookVars(job.lookMode, shot),
+      lookVars: {
+        ...criticLookVars(job.lookMode, shot),
+        ...criticCharacterVars(job.characters, shot),
+      },
       render,
       sheetFile: qaSheetFile(shot.id, label),
     },

@@ -20,6 +20,8 @@ const SETTINGS: ProjectSettings = {
   revealMoments: 'off',
   beatSync: 'off',
   repetitionControl: 'off',
+  characters: 'classic',
+  mascot: 'none',
 };
 
 describe('research settings view', () => {

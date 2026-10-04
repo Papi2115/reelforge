@@ -8,6 +8,7 @@
 import {
   finalReviewSchema,
   propsReportSchema,
+  rolesReportSchema,
   scenesReportSchema,
   settingsWhisperModelSchema,
   shotIdSchema,
@@ -41,6 +42,8 @@ export const stageReportsSchema = z.object({
   sync: syncReportSchema.nullable(),
   /** `.reelforge/props-report.json`: project props built by Scenes built (kit-ext). */
   props: propsReportSchema.nullable(),
+  /** `.reelforge/roles-report.json`: project roles built before Scenes built (PLAN.md#12.20). */
+  roles: rolesReportSchema.nullable(),
   /** `.reelforge/final-review.json`: the quiet review after Scenes built (PLAN.md#11.5). */
   finalReview: finalReviewSchema.nullable(),
 });

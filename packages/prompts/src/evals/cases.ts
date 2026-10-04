@@ -48,6 +48,13 @@ export const evalCaseFileSchema = z.strictObject({
     description: z.string().min(1),
     shotIds: shotIdList,
   }),
+  /** The project role the roles eval asks for (golden spec: characters/roles/<id>.json). */
+  roleBuild: z.strictObject({
+    id: z.string().regex(/^[a-z][A-Za-z0-9]*$/),
+    label: z.string().min(1),
+    description: z.string().min(1),
+    shotIds: shotIdList,
+  }),
   /** chapters.txt the youtube-meta eval passes (the description must contain it). */
   youtubeMeta: z.strictObject({ chapters: z.string().min(1) }).optional(),
   /** Final reply of each stage in fake runs (objects are sent as JSON). */

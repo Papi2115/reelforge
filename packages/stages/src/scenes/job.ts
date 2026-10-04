@@ -14,11 +14,14 @@ import {
   type StoryboardShot,
   type WordsFile,
 } from '@reelforge/shared';
+import type { CharacterSettings } from '@reelforge/prompts';
+import { loadCharacterSettings } from '../characters.js';
 import { loadSceneDramaturgy, type SceneDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson } from '../files.js';
 import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
+import { RoleBuilder } from '../roles/builder.js';
 import { sceneAssetCatalogue } from './shot-assets.js';
 import type { SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
@@ -36,6 +39,8 @@ export interface SceneJob {
   readonly onMissingProps: MissingPropsHandler | undefined;
   /** Builds missing props as project props (kit-ext), shared by the shots of this run. */
   readonly props: PropBuilder;
+  /** Builds project roles (characters/roles, PLAN.md#12.20), shared by the shots of this run. */
+  readonly roles: RoleBuilder;
   /** The installed kit's names (project props: `projectPropNames`). */
   readonly kitNames: KitNames;
   readonly settings: SceneSettings;
@@ -54,6 +59,8 @@ export interface SceneJob {
   readonly assets: readonly AssetRecord[];
   /** Interrupt and open-loop directives (PLAN.md#12.25-12.26); absent = switches off. */
   readonly dramaturgy?: SceneDramaturgy | undefined;
+  /** Characters, mascot in effect and built roles (PLAN.md#12.20); classic + none = as before. */
+  readonly characters: CharacterSettings;
 }
 
 let defaultKitNames: KitNames | undefined;
@@ -90,6 +97,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     frames: tools.frames,
     onMissingProps: tools.onMissingProps,
     props: new PropBuilder({ ctx, frames: tools.frames, settings, styleId }, kitNames.props),
+    roles: new RoleBuilder({ ctx, frames: tools.frames, settings, styleId }),
     kitNames,
     settings,
     styleId,
@@ -104,6 +112,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     research: projectResearchMode(project.value) !== 'off',
     assets,
     dramaturgy: await loadSceneDramaturgy(ctx.projectDir, project.value),
+    characters: await loadCharacterSettings(ctx.projectDir, project.value),
   });
 }
 

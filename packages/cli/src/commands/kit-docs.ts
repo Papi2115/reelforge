@@ -10,14 +10,17 @@ import {
   propExtensionCatalogEntry,
   type KitCatalog,
   type KitCatalogEntry,
+  type ProjectCast,
 } from '@reelforge/kit';
 import { projectFileSchema, projectLookMode, type LookMode } from '@reelforge/shared';
 import { COMMON_OPTIONS, parseCommandArgs, parseInteger } from '../args.js';
 import { result, type Command } from '../command.js';
 import { UsageError } from '../errors.js';
+import { readCastRoles } from '../project/cast-roles.js';
 import { checkJsonFile } from '../project/files.js';
 import { readKitExtensions } from '../project/kit-ext.js';
 import { PROJECT_PATHS } from '../project/paths.js';
+import { projectCastOf } from './cast-preview.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
 import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
 import { formatCatalog } from './kit-docs-index.js';
@@ -83,6 +86,8 @@ function formatEntry(entry: KitCatalogEntry): string {
 
 export interface DescribeOptions {
   readonly lookMode?: LookMode;
+  /** The project's roles and accessories (kit-docs characters lists them). */
+  readonly cast?: ProjectCast | undefined;
   readonly full?: boolean;
   readonly page?: number;
 }
@@ -128,7 +133,7 @@ export function describeKitName(
     page: options.page ?? 1,
   });
   if (slice !== undefined) return slice;
-  const characters = describeCharacters(name);
+  const characters = describeCharacters(name, options.cast);
   if (characters !== undefined) return characters;
   const [first, second] = name.split('.');
   const bare = second ?? first ?? '';
@@ -185,6 +190,7 @@ export const kitDocsCommand: Command = {
     const { positionals, values } = parseCommandArgs(argv, KIT_DOCS_OPTIONS, true);
     if (positionals.length > 1) throw new UsageError('kit-docs takes at most one name');
     const project = await projectProps(context.root);
+    const { cast } = projectCastOf(await readCastRoles(context.root));
     const catalog = kitCatalog(project.entries);
     const lookMode = await readLookMode(context.root);
     const name = positionals[0];
@@ -197,7 +203,7 @@ export const kitDocsCommand: Command = {
     const text =
       name === undefined
         ? formatCatalog(catalog, { lookMode, problems: project.problems })
-        : describeKitName(catalog, name, { lookMode, full: values.full, page });
+        : describeKitName(catalog, name, { lookMode, full: values.full, page, cast });
     const json = name === undefined ? { ...catalog, problems: project.problems } : { name, text };
     return result(0, [text], json);
   },

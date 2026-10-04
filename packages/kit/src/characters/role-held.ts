@@ -2,7 +2,8 @@
  * Held props of the role vocabulary (ADR-024): drawn in a forearm joint's space below the hand
  * (y < -fore), x mirrored when held in the other hand. The page's cast hold exactly these boxes
  * (flask, clipboard, wrench, briefcase, pointer, scroll, tablet, magnifier); hammer, hose, axe,
- * microphone, laptop, book, phone and spatula are new pieces in the same idiom.
+ * microphone, laptop, book, phone, spatula, gavel, pitchfork and parcel are new pieces in the same
+ * idiom.
  */
 import { frame } from './humanoid.js';
 import type { HeldItem } from './role-types.js';
@@ -24,6 +25,9 @@ export const HELD_PROPS = [
   'book',
   'phone',
   'spatula',
+  'gavel',
+  'pitchfork',
+  'parcel',
 ] as const;
 
 export type HeldProp = (typeof HELD_PROPS)[number];
@@ -216,6 +220,40 @@ export const HELD_ITEMS: readonly HeldItem[] = [
       shapes(mirror === 1 ? 'elR' : 'elL')
         .cb('darkSlate', [0, -d.fore - 2.6, 0.5], [0.5, 2.8, 0.5])
         .cb(color, [0, -d.fore - 4.4, 0.5], [1.8, 1.8, 0.25]);
+    },
+  },
+  {
+    id: 'gavel',
+    hand: 'right',
+    description: "judge's gavel: short handle and a barrel head (color)",
+    colors: { color: 'rust' },
+    draw({ shapes, d, color, mirror }) {
+      shapes(mirror === 1 ? 'elR' : 'elL')
+        .cb('tan', [0, -d.fore - 2.8, 0.5], [0.5, 3, 0.5])
+        .cb(color, [0, -d.fore - 3.9, 0.9], [1.3, 1.3, 2.6]);
+    },
+  },
+  {
+    id: 'pitchfork',
+    hand: 'right',
+    description: 'pitchfork: long handle, crossbar and three tines (color)',
+    colors: { color: 'slateGrey' },
+    draw({ shapes, d, color, mirror }) {
+      const tool = shapes(mirror === 1 ? 'elR' : 'elL')
+        .cb('tan', [0, -d.fore - 4.2, 0.5], [0.6, 7.6, 0.6])
+        .cb(color, [0, -d.fore - 4.4, 0.5], [0.5, 0.5, 2.8]);
+      for (const z of [-0.6, 0.5, 1.6]) tool.cb(color, [0, -d.fore - 5.6, z], [0.4, 1.3, 0.4]);
+    },
+  },
+  {
+    id: 'parcel',
+    hand: 'left',
+    description: 'cardboard parcel (color) with tape (trim) carried at the side (courier)',
+    colors: { color: 'tan', trim: 'cream' },
+    draw({ shapes, d, color, trim, mirror }) {
+      shapes(mirror === 1 ? 'elL' : 'elR')
+        .cb(color, [-0.4 * mirror, -d.fore - 3, 0.6], [2.4, 3, 3.2])
+        .cb(trim, [-0.4 * mirror, -d.fore - 1.7, 0.6], [2.5, 0.4, 3.3]);
     },
   },
 ];

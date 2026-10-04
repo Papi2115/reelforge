@@ -1,0 +1,32 @@
+{
+  "id": "technician",
+  "label": "Technician",
+  "description": "cap, work apron over a teal shirt, wrench",
+  "skin": "tan",
+  "hair": {
+    "style": "cropped",
+    "color": "darkSlate"
+  },
+  "headgear": {
+    "id": "cap",
+    "color": "darkSlate"
+  },
+  "top": {
+    "color": "teal"
+  },
+  "layers": [
+    {
+      "id": "apron",
+      "color": "slateGrey"
+    }
+  ],
+  "legs": {
+    "color": "darkSlate"
+  },
+  "shoes": {
+    "style": "boots",
+    "color": "black"
+  },
+  "accessories": ["badge"],
+  "held": "wrench"
+}

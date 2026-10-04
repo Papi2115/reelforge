@@ -3,9 +3,10 @@
  * resume, concurrency, cancel) without a browser. It reads the scene file and obeys markers:
  * `// render:blank` (uniform frames), `// render:fail` (scene does not load), `// render:overlap`
  * (an overlapping-cards diagnostic), `// render:timeout` (the renderer timed out twice); otherwise
- * frames are colourful. A standalone prop turntable reads the prop module instead: `// render:fail`
- * (does not load), `// render:floating` (a part floats), otherwise a good prop. Rendering of real
- * scenes is covered by the Playwright tests.
+ * frames are colourful. A role lineup is answered by scripted-lineup.ts. A standalone prop
+ * turntable reads the prop module instead: `// render:fail` (does not load), `// render:floating`
+ * (a part floats), otherwise a good prop. Rendering of real scenes is covered by the Playwright
+ * tests.
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -13,6 +14,7 @@ import type { CardDiagnostic } from '@reelforge/engine';
 import { METRICS_CUE } from '@reelforge/cli/service';
 import { propExtensionFile, storyboardFileSchema } from '@reelforge/shared';
 import type { FrameRenderer, ShotRender, ShotRenderRequest } from '../scenes/tools.js';
+import { lineupRoleId, renderLineup } from './scripted-lineup.js';
 
 const WIDTH = 160;
 const HEIGHT = 90;
@@ -65,6 +67,8 @@ export class ScriptedFrameRenderer implements FrameRenderer {
 
   private async renderTurntable(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
     const turntable = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
+    const role = lineupRoleId(turntable);
+    if (role !== undefined) return renderLineup(request, role);
     const name = /const NAME = "([A-Za-z0-9]+)"/.exec(turntable)?.[1] ?? '';
     const file = propExtensionFile(name);
     const source = await readFile(path.join(request.projectDir, ...file.split('/')), 'utf8');

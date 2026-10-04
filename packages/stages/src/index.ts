@@ -83,6 +83,18 @@ export {
 export { propQaRound, type PropQaResult } from './props/qa.js';
 export { readPropsReport } from './props/report.js';
 export {
+  MAX_NEW_ROLES,
+  ROLE_BUILD_ATTEMPTS,
+  RoleBuilder,
+  roleLabel,
+  type RoleOutcome,
+  type RoleRequest,
+} from './roles/builder.js';
+export { roleQaRound, type RoleQaResult } from './roles/qa.js';
+export { readRolesReport } from './roles/report.js';
+export { calledRoleIds, projectRoleIds } from './roles/scene-roles.js';
+export { storyboardRoleRequests } from './roles/storyboard-roles.js';
+export {
   REVIEW_REQUESTS,
   reviewTimes,
   reviewVideo,

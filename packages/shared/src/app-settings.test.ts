@@ -29,6 +29,7 @@ describe('app settings', () => {
       usage: { softBudgetUsd: null },
       performance: { exportWorkers: 'auto', encoder: 'auto', gpu: 'auto' },
       tools: { ffmpegPath: null, whisperPath: null, whisperModel: 'large-v3-turbo-q5_0' },
+      newProjectDefaults: { characters: 'pack', mascot: 'none' },
       music: { enabled: true },
       scenes: { finalReview: true },
       assetLibrary: { saveDownloaded: true, saveOwn: false },
@@ -164,6 +165,23 @@ describe('app settings', () => {
     expect(next.models.storyboard).toBe('opus');
     expect(next.models.script).toBe('sonnet');
     expect(next.performance).toEqual({ exportWorkers: 'auto', encoder: 'nvenc', gpu: 'auto' });
+  });
+
+  it('keeps the characters and mascot of new projects (PLAN.md#12.20)', () => {
+    // A file from before 2.3.5 reads the template's defaults.
+    expect(appSettingsSchema.parse({ version: 1 }).newProjectDefaults).toEqual({
+      characters: 'pack',
+      mascot: 'none',
+    });
+    const fox = applyAppSettingsPatch(defaultAppSettings(), {
+      newProjectDefaults: { mascot: 'fox' },
+    });
+    expect(fox.newProjectDefaults).toEqual({ characters: 'pack', mascot: 'fox' });
+    const classic = applyAppSettingsPatch(fox, { newProjectDefaults: { characters: 'classic' } });
+    expect(classic.newProjectDefaults).toEqual({ characters: 'classic', mascot: 'fox' });
+    expect(
+      appSettingsPatchSchema.safeParse({ newProjectDefaults: { mascot: 'cat' } }).success,
+    ).toBe(false);
   });
 
   it('keeps tool paths and unknown keys out of renderer patches', () => {

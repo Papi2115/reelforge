@@ -5,8 +5,10 @@ import {
   buildProgress,
   buildProgressView,
   fixPrompt,
+  joinBanners,
   propsBanner,
   propsSummary,
+  rolesBanner,
   shotBadges,
   stepText,
   syncProblemShots,
@@ -144,6 +146,36 @@ describe('scenes view', () => {
     expect(propsBanner({ built: ['fridge'], failed: [] })).toBe('Built 1 new prop: fridge');
     expect(propsBanner(propsSummary(null, null))).toBeNull();
     expect(shotBadges(REPORT, null).get('s01')?.builtProps).toEqual([]);
+  });
+
+  it('says which project roles were built, with warnings, and which could not be built', () => {
+    const role = {
+      file: 'characters/roles/x.json',
+      description: 'x',
+      shots: ['s01'],
+      attempts: 1,
+      accessories: [],
+      findings: [],
+      notes: [],
+      updatedAt: STAMP,
+    };
+    const report = {
+      version: 1 as const,
+      updatedAt: STAMP,
+      roles: [
+        { ...role, id: 'firefighter', status: 'built' as const },
+        { ...role, id: 'pilot', status: 'failed' as const },
+        { ...role, id: 'chef', status: 'warning' as const },
+      ],
+    };
+    expect(rolesBanner(report)).toBe(
+      'Built 2 new roles: chef, firefighter (⚠ chef) · Could not build: pilot — its shots use a cast member',
+    );
+    expect(rolesBanner(null)).toBeNull();
+    expect(joinBanners('Built 1 new prop: fridge', null, rolesBanner(report))).toMatch(
+      /^Built 1 new prop: fridge · Built 2 new roles/,
+    );
+    expect(joinBanners(null, null)).toBeNull();
   });
 
   it('turns the sync report into rows with signed deltas and the ±150 ms verdict', () => {

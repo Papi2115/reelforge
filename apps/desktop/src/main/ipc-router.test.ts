@@ -329,6 +329,7 @@ function setup(): {
           scenes: null,
           sync: null,
           props: null,
+          roles: null,
           finalReview: null,
         }),
       wordsRetry: (request) => record(request, { status: 'queued', message: null } as const),

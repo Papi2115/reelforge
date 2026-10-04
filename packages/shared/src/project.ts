@@ -14,6 +14,7 @@ import {
 import { paletteSchema } from './palette.js';
 import { stylePresetIdSchema } from './style-preset.js';
 import { beatSyncModeSchema } from './beat-sync.js';
+import { characterModeSchema, mascotChoiceSchema } from './characters.js';
 import { repetitionControlModeSchema } from './repetition.js';
 import { dramaturgyModeSchema } from './dramaturgy.js';
 import { tensionMapModeSchema } from './tension.js';
@@ -88,6 +89,14 @@ export const projectFileSchema = z.object({
   patternInterrupts: dramaturgyModeSchema.optional(),
   openLoops: dramaturgyModeSchema.optional(),
   revealMoments: dramaturgyModeSchema.optional(),
+  /**
+   * Characters (PLAN.md#12.20, ADR-025): `pack` = people from the character pack (`kit.cast`),
+   * `classic` = the hoodie hero. Absent = `classic` (projects made before 2.3.5 are unchanged);
+   * new projects get the app's default (`pack` in the template).
+   */
+  characters: characterModeSchema.optional(),
+  /** The film's mascot (`none` or a pack mascot; in effect only with `pack`). Absent = `none`. */
+  mascot: mascotChoiceSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

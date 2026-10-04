@@ -21,6 +21,12 @@
     "description": "The Apollo lunar module: gold-foil octagonal descent stage on four splayed legs with footpads, a grey angular ascent cabin with a dark window on top.",
     "shotIds": ["s02_moon"]
   },
+  "roleBuild": {
+    "id": "pilot",
+    "label": "Pilot",
+    "description": "pilot in a peaked cap, navy jacket with a tie and a badge, holding a clipboard",
+    "shotIds": ["s02_moon"]
+  },
   "replies": {
     "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Zapisano research.md: 9 faktów ze źródłami.\nGłówne źródła: Wikipedia (AGC, Apollo 11).\nNiepewne: porównanie mocy telefonu i AGC.",
@@ -140,6 +146,7 @@
           "claimsToSource": true
         }
       ]
-    }
+    },
+    "roles": "Zbudowany pilot: czapka z daszkiem, granatowa marynarka z krawatem, plakietka, podkładka; 3 kolory stroju.\ncast preview: wszystkie testy ok; od frontu i z boku czytelny jako pilot."
   }
 }

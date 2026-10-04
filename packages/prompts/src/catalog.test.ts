@@ -51,6 +51,7 @@ describe('bundled prompts', () => {
         'research',
         'review-plan',
         'review-triage',
+        'roles',
         'scene-build',
         'scene-fix',
         'script',
@@ -66,7 +67,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 10, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 11, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -199,6 +200,7 @@ describe('stages and models', () => {
       'youtube-meta': 'storyboard',
       assets: 'storyboard',
       'prop-build': 'scene-build',
+      roles: 'storyboard',
       tension: 'storyboard',
       claims: 'critic',
       hooks: 'critic',

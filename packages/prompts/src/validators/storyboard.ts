@@ -3,7 +3,8 @@
  * (contiguous shots from 0, boundaries on word starts, shot lengths, no treatment more than twice
  * in a row, scene paths, transitions and their transition-kit styles) and the annotation plans' phrase and variety rules; in
  * `mixed` look mode also the look/roll rhythm (rhythm.ts, ADR-009); with a tension curve the cut
- * tempo per segment (`tension-tempo`, tension.ts, PLAN.md#12.22).
+ * tempo per segment (`tension-tempo`, tension.ts, PLAN.md#12.22); with the project's characters
+ * the mascot and role checks (characters.ts, PLAN.md#12.20).
  */
 import {
   DEFAULT_LOOK_ID,
@@ -21,6 +22,7 @@ import {
 import { z } from 'zod';
 import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
 import { checkAssetNeeds, checkShotAssets, type AssetNeedRules } from './asset-needs.js';
+import { checkCharacters, type CharacterCheckOptions } from './characters.js';
 import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
 import {
   issue,
@@ -340,6 +342,8 @@ export interface StoryboardCheckOptions {
   readonly tension?: Pick<TensionFile, 'points' | 'segments'>;
   /** Pattern interrupts (PLAN.md#12.25): adds the `interrupt-*` checks; absent = switch off. */
   readonly interrupts?: InterruptCheckOptions;
+  /** Characters and mascot (PLAN.md#12.20): the `mascot-*` and role checks; absent = none. */
+  readonly characters?: CharacterCheckOptions;
 }
 
 /** Rule checks on an already parsed storyboard. */
@@ -363,6 +367,9 @@ export function checkStoryboard(
       : []),
     ...(options.tension === undefined ? [] : checkTensionTempo(shots, options.tension)),
     ...(options.interrupts === undefined ? [] : checkInterrupts(shots, options.interrupts)),
+    ...(options.characters === undefined
+      ? []
+      : checkCharacters(storyboard, options.words, options.characters)),
   ];
 }
 

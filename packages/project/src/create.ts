@@ -7,7 +7,7 @@
 import { randomInt } from 'node:crypto';
 import { mkdir, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { ProjectFile, VideoLanguage } from '@reelforge/shared';
+import type { CharacterMode, MascotChoice, ProjectFile, VideoLanguage } from '@reelforge/shared';
 import { writeAtomic, writeJsonAtomic } from './atomic.js';
 import { commitProjectChanges, initRepository } from './git-repo.js';
 import type { GitOptions } from './git-runner.js';
@@ -32,6 +32,9 @@ export interface CreateProjectOptions {
   /** Style preset id (default: the template's). */
   readonly style?: string;
   readonly fps?: number;
+  /** Characters and mascot (PLAN.md#12.20, the app's new-project defaults); template's if omitted. */
+  readonly characters?: CharacterMode;
+  readonly mascot?: MascotChoice;
   /** Project seed (uint32); random when omitted. */
   readonly seed?: number;
   readonly templateDir?: string;
@@ -91,6 +94,8 @@ async function templateProject(
     ...(options.language === undefined ? {} : { language: options.language }),
     ...(options.style === undefined ? {} : { style: options.style }),
     ...(options.fps === undefined ? {} : { fps: options.fps }),
+    ...(options.characters === undefined ? {} : { characters: options.characters }),
+    ...(options.mascot === undefined ? {} : { mascot: options.mascot }),
   };
   const project = parseProjectFile({ ...base, ...choices });
   if (!project.ok) {

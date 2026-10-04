@@ -2,12 +2,13 @@
  * View model of Scenes built in the UI (PLAN.md#7.4-7.7): the ✓/⚠/✗ badge of every shot (the
  * scenes report, overlaid with the live run: building / left for later), its findings for the
  * popover and the "Fix with Claude…" prefill, the build progress line (shot n/m, current step),
- * the project-props banner (built / could not build) and the sync report rows (deltas in ms
+ * the project-props and project-roles banner (built / could not build) and the sync report rows (deltas in ms
  * against ±150 ms). Pure.
  */
 import {
   SHOT_STATUS_SYMBOLS,
   type PropsReport,
+  type RolesReport,
   type ScenesReport,
   type ShotBuildRecord,
   type SyncReport,
@@ -184,6 +185,34 @@ export function propsBanner(summary: PropsSummary): string | null {
     );
   }
   return parts.length === 0 ? null : parts.join(' · ');
+}
+
+/**
+ * "Built 2 new roles: firefighter, chef (⚠ chef) · Could not build: pilot — its shots use a cast
+ * member" (PLAN.md#12.20, roles-report.json), or null without any role.
+ */
+export function rolesBanner(report: RolesReport | null): string | null {
+  const roles = [...(report?.roles ?? [])].sort((a, b) => a.id.localeCompare(b.id));
+  const built = roles.filter((role) => role.status !== 'failed').map((role) => role.id);
+  const warned = roles.filter((role) => role.status === 'warning').map((role) => role.id);
+  const failed = roles.filter((role) => role.status === 'failed').map((role) => role.id);
+  const parts: string[] = [];
+  if (built.length > 0) {
+    const warning = warned.length === 0 ? '' : ` (⚠ ${warned.join(', ')})`;
+    parts.push(`Built ${plural(built.length, 'role')}: ${built.join(', ')}${warning}`);
+  }
+  if (failed.length > 0) {
+    parts.push(
+      `Could not build: ${failed.join(', ')} — ${failed.length === 1 ? 'its shots use' : 'their shots use'} a cast member`,
+    );
+  }
+  return parts.length === 0 ? null : parts.join(' · ');
+}
+
+/** The banners that have something to say, in one line (null when none has). */
+export function joinBanners(...banners: readonly (string | null)[]): string | null {
+  const shown = banners.filter((banner): banner is string => banner !== null);
+  return shown.length === 0 ? null : shown.join(' · ');
 }
 
 export interface SyncRow {
