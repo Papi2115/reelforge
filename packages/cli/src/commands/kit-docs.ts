@@ -111,6 +111,7 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
       `\nkinds: ${sliceNames(catalog).slice(0, 5).join(', ')}`,
       `; looks: ${catalog.looks.map((look) => look.id).join(', ')}`,
       `; scene context: ${CTX_TOPICS.join(', ')}`,
+      `; characters (mascots, cast, roles): ${CHARACTERS_TOPIC}`,
       '\nthe index: reelforge kit-docs; one kind with every param: reelforge kit-docs props --full',
     ].join(''),
   );

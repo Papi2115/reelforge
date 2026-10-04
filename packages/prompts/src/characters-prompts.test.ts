@@ -103,6 +103,9 @@ describe('the character pack', () => {
     expect(text).toContain('Never use `kit.props.character` (the classic hero)');
     expect(text).toContain('`ctx.kit.cast.mannequin()`');
     expect(text).toContain(
+      '(`noir` turns skin and outfits violet: keep a dark mood in the set, not on the faces)',
+    );
+    expect(text).toContain(
       'The channel mascot (`fox`) is not planned in this shot: do not add it.',
     );
     expect(text).not.toContain('Mascot in this shot');
@@ -142,6 +145,7 @@ describe('a chosen mascot', () => {
     expect(text).toContain('poses: calm, wave, think, point, shrug, joy, walk, eureka');
     expect(text).toContain('expressions: auto, neutral, joy, curious, surprised');
     expect(text).toContain('never in a costume or playing a profession');
+    expect(text).toContain('to point at a thing, turn it toward that thing (`rotation.y`)');
     expect(text).not.toContain('is not planned in this shot');
     expect(text).not.toMatch(TAG);
   });

@@ -133,6 +133,8 @@ export function charactersDocs(project: ProjectCast = NO_PROJECT_CAST): string {
     `  .expression(name, { at }) — mascots: auto (the pose's), ${EXPRESSIONS.join(', ')}; blinking is automatic`,
     '  .walkTo([x, y, z], { at, speed = 0.8, then = "calm" }) — parent space; queues after the previous walk; .walkEnd() = arrival time',
     '  .lookAt(objectOr[x, y, z], { at, until }) — head turns to a kit object or world point',
+    '  point raises the right arm along the way the body faces (+z): to point at a thing, turn the whole character toward it (rotation.y = Math.atan2(dx, dz)), three-quarter to the camera; lookAt turns only the head',
+    'staging (so people read at 640x360): kit.env.lights preset default or dramatic on them (noir turns skin and outfits violet: keep a dark mood in the set, not on the faces); faces front or three-quarter to the camera, never only a back; the person a shot is about at least ~1/4 of the frame height',
     'anchors (follow the pose): head, face, hand (the holding hand), handL, handR, prop (held prop), feet; bottom = origin',
     'mascots:',
     ...MASCOTS.map((id) => `  ${id} — ${MASCOT_INFO[id]}`),
