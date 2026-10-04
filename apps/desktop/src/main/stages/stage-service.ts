@@ -37,6 +37,7 @@ import {
 } from './stage-execution.js';
 import { StageRun } from './stage-run.js';
 import {
+  assetsFollowUp,
   buildStageInfos,
   followUpReview,
   gateReasons,
@@ -326,6 +327,7 @@ export class StageService {
       const review = followUpReview(next.request, this.options.finalReview?.() === true);
       // Runs next, before the rest of the group (its fixes change what sound cues read).
       if (review !== undefined) pipeline.queue.unshift({ request: review, group: next.group });
+      await this.followAssets(pipeline, next);
       return outcome;
     }
     this.dropGroup(pipeline, next.group);
@@ -334,6 +336,18 @@ export class StageService {
       pipeline.errors.set(stage, outcome.error);
     }
     return outcome;
+  }
+
+  /** Storyboard → Assets right away; Assets waiting for review stops its group (PLAN.md#12.10). */
+  private async followAssets(pipeline: ProjectPipeline, done: QueuedRun): Promise<void> {
+    const stage = done.request.stage;
+    if (stage !== 'storyboard' && stage !== 'assets') return;
+    const next = assetsFollowUp(stage, await this.snapshot(pipeline.dir));
+    if (next === 'queue-assets') {
+      pipeline.queue.unshift({ request: { stage: 'assets' }, group: done.group });
+    } else if (next === 'stop-group') {
+      this.dropGroup(pipeline, done.group);
+    }
   }
 
   private onEvent(pipeline: ProjectPipeline, event: StageEvent): void {

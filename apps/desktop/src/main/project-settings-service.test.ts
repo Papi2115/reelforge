@@ -4,6 +4,7 @@ import path from 'node:path';
 import { listLooks } from '@reelforge/kit';
 import type { ProjectFile } from '@reelforge/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { ProjectSettings } from '../shared/project-settings-contract.js';
 import { createLogger } from './logger.js';
 import { lookSummaries } from './project-settings-ipc.js';
 import {
@@ -62,6 +63,8 @@ describe('effectiveProjectSettings', () => {
     expect(effectiveProjectSettings(BASE_PROJECT)).toEqual({
       lookMode: 'voxel-only',
       ambientVariation: false,
+      researchMode: 'off',
+      researchSources: [],
     });
     expect(
       effectiveProjectSettings({
@@ -69,7 +72,12 @@ describe('effectiveProjectSettings', () => {
         lookMode: 'mixed',
         ambientVariation: true,
       }),
-    ).toEqual({ lookMode: 'mixed', ambientVariation: true });
+    ).toEqual({
+      lookMode: 'mixed',
+      ambientVariation: true,
+      researchMode: 'off',
+      researchSources: [],
+    });
   });
 });
 
@@ -90,14 +98,31 @@ describe('applyProjectSettingsPatch', () => {
 
 describe('describeSettingsChange', () => {
   it('names every changed setting', () => {
-    const before = { lookMode: 'voxel-only', ambientVariation: false } as const;
-    expect(describeSettingsChange(before, { lookMode: 'mixed', ambientVariation: true })).toBe(
-      'Project settings: look mode mixed looks, ambient variation on',
-    );
-    expect(describeSettingsChange(before, { lookMode: 'voxel-only', ambientVariation: true })).toBe(
+    const before: ProjectSettings = {
+      lookMode: 'voxel-only',
+      ambientVariation: false,
+      researchMode: 'off',
+      researchSources: [],
+    };
+    expect(
+      describeSettingsChange(before, { ...before, lookMode: 'mixed', ambientVariation: true }),
+    ).toBe('Project settings: look mode mixed looks, ambient variation on');
+    expect(describeSettingsChange(before, { ...before, ambientVariation: true })).toBe(
       'Project settings: ambient variation on',
     );
     expect(describeSettingsChange(before, before)).toBe('Project settings: no change');
+    expect(
+      describeSettingsChange(before, {
+        ...before,
+        researchMode: 'allowlist',
+        researchSources: ['wikimedia', 'nasa'],
+      }),
+    ).toBe(
+      'Project settings: research assets auto from selected sources, research sources wikimedia, nasa',
+    );
+    expect(describeSettingsChange(before, { ...before, researchMode: 'full-auto' })).toBe(
+      'Project settings: research assets full auto (unverified licences)',
+    );
   });
 });
 
@@ -106,7 +131,12 @@ describe('ProjectSettingsService', () => {
     await writeProject({ ...BASE_PROJECT, lookMode: 'mixed' });
     await expect(service.get()).resolves.toEqual({
       status: 'ok',
-      settings: { lookMode: 'mixed', ambientVariation: false },
+      settings: {
+        lookMode: 'mixed',
+        ambientVariation: false,
+        researchMode: 'off',
+        researchSources: [],
+      },
       looks: LOOKS,
     });
   });
@@ -115,7 +145,12 @@ describe('ProjectSettingsService', () => {
     await writeProject({ ...BASE_PROJECT, extra: 'kept' });
     await expect(service.update({ lookMode: 'mixed', ambientVariation: true })).resolves.toEqual({
       status: 'ok',
-      settings: { lookMode: 'mixed', ambientVariation: true },
+      settings: {
+        lookMode: 'mixed',
+        ambientVariation: true,
+        researchMode: 'off',
+        researchSources: [],
+      },
       committed: true,
     });
     expect(await readProject()).toEqual({
@@ -136,11 +171,34 @@ describe('ProjectSettingsService', () => {
     const before = await readFile(path.join(root, 'project.json'), 'utf8');
     await expect(service.update({ lookMode: 'voxel-only' })).resolves.toEqual({
       status: 'ok',
-      settings: { lookMode: 'voxel-only', ambientVariation: false },
+      settings: {
+        lookMode: 'voxel-only',
+        ambientVariation: false,
+        researchMode: 'off',
+        researchSources: [],
+      },
       committed: false,
     });
     expect(await readFile(path.join(root, 'project.json'), 'utf8')).toBe(before);
     expect(commits).toEqual([]);
+  });
+
+  it('writes the research mode and the allowlist sources (PLAN.md#12.10)', async () => {
+    await writeProject(BASE_PROJECT);
+    await expect(
+      service.update({ researchMode: 'allowlist', researchSources: ['nasa', 'loc'] }),
+    ).resolves.toMatchObject({
+      status: 'ok',
+      settings: { researchMode: 'allowlist', researchSources: ['nasa', 'loc'] },
+      committed: true,
+    });
+    expect(await readProject()).toMatchObject({
+      researchMode: 'allowlist',
+      researchSources: ['nasa', 'loc'],
+    });
+    await service.update({ researchMode: 'off' });
+    expect(await readProject()).toMatchObject({ researchMode: 'off' });
+    expect(commits.at(-1)).toBe('Project settings: research assets off');
   });
 
   it('reports a failed commit but keeps the saved file', async () => {

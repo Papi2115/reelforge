@@ -18,6 +18,7 @@ import {
 } from '@reelforge/shared';
 import { z } from 'zod';
 import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
+import { checkAssetNeeds, type AssetNeedRules } from './asset-needs.js';
 import {
   issue,
   parseJsonText,
@@ -318,6 +319,8 @@ export interface StoryboardCheckOptions {
   readonly lookMode?: LookMode;
   /** Available look ids in `mixed` mode (default: voxel only). */
   readonly looks?: readonly string[];
+  /** Asset need rules (PLAN.md#12.10); absent = research off. */
+  readonly assetNeeds?: Partial<AssetNeedRules>;
 }
 
 /** Rule checks on an already parsed storyboard. */
@@ -334,6 +337,7 @@ export function checkStoryboard(
     ...transitionIssues(shots, rules),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),
+    ...checkAssetNeeds(shots, options.assetNeeds),
     ...(options.lookMode === 'mixed'
       ? checkLookRhythm(shots, { looks: options.looks ?? [DEFAULT_LOOK_ID], rules })
       : []),

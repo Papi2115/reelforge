@@ -1,10 +1,12 @@
 /**
  * The preview's render manifest for the open project (PLAN.md#6.3): project.json + storyboard +
- * scene sources + timed words + project props (kit-ext/props, PLAN.md#7.4), inlined so the
- * sandboxed engine never touches the disk (ADR-004).
+ * scene sources + timed words + project props (kit-ext/props, PLAN.md#7.4) + the decoded asset
+ * pictures the scenes name (PLAN.md#12.11), inlined so the sandboxed engine never touches the
+ * disk (ADR-004).
  * Any reason the video cannot be built is returned as text for the preview's note.
  */
 import { describeUnknown, readKitExtensions, type KitExtensionFiles } from '@reelforge/cli/service';
+import { loadManifestAssets, locateAssetFfmpeg } from '@reelforge/pipeline';
 import {
   ambientShotInputs,
   projectAmbientVariation,
@@ -70,6 +72,16 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
   } catch (error) {
     return unavailable(`kit-ext/props cannot be read: ${describeUnknown(error)}`);
   }
+  // Asset pictures the scenes name (PLAN.md#12.11), decoded once into .reelforge/assets/decoded.
+  const assets = await loadManifestAssets({
+    root: dir,
+    sources: [
+      ...manifestShots.map((shot) => shot.scene.source),
+      ...props.extensions.map((prop) => prop.source),
+    ],
+    ffmpeg: () => locateAssetFfmpeg(),
+  });
+  if (!assets.ok) return unavailable(assets.error);
   const { style, fps, seed, palette } = project.data;
   const manifest = renderManifestSchema.safeParse({
     version: 1,
@@ -80,6 +92,7 @@ export async function buildProjectManifest(dir: string): Promise<ProjectManifest
     ...(words.status === 'ok' ? { words: words.data } : {}),
     ...(props.extensions.length > 0 ? { kitExtensions: props.extensions } : {}),
     ...(ambient ? { ambientVariation: { enabled: true, seed } } : {}),
+    ...(assets.value ? { assets: assets.value } : {}),
     shots: manifestShots,
   });
   if (!manifest.success) {

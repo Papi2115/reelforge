@@ -41,7 +41,10 @@ function state(
 ): StagesState {
   return {
     projectDir: 'C:\\p',
-    stages: PIPELINE_STAGE_KEYS.map((stage) => info(stage, patches[stage])),
+    // Main reports Assets only when research is on and needed (PLAN.md#12.10).
+    stages: PIPELINE_STAGE_KEYS.filter(
+      (stage) => stage !== 'assets' || patches.assets !== undefined,
+    ).map((stage) => info(stage, patches[stage])),
     running: null,
     queue: [],
     pause: null,
@@ -65,6 +68,7 @@ describe('pipelineRows', () => {
       'Audio cleaned',
       'Words timed',
       'Storyboard',
+      'Assets',
       'Scenes built',
       'Sound design mixed',
       'Video exported',
@@ -75,6 +79,22 @@ describe('pipelineRows', () => {
       runStages: ['sound-cues', 'mix'],
       run: { enabled: true },
     });
+  });
+
+  it('lists Assets only when main reports it; a package to review asks for the user', () => {
+    expect(pipelineRows(state({})).map((view) => view.spec.id)).not.toContain('assets');
+    expect(pipelineRows(undefined).map((view) => view.spec.id)).not.toContain('assets');
+    const waiting = pipelineRows(
+      state({ storyboard: DONE, assets: { ...DONE, awaitingReview: true } }),
+    );
+    expect(row(waiting, 'assets')).toMatchObject({
+      status: 'review',
+      detail: 'Open the asset package: approve or reject the photos and footage.',
+      open: { enabled: true },
+    });
+    expect(defaultRow(waiting)?.spec.id).toBe('assets');
+    const done = pipelineRows(state({ assets: { ...DONE, awaitingReview: false } }));
+    expect(row(done, 'assets').status).toBe('done');
   });
 
   it('is loading until main answered', () => {

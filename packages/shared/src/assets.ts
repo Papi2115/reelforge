@@ -133,6 +133,11 @@ export const assetProposalSchema = z.object({
   number: z.int().positive(),
   createdAt: z.string(),
   items: z.array(proposalItemSchema).min(1),
+  /**
+   * ISO time the user reviewed the package in the app (approved some items or rejected all);
+   * absent = still waiting for the user. Set by the app only (PLAN.md#12.10).
+   */
+  reviewedAt: z.string().optional(),
 });
 export type AssetProposal = z.infer<typeof assetProposalSchema>;
 

@@ -136,6 +136,8 @@ const api: ReelforgeApi = {
   openHelpTarget: (target) => invoke(IPC.helpOpen, { target }),
   getProjectSettings: () => invoke(IPC.projectSettingsGet, null),
   updateProjectSettings: (patch) => invoke(IPC.projectSettingsUpdate, patch),
+  getAssetsState: () => invoke(IPC.assetsState, null),
+  reviewAssets: (request) => invoke(IPC.assetsReview, request),
   log: (entry) => {
     ipcRenderer.send(IPC_EVENTS.log.name, entry);
   },

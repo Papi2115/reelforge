@@ -21,6 +21,7 @@ import './sound/sound.css';
 import './export/export.css';
 import './onboarding/onboarding.css';
 import './project/project-settings.css';
+import './assets/assets.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

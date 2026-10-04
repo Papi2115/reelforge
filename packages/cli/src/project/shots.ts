@@ -6,6 +6,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { loadManifestAssets, locateAssetFfmpeg } from '@reelforge/pipeline';
 import {
   ambientShotInputs,
   projectAmbientVariation,
@@ -228,4 +229,30 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
       },
     ],
   };
+}
+
+/**
+ * `manifest` plus the decoded asset pictures its scenes and project props name (PLAN.md#12.11);
+ * unchanged when they name none. Decoding needs ffmpeg once per picture (cached in
+ * .reelforge/assets/decoded).
+ */
+export async function withManifestAssets(
+  root: string,
+  manifest: RenderManifest,
+): Promise<RenderManifest> {
+  const assets = await loadManifestAssets({
+    root,
+    sources: [
+      ...manifest.shots.map((shot) => shot.scene.source),
+      ...(manifest.kitExtensions ?? []).map((prop) => prop.source),
+    ],
+    ffmpeg: () => locateAssetFfmpeg(),
+  });
+  if (!assets.ok) {
+    throw new ProjectError(
+      assets.error,
+      'check `reelforge assets list` and the files in .reelforge/assets; decoding needs ffmpeg (install it or set REELFORGE_FFMPEG)',
+    );
+  }
+  return assets.value ? { ...manifest, assets: assets.value } : manifest;
 }

@@ -1,12 +1,12 @@
 /**
  * Look mode in the prompts (ADR-009): `voxel-only` renders the storyboard and scene-build prompts
- * byte for byte as before ReelForge 2.0 (fixtures captured from storyboard v2 / scene-build v5);
- * `mixed` adds the roll/look sections.
+ * byte for byte as before ReelForge 2.0 (fixtures captured from storyboard v2 / scene-build v5 /
+ * critic v2); `mixed` adds the roll/look sections.
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { renderPrompt } from './catalog.js';
+import { loadPrompt, renderPrompt } from './catalog.js';
 import type { TemplateVars } from './template.js';
 
 function fixture(name: string): string {
@@ -40,6 +40,11 @@ const SCENE_VARS = {
   ...STYLE,
   annotationPlan: '- "glass of water" (name): pin on glass, text "WATER"',
 };
+const CRITIC_VARS = {
+  ...STYLE,
+  imagePaths: '.reelforge/qa/s02/smoke-1.png',
+  intent: 'Counter lands on "4 MB"',
+};
 const VOXEL_LINE = '- `voxel` (Voxel 3D): chunky voxel 3D worlds';
 const TAG = /\{\{[#/]?\w+\}\}/;
 
@@ -50,6 +55,10 @@ describe('voxel-only prompts', () => {
 
   it('render the scene-build prompt exactly as before looks', () => {
     expect(rendered('scene-build', SCENE_VARS)).toBe(fixture('scene-build-voxel-only.txt'));
+  });
+
+  it('render the critic prompt exactly as critic v2 (fixture captured before v3)', () => {
+    expect(rendered('critic', CRITIC_VARS)).toBe(fixture('critic-voxel-only.txt'));
   });
 });
 
@@ -101,5 +110,44 @@ describe('mixed prompts', () => {
     const text = rendered('critic', { ...STYLE, imagePaths: 'a.png', intent: 'x' });
     expect(text).toContain('Vibe check');
     expect(text).toContain('a note starting `vibe:`');
+  });
+
+  it("give the critic the shot's look, roll and rules and ask for look checks", () => {
+    const rules = 'Retro UI: flat pixel-art windows.';
+    const text = rendered('critic', {
+      ...CRITIC_VARS,
+      lookId: 'retro-ui',
+      roll: 'B',
+      lookRules: rules,
+    });
+    expect(text).toContain(
+      `\`vibe:\`.\n\nLook of this shot: \`retro-ui\` (roll B). The film mixes looks: judge the frame against this look, not against voxel. ${rules}\nLook checks: `,
+    );
+    for (const part of [
+      'by a camera push-in → `clipped`',
+      '→ `overlap`',
+      'a note starting `look:`',
+    ]) {
+      expect(text).toContain(part);
+    }
+    expect(text).toContain('`look:`.\n\nReturn ONLY JSON');
+    const noRoll = rendered('critic', { ...CRITIC_VARS, lookId: 'voxel', lookRules: rules });
+    expect(noRoll).toContain('Look of this shot: `voxel`. The film mixes looks');
+    expect(noRoll).not.toMatch(TAG);
+    expect(loadPrompt('critic').version).toBe(3);
+  });
+
+  it('resolve the list-badge rule and the look camera rules for mixed storyboards', () => {
+    const looks = `${VOXEL_LINE}\n- \`retro-ui\` (Retro UI / CRT): retro-OS windows`;
+    const text = rendered('storyboard', { ...STYLE, looks, multiLook: true });
+    expect(text).toContain(
+      'cover the main subject for long.\nLists of 3 or more items: the run rule wins over "one badge per item"',
+    );
+    expect(text).toContain(
+      "Camera moves in intents must respect the look's camera rules (retro-ui and blueprint boards: no push-ins that crop text; diorama: iso camera presets only).\n\nThen run",
+    );
+    expect(rendered('storyboard', { ...STYLE, looks: VOXEL_LINE, singleLook: true })).not.toContain(
+      'Lists of 3 or more items',
+    );
   });
 });

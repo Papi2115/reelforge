@@ -118,6 +118,16 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         styleId,
       });
     }
+    case 'assets':
+      return ok({
+        mode: 'ask',
+        ask: true,
+        needs: evalCase.storyboard.shots
+          .slice(0, 1)
+          .map((shot) => `- ${shot.id} · ${shot.id}-photo (image): ${shot.intent}`)
+          .join('\n'),
+        maxItems: 8,
+      });
     case 'youtube-meta':
       return ok({
         title: project.title,

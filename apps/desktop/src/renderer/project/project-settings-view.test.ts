@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ProjectSettings } from '../../shared/project-settings-contract.js';
 import {
   groupBySection,
   lookModeChoices,
@@ -50,14 +51,22 @@ describe('lookModeChoices', () => {
 
 describe('withProjectSettingsPatch', () => {
   it('applies only the fields the patch sets', () => {
-    const settings = { lookMode: 'voxel-only', ambientVariation: false } as const;
-    expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
+    const settings: ProjectSettings = {
       lookMode: 'voxel-only',
+      ambientVariation: false,
+      researchMode: 'ask',
+      researchSources: [],
+    };
+    expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
+      ...settings,
       ambientVariation: true,
     });
     expect(withProjectSettingsPatch(settings, { lookMode: 'mixed' })).toEqual({
+      ...settings,
       lookMode: 'mixed',
-      ambientVariation: false,
     });
+    expect(
+      withProjectSettingsPatch(settings, { researchMode: 'allowlist', researchSources: ['nasa'] }),
+    ).toEqual({ ...settings, researchMode: 'allowlist', researchSources: ['nasa'] });
   });
 });

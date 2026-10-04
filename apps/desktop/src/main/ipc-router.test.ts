@@ -213,6 +213,9 @@ function setup(): {
         record(request, { status: 'error', message: 'no project is open' } as const),
       projectSettingsUpdate: (request) =>
         record(request, { status: 'error', message: 'no project is open' } as const),
+      assetsState: (request) =>
+        record(request, { status: 'error', message: 'No project is open.' } as const),
+      assetsReview: (request) => record(request, { status: 'error', message: 'n/a' } as const),
       projectRecent: (request) => record(request, []),
       projectCurrent: (request) => record(request, null),
       projectClose: (request) => record(request, null),

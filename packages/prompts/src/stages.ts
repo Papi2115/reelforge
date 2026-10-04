@@ -24,6 +24,8 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   'review-triage': 'critic',
   'review-plan': 'storyboard',
   'youtube-meta': 'storyboard',
+  // Asset research (PLAN.md#12.10) plans like the storyboard: Sonnet, reelforge only, no web tools.
+  assets: 'storyboard',
   // A project prop is scene-building work: same tools (project edits + reelforge), Opus.
   'prop-build': 'scene-build',
 };

@@ -24,6 +24,7 @@ import type { StageError } from '../types.js';
 import { fatalFindings, finding, fixableFindings, formatFinding } from './checks.js';
 import type { SceneJob } from './job.js';
 import { qaRound, type QaResult } from './qa.js';
+import { shotAssetVars } from './shot-assets.js';
 import { unknownKitCalls } from './source-checks.js';
 import { missingPropsOutcome } from './tools.js';
 
@@ -73,9 +74,11 @@ function neighbours(job: SceneJob, shot: StoryboardShot): object[] {
   );
 }
 
-/** The shot as the build prompt shows it: its annotation plan goes in its own section. */
+/** The shot as the build prompt shows it: annotation plan and asset needs go in their sections. */
 function shotForPrompt(shot: StoryboardShot): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(shot).filter(([key]) => key !== 'annotations'));
+  return Object.fromEntries(
+    Object.entries(shot).filter(([key]) => key !== 'annotations' && key !== 'assetNeeds'),
+  );
 }
 
 /** The storyboard's annotation plan as hint lines (PLAN.md#11.8); undefined when there is none. */
@@ -107,6 +110,7 @@ async function buildTurn(
     styleId: job.styleId,
     ...sceneLookVars(job.lookMode, shot),
     annotationPlan: annotationPlanText(shot),
+    ...shotAssetVars(shot, job.research, job.assets),
     ...(newProps.length === 0
       ? {}
       : { newProps: newProps.map((name) => `kit.props.${name}`).join(', ') }),

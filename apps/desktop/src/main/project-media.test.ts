@@ -40,6 +40,31 @@ describe('resolveProjectMedia', () => {
     expect(refused('reelforge-media://project/.reelforge/frames/notes.txt')).toBe(true);
   });
 
+  it('serves downloaded assets and proposal thumbnails (images only) from .reelforge/assets', () => {
+    expect(
+      resolveProjectMedia(project, projectMediaUrl('.reelforge/assets/thumbnails/p1-2.jpg', 1)),
+    ).toEqual({
+      ok: true,
+      value: {
+        file: path.join(project, '.reelforge', 'assets', 'thumbnails', 'p1-2.jpg'),
+        contentType: 'image/jpeg',
+      },
+    });
+    expect(
+      resolveProjectMedia(project, projectMediaUrl('.reelforge/assets/web-x.gif', 0)),
+    ).toMatchObject({ ok: true, value: { contentType: 'image/gif' } });
+    const refused = (relative: string): boolean =>
+      !resolveProjectMedia(project, projectMediaUrl(relative, 0)).ok;
+    expect(refused('.reelforge/assets/proposals/1.json')).toBe(true);
+    expect(refused('.reelforge/assets/clip.mp4')).toBe(true);
+    expect(refused('.reelforge/assets/../../secret.png')).toBe(true);
+    expect(
+      resolveProjectMedia(project, 'reelforge-media://project/.reelforge/assets/..%2F..%2Fa.png')
+        .ok,
+    ).toBe(false);
+    expect(refused('assets/photo.png')).toBe(true);
+  });
+
   it('refuses other schemes, hosts, traversal, non-audio files and no open project', () => {
     const status = (dir: string | undefined, url: string): number | undefined => {
       const result = resolveProjectMedia(dir, url);

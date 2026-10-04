@@ -15,7 +15,10 @@ import {
 } from '@reelforge/prompts';
 import {
   assignTransitionStyles,
+  DEFAULT_MAX_ASSET_NEEDS,
   projectLookMode,
+  projectResearchMode,
+  storyboardAssetNeeds,
   STORYBOARD_REPORT_VERSION,
   storyboardReportSchema,
   wordsFileSchema,
@@ -43,13 +46,18 @@ async function checkStoryboard(
   ctx: StageContext,
   words: WordsFile,
   lookMode: LookMode,
+  research: boolean,
 ): Promise<OutputCheck<StoryboardOutput>> {
   const text = await readProjectText(ctx.projectDir, FILES.storyboard);
   if (!text.ok) return { value: undefined, problems: [text.error.message], warnings: [] };
   if (text.value === undefined) {
     return { value: undefined, problems: [`${FILES.storyboard} was not written`], warnings: [] };
   }
-  const report = validateStoryboard(text.value, { words, ...storyboardLookOptions(lookMode) });
+  const report = validateStoryboard(text.value, {
+    words,
+    ...storyboardLookOptions(lookMode),
+    assetNeeds: { research },
+  });
   return {
     value: report.value,
     problems: errorLines(report.issues),
@@ -83,9 +91,11 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
   const words = await requireProjectJson(ctx.projectDir, FILES.words, wordsFileSchema);
   if (!words.ok) return words;
   const lookMode = projectLookMode(project.value);
+  const research = projectResearchMode(project.value) !== 'off';
   const prompt = render('storyboard', {
     styleId: project.value.style,
     ...storyboardLookVars(lookMode),
+    ...(research ? { assetResearch: true, maxAssetNeeds: DEFAULT_MAX_ASSET_NEEDS } : {}),
   });
   if (!prompt.ok) return prompt;
   ctx.step('Writing the storyboard', 10);
@@ -104,7 +114,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     purpose: 'main',
     file: FILES.storyboard,
     label: 'storyboard',
-    check: () => checkStoryboard(ctx, words.value, lookMode),
+    check: () => checkStoryboard(ctx, words.value, lookMode, research),
   });
   if (!checked.ok) return checked;
   const { value: validated, problems, repairs } = checked.value;
@@ -156,6 +166,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
       stubs: stubs.value.length,
       repairs,
       annotations: storyboard.shots.reduce((sum, shot) => sum + (shot.annotations?.length ?? 0), 0),
+      assetNeeds: storyboardAssetNeeds(storyboard.shots).length,
     },
   });
 }

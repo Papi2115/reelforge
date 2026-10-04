@@ -1,5 +1,5 @@
 /**
- * Test support (not exported): a local http server on 127.0.0.1 that plays every source from the
+ * Test support (`@reelforge/cli/assets-testing`, tests only): a local http server on 127.0.0.1 that plays every source from the
  * recorded fixtures (their file URLs rewritten to `/files/<host>/...` on this server), serves
  * small media files, and counts every request it receives. Tests never touch the internet.
  */
@@ -8,9 +8,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { deflateSync, crc32 } from 'node:zlib';
-import { createSourceRegistry, type AllowlistSourceId } from '../sources/index.js';
-import type { SourceEndpoints } from '../sources/types.js';
 import type { AssetRuntime } from '../runtime.js';
+import { loopbackAssetRuntime } from './loopback.js';
 
 export const ASSET_FIXTURES = path.resolve(
   import.meta.dirname,
@@ -131,27 +130,11 @@ export async function startAssetServer(): Promise<AssetTestServer> {
   const { port } = server.address() as AddressInfo;
   const base = `http://127.0.0.1:${String(port)}`;
   fallback = defaultHandler(base);
-  const endpoint = (prefix: string, files?: string): SourceEndpoints => ({
-    api: `${base}${prefix}`,
-    files,
-    hosts: ['127.0.0.1'],
-  });
-  const endpoints: Record<AllowlistSourceId, SourceEndpoints> = {
-    wikimedia: endpoint('/wikimedia/w/api.php'),
-    openverse: endpoint('/openverse'),
-    'internet-archive': endpoint('/ia', `${base}/ia`),
-    nasa: endpoint('/nasa'),
-    loc: endpoint('/loc'),
-  };
   return {
     base,
     requests,
     route: (pathname, handler) => routes.set(pathname, handler),
-    runtime: () => ({
-      sources: createSourceRegistry({ endpoints }),
-      transport: { allowLoopbackHttpForTests: true, idleTimeoutMs: 2000 },
-      now: () => new Date('2026-10-04T12:00:00.000Z'),
-    }),
+    runtime: () => loopbackAssetRuntime(base),
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.closeAllConnections();

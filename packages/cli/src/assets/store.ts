@@ -130,13 +130,15 @@ export async function isApproved(root: string, key: string): Promise<boolean> {
 }
 
 /**
- * Marks candidates of a proposal approved. For the app (PLAN.md#12.10) and tests only: no CLI
- * command exposes it, so the runtime Claude can never approve its own proposals.
+ * Marks candidates of a proposal approved; with `reviewedAt` the package also counts as reviewed
+ * (the user decided: the approved keys, everything else rejected). For the app (PLAN.md#12.10) and
+ * tests only: no CLI command exposes it, so the runtime Claude can never approve its own proposals.
  */
 export async function approveProposalItems(
   root: string,
   number: number,
   keys: readonly string[],
+  reviewedAt?: string,
 ): Promise<void> {
   const proposal = await readValidated(
     proposalFile(root, number),
@@ -147,5 +149,30 @@ export async function approveProposalItems(
   const items = proposal.items.map((item) =>
     keys.includes(candidateKey(item.candidate)) ? { ...item, approved: true } : item,
   );
-  await writeJsonAtomic(proposalFile(root, number), { ...proposal, items });
+  await writeJsonAtomic(proposalFile(root, number), {
+    ...proposal,
+    items,
+    ...(reviewedAt === undefined ? {} : { reviewedAt }),
+  });
+}
+
+/** Packages the user has not reviewed yet (ask mode), oldest first. */
+export async function pendingProposals(root: string): Promise<AssetProposal[]> {
+  return (await listProposals(root)).filter((proposal) => proposal.reviewedAt === undefined);
+}
+
+/** Approved candidates (`<source>:<id>`) of reviewed packages that are not in assets.json yet. */
+export async function approvedUnfetched(root: string): Promise<string[]> {
+  const [proposals, catalogue] = await Promise.all([listProposals(root), readCatalogue(root)]);
+  const fetched = new Set(
+    catalogue.assets.flatMap((asset) =>
+      asset.sourceItemId === null ? [] : [`${asset.source}:${asset.sourceItemId}`],
+    ),
+  );
+  const keys = proposals
+    .filter((proposal) => proposal.reviewedAt !== undefined)
+    .flatMap((proposal) => proposal.items.filter((item) => item.approved))
+    .map((item) => candidateKey(item.candidate))
+    .filter((key) => !fetched.has(key));
+  return [...new Set(keys)];
 }

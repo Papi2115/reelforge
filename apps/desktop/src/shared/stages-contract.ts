@@ -21,6 +21,7 @@ export const PIPELINE_STAGE_KEYS = [
   'clean',
   'words',
   'storyboard',
+  'assets',
   'scenes',
   'sound-cues',
   'mix',
@@ -49,6 +50,8 @@ export const stageInfoSchema = z.object({
   interrupted: z.boolean(),
   /** ISO time of the user's approval (script acceptance gate). */
   approvedAt: z.string().nullable(),
+  /** Assets: a proposal package waits for the user's review (research mode ask, PLAN.md#12.10). */
+  awaitingReview: z.boolean().optional(),
   /** Its output exists in the project. */
   hasOutput: z.boolean(),
   /** The app can run this stage at all (false: it arrives with a later update). */

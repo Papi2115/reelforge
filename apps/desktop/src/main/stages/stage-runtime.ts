@@ -13,6 +13,7 @@ import {
   type Result,
   type SessionManager,
 } from '@reelforge/claude-bridge';
+import type { AssetRuntime } from '@reelforge/cli/assets';
 import type { WhisperManagerOptions } from '@reelforge/pipeline';
 import type { AppSettings } from '@reelforge/shared';
 import {
@@ -111,6 +112,8 @@ export interface AppRunnerOptions {
   readonly frames: FrameRenderer;
   /** ffmpeg / whisper of the settings (`settingsAudioTools`; a test hook may wrap them). */
   readonly audio: AudioTools;
+  /** Asset sources of the Assets stage: undefined = the real ones (a test hook: a local server). */
+  readonly assets?: AssetRuntime | undefined;
 }
 
 /** `StageServiceOptions.createRunner` of the desktop app. */
@@ -126,5 +129,6 @@ export function appRunnerFactory(options: AppRunnerOptions): (projectDir: string
       scenes: { frames: options.frames },
       guard: options.guard,
       store: options.store,
+      assets: options.assets,
     });
 }

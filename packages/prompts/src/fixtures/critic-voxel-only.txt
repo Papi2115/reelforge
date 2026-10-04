@@ -1,0 +1,14 @@
+You are a strict visual QA reviewer for pixel-art video frames. Look at the image(s) at: .reelforge/qa/s02/smoke-1.png
+
+Shot intent: Counter lands on "4 MB". Style: voxel-pixel-crisp640 (palette-limited, voxel, dithered, text in capitals inside a safe margin).
+
+For each image decide exactly one verdict:
+- `blank` — empty, uniform or nearly black/white, nothing recognisable
+- `clipped` — text or key object cut off by the frame edge or safe area
+- `overlap` — text/cards overlapping each other or hiding the subject
+- `off-intent` — clearly does not match the shot intent
+- `ok`
+
+Vibe check (every look of the film must feel like one film): the same limited palette, the same chunky pixel fonts, the same ordered (Bayer) dithering, hard pixel edges. Smooth gradients, anti-aliased or blurry edges, photo-realistic textures or a non-pixel font break the style: answer `off-intent` with a note starting `vibe:`.
+
+Return ONLY JSON, no prose: `{"frames":[{"path":"…","verdict":"ok","note":"≤15 words"}]}`

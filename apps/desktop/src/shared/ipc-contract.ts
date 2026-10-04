@@ -46,6 +46,7 @@ import {
   type SnapshotSaveRequest,
   type SnapshotSaveResult,
 } from './player-contract.js';
+import { ASSETS_IPC, type AssetsApi } from './assets-contract.js';
 import { CHAT_IPC, CHAT_PUSH, type ChatApi } from './chat-contract.js';
 import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
 import { ONBOARDING_IPC, type OnboardingApi } from './onboarding-contract.js';
@@ -231,6 +232,8 @@ export const IPC = {
   ...ONBOARDING_IPC,
   /** Per-project options in project.json: look mode, ambient variation (PLAN.md#12.1, #12.8). */
   ...PROJECT_SETTINGS_IPC,
+  /** Asset research: research mode, assets, package review, credits (PLAN.md#12.10). */
+  ...ASSETS_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -267,7 +270,8 @@ export interface ReelforgeApi
     SoundApi,
     YoutubeApi,
     OnboardingApi,
-    ProjectSettingsApi {
+    ProjectSettingsApi,
+    AssetsApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;

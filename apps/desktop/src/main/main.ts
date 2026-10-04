@@ -33,6 +33,7 @@ import {
   USER_DATA_SWITCH,
 } from './app-paths.js';
 import { registerAppSchemePrivileged, serveAppProtocol } from './app-protocol.js';
+import { assetsHandlers, assetTestRuntime } from './assets/assets-ipc.js';
 import { createChildProcessRegistry } from './child-processes.js';
 import { chatHandlers } from './claude/chat-ipc.js';
 import { claudeSetup } from './claude/claude-runtime.js';
@@ -284,6 +285,8 @@ function main(): void {
       ? settingsAudio
       : recordedTranscription(recordedTranscript)(settingsAudio);
   if (audioTools !== settingsAudio) stagesLog.warn('test hook: transcriptions are recorded');
+  const assetRuntime = assetTestRuntime(process.env, testHooks);
+  if (assetRuntime !== undefined) stagesLog.warn('test hook: asset sources on a local server');
   const exportBackend = createExportBackend({
     projects,
     settings,
@@ -312,6 +315,7 @@ function main(): void {
       store: pipelineStore,
       frames: renderBackend.frames,
       audio: audioTools,
+      assets: assetRuntime,
     }),
     exportRun: {
       start: (listener) => exportBackend.service.runForStage(listener),
@@ -404,6 +408,11 @@ function main(): void {
             stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
         },
         log: stagesLog,
+      }),
+      ...assetsHandlers({
+        stages,
+        currentProject: () => projects.currentProject()?.dir,
+        log: log.child('assets'),
       }),
       ...variantsHandlers({
         service: stages,

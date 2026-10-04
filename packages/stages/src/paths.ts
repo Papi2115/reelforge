@@ -18,6 +18,8 @@ export const FILES = {
   wordsRaw: 'timing/words.raw.json',
   words: 'timing/words.json',
   storyboard: 'storyboard.json',
+  /** Asset catalogue (PLAN.md#12.9; bytes in `.reelforge/assets/`). */
+  assets: 'assets.json',
   cues: 'cues.json',
   scenesDir: 'scenes',
   /** App state (git-ignored). */
@@ -69,6 +71,8 @@ export const STAGE_OUTPUT_FILES: Readonly<Record<PipelineStage, readonly string[
   clean: [FILES.voClean],
   words: [FILES.wordsRaw, FILES.words],
   storyboard: [FILES.storyboard],
+  // assets.json may also hold the user's own assets: the stage counts by its pipeline status.
+  assets: [],
   scenes: [],
   'sound-cues': [FILES.cues],
   mix: [FILES.mix],

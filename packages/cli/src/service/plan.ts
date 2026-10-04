@@ -7,6 +7,7 @@ import type { RenderManifest } from '@reelforge/shared';
 import { readProjectFiles } from '../project/files.js';
 import {
   isolatedManifest,
+  withManifestAssets,
   planForScene,
   planForShot,
   renderSetup,
@@ -50,5 +51,6 @@ export async function planServiceShot(
       `time ${String(outside)} is outside shot ${plan.id} (${duration.toFixed(2)} s long; local times start at 0)`,
     );
   }
-  return { plan, manifest: isolatedManifest(setup, plan), fps: setup.fps };
+  const manifest = await withManifestAssets(setup.root, isolatedManifest(setup, plan));
+  return { plan, manifest, fps: setup.fps };
 }

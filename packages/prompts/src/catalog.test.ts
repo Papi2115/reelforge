@@ -41,6 +41,7 @@ describe('bundled prompts', () => {
   it('cover every stage of PLAN.md#5.8, the whole-video review (#7.6) and the YouTube text (#9.2)', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
+        'assets',
         'critic',
         'prop-build',
         'research',
@@ -60,7 +61,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 4, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 5, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -191,6 +192,7 @@ describe('stages and models', () => {
       'review-triage': 'critic',
       'review-plan': 'storyboard',
       'youtube-meta': 'storyboard',
+      assets: 'storyboard',
       'prop-build': 'scene-build',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);

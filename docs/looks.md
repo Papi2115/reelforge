@@ -7,7 +7,8 @@ One **Style**, many **Looks** (PLAN.md phase 12, ADR-009).
   It lives in `packages/engine` (`styles/<id>/`, `presets/`) and is never replaced by a look.
 - **Look** = a family of kit content (environments, props, effects, shot templates) plus the docs
   the runtime Claude builds with, a sound palette id and a variation budget key. Every look renders
-  through the same Style. Today only `voxel` (the 1.x kit, unchanged) is available.
+  through the same Style. Available: `voxel` (the 1.x kit, unchanged), `retro-ui`, `diorama` and
+  `blueprint` (`reelforge looks` lists them).
 
 ## The contract (`packages/kit/src/looks/types.ts`)
 
@@ -30,6 +31,13 @@ kit's own; a name already used by the voxel kit or another look is an error. Cat
 `reelforge kit-docs` marks those entries `(look <id>)`. With only voxel available, the kit API, the
 catalog and kit-docs text are exactly what they were before looks (tested).
 
+The `reelforge kit-docs` index must fit Claude Code's Bash output (~30,000 characters; above that
+the scene turn sees a 2 KB preview, real run v2.0): `voxel-only` projects list no entries of
+other looks (the 1.x text), `mixed` projects list look entries and project props one line each
+(params via `kit-docs <name>`), and when the kit outgrows the budget the longest entries keep
+only their param names. `kit-docs <kind|look> [--full]` lists one slice (`props`, `env`, `fx`,
+`templates`, `project`, `voxel`, `retro-ui`, …); long slices come in pages (`--page n`).
+
 ## Rolls
 
 Assigned per shot by the storyboard (`shot.roll`), definitions to be refined after the first film:
@@ -44,11 +52,13 @@ Assigned per shot by the storyboard (`shot.roll`), definitions to be refined aft
 ## Look mode (`project.json` → `lookMode`)
 
 - `voxel-only` — every project without the field (all pre-2.0 projects, the Nokia film, the
-  example project). Storyboard prompt, validator and scene-build prompt are byte for byte as
-  before (fixtures in `packages/prompts/src/fixtures/`).
+  example project). Storyboard prompt, validator, scene-build and critic prompts are byte for
+  byte as before (fixtures in `packages/prompts/src/fixtures/`).
 - `mixed` — new projects (`templates/project/project.json`). The storyboard prompt adds the roll
   definitions and the available looks; the validator adds the rhythm rules; the scene-build
-  prompt gets the shot's look id and docs.
+  prompt gets the shot's look id and docs; the frame critic gets the shot's look, roll and the
+  look's visual rules (`CRITIC_LOOK_RULES` in `packages/stages/src/looks.ts`) and checks crops,
+  label collisions and off-look elements.
 
 Rhythm rules (`packages/prompts/src/validators/rhythm.ts`, `StoryboardRules`), `mixed` only:
 

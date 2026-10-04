@@ -1,6 +1,7 @@
 /** The built-in stage implementations, one per StageId. */
 import type { StageId } from '../ids.js';
 import type { StageDefinition } from '../types.js';
+import { assetsStage } from './assets.js';
 import { cleanStage } from './clean.js';
 import { mixStage } from './mix.js';
 import { scenesStage } from './scenes.js';
@@ -18,6 +19,7 @@ export const BUILT_IN_STAGES: StageRegistry = {
   clean: cleanStage,
   words: wordsStage,
   storyboard: storyboardStage,
+  assets: assetsStage,
   scenes: scenesStage,
   'sound-cues': soundCuesStage,
   mix: mixStage,

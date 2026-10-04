@@ -34,6 +34,7 @@ export interface StageCheckInput<T extends CuesLike> {
 /** Reply line limits stated in the prompts. */
 const MAX_REPLY_LINES: Partial<Record<PromptId, number>> = {
   research: 3,
+  assets: 5,
   'scene-build': 5,
   'scene-fix': 4,
   'prop-build': 4,

@@ -14,6 +14,7 @@ export const SHORT_STEP_NAMES: Readonly<Record<string, string>> = {
   clean: 'Cleanup',
   words: 'Words',
   storyboard: 'Storyboard',
+  assets: 'Assets',
   scenes: 'Scenes',
   sound: 'Sound mix',
   export: 'Export',

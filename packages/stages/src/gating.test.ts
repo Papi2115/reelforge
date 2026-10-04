@@ -1,5 +1,6 @@
 import type { ProjectFile, StageState } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
+import { RESEARCH_OFF } from './assets-gate.js';
 import { canRun, wordsUseCleanAudio } from './gating.js';
 import { downstreamOf } from './ids.js';
 import { stagesToInvalidate } from './invalidate.js';
@@ -30,6 +31,7 @@ function snapshot(overrides: Partial<ProjectSnapshot> = {}): ProjectSnapshot {
     hasSceneFiles: false,
     stages: {},
     pause: undefined,
+    research: RESEARCH_OFF,
     ...overrides,
   };
 }
@@ -46,6 +48,7 @@ describe('stage graph', () => {
       'clean',
       'words',
       'storyboard',
+      'assets',
       'scenes',
       'sound-cues',
       'mix',

@@ -27,6 +27,8 @@ import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { useVariantsDock } from '../stages/use-variants-dock.js';
 import { VariantsDockPanel } from '../stages/VariantsPanel.js';
+import { AssetsDialog } from '../assets/AssetsDialog.js';
+import { useAssets } from '../assets/use-assets.js';
 import { ExportDialog } from '../export/ExportDialog.js';
 import { useMixPreview } from '../sound/use-mix-preview.js';
 import { useSound } from '../sound/use-sound.js';
@@ -78,6 +80,8 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   const reports = useStageReports(project.dir, reportsKey(stages.state));
   const sound = useSound(project.dir, reportsKey(stages.state));
   const [exportOpen, setExportOpen] = useState(false);
+  const [assetsOpen, setAssetsOpen] = useState(false);
+  const assets = useAssets(project.dir, reportsKey(stages.state));
   const chatDock = useChatDock();
   const [centerDocument, setCenterDocument] = useState<CenterDocumentKind | null>(null);
 
@@ -110,6 +114,9 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         return;
       case 'export':
         setExportOpen(true);
+        return;
+      case 'assets':
+        setAssetsOpen(true);
         return;
       case 'shots':
         setCenterDocument(null);
@@ -175,6 +182,14 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
 
   return (
     <>
+      {assetsOpen && (
+        <AssetsDialog
+          assets={assets}
+          onClose={() => {
+            setAssetsOpen(false);
+          }}
+        />
+      )}
       {exportOpen && (
         <ExportDialog
           dir={project.dir}

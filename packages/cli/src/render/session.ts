@@ -9,7 +9,12 @@ import type { CardDiagnostic, ResolvedAnchor, SfxCue } from '@reelforge/engine';
 import type { HarnessBrowser } from '@reelforge/engine/cli';
 import type { FrameStats, RgbaImage } from '@reelforge/engine/raster';
 import { describeUnknown, ProjectError } from '../errors.js';
-import { isolatedManifest, type RenderSetup, type ShotPlan } from '../project/shots.js';
+import {
+  isolatedManifest,
+  withManifestAssets,
+  type RenderSetup,
+  type ShotPlan,
+} from '../project/shots.js';
 import { engineCli } from './engine-tools.js';
 import { renderServiceFromEnv } from './service-client.js';
 import { openServiceRenderSession } from './service-session.js';
@@ -99,7 +104,8 @@ async function openPlaywrightSession(setup: RenderSetup): Promise<RenderSession>
       // lint: project props (kit-ext) are checked by the engine like in the app's render windows.
       const page = await browser.open({ lint: true });
       try {
-        const loaded = await page.load(isolatedManifest(setup, plan)).then(
+        const manifest = await withManifestAssets(setup.root, isolatedManifest(setup, plan));
+        const loaded = await page.load(manifest).then(
           (info) => ({ info }),
           (error: unknown) => ({ error: cleanEngineError(error) }),
         );

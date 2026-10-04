@@ -33,6 +33,7 @@ const WHY: Readonly<Record<string, string>> = {
   clean: 'Removes noise and evens out the level, so every word can be timed.',
   words: 'Times every spoken word, so the visuals land exactly on them.',
   storyboard: 'Claude splits the video into shots and plans what each one shows.',
+  assets: 'Real photos and footage the storyboard asked for; you decide what gets downloaded.',
   scenes: 'Claude writes the animation of every shot and checks its frames.',
   sound: 'Adds sound effects, ambience and music under your voice.',
   export: 'Renders the finished MP4 for YouTube.',
@@ -44,6 +45,7 @@ const TEXT: Readonly<Record<string, string>> = {
   clean: 'Clean up the voiceover audio.',
   words: 'Time every spoken word.',
   storyboard: 'Plan the shots.',
+  assets: 'Find the photos and footage the storyboard asks for.',
   scenes: 'Build the animated scenes.',
   sound: 'Mix the voice, effects and ambience.',
   export: 'Export the finished video.',
@@ -84,6 +86,13 @@ function attentionStep(row: RowView): Pick<NextStep, 'text' | 'button' | 'action
   const label = row.spec.label;
   switch (row.status) {
     case 'review':
+      if (row.spec.id === 'assets') {
+        return {
+          text: 'Review the asset package: approve the photos and footage you want.',
+          button: 'Review the assets',
+          action: { kind: 'open', target: { kind: 'assets' } },
+        };
+      }
       return {
         text: 'Read the script and approve it.',
         button: 'Open the script',

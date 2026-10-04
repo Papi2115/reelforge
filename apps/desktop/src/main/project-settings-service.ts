@@ -3,6 +3,7 @@
  * `project.json`, applies a patch, validates the result with the shared `projectFileSchema`
  * (unknown keys survive), writes it atomically (tmp + rename) and commits the project
  * (`ReelForge-Kind: manual`, step `project-settings`). Changes run one at a time.
+ * Research mode (PLAN.md#12.10) steers the next Assets step; nothing already fetched is removed.
  *
  * Invalidation: the settings only steer FUTURE builds (look mode: the next storyboard / scene
  * build / sound cues; ambient variation: the render manifest, so the preview and the next export).
@@ -14,7 +15,9 @@ import {
   projectAmbientVariation,
   projectFileSchema,
   projectLookMode,
+  projectResearchMode,
   type LookMode,
+  type ResearchMode,
   type ProjectFile,
 } from '@reelforge/shared';
 import { z } from 'zod';
@@ -55,6 +58,8 @@ export function effectiveProjectSettings(project: ProjectFile): ProjectSettings 
   return {
     lookMode: projectLookMode(project),
     ambientVariation: projectAmbientVariation(project),
+    researchMode: projectResearchMode(project),
+    researchSources: [...(project.researchSources ?? [])],
   };
 }
 
@@ -66,8 +71,17 @@ export function applyProjectSettingsPatch(
   const next: RawProject = { ...raw };
   if (patch.lookMode !== undefined) next['lookMode'] = patch.lookMode;
   if (patch.ambientVariation !== undefined) next['ambientVariation'] = patch.ambientVariation;
+  if (patch.researchMode !== undefined) next['researchMode'] = patch.researchMode;
+  if (patch.researchSources !== undefined) next['researchSources'] = [...patch.researchSources];
   return next;
 }
+
+const RESEARCH_MODE_WORDS: Readonly<Record<ResearchMode, string>> = {
+  ask: 'ask for each package',
+  allowlist: 'auto from selected sources',
+  'full-auto': 'full auto (unverified licences)',
+  off: 'off',
+};
 
 const LOOK_MODE_WORDS: Readonly<Record<LookMode, string>> = {
   'voxel-only': 'voxel only',
@@ -83,11 +97,22 @@ export function describeSettingsChange(before: ProjectSettings, after: ProjectSe
   if (before.ambientVariation !== after.ambientVariation) {
     parts.push(`ambient variation ${after.ambientVariation ? 'on' : 'off'}`);
   }
+  if (before.researchMode !== after.researchMode) {
+    parts.push(`research assets ${RESEARCH_MODE_WORDS[after.researchMode]}`);
+  }
+  if (before.researchSources.join(',') !== after.researchSources.join(',')) {
+    parts.push(`research sources ${after.researchSources.join(', ') || 'none'}`);
+  }
   return `Project settings: ${parts.length === 0 ? 'no change' : parts.join(', ')}`;
 }
 
 function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
-  return left.lookMode === right.lookMode && left.ambientVariation === right.ambientVariation;
+  return (
+    left.lookMode === right.lookMode &&
+    left.ambientVariation === right.ambientVariation &&
+    left.researchMode === right.researchMode &&
+    left.researchSources.join(',') === right.researchSources.join(',')
+  );
 }
 
 export class ProjectSettingsService {

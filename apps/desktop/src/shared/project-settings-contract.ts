@@ -1,17 +1,29 @@
 /**
  * IPC payloads of the per-project settings dialog: options stored in the open project's
- * `project.json` (2.x: look mode, ambient variation; later research mode, tension curve, taste).
+ * `project.json` (2.x: look mode, ambient variation, research mode + sources; later tension curve,
+ * taste).
  * Main reads and writes the file (zod-validated, atomic, autocommitted); the renderer only sees
  * the effective values and sends patches. Changes apply to future builds: nothing is marked
  * out of date. Merged into ipc-contract.ts.
  */
-import { lookModeSchema } from '@reelforge/shared';
+import { ALLOWLIST_SOURCES, lookModeSchema, researchModeSchema } from '@reelforge/shared';
 import { z } from 'zod';
+
+/** Sources the `allowlist` research mode may use (no duplicates). */
+export const researchSourcesSchema = z
+  .array(z.enum(ALLOWLIST_SOURCES))
+  .max(ALLOWLIST_SOURCES.length)
+  .refine((sources) => new Set(sources).size === sources.length, {
+    message: 'a source is listed twice',
+  });
 
 /** Effective values (defaults filled in for fields project.json does not have). */
 export const projectSettingsSchema = z.object({
   lookMode: lookModeSchema,
   ambientVariation: z.boolean(),
+  /** Asset research (PLAN.md#12.10); absent in project.json = `off`. */
+  researchMode: researchModeSchema,
+  researchSources: researchSourcesSchema,
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 
@@ -20,6 +32,8 @@ export const projectSettingsPatchSchema = z
   .strictObject({
     lookMode: lookModeSchema.optional(),
     ambientVariation: z.boolean().optional(),
+    researchMode: researchModeSchema.optional(),
+    researchSources: researchSourcesSchema.optional(),
   })
   .refine((patch) => Object.values(patch).some((value) => value !== undefined), {
     message: 'the patch changes nothing',

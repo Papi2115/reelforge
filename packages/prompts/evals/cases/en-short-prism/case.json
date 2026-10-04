@@ -28,6 +28,7 @@
     "shotIds": ["s06_red_violet"]
   },
   "replies": {
+    "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 8 sourced facts.\nUncertain: best angle depends on the glass.",
     "script": "Word count: 84. Estimated duration: about 34 seconds.\nAll claims are sourced.",
     "storyboard": "7 shots. Treatments: title-card, metaphor-object, 3d-reconstruction x2, data-chart-3d, kinetic-text, character-scene.\nMissing props: none.",

@@ -6,6 +6,7 @@
  */
 export const packageName = '@reelforge/stages';
 
+export * from './assets-gate.js';
 export * from './audio-tools.js';
 export * from './claude.js';
 export * from './gating.js';
@@ -17,6 +18,7 @@ export * from './settings.js';
 export * from './snapshot.js';
 export * from './types.js';
 export { BUILT_IN_STAGES, type StageRegistry } from './stages/registry.js';
+export { assetNeedLine, assetsPromptVars } from './stages/assets.js';
 export {
   generateDefaultCues,
   shotGroups,

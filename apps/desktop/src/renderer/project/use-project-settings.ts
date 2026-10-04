@@ -1,5 +1,5 @@
 /** Settings of the open project in the renderer: loaded on open, changed through main. */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   LookSummary,
   ProjectSettings,
@@ -26,6 +26,8 @@ export function useProjectSettings(): ProjectSettingsController {
   const [looks, setLooks] = useState<readonly LookSummary[]>([]);
   const [error, setError] = useState<string | undefined>(undefined);
   const [pending, setPending] = useState(0);
+  /** Number of the newest change: an older answer must not undo a newer optimistic change. */
+  const latest = useRef(0);
 
   const reload = useCallback((): void => {
     window.reelforge.getProjectSettings().then(
@@ -53,6 +55,8 @@ export function useProjectSettings(): ProjectSettingsController {
         previous === undefined ? previous : withProjectSettingsPatch(previous, patch),
       );
       setPending((count) => count + 1);
+      latest.current += 1;
+      const change = latest.current;
       window.reelforge
         .updateProjectSettings(patch)
         .then(
@@ -63,7 +67,7 @@ export function useProjectSettings(): ProjectSettingsController {
               return;
             }
             setError(undefined);
-            setSettings(result.settings);
+            if (change === latest.current) setSettings(result.settings);
           },
           (reason: unknown) => {
             log.error(`updateProjectSettings failed: ${errorMessage(reason)}`);

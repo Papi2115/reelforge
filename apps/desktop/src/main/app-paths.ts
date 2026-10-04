@@ -111,6 +111,12 @@ export function cliShimDir(userDataDir: string): string {
  */
 export const TEST_CLAUDE_LAUNCHER_ENV = 'REELFORGE_TEST_CLAUDE_LAUNCHER';
 
+/**
+ * Test hook (unpackaged runs + REELFORGE_TEST_HOOKS=1): `http://127.0.0.1:<port>` of a local asset
+ * source server (`@reelforge/cli/assets-testing`) the Assets step downloads from.
+ */
+export const TEST_ASSET_SERVER_ENV = 'REELFORGE_TEST_ASSET_SERVER';
+
 export function logFile(userDataDir: string): string {
   return path.join(userDataDir, 'logs', 'main.log');
 }

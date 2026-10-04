@@ -2,7 +2,8 @@
  * `reelforge-media://project/<path>` (PLAN.md#6.4): maps a media URL to an audio file of the open
  * project and parses HTTP byte ranges, so the `<audio>` master clock can seek. Also serves the
  * frame PNGs Claude rendered under `.reelforge/frames/` as chat thumbnails (PLAN.md#6.6), downscaled
- * when `?w=<px>` asks for it. Pure (no Electron): the confinement and range rules are
+ * when `?w=<px>` asks for it, and the downloaded asset images and proposal thumbnails under
+ * `.reelforge/assets/` (PLAN.md#12.10). Pure (no Electron): the confinement and range rules are
  * unit-tested; links are checked again in media-protocol.ts.
  */
 import path from 'node:path';
@@ -26,10 +27,13 @@ const IMAGE_TYPES: Readonly<Record<string, string>> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
+  '.gif': 'image/gif',
 };
 
-/** The only folder images are served from (QA frames rendered by the `reelforge` CLI). */
+/** Folders images are served from: QA frames rendered by the `reelforge` CLI, and downloaded
+ * assets with the proposal thumbnails of the asset package review (PLAN.md#12.10). */
 export const MEDIA_FRAMES_DIR = '.reelforge/frames/';
+export const MEDIA_ASSETS_DIR = '.reelforge/assets/';
 export const MAX_THUMBNAIL_WIDTH = 1280;
 
 export interface MediaFile {
@@ -75,8 +79,11 @@ export function resolveProjectMedia(
   }
   const extension = path.extname(relative).toLowerCase();
   const imageType = IMAGE_TYPES[extension];
-  const isFrame = imageType !== undefined && relative.toLowerCase().startsWith(MEDIA_FRAMES_DIR);
-  const contentType = isFrame ? imageType : MEDIA_TYPES[extension];
+  // Folder checks on the normalized path (`a/../` cannot leave a served folder).
+  const lower = path.posix.normalize(relative).toLowerCase();
+  const isFrame = imageType !== undefined && lower.startsWith(MEDIA_FRAMES_DIR);
+  const isAsset = imageType !== undefined && lower.startsWith(MEDIA_ASSETS_DIR);
+  const contentType = isFrame || isAsset ? imageType : MEDIA_TYPES[extension];
   if (contentType === undefined) return failure(403, `not an audio file or frame: ${relative}`);
   const root = path.resolve(projectDir);
   const file = path.resolve(root, ...relative.split('/'));

@@ -93,6 +93,11 @@
   font-size: 13px;
 }
 
+/* Assets (PLAN.md#12.10): a sub-step between Storyboard and Scenes built, indented under them. */
+[data-stage-row='assets'] > .stage-item {
+  padding-left: 20px;
+}
+
 .stage-item[aria-pressed='true'] {
   border-color: var(--border);
   background: var(--panel-raised);

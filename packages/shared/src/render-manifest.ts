@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { ambientShotSchema, ambientVariationSettingsSchema } from './ambient-variation.js';
+import { assetIdSchema, assetMimeSchema } from './assets.js';
 import { kitExtensionSchema } from './kit-extensions.js';
 import { paletteSchema } from './palette.js';
 import { shotIdSchema, transitionSchema } from './storyboard.js';
@@ -37,6 +38,41 @@ export const manifestShotSchema = z
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type ManifestShot = z.infer<typeof manifestShotSchema>;
 
+/**
+ * How a scene names an asset (PLAN.md#12.11): `<asset id>` or, for a still of a video,
+ * `<asset id>@<seconds>` (`nasa-launch@12.5`; without `@` a video shows its middle frame).
+ */
+export const ASSET_REF_PATTERN = /^([a-z0-9][a-z0-9-]{0,63})(?:@(\d{1,5}(?:\.\d{1,3})?))?$/;
+export const assetRefSchema = z.string().regex(ASSET_REF_PATTERN);
+
+/** Longest edge of the decoded pixels an asset carries into the engine (the frame is 640 wide). */
+export const ASSET_SOURCE_MAX_EDGE = 640;
+
+/**
+ * A picture the scenes may embed (`ctx.assets.image(ref)`), decoded by the pipeline (ffmpeg,
+ * then an integer area downscale to ASSET_SOURCE_MAX_EDGE) so the sandboxed engine never decodes
+ * or fetches anything. `rgb` = base64 of width*height*3 bytes, rows top-down.
+ */
+export const manifestAssetSchema = z
+  .object({
+    ref: assetRefSchema,
+    id: assetIdSchema,
+    /** Project-relative file of the original (for messages; the engine never reads it). */
+    file: z.string().min(1),
+    mime: assetMimeSchema,
+    sha256: z.string().regex(/^[0-9a-f]{64}$/),
+    /** Video still time in seconds (videos only). */
+    at: z.number().nonnegative().optional(),
+    width: z.int().min(1).max(ASSET_SOURCE_MAX_EDGE),
+    height: z.int().min(1).max(ASSET_SOURCE_MAX_EDGE),
+    rgb: z.string().regex(/^[A-Za-z0-9+/]*$/),
+  })
+  .refine((asset) => asset.rgb.length === asset.width * asset.height * 4, {
+    message: 'rgb must be base64 of width*height*3 bytes',
+    path: ['rgb'],
+  });
+export type ManifestAsset = z.infer<typeof manifestAssetSchema>;
+
 export const renderManifestSchema = z
   .object({
     version: z.literal(RENDER_MANIFEST_VERSION),
@@ -55,9 +91,22 @@ export const renderManifestSchema = z
     kitExtensions: z.array(kitExtensionSchema).optional(),
     /** Ambient variation switch (PLAN.md#12.8); absent or disabled = every shot as authored. */
     ambientVariation: ambientVariationSettingsSchema.optional(),
+    /** Decoded pictures the scenes reference (PLAN.md#12.11); absent = none. */
+    assets: z.array(manifestAssetSchema).optional(),
     shots: z.array(manifestShotSchema).min(1),
   })
   .superRefine((manifest, issues) => {
+    const refs = new Set<string>();
+    (manifest.assets ?? []).forEach((asset, index) => {
+      if (refs.has(asset.ref)) {
+        issues.addIssue({
+          code: 'custom',
+          message: `duplicate asset ref "${asset.ref}"`,
+          path: ['assets', index, 'ref'],
+        });
+      }
+      refs.add(asset.ref);
+    });
     const names = new Set<string>();
     (manifest.kitExtensions ?? []).forEach((extension, index) => {
       if (names.has(extension.name)) {

@@ -1263,6 +1263,7 @@ Retro web browser window (look retro-ui): tabs, address bar (typed by t), news p
 | --- | --- | --- | --- |
 | `url` | string | `"WWW.BYTE-TIMES.COM"` | Address bar text |
 | `title` | string | `"BYTE TIMES"` | Tab and window title |
+| `appName` | string |  | Browser name after the window title, e.g. "MOSAIC" (omit = the title alone) |
 | `site` | string | `"THE BYTE TIMES"` | Site banner |
 | `headline` | string | `"CALCULATOR RUNS DOOM"` | Page headline (2 lines max) |
 | `byline` | string | `"BY STAFF WRITER"` | Line under the headline |

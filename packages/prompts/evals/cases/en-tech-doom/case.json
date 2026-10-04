@@ -26,6 +26,7 @@
     "shotIds": ["s08_memory"]
   },
   "replies": {
+    "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 9 sourced facts.\nMain sources: Wikipedia (Doom, Doom engine), Doom Wiki.\nUncertain: which pregnancy-test ports really ran the game.",
     "script": "Word count: 86. Estimated duration: about 35 seconds.\nAll claims are sourced in research.md.",
     "storyboard": "8 shots. Treatments: title-card, metaphor-object, kinetic-text, 3d-reconstruction x2, montage/transition, node-graph/timeline, counter/odometer.\nMissing props: floppy-disk, pregnancy-test.",

@@ -25,6 +25,9 @@ or stores your Claude credentials. v1 is for personal use (see "Licensing and te
   chapters, thumbnail and title/description/tag suggestions.
 - **Project settings** per video: voxel only or mixed looks (retro UI, diorama, blueprint) and
   subtle background variation between shots, saved in `project.json` and the project history.
+- **Asset research** (optional): real photos/footage from open-licence sources, per project ask /
+  selected sources / full auto ⚠ / off (zero network); you approve packages, ⚠ unverified licences
+  are flagged at export (`docs/assets.md`).
 - **Local first**: a project is a folder plus a git repo (autocommit after every step and Claude turn,
   history + revert in the app).
 - **Resilient**: recovers from usage limits (pause and auto-resume), crashes, killed processes and
@@ -93,7 +96,7 @@ docs/                   spikes, ADRs, kit catalog, perf, packaging, real-run rep
 
 ## Docs
 
-`docs/decisions/` (ADR-001…009) · `docs/looks.md` · `docs/kit-catalog.md` · `docs/cli.md` · `docs/export.md` ·
+`docs/decisions/` (ADR-001…009) · `docs/looks.md` · `docs/assets.md` · `docs/kit-catalog.md` · `docs/cli.md` · `docs/export.md` ·
 `docs/golden-frames.md` · `docs/perf.md` · `docs/packaging.md` · `docs/real-run-report.md` ·
 `docs/licenses.md`. Roadmap in `PLAN.md`, contributor rules in `CLAUDE.md`.
 

@@ -6,6 +6,7 @@
 import type { PipelineStateStore } from '@reelforge/claude-bridge';
 import type { PipelineState, StageState } from '@reelforge/shared';
 import {
+  assetsStep,
   canRun,
   downstreamOf,
   isStageId,
@@ -34,6 +35,7 @@ export const STAGE_RUNS: Readonly<Record<PipelineStage, AppStageRequest | 'repla
   clean: { stage: 'clean' },
   words: { stage: 'words' },
   storyboard: { stage: 'storyboard' },
+  assets: { stage: 'assets' },
   scenes: { stage: 'scenes' },
   'sound-cues': { stage: 'sound-cues' },
   mix: { stage: 'mix' },
@@ -56,6 +58,32 @@ export function followUpReview(
   if (!enabled || request.stage !== 'scenes') return undefined;
   if ((request.action ?? 'build') !== 'build' || request.shots !== undefined) return undefined;
   return { stage: 'scenes', action: 'final-review', trigger: 'auto' };
+}
+
+/**
+ * The Assets step (PLAN.md#12.10) is listed only when research is on and the storyboard asks for
+ * photos/footage (or the step already ran): projects without research never see it.
+ */
+export function assetsVisible(snapshot: ProjectSnapshot): boolean {
+  const step = assetsStep(snapshot);
+  if (step === 'off') return false;
+  const state = snapshot.stages['assets'];
+  return step !== 'not-needed' || (state !== undefined && state.status !== 'idle');
+}
+
+/**
+ * What follows a finished run: a storyboard that asks for photos/footage queues Assets right
+ * away (before the rest of its group); an Assets run that ends waiting for the user's review
+ * stops its group (Scenes built waits for the review).
+ */
+export function assetsFollowUp(
+  stage: AppStageRequest['stage'],
+  snapshot: ProjectSnapshot,
+): 'queue-assets' | 'stop-group' | undefined {
+  const step = assetsStep(snapshot);
+  if (stage === 'storyboard' && step === 'to-run') return 'queue-assets';
+  if (stage === 'assets' && step === 'review') return 'stop-group';
+  return undefined;
 }
 
 export const INTERRUPTED_MESSAGE = 'Interrupted: the app closed while it was running.';
@@ -138,7 +166,8 @@ function readinessOf(
 
 export function buildStageInfos(input: StageInfoInput): StageInfo[] {
   const { snapshot } = input;
-  return PIPELINE_STAGES.map((stage): StageInfo => {
+  const stages = PIPELINE_STAGES.filter((stage) => stage !== 'assets' || assetsVisible(snapshot));
+  return stages.map((stage): StageInfo => {
     const state = snapshot.stages[stage];
     const run = STAGE_RUNS[stage];
     const readiness = readinessOf(stage, snapshot);
@@ -151,6 +180,7 @@ export function buildStageInfos(input: StageInfoInput): StageInfo[] {
       staleReason: state?.staleReason ?? null,
       interrupted: state?.interrupted === true,
       approvedAt: state?.approvedAt ?? null,
+      ...(stage === 'assets' ? { awaitingReview: assetsStep(snapshot) === 'review' } : {}),
       hasOutput: stageHasOutput(stage, snapshot, input.hasVideo),
       registered: true,
       runnable: run !== 'replace-only',

@@ -51,6 +51,8 @@ export function withProjectSettingsPatch(
   return {
     lookMode: patch.lookMode ?? settings.lookMode,
     ambientVariation: patch.ambientVariation ?? settings.ambientVariation,
+    researchMode: patch.researchMode ?? settings.researchMode,
+    researchSources: patch.researchSources ?? settings.researchSources,
   };
 }
 

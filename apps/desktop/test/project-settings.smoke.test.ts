@@ -2,8 +2,9 @@
  * Project settings in the built app (`pnpm test:app`): the header's "Project settings" opens the
  * dialog on the CLI fixture project (no lookMode / ambientVariation = voxel only, off); changing
  * the look mode (click and arrow keys) and ambient variation writes project.json and commits it
- * (`Project settings: …`); the choices persist when the dialog and the project are opened again.
- * No Claude involved. Screenshot at 1280x720: out/test-app/project-settings-1280.png.
+ * (`Project settings: …`); research assets (2.1: no researchMode = Off) shows the full-auto ⚠
+ * warning and the allowlist sources; the choices persist when the dialog and the project are
+ * opened again. No Claude involved. Screenshots at 1280x720: out/test-app/project-settings-*.png.
  */
 import { spawnSync } from 'node:child_process';
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -65,6 +66,10 @@ function mixed(dialog: Locator): Locator {
   return dialog.getByRole('radio', { name: /^Mixed looks — voxel \+ / });
 }
 
+function research(dialog: Locator, name: RegExp): Locator {
+  return dialog.getByRole('radio', { name });
+}
+
 function ambient(dialog: Locator): Locator {
   return dialog.getByRole('checkbox', { name: /^Vary backgrounds subtly between shots/ });
 }
@@ -121,8 +126,10 @@ describe('project settings', () => {
     await looks.getByText('Voxel 3D', { exact: true }).waitFor();
     expect(await looks.getByRole('listitem').count()).toBeGreaterThanOrEqual(2);
     await dialog.getByText('Applies to the next Storyboard and Scenes build.').waitFor();
-    // Reserved sections without options are not rendered.
-    for (const name of ['Research', 'Direction', 'Taste']) {
+    // Research (2.1): no researchMode in the fixture = Off. Reserved sections are not rendered.
+    await dialog.getByRole('region', { name: 'Research' }).waitFor();
+    expect(await research(dialog, /^Off/).isChecked()).toBe(true);
+    for (const name of ['Direction', 'Taste']) {
       expect(await dialog.getByRole('region', { name }).count(), name).toBe(0);
     }
 
@@ -136,6 +143,28 @@ describe('project settings', () => {
     expect(await projectJson()).toMatchObject({ lookMode: 'mixed', ambientVariation: true });
     await expectFits();
     await page.screenshot({ path: path.join(screenshotDir, 'project-settings-1280.png') });
+
+    // Research assets: full auto shows the red licence warning; the allowlist its sources.
+    await research(dialog, /^Full auto/).click();
+    await expectCommit('Project settings: research assets full auto (unverified licences)');
+    expect(await dialog.getByRole('alert').textContent()).toContain(
+      'You are responsible for checking every licence',
+    );
+    await research(dialog, /^Automatic from selected sources/).click();
+    await expectCommit(
+      'Project settings: research assets auto from selected sources, research sources wikimedia, nasa',
+    );
+    const sources = dialog.getByRole('group', { name: 'Sources Claude may download from' });
+    expect(await sources.getByRole('checkbox', { name: /^Wikimedia Commons/ }).isChecked()).toBe(
+      true,
+    );
+    expect(await sources.getByRole('checkbox', { name: /^Library of Congress/ }).isChecked()).toBe(
+      false,
+    );
+    await expectFits();
+    await page.screenshot({ path: path.join(screenshotDir, 'project-settings-research-1280.png') });
+    await research(dialog, /^Off/).click();
+    await expectCommit('Project settings: research assets off');
 
     // Keyboard: arrow keys move the radio choice, Escape closes the dialog.
     await mixed(dialog).focus();
@@ -156,6 +185,8 @@ describe('project settings', () => {
       seed: 2115,
       lookMode: 'mixed',
       ambientVariation: true,
+      researchMode: 'off',
+      researchSources: ['wikimedia', 'nasa'],
     });
   });
 

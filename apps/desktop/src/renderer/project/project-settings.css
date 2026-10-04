@@ -89,3 +89,30 @@
 .project-setting-note {
   font-size: 12px;
 }
+
+/* Research assets (PLAN.md#12.10): the full-auto warning is red, the allowlist sources indented. */
+.research-risky {
+  color: var(--error);
+}
+
+.project-settings-body .research-warning {
+  padding: 6px 10px;
+  border-left: 3px solid var(--error);
+  color: var(--error);
+  font-size: 12px;
+}
+
+.research-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+}
+
+.research-sources legend {
+  padding: 0 4px;
+  font-size: 12px;
+}

@@ -6,7 +6,9 @@ import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { AnchorIndex } from '@reelforge/pipeline';
 import {
   projectLookMode,
+  projectResearchMode,
   storyboardFileSchema,
+  type AssetRecord,
   wordsFileSchema,
   type LookMode,
   type StoryboardShot,
@@ -16,6 +18,7 @@ import { readProjectText, requireProjectJson } from '../files.js';
 import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
+import { sceneAssetCatalogue } from './shot-assets.js';
 import type { SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
 import {
@@ -44,6 +47,10 @@ export interface SceneJob {
   readonly anchorIndex: AnchorIndex | undefined;
   /** Shots locked by the user (`locks.json`, PLAN.md#11.4): never built or fixed. */
   readonly locked: ReadonlySet<string>;
+  /** Asset research is on (PLAN.md#12.10): build prompts list the shot's needs and assets. */
+  readonly research: boolean;
+  /** assets.json entries (empty when research is off). */
+  readonly assets: readonly AssetRecord[];
 }
 
 let defaultKitNames: KitNames | undefined;
@@ -74,6 +81,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   const kitNames = tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog());
   const settings = ctx.settings.scenes;
   const styleId = project.value.style;
+  const assets = await sceneAssetCatalogue(ctx.projectDir, project.value);
   return ok({
     ctx,
     frames: tools.frames,
@@ -90,6 +98,8 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
         ? undefined
         : new AnchorIndex(words.value.words, { lang: project.value.language }),
     locked: locked.value,
+    research: projectResearchMode(project.value) !== 'off',
+    assets,
   });
 }
 

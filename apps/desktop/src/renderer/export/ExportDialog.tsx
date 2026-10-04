@@ -14,6 +14,7 @@ import {
   type EncoderPreference,
 } from '@reelforge/shared';
 import type { ExportOptions } from '../../shared/export-contract.js';
+import { ExportAssets } from '../assets/ExportAssets.js';
 import { errorMessage } from '../log.js';
 import { ExportPreflight } from '../stages/FinalReview.js';
 import type { Preflight } from '../stages/final-review-view.js';
@@ -337,6 +338,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
             }}
           >
             <ExportPreflight preflight={preflight} onSeekShot={props.onSeekShot} />
+            <ExportAssets dir={props.dir} />
             {options === undefined || form === null ? (
               <p className="muted">Loading…</p>
             ) : (

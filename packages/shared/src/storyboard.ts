@@ -113,6 +113,31 @@ export const ROLLS = ['A', 'B', 'C'] as const;
 export const rollSchema = z.enum(ROLLS);
 export type Roll = z.infer<typeof rollSchema>;
 
+/** At most this many asset needs per film unless the stage is told otherwise (PLAN.md#12.10). */
+export const DEFAULT_MAX_ASSET_NEEDS = 8;
+
+/** Asset need id: lower-case kebab case, unique in the storyboard, e.g. `apollo-launch`. */
+export const assetNeedIdSchema = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9-]{0,47}$/, 'asset need id must be kebab case, e.g. apollo-launch');
+
+/**
+ * A real photo / footage / screenshot a shot would be stronger with (PLAN.md#12.10): written by
+ * the storyboard only when the project's research mode is not `off`. The shot always keeps a
+ * kit fallback; the Assets stage looks for it per the research mode.
+ */
+export const assetNeedSchema = z.object({
+  id: assetNeedIdSchema,
+  kind: z.enum(['image', 'video']),
+  /** What is needed, in plain words ("the Apollo 11 launch, 1969, wide"). */
+  description: z.string().min(1).max(300),
+  /** Search words for the open-licence sources. */
+  query: z.string().min(1).max(200).optional(),
+  /** How the shot would use it ("photo on the CRT", "framed on the wall"). */
+  role: z.string().min(1).max(120).optional(),
+});
+export type AssetNeed = z.infer<typeof assetNeedSchema>;
+
 /** Look a shot is built in when the storyboard names none (ADR-009). */
 export const DEFAULT_LOOK_ID = 'voxel';
 
@@ -138,6 +163,8 @@ export const storyboardShotSchema = z
     roll: rollSchema.optional(),
     /** Look id (optional; absent = `voxel`, see `shotLook`). */
     look: lookIdSchema.optional(),
+    /** Real photos/footage the shot asks for (optional; only when asset research is on). */
+    assetNeeds: z.array(assetNeedSchema).optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
@@ -145,6 +172,21 @@ export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
 /** The look a shot is built in: its `look`, or `voxel` when the storyboard names none. */
 export function shotLook(shot: Pick<StoryboardShot, 'look'>): string {
   return shot.look ?? DEFAULT_LOOK_ID;
+}
+
+/** An asset need with the shot that asked for it. */
+export interface ShotAssetNeed {
+  readonly shotId: string;
+  readonly need: AssetNeed;
+}
+
+/** Every asset need of the storyboard, in shot order. */
+export function storyboardAssetNeeds(
+  shots: readonly Pick<StoryboardShot, 'id' | 'assetNeeds'>[],
+): ShotAssetNeed[] {
+  return shots.flatMap((shot) =>
+    (shot.assetNeeds ?? []).map((need) => ({ shotId: shot.id, need })),
+  );
 }
 
 export const storyboardFileSchema = z.object({

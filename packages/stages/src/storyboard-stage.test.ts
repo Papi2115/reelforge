@@ -267,6 +267,7 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
     ]);
     const projectFile = JSON.parse(readProject(dir, 'project.json')) as Record<string, unknown>;
     delete projectFile['lookMode'];
+    delete projectFile['researchMode'];
     writeProject(dir, 'project.json', JSON.stringify(projectFile, null, 2));
     const result = await runner.run({ stage: 'storyboard' });
     expect(result.ok).toBe(true);
@@ -274,6 +275,33 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
     const expected = renderPrompt('storyboard', { styleId: 'voxel-pixel-crisp640' });
     expect(expected.ok && prompt.includes(expected.value)).toBe(true);
     expect(prompt).not.toContain('Rolls and looks');
+    expect(prompt).not.toContain('assetNeeds');
+  });
+
+  it('asks for real photos/footage only when asset research is on (PLAN.md#12.10)', async () => {
+    const storyboard = JSON.parse(GOLDEN) as { shots: Record<string, unknown>[] };
+    const needs = [
+      { id: 'newton-portrait', kind: 'image', description: 'portrait of Isaac Newton' },
+    ];
+    const withNeeds = {
+      ...storyboard,
+      shots: storyboard.shots.map((shot) =>
+        shot['id'] === 's07_newton' ? { ...shot, assetNeeds: needs } : shot,
+      ),
+    };
+    const { dir, harness, runner } = await setup('storyboard asset needs', [
+      writes({ 'storyboard.json': JSON.stringify(withNeeds, null, 2) }),
+    ]);
+    const projectFile = JSON.parse(readProject(dir, 'project.json')) as Record<string, unknown>;
+    delete projectFile['lookMode'];
+    writeProject(dir, 'project.json', JSON.stringify(projectFile, null, 2));
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok && result.value.metrics['assetNeeds']).toBe(1);
+    const prompt = harness.specs[0]?.prompt ?? '';
+    expect(prompt).toContain('"assetNeeds": [{ "id": "apollo-launch"');
+    expect(prompt).toContain('At most 8 needs in the whole film');
+    const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
+    expect(written.shots.find((shot) => shot.id === 's07_newton')?.assetNeeds).toEqual(needs);
   });
 
   it('pauses on a usage limit mid-stage, persists it, resumes at the reset time and finishes', async () => {

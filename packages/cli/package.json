@@ -15,6 +15,14 @@
       "types": "./dist/service/index.d.ts",
       "default": "./dist/service/index.js"
     },
+    "./assets": {
+      "types": "./dist/assets/index.d.ts",
+      "default": "./dist/assets/index.js"
+    },
+    "./assets-testing": {
+      "types": "./dist/assets/testing/index.d.ts",
+      "default": "./dist/assets/testing/index.js"
+    },
     "./shims": {
       "types": "./dist/shims.d.ts",
       "default": "./dist/shims.js"
