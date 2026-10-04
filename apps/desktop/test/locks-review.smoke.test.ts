@@ -17,11 +17,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import {
   closeApp,
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   launchApp,
   screenshotDir,
   stubFolderPicker,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 import { FINAL_REVIEW_CLEAN } from './support/pipeline-film.js';
 import { showStage, stageText } from './support/pipeline-rows.js';
@@ -120,9 +120,7 @@ async function start(): Promise<void> {
   await page.waitForFunction(() => window.innerWidth === 1280 && window.innerHeight === 720);
   await stubFolderPicker(app, dir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  await waitForProjectPreview(page);
 }
 
 beforeAll(async () => {

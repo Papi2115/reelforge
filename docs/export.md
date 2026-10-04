@@ -80,8 +80,8 @@ Verified: concat of `.mp4` segments keeps exact frame counts and duration (`.mkv
 
 `segments/<sha256>.mp4` under `<project>/.reelforge/cache/export/`. The key hashes (stable JSON):
 cache format version · `engineVersion` · `kitVersion` · style id + full preset JSON · manifest
-palette overrides · project seed · fps · the shot's frame range · shot id, t0, t1, transitionIn,
-sha256 of the scene source · used anchors · for transitions-in, the same content of the previous
+palette overrides · project seed · fps · the shot's frame range · shot id, t0, t1, transitionIn
+(with its transition-kit `style`, ADR-011), sha256 of the scene source · used anchors · for transitions-in, the same content of the previous
 shot · output fingerprint (`ExportMedia.outputKey` + preset + upscale factor).
 
 `RenderIdentity` (`engineVersion`, `kitVersion`, `style {id,width,height,preset}`) is supplied by

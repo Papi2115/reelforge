@@ -54,7 +54,7 @@ the user's note); each QA fix request says which variant file to edit and to kee
 | `.variants/<shot>/v<n>.js` | work file the runtime Claude writes (it may not write `.reelforge/`); excluded through `.git/info/exclude`, removed after the build | no |
 | `.reelforge/variants/<shot>/v<n>.js` | stored variant scenes | no |
 | `.reelforge/variants/<shot>/variants.json` | `shotVariantSetSchema`: round, note, base fingerprint, per variant direction, status (`building` / `ready` / `dropped`), QA record, reason | no |
-| `.reelforge/taste.json` | `tasteLogSchema`: per decision shot, treatment, decision (`pick` / `keep-current` / `discard`), directions offered, chosen (`none`), note, QA scores, time — local only, nothing reads it yet (PLAN.md#12.13) | no |
+| `.reelforge/taste.json` | `tasteLogSchema`: per decision shot, treatment, decision (`pick` / `keep-current` / `discard`), directions offered, chosen (`none`), note, QA scores, time — local only; with taste learning on, the same decisions also teach the app-wide taste profile (`docs/taste.md`) | no |
 | `scenes/<shot>.js` | changed only by a pick (`Shot s03: picked variant 2 (<direction>)`) | yes |
 
 ## QA per variant

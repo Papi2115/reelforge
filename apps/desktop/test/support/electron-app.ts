@@ -63,9 +63,12 @@ async function seedSettings(userDataDir: string): Promise<void> {
 }
 
 /**
- * Launches the built app. Its window is made non-focusable: otherwise it takes the OS keyboard
- * focus and real key presses on the machine running the tests (seen: an auto-repeating
- * ArrowRight) reach the player's shortcuts. Playwright's input does not need OS focus.
+ * Launches the built app, shielded from the real input of the machine running the tests (Playwright
+ * injects its input through CDP and needs neither OS focus nor OS mouse events):
+ * - non-focusable: otherwise it takes the OS keyboard focus and real key presses (seen: an
+ *   auto-repeating ArrowRight) reach the player's shortcuts;
+ * - click-through: otherwise real mouse clicks under the window (seen: an auto-clicker parked over
+ *   the header's "Settings" button) open dialogs that cover the app mid-test.
  */
 export async function launchApp(
   userDataDir: string,
@@ -83,6 +86,7 @@ export async function launchApp(
   await app.evaluate(({ BrowserWindow }) => {
     for (const window of BrowserWindow.getAllWindows()) {
       window.setFocusable(false);
+      window.setIgnoreMouseEvents(true);
       window.blur();
     }
   });
@@ -137,6 +141,18 @@ export function frameStats(page: Page): Promise<FrameStats> {
       hash: hash.toString(16),
     };
   });
+}
+
+/**
+ * After "Open project…": waits for the first frame of the project's own preview. The Start screen's
+ * demo preview has a rendered frame too, so the Start region has to be gone first.
+ */
+export async function waitForProjectPreview(
+  page: Page,
+  timeout = FIRST_FRAME_TIMEOUT_MS,
+): Promise<void> {
+  await page.getByRole('region', { name: 'Start' }).waitFor({ state: 'detached', timeout });
+  await page.locator('canvas.preview-canvas[data-rendered-t]').waitFor({ timeout });
 }
 
 /** Waits until the preview shows the frame of time `t` (as written by the canvas sink). */

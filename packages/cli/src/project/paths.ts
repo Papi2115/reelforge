@@ -13,6 +13,8 @@ export const PROJECT_PATHS = {
   brief: 'brief.json',
   script: 'script.txt',
   storyboard: 'storyboard.json',
+  /** Tension curve (PLAN.md#12.22). */
+  tension: 'tension.json',
   cues: 'cues.json',
   words: 'timing/words.json',
   scenes: 'scenes',

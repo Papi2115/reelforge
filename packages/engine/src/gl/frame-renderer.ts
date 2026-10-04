@@ -17,6 +17,7 @@ import {
   type PerspectiveCamera,
   type Scene,
 } from 'three';
+import type { FocusState } from '../camera/bokeh.js';
 import type { PostFxSettings } from '../style.js';
 import type { TextOverlay } from '../text/text-layer.js';
 import { createCompositePass, type CompositeLayer, type CompositeMode } from './composite-pass.js';
@@ -40,6 +41,8 @@ export interface RenderView {
   readonly camera: PerspectiveCamera;
   /** Pixel text of the shot (low-res RGBA, top-down), composited before the post-fx. */
   readonly overlay?: TextOverlay;
+  /** Depth of field of the frame (`ctx.camera.rackFocus`); absent = everything sharp. */
+  readonly focus?: FocusState | undefined;
 }
 
 export interface FrameLayers {
@@ -156,6 +159,7 @@ export function createFrameRenderer(options: FrameRendererOptions): FrameRendere
       depth: target.depthTexture ?? undefined,
       near: view.camera.near,
       far: view.camera.far,
+      focus: view.focus,
     };
   };
 

@@ -52,6 +52,9 @@ export interface TimelinePanelProps {
   readonly onDropSound: (sound: LibrarySound, t: number) => void;
   /** Locked shots: changing their length needs a confirmation. */
   readonly locked: ReadonlySet<string>;
+  /** The Tension panel under the timeline (PLAN.md#12.22): shown, and its toggle. */
+  readonly tensionOpen?: boolean;
+  readonly onToggleTension?: () => void;
 }
 
 const EMPTY_TEXT = {
@@ -189,6 +192,14 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
             }));
           }}
         />
+        {props.onToggleTension !== undefined && (
+          <ToolButton
+            label={props.tensionOpen === true ? 'Hide the tension curve' : 'Show the tension curve'}
+            onClick={props.onToggleTension}
+          >
+            Tension
+          </ToolButton>
+        )}
         <ToolButton
           label="Undo timeline edit"
           keys="Ctrl+Z"

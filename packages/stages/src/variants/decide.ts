@@ -3,7 +3,7 @@
  * (the previous one stays in git history), its QA record goes into the scenes report, the other
  * variants are deleted, the stage commits "Shot s03: picked variant 2 (<direction>)" and,
  * opt-in, locks the shot. Keep current / discard all: the set is deleted. Every decision is
- * appended to the taste log.
+ * appended to the taste log and, with taste learning on, becomes a taste signal (PLAN.md#12.13).
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
@@ -20,6 +20,7 @@ import { updateScenesReport } from '../scenes/report.js';
 import { stageError, type StageError, type StageSummary } from '../types.js';
 import { currentVariantSet, lockedShotError, variantShot } from './current.js';
 import { removeVariantSet } from './store.js';
+import { variantDecisionSignal } from '../taste/signals.js';
 import { appendTasteEntry, tasteEntry } from './taste.js';
 
 async function usableSet(
@@ -51,6 +52,11 @@ async function logDecision(
     tasteEntry(set, shot, decision, job.ctx.now(), chosen),
   );
   if (!written.ok) job.ctx.warn(`taste log not updated: ${written.error.message}`);
+  // Taste learning (PLAN.md#12.13): read the variant files before the set is removed.
+  const learner = job.ctx.taste;
+  if (learner !== undefined) {
+    learner.record([await variantDecisionSignal(job.ctx.projectDir, set, shot, decision, chosen)]);
+  }
 }
 
 export async function pickVariant(

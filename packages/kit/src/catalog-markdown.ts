@@ -1,7 +1,8 @@
 /**
  * Markdown rendering of kitCatalog() for docs/kit-catalog.md (`pnpm kit:catalog`): one section
  * per prop (thumbnail, description, params table, anchors, methods), then environments,
- * effects and the kit.voxel functions. Pure: the thumbnails are rendered by the generator.
+ * effects, one section per other available look and the kit.voxel functions. Pure: the
+ * thumbnails are rendered by the generator.
  */
 import type { KitCatalog } from './kit.js';
 import type { KitCatalogEntry } from './registry.js';
@@ -79,11 +80,38 @@ function entrySection(namespace: string, entry: KitCatalogEntry, thumbnail?: str
   ];
 }
 
+const VOXEL_LOOK = 'voxel';
+
+function inLook(entries: readonly KitCatalogEntry[], look: string): KitCatalogEntry[] {
+  return entries.filter((entry) => (entry.look ?? VOXEL_LOOK) === look);
+}
+
+/**
+ * One section per available look other than voxel (ADR-009): its props, environments and
+ * effects. Empty when only voxel is available, so the voxel catalog reads as before looks.
+ */
+function lookSections(catalog: KitCatalog, thumbnails: Readonly<Record<string, string>>): string[] {
+  return catalog.looks
+    .filter((look) => look.id !== VOXEL_LOOK)
+    .flatMap((look) => [
+      `## Look \`${look.id}\`: ${look.label}`,
+      '',
+      `${look.description}.`,
+      '',
+      ...inLook(catalog.props, look.id).flatMap((entry) =>
+        entrySection('props', entry, thumbnails[entry.name]),
+      ),
+      ...inLook(catalog.env, look.id).flatMap((entry) => entrySection('env', entry)),
+      ...inLook(catalog.fx, look.id).flatMap((entry) => entrySection('fx', entry)),
+    ]);
+}
+
 export function kitCatalogMarkdown(
   catalog: KitCatalog,
   options: CatalogMarkdownOptions = {},
 ): string {
   const thumbnails = options.thumbnails ?? {};
+  const voxelProps = inLook(catalog.props, VOXEL_LOOK);
   const lines = [
     '# Kit catalog',
     '',
@@ -96,13 +124,14 @@ export function kitCatalogMarkdown(
     '',
     '## Props',
     '',
-    ...catalog.props.flatMap((entry) => entrySection('props', entry, thumbnails[entry.name])),
+    ...voxelProps.flatMap((entry) => entrySection('props', entry, thumbnails[entry.name])),
     '## Environments',
     '',
-    ...catalog.env.flatMap((entry) => entrySection('env', entry)),
+    ...inLook(catalog.env, VOXEL_LOOK).flatMap((entry) => entrySection('env', entry)),
     '## Effects',
     '',
-    ...catalog.fx.flatMap((entry) => entrySection('fx', entry)),
+    ...inLook(catalog.fx, VOXEL_LOOK).flatMap((entry) => entrySection('fx', entry)),
+    ...lookSections(catalog, thumbnails),
     '## Voxel toolbox (`kit.voxel`)',
     '',
     '| Function | Description |',

@@ -15,6 +15,14 @@ For true-crime, espionage, heists, manhunts. Same 640×360 voxel engine, but low
 ## Camera
 - Slower than Crisp 640: `pushIn` over the full shot, `dolly` along corridors, occasional `shake` on violence or error. Never whip. Hold still only with a tiny drift (≤ 1°).
 
+## Camera moves (`reelforge kit-docs camera`)
+- **Rack focus** is the signature move: evidence in the foreground, then the suspect/document behind it. Pull slowly (1.5–2.5 s), `bokeh` 3–4, and let the frame sit in focus ≥ 1.5 s.
+- **Dolly zoom:** reserved for the single biggest reveal of the video (once), 2–3 s, subject dead centre in a deep corridor or room.
+- **Orbit move:** ≤ 30° over ≥ 3 s; never a full turn. **Parallax:** subtle, `amount` ≤ 1.5 units over the shot, foreground `ratio` ≤ 1.6.
+- **Max duration:** rack focus ≤ 3 s, dolly zoom ≤ 3 s; orbit and parallax ≤ the shot. Never two moves at once except parallax + rack focus.
+- **Never during annotations that point at moving targets:** while an orbit, dolly zoom or parallax moves a target across the frame, do not point at it (`arrow`, `pin`, `callout`, `ring`); start the mark after the move's `t1`, or point at a fixed screen region. A rack focus is fine while the mark's target is the one in focus.
+- Moves modify the pose you set: set the base pose (`set` or a rig) first in `update`, then call the move. Backdrops without depth (`kit.env.sky`, `neonGrid`) count as infinitely far for the focus.
+
 ## Typography
 - Sparse. Titles only for chapter beats, dates and names (`lowerThird` with plate). Typewriter reveals (`fx.typewriterBlock`) for documents and transcripts. Redaction-style bars are a good motif.
 
@@ -30,3 +38,9 @@ For true-crime, espionage, heists, manhunts. Same 640×360 voxel engine, but low
 
 ## Avoid
 Bright backgrounds, neon violet/teal, bouncy easing (`easeOutBack`), cartoon characters in comedic poses, more than one red element per shot, text over bright areas without a plate.
+
+## Ambient variation budget (`variation.voxel` in the engine preset)
+When `project.json` has `"ambientVariation": true` (new projects), the environments of voxel shots drift from shot to shot — deterministically, from the project seed and the shot's place in the storyboard (index, act, roll); neighbouring shots always differ. Off (field missing, e.g. older projects) = every shot exactly as authored.
+- **Tones:** black→ink; ink→charcoal/black; charcoal→ink/slate; slate→charcoal/steel; steel→slate/fog; ash→fog; bloodDark→blood; blood→bloodDark/red; tealDark→teal/ink; teal→tealDark; ember→brown/copper. About 30 % of the families swap in a shot.
+- **Ranges (scale 1):** horizon −0.05…+0.06, grid cell ×0.85…1.2, grid fade ×0.9…1.15, light turn ±18°, light elevation ±6°, debris/stars ×0.8…1.25, camera drift ≤ 0.8° / 0.3°, 5 levels per axis. Kept tighter than Crisp: the noir mood relies on its low key.
+- **Scenes:** do not hard-code the same background in every shot and do not re-implement variation by hand — the kit environments (`sky`, `neonGrid`, `lights`, `floatingCubes`, `void`, `blockCity`, `room`) vary automatically. Colours you pass explicitly (`colors`, `lineColor`, `wall`…) are kept as given, so leave them at their defaults unless the shot needs a specific colour. A scene that paints its own background can follow the shot with `palette[ctx.ambient.tone('<swatch>')]`; `ctx.ambient.enabled` / `ctx.ambient.params` are read-only.

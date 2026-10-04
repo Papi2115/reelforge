@@ -2,12 +2,15 @@
  * `reelforge <command>`: dispatch, --help/--json handling and the mapping of failures to exit
  * codes (0 ok, 1 problems found, 2 usage error). This and main.ts are the only output layer.
  */
-import type { CliIo, Command } from './command.js';
+import type { CliIo, CliServices, Command } from './command.js';
 import { anchorsCommand } from './commands/anchors.js';
+import { assetsCommand } from './commands/assets.js';
 import { contactSheetCommand } from './commands/contact-sheet.js';
+import { fetchAssetCommand } from './commands/fetch-asset.js';
 import { framesCommand } from './commands/frames.js';
 import { kitDocsCommand } from './commands/kit-docs.js';
 import { lintCommand } from './commands/lint.js';
+import { looksCommand } from './commands/looks.js';
 import { propPreviewCommand } from './commands/prop-preview.js';
 import { renderShotCommand } from './commands/render-shot.js';
 import { statusCommand } from './commands/status.js';
@@ -23,7 +26,10 @@ export const COMMANDS: readonly Command[] = [
   renderShotCommand,
   anchorsCommand,
   kitDocsCommand,
+  looksCommand,
   propPreviewCommand,
+  assetsCommand,
+  fetchAssetCommand,
 ];
 
 export function mainUsage(): string {
@@ -49,6 +55,7 @@ export async function runReelforgeCli(
   argv: readonly string[],
   io: CliIo,
   cwd: string,
+  services: CliServices = {},
 ): Promise<number> {
   const [name, ...rest] = argv;
   if (name === undefined || HELP_FLAGS.has(name) || name === 'help') {
@@ -66,7 +73,7 @@ export async function runReelforgeCli(
   }
   const json = rest.includes('--json');
   try {
-    const outcome = await command.run(rest, { root: cwd });
+    const outcome = await command.run(rest, { ...services, root: cwd });
     if (json) printJson(io, outcome.json);
     else io.stdout(outcome.text);
     return outcome.code;

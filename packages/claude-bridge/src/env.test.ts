@@ -12,7 +12,11 @@ describe('buildChildEnv', () => {
   it('adds the allowlisted vars after sanitizing the parent env', () => {
     const env = buildChildEnv({ PATH: 'C:\\bin', ANTHROPIC_API_KEY: 'k' }, RENDER);
     expect(env).toEqual({ PATH: 'C:\\bin', ...RENDER });
-    expect(EXTRA_ENV_ALLOWLIST).toEqual(['REELFORGE_RENDER_URL', 'REELFORGE_RENDER_TOKEN']);
+    expect(EXTRA_ENV_ALLOWLIST).toEqual([
+      'REELFORGE_RENDER_URL',
+      'REELFORGE_RENDER_TOKEN',
+      'REELFORGE_ASSET_LIBRARY',
+    ]);
   });
 
   it('never lets the hook reintroduce billing vars or unknown names', () => {

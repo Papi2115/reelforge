@@ -68,8 +68,17 @@ export interface PlaybackRun {
   readonly advanced: number;
   /** Wall time of the measurement, ms. */
   readonly elapsed: number;
-  /** Debug overlay at the end: frames drawn in the last second, dropped frames, engine ms. */
+  /**
+   * New frames drawn into the preview canvas during the measurement, per second of it: counted
+   * here, over exactly the measured window.
+   */
   readonly fps: number;
+  /**
+   * Debug overlay at the end (informational): frames drawn in the second before its last refresh
+   * (it refreshes every 250 ms, so that second can reach back before playback started and read
+   * low), dropped frames since the overlay was opened, smoothed engine round trip in ms.
+   */
+  readonly overlayFps: number;
   readonly dropped: number;
   readonly renderMs: number;
   readonly clock: string;
@@ -91,8 +100,19 @@ export function measurePlayback(page: Page, ms: number): Promise<PlaybackRun> {
     const waitStart = performance.now();
     while (read() === initial && performance.now() - waitStart < 3000) await nextFrame();
     const start = read();
+    // Every draw sets data-rendered-t; a value different from the previous one is a new frame.
+    let shown = start;
+    let drawn = 0;
+    const observer = new MutationObserver(() => {
+      const t = read();
+      if (t === shown) return;
+      shown = t;
+      drawn += 1;
+    });
+    observer.observe(canvas, { attributes: true, attributeFilter: ['data-rendered-t'] });
     const startMs = performance.now();
     await new Promise((resolve) => setTimeout(resolve, duration));
+    observer.disconnect();
     const advanced = read() - start;
     const elapsed = performance.now() - startMs;
     const stats = document.querySelector<HTMLElement>('[data-testid="preview-stats"]')?.dataset;
@@ -100,7 +120,8 @@ export function measurePlayback(page: Page, ms: number): Promise<PlaybackRun> {
     return {
       advanced,
       elapsed,
-      fps: Number(stats?.['fps']),
+      fps: Math.round(((drawn * 1000) / elapsed) * 10) / 10,
+      overlayFps: Number(stats?.['fps']),
       dropped: Number(stats?.['dropped']),
       renderMs: Number(stats?.['renderMs']),
       clock: preview?.['clock'] ?? '',

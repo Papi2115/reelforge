@@ -14,6 +14,14 @@ Warmer and friendlier. Renders at 480×270 (bigger pixels, ×4 to 1080p). Rose/p
 ## Camera
 - Calm: slow `orbit` ≤ 15°, soft `pushIn`, `crane` reveals. `shake` almost never.
 
+## Camera moves (`reelforge kit-docs camera`)
+- **Rack focus:** gentle (1.5–2 s) with `bokeh` 1–2 — the 480 frame blurs fast; use it to hand attention from one prop to the next.
+- **Dolly zoom:** avoid; it fights the calm mood. At most once per video as a comic "uh-oh" beat, ≤ 2 s.
+- **Orbit move:** ≤ 15° (as the rigs). **Parallax:** soft, `amount` ≤ 2 units over the shot, foreground `ratio` ≤ 1.5, backdrop 0.5.
+- **Max duration:** rack focus and dolly zoom ≤ 2.5 s; orbit and parallax ≤ the shot. One move at a time.
+- **Never during annotations that point at moving targets:** while an orbit, dolly zoom or parallax moves a target across the frame, do not point at it (`arrow`, `pin`, `callout`, `ring`); start the mark after the move's `t1`, or point at a fixed screen region. A rack focus is fine while the mark's target is the one in focus.
+- Moves modify the pose you set: set the base pose (`set` or a rig) first in `update`, then call the move. Backdrops without depth (`kit.env.sky`, `neonGrid`) count as infinitely far for the focus.
+
 ## Typography
 - Display font at scale 2–3 (the frame is smaller); at most two levels; ≥ 5 % safe margin; keep lines ≤ 22 characters.
 
@@ -28,3 +36,9 @@ Warmer and friendlier. Renders at 480×270 (bigger pixels, ×4 to 1080p). Rose/p
 
 ## Avoid
 Harsh red/black contrast, glitch effects (except as a single joke), fast camera moves, tiny text, clutter. If the olive horizon band of the teal grid shows, switch to the rose/plum sky.
+
+## Ambient variation budget (`variation.voxel` in the engine preset)
+When `project.json` has `"ambientVariation": true` (new projects), the environments of voxel shots drift from shot to shot — deterministically, from the project seed and the shot's place in the storyboard (index, act, roll); neighbouring shots always differ. Off (field missing, e.g. older projects) = every shot exactly as authored.
+- **Tones:** dusk→denim/plum; plum→dusk/mauve; mauve→plum/rose; rose→mauve/clay; coral→peach/clay; peach→sand/coral; denim→dusk/cornflower; cornflower→denim/ice; ice→cornflower; olive→sage; sage→olive/mint; stone→pebble/taupe; umber→brown. `night` (the darkest floor) never changes. About 35 % of the families swap in a shot.
+- **Ranges (scale 1):** horizon −0.06…+0.08, grid cell ×0.8…1.25, grid fade ×0.85…1.2, light turn ±24°, light elevation ±8°, debris/stars ×0.75…1.3, camera drift ≤ 1.2° / 0.5°, 5 levels per axis.
+- **Scenes:** do not hard-code the same background in every shot and do not re-implement variation by hand — the kit environments (`sky`, `neonGrid`, `lights`, `floatingCubes`, `void`, `blockCity`, `room`) vary automatically. Colours you pass explicitly (`colors`, `lineColor`, `wall`…) are kept as given, so leave them at their defaults unless the shot needs a specific colour. A scene that paints its own background can follow the shot with `palette[ctx.ambient.tone('<swatch>')]`; `ctx.ambient.enabled` / `ctx.ambient.params` are read-only.

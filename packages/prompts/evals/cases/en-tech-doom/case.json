@@ -26,6 +26,7 @@
     "shotIds": ["s08_memory"]
   },
   "replies": {
+    "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 9 sourced facts.\nMain sources: Wikipedia (Doom, Doom engine), Doom Wiki.\nUncertain: which pregnancy-test ports really ran the game.",
     "script": "Word count: 86. Estimated duration: about 35 seconds.\nAll claims are sourced in research.md.",
     "storyboard": "8 shots. Treatments: title-card, metaphor-object, kinetic-text, 3d-reconstruction x2, montage/transition, node-graph/timeline, counter/odometer.\nMissing props: floppy-disk, pregnancy-test.",
@@ -85,6 +86,68 @@
         "1993 games"
       ]
     },
-    "prop-build": "Built memoryChip: 1.2 x 0.36 x 0.06 units, green board, 4 black chips, gold contacts.\nprop-preview: all checks ok; the chips and contacts read clearly from the front."
+    "prop-build": "Built memoryChip: 1.2 x 0.36 x 0.06 units, green board, 4 black chips, gold contacts.\nprop-preview: all checks ok; the chips and contacts read clearly from the front.",
+    "tension": "Bold hook, calm history, rising engine tricks, peak at the source release (0:31), short release.",
+    "claims": {
+      "claims": [
+        {
+          "sentence": 1,
+          "text": "In 1993, a small team in Texas shipped a game",
+          "kind": "date",
+          "sources": ["r1", "r2"],
+          "status": "sourced"
+        },
+        {
+          "sentence": 1,
+          "text": "fit on four floppy disks",
+          "kind": "number",
+          "sources": [],
+          "status": "unsourced"
+        },
+        {
+          "sentence": 3,
+          "text": "no rooms above rooms, no sloped floors",
+          "kind": "name",
+          "sources": ["r3"],
+          "status": "sourced"
+        },
+        {
+          "sentence": 6,
+          "text": "the original source was released in 1997",
+          "kind": "date",
+          "sources": ["r4"],
+          "status": "sourced"
+        },
+        {
+          "sentence": 6,
+          "text": "it only needs about 4 megabytes of memory",
+          "kind": "number",
+          "sources": [],
+          "status": "unsourced"
+        }
+      ]
+    },
+    "hooks": {
+      "hooks": [
+        {
+          "style": "cold-open",
+          "text": "A tiny calculator screen flickers, and a demon from 1993 stares back. Somebody just got Doom running on it, again. Before that it ran on printers, on cash registers, even on a pregnancy test. No other game has been squeezed into so many strange machines, and the reason starts with a small team in Texas and four floppy disks.",
+          "firstVisual": "A pixel calculator screen flickering to life with a tiny demon face",
+          "claimsToSource": false
+        },
+        {
+          "style": "question",
+          "text": "Why can a game from the early nineties run on a calculator, a printer and even a pregnancy test, while modern games need powerful graphics cards? The answer is not luck or nostalgia. It is a story about clever shortcuts, a renderer built for speed, and a team that gave its code away to everyone who wanted it.",
+          "firstVisual": "A row of odd devices on a shelf, each with a question mark on its screen",
+          "claimsToSource": false
+        },
+        {
+          "style": "shocking-fact",
+          "text": "Doom needs only about 4 megabytes of memory. That is less than a single photo on your phone, and it is the reason the 1993 shooter now runs on calculators, printers and pregnancy tests. When its source code was released in 1997, programmers everywhere started porting it to anything with a screen and a chip.",
+          "firstVisual": "A giant pixel counter ticking up to 4 MB next to a tiny chip",
+          "claimsToSource": true
+        }
+      ]
+    }
   }
 }

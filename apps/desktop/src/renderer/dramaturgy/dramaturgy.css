@@ -1,0 +1,49 @@
+/* Dramaturgy section under the final review (PLAN.md#12.25-12.27). */
+.dramaturgy-line {
+  margin: 4px 0;
+}
+
+.dramaturgy-loops ul,
+.moment-list {
+  margin: 4px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.dramaturgy-loops li {
+  padding: 2px 6px;
+}
+
+.moment {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.moment-title {
+  grid-column: 1;
+}
+
+.moment-detail {
+  grid-column: 1;
+  font-size: 0.92em;
+}
+
+.moment-actions {
+  display: flex;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  gap: 4px;
+  align-items: center;
+}
+
+.moment-accepted {
+  background: var(--ok-soft);
+}
+
+.moment-rejected .moment-title {
+  text-decoration: line-through;
+  opacity: 0.7;
+}

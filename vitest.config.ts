@@ -32,6 +32,12 @@ export default defineConfig({
       '@reelforge/cli/service': fileURLToPath(
         new URL('./packages/cli/src/service/index.ts', import.meta.url),
       ),
+      '@reelforge/cli/assets-testing': fileURLToPath(
+        new URL('./packages/cli/src/assets/testing/index.ts', import.meta.url),
+      ),
+      '@reelforge/cli/assets': fileURLToPath(
+        new URL('./packages/cli/src/assets/index.ts', import.meta.url),
+      ),
       '@reelforge/cli/shims': fileURLToPath(
         new URL('./packages/cli/src/shims.ts', import.meta.url),
       ),

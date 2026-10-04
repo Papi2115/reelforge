@@ -5,15 +5,21 @@
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { AnchorIndex } from '@reelforge/pipeline';
 import {
+  projectLookMode,
+  projectResearchMode,
   storyboardFileSchema,
+  type AssetRecord,
   wordsFileSchema,
+  type LookMode,
   type StoryboardShot,
   type WordsFile,
 } from '@reelforge/shared';
+import { loadSceneDramaturgy, type SceneDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson } from '../files.js';
 import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
+import { sceneAssetCatalogue } from './shot-assets.js';
 import type { SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
 import {
@@ -34,12 +40,20 @@ export interface SceneJob {
   readonly kitNames: KitNames;
   readonly settings: SceneSettings;
   readonly styleId: string;
+  /** Project look mode (ADR-009): `voxel-only` builds every shot as before looks. */
+  readonly lookMode: LookMode;
   readonly shots: readonly StoryboardShot[];
   readonly words: WordsFile | undefined;
   /** Fuzzy anchor resolver over the words (sync checks); undefined before "Words timed". */
   readonly anchorIndex: AnchorIndex | undefined;
   /** Shots locked by the user (`locks.json`, PLAN.md#11.4): never built or fixed. */
   readonly locked: ReadonlySet<string>;
+  /** Asset research is on (PLAN.md#12.10): build prompts list the shot's needs and assets. */
+  readonly research: boolean;
+  /** assets.json entries (also in mode off: assigned own/library assets, PLAN.md#12.12). */
+  readonly assets: readonly AssetRecord[];
+  /** Interrupt and open-loop directives (PLAN.md#12.25-12.26); absent = switches off. */
+  readonly dramaturgy?: SceneDramaturgy | undefined;
 }
 
 let defaultKitNames: KitNames | undefined;
@@ -70,6 +84,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   const kitNames = tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog());
   const settings = ctx.settings.scenes;
   const styleId = project.value.style;
+  const assets = await sceneAssetCatalogue(ctx.projectDir);
   return ok({
     ctx,
     frames: tools.frames,
@@ -78,6 +93,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     kitNames,
     settings,
     styleId,
+    lookMode: projectLookMode(project.value),
     shots: storyboard.value.shots,
     words: words.value,
     anchorIndex:
@@ -85,6 +101,9 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
         ? undefined
         : new AnchorIndex(words.value.words, { lang: project.value.language }),
     locked: locked.value,
+    research: projectResearchMode(project.value) !== 'off',
+    assets,
+    dramaturgy: await loadSceneDramaturgy(ctx.projectDir, project.value),
   });
 }
 

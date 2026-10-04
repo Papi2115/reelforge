@@ -23,6 +23,8 @@ import { PROMPT_SOURCES } from './generated/prompt-sources.js';
 import { permissionStageFor, promptModel, promptToolNames } from './stages.js';
 
 const PROMPTS_DIR = path.join(import.meta.dirname, '..', 'prompts');
+/** Prompts that run on Sonnet under the critic's read-only permissions. */
+const SONNET_ON_CRITIC: readonly string[] = ['claims', 'hooks'];
 
 describe('bundled prompts', () => {
   it('match prompts/*.md (run `pnpm --filter @reelforge/prompts generate` after editing)', () => {
@@ -41,7 +43,10 @@ describe('bundled prompts', () => {
   it('cover every stage of PLAN.md#5.8, the whole-video review (#7.6) and the YouTube text (#9.2)', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
+        'assets',
+        'claims',
         'critic',
+        'hooks',
         'prop-build',
         'research',
         'review-plan',
@@ -51,6 +56,7 @@ describe('bundled prompts', () => {
         'script',
         'sound-cues',
         'storyboard',
+        'tension',
         'youtube-meta',
       ].sort(),
     );
@@ -60,7 +66,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 2, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 10, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -103,7 +109,8 @@ describe('renderPrompt', () => {
     for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
       expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
     }
-    expect(loadPrompt('sound-cues').version).toBe(2);
+    expect(loadPrompt('sound-cues').version).toBe(3);
+    expect(text).toContain("each shot's sound palette follows its `look`");
   });
 
   it('fills a prompt and leaves no template tags behind', () => {
@@ -190,7 +197,11 @@ describe('stages and models', () => {
       'review-triage': 'critic',
       'review-plan': 'storyboard',
       'youtube-meta': 'storyboard',
+      assets: 'storyboard',
       'prop-build': 'scene-build',
+      tension: 'storyboard',
+      claims: 'critic',
+      hooks: 'critic',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);
@@ -200,13 +211,17 @@ describe('stages and models', () => {
   });
 
   it('declared models equal the bridge defaults of the mapped stage', () => {
-    for (const id of PROMPT_IDS) {
+    // claims (PLAN.md#12.18) and hooks (#12.16): Sonnet under the critic's read-only permissions;
+    // the app passes the declared model explicitly, so the stage default (Haiku) never applies.
+    expect(loadPrompt('claims').model).toBe('sonnet');
+    expect(loadPrompt('hooks').model).toBe('sonnet');
+    for (const id of PROMPT_IDS.filter((candidate) => !SONNET_ON_CRITIC.includes(candidate))) {
       expect(loadPrompt(id).model, id).toBe(DEFAULT_STAGE_MODELS[permissionStageFor(id)]);
     }
   });
 
   it('promptModel follows the bridge priority: override > Economy > declared', () => {
-    for (const id of PROMPT_IDS) {
+    for (const id of PROMPT_IDS.filter((candidate) => !SONNET_ON_CRITIC.includes(candidate))) {
       const stage = permissionStageFor(id);
       const request = { projectDir: 'C:/project', stage, prompt: 'x' };
       expect(promptModel(id)).toBe(resolveModel(request, { launcher }));

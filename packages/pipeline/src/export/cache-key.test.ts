@@ -177,6 +177,60 @@ describe('segmentCacheKey', () => {
     expect(keyOf({ manifest: editA(cut) }, 1)).toBe(keyOf({ manifest: cut }, 1));
     expect(keyOf({ manifest: editA(crossfade) }, 1)).not.toBe(keyOf({ manifest: crossfade }, 1));
   });
+
+  it('depends on ambient variation only when the manifest has it (PLAN.md#12.8)', () => {
+    const off = manifest();
+    const ambientShots = off.shots.map((s, index) => ({ ...s, ambient: { index, act: 0 } }));
+    // Shot positions without the switch never reach the key: old keys stay valid.
+    expect(keyOf({ manifest: { ...off, shots: ambientShots } })).toBe(base);
+    const on: RenderManifest = {
+      ...off,
+      ambientVariation: { enabled: true, seed: 1 },
+      shots: ambientShots,
+    };
+    expect(keyOf({ manifest: on })).not.toBe(base);
+    const reseeded = { ...on, ambientVariation: { enabled: true, seed: 2 } };
+    expect(keyOf({ manifest: reseeded })).not.toBe(keyOf({ manifest: on }));
+    const moved: RenderManifest = {
+      ...on,
+      shots: on.shots.map((s, index) => ({ ...s, ambient: { index: index + 1, act: 0 } })),
+    };
+    expect(keyOf({ manifest: moved })).not.toBe(keyOf({ manifest: on }));
+  });
+
+  it('depends on reveal-moment effects only when a shot has them (PLAN.md#12.27)', () => {
+    const plain = manifest();
+    const slowed: RenderManifest = {
+      ...plain,
+      shots: plain.shots.map((s, index) =>
+        index === 0 ? { ...s, timeRemap: [{ from: s.t0, to: s.t0 + 0.5, rate: 0.4 }] } : s,
+      ),
+    };
+    expect(keyOf({ manifest: slowed })).not.toBe(base);
+    const flashed: RenderManifest = {
+      ...plain,
+      shots: plain.shots.map((s, index) =>
+        index === 0 ? { ...s, paletteShift: [{ from: s.t0, to: s.t0 + 0.5 }] } : s,
+      ),
+    };
+    expect(keyOf({ manifest: flashed })).not.toBe(base);
+    expect(keyOf({ manifest: flashed })).not.toBe(keyOf({ manifest: slowed }));
+  });
+
+  it('depends on live directions only when a shot has one (PLAN.md#12.14)', () => {
+    const plain = manifest();
+    const directed = (direction: { dim?: number; zoom?: number }): RenderManifest => ({
+      ...plain,
+      shots: plain.shots.map((s, index) => (index === 0 ? { ...s, direction } : s)),
+    });
+    expect(keyOf({ manifest: directed({ dim: -0.25 }) })).not.toBe(base);
+    expect(keyOf({ manifest: directed({ dim: -0.25 }) })).not.toBe(
+      keyOf({ manifest: directed({ zoom: 1.1 }) }),
+    );
+    expect(keyOf({ manifest: directed({ dim: -0.25 }) })).toBe(
+      keyOf({ manifest: directed({ dim: -0.25 }) }),
+    );
+  });
 });
 
 describe('planShots', () => {

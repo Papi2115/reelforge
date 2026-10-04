@@ -5,7 +5,12 @@
  * damaged files with the fix the app offers (PLAN.md#10.2).
  */
 import { CuesFileSchema, type CuesFile } from '@reelforge/pipeline';
-import { shotLocksFileSchema, storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
+import {
+  shotLocksFileSchema,
+  storyboardFileSchema,
+  tensionFileSchema,
+  wordsFileSchema,
+} from '@reelforge/shared';
 import {
   SNAPSHOT_FILES,
   type CuesView,
@@ -54,12 +59,13 @@ function documentProblem<T>(file: RepairableFile, state: FileState<T>): FileProb
 
 /** Throws only when the project folder itself is unreadable. */
 export async function readProjectSnapshot(dir: string): Promise<ProjectSnapshot> {
-  const [listing, storyboard, words, cues, locks, checked] = await Promise.all([
+  const [listing, storyboard, words, cues, locks, tension, checked] = await Promise.all([
     listProjectFiles(dir),
     readProjectJson(dir, SNAPSHOT_FILES.storyboard, storyboardFileSchema),
     readProjectJson(dir, SNAPSHOT_FILES.words, wordsFileSchema),
     readProjectJson(dir, SNAPSHOT_FILES.cues, CuesFileSchema),
     readProjectJson(dir, SNAPSHOT_FILES.locks, shotLocksFileSchema),
+    readProjectJson(dir, SNAPSHOT_FILES.tension, tensionFileSchema),
     Promise.all(CHECKED_FILES.map((file) => fileProblem(dir, file))),
   ]);
   const problems = [
@@ -76,6 +82,7 @@ export async function readProjectSnapshot(dir: string): Promise<ProjectSnapshot>
     words,
     cues: mapState(cues, cuesView),
     locks,
+    tension,
     problems,
   };
 }

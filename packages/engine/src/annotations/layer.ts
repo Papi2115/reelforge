@@ -16,6 +16,7 @@ import { hexToRgb8, type Rgb8, type TextSurface } from '../text/surface.js';
 import type { AnnotationTargetProbe, PixelRect, TextCard } from '../text/types.js';
 import { drawBadge, drawHighlight, drawSpotlight, drawUnderline } from './draw-marks.js';
 import { drawCallout, drawPin } from './draw-boxes.js';
+import { drawSourceChip } from './draw-source-chip.js';
 import { drawStamp } from './draw-stamp.js';
 import { drawBracket, drawDimension } from './draw-spans.js';
 import { drawArrow, drawRing } from './draw-strokes.js';
@@ -202,6 +203,11 @@ export function createAnnotationLayer(options: AnnotationLayerOptions): Annotati
         text: '',
         draw: (env) => drawSpotlight(env, parsed),
       })),
+    sourceChip: (input) =>
+      enqueue('sourceChip', ANNOTATION_TYPES.sourceChip.schema, input, (parsed) => ({
+        text: parsed.name,
+        draw: (env) => drawSourceChip(env, parsed),
+      })),
   };
 
   const outsideUpdate = (name: string): never => {
@@ -223,6 +229,7 @@ export function createAnnotationLayer(options: AnnotationLayerOptions): Annotati
     stamp: () => outsideUpdate('stamp'),
     dimension: () => outsideUpdate('dimension'),
     spotlight: () => outsideUpdate('spotlight'),
+    sourceChip: () => outsideUpdate('sourceChip'),
   };
 
   const drawOne = (
@@ -322,11 +329,11 @@ export function createAnnotationLayer(options: AnnotationLayerOptions): Annotati
       const occupied = textCards
         .filter((card) => card.visible && card.box.w > 0 && card.box.h > 0)
         .map((card) => card.box);
-      // Spotlights dim what is left empty, so they go last: behind every other annotation.
-      const order = [
-        ...queue.filter((item) => item.type !== 'spotlight'),
-        ...queue.filter((item) => item.type === 'spotlight'),
-      ];
+      // Source chips take a corner nothing else uses, so they follow the other marks; spotlights
+      // dim what is left empty, so they go last: behind every other annotation.
+      const last = (item: Queued): number =>
+        item.type === 'spotlight' ? 2 : item.type === 'sourceChip' ? 1 : 0;
+      const order = [0, 1, 2].flatMap((rank) => queue.filter((item) => last(item) === rank));
       const drawn = new Map(order.map((item) => [item, drawOne(item, textCards, occupied, probe)]));
       cards = queue.flatMap((item) => drawn.get(item) ?? []);
       queue = [];

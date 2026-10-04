@@ -1,6 +1,7 @@
 /**
- * View model of the pipeline sidebar (PLAN.md#6.8): the eight rows of the reference app, each
- * backed by one or more runner stages (one line each in PIPELINE_ROWS), with a status (Done /
+ * View model of the pipeline sidebar (PLAN.md#6.8): the eight rows of the reference app (+ the
+ * optional Assets row, PLAN.md#12.10), each backed by one or more runner stages (one line each in
+ * PIPELINE_ROWS), with a status (Done /
  * Review / Running / Paused / Queued / Ready / Waiting / Failed / Stale / Interrupted; the words
  * the UI shows for them are in status-view.ts), a one-line detail and the Open / Replace / Run /
  * Redo / Stop actions with the gating hint. Pure.
@@ -19,6 +20,7 @@ export type OpenTarget =
   | { readonly kind: 'voiceover' }
   | { readonly kind: 'words' }
   | { readonly kind: 'shots' }
+  | { readonly kind: 'assets' }
   | { readonly kind: 'scenes' }
   | { readonly kind: 'sound' }
   | { readonly kind: 'export' }
@@ -33,6 +35,8 @@ export interface PipelineRowSpec {
   readonly replace: ReplaceableStage | null;
   /** Shown while the app cannot run the row's stage yet. */
   readonly coming: string;
+  /** Listed only when main reports its stage (Assets: research on and needed, PLAN.md#12.10). */
+  readonly optional?: boolean;
 }
 
 export const PIPELINE_ROWS: readonly PipelineRowSpec[] = [
@@ -77,6 +81,15 @@ export const PIPELINE_ROWS: readonly PipelineRowSpec[] = [
     coming: '',
   },
   {
+    id: 'assets',
+    label: 'Assets',
+    stages: ['assets'],
+    open: { kind: 'assets' },
+    replace: null,
+    coming: '',
+    optional: true,
+  },
+  {
     id: 'scenes',
     label: 'Scenes built',
     stages: ['scenes'],
@@ -109,6 +122,7 @@ export const STAGE_LABELS: Readonly<Record<PipelineStageKey, string>> = {
   clean: 'Audio cleaned',
   words: 'Words timed',
   storyboard: 'Storyboard',
+  assets: 'Assets',
   scenes: 'Scenes built',
   'sound-cues': 'Sound cues',
   mix: 'Sound design mixed',
@@ -195,7 +209,8 @@ function rowStatus(
   if (infos.some(isFailed)) return 'failed';
   if (infos.some((info) => info.stale)) return 'stale';
   if (infos.every(isDone)) {
-    return spec.id === 'script' && infos[0]?.approvedAt === null ? 'review' : 'done';
+    if (spec.id === 'script' && infos[0]?.approvedAt === null) return 'review';
+    return infos.some((info) => info.awaitingReview === true) ? 'review' : 'done';
   }
   const next = infos.find((info) => !isDone(info));
   return next?.registered === true && next.runnable && next.ready ? 'ready' : 'waiting';
@@ -237,7 +252,9 @@ function rowDetail(
       return `Out of date${reason === null ? '' : ` (${reason})`}: run it again.`;
     }
     case 'review':
-      return 'Read the script, then approve it.';
+      return spec.id === 'assets'
+        ? 'Open the asset package: approve or reject the photos and footage.'
+        : 'Read the script, then approve it.';
     case 'done':
       return infos.at(-1)?.message ?? null;
     case 'ready':
@@ -292,6 +309,9 @@ function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionV
   if (spec.open.kind === 'sound') {
     return { enabled: true, hint: 'Sound library, levels, ducking, mix render and preview' };
   }
+  if (spec.open.kind === 'assets') {
+    return { enabled: true, hint: 'The asset package to review, downloaded assets and licences' };
+  }
   if (spec.open.kind === 'export') {
     return { enabled: true, hint: 'Export settings, the export queue and YouTube extras' };
   }
@@ -303,8 +323,16 @@ function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionV
 
 const LOADING_ACTION: ActionView = { enabled: false, hint: 'Reading the project…' };
 
+/** Optional rows show only once main reports their stage. */
+function listedRows(state: StagesState | undefined): readonly PipelineRowSpec[] {
+  const reported = new Set((state?.stages ?? []).map((info) => info.stage));
+  return PIPELINE_ROWS.filter(
+    (spec) => spec.optional !== true || spec.stages.some((stage) => reported.has(stage)),
+  );
+}
+
 export function pipelineRows(state: StagesState | undefined): RowView[] {
-  return PIPELINE_ROWS.map((spec): RowView => {
+  return listedRows(state).map((spec): RowView => {
     const infos = (state?.stages ?? []).filter((info) => spec.stages.includes(info.stage));
     if (state === undefined || infos.length !== spec.stages.length) {
       return {

@@ -36,7 +36,10 @@ function state(
 ): StagesState {
   return {
     projectDir: 'C:\\p',
-    stages: PIPELINE_STAGE_KEYS.map((stage) => info(stage, patches[stage])),
+    // Main reports Assets only when research is on and needed (PLAN.md#12.10).
+    stages: PIPELINE_STAGE_KEYS.filter(
+      (stage) => stage !== 'assets' || patches.assets !== undefined,
+    ).map((stage) => info(stage, patches[stage])),
     running: null,
     queue: [],
     pause: null,
@@ -48,6 +51,26 @@ const DONE = { status: 'done', hasOutput: true } as const;
 const APPROVED = { ...DONE, approvedAt: '2026-10-02T10:00:00.000Z' } as const;
 
 describe('nextStep', () => {
+  it('sends the user to the asset package when it waits for review (PLAN.md#12.10)', () => {
+    const step = nextStep(
+      pipelineRows(
+        state({
+          script: APPROVED,
+          voiceover: DONE,
+          clean: DONE,
+          words: DONE,
+          storyboard: DONE,
+          assets: { ...DONE, awaitingReview: true },
+        }),
+      ),
+    );
+    expect(step).toMatchObject({
+      rowId: 'assets',
+      button: 'Review the assets',
+      action: { kind: 'open', target: { kind: 'assets' } },
+    });
+  });
+
   it('starts a new project at the brief', () => {
     const step = nextStep(pipelineRows(state({ script: { ready: true } })));
     expect(step).toMatchObject({

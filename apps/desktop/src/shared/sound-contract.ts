@@ -14,7 +14,16 @@ export const soundKindSchema = z.enum(SOUND_KINDS);
 export type SoundKind = z.infer<typeof soundKindSchema>;
 
 /** Built-in ambience loops (packages/pipeline AMBIENCE_RECIPES; equality is tested in main). */
-export const BUILTIN_AMBIENCE_NAMES = ['room-tone', 'hum', 'wind', 'city'] as const;
+export const BUILTIN_AMBIENCE_NAMES = [
+  'room-tone',
+  'hum',
+  'wind',
+  'city',
+  'crt-hum',
+  'office',
+  'server-room',
+  'electric-tick',
+] as const;
 
 /** Where imported files of each kind are copied (project-relative). */
 export const SOUND_FOLDERS: Readonly<Record<SoundKind, string>> = {

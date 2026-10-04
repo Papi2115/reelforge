@@ -5,6 +5,18 @@
 export const packageName = '@reelforge/kit';
 
 export {
+  ASSET_CROP_MODES,
+  assetCropSchema,
+  isAssetImage,
+  type AssetCrop,
+  type AssetCropMode,
+  type AssetFocusCrop,
+  type AssetImage,
+  type AssetPictureOptions,
+  type AssetPixels,
+} from './assets/index.js';
+
+export {
   GRID_VARIANTS,
   LIGHT_RIGS,
   SKY_STYLES,
@@ -30,9 +42,11 @@ export {
   PROP_DEFINITIONS,
   type KitApi,
   type KitCatalog,
+  type KitCatalogLook,
   type KitHandle,
   type KitOptions,
 } from './kit.js';
+export * from './looks/index.js';
 export {
   isKitObject,
   STANDARD_ANCHORS,
@@ -50,6 +64,7 @@ export {
 } from './props/index.js';
 export * from './registry.js';
 export type * from './types.js';
+export * from './variation/index.js';
 export { KIT_VERSION } from './version.js';
 export { VOXEL_API_DOCS, type ApiDoc, type GroupOptions, type VoxelApi } from './voxel/api.js';
 export { componentFloors, inspectObject, type KitInspection } from './voxel/inspect.js';

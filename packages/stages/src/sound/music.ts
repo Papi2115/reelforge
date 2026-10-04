@@ -12,6 +12,7 @@ import {
   type MusicCueInput,
   type MusicMood,
 } from '@reelforge/pipeline';
+import type { BeatsFile } from '@reelforge/shared';
 import { stageError, type StageError } from '../types.js';
 import { bedEnergy, type FilmAct } from './acts.js';
 
@@ -30,6 +31,26 @@ export interface ActMusicRequest {
   /** Project seed. */
   readonly seed: number;
   readonly durationS: number;
+  /** Beat grid (PLAN.md#12.21): each bed runs at its act's tempo, its bars on the grid. */
+  readonly grid?: BeatsFile | undefined;
+}
+
+/** The grid act overlapping [from, to) the most (its tempo and phase lock the bed). */
+function gridActFor(
+  grid: BeatsFile,
+  from: number,
+  to: number,
+): BeatsFile['acts'][number] | undefined {
+  let best: BeatsFile['acts'][number] | undefined;
+  let bestOverlap = 0;
+  for (const act of grid.acts) {
+    const overlap = Math.min(to, act.to) - Math.max(from, act.from);
+    if (overlap > bestOverlap) {
+      best = act;
+      bestOverlap = overlap;
+    }
+  }
+  return best;
 }
 
 function spansAndOptions(request: ActMusicRequest): {
@@ -37,12 +58,17 @@ function spansAndOptions(request: ActMusicRequest): {
   options: ActMusicOptions;
 } {
   return {
-    spans: request.acts.map((act, index) => ({
-      from: act.from,
-      to: act.to,
-      mood: request.moods[index],
-      energy: bedEnergy(act),
-    })),
+    spans: request.acts.map((act, index) => {
+      const grid =
+        request.grid === undefined ? undefined : gridActFor(request.grid, act.from, act.to);
+      return {
+        from: act.from,
+        to: act.to,
+        mood: request.moods[index],
+        energy: bedEnergy(act),
+        ...(grid === undefined ? {} : { bpm: grid.bpm, phaseS: grid.phaseS }),
+      };
+    }),
     options: {
       seed: request.seed,
       gainDb: MUSIC_BED_GAIN_DB,

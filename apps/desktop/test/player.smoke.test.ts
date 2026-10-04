@@ -13,7 +13,6 @@ import path from 'node:path';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   frameStats,
   closeApp,
@@ -21,6 +20,7 @@ import {
   screenshotDir,
   stubFolderPicker,
   waitForRenderedT,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 import {
   measurePlayback,
@@ -32,8 +32,9 @@ import { perfBar } from './support/ci-mode.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 /**
- * Preview frames per second while playing: 30 fps content on a real GPU. ANGLE on WARP (the
- * GPU-less CI runner) renders 24-31 fps, so CI checks that playback runs, not the machine's speed.
+ * Preview frames per second while playing (counted over the measured window, see
+ * measurePlayback): 30 fps content on a real GPU. ANGLE on WARP (the GPU-less CI runner) renders
+ * 24-31 fps, so CI checks that playback runs, not the machine's speed.
  */
 const PLAYBACK_FPS_BAR = perfBar(28, 15);
 const metrics: Record<string, unknown> = {};
@@ -96,9 +97,7 @@ beforeAll(async () => {
   await page.getByRole('region', { name: 'Start' }).waitFor();
   await stubFolderPicker(app, projectDir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  await waitForProjectPreview(page);
 });
 
 afterAll(async () => {
@@ -129,6 +128,8 @@ describe('player', () => {
     expect(run.clock).toBe('audio');
     expect(Math.abs(run.advanced - run.elapsed / 1000)).toBeLessThan(0.15);
     expect(run.fps).toBeGreaterThanOrEqual(PLAYBACK_FPS_BAR);
+    // The fps overlay shows live numbers (its reading lags by up to a refresh, so no bar).
+    expect(run.overlayFps).toBeGreaterThan(0);
     await page.screenshot({ path: path.join(screenshotDir, 'player-playing.png') });
     // Space again continues from the pause point (no jump back to the shot start).
     const paused = Number((await frameStats(page)).renderedT);

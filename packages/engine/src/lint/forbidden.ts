@@ -21,6 +21,32 @@ const USE_CTX =
 const NO_DATA =
   'Scenes cannot load anything at render time. Put the data in the scene source as constants and use ctx.kit / ctx.palette for assets.';
 
+const ASSET_FIX =
+  "Use the project's assets: `const photo = ctx.assets.image('<asset id>')` in build(), then a kit prop such as `ctx.kit.props.photoFrame({ asset: photo })` (the engine decodes and pixelises it).";
+
+/** Three.js loaders (`ctx.three.TextureLoader`...): they fetch and decode files at render time. */
+export const THREE_LOADERS: ReadonlySet<string> = new Set([
+  'TextureLoader',
+  'ImageLoader',
+  'ImageBitmapLoader',
+  'FileLoader',
+  'CubeTextureLoader',
+  'DataTextureLoader',
+  'CompressedTextureLoader',
+  'ObjectLoader',
+  'BufferGeometryLoader',
+  'MaterialLoader',
+  'AnimationLoader',
+  'AudioLoader',
+]);
+
+export const THREE_LOADER: ForbiddenGlobal = {
+  rule: 'no-network',
+  message:
+    'Three.js loaders fetch and decode files at render time; scenes run offline in a sandbox and must not load anything.',
+  fix: ASSET_FIX,
+};
+
 function group(
   rule: LintRule,
   names: readonly string[],
@@ -100,6 +126,23 @@ export const FORBIDDEN_GLOBALS: ReadonlyMap<string, ForbiddenGlobal> = new Map([
     (name) =>
       `\`${name}\` needs the network or other threads; scenes run offline in a sandbox where it is blocked, and renders must not depend on outside data.`,
     NO_DATA,
+  ),
+  ...group(
+    'no-network',
+    [
+      'Image',
+      'HTMLImageElement',
+      'ImageDecoder',
+      'VideoDecoder',
+      'createImageBitmap',
+      'OffscreenCanvas',
+      'FileReader',
+      'Blob',
+      'Response',
+    ],
+    (name) =>
+      `\`${name}\` loads or decodes media inside the scene; decoders differ between machines and the sandbox has no files or network, so pictures would not match between preview and export.`,
+    ASSET_FIX,
   ),
   ...group(
     'no-eval',

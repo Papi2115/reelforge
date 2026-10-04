@@ -4,6 +4,7 @@
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
+import { z } from 'zod';
 import type { LibrarySound } from '../../shared/sound-contract.js';
 import { DUCKING_PRESET_VALUES, libraryCue } from '../../shared/sound-library.js';
 import type { ChatSelection } from '../../shared/chat-contract.js';
@@ -26,11 +27,20 @@ import { useShotLocks } from '../stages/use-shot-locks.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { useVariantsDock } from '../stages/use-variants-dock.js';
+import { CommandBar } from '../direction/CommandBar.js';
+import { directionSummary } from '../direction/direction-view.js';
+import { useDirection } from '../direction/use-direction.js';
+import { MAX_VARIANT_NOTE } from '../../shared/variants-contract.js';
 import { VariantsDockPanel } from '../stages/VariantsPanel.js';
+import { AssetsDialog } from '../assets/AssetsDialog.js';
+import { useAssets } from '../assets/use-assets.js';
 import { ExportDialog } from '../export/ExportDialog.js';
 import { useMixPreview } from '../sound/use-mix-preview.js';
 import { useSound } from '../sound/use-sound.js';
 import { useTimeline } from '../timeline/use-timeline.js';
+import { TensionPanel } from '../tension/TensionPanel.js';
+import { useTensionMapOn } from '../tension/use-tension-map.js';
+import { useTension } from '../tension/use-tension.js';
 import { AppShell } from './AppShell.js';
 import { CenterDocument, type CenterDocumentKind } from './CenterDocument.js';
 import { CHAT_RAIL_WIDTH } from './chat-dock.js';
@@ -41,6 +51,7 @@ import { ShotsPanel } from './ShotsPanel.js';
 import { TimelinePanel } from './TimelinePanel.js';
 import { FileProblemsBanner } from './FileProblemsBanner.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
+import { usePref } from './ui-prefs.js';
 
 export interface WorkspaceProps {
   readonly project: ProjectSummary;
@@ -49,6 +60,9 @@ export interface WorkspaceProps {
 }
 
 /** Brings the Shots panel into view (Open of the Storyboard stage). */
+const TENSION_PREFS_KEY = 'reelforge.layout.tension.v1';
+const tensionPrefsSchema = z.object({ open: z.boolean() });
+
 function focusShots(): void {
   const panel = document.querySelector<HTMLElement>('[aria-label="Shots"]');
   const target = panel?.querySelector<HTMLElement>('button') ?? panel;
@@ -78,6 +92,8 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   const reports = useStageReports(project.dir, reportsKey(stages.state));
   const sound = useSound(project.dir, reportsKey(stages.state));
   const [exportOpen, setExportOpen] = useState(false);
+  const [assetsOpen, setAssetsOpen] = useState(false);
+  const assets = useAssets(project.dir, reportsKey(stages.state));
   const chatDock = useChatDock();
   const [centerDocument, setCenterDocument] = useState<CenterDocumentKind | null>(null);
 
@@ -110,6 +126,9 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         return;
       case 'export':
         setExportOpen(true);
+        return;
+      case 'assets':
+        setAssetsOpen(true);
         return;
       case 'shots':
         setCenterDocument(null);
@@ -151,6 +170,34 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
   const [shotNotice, setShotNotice] = useState<string | undefined>(undefined);
   const locks = useShotLocks(snapshot?.locks, timeline.selectedShotId, reload);
+  // Tension panel under the timeline (PLAN.md#12.22); open/closed is remembered.
+  const [tensionPrefs, setTensionPrefs] = usePref(TENSION_PREFS_KEY, tensionPrefsSchema, {
+    open: false,
+  });
+  const tension = useTension(snapshot?.tension, reload);
+  const tensionMapOn = useTensionMapOn(tensionPrefs.open, previewRevision);
+  const words = snapshot?.words.status === 'ok' ? snapshot.words.data.words : [];
+  // Live co-direction (PLAN.md#12.14): the command bar under the preview.
+  const direction = useDirection({
+    shots,
+    words,
+    getTime: () => timeRef.current,
+    point: selection === null ? null : { x: selection.x, y: selection.y },
+    locked: locks.locked,
+    revision: previewRevision,
+    rebuildWithClaude: async (shotId, request) => {
+      const note = request.slice(0, MAX_VARIANT_NOTE);
+      const result = await window.reelforge.runVariants(shotId, {
+        kind: 'generate',
+        count: 2,
+        note,
+      });
+      if (result.status === 'error') return result.message ?? 'Not started.';
+      variants.open(shotId);
+      return undefined;
+    },
+    unlock: (shotId) => locks.setLocked([shotId], false),
+  });
   const runScenes = (action: 'build' | 'sync-check', shotId: string): void => {
     setShotNotice(undefined);
     void window.reelforge.runScenes(action, [shotId]).then((result) => {
@@ -175,6 +222,14 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
 
   return (
     <>
+      {assetsOpen && (
+        <AssetsDialog
+          assets={assets}
+          onClose={() => {
+            setAssetsOpen(false);
+          }}
+        />
+      )}
       {exportOpen && (
         <ExportDialog
           dir={project.dir}
@@ -246,6 +301,8 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               }}
               onVariants={variants.open}
               withVariants={variants.withVariants}
+              directed={direction.directed}
+              directionSummary={(shotId) => directionSummary(direction.directions?.shots[shotId])}
               onUnlockAndFix={(shotId) => {
                 void locks.setLocked([shotId], false).then((unlocked) => {
                   if (unlocked) runScenes('sync-check', shotId);
@@ -270,6 +327,13 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             <PreviewPanel
               source={variants.source(previewRevision)}
               player={player}
+              footer={
+                <CommandBar
+                  controls={direction}
+                  shotId={shotUnderPlayhead}
+                  wordAtPlayhead={() => words.findLast((word) => word.t <= timeRef.current)}
+                />
+              }
               snapshots
               onPick={(pick, x, y) => {
                 setSelection(pick === null ? null : toSelection(pick, x, y));
@@ -321,24 +385,47 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
           />
         }
         bottom={
-          <TimelinePanel
-            model={timeline.model}
-            duration={timeline.duration}
-            time={time}
-            playing={playing}
-            fps={fps}
-            selection={timeline.selection}
-            editing={timeline.editing}
-            locked={locks.locked}
-            waveform={timeline.waveform}
-            onSeek={(t) => {
-              player.seek(t);
-            }}
-            onScrub={(t) => {
-              player.scrub(t);
-            }}
-            onDropSound={addSound}
-          />
+          <div className="bottom-stack">
+            <TimelinePanel
+              model={timeline.model}
+              duration={timeline.duration}
+              time={time}
+              playing={playing}
+              fps={fps}
+              selection={timeline.selection}
+              editing={timeline.editing}
+              locked={locks.locked}
+              waveform={timeline.waveform}
+              onSeek={(t) => {
+                player.seek(t);
+              }}
+              onScrub={(t) => {
+                player.scrub(t);
+              }}
+              onDropSound={addSound}
+              tensionOpen={tensionPrefs.open}
+              onToggleTension={() => {
+                setTensionPrefs((current) => ({ open: !current.open }));
+              }}
+            />
+            {tensionPrefs.open && (
+              <TensionPanel
+                tension={tension}
+                shots={shots}
+                words={words}
+                durationS={timeline.duration}
+                time={time}
+                locked={locks.locked}
+                mapOn={tensionMapOn}
+                onSeek={(t) => {
+                  player.seek(t);
+                }}
+                onClose={() => {
+                  setTensionPrefs({ open: false });
+                }}
+              />
+            )}
+          </div>
         }
       />
     </>

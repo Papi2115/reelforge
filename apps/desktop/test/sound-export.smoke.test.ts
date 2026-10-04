@@ -18,12 +18,12 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, settingsFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 import { ffprobe, synthesizeVoiceover } from './support/pipeline-film.js';
 import { showStage } from './support/pipeline-rows.js';
@@ -151,9 +151,7 @@ beforeAll(async () => {
   await page.waitForFunction(() => window.innerWidth === 1280 && window.innerHeight === 720);
   await stubFolderPicker(app, dir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  await waitForProjectPreview(page);
 }, 180_000);
 
 afterAll(async () => {
@@ -224,7 +222,8 @@ describe('sound design', () => {
     const scrollX = Number(await canvas.getAttribute('data-scroll-x'));
     if (box === null) throw new Error('no timeline');
     await panel.getByRole('button', { name: /^Sound library/ }).click();
-    const item = panel.locator('.sound-item', { hasText: 'pop' });
+    // Exact name: the built-in library also has shape-pop, cap-pop, paper-pop…
+    const item = panel.getByRole('listitem', { name: 'Drag pop onto the timeline', exact: true });
     await item.dragTo(canvas, { targetPosition: { x: 15 * pxPerSecond - scrollX, y: 83 } });
     const added = await poll(cues, (value) => value.sfx.length > count);
     const pop = added.sfx.find((cue) => cue.name === 'pop' && Math.abs(cue.t - 15) < 0.3);
@@ -358,8 +357,10 @@ describe('export dialog', () => {
     expect(meta).toMatchObject({ source: 'claude', titles: SUGGESTION.titles });
     await youtube.getByRole('button', { name: 'Copy title 2' }).click();
     await youtube.getByRole('button', { name: 'Copy title 2' }).getByText('Copied ✓').waitFor();
-    const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
-    expect(copied).toBe('Can a 61 KB calculator run Doom?');
+    // Polled: another program may hold the Windows clipboard open for a moment while we read.
+    await expect
+      .poll(() => app.evaluate(({ clipboard }) => clipboard.readText()), { timeout: 5_000 })
+      .toBe('Can a 61 KB calculator run Doom?');
     await shot('export-youtube');
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       1280,

@@ -97,7 +97,10 @@ function directional(
   const { three } = tools;
   const light = new three.DirectionalLight(colorOf(tools, spec.color), spec.intensity * intensity);
   const yaw = (azimuth * Math.PI) / 180;
-  const pitch = (spec.elevation * Math.PI) / 180;
+  const elevation = tools.variation
+    ? Math.min(85, Math.max(5, spec.elevation + tools.variation.lightElevation))
+    : spec.elevation;
+  const pitch = (elevation * Math.PI) / 180;
   light.position.set(
     Math.sin(yaw) * Math.cos(pitch) * LIGHT_DISTANCE,
     Math.sin(pitch) * LIGHT_DISTANCE,
@@ -123,8 +126,10 @@ export const lights = defineEnv({
     const target = new three.Object3D();
     target.name = 'lightTarget';
     object.add(hemisphere, target);
-    // An azimuth override turns the whole rig (the rim keeps its angle to the key).
-    const turn = (params.azimuth ?? rig.key.azimuth) - rig.key.azimuth;
+    // An azimuth override turns the whole rig (the rim keeps its angle to the key); ambient
+    // variation (PLAN.md#12.8) turns it a little further per shot.
+    const turn =
+      (params.azimuth ?? rig.key.azimuth) - rig.key.azimuth + (tools.variation?.lightAzimuth ?? 0);
     const key = directional(tools, rig.key, params.intensity, rig.key.azimuth + turn);
     key.name = 'keyLight';
     key.target = target;

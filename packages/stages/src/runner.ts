@@ -14,6 +14,7 @@ import {
   type LimitGuard,
   type Result,
 } from '@reelforge/claude-bridge';
+import type { AssetRuntime } from '@reelforge/cli/assets';
 import { autocommit, type AutocommitKind, type GitOptions } from '@reelforge/project';
 import type { StageRunStatus, StageState } from '@reelforge/shared';
 import type { AudioTools } from './audio-tools.js';
@@ -26,6 +27,7 @@ import type { SceneTools } from './scenes/tools.js';
 import { isReviewRun, statusAfter } from './run-status.js';
 import { readProjectSnapshot, type ProjectSnapshot } from './snapshot.js';
 import { BUILT_IN_STAGES, type StageRegistry } from './stages/registry.js';
+import type { TasteLearner } from './taste/signals.js';
 import { TurnDriver } from './turns.js';
 import {
   stageError,
@@ -49,6 +51,10 @@ export interface StageRunnerOptions {
   /** The app's (account-wide) guard: pauses on usage limits and resumes automatically. */
   readonly guard?: LimitGuard | undefined;
   readonly sceneSfx?: SceneSfxProvider | undefined;
+  /** Asset sources/transport of the Assets stage (default: the real ones; tests: a local server). */
+  readonly assets?: AssetRuntime | undefined;
+  /** Taste learning (PLAN.md#12.13): the app's local profile; absent = off. */
+  readonly taste?: TasteLearner | undefined;
   /** Needed by Scenes built: frame renderer (+ kit names, missing-prop handler). */
   readonly scenes?: SceneTools | undefined;
   readonly store?: PipelineStateStore;
@@ -168,6 +174,8 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
         driver === undefined
           ? Promise.resolve(err(stageError('missing-tool', 'Claude is not connected')))
           : driver.run(turn),
+      assets: this.options.assets,
+      taste: this.options.taste,
       scenes: this.options.scenes,
       store: this.store,
       claudeConcurrency: () => this.options.guard?.concurrency ?? Number.POSITIVE_INFINITY,
@@ -216,6 +224,8 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
         return this.stages.words.run(ctx, request);
       case 'storyboard':
         return this.stages.storyboard.run(ctx, request);
+      case 'assets':
+        return this.stages.assets.run(ctx, request);
       case 'scenes':
         return this.stages.scenes.run(ctx, request);
       case 'sound-cues':

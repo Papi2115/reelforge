@@ -43,7 +43,10 @@ function state(
 ): StagesState {
   return {
     projectDir: 'C:\\p',
-    stages: PIPELINE_STAGE_KEYS.map((stage) => info(stage, patches[stage])),
+    // Main reports Assets only when research is on and needed (PLAN.md#12.10).
+    stages: PIPELINE_STAGE_KEYS.filter(
+      (stage) => stage !== 'assets' || patches.assets !== undefined,
+    ).map((stage) => info(stage, patches[stage])),
     running: null,
     queue: [],
     pause: null,
@@ -150,9 +153,10 @@ describe('foldDoneRows', () => {
   });
 
   it('keeps the last step visible when everything is done', () => {
+    // Every stage done, the optional Assets step included (8 rows before the export).
     const all = Object.fromEntries(PIPELINE_STAGE_KEYS.map((stage) => [stage, APPROVED]));
     const folded = foldDoneRows(pipelineRows(state(all)));
-    expect(folded.done).toHaveLength(7);
+    expect(folded.done).toHaveLength(8);
     expect(folded.rest.map((row) => row.spec.id)).toEqual(['export']);
   });
 });

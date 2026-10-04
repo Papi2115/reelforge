@@ -229,6 +229,7 @@ export {
   MUSIC_MOODS,
   generateActMusic,
   generateMusic,
+  moodTempoRange,
   musicCacheKey,
   musicFilePath,
   planActMusic,
@@ -262,6 +263,8 @@ export {
   type PowerSpectrum,
 } from './mix/analysis.js';
 export { makeSeamlessLoop, type LoopCurve, type StereoClip } from './mix/clip.js';
+export { planMix } from './mix/plan.js';
+export { mixBlock, type BusEvent } from './mix/bus.js';
 export { encodeWav, writeWavAtomic, type WavSampleFormat } from './mix/wav.js';
 export {
   MIX_QA_CHECK_IDS,
@@ -289,7 +292,13 @@ export {
   type StemName,
 } from './mix/report.js';
 export { STEM_FILE_NAMES } from './mix/master.js';
-export { mixAudio, type MixAudioOptions, type MixProgress, type MixStage } from './mix/mix.js';
+export {
+  mixAudio,
+  type MixAudioOptions,
+  type MixProgress,
+  type MixSilenceWindow,
+  type MixStage,
+} from './mix/mix.js';
 export {
   MAX_PREVIEW_WINDOW_S,
   mixPreview,
@@ -317,6 +326,7 @@ export {
 } from './export/frame-source.js';
 export {
   SEGMENT_CACHE_VERSION,
+  assetInputs,
   extractAnchorUses,
   segmentCacheKey,
   stableStringify,
@@ -372,3 +382,51 @@ export {
   type ExportResult,
   type ExportVideoOptions,
 } from './export/export-video.js';
+export {
+  ASSET_DECODE_VERSION,
+  ASSET_DEMUXERS,
+  DECODED_ASSETS_DIR,
+  decodeArgs,
+  decodeAsset,
+  decodedFileName,
+  parseDuration,
+  type DecodeAssetInput,
+  type DecodedAsset,
+} from './assets/decode.js';
+export {
+  loadManifestAssets,
+  locateAssetFfmpeg,
+  type ManifestAssetsInput,
+} from './assets/manifest-assets.js';
+export {
+  decodePam,
+  encodePam,
+  fittedSize,
+  normalizeRaster,
+  type RasterImage,
+} from './assets/pixels.js';
+export { refAt, refId, refLiterals, referencedAssetRefs } from './assets/refs.js';
+export {
+  boundaryStrength,
+  chapterLinesOf,
+  chapterTitle,
+  MAX_TITLE_WORDS,
+  planChapterStarts,
+  titleChapters,
+  type ChapterStarts,
+  type PlanShot,
+} from './publish/chapter-plan.js';
+export {
+  buildPublishKit,
+  hookParagraph,
+  LINKS_PLACEHOLDER,
+  publishChapters,
+  publishTags,
+  PUBLISH_DIR,
+  PUBLISH_FILES,
+  unverifiedWarning,
+  type PublishCredits,
+  type PublishFileName,
+  type PublishKit,
+  type PublishKitInput,
+} from './publish/publish-kit.js';

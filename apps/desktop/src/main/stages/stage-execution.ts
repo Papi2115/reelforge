@@ -36,10 +36,16 @@ export interface ExecutionContext {
   readonly onChange: () => void;
 }
 
-/** StageRun scope of a request (scene runs: review mode and target shots). */
+/**
+ * StageRun scope of a request (scene runs: review mode and target shots; the storyboard's
+ * `tension` proposal, PLAN.md#12.22).
+ */
 export function runScope(
   request: AppStageRequest,
 ): { readonly action: string | null; readonly shots: readonly string[] | null } | undefined {
+  if (request.stage === 'storyboard' && request.action !== undefined) {
+    return { action: request.action, shots: null };
+  }
   if (request.stage !== 'scenes') return undefined;
   return { action: request.action ?? null, shots: request.shots ?? null };
 }

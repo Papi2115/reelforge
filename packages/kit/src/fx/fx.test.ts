@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { KitError } from '../errors.js';
+import { voxelLook } from '../looks/index.js';
 import { createKit, kitCatalog, type KitApi } from '../kit.js';
 import { isKitObject, type KitObject } from '../object.js';
 import { CRISP_PALETTE, TOKENS_ONLY_PALETTE } from '../testing/palettes.js';
@@ -28,6 +29,10 @@ type Updatable = KitObject & { update(t: number, level?: number): void };
 
 function kit(palette: KitPalette = CRISP_PALETTE, seed = 7) {
   return createKit({ three: THREE, palette, rng: testRng(seed) });
+}
+
+function voxelKit() {
+  return createKit({ three: THREE, palette: CRISP_PALETTE, rng: testRng(7), looks: [voxelLook] });
 }
 
 function crate(api: KitApi): KitObject {
@@ -101,9 +106,15 @@ function snapshot(root: THREE.Object3D): string {
 
 describe('kit.fx registry', () => {
   it('registers every effect with catalog metadata and described params', () => {
-    expect(Object.keys(kit().api.fx)).toEqual(FX_NAMES);
-    const entries = kitCatalog().fx;
+    expect(Object.keys(voxelKit().api.fx)).toEqual(FX_NAMES);
+    const entries = kitCatalog([], [voxelLook]).fx;
     expect(entries.map((entry) => entry.name)).toEqual(FX_NAMES);
+    // With every available look, the voxel kit comes first and the rest belong to other looks.
+    const all = kitCatalog().fx;
+    expect(Object.keys(kit().api.fx)).toEqual(all.map((entry) => entry.name));
+    expect(all.slice(0, FX_NAMES.length)).toEqual(entries);
+    for (const entry of all.slice(FX_NAMES.length))
+      expect(entry.look, entry.name).not.toBe('voxel');
     for (const entry of entries) {
       expect(entry.kind).toBe('fx');
       expect(entry.description.length, entry.name).toBeGreaterThan(60);

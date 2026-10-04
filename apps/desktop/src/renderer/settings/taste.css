@@ -1,0 +1,57 @@
+/* Settings → Taste (PLAN.md#12.13): profile text, preference bars, actions. */
+.taste-profile {
+  margin: 0;
+  padding: 8px 10px;
+  line-height: 1.45;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.taste-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.taste-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px 56px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.taste-bar {
+  position: relative;
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.taste-bar > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.taste-bar > span.like {
+  left: 50%;
+  background: var(--ok);
+}
+
+.taste-bar > span.dislike {
+  right: 50%;
+  background: var(--error);
+}
+
+.taste-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

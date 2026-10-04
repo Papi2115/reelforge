@@ -1,12 +1,14 @@
 /**
  * GLSL of the composite + pixel-art post pass, generated per style so disabled effects cost
- * nothing. Order: per-layer fake AO + depth outline -> per-layer pixel text (overlay) ->
+ * nothing. Order: per-layer fake AO + depth outline -> (bokeh variant only: per-layer
+ * ordered-dither depth of field, bokeh-shader.ts) -> per-layer pixel text (overlay) ->
  * transition (A/B) -> vignette -> scanlines -> ordered dither -> palette LUT. Every step before the LUT only changes the input colour, so each
  * output pixel is a palette colour. CPU references: palette.ts (dither, LUT), style.ts (vignette,
  * scanlines).
  */
 import { bayerMatrix } from '../palette.js';
 import type { PostFxSettings } from '../style.js';
+import { bokehSection } from './bokeh-shader.js';
 
 /** Number of discrete glitch states over a transition (stepped, pixel-art feel). */
 const GLITCH_STEPS = 12;
@@ -85,20 +87,25 @@ bool silhouette(sampler2D depth, vec2 clip, ivec2 p) {
   return parts.join('\n');
 }
 
-function shadeSection(post: PostFxSettings): string {
+function shadeSection(post: PostFxSettings, bokeh: boolean): string {
   const depthParams = needsDepth(post) ? ', sampler2D depth, vec2 clip' : '';
   const ao = post.ao
     ? `  color *= 1.0 - ${glslFloat(post.ao.strength)} * occlusion(depth, clip, p);\n`
     : '';
   const outline = post.outline ? '  if (silhouette(depth, clip, p)) color = OUTLINE_COLOR;\n' : '';
-  const depthArgsA = needsDepth(post) ? ', dA, clipA' : '';
-  const depthArgsB = needsDepth(post) ? ', dB, clipB' : '';
+  // With bokeh, the AO/outline pixel is `shadeBase` and `shade` (bokeh-shader.ts) samples it.
+  const focusArgA = bokeh ? ', focusA' : '';
+  const focusArgB = bokeh ? ', focusB' : '';
+  const depthArgsA = needsDepth(post) ? `, dA, clipA${focusArgA}` : '';
+  const depthArgsB = needsDepth(post) ? `, dB, clipB${focusArgB}` : '';
+  const shadeName = bokeh ? 'shadeBase' : 'shade';
+  const bokehFunctions = bokeh ? bokehSection() : '';
   return /* glsl */ `
 // p is in top-down image coordinates; scene textures are bottom-up, text overlays top-down.
-vec3 shade(sampler2D scene${depthParams}, ivec2 p) {
+vec3 ${shadeName}(sampler2D scene${depthParams}, ivec2 p) {
   vec3 color = texelFetch(scene, ivec2(p.x, height - 1 - p.y), 0).rgb;
 ${ao}${outline}  return color;
-}
+}${bokehFunctions}
 // Text pixels are opaque (alpha 255) or absent (alpha 0): not touched by AO/outline, but blended
 // by transitions and quantized by the post pass like the 3D image.
 vec3 withText(sampler2D text, vec3 color, ivec2 p) {
@@ -160,7 +167,14 @@ float scanline(ivec2 p) {
   return lines.join('\n');
 }
 
-export function postFragmentShader(post: PostFxSettings): string {
+export interface PostShaderOptions {
+  /** Variant with the ordered-dither bokeh (needs depth: `needsDepth(post)`). Default false. */
+  readonly bokeh?: boolean;
+}
+
+export function postFragmentShader(post: PostFxSettings, options: PostShaderOptions = {}): string {
+  const bokeh = options.bokeh === true && needsDepth(post);
+  const focusUniforms = bokeh ? 'uniform vec2 focusA;\nuniform vec2 focusB;\n' : '';
   const size = post.dither.size;
   const bayer = bayerMatrix(size).map(glslFloat).join(', ');
   const cells = size * size;
@@ -180,9 +194,9 @@ uniform float progress;
 uniform int seed;
 uniform int width;
 uniform int height;
-const float BAYER[${String(cells)}] = float[${String(cells)}](${bayer});
+${focusUniforms}const float BAYER[${String(cells)}] = float[${String(cells)}](${bayer});
 ${depthSection(post)}
-${shadeSection(post)}
+${shadeSection(post, bokeh)}
 ${COMPOSE_SECTION}
 ${screenSection(post)}
 

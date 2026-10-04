@@ -179,7 +179,9 @@ export function checkAnnotationPlans(
   rules: Partial<AnnotationRules> = {},
 ): ValidationIssue[] {
   const merged = { ...DEFAULT_ANNOTATION_RULES, ...rules };
-  const { issues, timed } = phraseIssues(shots, words);
+  const { issues, timed: all } = phraseIssues(shots, words);
+  // A source chip credits a claim (PLAN.md#12.18); it is not a mark the variety rules count.
+  const timed = all.filter((entry) => entry.plan.kind !== 'source-chip');
   const durationS = shots.at(-1)?.t1 ?? 0;
   return [
     ...issues,

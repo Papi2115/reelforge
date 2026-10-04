@@ -9,6 +9,7 @@ export type KitErrorCode =
   | 'invalid-surface'
   | 'kit-outside-build'
   | 'invalid-extension'
+  | 'invalid-look'
   | 'unknown-definition';
 
 export class KitError extends Error {

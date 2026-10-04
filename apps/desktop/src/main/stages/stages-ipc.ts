@@ -80,6 +80,13 @@ export interface StagesHandlerOptions {
   readonly mic: MicPermissionGate;
   /** Autocommit of a project (shot locks). */
   readonly commit: (dir: string, message: string) => Promise<void>;
+  /**
+   * Taste learning (PLAN.md#12.13): a lock approves shots as they are, a rebuild sends them back;
+   * the profile owner ignores both while learning is off.
+   */
+  readonly taste?: {
+    recordShots(dir: string, shotIds: readonly string[], kind: 'lock' | 'rebuild'): Promise<void>;
+  };
   readonly log: Logger;
   readonly now?: () => Date;
 }
@@ -172,21 +179,33 @@ export function stagesHandlers(options: StagesHandlerOptions): StagesHandlers {
       }
       return service.enqueue([{ stage: 'words', model: request.model }]);
     },
-    scenesRun: (request) =>
-      service.enqueue([
+    scenesRun: async (request) => {
+      const dir = options.currentProject();
+      // Rebuilding chosen shots says the current scenes missed (read before they are replaced).
+      if (dir !== undefined && request.action === 'build' && request.shots !== null) {
+        await options.taste?.recordShots(dir, request.shots, 'rebuild');
+      }
+      return service.enqueue([
         {
           stage: 'scenes',
           ...(request.action === 'build' ? {} : { action: request.action }),
           ...(request.shots === null ? {} : { shots: request.shots }),
         },
-      ]),
-    shotsLock: (request) =>
-      lockShots({
-        dir: options.currentProject(),
+      ]);
+    },
+    shotsLock: async (request) => {
+      const dir = options.currentProject();
+      const result = await lockShots({
+        dir,
         shotIds: request.shotIds,
         locked: request.locked,
         now: options.now?.() ?? new Date(),
         commit: options.commit,
-      }),
+      });
+      if (dir !== undefined && request.locked && result.status === 'ok') {
+        await options.taste?.recordShots(dir, request.shotIds, 'lock');
+      }
+      return result;
+    },
   };
 }

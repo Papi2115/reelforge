@@ -47,5 +47,33 @@
   "dither": { "matrix": "bayer4", "spread": 0.12 },
   "outline": { "color": "outline", "threshold": 0.08 },
   "ao": { "strength": 0.35, "radius": 2, "range": 1.5 },
-  "vignette": { "strength": 0.25, "radius": 0.7, "softness": 0.5 }
+  "vignette": { "strength": 0.25, "radius": 0.7, "softness": 0.5 },
+  "variation": {
+    "voxel": {
+      "tones": {
+        "black": ["navy"],
+        "navy": ["indigo"],
+        "indigo": ["purple", "navy"],
+        "purple": ["indigo", "violet"],
+        "violet": ["purple", "wine"],
+        "magenta": ["pink", "violet"],
+        "pink": ["magenta"],
+        "slateBlue": ["teal", "navy"],
+        "teal": ["slateBlue", "brightTeal"],
+        "brightTeal": ["teal"],
+        "lightOrange": ["orange", "tan"],
+        "slateGrey": ["midSlate"],
+        "darkSlate": ["midSlate"]
+      },
+      "toneShare": 0.35,
+      "steps": 5,
+      "cell": [0.8, 1.25],
+      "horizon": [-0.06, 0.08],
+      "fade": [0.85, 1.2],
+      "lightAzimuth": [-24, 24],
+      "lightElevation": [-8, 8],
+      "debris": [0.75, 1.3],
+      "cameraDrift": [1.2, 0.5]
+    }
+  }
 }

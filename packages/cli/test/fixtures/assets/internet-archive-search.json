@@ -1,0 +1,44 @@
+{
+  "responseHeader": {
+    "status": 0,
+    "QTime": 52,
+    "params": {
+      "query": "(text:computer OR text:computer OR text__reviews:computer) AND mediatype:(movies OR image) AND licenseurl:(&quot;http\\:\\/\\/creativecommons.org/publicdomain/mark/1.0/&quot; OR &quot;http\\:\\/\\/creativecommons.org/publicdomain/zero/1.0/&quot; OR &quot;https\\:\\/\\/creativecommons.org/publicdomain/zero/1.0/&quot; OR &quot;https\\:\\/\\/creativecommons.org/publicdomain/mark/1.0/&quot;)",
+      "qin": "(computer) AND mediatype:(movies OR image) AND licenseurl:(&quot;http://creativecommons.org/publicdomain/mark/1.0/&quot; OR &quot;http://creativecommons.org/publicdomain/zero/1.0/&quot; OR &quot;https://creativecommons.org/publicdomain/zero/1.0/&quot; OR &quot;https://creativecommons.org/publicdomain/mark/1.0/&quot;)",
+      "fields": "identifier,title,creator,licenseurl,mediatype,item_size",
+      "wt": "json",
+      "rows": 3,
+      "start": 0
+    }
+  },
+  "response": {
+    "numFound": 1790,
+    "start": 0,
+    "docs": [
+      {
+        "creator": "@RV42069, Kabal",
+        "identifier": "kabalrv42069",
+        "item_size": 912987550,
+        "licenseurl": "https://creativecommons.org/publicdomain/mark/1.0/",
+        "mediatype": "movies",
+        "title": "Kabal (@RV42069) Youtube Musician"
+      },
+      {
+        "creator": "High Speed 2 (HS2) Limited",
+        "identifier": "hs2-route-nov-2013",
+        "item_size": 702336991,
+        "licenseurl": "https://creativecommons.org/publicdomain/mark/1.0/",
+        "mediatype": "movies",
+        "title": "High Speed 2: Route Fly Through, November 2013"
+      },
+      {
+        "creator": "https://noodol-cafe.com/",
+        "identifier": "httpsnoodol-cafe.comgadgetbingung-pilih-laptop-atau-pc-ketahui-kelebihan-keduanya",
+        "item_size": 485016,
+        "licenseurl": "https://creativecommons.org/publicdomain/mark/1.0/",
+        "mediatype": "image",
+        "title": "Confused Choose Laptop or PC? Know the Advantages of Both!"
+      }
+    ]
+  }
+}

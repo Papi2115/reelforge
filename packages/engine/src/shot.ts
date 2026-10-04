@@ -2,12 +2,18 @@
  * Per-shot runtime: builds a scene module once (collecting sfx cues) and evaluates it at a local
  * time. GL-free, so it runs (and is tested) in Node as well as in the engine page.
  */
-import { createKit, type KitDefinition } from '@reelforge/kit';
+import { createKit, type AmbientVariation, type KitDefinition } from '@reelforge/kit';
 import { DEFAULT_SAFE_AREA, type SafeAreaMargins } from '@reelforge/shared';
 import * as THREE from 'three';
+import { createAmbientApi } from './ambient.js';
+import { createAssetsApi } from './assets/api.js';
+import { NO_ASSETS, type AssetLibrary } from './assets/library.js';
 import type { AnchorResolver } from './anchors.js';
+import type { FocusState } from './camera/bokeh.js';
 import { createCameraApi } from './camera/camera-api.js';
+import { createCameraDrift } from './camera/drift.js';
 import { EASINGS } from './camera/easing.js';
+import { createCameraMoveLayer } from './camera/move-layer.js';
 import type {
   AnchorHit,
   CameraPose,
@@ -17,6 +23,7 @@ import type {
   SfxApi,
   SfxCue,
   ShotInfo,
+  Vec3,
 } from './contract.js';
 import { describeError, EngineError } from './errors.js';
 import { createAnnotationLayer } from './annotations/layer.js';
@@ -38,6 +45,10 @@ export interface ShotInput {
   readonly resolveAnchor: AnchorResolver;
   /** Project props (manifest `kitExtensions`), registered as ctx.kit.props.<name>. */
   readonly kitExtensions?: readonly KitDefinition[] | undefined;
+  /** Ambient variation of the shot (PLAN.md#12.8); absent = the scene exactly as authored. */
+  readonly ambient?: AmbientVariation | undefined;
+  /** The video's asset pictures (PLAN.md#12.11); absent = none. */
+  readonly assets?: AssetLibrary | undefined;
 }
 
 export interface BuiltShot {
@@ -52,6 +63,8 @@ export interface BuiltShot {
   readonly overlay: TextOverlay;
   /** Text safe area in low-res pixels. */
   readonly safeArea: PixelRect;
+  /** Depth of field of the last `update` (`ctx.camera.rackFocus`); undefined = all sharp. */
+  readonly focus: FocusState | undefined;
   /**
    * Evaluates the scene at local time t (seconds). `probe` (QA) also tests whether annotation
    * targets are hidden behind geometry.
@@ -126,7 +139,16 @@ export function buildShot(input: ShotInput): BuiltShot {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(DEFAULT_CAMERA_POSE.fov, width / height, 0.1, 1000);
   const seed = shotSeed(input.projectSeed, id);
-  const cameraApi = createCameraApi(camera, { duration, seed });
+  let lookTarget: Vec3 = DEFAULT_CAMERA_POSE.target ?? [0, 0, 0];
+  const moves = createCameraMoveLayer({ shotId: id, camera, scene, lookTarget: () => lookTarget });
+  const cameraApi = createCameraApi(camera, {
+    duration,
+    seed,
+    moves,
+    onPose: (pose) => {
+      lookTarget = pose.target ?? [0, 0, 0];
+    },
+  });
   cameraApi.set(DEFAULT_CAMERA_POSE);
   const cues: SfxCue[] = [];
   const anchors: ResolvedAnchor[] = [];
@@ -157,7 +179,11 @@ export function buildShot(input: ShotInput): BuiltShot {
     palette,
     rng: createRng(hashString('kit', seed)),
     extraProps: input.kitExtensions,
+    variation: input.ambient,
   });
+  const drift = input.ambient && createCameraDrift(camera, input.ambient.cameraDrift, duration);
+  const library = input.assets ?? NO_ASSETS;
+  const updateAssets = createAssetsApi({ library, palette, shotId: id, phase: 'update' });
   const base = {
     three: THREE,
     scene,
@@ -167,6 +193,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     ease: EASINGS,
     anchor: createAnchor(input),
     shot: info,
+    ambient: createAmbientApi(input.ambient),
   };
   const buildContext: SceneContext = {
     ...base,
@@ -175,6 +202,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     annotate: annotations.buildApi,
     sfx: collectingSfx(shot, cues),
     rng: createRng(seed),
+    assets: createAssetsApi({ library, palette, shotId: id, phase: 'build' }),
   };
   let state: unknown;
   try {
@@ -201,6 +229,9 @@ export function buildShot(input: ShotInput): BuiltShot {
     anchors,
     overlay: text.overlay,
     safeArea: text.safeArea,
+    get focus() {
+      return moves.focus();
+    },
     cards: () => {
       const drawn = annotations.cards();
       return drawn.length === 0 ? text.cards() : [...text.cards(), ...drawn];
@@ -214,9 +245,15 @@ export function buildShot(input: ShotInput): BuiltShot {
         annotate: annotations.frameApi,
         sfx: updateSfx,
         rng: createRng(seed).fork('update'),
+        assets: updateAssets,
       };
       try {
+        drift?.begin();
+        moves.beginFrame(localTime);
         module.update(localTime, state, updateContext);
+        moves.applyMoves();
+        drift?.apply(localTime);
+        moves.endFrame();
         annotations.endFrame(updateOptions?.probe === true);
       } catch (error) {
         if (error instanceof EngineError) throw error;

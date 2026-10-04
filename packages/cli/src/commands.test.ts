@@ -185,6 +185,6 @@ describe('reelforge kit-docs', () => {
     expect(one.stdout).toContain('Solid box of one colour.');
     const unknown = await runCli(project.root, 'kit-docs', 'teleporter');
     expect(unknown.code).toBe(2);
-    expect(unknown.stderr).toContain('no kit function "teleporter"; known: fromGrid');
+    expect(unknown.stderr).toContain('no kit function "teleporter"\nkinds: props, env, fx');
   });
 });

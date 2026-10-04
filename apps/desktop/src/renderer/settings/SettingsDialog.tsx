@@ -1,22 +1,31 @@
 /**
  * Settings (PLAN.md#6.7): a modal with a vertical tab list — Claude (connect wizard), Models
- * (per stage, Economy, budget), Projects (language, style), Performance and Tools. Every change is
- * saved by main right away.
+ * (per stage, Economy, budget), Projects (language, style), Taste (PLAN.md#12.13), Performance and
+ * Tools. Every change is saved by main right away.
  */
 import { useEffect, useRef, type JSX, type KeyboardEvent } from 'react';
 import { ClaudeConnect } from './ClaudeConnect.js';
 import { ModelsPage, PerformancePage, ProjectsPage } from './GeneralSettings.js';
+import { TastePage } from './TasteSettings.js';
 import { ToolsPage } from './ToolsSettings.js';
 import type { ClaudeStatusController } from './use-claude-status.js';
 import type { SettingsController } from './use-settings.js';
 
-export const SETTINGS_TABS = ['claude', 'models', 'projects', 'performance', 'tools'] as const;
+export const SETTINGS_TABS = [
+  'claude',
+  'models',
+  'projects',
+  'taste',
+  'performance',
+  'tools',
+] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 const TAB_LABELS: Readonly<Record<SettingsTab, string>> = {
   claude: 'Claude',
   models: 'Models',
   projects: 'Projects',
+  taste: 'Taste',
   performance: 'Performance',
   tools: 'Tools',
 };
@@ -111,6 +120,7 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
             {pageProps === undefined && tab !== 'claude' && <p className="muted">Loading…</p>}
             {pageProps !== undefined && tab === 'models' && <ModelsPage {...pageProps} />}
             {pageProps !== undefined && tab === 'projects' && <ProjectsPage {...pageProps} />}
+            {pageProps !== undefined && tab === 'taste' && <TastePage {...pageProps} />}
             {pageProps !== undefined && tab === 'performance' && <PerformancePage {...pageProps} />}
             {pageProps !== undefined && tab === 'tools' && <ToolsPage {...pageProps} />}
             {settings.error !== undefined && (

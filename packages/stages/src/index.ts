@@ -6,6 +6,7 @@
  */
 export const packageName = '@reelforge/stages';
 
+export * from './assets-gate.js';
 export * from './audio-tools.js';
 export * from './claude.js';
 export * from './gating.js';
@@ -17,6 +18,7 @@ export * from './settings.js';
 export * from './snapshot.js';
 export * from './types.js';
 export { BUILT_IN_STAGES, type StageRegistry } from './stages/registry.js';
+export { assetNeedLine, assetsPromptVars } from './stages/assets.js';
 export {
   generateDefaultCues,
   shotGroups,
@@ -26,6 +28,18 @@ export {
 export { CATEGORY_GAIN_DB, CUE_RULES, DENSITY, type CueEventKind } from './sound/cue-rules.js';
 export { STYLE_MOODS, detectActs, actMoods, type FilmAct } from './sound/acts.js';
 export { designSound, type SoundDesign, type SoundDesignInput } from './sound/design.js';
+export {
+  activeTension,
+  proposalBlocked,
+  readTension,
+  tensionTable,
+  type TensionState,
+} from './tension.js';
+export {
+  applyRepetition,
+  setRepetitionStatus,
+  type RepetitionApplied,
+} from './repetition/stage.js';
 export { SCENE_STUB_MARKER, sceneStubSource } from './stages/scene-stub.js';
 export { buildVoReport, MAX_PLAUSIBLE_WPM, MIN_PLAUSIBLE_WPM } from './stages/vo-report.js';
 export { findRepetitionLoop, RETRY_DECODING } from './stages/words-quality.js';
@@ -134,3 +148,49 @@ export {
   finalReviewWarnings,
   type FinalReviewOutcome,
 } from './scenes/final-review.js';
+export {
+  checkSources,
+  readClaimsFile,
+  writeClaimsFile,
+  type CheckSourcesOptions,
+  type CheckSourcesOutcome,
+} from './claims/check-sources.js';
+export { sourceChipLines, storyboardSourceChipVars } from './claims/source-chips.js';
+export { generateHooks, type GenerateHooksOptions } from './hook-lab/generate.js';
+export {
+  RERECORD_WARNING,
+  discardHooks,
+  lockedShotsWarning,
+  pickHook,
+  readHookLabState,
+  type HookDecisionOptions,
+  type HookLabState,
+  type HookPickOutcome,
+} from './hook-lab/decide.js';
+export { hookSetNumbers, latestHookSet, readHookSet } from './hook-lab/store.js';
+export {
+  CAMERA_MOVES,
+  sceneTasteFeatures,
+  shotDecisionFeatures,
+  shotTasteFeatures,
+} from './taste/features.js';
+export {
+  MAX_PROFILE_WORDS,
+  MIN_PREFERENCE_EVIDENCE,
+  MIN_PREFERENCE_STRENGTH,
+  MIN_PROFILE_SIGNALS,
+  TASTE_HALF_LIFE_DAYS,
+  applyTasteSignals,
+  decayedTasteProfile,
+  tasteLabel,
+  tastePreferences,
+  tasteProfileText,
+  tasteSignalCount,
+  type TastePreference,
+} from './taste/profile.js';
+export {
+  WEAK_SIGNAL_WEIGHT,
+  shotTasteSignals,
+  variantDecisionSignal,
+  type TasteLearner,
+} from './taste/signals.js';

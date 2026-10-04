@@ -2,7 +2,12 @@
  * postMessage protocol between the host page and the sandboxed engine frame (ADR-004).
  * Every message is validated with zod on receipt; frames travel as transferred ArrayBuffers.
  */
-import type { RenderManifest, SceneSource } from '@reelforge/shared';
+import {
+  shotDirectionSchema,
+  type RenderManifest,
+  type SceneSource,
+  type ShotDirection,
+} from '@reelforge/shared';
 import { z } from 'zod';
 import { ENGINE_ERROR_CODES } from '../errors.js';
 import type { LoadInfo } from '../runtime.js';
@@ -33,6 +38,11 @@ export interface ReelforgeHarness {
    * global time t; null = background. Renders nothing; `frame()` keeps the last seeked frame.
    */
   pick(x: number, y: number, t: number): Promise<PickInfo | null>;
+  /**
+   * Live co-direction (PLAN.md#12.14): replaces one shot's direction overrides (null clears them)
+   * without rebuilding the shot. Seek again to see the change.
+   */
+  setShotDirection(shotId: string, direction: ShotDirection | null): Promise<void>;
 }
 
 export const readyMessageSchema = z.object({
@@ -74,6 +84,13 @@ export const requestSchema = z.discriminatedUnion('method', [
     x: z.number(),
     y: z.number(),
     t: z.number(),
+  }),
+  z.object({
+    channel: z.literal(RPC_CHANNEL),
+    id: z.int(),
+    method: z.literal('direct'),
+    shotId: z.string(),
+    direction: shotDirectionSchema.nullable(),
   }),
 ]);
 export type RpcRequest = z.infer<typeof requestSchema>;
@@ -174,6 +191,13 @@ export const responseSchema = z.union([
     ok: z.literal(true),
     method: z.literal('pick'),
     result: pickResultSchema.nullable(),
+  }),
+  z.object({
+    channel: z.literal(RPC_CHANNEL),
+    id: z.int(),
+    ok: z.literal(true),
+    method: z.literal('direct'),
+    result: z.null(),
   }),
   z.object({
     channel: z.literal(RPC_CHANNEL),

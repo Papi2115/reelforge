@@ -212,6 +212,7 @@ export function mainProcessBuilds(context: TaskContext): BuildOptions[] {
       '@reelforge/kit': packageSource(context, 'kit', 'src', 'index.ts'),
       '@reelforge/cli/service': packageSource(context, 'cli', 'src', 'service', 'index.ts'),
       '@reelforge/cli/shims': packageSource(context, 'cli', 'src', 'shims.ts'),
+      '@reelforge/cli/assets': packageSource(context, 'cli', 'src', 'assets', 'index.ts'),
       '@reelforge/prompts': packageSource(context, 'prompts', 'src', 'index.ts'),
       '@reelforge/stages': packageSource(context, 'stages', 'src', 'index.ts'),
     },

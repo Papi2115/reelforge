@@ -2,6 +2,7 @@
  * Dependency rules: can a stage run on this project right now? Pure over a `ProjectSnapshot`, so the
  * UI can grey out buttons and show the human-readable reasons.
  */
+import { assetsReasons, assetsStageReasons } from './assets-gate.js';
 import { STAGE_TITLES, STAGE_UPSTREAM, type StageId } from './ids.js';
 import { FILES } from './paths.js';
 import type { ProjectSnapshot } from './snapshot.js';
@@ -62,8 +63,16 @@ function fileReasons(stage: StageId, snapshot: ProjectSnapshot): string[] {
         ...need(snapshot, FILES.script, 'run Script first'),
         ...need(snapshot, FILES.words, 'run Words timed first'),
       ];
+    case 'assets':
+      return [
+        ...need(snapshot, FILES.storyboard, 'run Storyboard first'),
+        ...assetsStageReasons(snapshot),
+      ];
     case 'scenes':
-      return need(snapshot, FILES.storyboard, 'run Storyboard first');
+      return [
+        ...need(snapshot, FILES.storyboard, 'run Storyboard first'),
+        ...assetsReasons(snapshot),
+      ];
     case 'sound-cues':
       return [
         ...need(snapshot, FILES.storyboard, 'run Storyboard first'),

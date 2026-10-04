@@ -16,9 +16,10 @@ import {
   Vector2,
   type Texture,
 } from 'three';
+import type { FocusState } from '../camera/bokeh.js';
 import { lutTexels } from '../palette.js';
 import type { PostFxSettings } from '../style.js';
-import { POST_VERTEX_SHADER, postFragmentShader } from './post-shader.js';
+import { needsDepth, POST_VERTEX_SHADER, postFragmentShader } from './post-shader.js';
 
 export const COMPOSITE_MODES: Readonly<Record<'single' | Exclude<TransitionType, 'cut'>, number>> =
   {
@@ -39,6 +40,8 @@ export interface CompositeLayer {
   readonly depth: Texture | undefined;
   readonly near: number;
   readonly far: number;
+  /** Depth of field of the layer (`ctx.camera.rackFocus`); undefined = all sharp. */
+  readonly focus?: FocusState | undefined;
 }
 
 export interface CompositeInput {
@@ -75,31 +78,40 @@ export function createCompositePass(
 ): CompositePass {
   const geometry = new PlaneGeometry(2, 2);
   const lut = createLutTexture(post);
-  const material = new ShaderMaterial({
-    vertexShader: POST_VERTEX_SHADER,
-    fragmentShader: postFragmentShader(post),
-    depthTest: false,
-    depthWrite: false,
-    uniforms: {
-      tA: { value: null },
-      tB: { value: null },
-      xA: { value: null },
-      xB: { value: null },
-      dA: { value: null },
-      dB: { value: null },
-      clipA: { value: new Vector2(0.1, 1000) },
-      clipB: { value: new Vector2(0.1, 1000) },
-      lut: { value: lut },
-      mode: { value: COMPOSITE_MODES.single },
-      progress: { value: 0 },
-      seed: { value: 0 },
-      width: { value: width },
-      height: { value: height },
-    },
-  });
+  // One uniform set for both programs; the base program ignores the focus uniforms.
+  const uniforms: Record<string, { value: unknown }> = {
+    tA: { value: null },
+    tB: { value: null },
+    xA: { value: null },
+    xB: { value: null },
+    dA: { value: null },
+    dB: { value: null },
+    clipA: { value: new Vector2(0.1, 1000) },
+    clipB: { value: new Vector2(0.1, 1000) },
+    lut: { value: lut },
+    mode: { value: COMPOSITE_MODES.single },
+    progress: { value: 0 },
+    seed: { value: 0 },
+    width: { value: width },
+    height: { value: height },
+    focusA: { value: new Vector2(0, 0) },
+    focusB: { value: new Vector2(0, 0) },
+  };
+  const createMaterial = (bokeh: boolean): ShaderMaterial =>
+    new ShaderMaterial({
+      vertexShader: POST_VERTEX_SHADER,
+      fragmentShader: postFragmentShader(post, { bokeh }),
+      depthTest: false,
+      depthWrite: false,
+      uniforms,
+    });
+  const material = createMaterial(false);
+  /** Compiled on the first frame with a focus: shots without one render with the base program. */
+  let bokehMaterial: ShaderMaterial | undefined;
+  const bokehSupported = needsDepth(post);
+  const mesh = new Mesh(geometry, material);
   const scene = new Scene();
-  scene.add(new Mesh(geometry, material));
-  const uniforms = material.uniforms;
+  scene.add(mesh);
   const set = (name: string, value: unknown): void => {
     const uniform = uniforms[name];
     if (uniform) uniform.value = value;
@@ -108,6 +120,13 @@ export function createCompositePass(
     const uniform = uniforms[name];
     if (uniform?.value instanceof Vector2) uniform.value.set(layer.near, layer.far);
   };
+  const setFocus = (name: string, focus: FocusState | undefined): void => {
+    const uniform = uniforms[name];
+    if (uniform?.value instanceof Vector2)
+      uniform.value.set(focus?.distance ?? 0, focus?.aperture ?? 0);
+  };
+  const hasFocus = (layer: CompositeLayer): boolean =>
+    layer.focus !== undefined && layer.focus.aperture > 0;
   return {
     scene,
     camera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
@@ -123,10 +142,16 @@ export function createCompositePass(
       set('mode', COMPOSITE_MODES[input.mode]);
       set('progress', input.progress);
       set('seed', input.seed & 0x7fffffff);
+      setFocus('focusA', input.a.focus);
+      setFocus('focusB', input.b.focus);
+      const bokeh = bokehSupported && (hasFocus(input.a) || hasFocus(input.b));
+      if (bokeh) bokehMaterial ??= createMaterial(true);
+      mesh.material = bokeh && bokehMaterial ? bokehMaterial : material;
     },
     dispose() {
       geometry.dispose();
       material.dispose();
+      bokehMaterial?.dispose();
       lut.dispose();
     },
   };

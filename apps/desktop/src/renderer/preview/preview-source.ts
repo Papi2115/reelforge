@@ -58,9 +58,13 @@ export async function resolvePreview(
   return { manifest: await api.getDemoManifest(), note: previewNote(result) };
 }
 
-/** Project props (kit-ext/props) count: every shot may call them (a change reloads the video). */
+/**
+ * Project props (kit-ext/props) count: every shot may call them (a change reloads the video); so
+ * does the tension curve (per-shot background tone and ambient budget, PLAN.md#12.22). Live
+ * directions (directions.json, PLAN.md#12.14) are swapped in without a rebuild.
+ */
 const PREVIEW_INPUTS =
-  /^(project\.json|storyboard\.json|timing\/words\.json|scenes\/.+|kit-ext\/props\/.+)$/i;
+  /^(project\.json|storyboard\.json|tension\.json|directions\.json|timing\/words\.json|scenes\/.+|kit-ext\/props\/.+)$/i;
 
 /** True when a change can alter the project's video (or the change list is incomplete). */
 export function affectsPreview(event: ProjectChangedEvent): boolean {

@@ -13,7 +13,7 @@ export interface YoutubeExtrasProps {
   readonly onMeta: (meta: YoutubeMetaFile) => void;
 }
 
-function CopyButton({
+export function CopyButton({
   text,
   label,
 }: {

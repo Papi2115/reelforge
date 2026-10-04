@@ -24,8 +24,18 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   'review-triage': 'critic',
   'review-plan': 'storyboard',
   'youtube-meta': 'storyboard',
+  // Asset research (PLAN.md#12.10) plans like the storyboard: Sonnet, reelforge only, no web tools.
+  assets: 'storyboard',
   // A project prop is scene-building work: same tools (project edits + reelforge), Opus.
   'prop-build': 'scene-build',
+  // The tension map (PLAN.md#12.22) is planning before the storyboard: Sonnet, project edits.
+  tension: 'storyboard',
+  // Fact-checking the script (PLAN.md#12.18) only reads: the critic's permissions (read-only
+  // tools, no web); the app asks for the prompt's own model (Sonnet) explicitly.
+  claims: 'critic',
+  // Hook lab openings (PLAN.md#12.16) are written from the script alone: read-only tools, no web
+  // (the critic's permissions); the app asks for the prompt's own model (Sonnet) explicitly.
+  hooks: 'critic',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

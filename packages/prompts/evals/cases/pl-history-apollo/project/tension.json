@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "source": "claude",
+  "note": "A hook, a calm introduction of the computer, rising pressure, the peak at the alarms and restarts, a quiet release.",
+  "points": [
+    {
+      "t": 0,
+      "v": 0.5
+    },
+    {
+      "t": 5.92,
+      "v": 0.3
+    },
+    {
+      "t": 15.37,
+      "v": 0.55
+    },
+    {
+      "t": 21.43,
+      "v": 0.9
+    },
+    {
+      "t": 28.315,
+      "v": 0.6
+    },
+    {
+      "t": 33.785,
+      "v": 0.35
+    },
+    {
+      "t": 40.355,
+      "v": 0.2
+    }
+  ],
+  "segments": [
+    {
+      "from": 0,
+      "to": 5.92,
+      "kind": "rising",
+      "label": "the hook"
+    },
+    {
+      "from": 5.92,
+      "to": 15.37,
+      "kind": "calm",
+      "label": "the Moon and the computer"
+    },
+    {
+      "from": 15.37,
+      "to": 21.43,
+      "kind": "rising",
+      "label": "the clock runs out"
+    },
+    {
+      "from": 21.43,
+      "to": 28.315,
+      "kind": "peak",
+      "label": "the restarts"
+    },
+    {
+      "from": 28.315,
+      "to": 40.355,
+      "kind": "release",
+      "label": "what it teaches"
+    }
+  ]
+}

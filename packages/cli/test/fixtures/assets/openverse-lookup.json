@@ -1,0 +1,38 @@
+{
+  "id": "cd8f24fd-9972-4c78-9b0d-abc90207e761",
+  "title": "Nokia Phone",
+  "indexed_on": "2020-05-02T06:03:04.997769Z",
+  "foreign_landing_url": "https://www.flickr.com/photos/66078914@N00/354550256",
+  "url": "https://live.staticflickr.com/147/354550256_580af6aa73_b.jpg",
+  "creator": "bragadocchio",
+  "creator_url": "https://www.flickr.com/photos/66078914@N00",
+  "license": "by",
+  "license_version": "2.0",
+  "license_url": "https://creativecommons.org/licenses/by/2.0/",
+  "provider": "flickr",
+  "source": "flickr",
+  "category": null,
+  "filesize": null,
+  "filetype": null,
+  "tags": [
+    {
+      "name": "mobilephone",
+      "accuracy": null,
+      "unstable__provider": "flickr"
+    },
+    {
+      "name": "nokia",
+      "accuracy": null,
+      "unstable__provider": "flickr"
+    }
+  ],
+  "attribution": "\"Nokia Phone\" by bragadocchio is licensed under CC BY 2.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/2.0/.",
+  "fields_matched": [],
+  "mature": false,
+  "height": 1012,
+  "width": 785,
+  "thumbnail": "https://api.openverse.org/v1/images/cd8f24fd-9972-4c78-9b0d-abc90207e761/thumb/",
+  "detail_url": "https://api.openverse.org/v1/images/cd8f24fd-9972-4c78-9b0d-abc90207e761/",
+  "related_url": "https://api.openverse.org/v1/images/cd8f24fd-9972-4c78-9b0d-abc90207e761/related/",
+  "unstable__sensitivity": []
+}

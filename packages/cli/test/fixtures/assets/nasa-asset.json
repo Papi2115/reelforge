@@ -1,0 +1,26 @@
+{
+  "collection": {
+    "version": "1.1",
+    "href": "http://images-api.nasa.gov/asset/jsc2007e034221",
+    "items": [
+      {
+        "href": "http://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~orig.jpg"
+      },
+      {
+        "href": "http://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~large.jpg"
+      },
+      {
+        "href": "http://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~medium.jpg"
+      },
+      {
+        "href": "http://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~small.jpg"
+      },
+      {
+        "href": "http://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~thumb.jpg"
+      },
+      {
+        "href": "http://images-assets.nasa.gov/image/jsc2007e034221/metadata.json"
+      }
+    ]
+  }
+}

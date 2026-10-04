@@ -1,5 +1,6 @@
 /** Stage runner contracts: requests, results, events, the context a stage runs with. */
 import type { PipelineStateStore, Result, StreamEvent } from '@reelforge/claude-bridge';
+import type { AssetRuntime } from '@reelforge/cli/assets';
 import type { WhisperModelId } from '@reelforge/pipeline';
 import type { PromptId } from '@reelforge/prompts';
 import type { SessionPurpose, ShotBuildStatus, UsageTotals } from '@reelforge/shared';
@@ -7,6 +8,7 @@ import type { AudioTools } from './audio-tools.js';
 import type { ClaudeTurnResult } from './claude.js';
 import type { PipelineStage, StageId } from './ids.js';
 import type { SceneTools } from './scenes/tools.js';
+import type { TasteLearner } from './taste/signals.js';
 import type { StageSettings } from './settings.js';
 import type { ProjectSnapshot } from './snapshot.js';
 
@@ -25,7 +27,23 @@ export type StageRequest =
       /** Whisper model of this run instead of the settings' one ("Retry with a bigger model"). */
       readonly model?: WhisperModelId;
     }
-  | { readonly stage: 'storyboard' }
+  | {
+      readonly stage: 'storyboard';
+      /**
+       * `build` (default): the storyboard. `tension`: only Claude's proposal of the tension curve
+       * (PLAN.md#12.22, "Propose with Claude"); the storyboard and the stage status are kept.
+       */
+      readonly action?: StoryboardAction;
+    }
+  | {
+      readonly stage: 'assets';
+      /**
+       * `research` (default): a Claude turn looks for the storyboard's asset needs per the
+       * research mode. `fetch-approved`: downloads what the user approved in the asset package
+       * (ask mode).
+       */
+      readonly action?: AssetsAction;
+    }
   | {
       readonly stage: 'scenes';
       /** Default `build`; the review modes are the "Whole video" chat chips (PLAN.md#7.6). */
@@ -75,6 +93,10 @@ export type VariantOp =
   | { readonly kind: 'pick'; readonly index: number; readonly lock?: boolean | undefined }
   | { readonly kind: 'keep-current' }
   | { readonly kind: 'discard' };
+
+export type AssetsAction = 'research' | 'fetch-approved';
+
+export type StoryboardAction = 'build' | 'tension';
 
 export type RequestOf<S extends StageId> = Extract<StageRequest, { readonly stage: S }>;
 
@@ -210,6 +232,10 @@ export interface StageContext {
   warn(message: string): void;
   /** Runs a turn: model per settings, waits out usage limits, autocommits afterwards. */
   claude(turn: StageTurn): Promise<Result<ClaudeTurnResult, StageError>>;
+  /** Sources, transport and clock of the asset layer (Assets stage; default: the real ones). */
+  readonly assets?: AssetRuntime | undefined;
+  /** Taste learning (PLAN.md#12.13): the profile for prompts, signals from decisions; absent = off. */
+  readonly taste?: TasteLearner | undefined;
   /** Frame renderer, kit catalogue and missing-prop handler (scene stage only). */
   readonly scenes: SceneTools | undefined;
   /** The runner's pipeline.json store (per-shot work items; one instance = serialized writes). */

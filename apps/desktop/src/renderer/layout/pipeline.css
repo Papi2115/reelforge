@@ -18,6 +18,11 @@
   text-transform: none;
 }
 
+/* Assets + Brief: the second sits right next to the first. */
+.heading-action + .heading-action {
+  margin-left: 0;
+}
+
 .pipeline-collapse {
   width: 26px;
   height: 24px;
@@ -91,6 +96,11 @@
   background: none;
   text-align: left;
   font-size: 13px;
+}
+
+/* Assets (PLAN.md#12.10): a sub-step between Storyboard and Scenes built, indented under them. */
+[data-stage-row='assets'] > .stage-item {
+  padding-left: 20px;
 }
 
 .stage-item[aria-pressed='true'] {

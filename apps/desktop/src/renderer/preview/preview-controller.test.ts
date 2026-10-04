@@ -1,7 +1,7 @@
 import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
-import type { RenderManifest, SceneSource } from '@reelforge/shared';
+import type { RenderManifest, SceneSource, ShotDirection } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { PreviewController } from './preview-controller.js';
+import { playerNeedsVideo, PreviewController } from './preview-controller.js';
 
 const INFO: LoadInfo = {
   duration: 5,
@@ -74,6 +74,12 @@ class ManualHarness implements ReelforgeHarness {
       id: 'props.calculator#0',
       description: 'calculator',
     });
+  }
+  /** `shotId:json` of every setShotDirection call. */
+  readonly directions: string[] = [];
+  setShotDirection(shotId: string, direction: ShotDirection | null): Promise<void> {
+    this.directions.push(`${shotId}:${JSON.stringify(direction)}`);
+    return Promise.resolve();
   }
   async releaseNext(): Promise<void> {
     this.release.shift()?.();
@@ -212,6 +218,22 @@ describe('PreviewController', () => {
     expect(controller.shotAt(3)).toBe('s02');
   });
 
+  it('hot-applies live directions without rebuilding or reloading (PLAN.md#12.14)', async () => {
+    const harness = new ManualHarness();
+    const controller = new PreviewController(harness, { draw: () => undefined }, () => {
+      throw new Error('unexpected error');
+    });
+    await controller.apply(MANIFEST);
+    const directed = structuredClone(MANIFEST);
+    if (directed.shots[0]) directed.shots[0].direction = { zoom: 1.1 };
+    expect(await controller.apply(directed)).toMatchObject({ kind: 'directed', shotIds: ['s00'] });
+    expect(await controller.apply(structuredClone(directed))).toMatchObject({ kind: 'unchanged' });
+    expect(await controller.apply(MANIFEST)).toMatchObject({ kind: 'directed' });
+    expect(harness.directions).toEqual(['s00:{"zoom":1.1}', 's00:null']);
+    expect(harness.loads).toEqual(['s00']);
+    expect(harness.reloads).toEqual([]);
+  });
+
   it('keeps the previous shot (and retries it) when a shot reload fails', async () => {
     const harness = new ManualHarness();
     const controller = new PreviewController(harness, { draw: () => undefined }, () => {
@@ -258,5 +280,35 @@ describe('PreviewController', () => {
       { t: 1, renderMs: 7 },
       { t: 1, renderMs: 0 },
     ]);
+  });
+});
+
+describe('playerNeedsVideo', () => {
+  const reloaded = { kind: 'reloaded', info: INFO, shotIds: ['s00'] } as const;
+
+  it('takes the video after every full load', () => {
+    expect(playerNeedsVideo({ kind: 'loaded', info: INFO }, { duration: 5, fps: 30 })).toBe(true);
+  });
+
+  it('leaves the player alone when the applied video matches it', () => {
+    expect(playerNeedsVideo({ kind: 'unchanged', info: INFO }, { duration: 5, fps: 30 })).toBe(
+      false,
+    );
+    expect(playerNeedsVideo(reloaded, { duration: 5, fps: 30 })).toBe(false);
+  });
+
+  it('catches up after a superseded full load (the next apply is unchanged)', async () => {
+    const harness = new ManualHarness();
+    const controller = new PreviewController(harness, { draw: () => undefined }, () => {
+      throw new Error('unexpected error');
+    });
+    // The caller of this full load was superseded by a newer file change: its result is dropped,
+    // so the player still has the duration of the video before.
+    await controller.apply(MANIFEST);
+    const stalePlayer = { duration: 90, fps: 30 };
+    const again = await controller.apply(structuredClone(MANIFEST));
+    expect(again.kind).toBe('unchanged');
+    expect(playerNeedsVideo(again, stalePlayer)).toBe(true);
+    expect(playerNeedsVideo(again, { duration: 5, fps: 24 })).toBe(true);
   });
 });

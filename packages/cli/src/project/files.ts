@@ -14,9 +14,11 @@ import {
   briefFileSchema,
   projectFileSchema,
   storyboardFileSchema,
+  tensionFileSchema,
   type BriefFile,
   type ProjectFile,
   type StoryboardFile,
+  type TensionFile,
 } from '@reelforge/shared';
 import type { z } from 'zod';
 import { describeUnknown } from '../errors.js';
@@ -109,25 +111,34 @@ export interface ProjectFiles {
   readonly storyboard: FileCheck<StoryboardFile>;
   readonly words: FileCheck<WordsFile>;
   readonly cues: FileCheck<CuesFile>;
+  /** `tension.json` (PLAN.md#12.22); absent in hand-made file sets = not read. */
+  readonly tension?: FileCheck<TensionFile> | undefined;
   /** Project props (`kit-ext/props/*.js`). */
   readonly kitExtensions: KitExtensionFiles;
 }
 
 export async function readProjectFiles(root: string): Promise<ProjectFiles> {
-  const [project, brief, storyboard, words, cues, kitExtensions] = await Promise.all([
+  const [project, brief, storyboard, words, cues, tension, kitExtensions] = await Promise.all([
     checkJsonFile(root, PROJECT_PATHS.project, projectFileSchema),
     checkJsonFile(root, PROJECT_PATHS.brief, briefFileSchema),
     checkJsonFile(root, PROJECT_PATHS.storyboard, storyboardFileSchema),
     checkJsonFile(root, PROJECT_PATHS.words, WordsFileSchema),
     checkJsonFile(root, PROJECT_PATHS.cues, CuesFileSchema),
+    checkJsonFile(root, PROJECT_PATHS.tension, tensionFileSchema),
     readKitExtensions(root),
   ]);
-  return { root, project, brief, storyboard, words, cues, kitExtensions };
+  return { root, project, brief, storyboard, words, cues, tension, kitExtensions };
 }
 
 /** Problems of the files that exist but do not validate. */
 export function fileProblems(files: ProjectFiles): Problem[] {
-  return [files.project, files.brief, files.storyboard, files.words, files.cues].flatMap((check) =>
-    check.status === 'invalid' ? check.problems : [],
-  );
+  const checks: FileCheck<unknown>[] = [
+    files.project,
+    files.brief,
+    files.storyboard,
+    files.words,
+    files.cues,
+  ];
+  if (files.tension !== undefined) checks.push(files.tension);
+  return checks.flatMap((check) => (check.status === 'invalid' ? check.problems : []));
 }

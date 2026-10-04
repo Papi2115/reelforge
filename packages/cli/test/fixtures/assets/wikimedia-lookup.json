@@ -1,0 +1,49 @@
+{
+  "continue": {
+    "iistart": "2023-04-29T13:34:49Z",
+    "continue": "||"
+  },
+  "query": {
+    "pages": {
+      "105654713": {
+        "pageid": 105654713,
+        "ns": 6,
+        "title": "File:Nokia 3310 Blue R7309170 (retouch).png",
+        "imagerepository": "local",
+        "imageinfo": [
+          {
+            "size": 3260558,
+            "width": 948,
+            "height": 2160,
+            "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Nokia_3310_Blue_R7309170_%28retouch%29.png/330px-Nokia_3310_Blue_R7309170_%28retouch%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "thumbwidth": 320,
+            "thumbheight": 729,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Nokia_3310_Blue_R7309170_%28retouch%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Nokia_3310_Blue_R7309170_(retouch).png",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=105654713",
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Nokia 3310 Blue R7309170 (retouch)",
+                "source": "mediawiki-metadata"
+              },
+              "Artist": {
+                "value": "<a href=\"//commons.wikimedia.org/wiki/User:Smial\" title=\"User:Smial\">smial</a> (<a href=\"//commons.wikimedia.org/wiki/User_talk:Smial\" title=\"User talk:Smial\"><span class=\"signature-talk\">talk</span></a>)",
+                "source": "commons-desc-page"
+              },
+              "LicenseShortName": {
+                "value": "FAL",
+                "source": "commons-desc-page",
+                "hidden": ""
+              },
+              "LicenseUrl": {
+                "value": "http://artlibre.org/licence/lal/en",
+                "source": "commons-desc-page"
+              }
+            },
+            "mime": "image/png"
+          }
+        ]
+      }
+    }
+  }
+}

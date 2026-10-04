@@ -9,6 +9,7 @@ import path from 'node:path';
 import { ok } from '@reelforge/claude-bridge';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PlaywrightFrameRenderer } from '../src/cli/playwright-renderer.js';
+import { criticLookVars } from '../src/looks.js';
 import { critiqueFrames, programmaticCritique, type TurnRunner } from '../src/scenes/critic.js';
 import { smokeTimes } from '../src/scenes/qa.js';
 import type { ShotRenderOk } from '../src/scenes/tools.js';
@@ -138,9 +139,22 @@ describe('Haiku critic layer (fake-claude)', () => {
         'critic',
       ]);
       expect(harness.specs[0]?.prompt).toContain(`Look at the image(s) at: ${sheet}`);
-      const prose = await critiqueFrames({ ...input, render: rendered('ok') }, runTurn);
+      expect(harness.specs[0]?.prompt).not.toContain('Look of this shot');
+      const lookVars = criticLookVars('mixed', {
+        id: 's03',
+        t0: 0,
+        t1: 4,
+        treatment: 'ui-mockup',
+        intent: input.intent,
+        scene: 'scenes/s03.js',
+        look: 'retro-ui',
+        roll: 'B',
+      });
+      const prose = await critiqueFrames({ ...input, lookVars, render: rendered('ok') }, runTurn);
       expect(prose.ok && prose.value.findings).toEqual([]);
       expect(prose.ok && prose.value.notes[0]).toContain('not valid JSON');
+      expect(harness.specs[1]?.prompt).toContain('Look of this shot: `retro-ui` (roll B).');
+      expect(harness.specs[1]?.prompt).toContain('window title bar and the headline stay whole');
     } finally {
       await harness.dispose();
     }

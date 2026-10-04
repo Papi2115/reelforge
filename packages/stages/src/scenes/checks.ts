@@ -90,6 +90,18 @@ export function consoleFindings(errors: readonly string[]): QaFinding[] {
   );
 }
 
+/**
+ * A render that timed out twice (ShotRenderFailed.timedOut): a warning for the shot, never a fix
+ * turn, so a stuck renderer cannot hang or loop the stage.
+ */
+export function renderTimeoutFinding(error: string): QaFinding {
+  return finding(
+    'runtime',
+    'warning',
+    `the shot was not checked: ${error}. Look at it in the preview; a scene that loops forever in build()/update() needs a fix.`,
+  );
+}
+
 /** Findings that make the shot unrenderable (lint/runtime errors, no scene). */
 export function fatalFindings(findings: readonly QaFinding[]): QaFinding[] {
   return findings.filter((entry) => entry.fatal);

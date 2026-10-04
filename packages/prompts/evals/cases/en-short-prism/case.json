@@ -28,6 +28,7 @@
     "shotIds": ["s06_red_violet"]
   },
   "replies": {
+    "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 8 sourced facts.\nUncertain: best angle depends on the glass.",
     "script": "Word count: 84. Estimated duration: about 34 seconds.\nAll claims are sourced.",
     "storyboard": "7 shots. Treatments: title-card, metaphor-object, 3d-reconstruction x2, data-chart-3d, kinetic-text, character-scene.\nMissing props: none.",
@@ -87,6 +88,61 @@
         "glass of water rainbow"
       ]
     },
-    "prop-build": "Built prism: 0.62 x 0.60 x 0.52 units, glass body with glowing edges on a dark base.\nprop-preview: size, floating, blank, deterministic ok; reads as a prism from every angle."
+    "prop-build": "Built prism: 0.62 x 0.60 x 0.52 units, glass body with glowing edges on a dark base.\nprop-preview: size, floating, blank, deterministic ok; reads as a prism from every angle.",
+    "tension": "Hook, calm setup, rising why, peak on \"violet bends the most\" (0:27), release with Newton.",
+    "claims": {
+      "claims": [
+        {
+          "sentence": 3,
+          "text": "You will see a tiny rainbow on the wall",
+          "kind": "causal",
+          "sources": [],
+          "status": "unsourced"
+        },
+        {
+          "sentence": 4,
+          "text": "white light is a mix of many colors",
+          "kind": "causal",
+          "sources": ["r1"],
+          "status": "sourced"
+        },
+        {
+          "sentence": 5,
+          "text": "Red bends the least, violet bends the most",
+          "kind": "causal",
+          "sources": ["r2"],
+          "status": "sourced"
+        },
+        {
+          "sentence": 6,
+          "text": "Isaac Newton described this effect in 1672",
+          "kind": "date",
+          "sources": ["r3", "r4"],
+          "status": "sourced"
+        }
+      ]
+    },
+    "hooks": {
+      "hooks": [
+        {
+          "style": "cold-open",
+          "text": "A beam of white light hits a plain glass of water on a kitchen table, and suddenly a small rainbow glows on the wall behind it. No prism, no lab, no special equipment. Just a flashlight, a glass and a dark room. So where do those colours come from, and why do they always appear in the same order?",
+          "firstVisual": "A flashlight beam hitting a glass of water, a tiny rainbow blooming on a dark wall",
+          "claimsToSource": false
+        },
+        {
+          "style": "question",
+          "text": "What if the plain white light from your flashlight was secretly hiding every colour of the rainbow? You can find out tonight with nothing more than a glass of water, a table and a dark room. Shine the light through the glass at an angle, look at the wall behind it, and watch what the water quietly reveals.",
+          "firstVisual": "A big pixel question mark made of light over a glass of water",
+          "claimsToSource": false
+        },
+        {
+          "style": "shocking-fact",
+          "text": "In 1672, Isaac Newton showed that white light is not one colour at all. It is a mix of many, and anything that bends light can pull them apart. Water does it too: its refractive index of about 1.33 is enough to split a beam. You can see it yourself, at home, with a flashlight and a glass.",
+          "firstVisual": "The number 1672 stamped in pixel letters, then a beam splitting into colours",
+          "claimsToSource": true
+        }
+      ]
+    }
   }
 }

@@ -21,6 +21,7 @@ const calculator = {
 
 const catalog: KitCatalog = {
   version: '9.9.9',
+  looks: [],
   voxel: { box: { signature: 'box([sx, sy, sz], color) -> model', description: 'Solid box.' } },
   env: [],
   props: [calculator],
@@ -42,6 +43,21 @@ describe('kit-docs formatting', () => {
       'kit.props.calculator({ screen: "off"|"doom", size?: number = 1, at?: [number, number] }) — Graphing calculator with a screen.',
     );
     expect(text).toContain('kit.env: (none yet)');
+  });
+
+  it('marks entries of looks other than voxel, listed only in mixed projects (ADR-009)', () => {
+    const tagged: KitCatalog = {
+      ...catalog,
+      props: [
+        { ...calculator, look: 'voxel' },
+        { ...calculator, name: 'crtMonitor', look: 'retro-ui' },
+      ],
+    };
+    const text = formatCatalog(tagged, { lookMode: 'mixed' });
+    expect(text).toContain('kit.props.calculator({ screen: "off"|"doom", size?: number = 1');
+    expect(text).not.toContain('(look voxel)');
+    expect(text).toContain('  kit.props.crtMonitor (look retro-ui) — Graphing calculator');
+    expect(formatCatalog(tagged)).not.toContain('crtMonitor');
   });
 
   it('describes a function by any of its names, with anchors and an example', () => {
@@ -84,8 +100,19 @@ describe('kit-docs formatting', () => {
       'ctx.sfx.at',
       'ctx.rng',
       'ctx.ease',
+      'ctx.ambient',
     ]) {
       expect(all).toContain(part);
+    }
+    const ambient = describeKitName(catalog, 'ctx.ambient');
+    expect(describeKitName(catalog, 'ambient')).toBe(ambient);
+    expect(ambient).toContain('tone(name) -> the palette swatch name');
+    expect(ambient).toContain('never hard-code one background for every shot');
+    const assets = describeKitName(catalog, 'ctx.assets');
+    expect(describeKitName(catalog, 'assets')).toBe(assets);
+    expect(all).toContain(assets);
+    for (const part of ['image(ref,', 'build() only', 'has(ref)', 'photoFrame', 'never execute']) {
+      expect(assets).toContain(part);
     }
     expect(formatCatalog(catalog)).toContain('reelforge kit-docs ctx');
     expect(() => describeKitName(catalog, 'cam')).toThrow(/scene context: ctx, camera, text/);

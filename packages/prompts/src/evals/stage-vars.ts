@@ -5,9 +5,16 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
-import type { StoryboardShot } from '@reelforge/shared';
+import {
+  researchClaimSources,
+  researchSourceExcerpts,
+  scriptSentences,
+  type StoryboardShot,
+} from '@reelforge/shared';
 import { renderOutputPaths, type PromptId } from '../catalog.js';
 import type { TemplateVars } from '../template.js';
+import { claimsPromptVars } from '../validators/claims.js';
+import { hooksPromptVars } from '../validators/hooks.js';
 import { targetWordsFor } from '../validators/script.js';
 import type { EvalCase } from './cases.js';
 
@@ -117,6 +124,43 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         shots: shots.join('; '),
         styleId,
       });
+    }
+    case 'assets':
+      return ok({
+        mode: 'ask',
+        ask: true,
+        needs: evalCase.storyboard.shots
+          .slice(0, 1)
+          .map((shot) => `- ${shot.id} · ${shot.id}-photo (image): ${shot.intent}`)
+          .join('\n'),
+        maxItems: 8,
+      });
+    case 'tension':
+      return ok({
+        durationS: (evalCase.words.words.at(-1)?.tEnd ?? 0).toFixed(1),
+        minPoints: 4,
+        maxPoints: 8,
+      });
+    case 'claims': {
+      const read = (name: string): string =>
+        readFileSync(path.join(evalCase.projectDir, name), 'utf8');
+      return ok(
+        claimsPromptVars(
+          scriptSentences(read('script.txt')),
+          researchClaimSources(read('research.md')),
+          researchSourceExcerpts(read('research.md')),
+        ),
+      );
+    }
+    case 'hooks': {
+      const read = (name: string): string =>
+        readFileSync(path.join(evalCase.projectDir, name), 'utf8');
+      const vars = hooksPromptVars({
+        script: read('script.txt'),
+        research: read('research.md'),
+        language: brief.language,
+      });
+      return vars === undefined ? err(`${file.id}: script.txt is empty`) : ok(vars);
     }
     case 'youtube-meta':
       return ok({

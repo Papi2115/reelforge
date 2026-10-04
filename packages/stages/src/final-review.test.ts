@@ -149,6 +149,23 @@ describe('final review', { timeout: 120_000 }, () => {
     expect(subjects.filter((subject) => subject.startsWith('Scene s02'))).toEqual([]);
   });
 
+  it('a render that timed out is a ⚠ for its shot, no fix turn, the review finishes', async () => {
+    const { dir, harness, runner } = await setup(
+      'final timeout',
+      ['ok', 'renderer-timeout'],
+      () => ({
+        version: 1,
+        rules: [NO_SUSPECTS],
+        default: { scenario: 'tools-write', reply: CRITIC_OK },
+      }),
+    );
+    const result = await runner.run({ stage: 'scenes', action: 'final-review' });
+    expect(result.ok && result.value.message).toBe('Review done: 1 ✓, 1 ⚠');
+    expect(harness.specs.map((spec) => spec.stage)).toEqual(['critic']);
+    const s02 = finalReport(dir).shots[1];
+    expect(s02).toMatchObject({ shotId: 's02', status: 'warning', autoFixed: false });
+  });
+
   it('reports locked shots without changing them', async () => {
     const { dir, shots, harness, runner } = await setup(
       'final locked',

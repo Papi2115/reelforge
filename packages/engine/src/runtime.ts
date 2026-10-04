@@ -3,9 +3,24 @@
  * and renders any global time synchronously. Runs inside the sandboxed engine frame.
  */
 import type { KitDefinition } from '@reelforge/kit';
-import { renderManifestSchema, type RenderManifest, type SceneSource } from '@reelforge/shared';
+import {
+  renderManifestSchema,
+  type RenderManifest,
+  type SceneSource,
+  type ShotDirection,
+} from '@reelforge/shared';
+import { shotAmbient } from './ambient.js';
 import { createExactAnchorResolver, NO_ANCHORS } from './anchors.js';
+import { createAssetLibrary } from './assets/library.js';
 import type { ResolvedAnchor, SfxCue } from './contract.js';
+import {
+  blendFrameDirections,
+  createFrameDirector,
+  directedClock,
+  directionWindows,
+  frameDirection,
+  type FrameDirector,
+} from './direction.js';
 import { describeError, EngineError } from './errors.js';
 import {
   configureColorManagement,
@@ -15,13 +30,22 @@ import {
   type GpuInfo,
 } from './gl/frame-renderer.js';
 import { loadKitExtensions, type KitExtensionImporter } from './kit-extensions.js';
+import {
+  applyPaletteShift,
+  paletteShiftMap,
+  shotClock,
+  shotPaletteShift,
+  type ShotClock,
+} from './moments.js';
 import { pickInShot, type PickResult } from './pick.js';
 import { shotSeed } from './rng.js';
 import { toSceneModule } from './scene-module.js';
 import { buildShot, type BuiltShot } from './shot.js';
 import { resolveStyle, type ResolvedStyle } from './style.js';
 import { checkCards, collectCardTimeline, type CardDiagnostic } from './text/check-cards.js';
-import { createTimeline, sampleTimeline } from './timeline.js';
+import { createTimeline, sampleTimeline, type TimelineSample } from './timeline.js';
+import { findTransition, paletteNumbers } from './transitions/index.js';
+import { createPixelTransitionRenderer } from './transitions/render.js';
 
 export interface LoadInfo {
   readonly duration: number;
@@ -60,6 +84,11 @@ export interface EngineRuntime {
    * shots, the timeline and the renderer are kept. On failure the previous shot stays in place.
    */
   reloadShot(shotId: string, scene: SceneSource): Promise<LoadInfo>;
+  /**
+   * Replaces one shot's live co-direction (PLAN.md#12.14) without rebuilding anything; undefined
+   * clears it. Seek again to see the change.
+   */
+  setShotDirection(shotId: string, direction: ShotDirection | undefined): LoadInfo;
   dispose(): void;
 }
 
@@ -81,7 +110,11 @@ export function parseManifest(input: unknown): RenderManifest {
 }
 
 /** Builds one manifest shot from its imported scene module namespace. */
-type ShotBuilder = (shot: RenderManifest['shots'][number], namespace: unknown) => BuiltShot;
+type ShotBuilder = (
+  shot: RenderManifest['shots'][number],
+  namespace: unknown,
+  index: number,
+) => BuiltShot;
 
 function createShotBuilder(
   manifest: RenderManifest,
@@ -91,7 +124,13 @@ function createShotBuilder(
   const resolveAnchor = manifest.words
     ? createExactAnchorResolver(manifest.words.words)
     : NO_ANCHORS;
-  return (shot, namespace) =>
+  // One library per video: decoded pictures and stylised pixels are shared by all shots.
+  const assets = createAssetLibrary(manifest.assets ?? [], {
+    colors: Object.values(style.swatches),
+    lut: style.post.lut,
+    ditherSize: style.post.dither.size,
+  });
+  return (shot, namespace, index) =>
     buildShot({
       shot: {
         id: shot.id,
@@ -107,6 +146,8 @@ function createShotBuilder(
       safeArea: style.safeArea,
       resolveAnchor,
       kitExtensions,
+      ambient: shotAmbient(manifest, style, index),
+      assets,
     });
 }
 
@@ -118,7 +159,7 @@ async function buildShots(
   const namespaces = await Promise.all(
     manifest.shots.map((shot) => dependencies.importScene(shot.scene, shot.id)),
   );
-  return manifest.shots.map((shot, index) => build(shot, namespaces[index]));
+  return manifest.shots.map((shot, index) => build(shot, namespaces[index], index));
 }
 
 function createRendererOrThrow(options: FrameRendererOptions): FrameRenderer {
@@ -164,6 +205,62 @@ export async function createRuntime(
     post: style.post,
   });
   const gpu = frameRenderer.gpuInfo();
+  const pixelTransitions = createPixelTransitionRenderer(frameRenderer, {
+    palette: paletteNumbers(style.swatches),
+  });
+  /** The last frame when it was composited on the CPU (transition kit), else read from the GPU. */
+  let composited: Uint8Array<ArrayBuffer> | undefined;
+  // Reveal moments (PLAN.md#12.27): slow-motion clocks and palette shifts of accepted moments.
+  // Shots without them keep the plain local time and the frame as rendered.
+  // Live co-direction (PLAN.md#12.14): per-shot overrides, replaceable without a rebuild.
+  const directions: (ShotDirection | undefined)[] = manifest.shots.map((shot) => shot.direction);
+  const clockOf = (index: number): ShotClock | undefined => {
+    const shot = manifest.shots[index];
+    const built = shots[index];
+    if (shot === undefined) return undefined;
+    if (directions[index]?.rate === undefined || built === undefined) return shotClock(shot);
+    return directedClock(shot, directionWindows(shot, directions[index], built));
+  };
+  const clocks: (ShotClock | undefined)[] = manifest.shots.map((_, index) => clockOf(index));
+  const sceneTime = (index: number, localTime: number): number =>
+    clocks[index]?.(localTime) ?? localTime;
+  let frameDirector: FrameDirector | undefined;
+  /** Applies the shots' frame directions (tone, zoom, marks) to the frame just rendered. */
+  const direct = (sample: TimelineSample, t: number): void => {
+    const current = frameDirection(directions[sample.current.index]);
+    const outgoing = sample.transition
+      ? frameDirection(directions[sample.transition.outgoing.index])
+      : undefined;
+    const direction = sample.transition
+      ? blendFrameDirections(outgoing, current, sample.transition.progress)
+      : current;
+    if (direction === undefined) return;
+    frameDirector ??= createFrameDirector(style, manifest.seed);
+    let source = composited;
+    if (source === undefined) {
+      source = new Uint8Array(width * height * 4);
+      frameRenderer.readFrame(source);
+    }
+    composited = frameDirector.apply(source, direction, t);
+  };
+  const shifts = manifest.shots.some((shot) => (shot.paletteShift?.length ?? 0) > 0)
+    ? {
+        map: paletteShiftMap(style.swatches, style.variation),
+        source: new Uint8Array(width * height * 4),
+        out: new Uint8Array(width * height * 4),
+      }
+    : undefined;
+  /** Applies the current shot's palette shift to the frame just rendered (moments only). */
+  const shiftPalette = (index: number, localTime: number): void => {
+    const shot = manifest.shots[index];
+    if (shifts === undefined || shot === undefined) return;
+    const amount = shotPaletteShift(shot, localTime);
+    if (amount <= 0) return;
+    const source = composited ?? shifts.source;
+    if (composited === undefined) frameRenderer.readFrame(source);
+    applyPaletteShift(source.slice(), width, shifts.map, amount, shifts.out);
+    composited = shifts.out;
+  };
   const describe = (): LoadInfo => ({
     duration: timeline.duration,
     style: style.id,
@@ -188,23 +285,44 @@ export async function createRuntime(
     seek(t) {
       const sample = sampleTimeline(timeline, t);
       const current = shotAt(sample.current.index);
+      composited = undefined;
       if (!sample.transition) {
-        current.update(sample.current.localTime);
+        current.update(sceneTime(sample.current.index, sample.current.localTime));
         frameRenderer.render({ a: current, mode: 'single', progress: 0, seed: 0 });
+        shiftPalette(sample.current.index, sample.current.localTime);
+        direct(sample, t);
         return;
       }
       const outgoing = shotAt(sample.transition.outgoing.index);
-      outgoing.update(sample.transition.outgoing.localTime);
-      current.update(sample.current.localTime);
+      const { outgoing: before } = sample.transition;
+      outgoing.update(sceneTime(before.index, before.localTime));
+      current.update(sceneTime(sample.current.index, sample.current.localTime));
+      const seed = transitionSeeds[sample.current.index] ?? 0;
+      const pixelTransition = findTransition(sample.transition.style);
+      if (pixelTransition) {
+        composited = pixelTransitions.render({
+          a: outgoing,
+          b: current,
+          transition: pixelTransition,
+          progress: sample.transition.progress,
+          seed,
+        });
+        shiftPalette(sample.current.index, sample.current.localTime);
+        direct(sample, t);
+        return;
+      }
       frameRenderer.render({
         a: outgoing,
         b: current,
         mode: sample.transition.type,
         progress: sample.transition.progress,
-        seed: transitionSeeds[sample.current.index] ?? 0,
+        seed,
       });
+      shiftPalette(sample.current.index, sample.current.localTime);
+      direct(sample, t);
     },
     readFrame() {
+      if (composited) return composited.slice();
       const frame = new Uint8Array(width * height * 4);
       frameRenderer.readFrame(frame);
       return frame;
@@ -212,8 +330,9 @@ export async function createRuntime(
     pick(t, x, y) {
       const { current } = sampleTimeline(timeline, t);
       const shot = shotAt(current.index);
-      shot.update(current.localTime);
-      return pickInShot({ shot, width, height, x, y, t, localTime: current.localTime });
+      const localTime = sceneTime(current.index, current.localTime);
+      shot.update(localTime);
+      return pickInShot({ shot, width, height, x, y, t, localTime });
     },
     checkCards(shotId) {
       const shot = shots.find((candidate) => candidate.info.id === shotId);
@@ -235,8 +354,17 @@ export async function createRuntime(
       if (!shot) throw new EngineError('not-loaded', `no shot "${shotId}" in the loaded video`);
       const namespace = await dependencies.importScene(scene, shotId);
       // Built before it replaces the old shot: a broken scene leaves the video as it was.
-      shots[index] = build({ ...shot, scene }, namespace);
+      shots[index] = build({ ...shot, scene }, namespace, index);
+      // New hits may move the rate windows of a directed shot.
+      clocks[index] = clockOf(index);
       info = describe();
+      return info;
+    },
+    setShotDirection(shotId, direction) {
+      const index = manifest.shots.findIndex((shot) => shot.id === shotId);
+      if (index < 0) throw new EngineError('not-loaded', `no shot "${shotId}" in the loaded video`);
+      directions[index] = direction;
+      clocks[index] = clockOf(index);
       return info;
     },
     dispose() {

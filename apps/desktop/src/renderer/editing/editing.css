@@ -1,0 +1,39 @@
+/* Editing section under the final review: beat sync and repetition (PLAN.md#12.21, #12.23). */
+.editing-line {
+  margin: 4px 0;
+}
+
+.repetition-list {
+  margin: 4px 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.repetition {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 2px 0;
+}
+
+.repetition-text {
+  grid-column: 1;
+}
+
+.repetition-detail {
+  grid-column: 1;
+  padding-left: 6px;
+  font-size: 0.92em;
+}
+
+.repetition-actions {
+  display: flex;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  gap: 4px;
+  align-items: center;
+}
+
+.repetition-ignored .repetition-text {
+  opacity: 0.6;
+}

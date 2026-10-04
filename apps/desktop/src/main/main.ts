@@ -6,6 +6,7 @@
 import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { killTree, PipelineStateStore } from '@reelforge/claude-bridge';
+import { ASSET_LIBRARY_ENV, defaultAssetRuntime } from '@reelforge/cli/assets';
 import { writeCliShims } from '@reelforge/cli/shims';
 import { autocommit } from '@reelforge/project';
 import {
@@ -24,15 +25,22 @@ import {
   APP_NAME,
   APP_USER_MODEL_ID,
   appLayout,
+  assetLibraryDir,
   cliShimDir,
   defaultProjectsDir,
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
   settingsFile,
+  tasteFile,
   USER_DATA_SWITCH,
 } from './app-paths.js';
 import { registerAppSchemePrivileged, serveAppProtocol } from './app-protocol.js';
+import { assetsHandlers, assetTestRuntime, OWN_ASSET_FILTERS } from './assets/assets-ipc.js';
+import { publishHandlers } from './publish/publish-ipc.js';
+import { hookLabHandlers } from './hook-lab/hook-lab-ipc.js';
+import { tasteHandlers } from './taste/taste-ipc.js';
+import { TasteService } from './taste/taste-service.js';
 import { createChildProcessRegistry } from './child-processes.js';
 import { chatHandlers } from './claude/chat-ipc.js';
 import { claudeSetup } from './claude/claude-runtime.js';
@@ -44,6 +52,10 @@ import { MicPermissionGate } from './mic-permission.js';
 import { serveMediaProtocol } from './media-protocol.js';
 import { isAllowedNavigation, resolveRendererSource } from './navigation-policy.js';
 import { projectHandlers } from './project-ipc.js';
+import { tensionHandlers } from './tension-ipc.js';
+import { directionsHandlers } from './directions-ipc.js';
+import { dramaturgyHandlers } from './dramaturgy-ipc.js';
+import { editingHandlers } from './editing-ipc.js';
 import { EXAMPLE_ID, installExampleProject } from './example-project.js';
 import { onboardingHandlers } from './onboarding-ipc.js';
 import { ProjectService, type FolderPurpose } from './project-service.js';
@@ -92,6 +104,8 @@ function main(): void {
     ),
   );
   const userDataDir = app.getPath('userData');
+  /** The global asset library (PLAN.md#12.19): outside every project and outside git. */
+  const libraryDir = assetLibraryDir(userDataDir);
   const sink = fileAndStderrSink(logFile(userDataDir));
   const log = createLogger(sink.write);
 
@@ -119,6 +133,12 @@ function main(): void {
   const settings = SettingsService.load({
     file: settingsFile(userDataDir),
     log: log.child('settings'),
+  });
+  /** The local taste profile (PLAN.md#12.13): app data, never in a project or in git. */
+  const taste = new TasteService({
+    file: tasteFile(userDataDir),
+    settings: () => settings.get(),
+    log: log.child('taste'),
   });
   // Chromium switches only work before `ready`: a changed GPU preference applies after a restart.
   for (const name of gpuSwitches(settings.get().performance.gpu))
@@ -261,7 +281,10 @@ function main(): void {
     }),
     settings: () => settings.get(),
     currentProject: () => projects.currentProject()?.dir,
-    renderEnv: (dir) => renderBackend.serviceEnv(dir),
+    renderEnv: (dir) => ({
+      ...renderBackend.serviceEnv(dir),
+      [ASSET_LIBRARY_ENV]: libraryDir,
+    }),
     commit: (dir, message) => autocommit(dir, message, { kind: 'claude-turn' }),
     review: {
       run: (mode, observer): Promise<StageCommandResult> =>
@@ -284,6 +307,15 @@ function main(): void {
       ? settingsAudio
       : recordedTranscription(recordedTranscript)(settingsAudio);
   if (audioTools !== settingsAudio) stagesLog.warn('test hook: transcriptions are recorded');
+  const assetTestHook = assetTestRuntime(process.env, testHooks);
+  if (assetTestHook !== undefined) stagesLog.warn('test hook: asset sources on a local server');
+  const assetRuntime = {
+    ...(assetTestHook ?? defaultAssetRuntime({})),
+    library: {
+      dir: libraryDir,
+      saveDownloaded: () => settings.get().assetLibrary.saveDownloaded,
+    },
+  };
   const exportBackend = createExportBackend({
     projects,
     settings,
@@ -312,6 +344,8 @@ function main(): void {
       store: pipelineStore,
       frames: renderBackend.frames,
       audio: audioTools,
+      assets: assetRuntime,
+      taste: taste.learner(),
     }),
     exportRun: {
       start: (listener) => exportBackend.service.runForStage(listener),
@@ -362,7 +396,7 @@ function main(): void {
         if (!manifest.ok) throw new Error(manifest.error);
         return manifest.value;
       },
-      ...projectHandlers(projects, log.child('snapshot')),
+      ...projectHandlers(projects, log.child('project')),
       ...onboardingHandlers({
         projects,
         logsDir: path.dirname(logFile(userDataDir)),
@@ -398,12 +432,126 @@ function main(): void {
         probe: ffmpegAudioProbe(() => settings.get()),
         hasWhisperModel: (model) => audioTools.hasWhisperModel(model),
         mic: micGate,
+        taste: { recordShots: (dir, shotIds, kind) => taste.recordShots(dir, shotIds, kind) },
         commit: async (dir, message) => {
           const committed = await autocommit(dir, message, { kind: 'manual', step: 'locks' });
           if (!committed.ok)
             stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
         },
         log: stagesLog,
+      }),
+      ...tensionHandlers({
+        currentProject: () => projects.currentProject()?.dir,
+        commit: async (dir, message, step) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step });
+          if (!committed.ok) {
+            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+            return false;
+          }
+          return committed.value.status === 'committed';
+        },
+        enqueue: (requests) => stages.enqueue(requests),
+        log: log.child('tension'),
+      }),
+      ...dramaturgyHandlers({
+        currentProject: () => projects.currentProject()?.dir,
+        commit: async (dir, message, step) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step });
+          if (!committed.ok) {
+            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+            return false;
+          }
+          return committed.value.status === 'committed';
+        },
+        log: log.child('dramaturgy'),
+      }),
+      ...directionsHandlers({
+        currentProject: () => projects.currentProject()?.dir,
+        commit: async (dir, message, step) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step });
+          if (!committed.ok) {
+            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+            return false;
+          }
+          return committed.value.status === 'committed';
+        },
+        log: log.child('directions'),
+      }),
+      ...editingHandlers({
+        currentProject: () => projects.currentProject()?.dir,
+        commit: async (dir, message, step) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step });
+          if (!committed.ok) {
+            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+            return false;
+          }
+          return committed.value.status === 'committed';
+        },
+        enqueue: (requests) => stages.enqueue(requests),
+        log: log.child('editing'),
+      }),
+      ...assetsHandlers({
+        stages,
+        currentProject: () => projects.currentProject()?.dir,
+        libraryDir,
+        saveOwnToLibrary: () => settings.get().assetLibrary.saveOwn,
+        pickFiles: () =>
+          showOpen({
+            title: 'Add your images and videos',
+            buttonLabel: 'Add to project',
+            properties: ['openFile', 'multiSelections'],
+            filters: OWN_ASSET_FILTERS,
+          }),
+        commit: async (dir, message) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step: 'assets' });
+          if (!committed.ok) log.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+        },
+        log: log.child('assets'),
+      }),
+      ...publishHandlers({
+        currentProject: () => projects.currentProject()?.dir,
+        claude: sharedClaudeRunner(() => claude.sessionManager()),
+        settings: () => settings.get(),
+        commit: async (dir, message, step) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step });
+          if (!committed.ok) log.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+          return committed.ok;
+        },
+        openPath: (folder) => shell.openPath(folder),
+        log: log.child('publish'),
+      }),
+      ...hookLabHandlers({
+        currentProject: () => projects.currentProject()?.dir,
+        claude: sharedClaudeRunner(() => claude.sessionManager()),
+        settings: () => settings.get(),
+        store: pipelineStore,
+        scriptBusy: (dir) => stages.isBusyWith(dir, 'script'),
+        flushScript: () => scriptDocuments.flush(),
+        commit: async (dir, message) => {
+          const committed = await autocommit(dir, message, { kind: 'manual', step: 'script' });
+          if (!committed.ok) log.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+          return committed.ok;
+        },
+        afterChange: () => {
+          stages.refresh();
+        },
+        now: () => new Date(),
+        log: log.child('hook-lab'),
+      }),
+      ...tasteHandlers({
+        taste,
+        pickExportFile: async () => {
+          const options = {
+            title: 'Export the taste profile',
+            defaultPath: 'reelforge-taste.json',
+            filters: [{ name: 'JSON', extensions: ['json'] }],
+          };
+          const picked = await (mainWindow
+            ? dialog.showSaveDialog(mainWindow, options)
+            : dialog.showSaveDialog(options));
+          return picked.canceled ? undefined : picked.filePath;
+        },
+        log: log.child('taste'),
       }),
       ...variantsHandlers({
         service: stages,
@@ -442,6 +590,7 @@ function main(): void {
       stages.dispose().then(() => claude.dispose()),
       scriptDocuments.flush(),
       settings.whenSaved(),
+      taste.whenSaved(),
     ]).finally(() => {
       app.quit();
     });
@@ -472,6 +621,7 @@ function main(): void {
         session.defaultSession,
         () => projects.currentProject()?.dir,
         log.child('media'),
+        libraryDir,
       );
       if (!source.dev) {
         serveAppProtocol(session.defaultSession, layout.rendererDir, log.child('protocol'));

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { briefFileSchema, projectFileSchema } from './index.js';
+import {
+  briefFileSchema,
+  projectFileSchema,
+  projectLookMode,
+  projectResearchMode,
+} from './index.js';
 
 describe('projectFileSchema', () => {
   const project = {
@@ -19,6 +24,31 @@ describe('projectFileSchema', () => {
       palette: { wood: '#8a5a2b', woodDark: '#4a2a10' },
     };
     expect(projectFileSchema.safeParse(full).success).toBe(true);
+  });
+
+  it('reads a missing lookMode as voxel-only and accepts mixed', () => {
+    const old = projectFileSchema.parse(project);
+    expect(old.lookMode).toBeUndefined();
+    expect(projectLookMode(old)).toBe('voxel-only');
+    expect(projectLookMode(projectFileSchema.parse({ ...project, lookMode: 'mixed' }))).toBe(
+      'mixed',
+    );
+    expect(projectFileSchema.safeParse({ ...project, lookMode: 'looks' }).success).toBe(false);
+  });
+
+  it('reads a missing researchMode as off (zero network) and accepts the four modes', () => {
+    expect(projectResearchMode(projectFileSchema.parse(project))).toBe('off');
+    for (const mode of ['ask', 'allowlist', 'full-auto', 'off'] as const) {
+      expect(projectResearchMode(projectFileSchema.parse({ ...project, researchMode: mode }))).toBe(
+        mode,
+      );
+    }
+    expect(projectFileSchema.safeParse({ ...project, researchMode: 'auto' }).success).toBe(false);
+    const sources = { ...project, researchSources: ['wikimedia', 'nasa'] };
+    expect(projectFileSchema.parse(sources).researchSources).toEqual(['wikimedia', 'nasa']);
+    expect(projectFileSchema.safeParse({ ...project, researchSources: ['youtube'] }).success).toBe(
+      false,
+    );
   });
 
   it('reports wrong versions, languages and seeds by path', () => {

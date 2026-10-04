@@ -1,0 +1,220 @@
+/**
+ * Live co-direction command bar (PLAN.md#12.14) docked under the preview: type "slower",
+ * "ciemniej", "arrow on the word light"… while the film plays (focus with `/`). Shows what was
+ * done, offers "Unlock this shot" for a locked shot and "Rebuild with Claude" for commands only
+ * Claude can do, hint chips and the session history with undo. One line of fixed height (the
+ * status replaces the chips, the history opens above the bar) so the preview keeps its scale.
+ */
+import type { DirectionWord } from '@reelforge/shared';
+import { useEffect, useRef, useState, type JSX } from 'react';
+import { HINT_CHIPS, hintCommand, isCommandBarKey, statusText } from './direction-view.js';
+import type { DirectionControls } from './use-direction.js';
+
+export interface CommandBarProps {
+  readonly controls: DirectionControls;
+  /** Word spoken at the playhead (fills the "arrow on the word …" chip). */
+  readonly wordAtPlayhead: () => DirectionWord | undefined;
+  /** Shot under the playhead and whether it carries directions. */
+  readonly shotId: string | undefined;
+}
+
+export function CommandBar({ controls, wordAtPlayhead, shotId }: CommandBarProps): JSX.Element {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [command, setCommand] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { status, session, busy } = controls;
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const focus = isCommandBarKey({
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        altKey: event.altKey,
+        targetTag: target?.tagName ?? '',
+        targetEditable: target?.isContentEditable === true,
+      });
+      if (!focus) return;
+      event.preventDefault();
+      inputRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
+  const send = (text: string): void => {
+    const trimmed = text.trim();
+    if (trimmed === '' || busy) return;
+    void controls.submit(trimmed).then(() => {
+      setCommand((current) => (current === text ? '' : current));
+    });
+  };
+
+  const directedHere = shotId !== undefined && controls.directed.has(shotId);
+  const line = statusText(status);
+  return (
+    <section className="command-bar" aria-label="Direct the shot">
+      <form
+        className="command-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          send(command);
+        }}
+      >
+        <span className="command-shot" title="Commands change the shot under the playhead">
+          {shotId ?? '–'}
+          {directedHere && (
+            <span
+              className="direction-dot"
+              title="This shot has directions"
+              aria-label="directed"
+            />
+          )}
+        </span>
+        <input
+          ref={inputRef}
+          className="command-input"
+          type="text"
+          value={command}
+          placeholder='Direct the shot: "slower", "darker", "arrow on the word …" (press /)'
+          aria-label="Direction command"
+          aria-keyshortcuts="/"
+          maxLength={200}
+          onChange={(event) => {
+            setCommand(event.target.value);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setCommand('');
+              controls.dismiss();
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <button type="submit" className="small-button" disabled={busy || command.trim() === ''}>
+          Apply
+        </button>
+        <button
+          type="button"
+          className="small-button"
+          aria-expanded={historyOpen}
+          onClick={() => {
+            setHistoryOpen((open) => !open);
+          }}
+        >
+          History ({String(session.entries.length)})
+        </button>
+        {directedHere && (
+          <button
+            type="button"
+            className="small-button"
+            disabled={busy}
+            onClick={() => {
+              void controls.clear(shotId);
+            }}
+          >
+            Clear directions
+          </button>
+        )}
+      </form>
+      {line === '' ? (
+        <div className="command-chips" aria-label="Example commands">
+          {HINT_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              className="command-chip"
+              disabled={busy}
+              onClick={() => {
+                const text = hintCommand(chip, wordAtPlayhead());
+                setCommand(text);
+                send(text);
+              }}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p
+          className={`command-status command-status-${status.kind}`}
+          role={status.kind === 'error' || status.kind === 'locked' ? 'alert' : 'status'}
+        >
+          <span className="command-status-text" title={line}>
+            {line}
+          </span>
+          {status.kind === 'locked' && (
+            <button
+              type="button"
+              className="small-button"
+              onClick={() => {
+                void controls.unlockAndRetry();
+              }}
+            >
+              Unlock this shot
+            </button>
+          )}
+          {status.kind === 'claude' && (
+            <>
+              <button
+                type="button"
+                className="small-button primary"
+                title={line}
+                onClick={() => {
+                  void controls.acceptClaude();
+                }}
+              >
+                Rebuild with Claude
+              </button>
+              <button
+                type="button"
+                className="small-button"
+                onClick={() => {
+                  controls.dismiss();
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </p>
+      )}
+      {historyOpen && (
+        <ol className="command-history" aria-label="Commands this session">
+          {session.entries.length === 0 && <li className="muted">No commands yet.</li>}
+          {[...session.entries].reverse().map((entry) => (
+            <li key={entry.id} className={entry.undone ? 'undone' : undefined}>
+              <span className="command-history-shot">{entry.shotId}</span> {entry.command}
+              <span className="muted"> · {entry.confirmation}</span>
+            </li>
+          ))}
+          <li className="command-history-actions">
+            <button
+              type="button"
+              className="small-button"
+              disabled={busy}
+              onClick={() => {
+                void controls.undo();
+              }}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="small-button"
+              disabled={busy}
+              onClick={() => {
+                void controls.redo();
+              }}
+            >
+              Redo
+            </button>
+          </li>
+        </ol>
+      )}
+    </section>
+  );
+}

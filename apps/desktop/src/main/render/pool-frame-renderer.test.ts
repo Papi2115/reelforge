@@ -126,6 +126,38 @@ describe('PoolFrameRenderer', () => {
     ).rejects.toBeInstanceOf(RendererUnavailableError);
   });
 
+  it('retries a timed-out render once in a fresh window', async () => {
+    await sabotage('s01_title.js', 'TIMEOUT');
+    const targets = fakeTargets(1);
+    const renderer = new PoolFrameRenderer(targets.open);
+    const result = await renderer.renderShot(
+      { projectDir, shotId: 's01', times: [0], cards: false },
+      signal,
+    );
+    expect(result.ok).toBe(true);
+    expect(targets.opened).toHaveLength(2);
+    expect(targets.opened[0]?.alive).toBe(false);
+    await renderer.close();
+  });
+
+  it('a render that times out twice is a timedOut result, not an outage', async () => {
+    await sabotage('s01_title.js', 'TIMEOUT');
+    const targets = fakeTargets(2);
+    const renderer = new PoolFrameRenderer(targets.open);
+    const result = await renderer.renderShot(
+      { projectDir, shotId: 's01', times: [0], cards: false },
+      signal,
+    );
+    expect(result).toEqual({
+      ok: false,
+      timedOut: true,
+      error: 'load took longer than 120000 ms (retried once in a fresh render window)',
+      errors: [],
+    });
+    expect(targets.opened).toHaveLength(2);
+    await renderer.close();
+  });
+
   it('stops rendering frames once aborted', async () => {
     const targets = fakeTargets();
     const renderer = new PoolFrameRenderer(targets.open);

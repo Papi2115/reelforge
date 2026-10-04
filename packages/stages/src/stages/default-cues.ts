@@ -2,23 +2,31 @@
  * Deterministic `cues.json` (PLAN.md#8.1): the starting point Claude's sound-cues turn adjusts,
  * and the whole sound design in Economy mode / without Claude. SFX come from the sound director
  * (`sound/cue-events.ts` finds the events, `sound/cue-rules.ts` says what each gets,
- * `sound/cue-director.ts` keeps the density sensible and picks variants); one quiet ambience bed
- * per shot group (groups split at non-cut transitions), or one faint room bed under generated
- * music; music = the generated per-act beds the
- * stage rendered, or the user's own files in `audio/music/` (one ducked bed per group).
- * Same inputs -> same cues.
+ * `sound/cue-director.ts` keeps the density sensible and picks variants), voiced per shot by
+ * the look's sound palette (`sound/palettes/`); quiet ambience beds per shot group / look
+ * (`sound/ambience-plan.ts`), or faint ones under generated music; music = the generated per-act
+ * beds the stage rendered, or the user's own files in `audio/music/` (one ducked bed per group).
+ * Same inputs -> same cues; an all-voxel film gets the 1.x cues exactly.
  */
 import {
-  AMBIENCE_RECIPES,
   CUES_FILE_VERSION,
   type CuesFileInput,
   type MusicCueInput,
   type MusicMood,
 } from '@reelforge/pipeline';
-import type { StoryboardShot } from '@reelforge/shared';
+import {
+  tensionAt,
+  type BeatsFile,
+  type StoryboardShot,
+  type TensionPoint,
+} from '@reelforge/shared';
+import { GridTimes } from '../beat-sync/grid.js';
+import { snapGestures } from '../beat-sync/snap.js';
 import type { SceneSfxEvent } from '../types.js';
+import { ambienceCues } from '../sound/ambience-plan.js';
 import { directCues } from '../sound/cue-director.js';
 import { findGestures, type DirectorWord, type SceneAnchorEvent } from '../sound/cue-events.js';
+import { shotPalettes, type PaletteOptions, type ShotPalettes } from '../sound/palettes/index.js';
 
 export interface GeneratedMusic {
   /** Rendered per-act beds (`sound/music.ts`). */
@@ -40,15 +48,14 @@ export interface DefaultCuesInput {
   readonly music?: GeneratedMusic | undefined;
   /** Timeline length; default: the later of the last shot end and the last word end. */
   readonly durationS?: number;
+  /** Look mode and looks for the sound palettes (absent = `voxel-only`: the 1.x sound). */
+  readonly palettes?: PaletteOptions | undefined;
+  /** The tension map's curve (PLAN.md#12.22): denser, riser-friendlier SFX when tense. */
+  readonly tension?: readonly TensionPoint[] | undefined;
+  /** Beat grid (PLAN.md#12.21): hits, risers and emphasis snap to it; absent = as before. */
+  readonly beats?: BeatsFile | undefined;
 }
 
-const AMBIENCE_BEDS = [
-  'room-tone',
-  'hum',
-] as const satisfies readonly (typeof AMBIENCE_RECIPES)[number][];
-const AMBIENCE_GAIN_DB = -28;
-/** Under generated music the ambience is one faint room bed (no hum: nothing low under the music). */
-const AMBIENCE_UNDER_MUSIC_GAIN_DB = -32;
 const USER_MUSIC_GAIN_DB = -18;
 
 const round3 = (value: number): number => Math.round(value * 1000) / 1000;
@@ -75,14 +82,22 @@ export function defaultDurationS(
   return input.durationS ?? Math.max(lastShot, lastWord);
 }
 
-function sfxCues(input: DefaultCuesInput, durationS: number): NonNullable<CuesFileInput['sfx']> {
-  const gestures = findGestures({
+function sfxCues(
+  input: DefaultCuesInput,
+  durationS: number,
+  palettes: ShotPalettes,
+): NonNullable<CuesFileInput['sfx']> {
+  const found = findGestures({
     shots: input.shots,
     words: input.words,
     sceneSfx: input.sceneSfx ?? [],
     anchors: input.anchors ?? [],
   });
-  return directCues(gestures, input.shots, durationS).map((cue, index) => ({
+  const gestures =
+    input.beats === undefined ? found : snapGestures(found, new GridTimes(input.beats)).gestures;
+  const points = input.tension;
+  const tension = points === undefined ? undefined : (t: number) => tensionAt(points, t);
+  return directCues(gestures, input.shots, durationS, palettes, tension).map((cue, index) => ({
     id: cueId('sfx', index),
     t: cue.t,
     name: cue.name,
@@ -95,7 +110,9 @@ function sfxCues(input: DefaultCuesInput, durationS: number): NonNullable<CuesFi
 
 export function generateDefaultCues(input: DefaultCuesInput): CuesFileInput {
   const durationS = defaultDurationS(input);
-  const groups = shotGroups(input.shots)
+  const palettes = shotPalettes(input.shots, input.palettes);
+  const shotGroupList = shotGroups(input.shots);
+  const groups = shotGroupList
     .map((group) => ({
       from: round3(group[0]?.t0 ?? 0),
       to: round3(Math.min(group.at(-1)?.t1 ?? 0, durationS)),
@@ -119,29 +136,14 @@ export function generateDefaultCues(input: DefaultCuesInput): CuesFileInput {
   return {
     version: CUES_FILE_VERSION,
     global: { voGainDb: 0, targetLufs: -14, truePeakMaxDbtp: -1 },
-    sfx: sfxCues(input, durationS),
-    ambience: underMusic
-      ? [
-          // Under the music only a faint room for the whole film (no hum, no dips at act edges).
-          {
-            id: cueId('amb', 0),
-            from: 0,
-            to: round3(durationS),
-            name: 'room-tone',
-            gainDb: AMBIENCE_UNDER_MUSIC_GAIN_DB,
-            fadeInS: 1,
-            fadeOutS: 1,
-          },
-        ]
-      : groups.map((group, index) => ({
-          id: cueId('amb', index),
-          from: group.from,
-          to: group.to,
-          name: AMBIENCE_BEDS[index % AMBIENCE_BEDS.length] ?? 'room-tone',
-          gainDb: AMBIENCE_GAIN_DB,
-          fadeInS: 1,
-          fadeOutS: 1,
-        })),
+    sfx: sfxCues(input, durationS, palettes),
+    ambience: ambienceCues({
+      shots: input.shots,
+      groups: shotGroupList,
+      durationS,
+      palettes,
+      underMusic,
+    }),
     music,
     ...(underMusic ? { moods: [...generated.moods] } : {}),
   };

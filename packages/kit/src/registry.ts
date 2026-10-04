@@ -8,6 +8,7 @@ import type { KitContext, KitMaterials } from './context.js';
 import { KitError } from './errors.js';
 import { isKitObject, type Disposable, type KitObject, type Three } from './object.js';
 import type { KitPalette, KitRng } from './types.js';
+import type { AmbientVariation } from './variation/types.js';
 import type { VoxelApi } from './voxel/api.js';
 
 export type KitKind = 'env' | 'prop' | 'fx';
@@ -55,6 +56,11 @@ export interface KitTools {
   readonly voxel: VoxelApi;
   /** Seeded stream of this call: depends on the shot, the definition and its call index. */
   readonly rng: KitRng;
+  /**
+   * Ambient variation of the shot (PLAN.md#12.8), undefined when off. Environments apply the axes
+   * they support (tones of their default colours, horizon, density, debris, light turn, layout).
+   */
+  readonly variation?: AmbientVariation | undefined;
   /** Shared kit materials (flat Lambert / unlit, vertex or instance colours). */
   materials(): KitMaterials;
   /** Registers a geometry/material/texture so the kit instance frees it on dispose(). */
@@ -158,6 +164,7 @@ export function bindRegistry<const Definitions extends readonly KitDefinition[]>
         palette: context.palette,
         voxel,
         rng,
+        variation: context.variation,
         materials: () => context.materials(),
         track: (resource) => context.track(resource),
       });
@@ -184,9 +191,15 @@ export interface KitCatalogEntry {
   readonly methods?: Readonly<Record<string, string>>;
   /** `project`: a project-local prop (`kit-ext/props/<name>.js`); absent for the kit's own. */
   readonly origin?: 'project';
+  /** Look the entry belongs to (ADR-009); absent for project props. */
+  readonly look?: string;
 }
 
-export function catalogEntries(definitions: readonly KitDefinition[]): KitCatalogEntry[] {
+/** Catalog entries of definitions, tagged with their look when `look` is given. */
+export function catalogEntries(
+  definitions: readonly KitDefinition[],
+  look?: string,
+): KitCatalogEntry[] {
   return definitions.map((definition) => ({
     kind: definition.kind,
     name: definition.name,
@@ -196,5 +209,6 @@ export function catalogEntries(definitions: readonly KitDefinition[]): KitCatalo
     params: z.toJSONSchema(definition.params, { io: 'input', unrepresentable: 'any' }),
     anchors: definition.anchors ?? {},
     methods: definition.methods ?? {},
+    ...(look === undefined ? {} : { look }),
   }));
 }

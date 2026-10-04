@@ -19,7 +19,7 @@ import {
   type PassContext,
 } from '../audio/passes.js';
 import { err, ok, type Result } from '../result.js';
-import { writeBusWav } from './bus.js';
+import { writeBusWav, type BusSilence } from './bus.js';
 import { decodeAudioFile, type StereoClip } from './clip.js';
 import type { CuesFile } from './cues.js';
 import { MIX_SAMPLE_RATE, secondsToFrames } from './dsp.js';
@@ -58,6 +58,17 @@ export interface MixAudioOptions {
   readonly correctionThresholdLu?: number;
   readonly signal?: AbortSignal | undefined;
   readonly onProgress?: ((progress: MixProgress) => void) | undefined;
+  /**
+   * Silences of the bed (SFX, ambience, music; never the VO) before the hits of accepted reveal
+   * moments (PLAN.md#12.27), film seconds. Absent/empty = the mix is byte-identical to before.
+   */
+  readonly silences?: readonly MixSilenceWindow[] | undefined;
+}
+
+/** A silence of the bed, film seconds (`from` < `to`). */
+export interface MixSilenceWindow {
+  readonly from: number;
+  readonly to: number;
 }
 
 const SILENT_LUFS = -70;
@@ -114,6 +125,16 @@ function samePath(first: string, second: string): boolean {
   return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
 }
 
+/** Silence windows (s) -> bus frames; the window ends exactly on the hit's first frame. */
+export function busSilences(windows: readonly MixSilenceWindow[]): BusSilence[] {
+  return windows
+    .map((window) => ({
+      startFrame: secondsToFrames(window.from),
+      endFrame: secondsToFrames(window.to),
+    }))
+    .filter((silence) => silence.endFrame > silence.startFrame);
+}
+
 /** One mix render (preview.ts drives its decode / bus / premix steps on its own). */
 export class MixRun {
   private readonly pass: PassContext;
@@ -164,19 +185,21 @@ export class MixRun {
   async renderBuses(plan: MixPlan): Promise<Result<MusicBusInput[], FfmpegError>> {
     this.progress('synthesize');
     const { signal } = this.options;
-    const sfx = await writeBusWav(this.files.sfx, plan.sfx, plan.totalFrames, signal);
+    const silences = busSilences(this.options.silences ?? []);
+    const sfx = await writeBusWav(this.files.sfx, plan.sfx, plan.totalFrames, signal, silences);
     if (!sfx.ok) return sfx;
     const ambience = await writeBusWav(
       this.files.ambience,
       plan.ambience,
       plan.totalFrames,
       signal,
+      silences,
     );
     if (!ambience.ok) return ambience;
     const buses: MusicBusInput[] = [];
     for (const [index, bus] of plan.music.entries()) {
       const busPath = this.files.music(index);
-      const written = await writeBusWav(busPath, bus.events, plan.totalFrames, signal);
+      const written = await writeBusWav(busPath, bus.events, plan.totalFrames, signal, silences);
       if (!written.ok) return written;
       buses.push({ path: busPath, ducking: bus.ducking });
     }

@@ -18,6 +18,7 @@ import {
   type VoiceoverExtension,
 } from '@reelforge/shared';
 import type { z } from 'zod';
+import { readResearchSnapshot, type ResearchSnapshot } from './assets-gate.js';
 import { FILES, REPORTS, STAGE_OUTPUT_FILES, inProject, voiceoverOriginal } from './paths.js';
 
 export type Loaded<T> =
@@ -38,6 +39,8 @@ export interface ProjectSnapshot {
   readonly hasSceneFiles: boolean;
   readonly stages: Readonly<Record<string, StageState>>;
   readonly pause: PipelinePause | undefined;
+  /** Asset research (PLAN.md#12.10): mode, needs of the storyboard, packages awaiting review. */
+  readonly research: ResearchSnapshot;
 }
 
 export const TRACKED_FILES: readonly string[] = [
@@ -108,5 +111,6 @@ export async function readProjectSnapshot(
     hasSceneFiles: scenes,
     stages: state.ok ? state.value.stages : {},
     pause: state.ok ? state.value.pause : undefined,
+    research: await readResearchSnapshot(projectDir, project),
   };
 }

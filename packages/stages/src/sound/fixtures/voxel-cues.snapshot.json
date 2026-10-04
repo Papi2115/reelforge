@@ -1,0 +1,764 @@
+{
+  "example": {
+    "version": 1,
+    "global": {
+      "voGainDb": 0,
+      "targetLufs": -14,
+      "truePeakMaxDbtp": -1
+    },
+    "sfx": [
+      {
+        "id": "sfx-01",
+        "t": 2.5,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": -0.2,
+        "seed": 560909006
+      },
+      {
+        "id": "sfx-02",
+        "t": 2.944,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 1649096399
+      },
+      {
+        "id": "sfx-03",
+        "t": 3.516,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": 0.2,
+        "seed": 1920605045
+      },
+      {
+        "id": "sfx-04",
+        "t": 4.9,
+        "name": "glitch",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 1775031732,
+        "durationS": 0.35
+      },
+      {
+        "id": "sfx-05",
+        "t": 9.264,
+        "name": "glitch",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 585479597
+      },
+      {
+        "id": "sfx-06",
+        "t": 11,
+        "name": "whoosh",
+        "gainDb": -14,
+        "pan": 0,
+        "seed": 132189,
+        "durationS": 1
+      },
+      {
+        "id": "sfx-07",
+        "t": 12.856,
+        "name": "tick",
+        "gainDb": -21,
+        "pan": 0,
+        "seed": 563959869
+      },
+      {
+        "id": "sfx-08",
+        "t": 13.149,
+        "name": "tock",
+        "gainDb": -20.5,
+        "pan": 0,
+        "seed": 1690305458
+      },
+      {
+        "id": "sfx-09",
+        "t": 13.441,
+        "name": "tick",
+        "gainDb": -20,
+        "pan": 0,
+        "seed": 281164266
+      },
+      {
+        "id": "sfx-10",
+        "t": 13.734,
+        "name": "tock",
+        "gainDb": -19.5,
+        "pan": 0,
+        "seed": 814871828
+      },
+      {
+        "id": "sfx-11",
+        "t": 14.026,
+        "name": "tick",
+        "gainDb": -19,
+        "pan": 0,
+        "seed": 799271298
+      },
+      {
+        "id": "sfx-12",
+        "t": 14.319,
+        "name": "tock",
+        "gainDb": -18.5,
+        "pan": 0,
+        "seed": 1402112879
+      },
+      {
+        "id": "sfx-13",
+        "t": 14.611,
+        "name": "tick",
+        "gainDb": -18,
+        "pan": 0,
+        "seed": 2106730560
+      },
+      {
+        "id": "sfx-14",
+        "t": 14.904,
+        "name": "tock",
+        "gainDb": -17.5,
+        "pan": 0,
+        "seed": 1135360112
+      },
+      {
+        "id": "sfx-15",
+        "t": 15.196,
+        "name": "tick",
+        "gainDb": -17,
+        "pan": 0,
+        "seed": 492956820
+      },
+      {
+        "id": "sfx-16",
+        "t": 15.781,
+        "name": "hit",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 1026964934
+      },
+      {
+        "id": "sfx-17",
+        "t": 17.35,
+        "name": "swoosh-in",
+        "gainDb": -13,
+        "pan": 0.2,
+        "seed": 688252110,
+        "durationS": 0.5
+      },
+      {
+        "id": "sfx-18",
+        "t": 18.446,
+        "name": "click",
+        "gainDb": -9,
+        "pan": 0,
+        "seed": 181830382
+      },
+      {
+        "id": "sfx-19",
+        "t": 22.6,
+        "name": "glitch",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 406134689,
+        "durationS": 0.35
+      },
+      {
+        "id": "sfx-20",
+        "t": 23.991,
+        "name": "glitch",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 1692540152
+      },
+      {
+        "id": "sfx-21",
+        "t": 27.6,
+        "name": "chime",
+        "gainDb": -13,
+        "pan": 0,
+        "seed": 1242587616
+      },
+      {
+        "id": "sfx-22",
+        "t": 28.915,
+        "name": "hit",
+        "gainDb": -7,
+        "pan": 0,
+        "seed": 2052887074
+      }
+    ],
+    "ambience": [
+      {
+        "id": "amb-01",
+        "from": 0,
+        "to": 4.9,
+        "name": "room-tone",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-02",
+        "from": 4.9,
+        "to": 11.3,
+        "name": "hum",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-03",
+        "from": 11.3,
+        "to": 17.4,
+        "name": "room-tone",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-04",
+        "from": 17.4,
+        "to": 22.6,
+        "name": "hum",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-05",
+        "from": 22.6,
+        "to": 27,
+        "name": "room-tone",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-06",
+        "from": 27,
+        "to": 30.5,
+        "name": "hum",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      }
+    ],
+    "music": []
+  },
+  "underMusic": {
+    "version": 1,
+    "global": {
+      "voGainDb": 0,
+      "targetLufs": -14,
+      "truePeakMaxDbtp": -1
+    },
+    "sfx": [
+      {
+        "id": "sfx-01",
+        "t": 2.5,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": -0.2,
+        "seed": 560909006
+      },
+      {
+        "id": "sfx-02",
+        "t": 2.944,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 1649096399
+      },
+      {
+        "id": "sfx-03",
+        "t": 3.516,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": 0.2,
+        "seed": 1920605045
+      },
+      {
+        "id": "sfx-04",
+        "t": 4.9,
+        "name": "glitch",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 1775031732,
+        "durationS": 0.35
+      },
+      {
+        "id": "sfx-05",
+        "t": 9.264,
+        "name": "glitch",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 585479597
+      },
+      {
+        "id": "sfx-06",
+        "t": 11,
+        "name": "whoosh",
+        "gainDb": -14,
+        "pan": 0,
+        "seed": 132189,
+        "durationS": 1
+      },
+      {
+        "id": "sfx-07",
+        "t": 12.856,
+        "name": "tick",
+        "gainDb": -21,
+        "pan": 0,
+        "seed": 563959869
+      },
+      {
+        "id": "sfx-08",
+        "t": 13.149,
+        "name": "tock",
+        "gainDb": -20.5,
+        "pan": 0,
+        "seed": 1690305458
+      },
+      {
+        "id": "sfx-09",
+        "t": 13.441,
+        "name": "tick",
+        "gainDb": -20,
+        "pan": 0,
+        "seed": 281164266
+      },
+      {
+        "id": "sfx-10",
+        "t": 13.734,
+        "name": "tock",
+        "gainDb": -19.5,
+        "pan": 0,
+        "seed": 814871828
+      },
+      {
+        "id": "sfx-11",
+        "t": 14.026,
+        "name": "tick",
+        "gainDb": -19,
+        "pan": 0,
+        "seed": 799271298
+      },
+      {
+        "id": "sfx-12",
+        "t": 14.319,
+        "name": "tock",
+        "gainDb": -18.5,
+        "pan": 0,
+        "seed": 1402112879
+      },
+      {
+        "id": "sfx-13",
+        "t": 14.611,
+        "name": "tick",
+        "gainDb": -18,
+        "pan": 0,
+        "seed": 2106730560
+      },
+      {
+        "id": "sfx-14",
+        "t": 14.904,
+        "name": "tock",
+        "gainDb": -17.5,
+        "pan": 0,
+        "seed": 1135360112
+      },
+      {
+        "id": "sfx-15",
+        "t": 15.196,
+        "name": "tick",
+        "gainDb": -17,
+        "pan": 0,
+        "seed": 492956820
+      },
+      {
+        "id": "sfx-16",
+        "t": 15.781,
+        "name": "hit",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 1026964934
+      },
+      {
+        "id": "sfx-17",
+        "t": 17.35,
+        "name": "swoosh-in",
+        "gainDb": -13,
+        "pan": 0.2,
+        "seed": 688252110,
+        "durationS": 0.5
+      },
+      {
+        "id": "sfx-18",
+        "t": 18.446,
+        "name": "click",
+        "gainDb": -9,
+        "pan": 0,
+        "seed": 181830382
+      },
+      {
+        "id": "sfx-19",
+        "t": 22.6,
+        "name": "glitch",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 406134689,
+        "durationS": 0.35
+      },
+      {
+        "id": "sfx-20",
+        "t": 23.991,
+        "name": "glitch",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 1692540152
+      },
+      {
+        "id": "sfx-21",
+        "t": 27.6,
+        "name": "chime",
+        "gainDb": -13,
+        "pan": 0,
+        "seed": 1242587616
+      },
+      {
+        "id": "sfx-22",
+        "t": 28.915,
+        "name": "hit",
+        "gainDb": -7,
+        "pan": 0,
+        "seed": 2052887074
+      }
+    ],
+    "ambience": [
+      {
+        "id": "amb-01",
+        "from": 0,
+        "to": 30.5,
+        "name": "room-tone",
+        "gainDb": -32,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      }
+    ],
+    "music": [
+      {
+        "id": "music-01",
+        "from": 0,
+        "to": 30.5,
+        "file": "audio/music/gen-calm-tech-1-0123456789.wav",
+        "gainDb": -5,
+        "fadeInS": 1.5,
+        "fadeOutS": 3,
+        "ducking": {
+          "enabled": true
+        }
+      }
+    ],
+    "moods": ["calm-tech"]
+  },
+  "broad": {
+    "version": 1,
+    "global": {
+      "voGainDb": 0,
+      "targetLufs": -14,
+      "truePeakMaxDbtp": -1
+    },
+    "sfx": [
+      {
+        "id": "sfx-01",
+        "t": 0.3,
+        "name": "swoosh-in",
+        "gainDb": -15,
+        "pan": 0,
+        "seed": 1077249195
+      },
+      {
+        "id": "sfx-02",
+        "t": 5.8,
+        "name": "hit-soft",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 274109081
+      },
+      {
+        "id": "sfx-03",
+        "t": 9.7,
+        "name": "whoosh",
+        "gainDb": -14,
+        "pan": 0,
+        "seed": 1514401021,
+        "durationS": 1.2
+      },
+      {
+        "id": "sfx-04",
+        "t": 12.4,
+        "name": "hit-soft",
+        "gainDb": -9,
+        "pan": 0,
+        "seed": 377160390
+      },
+      {
+        "id": "sfx-05",
+        "t": 17,
+        "name": "tick",
+        "gainDb": -21,
+        "pan": 0,
+        "seed": 563959869
+      },
+      {
+        "id": "sfx-06",
+        "t": 17.3,
+        "name": "tock",
+        "gainDb": -20.6,
+        "pan": 0,
+        "seed": 1690305458
+      },
+      {
+        "id": "sfx-07",
+        "t": 17.6,
+        "name": "tick",
+        "gainDb": -20.1,
+        "pan": 0,
+        "seed": 281164266
+      },
+      {
+        "id": "sfx-08",
+        "t": 17.9,
+        "name": "tock",
+        "gainDb": -19.7,
+        "pan": 0,
+        "seed": 814871828
+      },
+      {
+        "id": "sfx-09",
+        "t": 18.2,
+        "name": "tick",
+        "gainDb": -19.2,
+        "pan": 0,
+        "seed": 799271298
+      },
+      {
+        "id": "sfx-10",
+        "t": 18.5,
+        "name": "tock",
+        "gainDb": -18.8,
+        "pan": 0,
+        "seed": 1402112879
+      },
+      {
+        "id": "sfx-11",
+        "t": 18.8,
+        "name": "tick",
+        "gainDb": -18.3,
+        "pan": 0,
+        "seed": 2106730560
+      },
+      {
+        "id": "sfx-12",
+        "t": 19.1,
+        "name": "tock",
+        "gainDb": -17.9,
+        "pan": 0,
+        "seed": 1135360112
+      },
+      {
+        "id": "sfx-13",
+        "t": 19.4,
+        "name": "tick",
+        "gainDb": -17.4,
+        "pan": 0,
+        "seed": 492956820
+      },
+      {
+        "id": "sfx-14",
+        "t": 19.7,
+        "name": "tock",
+        "gainDb": -17,
+        "pan": 0,
+        "seed": 51939434
+      },
+      {
+        "id": "sfx-15",
+        "t": 20.2,
+        "name": "hit",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 315112138
+      },
+      {
+        "id": "sfx-16",
+        "t": 21.95,
+        "name": "swoosh-in",
+        "gainDb": -13,
+        "pan": 0.2,
+        "seed": 688252110,
+        "durationS": 0.5
+      },
+      {
+        "id": "sfx-17",
+        "t": 23.1,
+        "name": "typewriter",
+        "gainDb": -14,
+        "pan": 0,
+        "seed": 898608312
+      },
+      {
+        "id": "sfx-18",
+        "t": 25,
+        "name": "click",
+        "gainDb": -9,
+        "pan": 0,
+        "seed": 1812496372
+      },
+      {
+        "id": "sfx-19",
+        "t": 26.4,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": -0.2,
+        "seed": 89300414
+      },
+      {
+        "id": "sfx-20",
+        "t": 27,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 479866595
+      },
+      {
+        "id": "sfx-21",
+        "t": 27.6,
+        "name": "pop",
+        "gainDb": -11,
+        "pan": 0.2,
+        "seed": 1872053657
+      },
+      {
+        "id": "sfx-22",
+        "t": 28.2,
+        "name": "click",
+        "gainDb": -9,
+        "pan": 0,
+        "seed": 1305673869
+      },
+      {
+        "id": "sfx-23",
+        "t": 29,
+        "name": "glitch",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 406134689,
+        "durationS": 0.35
+      },
+      {
+        "id": "sfx-24",
+        "t": 32,
+        "name": "glitch",
+        "gainDb": -8,
+        "pan": 0,
+        "seed": 1692540152
+      },
+      {
+        "id": "sfx-25",
+        "t": 36.95,
+        "name": "whoosh-impact",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 216835518
+      },
+      {
+        "id": "sfx-26",
+        "t": 40.75,
+        "name": "whoosh",
+        "gainDb": -16,
+        "pan": -0.15,
+        "seed": 613379403
+      },
+      {
+        "id": "sfx-27",
+        "t": 43.1,
+        "name": "bubble",
+        "gainDb": -11,
+        "pan": 0,
+        "seed": 360708562
+      },
+      {
+        "id": "sfx-28",
+        "t": 45.7,
+        "name": "whoosh",
+        "gainDb": -14,
+        "pan": 0,
+        "seed": 560888466,
+        "durationS": 1.4
+      },
+      {
+        "id": "sfx-29",
+        "t": 46.6,
+        "name": "chime",
+        "gainDb": -13,
+        "pan": 0,
+        "seed": 2072354604
+      }
+    ],
+    "ambience": [
+      {
+        "id": "amb-01",
+        "from": 0,
+        "to": 10,
+        "name": "room-tone",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-02",
+        "from": 10,
+        "to": 22,
+        "name": "hum",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-03",
+        "from": 22,
+        "to": 29,
+        "name": "room-tone",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-04",
+        "from": 29,
+        "to": 46,
+        "name": "hum",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      },
+      {
+        "id": "amb-05",
+        "from": 46,
+        "to": 50,
+        "name": "room-tone",
+        "gainDb": -28,
+        "fadeInS": 1,
+        "fadeOutS": 1
+      }
+    ],
+    "music": []
+  },
+  "busHashes": {
+    "example": "677830b6e15f665d70067738e2c9da9897d81adb9088107af66316ff646805ba",
+    "underMusic": "d9ccae3f86c6fb2c28f9092d523de83b65b27aa6e0eb866fbd6939df74213ed7",
+    "broad": "3708db29db2303d6d1de153d38c2a7ceab637a7b1ae17a93d3c0743f876d56e6"
+  }
+}

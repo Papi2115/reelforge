@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { KitError } from '../errors.js';
+import { voxelLook } from '../looks/index.js';
 import { createKit, kitCatalog } from '../kit.js';
 import { isKitObject, type KitObject } from '../object.js';
+import { fakeAsset } from '../testing/asset.js';
 import { CRISP_PALETTE, TOKENS_ONLY_PALETTE } from '../testing/palettes.js';
 import { testRng } from '../testing/rng.js';
 import type { KitPalette } from '../types.js';
@@ -39,10 +41,28 @@ const PROP_NAMES = [
   'tower',
   'house',
   'drone',
+  'photoFrame',
+  'polaroid',
+  'billboard',
+  'assetScreen',
+  'veiledProp',
 ];
+
+/** Asset props (PLAN.md#12.11) need a picture: tests pass a stand-in handle. */
+const NEEDS_ASSET: ReadonlySet<string> = new Set([
+  'photoFrame',
+  'polaroid',
+  'billboard',
+  'assetScreen',
+]);
 
 function kit(palette: KitPalette = CRISP_PALETTE) {
   return createKit({ three: THREE, palette, rng: testRng(9) }).api;
+}
+
+function voxelKit() {
+  return createKit({ three: THREE, palette: CRISP_PALETTE, rng: testRng(9), looks: [voxelLook] })
+    .api;
 }
 
 type Factory = (params?: Record<string, unknown>) => KitObject & { update(t: number): void };
@@ -51,7 +71,8 @@ function factory(name: string, palette?: KitPalette): Factory {
   const props = kit(palette).props as unknown as Record<string, Factory>;
   const make = props[name];
   if (!make) throw new Error(`no prop ${name}`);
-  return make;
+  if (!NEEDS_ASSET.has(name)) return make;
+  return (params = {}) => make({ asset: fakeAsset(), ...params });
 }
 
 function voxelMeshes(root: THREE.Object3D): VoxelObject[] {
@@ -122,9 +143,15 @@ function variants(name: string): Record<string, unknown>[] {
 
 describe('kit.props registry', () => {
   it('registers batches A and B with complete catalog metadata', () => {
-    expect(Object.keys(kit().props)).toEqual(PROP_NAMES);
-    const entries = kitCatalog().props;
+    expect(Object.keys(voxelKit().props)).toEqual(PROP_NAMES);
+    const entries = kitCatalog([], [voxelLook]).props;
     expect(entries.map((entry) => entry.name)).toEqual(PROP_NAMES);
+    // With every available look, the voxel kit comes first and the rest belong to other looks.
+    const all = kitCatalog().props;
+    expect(Object.keys(kit().props)).toEqual(all.map((entry) => entry.name));
+    expect(all.slice(0, PROP_NAMES.length)).toEqual(entries);
+    for (const entry of all.slice(PROP_NAMES.length))
+      expect(entry.look, entry.name).not.toBe('voxel');
     for (const entry of entries) {
       expect(entry.kind).toBe('prop');
       expect(entry.description.length, entry.name).toBeGreaterThan(60);

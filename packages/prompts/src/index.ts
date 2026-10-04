@@ -19,10 +19,16 @@ export {
 export { frontMatterSchema, parseFrontMatter, type FrontMatter } from './front-matter.js';
 export * from './validators/issues.js';
 export * from './validators/annotations.js';
+export * from './validators/asset-needs.js';
 export * from './validators/storyboard.js';
+export * from './validators/rhythm.js';
+export * from './validators/tension.js';
+export * from './validators/dramaturgy.js';
 export * from './validators/script.js';
 export * from './validators/critic.js';
 export * from './validators/cues.js';
 export * from './validators/review.js';
 export * from './validators/text-outputs.js';
+export * from './validators/claims.js';
+export * from './validators/hooks.js';
 export * from './validators/youtube-meta.js';

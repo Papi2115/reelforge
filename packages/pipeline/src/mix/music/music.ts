@@ -108,6 +108,13 @@ export interface ActSpan {
   readonly mood?: MusicMood | undefined;
   /** 0..1 intensity of the act (maps to the bed's energy). */
   readonly energy?: number | undefined;
+  /**
+   * Beat grid of the act (PLAN.md#12.21): a fixed tempo and the time of one of its beats
+   * (global s). The bed is rendered at `bpm` and its cue starts `offsetS` into the file, so its
+   * bars land on the grid. Absent = the mood's own tempo (as before).
+   */
+  readonly bpm?: number | undefined;
+  readonly phaseS?: number | undefined;
 }
 
 export interface ActMusicOptions {
@@ -164,6 +171,22 @@ function bedSpan(act: ActSpan, first: boolean, last: boolean, options: ActMusicO
   };
 }
 
+/** Tempo range (bpm) a mood's beds are written in. */
+export function moodTempoRange(mood: MusicMood): readonly [number, number] {
+  return MOOD_PRESETS[mood].bpm;
+}
+
+/**
+ * Where a grid-locked bed's cue starts in its file (s): the bed's bars (beat 0 at file time 0)
+ * then fall on the act's grid. Undefined without a grid.
+ */
+function gridOffset(act: ActSpan, from: number): number | undefined {
+  if (act.bpm === undefined || act.phaseS === undefined) return undefined;
+  const barS = (60 / act.bpm) * 4;
+  const offset = round3((((round3(from) - act.phaseS) % barS) + barS) % barS);
+  return offset >= round3(barS) ? 0 : offset;
+}
+
 /** One bed per act (pure): generation options and the ducked music cue that plays it. */
 export function planActMusic(acts: readonly ActSpan[], options: ActMusicOptions): ActMusicPlan[] {
   const moods: readonly MusicMood[] =
@@ -176,12 +199,14 @@ export function planActMusic(acts: readonly ActSpan[], options: ActMusicOptions)
   return kept.map((act, index) => {
     const mood = act.mood ?? moods[index % Math.max(1, moods.length)] ?? 'calm-tech';
     const span = bedSpan(act, index === 0, index === kept.length - 1, options);
+    const offsetS = gridOffset(act, span.from);
     const generate: GenerateMusicOptions = {
       mood,
       seed: hashSeed(`${String(options.seed >>> 0)}|act${String(index)}|${mood}`),
-      durationS: clampDuration(span.to - span.from),
+      durationS: clampDuration(span.to - span.from + (offsetS ?? 0)),
       energy: act.energy,
       loopable: true,
+      ...(offsetS === undefined ? {} : { bpm: act.bpm }),
     };
     return {
       options: generate,
@@ -191,6 +216,7 @@ export function planActMusic(acts: readonly ActSpan[], options: ActMusicOptions)
         to: round3(span.to),
         file: musicFilePath(generate),
         gainDb: options.gainDb ?? 0,
+        ...(offsetS === undefined ? {} : { offsetS }),
         // The bed is rendered to the cue's exact length; looping is only for user-extended cues.
         loop: false,
         fadeInS: round3(span.fadeInS),

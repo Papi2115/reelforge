@@ -1,4 +1,5 @@
 /** Contract of a `reelforge` subcommand. */
+import type { AssetRuntime } from './assets/runtime.js';
 
 /** Output streams (injected, so commands are testable; main.ts wires the process streams). */
 export interface CliIo {
@@ -9,7 +10,12 @@ export interface CliIo {
 export interface CommandContext {
   /** Project folder: the working directory the command was started in. */
   readonly root: string;
+  /** Asset research services (sources, transport, clock); tests inject a local server. */
+  readonly assets?: AssetRuntime | undefined;
 }
+
+/** Services a caller may inject into every command (everything but the project folder). */
+export type CliServices = Omit<CommandContext, 'root'>;
 
 export interface CommandResult {
   /** 0 = ok, 1 = problems found. Usage errors (2) are thrown as UsageError. */

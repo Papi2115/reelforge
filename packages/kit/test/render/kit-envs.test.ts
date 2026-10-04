@@ -18,6 +18,7 @@ import {
 } from '../../../engine/src/cli/index.js';
 import { lintScene } from '../../../engine/src/index.js';
 import { composeSheet } from '../support/contact-sheet.js';
+import { expectVibe } from '../support/vibe.js';
 import {
   ENV_SETUPS,
   ENVS_FILE,
@@ -99,6 +100,7 @@ describe('kit environments (SwiftShader)', () => {
         await page.load(manifest(setup));
         const data = await page.frameAt(t);
         expectPicture(data, setup);
+        expectVibe({ width: 640, height: 360, data }, setup);
         await compareWithGolden(
           `kit-env-${setup}-t${String(t)}`,
           { width: 640, height: 360, data },

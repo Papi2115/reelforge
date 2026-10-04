@@ -18,9 +18,11 @@ export function statusAfter(error: StageError): StageRunStatus {
 }
 
 /**
- * A scene run that reviews the built scenes (chips, final review) instead of building them: when
- * it stops or fails, "Scenes built" keeps the status it had.
+ * A scene run that reviews the built scenes (chips, final review) instead of building them, or a
+ * storyboard run that only proposes the tension curve (PLAN.md#12.22): when it stops or fails,
+ * the stage keeps the status it had.
  */
 export function isReviewRun(request: StageRequest): boolean {
+  if (request.stage === 'storyboard') return (request.action ?? 'build') !== 'build';
   return request.stage === 'scenes' && (request.action ?? 'build') !== 'build';
 }

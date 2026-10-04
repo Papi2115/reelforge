@@ -36,6 +36,18 @@ per shot group, as before; generated `gen-*.wav` files never count as the user's
   second, otherwise the third. Claude's sound-cues turn may set `moods` in `cues.json` (one per
   act, validated: mood names by the schema, one entry per act); the stage then re-renders those
   beds and keeps Claude's gain / ducking of each bed.
+- **Tension map** (PLAN.md#12.22, `docs/tension.md`; only when `project.json` has
+  `"tensionMap": "auto"` and a valid `tension.json`): each act also gets its mean tension; the
+  energy is ½ shot density + ½ (0.2 + 0.7 · tension) (x0.85 intro/outro, bed cap 0.7 as before)
+  and the mood follows the tension instead of the energy: a tense act (mean >= 0.6; intro and
+  outro >= 0.75) gets the style's tense mood, every other act its calm one —
+  `voxel-pixel-crisp640` calm-tech / retro-wave, `noir-voxel` lofi-chill / tense-investigation,
+  `soft-480` lofi-chill / calm-tech (others calm-tech / retro-wave). `bright-explainer` is never
+  picked by tension (too cheerful under a dramatic peak). Claude's `moods` hint still wins.
+- **Beat sync** (PLAN.md#12.21, `docs/beat-sync.md`; only with `"beatSync": "auto"`): each act's
+  bed runs at the beat grid's tempo for the act (`timing/beats.json`, inside the mood's range) and
+  its cue's `offsetS` puts the bed's bars on the grid; a Claude `moods` hint keeps that tempo.
+  Without the switch nothing changes.
 - **Mix:** beds at -5 dB (about -28 LUFS before the master), 2 s crossfades between acts, 1.5 s
   fade-in / 3 s fade-out at the film edges, ducked by the voice with the Medium sidechain preset
   (threshold -30 dB, ratio 8, 20 / 400 ms). The mix QA (docs/sfx.md) checks ducking >= 6 dB, the

@@ -10,6 +10,9 @@ import type { StoryboardShot } from '@reelforge/shared';
 import { useState, type JSX } from 'react';
 import type { SceneActionKey, StageReports } from '../../shared/voiceover-contract.js';
 import { plural } from '../../shared/plural.js';
+import { DramaturgySection } from '../dramaturgy/DramaturgySection.js';
+import { EditingSection } from '../editing/EditingSection.js';
+import { dramaturgyKey } from '../dramaturgy/dramaturgy-view.js';
 import { FinalReviewSection } from './FinalReview.js';
 import { exportPreflight, finalReviewProgress } from './final-review-view.js';
 import { StageProgress } from './StageProgress.js';
@@ -188,6 +191,21 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
             props.shots,
           )}
           progress={finalReviewProgress(running) === null ? null : 'Reviewing now: progress above.'}
+          onSeekShot={props.onSeekShot}
+        />
+        <DramaturgySection
+          refreshKey={dramaturgyKey([
+            props.reports?.finalReview?.finishedAt,
+            props.reports?.sync?.createdAt,
+            props.shots.map((shot) => shot.id).join(','),
+          ])}
+          onSeekShot={props.onSeekShot}
+        />
+        <EditingSection
+          refreshKey={[
+            props.reports?.finalReview?.finishedAt ?? '',
+            ...props.shots.map((shot) => `${shot.id}@${String(shot.t0)}`),
+          ].join('|')}
           onSeekShot={props.onSeekShot}
         />
         <h3 className="section-title">Sync report</h3>

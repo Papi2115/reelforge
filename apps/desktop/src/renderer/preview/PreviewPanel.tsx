@@ -6,12 +6,12 @@
  * changed is reloaded (hot reload of single shots); a broken scene keeps the last working frame.
  */
 import { createSandboxedHarness, type LoadInfo, type PickInfo } from '@reelforge/engine';
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react';
 import { ENGINE_ASSET_DIR, ENGINE_FRAME_HTML } from '../../shared/engine-assets.js';
 import { errorMessage, rendererLog } from '../log.js';
 import { integerDisplaySize, type DisplaySize } from './integer-scale.js';
 import type { Player } from './player.js';
-import { PreviewController, type FrameSink } from './preview-controller.js';
+import { playerNeedsVideo, PreviewController, type FrameSink } from './preview-controller.js';
 import {
   AudioProblemNotice,
   ReloadNotice,
@@ -83,6 +83,8 @@ export interface PreviewPanelProps {
    */
   readonly onPick?: (pick: PickInfo | null, x: number, y: number) => void;
   readonly marker?: PreviewMarker | null;
+  /** Docked under the transport (the live co-direction command bar, PLAN.md#12.14). */
+  readonly footer?: ReactNode;
 }
 
 export function PreviewPanel({
@@ -91,6 +93,7 @@ export function PreviewPanel({
   snapshots,
   onPick,
   marker,
+  footer,
 }: PreviewPanelProps): JSX.Element {
   const frameHostRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -155,8 +158,8 @@ export function PreviewPanel({
         log.info(
           `loaded ${key}: ${String(info.duration)} s, ${String(info.width)}x${String(info.height)} @ ${String(info.fps)} fps, style ${info.style}, GPU ${info.gpu.renderer}`,
         );
-        player.setVideo(info.duration, info.fps);
       }
+      if (playerNeedsVideo(result, player.getState())) player.setVideo(info.duration, info.fps);
       setState({ status: 'ready', info, note });
       await controller.refresh(player.getState().time);
       if (isStale()) return;
@@ -300,6 +303,7 @@ export function PreviewPanel({
           player.resetFrameStats();
         }}
       />
+      {footer}
       <div ref={frameHostRef} className="preview-engine-host" />
     </section>
   );

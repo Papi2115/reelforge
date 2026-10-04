@@ -52,12 +52,24 @@ export class PoolFrameRenderer implements FrameRenderer {
     } catch (error) {
       return { ok: false, error: describeUnknown(error), errors: [] };
     }
-    const acquired = await this.pool.acquire();
-    if (!acquired.ok) throw new RendererUnavailableError(acquired.error);
-    try {
-      return await this.render(acquired.value, planned, request, signal);
-    } finally {
-      await this.pool.release(acquired.value);
+    // A render window that times out closes itself (render-window.ts); the shot is tried once
+    // more in a fresh window, then reported as timed out (QA warns instead of stopping the stage).
+    for (let attempt = 1; ; attempt += 1) {
+      const acquired = await this.pool.acquire();
+      if (!acquired.ok) throw new RendererUnavailableError(acquired.error);
+      try {
+        return await this.render(acquired.value, planned, request, signal);
+      } catch (error) {
+        if (!(error instanceof RendererUnavailableError) || error.renderError.kind !== 'timeout') {
+          throw error;
+        }
+        if (attempt >= 2) {
+          const message = `${error.renderError.message} (retried once in a fresh render window)`;
+          return { ok: false, timedOut: true, error: message, errors: [] };
+        }
+      } finally {
+        await this.pool.release(acquired.value);
+      }
     }
   }
 

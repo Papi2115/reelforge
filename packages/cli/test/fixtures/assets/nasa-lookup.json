@@ -1,0 +1,68 @@
+{
+  "collection": {
+    "version": "1.1",
+    "href": "http://images-api.nasa.gov/search?nasa_id=jsc2007e034221",
+    "items": [
+      {
+        "href": "https://images-assets.nasa.gov/image/jsc2007e034221/collection.json",
+        "data": [
+          {
+            "album": ["KSC_50th_Anniversary"],
+            "center": "JSC",
+            "date_created": "1969-07-11T00:00:00Z",
+            "description": "Personnel atop the 402-ft. Mobile Service Structure look back at the Apollo 11 spacecraft as the tower is moved away during a Countdown Demonstration Test. Photo filed 11 July 1969. ",
+            "keywords": ["Apollo", "Apollo 11", "Launch"],
+            "media_type": "image",
+            "nasa_id": "jsc2007e034221",
+            "title": "Apollo 11 spacecraft pre-launch"
+          }
+        ],
+        "links": [
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~medium.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 975,
+            "size": 176000,
+            "height": 1280
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~small.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 487,
+            "size": 60000,
+            "height": 640
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~thumb.jpg",
+            "rel": "preview",
+            "render": "image",
+            "width": 487,
+            "size": 60000,
+            "height": 640
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~large.jpg",
+            "rel": "alternate",
+            "render": "image",
+            "width": 1463,
+            "size": 332000,
+            "height": 1920
+          },
+          {
+            "href": "https://images-assets.nasa.gov/image/jsc2007e034221/jsc2007e034221~orig.jpg",
+            "rel": "canonical",
+            "render": "image",
+            "height": 3072,
+            "width": 2341,
+            "size": 1402000
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "total_hits": 1
+    }
+  }
+}

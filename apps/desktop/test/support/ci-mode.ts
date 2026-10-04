@@ -25,6 +25,17 @@ export function perfBar(strict: number, ci: number, ciMode = CI_MODE): number {
   return ciMode ? ci : strict;
 }
 
+/** How much longer waits get in CI mode: the factor vitest.config.ts applies to the test timeouts. */
+export const CI_TIMEOUT_SCALE = 2;
+
+/**
+ * A wait for the app (a reload, a file served, a dialog filled): `ms` locally, scaled like the
+ * test timeouts in CI mode. Only for waits on work the runner does slower, never for perf bars.
+ */
+export function waitTimeout(ms: number, ciMode = CI_MODE): number {
+  return ciMode ? ms * CI_TIMEOUT_SCALE : ms;
+}
+
 /** Extra Chromium switches for the app launch: whitespace-separated `--switch[=value]` items. */
 export function extraElectronArgs(env: Env = process.env): string[] {
   const raw = env[ELECTRON_ARGS_ENV] ?? '';

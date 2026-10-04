@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_LOOK_ID,
   renderManifestSchema,
+  shotLook,
   storyboardFileSchema,
   wordsFileSchema,
   type RenderManifest,
@@ -89,5 +91,29 @@ describe('storyboardFileSchema', () => {
     expect(storyboardFileSchema.safeParse({ version: 1, shots: [shot] }).success).toBe(true);
     const unknown = { ...shot, treatment: 'explosion' };
     expect(storyboardFileSchema.safeParse({ version: 1, shots: [unknown] }).success).toBe(false);
+  });
+
+  it('keeps files without roll/look valid and accepts A/B/C rolls with kebab-case look ids', () => {
+    const shot = {
+      id: 's01',
+      t0: 0,
+      t1: 4,
+      treatment: 'title-card',
+      intent: 'Hook',
+      scene: 'scenes/s01.js',
+    };
+    const old = storyboardFileSchema.parse({ version: 1, shots: [shot] });
+    expect(old.shots[0]).toEqual(shot);
+    expect(old.shots[0] && shotLook(old.shots[0])).toBe(DEFAULT_LOOK_ID);
+    const tagged = { ...shot, roll: 'B', look: 'retro-ui' };
+    const parsed = storyboardFileSchema.parse({ version: 1, shots: [tagged] });
+    expect(parsed.shots[0]).toMatchObject({ roll: 'B', look: 'retro-ui' });
+    expect(parsed.shots[0] && shotLook(parsed.shots[0])).toBe('retro-ui');
+    for (const bad of [{ roll: 'D' }, { look: 'Retro UI' }, { look: '' }, { look: 'retro-' }]) {
+      expect(
+        storyboardFileSchema.safeParse({ version: 1, shots: [{ ...shot, ...bad }] }).success,
+        JSON.stringify(bad),
+      ).toBe(false);
+    }
   });
 });

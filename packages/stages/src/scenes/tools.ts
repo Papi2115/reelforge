@@ -55,6 +55,11 @@ export interface ShotRenderFailed {
   /** Why the scene did not load (engine error text, written for the scene author). */
   readonly error: string;
   readonly errors: readonly string[];
+  /**
+   * The renderer did not answer in time, also after one retry on a fresh renderer: not the
+   * scene's fault, so QA reports a warning for the shot instead of asking for a fix.
+   */
+  readonly timedOut?: boolean;
 }
 
 export type ShotRender = ShotRenderOk | ShotRenderFailed;

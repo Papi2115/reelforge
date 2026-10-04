@@ -5,10 +5,13 @@
 import { z } from 'zod';
 import { createKitObject } from '../object.js';
 import { defineEnv } from '../registry.js';
+import { toneOf } from '../variation/ambient.js';
 import type { VoxelColor } from '../voxel/model.js';
 import { asEnv, colorParam, voxels, WOOD, WOOD_ALT } from './shared.js';
 
 const ROOM_VOXEL = 0.25;
+const ROOM_WALL = ['slateBlue', 'slate', 'dusk', 'groundAlt'] as const;
+const ROOM_WAINSCOT = ['indigo', 'charcoal', 'plum', 'shadow'] as const;
 
 export const roomParams = z.object({
   width: z.number().min(3).max(24).default(8).describe('Width (x) in units'),
@@ -85,8 +88,8 @@ export const room = defineEnv({
     const colors: VoxelColor[] = [
       colorParam(palette, params.floor, WOOD),
       colorParam(palette, params.floorAlt, WOOD_ALT),
-      colorParam(palette, params.wall, ['slateBlue', 'slate', 'dusk', 'groundAlt']),
-      colorParam(palette, params.wallAlt, ['indigo', 'charcoal', 'plum', 'shadow']),
+      params.wall ?? toneOf(tools.variation, colorParam(palette, undefined, ROOM_WALL)),
+      params.wallAlt ?? toneOf(tools.variation, colorParam(palette, undefined, ROOM_WAINSCOT)),
       'heroTrim',
       { color: params.windowColor, glow: true },
       'accent4',

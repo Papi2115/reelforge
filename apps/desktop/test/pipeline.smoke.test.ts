@@ -60,6 +60,28 @@ async function runRow(label: string): Promise<void> {
   await run.click();
 }
 
+/**
+ * New projects start in `mixed` look mode (template), but the golden `en-short-prism` storyboard
+ * predates looks (no roll/look per shot): the film is made in `voxel-only`, set in the dialog.
+ */
+async function useVoxelOnlyLooks(): Promise<void> {
+  await page.getByRole('button', { name: 'Project settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Project settings' });
+  await dialog.getByRole('radio', { name: /^Voxel only — the classic look/ }).click();
+  await expect
+    .poll(
+      async () =>
+        (
+          JSON.parse(await readFile(path.join(projectDir, 'project.json'), 'utf8')) as {
+            lookMode?: string;
+          }
+        ).lookMode,
+    )
+    .toBe('voxel-only');
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await dialog.waitFor({ state: 'detached' });
+}
+
 async function openRow(label: string): Promise<void> {
   await (await showStage(page, label)).click();
   await pipeline()
@@ -172,6 +194,7 @@ describe('the pipeline in the app', () => {
   }, 240_000);
 
   it('builds the storyboard and every scene with QA badges', async () => {
+    await useVoxelOnlyLooks();
     await runRow('Storyboard');
     await waitDone('Storyboard', 60_000);
     await runRow('Scenes built');

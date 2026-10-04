@@ -6,13 +6,20 @@
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type {
-  KitExtensionSource,
-  NamedPalette,
-  ProjectFile,
-  RenderManifest,
-  StoryboardFile,
-  WordsFile,
+import { loadManifestAssets, locateAssetFfmpeg } from '@reelforge/pipeline';
+import {
+  ambientShotInputs,
+  projectAmbientVariation,
+  projectTensionMap,
+  withShotTension,
+  type AmbientShot,
+  type AmbientVariationSettings,
+  type KitExtensionSource,
+  type NamedPalette,
+  type ProjectFile,
+  type RenderManifest,
+  type StoryboardFile,
+  type WordsFile,
 } from '@reelforge/shared';
 import { describeUnknown, ProjectError } from '../errors.js';
 import type { FileCheck, ProjectFiles } from './files.js';
@@ -29,6 +36,8 @@ export interface RenderSetup {
   readonly words: WordsFile | undefined;
   /** Project props (`kit-ext/props/*.js`), registered in every shot. */
   readonly kitExtensions: readonly KitExtensionSource[];
+  /** Ambient variation switch (PLAN.md#12.8); absent when the project has it off. */
+  readonly ambientVariation?: AmbientVariationSettings | undefined;
 }
 
 export interface ShotPlan {
@@ -41,6 +50,8 @@ export interface ShotPlan {
   readonly source: string;
   /** True for a scene that is not in storyboard.json (rendered from t = 0). */
   readonly standalone: boolean;
+  /** Storyboard position for ambient variation (storyboard shots only). */
+  readonly ambient?: AmbientShot | undefined;
 }
 
 const MIN_STANDALONE_DURATION = 5;
@@ -108,6 +119,9 @@ export function renderSetup(
     palette: project.palette,
     words,
     kitExtensions: files.kitExtensions.extensions,
+    ...(projectAmbientVariation(project)
+      ? { ambientVariation: { enabled: true, seed: project.seed } }
+      : {}),
   };
 }
 
@@ -128,16 +142,31 @@ function unknownShot(id: string, storyboard: StoryboardFile): ProjectError {
   return new ProjectError(`unknown shot "${id}"`, `use one of the storyboard shot ids: ${ids}`);
 }
 
+/**
+ * Ambient inputs of the storyboard shots, with each shot's tension when the project uses the
+ * tension map (PLAN.md#12.22) and tension.json is valid.
+ */
+export function storyboardAmbient(files: ProjectFiles, storyboard: StoryboardFile): AmbientShot[] {
+  const inputs = ambientShotInputs(storyboard.shots);
+  const { project, tension } = files;
+  if (project.status !== 'ok' || projectTensionMap(project.data) !== 'auto') return inputs;
+  return tension?.status === 'ok'
+    ? withShotTension(inputs, storyboard.shots, tension.data)
+    : inputs;
+}
+
 export async function planForShot(
   files: ProjectFiles,
   id: string,
   scene?: string,
 ): Promise<ShotPlan> {
   const storyboard = requireStoryboard(files);
-  const shot = storyboard.shots.find((candidate) => candidate.id === id);
+  const index = storyboard.shots.findIndex((candidate) => candidate.id === id);
+  const shot = storyboard.shots[index];
   if (!shot) throw unknownShot(id, storyboard);
   const { file, source } = await readScene(files.root, scene ?? shot.scene);
-  return { id: shot.id, t0: shot.t0, t1: shot.t1, file, source, standalone: false };
+  const ambient = storyboardAmbient(files, storyboard)[index];
+  return { id: shot.id, t0: shot.t0, t1: shot.t1, file, source, standalone: false, ambient };
 }
 
 export async function allShotPlans(files: ProjectFiles): Promise<ShotPlan[]> {
@@ -200,6 +229,10 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
     ...(setup.palette ? { palette: setup.palette } : {}),
     ...(setup.words ? { words: setup.words } : {}),
     ...(setup.kitExtensions.length > 0 ? { kitExtensions: [...setup.kitExtensions] } : {}),
+    // Only storyboard shots vary: a standalone scene (a prop turntable, a draft the storyboard
+    // does not list yet) has no storyboard position and renders neutral, so the camera drift
+    // cannot make one view differ from itself at another time.
+    ...(setup.ambientVariation && plan.ambient ? { ambientVariation: setup.ambientVariation } : {}),
     shots: [
       ...pad,
       {
@@ -207,7 +240,34 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
         t0: plan.t0,
         t1: plan.t1,
         scene: { file: plan.file, source: plan.source },
+        ...(setup.ambientVariation && plan.ambient ? { ambient: plan.ambient } : {}),
       },
     ],
   };
+}
+
+/**
+ * `manifest` plus the decoded asset pictures its scenes and project props name (PLAN.md#12.11);
+ * unchanged when they name none. Decoding needs ffmpeg once per picture (cached in
+ * .reelforge/assets/decoded).
+ */
+export async function withManifestAssets(
+  root: string,
+  manifest: RenderManifest,
+): Promise<RenderManifest> {
+  const assets = await loadManifestAssets({
+    root,
+    sources: [
+      ...manifest.shots.map((shot) => shot.scene.source),
+      ...(manifest.kitExtensions ?? []).map((prop) => prop.source),
+    ],
+    ffmpeg: () => locateAssetFfmpeg(),
+  });
+  if (!assets.ok) {
+    throw new ProjectError(
+      assets.error,
+      'check `reelforge assets list` and the files in .reelforge/assets; decoding needs ffmpeg (install it or set REELFORGE_FFMPEG)',
+    );
+  }
+  return assets.value ? { ...manifest, assets: assets.value } : manifest;
 }

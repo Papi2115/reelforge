@@ -4,8 +4,19 @@
  * (6.2/7.1) may add optional fields; required ones are what rendering and the pipeline rely on.
  */
 import { z } from 'zod';
+import { DEFAULT_AMBIENT_VARIATION } from './ambient-variation.js';
+import {
+  ALLOWLIST_SOURCES,
+  DEFAULT_RESEARCH_MODE,
+  researchModeSchema,
+  type ResearchMode,
+} from './assets.js';
 import { paletteSchema } from './palette.js';
 import { stylePresetIdSchema } from './style-preset.js';
+import { beatSyncModeSchema } from './beat-sync.js';
+import { repetitionControlModeSchema } from './repetition.js';
+import { dramaturgyModeSchema } from './dramaturgy.js';
+import { tensionMapModeSchema } from './tension.js';
 
 export const PROJECT_FILE_VERSION = 1;
 export const BRIEF_FILE_VERSION = 1;
@@ -13,6 +24,17 @@ export const BRIEF_FILE_VERSION = 1;
 /** Video languages (CLAUDE.md §8: EN default, PL supported). */
 export const videoLanguageSchema = z.enum(['en', 'pl']);
 export type VideoLanguage = z.infer<typeof videoLanguageSchema>;
+
+/**
+ * How the storyboard picks looks (ADR-009): `voxel-only` = every shot in the voxel look, exactly
+ * as before ReelForge 2.0; `mixed` = A/B/C rolls and the registered looks with rhythm rules.
+ */
+export const LOOK_MODES = ['voxel-only', 'mixed'] as const;
+export const lookModeSchema = z.enum(LOOK_MODES);
+export type LookMode = z.infer<typeof lookModeSchema>;
+
+/** Projects without the field (made before 2.0) keep their exact behaviour. */
+export const DEFAULT_LOOK_MODE: LookMode = 'voxel-only';
 
 export const projectFileSchema = z.object({
   version: z.literal(PROJECT_FILE_VERSION),
@@ -27,8 +49,59 @@ export const projectFileSchema = z.object({
   palette: paletteSchema.optional(),
   /** Model per pipeline stage (app setting), e.g. `{ "scenes": "opus" }`. */
   models: z.record(z.string().min(1), z.string().min(1)).optional(),
+  /** Look mode (absent = `voxel-only`; new projects get `mixed` from the template). */
+  lookMode: lookModeSchema.optional(),
+  /**
+   * Ambient variation (PLAN.md#12.8): environments drift from shot to shot within the style's
+   * budget. Absent = off (existing projects render frame for frame as before); new projects get
+   * `true` from the template.
+   */
+  ambientVariation: z.boolean().optional(),
+  /**
+   * Asset research mode (PLAN.md#12.9, ADR-012). Absent = `off` (projects made before 2.1 never
+   * touch the network); new projects get `ask` from the template.
+   */
+  researchMode: researchModeSchema.optional(),
+  /** Sources the `allowlist` mode may use (subset of the global allowlist). */
+  researchSources: z.array(z.enum(ALLOWLIST_SOURCES)).optional(),
+  /**
+   * Tension map (PLAN.md#12.22, ADR-017): `auto` = the storyboard, the sound design and the
+   * render read `tension.json`. Absent = `off` (projects made before 2.2 are unchanged); new
+   * projects get `auto` from the template.
+   */
+  tensionMap: tensionMapModeSchema.optional(),
+  /**
+   * Beat-synced editing (PLAN.md#12.21, ADR-018): `auto` = cuts, music and accents snap to the
+   * beat grid (timing/beats.json). Absent = `off` (projects made before 2.2 are unchanged); new
+   * projects get `auto` from the template.
+   */
+  beatSync: beatSyncModeSchema.optional(),
+  /**
+   * Film-level repetition control (PLAN.md#12.23, ADR-019): `auto` = repeated visuals,
+   * transitions, SFX and phrases are found and replacements proposed. Absent = `off`.
+   */
+  repetitionControl: repetitionControlModeSchema.optional(),
+  /**
+   * Dramaturgy (PLAN.md#12.25–12.27, ADR-020): planned pattern interrupts, open loops and reveal
+   * moments. Absent = `off` (projects made before 2.2 are unchanged); new projects get `auto`.
+   */
+  patternInterrupts: dramaturgyModeSchema.optional(),
+  openLoops: dramaturgyModeSchema.optional(),
+  revealMoments: dramaturgyModeSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
+
+export function projectResearchMode(project: Pick<ProjectFile, 'researchMode'>): ResearchMode {
+  return project.researchMode ?? DEFAULT_RESEARCH_MODE;
+}
+
+export function projectLookMode(project: Pick<ProjectFile, 'lookMode'>): LookMode {
+  return project.lookMode ?? DEFAULT_LOOK_MODE;
+}
+
+export function projectAmbientVariation(project: Pick<ProjectFile, 'ambientVariation'>): boolean {
+  return project.ambientVariation ?? DEFAULT_AMBIENT_VARIATION;
+}
 
 export const briefFileSchema = z.object({
   version: z.literal(BRIEF_FILE_VERSION),

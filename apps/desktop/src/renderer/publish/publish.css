@@ -1,0 +1,209 @@
+/* Publish kit (export dialog, PLAN.md#12.17) and the Sources panel (script view, PLAN.md#12.18). */
+.publish-kit,
+.sources-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.publish-kit {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.publish-summary,
+.publish-note,
+.sources-note,
+.sources-summary {
+  margin: 0;
+  font-size: 12px;
+}
+
+.publish-banner {
+  margin: 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--warn);
+  border-radius: 4px;
+  background: var(--panel-raised);
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.publish-file {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.publish-file-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.publish-file-label {
+  font-weight: 600;
+}
+
+.publish-text {
+  width: 100%;
+  resize: vertical;
+  font-size: 12px;
+  line-height: 1.35;
+  /* Long description lines wrap (no sideways scrolling); the file's own line breaks stay. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden auto;
+}
+
+.publish-actions,
+.sources-head,
+.claim-head,
+.claim-actions,
+.claim-filters,
+.source-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sources-head .section-title {
+  margin: 0;
+}
+
+.sources-summary {
+  color: var(--text);
+}
+
+.claim-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.claim {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-raised);
+}
+
+.claim-sourced,
+.claim-user-confirmed {
+  border-left-color: var(--ok);
+}
+
+.claim-unsourced {
+  border-left-color: var(--warn);
+}
+
+.claim-disputed {
+  border-left-color: var(--error);
+}
+
+.claim-status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--border);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-sourced,
+.status-user-confirmed {
+  color: var(--ok);
+}
+
+.status-unsourced {
+  color: var(--warn);
+}
+
+.status-disputed {
+  color: var(--error);
+}
+
+.claim-meta,
+.claim-note {
+  margin: 0;
+  font-size: 11px;
+}
+
+.claim-text {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.claim-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.claim-sources li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.claim-source-name {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.claim-source-detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.source-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.source-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--muted);
+}
+
+.source-form-value {
+  flex: 1;
+  min-width: 200px;
+}
+
+.sources-research {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.sources-research .section-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+}

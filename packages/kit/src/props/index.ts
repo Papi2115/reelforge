@@ -1,4 +1,6 @@
-/** Props of the kit (PLAN.md#3.3, batches A and B), in catalog order. */
+/** Props of the kit (PLAN.md#3.3, batches A and B; asset props PLAN.md#12.11), in catalog order. */
+import { photoFrame, polaroid } from '../assets/frames.js';
+import { assetScreen, billboard } from '../assets/screens.js';
 import type { KitDefinition } from '../registry.js';
 import { calculator } from './calculator.js';
 import { character } from './character.js';
@@ -18,6 +20,7 @@ import { server } from './server.js';
 import { truck } from './truck.js';
 import { cash, suitcase } from './valuables.js';
 import { car, van } from './vehicles.js';
+import { veiledProp } from './veil.js';
 
 export const PROP_DEFINITIONS = [
   calculator,
@@ -48,6 +51,11 @@ export const PROP_DEFINITIONS = [
   tower,
   house,
   drone,
+  photoFrame,
+  polaroid,
+  billboard,
+  assetScreen,
+  veiledProp,
 ] as const satisfies readonly KitDefinition[];
 
 export type { PixelScreen } from './screen.js';

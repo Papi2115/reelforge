@@ -19,12 +19,12 @@ import { FfmpegManager, runProcess } from '@reelforge/pipeline';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 import { toneWav } from './support/player-probes.js';
 import { logFile } from '../src/main/app-paths.js';
@@ -170,9 +170,7 @@ beforeAll(async () => {
   await page.getByRole('region', { name: 'Start' }).waitFor();
   await stubFolderPicker(app, projectDir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  await waitForProjectPreview(page);
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const env = await app.evaluate(
       (_electron, name) =>
