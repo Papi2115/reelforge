@@ -72,7 +72,7 @@ sibling of the ten. The ten cast members are presets of exactly this format
   "id": "firefighter",
   "label": "Firefighter",
   "description": "helmet with a shield, turnout coat with reflective bands, air tank, axe",
-  "skin": "tan",
+  "skin": "peach",
   "hair": { "style": "cropped", "color": "darkSlate" },
   "headgear": { "id": "fireHelmet", "color": "burntOrange", "trim": "lightOrange" },
   "top": { "color": "tan" },

@@ -1,6 +1,6 @@
 ---
 id: storyboard
-version: 11
+version: 12
 model: sonnet
 tools: [Read, Write, Glob, Grep, Bash(reelforge *)]
 output: storyboard.json
@@ -70,7 +70,7 @@ Density, variety and restraint: aim for about one mark every 5–10 s wherever t
 {{/castPack}}{{#mascotId}}Mascot ({{mascotName}}, `{{mascotId}}`, chosen by the user for this channel; {{mascotPersonality}}): give it a little screen time where it helps the viewer follow, never where the story needs a person.
 - Sparse and recurring: about one appearance every 40–70 s, spread over the film (beginning, middle, end); never two mascot shots less than 12 s apart, never in more than 30% of the shots, not in the first 3 s unless that shot is the title/hook card. At tension peaks it reacts (surprise, alarm, a shrug) rather than explains.
 - Impersonal roles only: `pointer` (points at a chart, a map, an object), `demonstrator` (presses a button, pulls a lever, shows how a thing works), `carrier` (carries, places or hands over an object), `reactor` (reacts to a fact: surprise, a shrug, joy), `viewer` (stands in for "you", the viewer), `sign-holder` (holds up a sign or a number).
-- NEVER a person whose identity matters: not a doctor, nurse, patient, scientist, researcher, engineer, teacher, historian, lawyer, judge, soldier, police officer, witness, criminal, victim, CEO, president, minister, king, nor any named or real person or anyone quoted. Those are people{{#castPack}} from the cast (or `newRoles`){{/castPack}}; the mascot may stand beside them and react. A shot whose narration names such a person or quotes someone is not a mascot shot.
+- NEVER a person whose identity matters: not a doctor, nurse, patient, scientist, researcher, engineer, teacher, historian, lawyer, judge, soldier, police officer, witness, criminal, victim, CEO, president, minister, king, nor any named or real person or anyone quoted. Those are people{{#castPack}} from the cast (or `newRoles`){{/castPack}}; the mascot does not appear in shots about them. A shot whose narration names such a person or quotes someone is not a mascot shot.
 - Mark every mascot shot with `"mascot": { "role": "pointer", "action": "points at the 2007 bar of the chart" }` (`action` ≤ 120 characters) and keep its `intent` about the content (the mascot helps, it is not the subject). Shots without the field never show the mascot.
 {{/mascotId}}
 Then run `reelforge validate` and fix any error. Reply with shot count, treatment mix, annotation mix and missing props.
