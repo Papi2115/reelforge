@@ -117,6 +117,17 @@ describe('look rhythm rules', () => {
     expect(rhythm([{ ...same, length: 9 }, B], TWO_LOOKS)).toEqual([]);
   });
 
+  it('tells the repair turn to change the picture and keep a continuing visual in one look', () => {
+    // Real run v2.0: the repair moved the second half of one growing chart to another look.
+    const same = { ...A, treatment: 'map' } as const;
+    const [run] = checkStoryboard(
+      { version: 1, shots: shots([{ ...same, length: 5 }, { ...same, length: 4 }, B]) },
+      TWO_LOOKS,
+    ).filter((entry) => entry.code === 'pattern-run');
+    expect(run?.message).toContain('not a new label on the same one');
+    expect(run?.message).toContain('keep its look: merge them into one shot');
+  });
+
   it('warns when an act change (non-cut transition) is not a C-roll', () => {
     const wipe: Transition = { type: 'wipe', duration: 0.3 };
     expect(rhythm([A, { ...A, transitionIn: wipe }, B], TWO_LOOKS)).toEqual([

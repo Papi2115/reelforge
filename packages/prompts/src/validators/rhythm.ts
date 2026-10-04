@@ -132,7 +132,7 @@ function patternIssues(shots: readonly StoryboardShot[], maxS: number): Validati
         issue(
           'error',
           'pattern-run',
-          `${first.id}…${shot.id} keep one pattern (${patternKey(shot).replaceAll('|', ' / ')}) for ${length.toFixed(2)} s; change roll, look or treatment at least every ${String(maxS)} s`,
+          `${first.id}…${shot.id} keep one pattern (${patternKey(shot).replaceAll('|', ' / ')}) for ${length.toFixed(2)} s; change what the viewer sees at least every ${String(maxS)} s (another look or treatment that really changes the picture, not a new label on the same one). If these shots continue one visual (one chart, counter or place), keep its look: merge them into one shot or put a different shot between them`,
           where(index, 'treatment'),
         ),
       );

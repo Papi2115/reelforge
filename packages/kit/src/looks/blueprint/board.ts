@@ -37,7 +37,11 @@ export const boardParams = {
     .boolean()
     .default(true)
     .describe('Draw the blueprint sheet (grid, border, rulers); false = transparent overlay'),
-  title: z.string().max(40).default('').describe('Heading lettered top left, e.g. "FIG. 2 SALES"'),
+  title: z
+    .string()
+    .max(40)
+    .default('')
+    .describe('Heading lettered top left, e.g. "SALES 1998-2000" (no figure numbers)'),
   titleBlock: titleBlockParam,
   drift: z
     .tuple([z.number(), z.number()])
