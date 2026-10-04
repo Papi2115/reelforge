@@ -75,6 +75,40 @@ export function sanitizeText(input: unknown, maxLength: number): string {
   return `${text.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
+export const UNKNOWN_AUTHOR = 'Unknown author';
+
+/** "Unknown author", "author not provided", "anonymous", "n/a"…: no real name. */
+const NO_AUTHOR =
+  /^(?:unknown|anonymous|anon\.?|none|n\/?a|no author)$|\bunknown\s+(?:author|artist|photographer|creator)\b|\bnot\s+provided\b|^unknown\b/i;
+/** Wiki user-signature links: "smial (talk)", "(contribs)". */
+const SIGNATURE_LINKS = /\(\s*(?:talk|contribs?)\s*\)/gi;
+/** A phrase (≥ 3 characters) repeated right after itself: "NASA NASA", "J. Doe, J. Doe". */
+const REPEATED_PHRASE = /(^|[\s,;])([^\s,;].{2,}?)(?:[\s,;]+\2)+(?=$|[\s,;])/gi;
+
+/**
+ * An author/credit name from a source adapter or a stored record: sanitized like sanitizeText,
+ * wiki signature links and immediately repeated phrases removed (Commons gives "Unknown author
+ * Unknown author or not provided"), and empty or "unknown"-like values mapped to `fallback`.
+ */
+export function cleanAuthor(input: unknown, fallback: string = UNKNOWN_AUTHOR): string {
+  let text = sanitizeText(input, TEXT_LIMITS.author * 2)
+    .replace(SIGNATURE_LINKS, ' ')
+    .replace(/\(\s*\)/g, ' ')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')');
+  for (let pass = 0; pass < 3; pass += 1) {
+    const deduped = text.replace(REPEATED_PHRASE, '$1$2');
+    if (deduped === text) break;
+    text = deduped;
+  }
+  text = text
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s,;:-]+|[\s,;:-]+$/g, '')
+    .trim();
+  if (text === '' || NO_AUTHOR.test(text)) return fallback;
+  return sanitizeText(text, TEXT_LIMITS.author);
+}
+
 /** An absolute http(s) URL as text (no credentials, no whitespace), or null. */
 export function sanitizeUrl(input: unknown): string | null {
   if (typeof input !== 'string' || input.length > TEXT_LIMITS.url) return null;

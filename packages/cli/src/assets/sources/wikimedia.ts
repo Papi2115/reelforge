@@ -6,7 +6,7 @@
 import type { AssetCandidate, AssetKind } from '@reelforge/shared';
 import { z } from 'zod';
 import { ASSET_LIMITS, maxBytesFor } from '../limits.js';
-import { sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
+import { cleanAuthor, sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
 import { licenceFrom } from './licences.js';
 import {
   buildUrl,
@@ -76,7 +76,7 @@ function toItem(page: Page): SourceItem | undefined {
     id: String(page.pageid),
     kind,
     title: title === '' ? sanitizeText(fallbackTitle, TEXT_LIMITS.title) : title,
-    author: sanitizeText(meta?.Artist?.value, TEXT_LIMITS.author) || 'unknown',
+    author: cleanAuthor(meta?.Artist?.value),
     licence: licenceFrom(meta?.LicenseShortName?.value, meta?.LicenseUrl?.value),
     sourceUrl:
       sanitizeUrl(info.descriptionurl) ??

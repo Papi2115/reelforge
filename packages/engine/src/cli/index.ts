@@ -32,9 +32,22 @@ export {
   sha256,
   SWIFTSHADER_ARGS,
   type HarnessBrowser,
+  type HarnessBrowserOptions,
   type HarnessPage,
   type OpenPageOptions,
 } from './harness-session.js';
+export {
+  DEFAULT_COLD_REQUEST_TIMEOUT_MS,
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  guardHarnessPage,
+  HarnessTimeoutError,
+  isHarnessTimeout,
+  resolveHarnessTimeouts,
+  retryOnHarnessTimeout,
+  type HarnessTimeoutReason,
+  type HarnessTimeouts,
+  type RetriedRender,
+} from './harness-timeouts.js';
 export { processIo, type CliIo } from './io.js';
 export { decodePng, encodePng, type RgbaImage } from './png.js';
 export { runRenderFramesCli } from './render-frames.js';

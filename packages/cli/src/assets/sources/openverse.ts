@@ -6,7 +6,7 @@
 import type { AssetCandidate } from '@reelforge/shared';
 import { z } from 'zod';
 import { ASSET_LIMITS } from '../limits.js';
-import { sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
+import { cleanAuthor, sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
 import { creativeCommonsLicence } from './licences.js';
 import {
   buildUrl,
@@ -53,7 +53,7 @@ function toItem(image: Image): SourceItem | undefined {
     id: image.id,
     kind: 'image',
     title: sanitizeText(image.title, TEXT_LIMITS.title) || 'untitled',
-    author: sanitizeText(image.creator, TEXT_LIMITS.author) || 'unknown',
+    author: cleanAuthor(image.creator),
     licence: creativeCommonsLicence(image.license, image.license_version, image.license_url),
     sourceUrl: sanitizeUrl(image.foreign_landing_url) ?? `https://openverse.org/image/${image.id}`,
     thumbnailUrl: sanitizeUrl(image.thumbnail),

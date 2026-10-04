@@ -16,7 +16,7 @@ import { readProjectText } from '../files.js';
 import { FILES } from '../paths.js';
 import { render } from '../stages/repair.js';
 import type { ReviewMode, StageError } from '../types.js';
-import { cardFindings, formatFinding, lintFindings } from './checks.js';
+import { cardFindings, formatFinding, lintFindings, renderTimeoutFinding } from './checks.js';
 import { programmaticCritique } from './critic.js';
 import type { SceneJob } from './job.js';
 import { REVIEW_QUEUE } from './queue.js';
@@ -85,6 +85,11 @@ async function lookAtShots(
     if (!rendered.ok) return rendered;
     const shotRender = rendered.value;
     rows.push({ shotId: shot.id, times, render: shotRender });
+    if (!shotRender.ok && shotRender.timedOut === true) {
+      // Not a suspect: a fix turn cannot repair a stuck renderer (warning only).
+      findings.push(`${shot.id}: ${formatFinding(renderTimeoutFinding(shotRender.error))}`);
+      continue;
+    }
     const code: QaFinding[] = shotRender.ok ? [...lint, ...programmaticCritique(shotRender)] : lint;
     const reasons = shotRender.ok ? code.map(formatFinding) : [`fails: ${shotRender.error}`];
     if (reasons.length > 0) {

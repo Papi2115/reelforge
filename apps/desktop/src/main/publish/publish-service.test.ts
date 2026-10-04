@@ -64,7 +64,7 @@ function service(current: () => string | undefined = () => dir): PublishService 
   });
 }
 
-/** The example storyboard stretched 10x (5 min: valid YouTube chapters). */
+/** The example storyboard and its timed words stretched 10x (5 min: valid YouTube chapters). */
 async function stretch(): Promise<void> {
   const file = path.join(dir, 'storyboard.json');
   const storyboard = JSON.parse(await readFile(file, 'utf8')) as {
@@ -75,6 +75,15 @@ async function stretch(): Promise<void> {
     shot.t1 *= 10;
   }
   await writeFile(file, JSON.stringify(storyboard));
+  const wordsFile = path.join(dir, 'timing', 'words.json');
+  const words = JSON.parse(await readFile(wordsFile, 'utf8')) as {
+    words: { t: number; tEnd: number }[];
+  };
+  for (const word of words.words) {
+    word.t *= 10;
+    word.tEnd *= 10;
+  }
+  await writeFile(wordsFile, JSON.stringify(words));
 }
 
 async function addAssets(): Promise<void> {
@@ -144,7 +153,8 @@ describe('PublishService', () => {
     expect(credits).toMatch(/^!!! WARNING: 1 asset has an UNVERIFIED licence: "TI-84 photo"\./);
     expect(credits).toContain('"Calculator on a desk" by NASA');
     expect(credits).not.toContain('Not in any scene');
-    expect(kit.files[0]?.text).toContain('0:49 A school calculator');
+    // Chapter titles from the narration at each chapter start (timing/words.json).
+    expect(kit.files[0]?.text).toContain('0:49 School Calculator');
   });
 
   it('saves the four files under publish/ and commits them; opens the folder', async () => {
@@ -157,7 +167,7 @@ describe('PublishService', () => {
     });
     expect(commits).toEqual(['Save the publish kit']);
     const chapters = await readFile(path.join(dir, 'publish', 'chapters.txt'), 'utf8');
-    expect(chapters.split('\n')[0]).toBe('0:00 Doom runs on almost anything');
+    expect(chapters.split('\n')[0]).toBe('0:00 Doom Runs');
     expect(await service().openFolder()).toEqual({ status: 'opened' });
     expect(opened).toEqual([path.join(dir, 'publish')]);
   });

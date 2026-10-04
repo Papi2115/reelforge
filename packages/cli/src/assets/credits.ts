@@ -7,11 +7,11 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import type { AssetRecord } from '@reelforge/shared';
 import { PROJECT_PATHS, projectPath } from '../project/paths.js';
-import { sanitizeText, sanitizeUrl, TEXT_LIMITS } from './untrusted.js';
+import { cleanAuthor, sanitizeText, sanitizeUrl, TEXT_LIMITS } from './untrusted.js';
 
 function creditLine(record: AssetRecord): string {
   const title = sanitizeText(record.title, TEXT_LIMITS.title) || record.id;
-  const author = sanitizeText(record.author, TEXT_LIMITS.author) || 'unknown';
+  const author = cleanAuthor(record.author);
   const licenceUrl = record.licence.url === null ? null : sanitizeUrl(record.licence.url);
   const licence = record.licence.verified
     ? `${sanitizeText(record.licence.id, TEXT_LIMITS.licence)}${licenceUrl === null ? '' : ` (${licenceUrl})`}`

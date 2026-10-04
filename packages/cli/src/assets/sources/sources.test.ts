@@ -54,6 +54,8 @@ describe('Wikimedia Commons', () => {
       width: 2704,
       height: 4056,
     });
+    // Artist markup 'smial (talk)': the signature link is dropped.
+    expect(found[1]?.author).toBe('smial');
     for (const candidate of found) expect(assetCandidateSchema.parse(candidate)).toEqual(candidate);
   });
 

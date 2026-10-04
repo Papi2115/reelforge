@@ -8,7 +8,15 @@ import {
   MixQaReportSchema,
   MixReportSchema,
 } from '@reelforge/pipeline';
+import {
+  BEAT_SYNC_REPORT_FILE,
+  beatSyncReportSchema,
+  storyboardFileSchema,
+  wordsFileSchema,
+} from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { GridTimes } from './beat-sync/grid.js';
+import { gridForFilm } from './beat-sync/stage.js';
 import { StageRunner } from './runner.js';
 import { DEFAULT_STAGE_SETTINGS, type StageSettings } from './settings.js';
 import { FakeAudioTools } from './testing/fake-audio.js';
@@ -193,6 +201,52 @@ describe('sound cues stage', { timeout: 60_000 }, () => {
     const { runner } = await setup('cues offline', CUE_INPUTS);
     const result = await runner.run({ stage: 'sound-cues' });
     expect(result.ok && result.value.warnings).toContain('Claude is not connected: default cues');
+  });
+
+  it("beat sync on: snaps Claude's whoosh peak onto a beat and counts it in the report", async () => {
+    const shots = storyboardFileSchema.parse(JSON.parse(goldenFile('storyboard.json'))).shots;
+    const words = wordsFileSchema.parse(JSON.parse(goldenFile('timing/words.json'))).words;
+    const cuts = shots.slice(1).map((shot) => shot.t0);
+    const grid = gridForFilm({ shots, words, styleId: 'voxel-pixel-crisp640' });
+    const times = new GridTimes(grid);
+    // A beat with room around it: no cut near, inside a shot, nearest grid time to 80 ms after.
+    const beat = grid.beats.find(
+      (t) =>
+        t > 3 &&
+        !cuts.some((cut) => cut > t - 1 && cut < t + 0.5) &&
+        times.nearest(t + 0.08, 0.12) === t,
+    );
+    if (beat === undefined) throw new Error('no free beat in the golden film');
+    const late = Math.round((beat - 0.25 + 0.08) * 1000) / 1000;
+    const cues = JSON.parse(goldenFile('cues.json')) as { sfx: Record<string, unknown>[] };
+    cues.sfx = [
+      ...cues.sfx.filter((cue) => Math.abs(Number(cue['t']) - late) > 1),
+      { t: late, name: 'whoosh', gainDb: -10, pan: 0 },
+    ].sort((a, b) => Number(a['t']) - Number(b['t']));
+    const { dir, runner } = await setup('cues beat sync', CUE_INPUTS, {
+      steps: [writes({ 'cues.json': JSON.stringify(cues, null, 2) })],
+    });
+    const project = JSON.parse(readProject(dir, 'project.json')) as Record<string, unknown>;
+    writeProject(dir, 'project.json', JSON.stringify({ ...project, beatSync: 'auto' }, null, 2));
+    const result = await runner.run({ stage: 'sound-cues' });
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+    const written = CuesFileSchema.parse(JSON.parse(readProject(dir, 'cues.json')));
+    const snapped = written.sfx.find(
+      (cue) => cue.name === 'whoosh' && Math.abs(cue.t - late) < 0.2,
+    );
+    expect(snapped?.t).toBe(Math.round((beat - 0.25) * 1000) / 1000);
+    const report = beatSyncReportSchema.parse(JSON.parse(readProject(dir, BEAT_SYNC_REPORT_FILE)));
+    expect(report.cues?.whooshes).toBeGreaterThanOrEqual(1);
+    expect(report.cues?.snapped).toBeGreaterThanOrEqual(report.cues?.whooshes ?? 0);
+  });
+
+  it("beat sync off: Claude's cues stay byte for byte (no whoosh snapping)", async () => {
+    const { dir, runner } = await setup('cues beat sync off', CUE_INPUTS, {
+      steps: [writes({ 'cues.json': goldenFile('cues.json') })],
+    });
+    expect((await runner.run({ stage: 'sound-cues' })).ok).toBe(true);
+    expect(readProject(dir, 'cues.json')).toBe(goldenFile('cues.json'));
+    expect(existsSync(path.join(dir, ...BEAT_SYNC_REPORT_FILE.split('/')))).toBe(false);
   });
 });
 

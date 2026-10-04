@@ -215,6 +215,31 @@ describe('scenes stage', { timeout: 120_000 }, () => {
     ]);
   });
 
+  it('a shot whose render timed out ends ⚠ without fix turns (the stage does not hang)', async () => {
+    const { dir, harness, runner } = await setup('render timeout', {
+      count: 1,
+      concurrency: 1,
+      script: ([shot]) => ({
+        version: 1,
+        rules: shot === undefined ? [] : [buildRule(shot, sceneSource(shot, 'renderer-timeout'))],
+      }),
+    });
+    const result = await runner.run({ stage: 'scenes' });
+    expect(result.ok && result.value.message).toBe('1 shots: 1 ⚠');
+    expect(harness.specs.map((spec) => spec.stage)).toEqual(['scene-build']);
+    const record = report(dir).get('s01');
+    expect(record).toMatchObject({ status: 'warning', fixIterations: 0 });
+    expect(record?.findings).toHaveLength(1);
+    expect(record?.findings[0]).toMatchObject({
+      source: 'runtime',
+      severity: 'warning',
+      fatal: false,
+    });
+    expect(record?.findings[0]?.message).toContain(
+      'the shot was not checked: the frame renderer did not answer',
+    );
+  });
+
   it('builds the shot again when the missing prop was added to the kit', async () => {
     const decisions: string[][] = [];
     const { dir, harness, runner } = await setup('kit extension', {

@@ -3,7 +3,7 @@
  * does not have (PLAN.md#7.4, "missing prop"), and text too small to read on a phone (PLAN.md#7.6:
  * glyph scale ≥ 2 and ≥ N px high at 640 wide). Text sizes are read from the literal options of
  * the `ctx.text` calls and of the `ctx.annotate` calls with labels (PLAN.md#11.8); computed scales
- * are not judged.
+ * are not judged. Also photos embedded as thumbnails (polaroid/photoFrame below 96x72 px).
  */
 import { parse, type AnyNode, type CallExpression, type ObjectExpression } from 'acorn';
 import { DISPLAY_FONT, MONO_FONT } from '@reelforge/engine';
@@ -217,5 +217,73 @@ export function legibilityFindings(
       );
     }
   }
+  return findings;
+}
+
+/** Smallest readable embedded photo at 640x360 (real run 2.3: a 48-px polaroid in a wide shot). */
+export const MIN_ASSET_PX: readonly [number, number] = [96, 72];
+/** Picture size of the photo props when `pixels` is omitted (kit assets/frames.ts). */
+const PHOTO_PROPS: Readonly<Record<string, { readonly pixels: number; readonly square: boolean }>> =
+  {
+    polaroid: { pixels: 48, square: true },
+    photoFrame: { pixels: 64, square: false },
+  };
+/** Height of a framed photo whose aspect the source cannot tell (4:3 landscape). */
+const UNKNOWN_ASPECT = 3 / 4;
+
+function photoPropName(call: CallExpression): string | undefined {
+  const callee = call.callee;
+  if (callee.type === 'Identifier') return callee.name in PHOTO_PROPS ? callee.name : undefined;
+  if (callee.type !== 'MemberExpression' || callee.computed) return undefined;
+  if (callee.property.type !== 'Identifier' || !(callee.property.name in PHOTO_PROPS)) {
+    return undefined;
+  }
+  return ownerIs(callee.object, 'props') ? callee.property.name : undefined;
+}
+
+/** A literal number option, its default when omitted, undefined when computed. */
+function literalNumber(options: ObjectExpression, key: string, fallback: number) {
+  const value = optionValue(options, key);
+  if (value === undefined) return fallback;
+  return value.type === 'Literal' && typeof value.value === 'number' ? value.value : undefined;
+}
+
+/**
+ * Photos embedded through `kit.props.polaroid` / `photoFrame` (an `asset` option) whose picture is
+ * smaller than MIN_ASSET_PX (pixels × scale; computed values are not judged): a warning, since
+ * only a camera very close to the prop would make such a picture readable.
+ */
+export function assetSizeFindings(source: string, file: string): QaFinding[] {
+  let program: AnyNode;
+  try {
+    program = parse(source, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+  } catch (error) {
+    if (error instanceof SyntaxError) return [];
+    throw error;
+  }
+  const [minWidth, minHeight] = MIN_ASSET_PX;
+  const findings: QaFinding[] = [];
+  visit(program, (node) => {
+    if (node.type !== 'CallExpression') return;
+    const name = photoPropName(node);
+    const options = node.arguments[0];
+    const prop = name === undefined ? undefined : PHOTO_PROPS[name];
+    if (prop === undefined || options?.type !== 'ObjectExpression') return;
+    if (optionValue(options, 'asset') === undefined) return;
+    const pixels = literalNumber(options, 'pixels', prop.pixels);
+    const scale = literalNumber(options, 'scale', 1);
+    if (pixels === undefined || scale === undefined) return;
+    const width = Math.round(pixels * scale);
+    const height = prop.square ? width : Math.round(width * UNKNOWN_ASPECT);
+    if (width >= minWidth && height >= minHeight) return;
+    const where = `${file}:${String(node.loc?.start.line ?? 1)} kit.props.${name ?? ''}`;
+    findings.push(
+      finding(
+        'legibility',
+        'warning',
+        `${where}: the photo is a ${String(width)}x${String(height)} px picture, below ${String(minWidth)}x${String(minHeight)} px at 640x360 it is an unreadable thumbnail on a phone. Enlarge it (pixels 96-128 or scale, camera close, at least a third of the frame height while the narration names it) or drop it.`,
+      ),
+    );
+  });
   return findings;
 }

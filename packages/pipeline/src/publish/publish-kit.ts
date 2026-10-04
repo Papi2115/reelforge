@@ -10,6 +10,7 @@ import {
   YOUTUBE_DESCRIPTION_MAX,
   YOUTUBE_TAGS_TOTAL_MAX,
   type StoryboardShot,
+  type TimedWord,
   type YoutubeMetaFile,
 } from '@reelforge/shared';
 import { buildChaptersTxt, type Chapter } from '../export/chapters.js';
@@ -49,6 +50,8 @@ export interface PublishKitInput {
   /** Tags when there is no metadata (script keywords). */
   readonly fallbackTags: readonly string[];
   readonly credits: PublishCredits;
+  /** `timing/words.json` words: chapter titles from the narration (absent: from shot intents). */
+  readonly words?: readonly TimedWord[];
 }
 
 export interface PublishKit {
@@ -107,7 +110,9 @@ function hashtag(tag: string): string {
 }
 
 /** Chapters of the storyboard (and their chapters.txt), or why there are none. */
-export function publishChapters(input: Pick<PublishKitInput, 'shots' | 'durationS' | 'meta'>): {
+export function publishChapters(
+  input: Pick<PublishKitInput, 'shots' | 'durationS' | 'meta' | 'words'>,
+): {
   chapters: Chapter[];
   text: string | null;
   problem: string | null;
@@ -118,7 +123,7 @@ export function publishChapters(input: Pick<PublishKitInput, 'shots' | 'duration
     input.meta?.source === 'claude'
       ? chapterLinesOf(input.meta.description)
       : new Map<number, string>();
-  const chapters = titleChapters(input.shots, starts.starts, suggested);
+  const chapters = titleChapters(input.shots, starts.starts, suggested, input.words ?? []);
   const built = buildChaptersTxt(chapters, input.durationS);
   return built.ok
     ? { chapters, text: built.value, problem: null }

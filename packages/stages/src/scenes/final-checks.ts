@@ -10,13 +10,13 @@ import type { QaFinding, ShotSync, StoryboardShot } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
-import { consoleFindings, finding, lintFindings } from './checks.js';
+import { consoleFindings, finding, lintFindings, renderTimeoutFinding } from './checks.js';
 import { programmaticCritique } from './critic.js';
 import type { SceneJob } from './job.js';
 import { renderShot } from './render.js';
 import { reviewTimes } from './review.js';
 import type { SheetShot } from './sheet.js';
-import { legibilityFindings } from './source-checks.js';
+import { assetSizeFindings, legibilityFindings } from './source-checks.js';
 import { syncFindings } from './sync.js';
 
 export interface CheckedShot {
@@ -71,6 +71,9 @@ export async function checkShot(
   if (!rendered.ok) return rendered;
   const render = rendered.value;
   const row: SheetShot = { shotId: shot.id, times, render };
+  if (!render.ok && render.timedOut === true) {
+    return ok({ findings: [...lint, renderTimeoutFinding(render.error)], row });
+  }
   if (!render.ok) {
     const failure = finding('runtime', 'error', `the scene fails: ${render.error}`, {
       fatal: true,
@@ -82,6 +85,7 @@ export async function checkShot(
       ...lint,
       ...programmaticCritique(render),
       ...legibilityCheck(job, shot, render.width)(source),
+      ...assetSizeFindings(source, shot.scene),
       ...(sync === undefined ? [] : syncFindings(sync.events, shot)),
     ],
     row,

@@ -25,7 +25,7 @@ import { deadlineFor, maxBytesFor } from './limits.js';
 import { readResearchSettings, sourceHttp, type AssetRuntime } from './runtime.js';
 import { unverifiedLicence } from './sources/licences.js';
 import { addToCatalogue, ASSET_PATHS, isApproved, readCatalogue } from './store.js';
-import { sanitizeText, sanitizeUrl, TEXT_LIMITS } from './untrusted.js';
+import { sanitizeText, sanitizeUrl, TEXT_LIMITS, UNKNOWN_AUTHOR } from './untrusted.js';
 
 const ID_PREFIX: Readonly<Record<AssetSourceId | 'web', string>> = {
   wikimedia: 'wm',
@@ -220,7 +220,7 @@ async function fetchFromUrl(
       sourceUrl: url,
       downloadUrl: sanitizeUrl(stored.finalUrl) ?? url,
       title: sanitizeText(lastSegment, TEXT_LIMITS.title) || new URL(url).hostname,
-      author: 'unknown',
+      author: UNKNOWN_AUTHOR,
       licence: unverifiedLicence(),
       mode: settings.mode,
       approved: false,

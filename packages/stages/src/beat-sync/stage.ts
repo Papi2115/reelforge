@@ -153,13 +153,21 @@ export async function writeBeatSyncReport(
   return writeProjectJson(projectDir, BEAT_SYNC_REPORT_FILE, beatSyncReportSchema, report);
 }
 
+/** Cues the sound stage moved onto the grid. */
+export interface SnappedCues {
+  /** The sound director's hits / risers (default design). */
+  readonly director: number;
+  /** Whooshes of the final cue list (scene accents, Claude's cues). */
+  readonly whooshes: number;
+}
+
 /** Sound stage: the report over the final cues (keeps the storyboard's nudge statistics). */
 export async function reportSoundSync(
   projectDir: string,
   grid: BeatsFile,
   shots: readonly StoryboardShot[],
   cues: readonly SfxCueLike[],
-  snappedCues: number,
+  snapped: SnappedCues,
 ): Promise<Result<BeatSyncReport, StageError>> {
   const previous = await readJson(projectDir, BEAT_SYNC_REPORT_FILE, beatSyncReportSchema);
   const times = new GridTimes(grid);
@@ -169,7 +177,7 @@ export async function reportSoundSync(
       cuts: cutStats(shots, times),
       nudges: previous?.nudges,
       whooshes: whooshStats(cues, shots, times),
-      cues: { snapped: snappedCues },
+      cues: { snapped: snapped.director + snapped.whooshes, whooshes: snapped.whooshes },
     }),
   );
 }

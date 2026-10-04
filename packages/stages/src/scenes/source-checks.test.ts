@@ -1,6 +1,11 @@
 /** Static scene checks: unknown kit names, phone legibility of text calls. */
 import { describe, expect, it } from 'vitest';
-import { findTextCalls, legibilityFindings, unknownKitNames } from './source-checks.js';
+import {
+  assetSizeFindings,
+  findTextCalls,
+  legibilityFindings,
+  unknownKitNames,
+} from './source-checks.js';
 import { kitNamesFromCatalog } from './tools.js';
 
 const SOURCE = `export const meta = { id: 's01' };
@@ -116,5 +121,37 @@ describe('legibility', () => {
       'scenes/s02.js:4 ctx.annotate.badge',
     ]);
     expect(findings[1]?.message).toContain('Make the badge bigger');
+  });
+});
+
+describe('assetSizeFindings', () => {
+  const PHOTOS = `export function build(ctx) {
+  const photo = ctx.assets.image('wm-41545');
+  const thumb = ctx.kit.props.polaroid({ asset: photo });
+  const big = ctx.kit.props.polaroid({ asset: photo, pixels: 112 });
+  const scaled = ctx.kit.props.photoFrame({ asset: photo, pixels: 64, scale: 2 });
+  const wall = ctx.kit.props.photoFrame({ asset: photo });
+  const computed = ctx.kit.props.polaroid({ asset: photo, pixels: 40 + 60 });
+  const placeholder = ctx.kit.props.polaroid({ caption: 'NO PHOTO' });
+  const { photoFrame } = ctx.kit.props;
+  const narrow = photoFrame({ asset: photo, pixels: 120 });
+  return { thumb, big, scaled, wall, computed, placeholder, narrow };
+}`;
+
+  it('flags embedded photos below 96x72 px (pixels x scale, prop defaults) as warnings', () => {
+    const findings = assetSizeFindings(PHOTOS, 'scenes/s06.js');
+    expect(findings.map((entry) => entry.message.split(':').slice(0, 2).join(':'))).toEqual([
+      'scenes/s06.js:3 kit.props.polaroid',
+      'scenes/s06.js:6 kit.props.photoFrame',
+    ]);
+    expect(findings[0]).toMatchObject({ source: 'legibility', severity: 'warning', fatal: false });
+    expect(findings[0]?.message).toContain('48x48 px picture, below 96x72 px');
+    expect(findings[1]?.message).toContain('64x48 px picture');
+    expect(findings[0]?.message).toMatch(/Enlarge it .* or drop it\.$/);
+  });
+
+  it('ignores sources that do not parse and scenes without photos', () => {
+    expect(assetSizeFindings('export function build(', 'x.js')).toEqual([]);
+    expect(assetSizeFindings(SOURCE, 'x.js')).toEqual([]);
   });
 });

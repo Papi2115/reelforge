@@ -10,19 +10,9 @@ import {
   type StoryboardShot,
 } from '@reelforge/shared';
 import type { GridTimes } from './grid.js';
-import { GRID_FRAME_S, MAX_CUE_SNAP_S, type CutSnapResult } from './snap.js';
+import { GRID_FRAME_S, isWhoosh, MAX_CUE_SNAP_S, whooshPeak, type CutSnapResult } from './snap.js';
 
-/** Sounds that sweep into their peak (the whooshes of the report). */
-export const WHOOSH_RECIPES: ReadonlySet<string> = new Set([
-  'whoosh',
-  'swoosh-in',
-  'swoosh-out',
-  'whoosh-impact',
-]);
-/** A whoosh whose sweep starts this long before a cut peaks on that cut. */
-const WHOOSH_LEAD_MAX_S = 0.35;
-/** Peak of a whoosh with no cut ahead (the rule table's lead). */
-const DEFAULT_WHOOSH_LEAD_S = 0.25;
+export { WHOOSH_RECIPES } from './snap.js';
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
 const round4 = (value: number): number => Math.round(value * 10_000) / 10_000;
@@ -49,12 +39,10 @@ export function whooshStats(
   grid: GridTimes,
 ): NonNullable<BeatSyncReport['whooshes']> {
   const cuts = shots.slice(1).map((shot) => shot.t0);
-  const whooshes = cues.filter((cue) => cue.name !== undefined && WHOOSH_RECIPES.has(cue.name));
-  const inWindow = whooshes.filter((cue) => {
-    const cut = cuts.find((t) => t >= cue.t - 1e-6 && t <= cue.t + WHOOSH_LEAD_MAX_S);
-    const peak = cut ?? cue.t + DEFAULT_WHOOSH_LEAD_S;
-    return grid.nearest(peak, MAX_CUE_SNAP_S) !== undefined;
-  }).length;
+  const whooshes = cues.filter(isWhoosh);
+  const inWindow = whooshes.filter(
+    (cue) => grid.nearest(whooshPeak(cue.t, cuts).peak, MAX_CUE_SNAP_S) !== undefined,
+  ).length;
   return {
     total: whooshes.length,
     inWindow,

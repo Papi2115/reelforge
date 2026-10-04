@@ -2,7 +2,8 @@
  * Test support (not used by the app): a RenderTarget without Electron. Frames encode the time
  * (pixel 0 = round(t * 30)), scene sources steer failures: `FAIL_LOAD` -> engine error with a
  * console error, `CRASH` -> the renderer dies, `OVERLAP` -> one card diagnostic, `FAIL_FRAME` -> an
- * engine error (update() threw) for frames at t >= 3.
+ * engine error (update() threw) for frames at t >= 3, `TIMEOUT` -> the load times out in the first
+ * window (`timeoutWindows` of fakeTargets: how many windows time out) and the window dies.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import type { CardDiagnostic, LoadInfo } from '@reelforge/engine';
@@ -28,6 +29,9 @@ export class FakeRenderTarget implements RenderTarget {
   private dead = false;
   closed = 0;
 
+  /** `timesOut`: a TIMEOUT scene times out in this window. */
+  constructor(private readonly timesOut = false) {}
+
   get alive(): boolean {
     return !this.dead;
   }
@@ -39,6 +43,10 @@ export class FakeRenderTarget implements RenderTarget {
     if (sources.includes('CRASH')) {
       this.dead = true;
       return Promise.resolve(err({ kind: 'crashed', message: 'renderer process gone: crashed' }));
+    }
+    if (sources.includes('TIMEOUT') && this.timesOut) {
+      this.dead = true;
+      return Promise.resolve(err({ kind: 'timeout', message: 'load took longer than 120000 ms' }));
     }
     if (sources.includes('FAIL_LOAD')) {
       this.consoleErrors.push('Uncaught TypeError: boom');
@@ -123,12 +131,15 @@ export class FakeRenderTarget implements RenderTarget {
 }
 
 /** An OpenRenderTarget that records every target it opened. */
-export function fakeTargets(): { open: OpenRenderTarget; opened: FakeRenderTarget[] } {
+export function fakeTargets(timeoutWindows = 0): {
+  open: OpenRenderTarget;
+  opened: FakeRenderTarget[];
+} {
   const opened: FakeRenderTarget[] = [];
   return {
     opened,
     open: () => {
-      const target = new FakeRenderTarget();
+      const target = new FakeRenderTarget(opened.length < timeoutWindows);
       opened.push(target);
       return Promise.resolve(ok(target));
     },

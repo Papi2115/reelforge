@@ -99,10 +99,19 @@ export function writeFilm(dir: string, shots: readonly FilmShot[]): void {
 
 /**
  * `clipped`: the title runs off the right frame edge; `late-sfx`: the sfx lands 400 ms after its
- * word; `small-text`: the title at scale 1; `update-throws`: update() throws a TypeError after 1 s.
+ * word; `small-text`: the title at scale 1; `update-throws`: update() throws a TypeError after 1 s;
+ * `renderer-timeout`: a good scene the ScriptedFrameRenderer reports as timed out (stuck renderer).
  */
 export type SceneVariant =
-  'ok' | 'lint' | 'overlap' | 'blank' | 'small-text' | 'clipped' | 'late-sfx' | 'update-throws';
+  | 'ok'
+  | 'lint'
+  | 'overlap'
+  | 'blank'
+  | 'small-text'
+  | 'clipped'
+  | 'late-sfx'
+  | 'update-throws'
+  | 'renderer-timeout';
 
 const COLORS = ['accent1', 'accent2', 'accent3', 'accent4', 'hero'];
 
@@ -110,8 +119,12 @@ const COLORS = ['accent1', 'accent2', 'accent3', 'accent4', 'hero'];
 export function sceneSource(shot: FilmShot, variant: SceneVariant = 'ok'): string {
   const color = COLORS[shot.index % COLORS.length] ?? 'accent1';
   const title = shot.phrase.toUpperCase();
-  const marker =
-    variant === 'blank' ? '// render:blank\n' : variant === 'overlap' ? '// render:overlap\n' : '';
+  const markers: Partial<Record<SceneVariant, string>> = {
+    blank: '// render:blank\n',
+    overlap: '// render:overlap\n',
+    'renderer-timeout': '// render:timeout\n',
+  };
+  const marker = markers[variant] ?? '';
   if (variant === 'blank') {
     return `${marker}export const meta = { id: '${shot.id}', title: 'Empty', treatment: '${shot.treatment}' };
 

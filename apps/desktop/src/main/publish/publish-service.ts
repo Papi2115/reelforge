@@ -25,6 +25,7 @@ import {
 import {
   projectFileSchema,
   storyboardFileSchema,
+  wordsFileSchema,
   youtubeMetaFileSchema,
   type AssetRecord,
 } from '@reelforge/shared';
@@ -129,11 +130,12 @@ export class PublishService {
     if (storyboard.status !== 'ok') {
       return { message: 'The publish kit needs a storyboard: run the Storyboard stage first.' };
     }
-    const [project, meta, script, credits] = await Promise.all([
+    const [project, meta, script, credits, words] = await Promise.all([
       readProjectJson(dir, FILES.project, projectFileSchema),
       readProjectJson(dir, META_FILES.json, youtubeMetaFileSchema),
       readText(path.join(dir, FILES.script)),
       usedCredits(dir),
+      readProjectJson(dir, FILES.words, wordsFileSchema),
     ]);
     const { shots } = storyboard.data;
     const title = project.status === 'ok' ? project.data.title : path.basename(dir);
@@ -146,6 +148,8 @@ export class PublishService {
       meta: metaFile,
       fallbackTags: templateMeta({ title, script, chapters: null }).tags,
       credits,
+      // Chapter titles from the narration at each chapter start (none yet: from shot intents).
+      ...(words.status === 'ok' ? { words: words.data.words } : {}),
     });
     const view: PublishKitView = {
       files: PUBLISH_FILES.map((name) => ({ name, text: kit.files[name] })),

@@ -7,7 +7,7 @@
 import type { AssetCandidate, AssetKind } from '@reelforge/shared';
 import { z } from 'zod';
 import { ASSET_LIMITS, maxBytesFor } from '../limits.js';
-import { sanitizeText, TEXT_LIMITS } from '../untrusted.js';
+import { cleanAuthor, sanitizeText, TEXT_LIMITS } from '../untrusted.js';
 import { publicDomainLicenceFromUrl } from './licences.js';
 import {
   isSafeItemId,
@@ -86,7 +86,7 @@ function toCandidate(doc: Doc, filesBase: string): AssetCandidate | undefined {
     id,
     kind,
     title: sanitizeText(first(doc.title), TEXT_LIMITS.title) || id,
-    author: sanitizeText(first(doc.creator), TEXT_LIMITS.author) || 'unknown',
+    author: cleanAuthor(first(doc.creator)),
     licence: publicDomainLicenceFromUrl(first(doc.licenseurl)),
     sourceUrl: `https://archive.org/details/${id}`,
     thumbnailUrl: `${filesBase}/services/img/${id}`,

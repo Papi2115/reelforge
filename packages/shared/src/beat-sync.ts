@@ -105,8 +105,11 @@ export const beatSyncReportSchema = z.object({
   whooshes: z
     .object({ total: count, inWindow: count, fraction: share, windowS: z.number().positive() })
     .optional(),
-  /** Hits / risers the sound director moved onto the grid. */
-  cues: z.object({ snapped: count }).optional(),
+  /**
+   * Cues moved onto the grid: `snapped` = all of them (the sound director's hits / risers, and the
+   * whooshes); `whooshes` = the whooshes of the final cue list (scene accents, Claude's cues).
+   */
+  cues: z.object({ snapped: count, whooshes: count.optional() }).optional(),
   ok: z.boolean(),
 });
 export type BeatSyncReport = z.infer<typeof beatSyncReportSchema>;

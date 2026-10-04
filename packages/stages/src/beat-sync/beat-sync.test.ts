@@ -14,7 +14,13 @@ import { findAccents } from './accents.js';
 import { cutRegion, deriveBeatGrid, GridTimes, insideWord } from './grid.js';
 import { cutStats, nudgeStats, whooshStats, beatSyncReport } from './report.js';
 import { gridForFilm } from './stage.js';
-import { MAX_CUE_SNAP_S, snapCutsToBeats, snapGestures, SNAP_GESTURE_KINDS } from './snap.js';
+import {
+  MAX_CUE_SNAP_S,
+  snapCutsToBeats,
+  snapGestures,
+  snapWhooshCues,
+  SNAP_GESTURE_KINDS,
+} from './snap.js';
 import { BEAT_SYNC_PAUSE_LEAD_S } from './storyboard-step.js';
 
 const STYLE = 'voxel-pixel-crisp640';
@@ -193,5 +199,46 @@ describe('sound on the grid', () => {
     );
     expect(stats.total).toBe(1);
     expect(stats.inWindow).toBe(onGrid === undefined ? 0 : 1);
+  });
+});
+
+describe('whooshes of the final cues on the grid (scene accents, Claude)', () => {
+  // Beats every second; the report reads a whoosh's peak 0.25 s after its start.
+  const grid = new GridTimes({ beats: [1, 2, 3, 4, 5, 6, 7, 8], accents: [] });
+  const cuts = [6];
+
+  it('moves a whoosh so its peak lands on a beat within 120 ms; other cues stay', () => {
+    const cues = [
+      { id: 'sfx-01', t: 1.85, name: 'whoosh' }, // peak 2.10 -> 2.00
+      { id: 'sfx-02', t: 2.6, name: 'hit' },
+      { id: 'sfx-03', t: 3.5, name: 'swoosh-in' }, // peak 3.75: no beat within 120 ms
+      { id: 'sfx-04', t: 5.8, name: 'whoosh' }, // runs into the cut at 6 s: follows the cut
+      { id: 'sfx-05', t: 6.9, file: 'audio/sfx/x.wav' },
+    ];
+    const result = snapWhooshCues(cues, grid, cuts, []);
+    expect(result.snapped).toBe(1);
+    expect(result.cues.map((cue) => cue.t)).toEqual([1.75, 2.6, 3.5, 5.8, 6.9]);
+    expect(result.cues[0]).toEqual({ id: 'sfx-01', t: 1.75, name: 'whoosh' });
+    expect(result.cues[1]).toBe(cues[1]);
+    // The snapped peak sits exactly on the beat (it was 100 ms off); the report's ±120 ms window
+    // is the snap window, so its count does not change.
+    expect(grid.nearest(1.75 + 0.25, 0.001)).toBe(2);
+    const shots = [{ t0: 0 }, { t0: 6 }];
+    expect(whooshStats(result.cues, shots, grid).inWindow).toBe(
+      whooshStats(cues, shots, grid).inWindow,
+    );
+  });
+
+  it('never moves a cue matched to a scene anchor beyond ±150 ms of it', () => {
+    // Pinned to an anchor at 1.80: 1.75 is 50 ms off (ok); pinned at 1.95: 1.75 would be 200 ms.
+    expect(snapWhooshCues([{ t: 1.85, name: 'whoosh' }], grid, [], [1.8]).snapped).toBe(1);
+    const pinned = snapWhooshCues([{ t: 1.85, name: 'whoosh' }], grid, [], [1.95]);
+    expect(pinned.snapped).toBe(0);
+    expect(pinned.cues[0]?.t).toBe(1.85);
+  });
+
+  it('does not move a whoosh into a cut (it would peak on the cut instead)', () => {
+    const result = snapWhooshCues([{ t: 4.85, name: 'whoosh' }], grid, [5.1], []);
+    expect(result.snapped).toBe(0);
   });
 });

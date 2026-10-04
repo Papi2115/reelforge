@@ -4,9 +4,17 @@
  * app's render service build (`planServiceShot`). Not exported from the package index; the app
  * passes its render service (GPU Electron renderer) behind the same interface.
  * One browser for all renders, a fresh page per render (errors attributed to the right shot).
+ * Every harness request has a timeout; a render that times out is retried once on a fresh
+ * browser, then reported as `timedOut` (QA warns instead of hanging, PLAN real-run v2.3).
  */
 import { describeUnknown, planServiceShot } from '@reelforge/cli/service';
-import { launchHarnessBrowser, type HarnessBrowser } from '@reelforge/engine/cli';
+import {
+  isHarnessTimeout,
+  launchHarnessBrowser,
+  retryOnHarnessTimeout,
+  type HarnessBrowser,
+  type HarnessBrowserOptions,
+} from '@reelforge/engine/cli';
 import {
   renderTarget,
   type FrameRenderer,
@@ -25,11 +33,20 @@ export function cleanEngineError(error: unknown): string {
     .trim();
 }
 
+type PlannedShot = Awaited<ReturnType<typeof planServiceShot>>;
+
+export interface PlaywrightFrameRendererOptions extends HarnessBrowserOptions {
+  /** Test seam: how the harness browser is launched (default: launchHarnessBrowser). */
+  readonly launch?: (options: HarnessBrowserOptions) => Promise<HarnessBrowser>;
+}
+
 export class PlaywrightFrameRenderer implements FrameRenderer {
   private browser: Promise<HarnessBrowser> | undefined;
   /** Renders in progress right now / at most (tests check the scene stage's concurrency). */
   active = 0;
   maxActive = 0;
+
+  constructor(private readonly options: PlaywrightFrameRendererOptions = {}) {}
 
   async renderShot(request: ShotRenderRequest, signal: AbortSignal): Promise<ShotRender> {
     this.active += 1;
@@ -48,13 +65,30 @@ export class PlaywrightFrameRenderer implements FrameRenderer {
   }
 
   private async render(request: ShotRenderRequest, signal: AbortSignal): Promise<ShotRender> {
-    let planned;
+    let planned: PlannedShot;
     try {
       planned = await planServiceShot(renderTarget(request), request.times);
     } catch (error) {
       return { ok: false, error: describeUnknown(error), errors: [] };
     }
-    this.browser ??= launchHarnessBrowser();
+    const retried = await retryOnHarnessTimeout(() => this.renderOnce(planned, request, signal));
+    if (retried.ok) return retried.value;
+    return {
+      ok: false,
+      timedOut: true,
+      error: `${retried.error.message} (retried once on a fresh renderer)`,
+      errors: [],
+    };
+  }
+
+  /** One attempt on a fresh page; a harness timeout rejects (HarnessTimeoutError). */
+  private async renderOnce(
+    planned: PlannedShot,
+    request: ShotRenderRequest,
+    signal: AbortSignal,
+  ): Promise<ShotRender> {
+    const { launch = launchHarnessBrowser, ...harnessOptions } = this.options;
+    this.browser ??= launch(harnessOptions);
     // lint: project props (kit-ext) are checked by the engine like in the app's render windows.
     const page = await (await this.browser).open({ lint: true });
     try {
@@ -62,6 +96,7 @@ export class PlaywrightFrameRenderer implements FrameRenderer {
       try {
         info = await page.load(planned.manifest);
       } catch (error) {
+        if (isHarnessTimeout(error)) throw error;
         return { ok: false, error: cleanEngineError(error), errors: [...page.errors] };
       }
       const frames: RenderedFrame[] = [];
@@ -78,6 +113,7 @@ export class PlaywrightFrameRenderer implements FrameRenderer {
         step = 'checking the text cards';
         cards = request.cards ? await page.checkCards(planned.plan.id) : [];
       } catch (error) {
+        if (isHarnessTimeout(error)) throw error;
         return {
           ok: false,
           error: `${step}: ${cleanEngineError(error)}`,

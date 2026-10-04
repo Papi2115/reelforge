@@ -6,7 +6,7 @@
 import type { AssetCandidate, AssetKind, AssetLicence } from '@reelforge/shared';
 import { z } from 'zod';
 import { ASSET_LIMITS } from '../limits.js';
-import { sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
+import { cleanAuthor, sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
 import { licenceFrom } from './licences.js';
 import {
   buildUrl,
@@ -88,7 +88,7 @@ function toCandidate(raw: unknown): AssetCandidate | undefined {
     id: data.nasa_id,
     kind,
     title: sanitizeText(data.title, TEXT_LIMITS.title) || data.nasa_id,
-    author: sanitizeText(author, TEXT_LIMITS.author) || 'NASA',
+    author: cleanAuthor(author, 'NASA'),
     licence: NASA_LICENCE,
     sourceUrl: `https://images.nasa.gov/details/${encodeURIComponent(data.nasa_id)}`,
     thumbnailUrl: preview === undefined ? null : upgradeNasaUrl(preview.href),

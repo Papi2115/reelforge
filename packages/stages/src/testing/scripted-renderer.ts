@@ -2,9 +2,10 @@
  * Test support: a FrameRenderer double for the scene stage's orchestration tests (limits,
  * resume, concurrency, cancel) without a browser. It reads the scene file and obeys markers:
  * `// render:blank` (uniform frames), `// render:fail` (scene does not load), `// render:overlap`
- * (an overlapping-cards diagnostic); otherwise frames are colourful. A standalone prop turntable
- * reads the prop module instead: `// render:fail` (does not load), `// render:floating` (a part
- * floats), otherwise a good prop. Rendering of real scenes is covered by the Playwright tests.
+ * (an overlapping-cards diagnostic), `// render:timeout` (the renderer timed out twice); otherwise
+ * frames are colourful. A standalone prop turntable reads the prop module instead: `// render:fail`
+ * (does not load), `// render:floating` (a part floats), otherwise a good prop. Rendering of real
+ * scenes is covered by the Playwright tests.
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -110,6 +111,10 @@ export class ScriptedFrameRenderer implements FrameRenderer {
     const source = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
     if (source.includes('// render:fail')) {
       return { ok: false, error: `[shot ${shot.id}] build() threw: scripted failure`, errors: [] };
+    }
+    if (source.includes('// render:timeout')) {
+      const error = 'the frame renderer did not answer (load) within 180000 ms';
+      return { ok: false, timedOut: true, error, errors: [] };
     }
     const blank = source.includes('// render:blank');
     return {

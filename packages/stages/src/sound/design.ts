@@ -59,6 +59,8 @@ export interface SoundDesign {
   readonly beats?: BeatsFile | undefined;
   /** Hits / risers the director's events moved onto the grid. */
   readonly snappedCues: number;
+  /** Global times of the anchors the built scenes resolved (cue sync guard). */
+  readonly sceneAnchors: readonly number[];
 }
 
 /** The user's own music in `audio/music/` (generated beds excluded), sorted. */
@@ -128,6 +130,7 @@ export async function designSound(
     userMusic,
     ...(input.beats === undefined ? {} : { beats: input.beats }),
     snappedCues,
+    sceneAnchors: scene.anchors.map((anchor) => anchor.t),
   });
 }
 

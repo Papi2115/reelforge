@@ -7,6 +7,7 @@
  * - `snapGestures` moves the sound director's hits / risers / emphasis (whole gestures, so a riser
  *   still ends on its hit) so their peak — the event time the cue's lead is measured from — lands
  *   on the nearest beat or accent within ±120 ms. Transition sounds follow the cuts instead.
+ * - `snapWhooshCues` does the same for the whooshes of the final cue list (scene accents, Claude).
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import type { CueEventKind } from '../sound/cue-rules.js';
@@ -132,4 +133,87 @@ export function snapGestures(
     return { ...gesture, cues: gesture.cues.map((cue) => ({ ...cue, t: round3(cue.t + delta) })) };
   });
   return { gestures: out, snapped };
+}
+
+/** Sounds that sweep into their peak (the whooshes of the report and of `snapWhooshCues`). */
+export const WHOOSH_RECIPES: ReadonlySet<string> = new Set([
+  'whoosh',
+  'swoosh-in',
+  'swoosh-out',
+  'whoosh-impact',
+]);
+/** A whoosh whose sweep starts this long before a cut peaks on that cut. */
+const WHOOSH_LEAD_MAX_S = 0.35;
+/** Peak of a whoosh with no cut ahead (the rule table's lead). */
+const DEFAULT_WHOOSH_LEAD_S = 0.25;
+/** Anchor sync tolerance of the scene QA / sync report (scenes/sync.ts SYNC_TOLERANCE_S). */
+const ANCHOR_TOLERANCE_S = 0.15;
+/** A cue this close to an anchor is matched to it by the sync report (scenes/sync.ts). */
+const ANCHOR_NEAR_S = 0.5;
+
+export interface CueLike {
+  readonly t: number;
+  /** Absent for a cue that plays a file. */
+  readonly name?: string | undefined;
+}
+
+export function isWhoosh(cue: CueLike): boolean {
+  return cue.name !== undefined && WHOOSH_RECIPES.has(cue.name);
+}
+
+/** Where a whoosh starting at `start` peaks: on the cut its sweep runs into, else after its lead. */
+export function whooshPeak(
+  start: number,
+  cuts: readonly number[],
+): { readonly peak: number; readonly atCut: boolean } {
+  const cut = cuts.find((t) => t >= start - EPSILON && t <= start + WHOOSH_LEAD_MAX_S);
+  return cut === undefined
+    ? { peak: start + DEFAULT_WHOOSH_LEAD_S, atCut: false }
+    : { peak: cut, atCut: true };
+}
+
+/** False when a cue moved to `to` would sit off the anchor it is matched to (> ±150 ms). */
+function keepsAnchorSync(to: number, anchors: readonly number[]): boolean {
+  let nearest: number | undefined;
+  for (const anchor of anchors) {
+    if (nearest === undefined || Math.abs(to - anchor) < Math.abs(to - nearest)) nearest = anchor;
+  }
+  if (nearest === undefined || Math.abs(to - nearest) > ANCHOR_NEAR_S) return true;
+  return Math.abs(to - nearest) <= ANCHOR_TOLERANCE_S + EPSILON;
+}
+
+export interface WhooshSnapResult<C extends CueLike> {
+  readonly cues: C[];
+  /** Whooshes moved so their peak lands on the grid. */
+  readonly snapped: number;
+}
+
+/**
+ * The whooshes of a cue list that the director's gesture snapping never sees (scene `sfx.at`
+ * accents, Claude's cues): each moves so its peak lands on the nearest beat or accent within
+ * ±120 ms. A whoosh peaking on a cut follows the cut (the cuts are snapped), and a cue matched to
+ * a scene anchor never ends up more than ±150 ms from it. Order and every other cue unchanged.
+ */
+export function snapWhooshCues<C extends CueLike>(
+  cues: readonly C[],
+  grid: GridTimes,
+  cuts: readonly number[],
+  anchors: readonly number[],
+  maxS = MAX_CUE_SNAP_S,
+): WhooshSnapResult<C> {
+  let snapped = 0;
+  const out = cues.map((cue): C => {
+    if (!isWhoosh(cue)) return cue;
+    const { peak, atCut } = whooshPeak(cue.t, cuts);
+    if (atCut) return cue;
+    const target = grid.nearest(peak, maxS);
+    if (target === undefined || Math.abs(target - peak) < EPSILON) return cue;
+    const to = round3(cue.t + target - peak);
+    if (to < 0 || !keepsAnchorSync(to, anchors)) return cue;
+    // The move must not run the sweep into a cut (it would then peak there instead).
+    if (whooshPeak(to, cuts).atCut) return cue;
+    snapped += 1;
+    return { ...cue, t: to };
+  });
+  return { cues: out, snapped };
 }

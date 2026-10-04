@@ -5,8 +5,9 @@
  * the storyboard's act changes (look/roll changes, title cards, non-cut transitions) and the
  * chapters stay near a target length. Short shots are merged into the chapter they fall in.
  */
-import type { StoryboardShot } from '@reelforge/shared';
+import type { StoryboardShot, TimedWord } from '@reelforge/shared';
 import { MIN_CHAPTER_SECONDS, MIN_CHAPTERS, type Chapter } from '../export/chapters.js';
+import { spokenChapterTitle } from './chapter-titles.js';
 
 /** About one chapter per this many seconds (clamped to 3..MAX_TARGET_CHAPTERS chapters). */
 const SECONDS_PER_CHAPTER = 60;
@@ -183,22 +184,25 @@ export function chapterLinesOf(description: string): Map<number, string> {
 }
 
 /**
- * Titled chapters: a suggested title (Claude's description) for the same second wins, else the
- * intent of the chapter's first shot; a repeated title tries the chapter's later shots, then gets
- * a number.
+ * Titled chapters: a suggested title (Claude's description) for the same second wins, else the key
+ * phrase spoken at the chapter start (timed words), else the intent of the chapter's first shot; a
+ * repeated title tries the chapter's later shots, then gets a number.
  */
 export function titleChapters(
   shots: readonly PlanShot[],
   starts: readonly number[],
   suggested: ReadonlyMap<number, string>,
+  words: readonly TimedWord[] = [],
 ): Chapter[] {
   const used = new Set<string>();
   return starts.map((start, index) => {
     const shot = shots[start];
     const t = index === 0 ? 0 : (shot?.t0 ?? 0);
     const until = starts[index + 1] ?? shots.length;
+    const next = shots[until]?.t0 ?? Infinity;
     const candidates = [
       suggested.get(Math.floor(t)),
+      spokenChapterTitle(words, t, next, MAX_TITLE_WORDS),
       ...shots.slice(start, until).map((candidate) => chapterTitle(candidate.intent)),
     ].filter((title): title is string => title !== undefined && title !== '');
     let title = candidates.find((candidate) => !used.has(candidate.toLowerCase())) ?? candidates[0];

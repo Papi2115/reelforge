@@ -12,10 +12,17 @@ import { criticLookVars } from '../looks.js';
 import { FILES } from '../paths.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
-import { consoleFindings, finding, fixableFindings, lintFindings } from './checks.js';
+import {
+  consoleFindings,
+  finding,
+  fixableFindings,
+  lintFindings,
+  renderTimeoutFinding,
+} from './checks.js';
 import { critiqueFrames, programmaticCritique, type TurnRunner } from './critic.js';
 import type { SceneJob } from './job.js';
 import { renderShot } from './render.js';
+import { assetSizeFindings } from './source-checks.js';
 import { shotSyncEvents, syncFindings } from './sync.js';
 import type { ShotRender } from './tools.js';
 
@@ -84,13 +91,17 @@ export async function qaRound(
   );
   if (!rendered.ok) return rendered;
   const render = rendered.value;
+  if (!render.ok && render.timedOut === true) {
+    return ok({ ...early([renderTimeoutFinding(render.error)], source), render });
+  }
   if (!render.ok) {
     const runtime = finding('runtime', 'error', `the scene fails: ${render.error}`, {
       fatal: true,
     });
     return ok({ ...early([runtime, ...consoleFindings(render.errors)], source), render });
   }
-  const extra = extraChecks?.(source) ?? [];
+  // Embedded photos too small to read (a warning: no fix turn, PLAN real-run v2.3).
+  const extra = [...(extraChecks?.(source) ?? []), ...assetSizeFindings(source, shot.scene)];
   const sync = syncFindings(
     shotSyncEvents({
       shot,

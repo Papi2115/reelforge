@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { storyboardFileSchema, type StoryboardShot, type YoutubeMetaFile } from '@reelforge/shared';
+import {
+  storyboardFileSchema,
+  wordsFileSchema,
+  type StoryboardShot,
+  type YoutubeMetaFile,
+} from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { MIN_CHAPTER_SECONDS } from '../export/chapters.js';
 import { boundaryStrength, chapterTitle, planChapterStarts } from './chapter-plan.js';
@@ -25,6 +30,9 @@ const EXAMPLE = storyboardFileSchema.parse(
   JSON.parse(readFileSync(path.join(EXAMPLE_DIR, 'storyboard.json'), 'utf8')),
 ).shots;
 const SCRIPT = readFileSync(path.join(EXAMPLE_DIR, 'script.txt'), 'utf8');
+const WORDS = wordsFileSchema.parse(
+  JSON.parse(readFileSync(path.join(EXAMPLE_DIR, 'timing', 'words.json'), 'utf8')),
+).words;
 /** The example storyboard stretched 10x: a 5-minute film with the same shot structure. */
 const LONG = EXAMPLE.map((shot) => ({ ...shot, t0: shot.t0 * 10, t1: shot.t1 * 10 }));
 
@@ -110,6 +118,36 @@ describe('publish chapters', () => {
     expect(boundaryStrength(shots, 9)).toBeGreaterThan(boundaryStrength(shots, 10));
     const starts = planChapterStarts(shots, 180);
     expect(starts.ok && starts.starts).toContain(9);
+  });
+
+  it('titles chapters with the key phrase spoken at their start (timed words)', () => {
+    const words = WORDS.map((word) => ({ ...word, t: word.t * 10, tEnd: word.tEnd * 10 }));
+    const result = publishChapters({ shots: LONG, durationS: 305, meta: null, words });
+    expect(result.text).toBe(
+      [
+        '0:00 Doom Runs',
+        '0:49 School Calculator',
+        '1:53 Original Game Needed Four Megabytes',
+        '2:54 Hackers Rewrote',
+        '3:46 Demons and Shotguns',
+        '4:30 Runs Doom',
+        '',
+      ].join('\n'),
+    );
+    expectYoutubeRules(result.chapters, LONG, 305);
+  });
+
+  it('falls back to the shot intent where nothing is spoken at the chapter start', () => {
+    const words = WORDS.filter((word) => word.t < 4).map((word) => ({
+      ...word,
+      t: word.t * 10,
+      tEnd: word.tEnd * 10,
+    }));
+    const result = publishChapters({ shots: LONG, durationS: 305, meta: null, words });
+    expect(result.chapters.map((chapter) => chapter.title).slice(0, 2)).toEqual([
+      'Doom Runs',
+      'A school calculator',
+    ]);
   });
 
   it('uses Claude-suggested titles for the same second', () => {

@@ -49,19 +49,32 @@ const WEB = record({
   licence: { id: 'unverified', url: null, verified: false },
 });
 
+const APOLLO = record({
+  id: 'wm-41545',
+  sourceItemId: '41545',
+  sourceUrl: 'https://commons.wikimedia.org/wiki/File:Apollo_11_Lunar_Module_Eagle.jpg',
+  title: 'Apollo 11 Lunar Module Eagle',
+  // As Commons gives it (Artist markup of the Unknown-author template), stored by older adapters.
+  author: 'Unknown author Unknown author or not provided',
+  licence: { id: 'Public domain', url: null, verified: true },
+});
+
 describe('creditsMarkdown (golden)', () => {
   it('lists title, author, licence and link; marks and counts unverified licences', () => {
     expect(creditsMarkdown([record({}), NASA, WEB])).toBe(
       [
         'Credits',
         '',
-        '- "Nokia 3310 Blue R7309170 (retouch)" by smial ( talk ), FAL (http://artlibre.org/licence/lal/en), https://commons.wikimedia.org/wiki/File:Nokia_3310_Blue_R7309170_(retouch).png',
+        '- "Nokia 3310 Blue R7309170 (retouch)" by smial, FAL (http://artlibre.org/licence/lal/en), https://commons.wikimedia.org/wiki/File:Nokia_3310_Blue_R7309170_(retouch).png',
         '- "Apollo 11 spacecraft pre-launch" by NASA JSC, NASA media usage guidelines (https://www.nasa.gov/nasa-brand-center/images-and-media/), https://images.nasa.gov/details/jsc2007e034221',
-        '- "old ”phone”.png" by unknown, licence UNVERIFIED, https://example.org/photos/old%20phone.png [check licence]',
+        '- "old ”phone”.png" by Unknown author, licence UNVERIFIED, https://example.org/photos/old%20phone.png [check licence]',
         '',
         'WARNING: 1 asset has an unverified licence ([check licence]); confirm the licence or replace it before publishing.',
         '',
       ].join('\n'),
+    );
+    expect(creditsMarkdown([APOLLO])).toContain(
+      '- "Apollo 11 Lunar Module Eagle" by Unknown author, Public domain, https://commons',
     );
     expect(creditsMarkdown([])).toBe('Credits\n\n(no external assets used)\n');
   });

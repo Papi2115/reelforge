@@ -7,7 +7,7 @@
 import type { AssetCandidate } from '@reelforge/shared';
 import { z } from 'zod';
 import { ASSET_LIMITS } from '../limits.js';
-import { sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
+import { cleanAuthor, sanitizeText, sanitizeUrl, TEXT_LIMITS } from '../untrusted.js';
 import { licenceFrom, unverifiedLicence } from './licences.js';
 import {
   buildUrl,
@@ -65,9 +65,7 @@ function toCandidate(result: Result): AssetCandidate | undefined {
     id,
     kind: 'image',
     title: sanitizeText(result.title, TEXT_LIMITS.title) || id,
-    author:
-      sanitizeText(joined(result.contributor_names ?? result.contributor), TEXT_LIMITS.author) ||
-      'unknown',
+    author: cleanAuthor(joined(result.contributor_names ?? result.contributor)),
     licence: /no known restrictions/i.test(rights)
       ? licenceFrom('No known restrictions on publication', 'https://www.loc.gov/legal/')
       : unverifiedLicence(sourceUrl),

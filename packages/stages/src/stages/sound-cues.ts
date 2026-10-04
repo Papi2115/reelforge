@@ -16,6 +16,8 @@ import {
   wordsFileSchema,
   type StoryboardShot,
 } from '@reelforge/shared';
+import { GridTimes } from '../beat-sync/grid.js';
+import { snapWhooshCues } from '../beat-sync/snap.js';
 import { activeBeatGrid, reportSoundSync } from '../beat-sync/stage.js';
 import { reviewRepetitions } from '../repetition/stage.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
@@ -197,6 +199,43 @@ async function withMoodHint(
   return ok({ ...produced, cues: rewritten.value.value ?? hinted.value });
 }
 
+/**
+ * Beat sync (PLAN.md#12.21): the whooshes of the final cues (scene accents, Claude's cues) snapped
+ * to the grid and written; a snapped file that fails validation is put back (warning).
+ */
+async function snapFinalWhooshes(
+  ctx: StageContext,
+  produced: Produced,
+  prepared: Prepared,
+): Promise<Result<{ produced: Produced; snapped: number; warning?: string }, StageError>> {
+  const { design, shots } = prepared;
+  if (design.beats === undefined) return ok({ produced, snapped: 0 });
+  const cuts = shots.slice(1).map((shot) => shot.t0);
+  const snap = snapWhooshCues(
+    produced.cues.sfx,
+    new GridTimes(design.beats),
+    cuts,
+    design.sceneAnchors,
+  );
+  if (snap.snapped === 0) return ok({ produced, snapped: 0 });
+  const snapped = { ...produced.cues, sfx: snap.cues };
+  const written = await writeProjectJson(ctx.projectDir, FILES.cues, CuesFileSchema, snapped);
+  if (!written.ok) return written;
+  const check = await checkCuesFile(ctx, design);
+  if (check.problems.length === 0 && check.value !== undefined) {
+    return ok({ produced: { ...produced, cues: check.value }, snapped: snap.snapped });
+  }
+  const restored = await writeProjectJson(
+    ctx.projectDir,
+    FILES.cues,
+    CuesFileSchema,
+    produced.cues,
+  );
+  if (!restored.ok) return restored;
+  const warning = `beat sync: whooshes left as they were (snapped cues: ${check.problems.join('; ')})`;
+  return ok({ produced, snapped: 0, warning });
+}
+
 async function run(
   ctx: StageContext,
   request: RequestOf<'sound-cues'>,
@@ -229,16 +268,17 @@ async function run(
     }
   }
   warnings.push(...produced.warnings);
+  const whooshes = await snapFinalWhooshes(ctx, produced, prepared.value);
+  if (!whooshes.ok) return whooshes;
+  produced = whooshes.value.produced;
+  if (whooshes.value.warning !== undefined) warnings.push(whooshes.value.warning);
   const { sfx, ambience, music, moods } = produced.cues;
   const grid = prepared.value.design.beats;
   if (grid !== undefined) {
-    const synced = await reportSoundSync(
-      ctx.projectDir,
-      grid,
-      prepared.value.shots,
-      sfx,
-      design.snappedCues,
-    );
+    const synced = await reportSoundSync(ctx.projectDir, grid, prepared.value.shots, sfx, {
+      director: design.snappedCues,
+      whooshes: whooshes.value.snapped,
+    });
     if (!synced.ok) return synced;
   }
   // Repetition control (PLAN.md#12.23): the fresh cues analysed with the rest of the film.

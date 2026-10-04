@@ -24,7 +24,8 @@ export function sheetRow(shot: SheetShot): SheetRow {
   if (render.ok) {
     return { tiles: render.frames.map((frame) => ({ label: label(frame.t), frame: frame.image })) };
   }
-  return { tiles: shot.times.map((t) => ({ label: label(t), failure: 'FAILED TO LOAD' })) };
+  const failure = render.timedOut === true ? 'TIMED OUT' : 'FAILED TO LOAD';
+  return { tiles: shot.times.map((t) => ({ label: label(t), failure })) };
 }
 
 /** Writes the sheet; returns its project-relative path. */
