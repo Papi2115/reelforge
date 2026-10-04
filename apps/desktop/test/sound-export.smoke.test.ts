@@ -224,7 +224,8 @@ describe('sound design', () => {
     const scrollX = Number(await canvas.getAttribute('data-scroll-x'));
     if (box === null) throw new Error('no timeline');
     await panel.getByRole('button', { name: /^Sound library/ }).click();
-    const item = panel.locator('.sound-item', { hasText: 'pop' });
+    // Exact name: the built-in library also has shape-pop, cap-pop, paper-pop…
+    const item = panel.getByRole('listitem', { name: 'Drag pop onto the timeline', exact: true });
     await item.dragTo(canvas, { targetPosition: { x: 15 * pxPerSecond - scrollX, y: 83 } });
     const added = await poll(cues, (value) => value.sfx.length > count);
     const pop = added.sfx.find((cue) => cue.name === 'pop' && Math.abs(cue.t - 15) < 0.3);
@@ -358,8 +359,10 @@ describe('export dialog', () => {
     expect(meta).toMatchObject({ source: 'claude', titles: SUGGESTION.titles });
     await youtube.getByRole('button', { name: 'Copy title 2' }).click();
     await youtube.getByRole('button', { name: 'Copy title 2' }).getByText('Copied ✓').waitFor();
-    const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
-    expect(copied).toBe('Can a 61 KB calculator run Doom?');
+    // Polled: another program may hold the Windows clipboard open for a moment while we read.
+    await expect
+      .poll(() => app.evaluate(({ clipboard }) => clipboard.readText()), { timeout: 5_000 })
+      .toBe('Can a 61 KB calculator run Doom?');
     await shot('export-youtube');
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       1280,

@@ -116,9 +116,11 @@ describe('live co-direction', () => {
       .getByText(/^Arrow on "Doom"/)
       .waitFor({ timeout: 15_000 });
     expect((await directions()).shots['s01']?.overlays).toHaveLength(1);
-    await page
-      .getByRole('region', { name: 'Shots' })
+    // The "directions" chip; one-line (compact) rows show a dot named "directions" instead.
+    const shotsPanel = page.getByRole('region', { name: 'Shots' });
+    await shotsPanel
       .getByText('directions', { exact: true })
+      .or(shotsPanel.getByRole('img', { name: 'directions', exact: true }))
       .waitFor();
     await page.screenshot({ path: path.join(screenshotDir, 'direction-1280.png') });
 

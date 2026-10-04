@@ -53,8 +53,10 @@
   resize: vertical;
   font-size: 12px;
   line-height: 1.35;
-  white-space: pre;
-  overflow: auto;
+  /* Long description lines wrap (no sideways scrolling); the file's own line breaks stay. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden auto;
 }
 
 .publish-actions,

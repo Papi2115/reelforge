@@ -93,9 +93,16 @@ describe('dramaturgy section', () => {
     await stubFolderPicker(app, dir);
     await page.getByRole('button', { name: 'Open project…' }).click();
     await (await showStage(page, 'Scenes built')).click({ timeout: 30_000 });
+    // Selecting the row shows its actions; Open docks the Scenes built panel.
+    await page
+      .getByRole('region', { name: 'Pipeline' })
+      .getByRole('group', { name: 'Scenes built actions' })
+      .getByRole('button', { name: 'Open' })
+      .click();
     await section().waitFor({ timeout: 30_000 });
     await section().getByText('Reveal moments').waitFor();
     await section().getByText('Open loops:').waitFor();
+    await section().getByText('Reveal moments').scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(screenshotDir, 'dramaturgy-1280.png') });
 
     await section().getByRole('button', { name: 'Accept' }).first().click();

@@ -4,7 +4,7 @@
  * text), the decisions recorded, "Export profile" (JSON, main's save dialog) and "Forget
  * everything" (with a confirm). Everything stays on this computer.
  */
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import type { TasteState } from '../../shared/taste-contract.js';
 import { errorMessage, rendererLog } from '../log.js';
 import type { PageProps } from './GeneralSettings.js';
@@ -40,15 +40,27 @@ export function TastePage({ state, update }: PageProps): JSX.Element {
   const [taste, setTaste] = useState<TasteState | undefined>(undefined);
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const learning = state.settings.taste.learning;
+  const tasteSettings = state.settings.taste;
+  const learning = tasteSettings.learning;
+  const request = useRef(0);
 
   const reload = useCallback(() => {
-    window.reelforge.getTasteState().then(setTaste, (reason: unknown) => {
-      log.error(`getTasteState failed: ${errorMessage(reason)}`);
-    });
+    request.current += 1;
+    const current = request.current;
+    window.reelforge.getTasteState().then(
+      (next) => {
+        // Only the newest answer counts (a slower, older one would show the old switch).
+        if (current === request.current) setTaste(next);
+      },
+      (reason: unknown) => {
+        log.error(`getTasteState failed: ${errorMessage(reason)}`);
+      },
+    );
   }, []);
-  // The switch changes what the profile says (off = nothing in the prompts).
-  useEffect(reload, [reload, learning]);
+  // The switch changes what the profile says (off = nothing in the prompts). The settings change
+  // twice per click: optimistically, then main's saved copy; only the second one is certain to be
+  // what main's taste state reads, so both reload.
+  useEffect(reload, [reload, tasteSettings]);
 
   const reset = (): void => {
     setConfirming(false);

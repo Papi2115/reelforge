@@ -276,8 +276,12 @@ describe('timeline editor', () => {
     await resize(1920, 1080);
     await page.getByRole('button', { name: 'Fit to project' }).click();
     await page.screenshot({ path: path.join(screenshotDir, 'timeline-long-fit-1920x1080.png') });
-    await page.getByRole('button', { name: 'Zoom in' }).click();
-    await page.getByRole('button', { name: 'Zoom in' }).click();
+    // Scoped: the direction command bar has a "zoom in" hint chip (a camera command).
+    const zoomIn = page
+      .getByRole('toolbar', { name: 'Timeline tools' })
+      .getByRole('button', { name: 'Zoom in' });
+    await zoomIn.click();
+    await zoomIn.click();
     expect((await lanes()).pxPerSecond).toBeGreaterThan(fit.pxPerSecond);
     await page.screenshot({ path: path.join(screenshotDir, 'timeline-long-zoom-1920x1080.png') });
 

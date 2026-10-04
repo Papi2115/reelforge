@@ -52,6 +52,10 @@
   white-space: nowrap;
 }
 
+.shot-line .direction-dot {
+  flex: none;
+}
+
 .shot-line .chip {
   margin-left: auto;
   min-width: 0;

@@ -53,26 +53,36 @@ export interface TensionPanelProps {
   readonly onClose: () => void;
 }
 
-const HEIGHT = 132;
 const PAD = 10;
 /** Keyboard nudges are saved once the keys rest this long (ms). */
 const KEY_SAVE_DELAY_MS = 450;
 
-function useWidth(): [RefObject<HTMLDivElement | null>, number] {
+interface Size {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The curve area's size: it shares the timeline's pane, so its height follows the splitter. */
+function useSize(): [RefObject<HTMLDivElement | null>, Size] {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
   useEffect(() => {
     const element = ref.current;
     if (!element) return undefined;
     const observer = new ResizeObserver(([entry]) => {
-      if (entry) setWidth(Math.floor(entry.contentRect.width));
+      if (!entry) return;
+      const width = Math.floor(entry.contentRect.width);
+      const height = Math.floor(entry.contentRect.height);
+      setSize((current) =>
+        current.width === width && current.height === height ? current : { width, height },
+      );
     });
     observer.observe(element);
     return () => {
       observer.disconnect();
     };
   }, []);
-  return [ref, width];
+  return [ref, size];
 }
 
 interface Drag {
@@ -84,12 +94,12 @@ interface Drag {
 
 export function TensionPanel(props: TensionPanelProps): JSX.Element {
   const { tension, shots, durationS } = props;
-  const [wrapRef, width] = useWidth();
+  const [wrapRef, { width, height }] = useSize();
   const svgRef = useRef<SVGSVGElement>(null);
   const drag = useRef<Drag | undefined>(undefined);
   const keyTimer = useRef<number | undefined>(undefined);
   const [focused, setFocused] = useState<number | undefined>(undefined);
-  const geometry: TensionGeometry = { width, height: HEIGHT, durationS, pad: PAD };
+  const geometry: TensionGeometry = { width, height, durationS, pad: PAD };
   const snap = useMemo(() => snapTimes(props.words, shots), [props.words, shots]);
   const points = tension.points;
   const file = tension.file;
@@ -196,7 +206,7 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
               key={preset}
               type="button"
               className="small-button"
-              disabled={tension.busy || file?.locked === true || durationS <= 0}
+              disabled={tension.busy || tension.locked || durationS <= 0}
               onClick={() => {
                 tension.save({
                   points: presetPoints(preset, durationS),
@@ -211,7 +221,7 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
         <button
           type="button"
           className="small-button"
-          disabled={tension.busy || file?.locked === true}
+          disabled={tension.busy || tension.locked}
           onClick={tension.propose}
         >
           Propose with Claude
@@ -219,7 +229,7 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
         <button
           type="button"
           className="small-button"
-          disabled={tension.busy || file === undefined || file.locked === true}
+          disabled={tension.busy || file === undefined || tension.locked}
           onClick={tension.reset}
         >
           Reset
@@ -235,7 +245,7 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
         <label className="tension-lock">
           <input
             type="checkbox"
-            checked={file?.locked === true}
+            checked={tension.locked}
             disabled={tension.busy || file === undefined}
             onChange={(event) => {
               if (file === undefined) return;
@@ -260,11 +270,11 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
         </p>
       )}
       <div className="tension-canvas" ref={wrapRef}>
-        {width > 0 && durationS > 0 && (
+        {width > 0 && height > 0 && durationS > 0 && (
           <svg
             ref={svgRef}
             width={width}
-            height={HEIGHT}
+            height={height}
             role="group"
             aria-label="Tension curve (double-click to add a point)"
             onPointerMove={onPointerMove}
@@ -281,7 +291,7 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
                   x={timeToX(geometry, span.from)}
                   y={0}
                   width={Math.max(0, timeToX(geometry, span.to) - timeToX(geometry, span.from))}
-                  height={HEIGHT}
+                  height={height}
                   pointerEvents="none"
                 />
                 <text x={timeToX(geometry, span.from) + 4} y={12} pointerEvents="none">
@@ -295,7 +305,7 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
                   <rect
                     className="tension-locked-shot"
                     x={timeToX(geometry, shot.t0)}
-                    y={HEIGHT - 6}
+                    y={height - 6}
                     width={Math.max(0, timeToX(geometry, shot.t1) - timeToX(geometry, shot.t0))}
                     height={6}
                   />
@@ -304,8 +314,8 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
                   className="tension-shot-edge"
                   x1={timeToX(geometry, shot.t0)}
                   x2={timeToX(geometry, shot.t0)}
-                  y1={HEIGHT - 14}
-                  y2={HEIGHT}
+                  y1={height - 14}
+                  y2={height}
                 />
               </g>
             ))}
@@ -321,7 +331,7 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
               x1={timeToX(geometry, props.time)}
               x2={timeToX(geometry, props.time)}
               y1={0}
-              y2={HEIGHT}
+              y2={height}
               pointerEvents="none"
             />
             {points?.map((point: TensionPoint, index) => (
@@ -342,14 +352,14 @@ export function TensionPanel(props: TensionPanelProps): JSX.Element {
                   setFocused(index);
                 }}
                 onPointerDown={(event) => {
-                  if (file?.locked === true) return;
+                  if (tension.locked) return;
                   event.currentTarget.focus();
                   svgRef.current?.setPointerCapture(event.pointerId);
                   const { x, y } = local(event);
                   drag.current = { index, x, y, moved: false };
                 }}
                 onKeyDown={(event) => {
-                  if (file?.locked !== true) onPointKey(event, index);
+                  if (!tension.locked) onPointKey(event, index);
                 }}
               >
                 <title>{pointText(point)}</title>

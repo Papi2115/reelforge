@@ -27,6 +27,8 @@ export interface TensionController {
   readonly invalid: string | undefined;
   /** What the panel draws: the draft while editing, else the saved points. */
   readonly points: readonly TensionPoint[] | undefined;
+  /** The curve lock as shown: a pending lock change while it saves, else the saved one. */
+  readonly locked: boolean;
   readonly setDraft: (points: readonly TensionPoint[] | undefined) => void;
   readonly save: (edit: TensionEdit) => void;
   readonly undo: () => void;
@@ -45,6 +47,7 @@ export function useTension(
   const file = state?.status === 'ok' ? state.data : undefined;
   const invalid = state?.status === 'error' ? state.error.message : undefined;
   const [draft, setDraft] = useState<readonly TensionPoint[] | undefined>(undefined);
+  const [draftLocked, setDraftLocked] = useState<boolean | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | undefined>(undefined);
   const [history, setHistory] = useState<readonly (readonly TensionPoint[])[]>([]);
@@ -54,6 +57,7 @@ export function useTension(
   // A new curve on disk (save, Reset, Claude, a revert) replaces the draft.
   useEffect(() => {
     setDraft(undefined);
+    setDraftLocked(undefined);
   }, [file]);
 
   const settle = useCallback(
@@ -62,13 +66,17 @@ export function useTension(
       request
         .then(async (result) => {
           setNotice(saveNotice(result));
-          if (result.status === 'error') setDraft(undefined);
+          if (result.status === 'error') {
+            setDraft(undefined);
+            setDraftLocked(undefined);
+          }
           await reload();
         })
         .catch((reason: unknown) => {
           log.error(`tension change failed: ${errorMessage(reason)}`);
           setNotice(errorMessage(reason));
           setDraft(undefined);
+          setDraftLocked(undefined);
         })
         .finally(() => {
           setBusy(false);
@@ -82,6 +90,7 @@ export function useTension(
       const before = fileRef.current?.points;
       if (before !== undefined) setHistory((stack) => [...stack.slice(-UNDO_DEPTH + 1), before]);
       setDraft(edit.points);
+      if (edit.locked !== undefined) setDraftLocked(edit.locked);
       settle(
         window.reelforge.saveTension({
           points: [...edit.points],
@@ -131,6 +140,7 @@ export function useTension(
     file,
     invalid,
     points: draft ?? file?.points,
+    locked: draftLocked ?? file?.locked === true,
     setDraft,
     save,
     undo,
