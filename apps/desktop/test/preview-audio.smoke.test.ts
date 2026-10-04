@@ -70,6 +70,9 @@ beforeAll(async () => {
   await page.getByRole('region', { name: 'Start' }).waitFor();
   await stubFolderPicker(app, projectDir);
   await page.getByRole('button', { name: 'Open project…' }).click();
+  // The start screen's demo preview already has a rendered frame: wait for the project's own one
+  // (the master audio can be ready before the video has loaded, slow on CI's software GPU).
+  await page.getByRole('region', { name: 'Start' }).waitFor({ state: 'detached' });
   await page
     .locator('canvas.preview-canvas[data-rendered-t]')
     .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });

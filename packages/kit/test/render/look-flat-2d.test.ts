@@ -48,8 +48,11 @@ const GOLDENS: readonly (readonly [FlatSetup, readonly number[]])[] = [
 const PERF_FRAMES = 30;
 /** Preview target of the look on the hardware GPU (REELFORGE_KIT_PERF_GPU=1). */
 const MIN_FPS = 30;
-/** SwiftShader (CI) is CPU-bound like the other boards: a floor only. */
-const SWIFTSHADER_MIN_FPS = 10;
+/**
+ * SwiftShader is CPU-bound and its speed depends on the machine (CI runners ~7 fps): an
+ * informational floor that only catches a broken render loop, like the kit perf tests.
+ */
+const SWIFTSHADER_MIN_FPS = 3;
 const SUITE_TIMEOUT = 600_000;
 
 let browser: HarnessBrowser;

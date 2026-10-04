@@ -13,6 +13,8 @@ const SECONDS_PER_CHAPTER = 60;
 const MAX_TARGET_CHAPTERS = 15;
 /** Most chapters ever planned (YouTube shows long lists badly). */
 const MAX_CHAPTERS = 40;
+/** Chapter counts this close to the target count are all fine (the score picks among them). */
+const COUNT_SLACK = 1;
 /** Weight of the squared relative deviation from the target chapter length. */
 const LENGTH_WEIGHT = 4;
 export const MAX_TITLE_WORDS = 5;
@@ -47,6 +49,35 @@ export type ChapterStarts =
   | { readonly ok: true; readonly starts: readonly number[] }
   | { readonly ok: false; readonly problem: string };
 
+/**
+ * How many chapters: the best-scoring count within ±COUNT_SLACK of the target, else the feasible
+ * count nearest to it (-1: none). Boundary strengths only decide where chapters start: summed per
+ * chapter they would always favour more chapters, and in a mixed-look film nearly every cut is a
+ * look or roll change (real run 2.3: 10 chapters in 2:18).
+ */
+function chapterCount(
+  best: readonly (readonly number[])[],
+  last: number,
+  targetCount: number,
+  maxChapters: number,
+): number {
+  const scoreOf = (count: number): number => best[count]?.[last] ?? -Infinity;
+  let chosen = -1;
+  for (let count = MIN_CHAPTERS; count <= maxChapters; count += 1) {
+    if (scoreOf(count) === -Infinity) continue;
+    const distance = Math.max(0, Math.abs(count - targetCount) - COUNT_SLACK);
+    const chosenDistance = Math.max(0, Math.abs(chosen - targetCount) - COUNT_SLACK);
+    if (
+      chosen < 0 ||
+      distance < chosenDistance ||
+      (distance === chosenDistance && scoreOf(count) > scoreOf(chosen))
+    ) {
+      chosen = count;
+    }
+  }
+  return chosen;
+}
+
 /** Shot indexes the chapters start at (the first is 0), or why YouTube would show none. */
 export function planChapterStarts(shots: readonly PlanShot[], durationS: number): ChapterStarts {
   const end = Math.floor(durationS);
@@ -57,9 +88,11 @@ export function planChapterStarts(shots: readonly PlanShot[], durationS: number)
       problem: `YouTube needs at least ${String(MIN_CHAPTERS)} chapters of ${String(MIN_CHAPTER_SECONDS)} s or more; the video is too short or has too few shots`,
     };
   }
-  const target =
-    end /
-    Math.min(MAX_TARGET_CHAPTERS, Math.max(MIN_CHAPTERS, Math.round(end / SECONDS_PER_CHAPTER)));
+  const targetCount = Math.min(
+    MAX_TARGET_CHAPTERS,
+    Math.max(MIN_CHAPTERS, Math.round(end / SECONDS_PER_CHAPTER)),
+  );
+  const target = end / targetCount;
   const nodes: Node[] = [
     { shot: 0, second: 0, strength: 0 },
     ...shots.slice(1).map((shot, offset) => ({
@@ -100,13 +133,7 @@ export function planChapterStarts(shots: readonly PlanShot[], durationS: number)
       }
     }
   }
-  let bestCount = -1;
-  for (let count = MIN_CHAPTERS; count <= maxChapters; count += 1) {
-    const score = best[count]?.[last] ?? -Infinity;
-    if (score > -Infinity && (bestCount < 0 || score > (best[bestCount]?.[last] ?? -Infinity))) {
-      bestCount = count;
-    }
-  }
+  const bestCount = chapterCount(best, last, targetCount, maxChapters);
   if (bestCount < 0) {
     return {
       ok: false,

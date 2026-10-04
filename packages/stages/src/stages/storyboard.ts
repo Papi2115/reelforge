@@ -134,7 +134,7 @@ async function run(
   if (!drama.ok) return drama;
   const prompt = render('storyboard', {
     styleId: project.value.style,
-    ...storyboardLookVars(lookMode),
+    ...storyboardLookVars(lookMode, undefined, (words.value.words.at(-1)?.tEnd ?? 0) + 0.5),
     ...storyboardTensionVars(curve, words.value),
     ...(research ? { assetResearch: true, maxAssetNeeds: DEFAULT_MAX_ASSET_NEEDS } : {}),
     ...(await storyboardAssetVars(ctx, research)),

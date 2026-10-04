@@ -109,6 +109,17 @@ function optionValue(options: ObjectExpression | undefined, key: string): AnyNod
   return undefined;
 }
 
+/**
+ * A lower third's second argument draws a secondary line unless it is the options object or an
+ * explicit "no line": `null`, `undefined` or `''` (real run 2.3: dropping the line as the finding
+ * asks, `lowerThird("NAME", null, {...})`, was still flagged and cost two fix turns per shot).
+ */
+function hasSecondaryLine(second: AnyNode | undefined): boolean {
+  if (second === undefined || second.type === 'ObjectExpression') return false;
+  if (second.type === 'Literal') return second.value !== null && second.value !== '';
+  return !(second.type === 'Identifier' && second.name === 'undefined');
+}
+
 function toTextCall(call: CallExpression, kind: string): TextCall {
   const options = call.arguments.find(
     (argument): argument is ObjectExpression => argument.type === 'ObjectExpression',
@@ -123,7 +134,7 @@ function toTextCall(call: CallExpression, kind: string): TextCall {
     scale: scale?.type === 'Literal' && typeof scale.value === 'number' ? scale.value : undefined,
     computedScale: scale !== undefined && scale.type !== 'Literal',
     font: font?.type === 'Literal' && typeof font.value === 'string' ? font.value : undefined,
-    secondary: kind === 'lowerThird' && second !== undefined && second.type !== 'ObjectExpression',
+    secondary: kind === 'lowerThird' && hasSecondaryLine(second),
     size: size?.type === 'Literal' && typeof size.value === 'number' ? size.value : undefined,
   };
 }

@@ -2,7 +2,8 @@
  * Live co-direction command bar (PLAN.md#12.14) docked under the preview: type "slower",
  * "ciemniej", "arrow on the word light"… while the film plays (focus with `/`). Shows what was
  * done, offers "Unlock this shot" for a locked shot and "Rebuild with Claude" for commands only
- * Claude can do, hint chips and the session history with undo.
+ * Claude can do, hint chips and the session history with undo. One line of fixed height (the
+ * status replaces the chips, the history opens above the bar) so the preview keeps its scale.
  */
 import type { DirectionWord } from '@reelforge/shared';
 import { useEffect, useRef, useState, type JSX } from 'react';
@@ -119,29 +120,32 @@ export function CommandBar({ controls, wordAtPlayhead, shotId }: CommandBarProps
           </button>
         )}
       </form>
-      <div className="command-chips" aria-label="Example commands">
-        {HINT_CHIPS.map((chip) => (
-          <button
-            key={chip}
-            type="button"
-            className="command-chip"
-            disabled={busy}
-            onClick={() => {
-              const text = hintCommand(chip, wordAtPlayhead());
-              setCommand(text);
-              send(text);
-            }}
-          >
-            {chip}
-          </button>
-        ))}
-      </div>
-      {line !== '' && (
+      {line === '' ? (
+        <div className="command-chips" aria-label="Example commands">
+          {HINT_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              className="command-chip"
+              disabled={busy}
+              onClick={() => {
+                const text = hintCommand(chip, wordAtPlayhead());
+                setCommand(text);
+                send(text);
+              }}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      ) : (
         <p
           className={`command-status command-status-${status.kind}`}
           role={status.kind === 'error' || status.kind === 'locked' ? 'alert' : 'status'}
         >
-          {line}
+          <span className="command-status-text" title={line}>
+            {line}
+          </span>
           {status.kind === 'locked' && (
             <button
               type="button"
@@ -158,6 +162,7 @@ export function CommandBar({ controls, wordAtPlayhead, shotId }: CommandBarProps
               <button
                 type="button"
                 className="small-button primary"
+                title={line}
                 onClick={() => {
                   void controls.acceptClaude();
                 }}

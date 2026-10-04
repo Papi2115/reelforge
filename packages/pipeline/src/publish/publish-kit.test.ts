@@ -89,6 +89,20 @@ describe('publish chapters', () => {
     expectYoutubeRules(result.chapters, shots, 180);
   });
 
+  it('keeps about one chapter a minute when every cut is an act change (real run 2.3)', () => {
+    const looks = ['voxel', 'flat-2d', 'blueprint', 'retro-ui'];
+    const shots = Array.from({ length: 29 }, (_, index) =>
+      shot(index, 4.8, {
+        look: looks[index % looks.length] ?? 'voxel',
+        roll: index % 2 === 0 ? 'A' : 'B',
+        ...(index > 0 ? { transitionIn: { type: 'wipe', duration: 0.4 } } : {}),
+      }),
+    );
+    const starts = planChapterStarts(shots, 139);
+    expect(starts.ok && starts.starts.length).toBeGreaterThanOrEqual(3);
+    expect(starts.ok && starts.starts.length).toBeLessThanOrEqual(4);
+  });
+
   it('cuts at act changes (look change, title card) when they are near the target', () => {
     const shots = Array.from({ length: 30 }, (_, index) =>
       shot(index, 6, index === 9 ? { look: 'retro-ui', roll: 'B', treatment: 'title-card' } : {}),

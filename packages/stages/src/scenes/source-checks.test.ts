@@ -63,6 +63,21 @@ describe('legibility', () => {
     expect(findTextCalls('export const = ;')).toEqual([]);
   });
 
+  it('does not count an explicitly dropped secondary line (real run 2.3)', () => {
+    const dropped = `export function update(t, s, ctx) {
+  ctx.text.lowerThird('NEIL ARMSTRONG', null, { side: 'left' });
+  ctx.text.lowerThird('AGC', undefined, { side: 'left' });
+  ctx.text.lowerThird('AGC', '', { side: 'left' });
+  ctx.text.lowerThird('AGC', s.subtitle, { side: 'left' });
+}`;
+    expect(findTextCalls(dropped).map((call) => call.secondary)).toEqual([
+      false,
+      false,
+      false,
+      true,
+    ]);
+  });
+
   it('flags scale 1, default mono and lower-third secondary lines', () => {
     const findings = legibilityFindings(SOURCE, 'scenes/s01.js', {
       minScale: 2,

@@ -4,6 +4,7 @@
  * project made before 2.0) gets nothing, so its prompts and checks stay exactly as they were.
  */
 import { getLook, listLooks, voxelLook, type Look } from '@reelforge/kit';
+import { DEFAULT_LOOK_RHYTHM_RULES, maxNonCutTransitions } from '@reelforge/prompts';
 import {
   describePairs,
   shotLook,
@@ -34,18 +35,31 @@ export function availableTransitionStyles(looks: readonly Look[]): TransitionSty
   );
 }
 
-/** Storyboard prompt variables: none in `voxel-only`; transition styles once 2+ looks exist. */
+/**
+ * Storyboard prompt variables: none in `voxel-only`; transition styles once 2+ looks exist, with
+ * the film's budget of non-cut transitions when its length (`durationS`) is known.
+ */
 export function storyboardLookVars(
   mode: LookMode,
   looks: readonly Look[] = listLooks(),
+  durationS?: number,
 ): Readonly<Record<string, string | boolean>> {
   if (mode === 'voxel-only') return {};
+  const budget =
+    durationS === undefined
+      ? {}
+      : {
+          maxTransitions: String(
+            maxNonCutTransitions(durationS, DEFAULT_LOOK_RHYTHM_RULES.transitionEveryS),
+          ),
+        };
   return {
     looks: looks.map(lookLine).join('\n'),
     ...(looks.length >= 2
       ? {
           multiLook: true,
           transitions: availableTransitionStyles(looks).map(transitionLine).join('\n'),
+          ...budget,
         }
       : { singleLook: true }),
   };
@@ -108,9 +122,12 @@ export function criticLookVars(
   if (mode === 'voxel-only') return {};
   const look = getLook(shotLook(shot), looks) ?? voxelLook;
   const rules = CRITIC_LOOK_RULES[look.id] ?? `${look.label}: ${look.description}.`;
+  // A planned source chip (PLAN.md#12.18) is not a watermark (real run 2.3: flagged off-intent).
+  const chip = shot.annotations?.find((entry) => entry.kind === 'source-chip');
   return {
     lookId: look.id,
     lookRules: rules,
     ...(shot.roll === undefined ? {} : { roll: shot.roll }),
+    ...(chip === undefined ? {} : { sourceChip: (chip.text ?? 'NAME').toUpperCase() }),
   };
 }

@@ -49,8 +49,11 @@ const GOLDENS: readonly (readonly [PaperSetup, readonly number[]])[] = [
 const PERF_SETUPS: readonly PaperSetup[] = ['dusk', 'city', 'room', 'stack'];
 const PERF_FRAMES = 30;
 const MIN_FPS = 30;
-/** SwiftShader (CI) is CPU-bound: a floor only. */
-const SWIFTSHADER_MIN_FPS = 10;
+/**
+ * SwiftShader is CPU-bound and its speed depends on the machine (CI runners ~7 fps): an
+ * informational floor that only catches a broken render loop, like the kit perf tests.
+ */
+const SWIFTSHADER_MIN_FPS = 3;
 const SUITE_TIMEOUT = 600_000;
 
 let browser: HarnessBrowser;

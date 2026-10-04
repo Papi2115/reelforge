@@ -1,4 +1,5 @@
 import { defineLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
+import { renderPrompt } from '@reelforge/prompts';
 import {
   lookIdSchema,
   TRANSITION_STYLE_LIST,
@@ -92,6 +93,19 @@ describe('look mode plumbing', () => {
     expect(storyboardLookVars('mixed', [voxelLook])).not.toHaveProperty('transitions');
   });
 
+  it('gives a multi-look storyboard its budget of non-cut transitions (real run 2.3)', () => {
+    expect(storyboardLookVars('mixed', [voxelLook, testLook], 139)).toMatchObject({
+      maxTransitions: '7',
+    });
+    expect(storyboardLookVars('mixed', [voxelLook], 139)).not.toHaveProperty('maxTransitions');
+    expect(storyboardLookVars('voxel-only', undefined, 139)).toEqual({});
+    const prompt = renderPrompt('storyboard', {
+      styleId: 'voxel-pixel-crisp640',
+      ...storyboardLookVars('mixed', [voxelLook, testLook], 139),
+    });
+    expect(prompt.ok && prompt.value).toContain('at most 7 non-cut transitions in this film');
+  });
+
   it("hands the scene build the shot's look docs; unknown looks build as voxel", () => {
     expect(sceneLookVars('mixed', SHOT)).toEqual({ lookId: 'voxel', lookDocs: voxelLook.docs });
     expect(sceneLookVars('mixed', { ...SHOT, look: 'test-look' }, [voxelLook, testLook])).toEqual({
@@ -129,6 +143,28 @@ describe('look mode plumbing', () => {
       lookRules: 'Test look: a look that exists only in tests.',
     });
     for (const look of listLooks()) expect(CRITIC_LOOK_RULES[look.id], look.id).toBeDefined();
+  });
+
+  it('tells the critic about a planned source chip (real run 2.3: flagged as a watermark)', () => {
+    const chip = {
+      ...SHOT,
+      look: 'whiteboard',
+      annotations: [
+        { kind: 'source-chip', phrase: 'eight weeks', text: 'righto.com', reason: 'claim' },
+      ],
+    } satisfies StoryboardShot;
+    const vars = criticLookVars('mixed', chip);
+    expect(vars).toMatchObject({ sourceChip: 'RIGHTO.COM' });
+    expect(criticLookVars('voxel-only', chip)).toEqual({});
+    const prompt = renderPrompt('critic', {
+      imagePaths: 'a.png',
+      intent: 'x',
+      styleId: 'voxel-pixel-crisp640',
+      ...vars,
+    });
+    expect(prompt.ok && prompt.value).toContain(
+      '"SOURCE: RIGHTO.COM" plate in a corner is intended',
+    );
   });
 
   it('keeps every look module in line with the storyboard schema', () => {

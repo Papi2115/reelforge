@@ -19,6 +19,7 @@ import {
   claimsReport,
   mergeClaims,
   researchClaimSources,
+  researchSourceExcerpts,
   scriptSentences,
   textFingerprint,
   type ClaimsFile,
@@ -77,7 +78,10 @@ export async function checkSources(
   const sentences = scriptSentences(script.value);
   if (sentences.length === 0) return err('There is no script yet: write the script first.');
   const sources = researchClaimSources(research.value);
-  const prompt = renderPrompt('claims', claimsPromptVars(sentences, sources));
+  const prompt = renderPrompt(
+    'claims',
+    claimsPromptVars(sentences, sources, researchSourceExcerpts(research.value)),
+  );
   if (!prompt.ok) return err(`The claims prompt could not be rendered (${prompt.error.kind}).`);
   const turn = await options.claude.run(
     {

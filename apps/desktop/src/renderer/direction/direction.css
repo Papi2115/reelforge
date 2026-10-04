@@ -1,21 +1,30 @@
-/* Live co-direction command bar under the preview (PLAN.md#12.14). */
+/*
+ * Live co-direction command bar under the preview (PLAN.md#12.14). One line of fixed height, so
+ * the picture keeps its integer scale (a 1280x720 window still shows the 640x360 frame at 1x):
+ * the hint chips or the status share the line with the input, the history opens above the bar.
+ */
 .command-bar {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 10px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  /* Very narrow previews cut the line's end; the history popover above stays visible. */
+  overflow-x: clip;
   border-top: 1px solid var(--border-soft);
   background: var(--panel);
 }
 
+/* The form's controls are items of the bar itself, so the input can give way to a status. */
 .command-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: contents;
 }
 
 .command-shot {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 4px;
   min-width: 3.5em;
@@ -33,30 +42,58 @@
 }
 
 .command-input {
-  flex: 1;
-  min-width: 0;
+  /* Grows up to 300 px into free room; a status shrinks only once the input is at its minimum. */
+  flex: 1 1 0;
+  min-width: 120px;
+  max-width: 300px;
+  padding: 2px 8px;
+  font-size: 12px;
 }
 
+.command-bar .small-button {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* Chips that do not fit wrap onto a clipped second line: the bar never grows. */
 .command-chips {
   display: flex;
+  flex: 1 1 0;
   flex-wrap: wrap;
   gap: 4px;
+  min-width: 0;
+  height: 20px;
+  overflow: hidden;
 }
 
 .command-chip {
-  padding: 1px 8px;
+  height: 20px;
+  padding: 0 8px;
   border-radius: 10px;
   font-size: 12px;
+  line-height: 18px;
   color: var(--muted);
+  white-space: nowrap;
 }
 
+/* A status takes its room from the input first (down to its minimum width). */
 .command-status {
   display: flex;
-  flex-wrap: wrap;
+  flex: 0 1 auto;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   margin: 0;
   font-size: 12px;
+}
+
+/* A long status is cut with an ellipsis; the whole text is in its tooltip. */
+.command-status-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .command-status-applied,
@@ -73,11 +110,20 @@
   color: var(--warn);
 }
 
+/* Opens above the bar, over the transport and the picture, like a menu. */
 .command-history {
-  max-height: 140px;
+  position: absolute;
+  right: 10px;
+  bottom: calc(100% + 4px);
+  z-index: 5;
+  width: min(420px, calc(100% - 20px));
+  max-height: 180px;
   margin: 0;
-  padding-left: 20px;
+  padding: 6px 10px 6px 28px;
   overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: rgb(13 14 18 / 96%);
   font-size: 12px;
 }
 
