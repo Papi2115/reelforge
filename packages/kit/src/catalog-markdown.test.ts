@@ -18,6 +18,9 @@ describe('kitCatalogMarkdown', () => {
     expect(markdown).toContain('- `keypad`: centre of the keypad');
     expect(markdown).toContain('### `kit.env.neonGrid(params)`');
     expect(markdown).toContain('| `fromGrid(');
+    expect(markdown).toContain('## Characters (`kit.cast`)');
+    for (const entry of catalog.cast)
+      expect(markdown).toContain(`### \`kit.cast.${entry.name}(params)\``);
     expect(markdown.endsWith('\n')).toBe(true);
   });
 

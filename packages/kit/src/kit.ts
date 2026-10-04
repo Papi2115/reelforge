@@ -3,6 +3,7 @@
  * `handle.api` as `ctx.kit`). Three.js comes in through the options, so the kit bundled into the
  * sandboxed engine frame uses the engine's single Three instance and has no imports of its own.
  */
+import { CAST_DEFINITIONS, createCastApi, type CastApi } from './characters/index.js';
 import { createKitContext } from './context.js';
 import { ENV_DEFINITIONS } from './env/index.js';
 import { checkExtensionNames } from './extensions.js';
@@ -31,6 +32,8 @@ export interface KitApi {
   readonly env: BoundRegistry<typeof ENV_DEFINITIONS>;
   readonly props: BoundRegistry<typeof PROP_DEFINITIONS>;
   readonly fx: BoundRegistry<typeof FX_DEFINITIONS>;
+  /** The character pack (mascots, cast, mannequin, role specs; voxel look). */
+  readonly cast: CastApi;
 }
 
 export interface KitOptions {
@@ -66,7 +69,7 @@ export interface KitHandle {
   dispose(): void;
 }
 
-export { ENV_DEFINITIONS, FX_DEFINITIONS, PROP_DEFINITIONS };
+export { CAST_DEFINITIONS, ENV_DEFINITIONS, FX_DEFINITIONS, PROP_DEFINITIONS };
 
 export function createKit(options: KitOptions): KitHandle {
   const context = createKitContext(options.three, options.palette, options.rng, options.variation);
@@ -94,7 +97,8 @@ export function createKit(options: KitOptions): KitHandle {
     ...bindRegistry(context, voxel, FX_DEFINITIONS),
     ...bindRegistry(context, voxel, definitionsOf('fx')),
   });
-  const api: KitApi = Object.freeze({ version: KIT_VERSION, voxel, env, props, fx });
+  const cast = createCastApi(bindRegistry(context, voxel, CAST_DEFINITIONS, 'cast'));
+  const api: KitApi = Object.freeze({ version: KIT_VERSION, voxel, env, props, fx, cast });
   return {
     api,
     seal() {
@@ -121,6 +125,8 @@ export interface KitCatalog {
   readonly env: readonly KitCatalogEntry[];
   readonly props: readonly KitCatalogEntry[];
   readonly fx: readonly KitCatalogEntry[];
+  /** The character pack, `kit.cast.<name>` (voxel look; details: kit-docs characters). */
+  readonly cast: readonly KitCatalogEntry[];
 }
 
 /**
@@ -146,5 +152,6 @@ export function kitCatalog(
       ...projectProps,
     ],
     fx: [...catalogEntries(FX_DEFINITIONS, VOXEL_LOOK_ID), ...lookEntries('fx')],
+    cast: catalogEntries(CAST_DEFINITIONS, VOXEL_LOOK_ID),
   };
 }

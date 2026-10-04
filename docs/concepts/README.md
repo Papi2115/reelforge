@@ -1,7 +1,8 @@
 # Character concepts (parked for 2.0.5-test)
 
-Status: **concept only, not part of any release** (decided 2026-10-03). Nothing here is wired into `packages/kit`.
-To be picked up later in a separate chat as the experimental build **2.0.5-test**.
+Status: **ported** (2026-10-04, ReelForge 2.3.5, PLAN.md#12.20 part 1): the mascots, the side cast, the mannequin,
+the 8 poses and the expressions live in `packages/kit/src/characters/` as `kit.cast` (docs/characters.md, ADR-024).
+This page stays the design reference (look, proportions, palettes, poses).
 
 ## What is here
 - `characters.html` — standalone, offline 3D gallery (open by double-click). Tabs: Maskotki / Obsada / Manekin / Porównanie.

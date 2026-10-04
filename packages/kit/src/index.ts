@@ -17,6 +17,26 @@ export {
 } from './assets/index.js';
 
 export {
+  CAST,
+  castListing,
+  charactersDocs,
+  EXPRESSIONS,
+  MASCOTS,
+  POSES,
+  roleSpecSchema,
+  validateRoleSpec,
+  type CastApi,
+  type CastId,
+  type CastListingEntry,
+  type CharacterObject,
+  type Expression,
+  type MascotId,
+  type PoseName,
+  type RoleSpec,
+  type RoleSpecInput,
+  type RoleSpecResult,
+} from './characters/index.js';
+export {
   GRID_VARIANTS,
   LIGHT_RIGS,
   SKY_STYLES,
@@ -35,6 +55,7 @@ export {
   type ScreenPixels,
 } from './fx/index.js';
 export {
+  CAST_DEFINITIONS,
   createKit,
   ENV_DEFINITIONS,
   FX_DEFINITIONS,

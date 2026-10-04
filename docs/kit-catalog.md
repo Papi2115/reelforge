@@ -1195,6 +1195,148 @@ Voxel text label in the kit font (caps; signs, 3D captions, chart titles), optio
 | `plateColor` | string | `"shadow"` | Plate colour (palette name) |
 | `at` | number |  | Local time the label pops in (default: always visible) |
 
+## Characters (`kit.cast`)
+
+The character pack (ADR-024, docs/characters.md): scenes call the positional forms
+`kit.cast.mascot('bulb', params)`, `kit.cast.person('engineer', params)`, `kit.cast.mannequin(params)`,
+`kit.cast.role(spec, params)`; the params below include the id / spec. Details and the role-spec
+vocabulary: `reelforge kit-docs characters`.
+
+### `kit.cast.mascot(params)`
+
+![mascot](kit-catalog/mascot.png)
+
+A mascot of the pack (~2 units tall, faces +z): bulb (channel mascot, glows on "eureka"), screen, fox, bean; 8 poses, 7 expressions with blinking.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | "bulb" \| "screen" \| "fox" \| "bean" |  | Which mascot |
+| `expression` | "auto" \| "neutral" \| "joy" \| "curious" \| "surprised" \| "thinking" \| "sceptical" \| "alarm" | `"auto"` | Face from t = 0 (auto = what the pose suggests); later: .expression(name, { at }) |
+| `light` | boolean | `true` | Bulb: a point light while it glows |
+| `pose` | "calm" \| "wave" \| "think" \| "point" \| "shrug" \| "joy" \| "walk" \| "eureka" | `"calm"` | Pose from t = 0; later changes: .pose(name, { at }) |
+| `energy` | number (0..1) |  | Personality 0..1: anticipation, overshoot, head tilts (default: mascots 1, cast 0.45, mannequin 0.25) |
+| `seed` | integer (0..999) |  | Phase of idle glances and blinks (default: per call) |
+| `scale` | number | `1` | Uniform size multiplier (1 = catalog size) |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `head`: top of the head (follows the pose)
+- `face`: centre of the face (follows the pose)
+- `hand`: the hand that holds the prop (right without one)
+- `handL`: left hand
+- `handR`: right hand
+- `prop`: centre of the held prop (the hand without one)
+- `feet`: between the feet (follows jumps)
+
+Methods:
+
+- `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
+- `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
+- `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
+- `walkEnd()`: time the last queued walk arrives
+
+### `kit.cast.person(params)`
+
+![person](kit-catalog/person.png)
+
+A side-cast member (~1.7 units tall, faces +z): scientist, doctor, engineer, finance, teacher, historian, kid, hacker, detective, astronaut; same 8 poses, blinking dot eyes.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | "scientist" \| "doctor" \| "engineer" \| "finance" \| "teacher" \| "historian" \| "kid" \| "hacker" \| "detective" \| "astronaut" |  | Which cast member |
+| `held` | "none" \| "flask" \| "clipboard" \| "wrench" \| "briefcase" \| "pointer" \| "scroll" \| "tablet" \| "magnifier" \| "hammer" \| "hose" \| "axe" \| "microphone" \| "laptop" \| "book" \| "phone" \| "spatula" |  | Swap the held prop (default: the member's own) |
+| `hand` | "left" \| "right" |  | Hand that holds it (default: the prop's) |
+| `pose` | "calm" \| "wave" \| "think" \| "point" \| "shrug" \| "joy" \| "walk" \| "eureka" | `"calm"` | Pose from t = 0; later changes: .pose(name, { at }) |
+| `energy` | number (0..1) |  | Personality 0..1: anticipation, overshoot, head tilts (default: mascots 1, cast 0.45, mannequin 0.25) |
+| `seed` | integer (0..999) |  | Phase of idle glances and blinks (default: per call) |
+| `scale` | number | `1` | Uniform size multiplier (1 = catalog size) |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `head`: top of the head (follows the pose)
+- `face`: centre of the face (follows the pose)
+- `hand`: the hand that holds the prop (right without one)
+- `handL`: left hand
+- `handR`: right hand
+- `prop`: centre of the held prop (the hand without one)
+- `feet`: between the feet (follows jumps)
+
+Methods:
+
+- `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
+- `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
+- `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
+- `walkEnd()`: time the last queued walk arrives
+
+### `kit.cast.mannequin(params)`
+
+![mannequin](kit-catalog/mannequin.png)
+
+Neutral cream mannequin (~2 units tall, faces +z) with ball joints, no face; realistic proportions for anatomy and diagrams; same 8 poses.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `pose` | "calm" \| "wave" \| "think" \| "point" \| "shrug" \| "joy" \| "walk" \| "eureka" | `"calm"` | Pose from t = 0; later changes: .pose(name, { at }) |
+| `energy` | number (0..1) |  | Personality 0..1: anticipation, overshoot, head tilts (default: mascots 1, cast 0.45, mannequin 0.25) |
+| `seed` | integer (0..999) |  | Phase of idle glances and blinks (default: per call) |
+| `scale` | number | `1` | Uniform size multiplier (1 = catalog size) |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `head`: top of the head (follows the pose)
+- `face`: centre of the face (follows the pose)
+- `hand`: the hand that holds the prop (right without one)
+- `handL`: left hand
+- `handR`: right hand
+- `prop`: centre of the held prop (the hand without one)
+- `feet`: between the feet (follows jumps)
+
+Methods:
+
+- `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
+- `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
+- `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
+- `walkEnd()`: time the last queued walk arrives
+
+### `kit.cast.role(params)`
+
+![role](kit-catalog/role.png)
+
+A person built from a role spec (body, skin, hair, headgear, top + layers, legs, shoes, accessories, held prop; <= 4 outfit colours) in the cast style: new professions as siblings of the pack.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `spec` | object |  | Role spec (reelforge kit-docs characters) |
+| `pose` | "calm" \| "wave" \| "think" \| "point" \| "shrug" \| "joy" \| "walk" \| "eureka" | `"calm"` | Pose from t = 0; later changes: .pose(name, { at }) |
+| `energy` | number (0..1) |  | Personality 0..1: anticipation, overshoot, head tilts (default: mascots 1, cast 0.45, mannequin 0.25) |
+| `seed` | integer (0..999) |  | Phase of idle glances and blinks (default: per call) |
+| `scale` | number | `1` | Uniform size multiplier (1 = catalog size) |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `head`: top of the head (follows the pose)
+- `face`: centre of the face (follows the pose)
+- `hand`: the hand that holds the prop (right without one)
+- `handL`: left hand
+- `handR`: right hand
+- `prop`: centre of the held prop (the hand without one)
+- `feet`: between the feet (follows jumps)
+
+Methods:
+
+- `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
+- `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
+- `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
+- `walkEnd()`: time the last queued walk arrives
+
 ## Look `retro-ui`: Retro UI / CRT
 
 retro-OS windows, terminals, browsers, documents and CRT screens with scanlines (proof on a screen or on paper).

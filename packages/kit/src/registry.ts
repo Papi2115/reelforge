@@ -138,15 +138,19 @@ function formatIssues(error: z.ZodError): string {
     .join('; ');
 }
 
-/** Binds definitions to a kit instance: validation, build-phase guard and per-call rng. */
+/**
+ * Binds definitions to a kit instance: validation, build-phase guard and per-call rng.
+ * `namespace` overrides the scene-facing namespace of the calls (`kit.cast.*` binds props).
+ */
 export function bindRegistry<const Definitions extends readonly KitDefinition[]>(
   context: KitContext,
   voxel: VoxelApi,
   definitions: Definitions,
+  namespace?: string,
 ): BoundRegistry<Definitions> {
   const calls = new Map<string, number>();
   const factories = definitions.map((definition) => {
-    const call = `kit.${NAMESPACE[definition.kind]}.${definition.name}()`;
+    const call = `kit.${namespace ?? NAMESPACE[definition.kind]}.${definition.name}()`;
     const factory = (params?: unknown): unknown => {
       context.assertBuildPhase(call);
       const parsed = definition.params.safeParse(params ?? {});
