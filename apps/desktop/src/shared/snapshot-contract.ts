@@ -130,7 +130,12 @@ export const projectSnapshotResultSchema = z.discriminatedUnion('status', [
 export type ProjectSnapshotResult = z.infer<typeof projectSnapshotResultSchema>;
 
 export const projectManifestResultSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('ready'), manifest: renderManifestSchema }),
+  z.object({
+    status: z.literal('ready'),
+    manifest: renderManifestSchema,
+    /** Preview only: shots without a built scene, shown as placeholder cards. Absent = none. */
+    placeholderShots: z.array(z.string()).optional(),
+  }),
   /** The Storyboard stage has not run yet. */
   z.object({ status: z.literal('no-storyboard') }),
   /** Files exist but cannot become a video (invalid file, missing scene, …). */
