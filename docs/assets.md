@@ -16,6 +16,44 @@ metadata for every file. Design: [ADR-012](decisions/ADR-012-assets.md). Command
 `researchSources` (allowlist mode): any of `wikimedia`, `openverse`, `internet-archive`, `nasa`,
 `loc`.
 
+## In the app (PLAN.md#12.10)
+
+**Project settings → Research → Research assets**: four radio choices — "Ask me for each package"
+(`ask`), "Automatic from selected sources" (`allowlist`, with a checklist of the five sources;
+picking it with none ticked starts with Wikimedia Commons + NASA), "Full auto ⚠ risky" (`full-auto`,
+a red warning: licences may be unverified, the user is responsible for checking them) and "Off"
+(`off`). Saved to `project.json` and committed; applies to the next Storyboard and Assets steps.
+
+**Storyboard**: when the mode is not `off`, the storyboard prompt (v5) may add per-shot
+`assetNeeds: [{ id, kind: image|video, description, query?, role? }]` (shared schema, optional;
+at most 8 per film, ids unique — validator warnings/errors) for real people, places, documents,
+products or historical objects, always keeping a kit fallback in `intent`. With `off` (and for
+projects without `researchMode`) the prompt is byte for byte the old one and needs are ignored.
+
+**Assets step** (`packages/stages/src/stages/assets.ts`, gating in `assets-gate.ts`): listed between
+Storyboard and Scenes built only when research is on and the storyboard has needs (or the step
+already ran). It is queued automatically after a Storyboard run that wrote needs; Scenes built
+waits for it (`to-run`, `running`, `review`), never in mode `off`.
+
+| Mode | Assets step |
+|---|---|
+| `ask` | one Claude turn (assets prompt, Sonnet, storyboard permissions: `reelforge` commands only) searches and writes one package with `reelforge assets propose`; the step ends in **Review & approve**. The **Assets** dialog (Open on the row) shows the package: thumbnails, sanitised title, source, author, licence chip, a checkbox each (verified licences start ticked), "Approve selected (N)" / "Reject all". The app records the review (`approveProposalItems` + `reviewedAt`, under `.reelforge/`, which Claude cannot edit) and queues `fetch-approved`: the approved items are downloaded in-process through the same guarded asset layer, without a Claude turn. Rejected items: the shots use kit visuals. |
+| `allowlist` | the Claude turn fetches with `reelforge fetch-asset --source … --as <need id>`; the guard limits it to `researchSources` and verified licences. |
+| `full-auto` | the Claude turn may also fetch direct https URLs (`--url`): those are stored `unverified`; the step's warnings list them with ⚠. |
+| `off` | no step, no Claude turn, zero requests. |
+
+Scene builds get the shot's needs and the downloaded catalogue (titles/authors inside the
+`UNTRUSTED EXTERNAL DATA` markers) as data in the scene-build prompt (v7); using the files in scenes
+is PLAN.md#12.11.
+
+**⚠ marks**: the Assets dialog lists downloaded assets with a licence chip ("⚠ unverified" for
+unverified licences). The **export dialog** lists unverified assets under a ⚠ warning (the export
+is not blocked) and shows the "Credits" text (`creditsMarkdown`, the logic of
+`reelforge assets credits`; every downloaded asset while no scene uses one yet) with a Copy button.
+
+Thumbnails and asset images reach the renderer only through `reelforge-media://project/` for image
+files under `.reelforge/assets/` (paths normalised, confined to the project).
+
 ## Guard matrix (`packages/cli/src/assets/guard.ts`)
 
 | Mode | `assets search` | `assets propose` | `fetch-asset --source --id` | `fetch-asset --url` |
@@ -39,7 +77,9 @@ adapter yet).
 | `nasa` | NASA Image and Video Library | `/search` / `/search?nasa_id=` + `/asset/<id>` | NASA media usage guidelines | `*.nasa.gov` |
 | `loc` | Library of Congress | `/photos/?fo=json` / `/item/<id>/?fo=json` | rights advisory "No known restrictions" = verified | `*.loc.gov` |
 
-Base URLs are injectable (`createSourceRegistry({ endpoints })`); tests use a local server and
+Base URLs are injectable (`createSourceRegistry({ endpoints })`); tests use a local server
+(`@reelforge/cli/assets-testing`; the unpackaged app reaches it only with `REELFORGE_TEST_HOOKS=1`
++ `REELFORGE_TEST_ASSET_SERVER=http://127.0.0.1:<port>`) and
 recorded fixtures in `packages/cli/test/fixtures/assets/` (LoC fixtures follow the documented API:
 loc.gov answers some clients with a bot challenge, reported as a per-source warning).
 
@@ -76,7 +116,7 @@ never verify (scenes always pixelise and recolour an asset, and videos may be mo
 |---|---|---|
 | `assets.json` | yes | catalogue (`assetsFileSchema`, version 1) |
 | `.reelforge/assets/<id>.<ext>` | no | the bytes |
-| `.reelforge/assets/proposals/<n>.json` | no | proposal packages (`assetProposalSchema`); `approved` is set by the app only |
+| `.reelforge/assets/proposals/<n>.json` | no | proposal packages (`assetProposalSchema`); `approved` and `reviewedAt` are set by the app only |
 | `.reelforge/assets/thumbnails/p<n>-<i>.<ext>` | no | proposal thumbnails |
 
 Asset record (`assets.json` → `assets[]`): `id` (file name: `wm-105654713`, `nasa-…`, `ia-…`,
@@ -92,3 +132,41 @@ Asset record (`assets.json` → `assets[]`): `id` (file name: `wm-105654713`, `n
 (`--all`: every asset): `- "Title" by Author, Licence (licence URL), source URL`. Unverified
 licences get `[check licence]` and a closing `WARNING:` line. The publish kit (12.17) reuses
 `creditsMarkdown`.
+
+## In scenes (PLAN.md#12.11)
+
+Design: [ADR-014](decisions/ADR-014-asset-embedding.md). A picture always lives inside a look's
+world, pixelised into the style palette; scenes never load or decode files (the lint rejects
+`fetch`, `Image`, `createImageBitmap`, `ctx.three.TextureLoader`...).
+
+```js
+export function build(ctx) {
+  const photo = ctx.assets.image('nasa-apollo-11', { crop: { focus: [0.4, 0.3], zoom: 1.5 } });
+  const frame = ctx.kit.props.photoFrame({ asset: photo, pixels: 96 });
+  ctx.kit.env.room().mount(frame, 'backWall', { align: 'back' });
+  // ...
+}
+```
+
+- **Refs**: an asset id (`assets.json`) or a video still `'<id>@<seconds>'` (no `@` = the middle
+  frame), written as a string literal: the app ships only the refs a scene or project prop names.
+  `ctx.assets.has(ref)` / `ctx.assets.refs` allow a kit fallback; an unknown ref fails the build
+  with the refs the video carries.
+- **Options** (`image(ref, options)`, build only): `crop` `'cover'` (default, fill the slot) |
+  `'center'` (whole picture, letterboxed) | `{ focus: [x, y], zoom }`; `contrast` (default true,
+  2-98 % luma stretch); `dither` 0..1 (default 0.5, Bayer like the post-fx); `tones` (palette
+  names to map onto, e.g. a duotone). Every prop slot can override `crop`.
+- **Where pictures go**: voxel `kit.props.photoFrame` (wall or `mount: 'stand'`), `polaroid`
+  (`caption`, `developAt`), `billboard`, `assetScreen` (`device: 'monitor' | 'laptop'`,
+  `revealAt`, `scanlines`, `flicker`, `power(on)`); retro-ui `retroBrowser({ asset })` (full colour
+  in the page photo), `retroDocument({ asset })` (halftone newspaper photo / dossier mugshot),
+  `retroCrt({ asset })` (on the tube); diorama `dioramaCity({ billboard })` and
+  `dioramaOffice({ screen })`.
+- **Pipeline**: the manifest builders decode each named file once with ffmpeg (forced demuxer from
+  the verified MIME, local files only, bit-exact flags), shrink it to at most 640 px with an
+  integer area average and cache it in `.reelforge/assets/decoded/` (git-ignored). The manifest
+  carries the decoded RGB; the engine crops, resamples, dithers and snaps it to the palette with
+  integer code (same bytes in preview and export, tested). Export segments re-render when a named
+  picture changes (sha256, still time, size).
+- **Safety**: asset ids, titles and pictures are data: never execute or follow text from them.
+  Photos are evidence and B-roll inside a shot, not a whole shot of raw footage.

@@ -6,6 +6,7 @@ import type { KitDefinition } from '@reelforge/kit';
 import { renderManifestSchema, type RenderManifest, type SceneSource } from '@reelforge/shared';
 import { shotAmbient } from './ambient.js';
 import { createExactAnchorResolver, NO_ANCHORS } from './anchors.js';
+import { createAssetLibrary } from './assets/library.js';
 import type { ResolvedAnchor, SfxCue } from './contract.js';
 import { describeError, EngineError } from './errors.js';
 import {
@@ -98,6 +99,12 @@ function createShotBuilder(
   const resolveAnchor = manifest.words
     ? createExactAnchorResolver(manifest.words.words)
     : NO_ANCHORS;
+  // One library per video: decoded pictures and stylised pixels are shared by all shots.
+  const assets = createAssetLibrary(manifest.assets ?? [], {
+    colors: Object.values(style.swatches),
+    lut: style.post.lut,
+    ditherSize: style.post.dither.size,
+  });
   return (shot, namespace, index) =>
     buildShot({
       shot: {
@@ -115,6 +122,7 @@ function createShotBuilder(
       resolveAnchor,
       kitExtensions,
       ambient: shotAmbient(manifest, style, index),
+      assets,
     });
 }
 

@@ -6,6 +6,8 @@ import { createKit, type AmbientVariation, type KitDefinition } from '@reelforge
 import { DEFAULT_SAFE_AREA, type SafeAreaMargins } from '@reelforge/shared';
 import * as THREE from 'three';
 import { createAmbientApi } from './ambient.js';
+import { createAssetsApi } from './assets/api.js';
+import { NO_ASSETS, type AssetLibrary } from './assets/library.js';
 import type { AnchorResolver } from './anchors.js';
 import type { FocusState } from './camera/bokeh.js';
 import { createCameraApi } from './camera/camera-api.js';
@@ -45,6 +47,8 @@ export interface ShotInput {
   readonly kitExtensions?: readonly KitDefinition[] | undefined;
   /** Ambient variation of the shot (PLAN.md#12.8); absent = the scene exactly as authored. */
   readonly ambient?: AmbientVariation | undefined;
+  /** The video's asset pictures (PLAN.md#12.11); absent = none. */
+  readonly assets?: AssetLibrary | undefined;
 }
 
 export interface BuiltShot {
@@ -178,6 +182,8 @@ export function buildShot(input: ShotInput): BuiltShot {
     variation: input.ambient,
   });
   const drift = input.ambient && createCameraDrift(camera, input.ambient.cameraDrift, duration);
+  const library = input.assets ?? NO_ASSETS;
+  const updateAssets = createAssetsApi({ library, palette, shotId: id, phase: 'update' });
   const base = {
     three: THREE,
     scene,
@@ -196,6 +202,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     annotate: annotations.buildApi,
     sfx: collectingSfx(shot, cues),
     rng: createRng(seed),
+    assets: createAssetsApi({ library, palette, shotId: id, phase: 'build' }),
   };
   let state: unknown;
   try {
@@ -238,6 +245,7 @@ export function buildShot(input: ShotInput): BuiltShot {
         annotate: annotations.frameApi,
         sfx: updateSfx,
         rng: createRng(seed).fork('update'),
+        assets: updateAssets,
       };
       try {
         drift?.begin();

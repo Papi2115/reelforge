@@ -319,6 +319,7 @@ export {
 } from './export/frame-source.js';
 export {
   SEGMENT_CACHE_VERSION,
+  assetInputs,
   extractAnchorUses,
   segmentCacheKey,
   stableStringify,
@@ -374,3 +375,27 @@ export {
   type ExportResult,
   type ExportVideoOptions,
 } from './export/export-video.js';
+export {
+  ASSET_DECODE_VERSION,
+  ASSET_DEMUXERS,
+  DECODED_ASSETS_DIR,
+  decodeArgs,
+  decodeAsset,
+  decodedFileName,
+  parseDuration,
+  type DecodeAssetInput,
+  type DecodedAsset,
+} from './assets/decode.js';
+export {
+  loadManifestAssets,
+  locateAssetFfmpeg,
+  type ManifestAssetsInput,
+} from './assets/manifest-assets.js';
+export {
+  decodePam,
+  encodePam,
+  fittedSize,
+  normalizeRaster,
+  type RasterImage,
+} from './assets/pixels.js';
+export { refAt, refId, refLiterals, referencedAssetRefs } from './assets/refs.js';

@@ -5,6 +5,18 @@
 export const packageName = '@reelforge/kit';
 
 export {
+  ASSET_CROP_MODES,
+  assetCropSchema,
+  isAssetImage,
+  type AssetCrop,
+  type AssetCropMode,
+  type AssetFocusCrop,
+  type AssetImage,
+  type AssetPictureOptions,
+  type AssetPixels,
+} from './assets/index.js';
+
+export {
   GRID_VARIANTS,
   LIGHT_RIGS,
   SKY_STYLES,

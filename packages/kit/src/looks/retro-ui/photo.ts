@@ -1,11 +1,15 @@
 /**
  * Placeholder pictures and body copy for the retro-UI templates: procedural "photos" (a value
  * field per kind, Bayer-dithered onto a ramp of colour roles: halftone newsprint, web JPEGs,
- * mugshots) and greeked text lines. Pure in (area, kind, seed); asset photos arrive in 2.1.
+ * mugshots) and greeked text lines. Pure in (area, kind, seed). Real asset pictures (PLAN.md#12.11)
+ * replace a placeholder when a template gets `asset`: by luminance onto the same ramps, or in full
+ * colour onto the look's roles.
  */
+import type { AssetImage } from '../../assets/handle.js';
 import { hashCell } from '../../env/shared.js';
 import { smoothNoise } from '../../fx/shared.js';
 import { ditherPick, fillRect, type PixelCanvas, type Rect } from './canvas.js';
+import { ROLE_NAMES, type RoleColors } from './colors.js';
 
 export const PHOTO_KINDS = ['landscape', 'portrait', 'city', 'crowd'] as const;
 export type PhotoKind = (typeof PHOTO_KINDS)[number];
@@ -94,6 +98,71 @@ export function drawPhoto(
       const w = Math.min(block, area.x + area.w - x);
       const h = Math.min(block, area.y + area.h - y);
       fillRect(canvas, { x, y, w, h }, color);
+    }
+  }
+}
+
+/** `#rrggbb` of every role (list index i = canvas index i + 1), for full-colour asset photos. */
+export function roleHexes(colors: RoleColors): string[] {
+  return ROLE_NAMES.map((_, position) => {
+    const at = (position + 1) * 4;
+    const value =
+      ((colors.rgba[at] ?? 0) << 16) |
+      ((colors.rgba[at + 1] ?? 0) << 8) |
+      (colors.rgba[at + 2] ?? 0);
+    return `#${value.toString(16).padStart(6, '0')}`;
+  });
+}
+
+/** Fills the `block` x `block` cell at (x, y) clipped to `area`. */
+function fillBlock(
+  canvas: PixelCanvas,
+  area: Rect,
+  x: number,
+  y: number,
+  block: number,
+  color: number,
+): void {
+  const w = Math.min(block, area.x + area.w - x);
+  const h = Math.min(block, area.y + area.h - y);
+  fillRect(canvas, { x, y, w, h }, color);
+}
+
+/**
+ * An asset picture (PLAN.md#12.11) in `area`, Bayer-dithered onto `ramp` (dark -> light role
+ * indices) by its luminance: newsprint halftone, mugshots. `block` > 1 = interlaced loading.
+ */
+export function drawAssetTones(
+  canvas: PixelCanvas,
+  area: Rect,
+  asset: AssetImage,
+  ramp: readonly number[],
+  block = 1,
+): void {
+  if (area.w < 1 || area.h < 1) return;
+  const lum = asset.luminance(area.w, area.h);
+  for (let y = area.y; y < area.y + area.h; y += block) {
+    for (let x = area.x; x < area.x + area.w; x += block) {
+      const value = (lum[(y - area.y) * area.w + (x - area.x)] ?? 0) / 255;
+      fillBlock(canvas, area, x, y, block, ditherPick(x, y, value, ramp));
+    }
+  }
+}
+
+/** An asset picture in `area` in full colour: the engine maps it onto the look's roles. */
+export function drawAssetColor(
+  canvas: PixelCanvas,
+  area: Rect,
+  asset: AssetImage,
+  colors: RoleColors,
+  block = 1,
+): void {
+  if (area.w < 1 || area.h < 1) return;
+  const pixels = asset.pixels(area.w, area.h, { colors: roleHexes(colors) });
+  for (let y = area.y; y < area.y + area.h; y += block) {
+    for (let x = area.x; x < area.x + area.w; x += block) {
+      const index = pixels.indices[(y - area.y) * area.w + (x - area.x)] ?? 0;
+      fillBlock(canvas, area, x, y, block, index + 1);
     }
   }
 }

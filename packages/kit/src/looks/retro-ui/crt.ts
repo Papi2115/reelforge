@@ -5,6 +5,7 @@
  * flicker and power on/off; without a child it shows text, colour bars or a photo.
  */
 import { z } from 'zod';
+import { assetParam } from '../../assets/handle.js';
 import { defineProp, type KitTools } from '../../registry.js';
 import type { VoxelColor } from '../../voxel/model.js';
 import {
@@ -18,7 +19,7 @@ import {
 import { C, CRT_TINTS, resolveRoles, tintMap, type RoleColors } from './colors.js';
 import { paintTube, powerState, tubePoint } from './crt-screen.js';
 import { pixelParam, seedParam } from './marks.js';
-import { drawPhoto, PHOTO_KINDS } from './photo.js';
+import { drawAssetColor, drawPhoto, PHOTO_KINDS } from './photo.js';
 import { adoptChild, createSurface, type AnchorMap, type RetroPainter } from './surface.js';
 
 const DENSITY = 2;
@@ -47,14 +48,26 @@ export const retroCrtParams = z.object({
     .describe('Shown when no child: text, colour bars, photo'),
   text: z.array(z.string().max(20)).max(4).default(['NO SIGNAL']).describe('Text content lines'),
   photo: z.enum(PHOTO_KINDS).default('portrait').describe('Photo content kind'),
+  asset: assetParam
+    .optional()
+    .describe("Real picture shown when no child: ctx.assets.image('<id>') (replaces content)"),
   pixel: pixelParam,
   seed: seedParam,
 });
 
 export type RetroCrtParams = z.output<typeof retroCrtParams>;
 
-function paintContent(canvas: PixelCanvas, params: RetroCrtParams, seed: number): void {
+function paintContent(
+  canvas: PixelCanvas,
+  params: RetroCrtParams,
+  seed: number,
+  colors: RoleColors,
+): void {
   fillRect(canvas, { x: 0, y: 0, w: canvas.width, h: canvas.height }, C.navy);
+  if (params.asset) {
+    drawAssetColor(canvas, { x: 0, y: 0, w: canvas.width, h: canvas.height }, params.asset, colors);
+    return;
+  }
   if (params.content === 'bars') {
     const width = canvas.width / BARS.length;
     BARS.forEach((color, index) => {
@@ -114,7 +127,7 @@ export function crtPainter(
       if (painter.child) {
         fillRect(content, { x: 0, y: 0, w, h }, C.black);
         childAnchors = painter.child.paint(content, t);
-      } else paintContent(content, params, params.seed);
+      } else paintContent(content, params, params.seed, colors);
       const power = powerState(t, params.powerOn, params.powerOff);
       paintTube(
         canvas,
@@ -212,7 +225,7 @@ function casingParts(tools: KitTools, params: RetroCrtParams, colors: RoleColors
 export const retroCrt = defineProp({
   name: 'retroCrt',
   description:
-    'CRT screen (look retro-ui) in a voxel monitor/TV casing or bare: curvature, 1-px scanlines, phosphor tint (color/green/amber), glow, seeded flicker, power on/off by t. crt.show(child) displays another retro template through the tube (terminal in a CRT); else text, colour bars or a photo.',
+    'CRT screen (look retro-ui) in a voxel monitor/TV casing or bare: curvature, 1-px scanlines, phosphor tint (color/green/amber), glow, seeded flicker, power on/off by t. crt.show(child) displays another retro template through the tube (terminal in a CRT); else text, colour bars, a photo or a real picture (asset).',
   params: retroCrtParams,
   anchors: {
     screen: 'centre of the screen',

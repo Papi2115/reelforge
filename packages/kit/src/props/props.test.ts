@@ -4,6 +4,7 @@ import { KitError } from '../errors.js';
 import { voxelLook } from '../looks/index.js';
 import { createKit, kitCatalog } from '../kit.js';
 import { isKitObject, type KitObject } from '../object.js';
+import { fakeAsset } from '../testing/asset.js';
 import { CRISP_PALETTE, TOKENS_ONLY_PALETTE } from '../testing/palettes.js';
 import { testRng } from '../testing/rng.js';
 import type { KitPalette } from '../types.js';
@@ -40,7 +41,19 @@ const PROP_NAMES = [
   'tower',
   'house',
   'drone',
+  'photoFrame',
+  'polaroid',
+  'billboard',
+  'assetScreen',
 ];
+
+/** Asset props (PLAN.md#12.11) need a picture: tests pass a stand-in handle. */
+const NEEDS_ASSET: ReadonlySet<string> = new Set([
+  'photoFrame',
+  'polaroid',
+  'billboard',
+  'assetScreen',
+]);
 
 function kit(palette: KitPalette = CRISP_PALETTE) {
   return createKit({ three: THREE, palette, rng: testRng(9) }).api;
@@ -57,7 +70,8 @@ function factory(name: string, palette?: KitPalette): Factory {
   const props = kit(palette).props as unknown as Record<string, Factory>;
   const make = props[name];
   if (!make) throw new Error(`no prop ${name}`);
-  return make;
+  if (!NEEDS_ASSET.has(name)) return make;
+  return (params = {}) => make({ asset: fakeAsset(), ...params });
 }
 
 function voxelMeshes(root: THREE.Object3D): VoxelObject[] {

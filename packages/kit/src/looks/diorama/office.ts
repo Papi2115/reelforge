@@ -4,6 +4,7 @@
  * seated and walking staff, a raised meeting corner, plants, cooler, cabinet, lamp.
  */
 import { z } from 'zod';
+import { assetParam } from '../../assets/handle.js';
 import { hashCell } from '../../env/shared.js';
 import { defineEnv } from '../../registry.js';
 import type { Vec3 } from '../../types.js';
@@ -23,6 +24,7 @@ import {
 } from './furniture.js';
 import { GLOW, GlowBuilder, glowColors } from './glow.js';
 import { walkerMover } from './movers.js';
+import { backWallScreen, slotPicture, type PictureSlot } from './pictures.js';
 import { parseTiles, pingPong } from './tiles.js';
 import { dioramaColors, type Slot } from './tones.js';
 
@@ -47,7 +49,14 @@ const LEGEND = {
 const WALL_HEIGHT = 18;
 const SHIRTS: readonly Slot[] = ['shirtA', 'shirtB', 'shirtC'];
 
-export const dioramaOfficeParams = z.object({ ...commonParams });
+export const dioramaOfficeParams = z.object({
+  ...commonParams,
+  screen: assetParam
+    .optional()
+    .describe(
+      "Picture on a wall screen in place of the whiteboard: ctx.assets.image('<id>') (a presentation)",
+    ),
+});
 
 function pattern(kind: OfficeTile, tx: number, tz: number, lx: number, lz: number): Slot {
   if (kind === 'meeting') return lz % 4 === 3 ? 'woodDark' : 'wood';
@@ -64,7 +73,7 @@ export const dioramaOffice = defineEnv({
     'desk0..desk3': 'top centre of each desk (back row left/right, front row left/right)',
     'monitor0..monitor3': 'centre of each desk screen',
     table: 'meeting table top',
-    whiteboard: 'centre of the whiteboard',
+    whiteboard: 'centre of the whiteboard (the wall screen with the screen param)',
     window: 'centre of the first window',
     door: 'centre of the door (left wall)',
     cooler: 'top of the water cooler',
@@ -122,8 +131,11 @@ export const dioramaOffice = defineEnv({
     glow.add(table.glow, (t) => (Math.floor(t * 1.5) % 4 === 3 ? GLOW.white : GLOW.accent));
     chair(s, at(6, 2, 8, 2), 'z');
     chair(s, at(7, 2, 8, 2), 'z');
-    const board = whiteboard(s, 'back', 56, 7, 22, 10);
-    canvas.anchor('whiteboard', board.top);
+    let wallScreen: PictureSlot | undefined;
+    if (params.screen) {
+      wallScreen = backWallScreen(s, 56, 6, 22, 12);
+      canvas.anchor('whiteboard', wallScreen.centre);
+    } else canvas.anchor('whiteboard', whiteboard(s, 'back', 56, 7, 22, 10).top);
     const presenter = standing(s, at(9, 1, 1, 0), 'x', 'shirtB');
     canvas.anchor('presenter', presenter.top);
     canvas.anchor('window', [2 + 4 + 5.5, canvas.tile(0, 0)[1] + 11, 4]);
@@ -151,7 +163,7 @@ export const dioramaOffice = defineEnv({
         }),
       );
     }
-    return assembleDiorama(tools, {
+    const office = assembleDiorama(tools, {
       kitType: 'dioramaOffice',
       canvas,
       backing: colors.floor,
@@ -161,5 +173,9 @@ export const dioramaOffice = defineEnv({
       glow: glow.layer(glowColors(tools.palette, params.accent)),
       movers,
     }).diorama;
+    if (params.screen && wallScreen) {
+      office.add(slotPicture(tools, canvas, wallScreen, params.screen, 'dioramaOffice.screen'));
+    }
+    return office;
   },
 });

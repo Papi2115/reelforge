@@ -3,7 +3,7 @@
  * `update(t, state, ctx)`. `update` must be a pure function of the local time `t` (seconds):
  * set every time-dependent property absolutely from `t`, never incrementally.
  */
-import type { AmbientVariation, KitApi } from '@reelforge/kit';
+import type { AmbientVariation, AssetCrop, AssetImage, KitApi } from '@reelforge/kit';
 import type { AnnotateApi } from './annotations/types.js';
 import type { Treatment } from '@reelforge/shared';
 import type * as THREE from 'three';
@@ -178,6 +178,34 @@ export interface AmbientApi {
   tone(name: string): string;
 }
 
+/** Stylisation of an asset picture (`ctx.assets.image(ref, options)`). */
+export interface AssetImageOptions {
+  /** 'cover' (default: fill the slot, centred), 'center' (whole picture, letterboxed) or { focus: [x, y], zoom }. */
+  readonly crop?: AssetCrop | undefined;
+  /** Stretch the picture's luma range before the palette snap (default true). */
+  readonly contrast?: boolean | undefined;
+  /** Bayer dither strength 0..1 (default 0.5; 0 = plain palette snap). */
+  readonly dither?: number | undefined;
+  /** Palette names to map onto (default: the whole style palette), e.g. ['ink', 'bone'] (duotone). */
+  readonly tones?: readonly string[] | undefined;
+}
+
+/**
+ * `ctx.assets` (PLAN.md#12.11): the project's pictures (assets.json) that this video carries,
+ * decoded and stylised by the engine: scenes never fetch or decode anything themselves.
+ */
+export interface AssetsApi {
+  /** Refs of the pictures this video carries: asset ids, `id@seconds` for video stills. */
+  readonly refs: readonly string[];
+  /** True when `ref` is available (keep a kit fallback when it is not). */
+  has(ref: string): boolean;
+  /**
+   * Handle of a picture for kit props (`kit.props.photoFrame({ asset })`). build() only; write the
+   * id as a string literal (the app ships only the assets a scene names). Unknown ref = error.
+   */
+  image(ref: string, options?: AssetImageOptions): AssetImage;
+}
+
 export interface SceneContext {
   /** Three.js namespace (scenes must not import modules; everything comes through ctx). */
   readonly three: typeof THREE;
@@ -212,6 +240,8 @@ export interface SceneContext {
   readonly shot: ShotInfo;
   /** Ambient variation of the shot (read-only; environments already apply it). */
   readonly ambient: AmbientApi;
+  /** Asset pictures (photos, video stills) for kit props; `image()` in build only. */
+  readonly assets: AssetsApi;
 }
 
 export interface SceneModule {

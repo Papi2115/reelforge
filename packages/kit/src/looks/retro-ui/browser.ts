@@ -5,6 +5,7 @@
  * hit counter. `load` reveals the page top-down with an interlaced (coarse -> fine) photo.
  */
 import { z } from 'zod';
+import { assetParam } from '../../assets/handle.js';
 import { progress } from '../../fx/shared.js';
 import { defineProp } from '../../registry.js';
 import {
@@ -22,9 +23,9 @@ import {
   type Rect,
 } from './canvas.js';
 import { bevel, button, drawChrome, dropShadow } from './chrome.js';
-import { ACCENT_BRIGHT, ACCENT_RAMP, C } from './colors.js';
+import { ACCENT_BRIGHT, ACCENT_RAMP, C, resolveRoles, type RoleColors } from './colors.js';
 import { accentParam, MarkTracker, marksParam, pixelParam, seedParam, sizeParam } from './marks.js';
-import { drawGreek, drawPhoto, PHOTO_KINDS } from './photo.js';
+import { drawAssetColor, drawGreek, drawPhoto, PHOTO_KINDS } from './photo.js';
 import { createSurface, type AnchorMap, type RetroPainter } from './surface.js';
 
 const URL_CPS = 14;
@@ -46,6 +47,11 @@ export const retroBrowserParams = z.object({
     .enum([...PHOTO_KINDS, 'none'])
     .default('city')
     .describe('Dithered photo kind or none'),
+  asset: assetParam
+    .optional()
+    .describe(
+      "Real picture for the photo block: ctx.assets.image('<id>') (replaces the placeholder)",
+    ),
   caption: z.string().max(40).default('').describe('Photo caption'),
   tabs: z.array(z.string().max(14)).max(2).default([]).describe('Extra (inactive) tabs'),
   visitors: z.int().min(0).max(99999999).optional().describe('Hit counter value (omit = none)'),
@@ -121,6 +127,7 @@ function paintPage(
   params: RetroBrowserParams,
   t: number,
   k: number,
+  roles: RoleColors | undefined,
 ): AnchorMap {
   const marks = new MarkTracker(params.marks, t, { mode: 'marker', color: C.amber });
   fillRect(canvas, page, C.cream);
@@ -162,7 +169,8 @@ function paintPage(
       const photo = rect(page.x + 5, y, w, h);
       strokeRect(canvas, inset(photo, -1), C.black);
       const block = k >= 1 ? 1 : k > 0.8 ? 2 : k > 0.6 ? 4 : 8;
-      drawPhoto(canvas, photo, params.photo, params.seed, PHOTO_RAMP, block);
+      if (params.asset && roles) drawAssetColor(canvas, photo, params.asset, roles, block);
+      else drawPhoto(canvas, photo, params.photo, params.seed, PHOTO_RAMP, block);
       anchors['photo'] = centerOf(photo);
       if (params.caption.length > 0)
         drawText(
@@ -211,7 +219,8 @@ function paintPage(
   return { ...anchors, ...marks.anchors(centerOf(page)) };
 }
 
-export function browserPainter(params: RetroBrowserParams): RetroPainter {
+/** `roles` (the style's role colours) are needed for an `asset` photo. */
+export function browserPainter(params: RetroBrowserParams, roles?: RoleColors): RetroPainter {
   return {
     width: params.size[0] + 4,
     height: params.size[1] + 4,
@@ -232,7 +241,7 @@ export function browserPainter(params: RetroBrowserParams): RetroPainter {
       const k = loadProgress(params, t);
       const loading = params.loadAt !== undefined && t >= params.loadAt && k < 1;
       const waiting = params.loadAt !== undefined && t < params.loadAt;
-      const anchors = { page: centerOf(page), ...paintPage(canvas, page, params, t, k) };
+      const anchors = { page: centerOf(page), ...paintPage(canvas, page, params, t, k, roles) };
       if (waiting) fillRect(canvas, page, C.cream);
       fillRect(canvas, status, C.grey);
       bevel(canvas, status, false);
@@ -271,7 +280,7 @@ export const retroBrowser = defineProp({
     url: 'address bar text',
     tab: 'active tab',
     headline: 'page headline',
-    photo: 'dithered photo',
+    photo: 'dithered photo (or the asset)',
     body: 'body copy',
     counter: 'hit counter (visitors)',
     title: 'window title',
@@ -284,7 +293,7 @@ export const retroBrowser = defineProp({
   build(params, tools) {
     return createSurface(tools, {
       kitType: 'retroBrowser',
-      painter: browserPainter(params),
+      painter: browserPainter(params, resolveRoles(tools.palette)),
       pixel: params.pixel,
     });
   },

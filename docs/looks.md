@@ -204,3 +204,13 @@ transition-kit `style`; the engine composites the two post-fx frames pixel by pi
 only). Look-change specials: `crt-zoom` (retro-ui), `tile-flip` (diorama), `draw-over`
 (blueprint), `pixel-sort-melt` (C-rolls). In `mixed` projects the storyboard prompt lists the
 styles and the storyboard stage fills missing ones per look pair (`transitionFor`).
+
+## Asset pictures in looks
+
+PLAN.md#12.11, ADR-014, guide `docs/assets.md` → "In scenes". A look shows a real picture through
+`ctx.assets.image(ref)` and an `asset` param: voxel `photoFrame`, `polaroid`, `billboard`,
+`assetScreen`; retro-ui `retroBrowser`/`retroDocument`/`retroCrt` (`asset`, the placeholder
+photo otherwise); diorama `dioramaCity({ billboard })`, `dioramaOffice({ screen })`. The engine
+stylises the picture into the colours the look asks for (style palette, retro roles, or luminance
+for halftone ramps). Render test and goldens: `packages/kit/test/render/kit-assets.test.ts`,
+`asset-*`; contact sheets `packages/kit/out/contact/assets*.png`.

@@ -9,7 +9,7 @@ import { defineLook } from '../types.js';
 
 export const VOXEL_LOOK_ID = 'voxel';
 
-const DOCS = `Look \`voxel\`: chunky voxel 3D built with the kit (\`reelforge kit-docs\`): \`kit.voxel\` models, \`kit.env\` worlds (neon grid, room, city, void), \`kit.props\` objects and characters, \`kit.fx\` effects (counters, charts, maps, glitch, text). One hero object on a third, depth (foreground, hero, background), camera always moving, lighting from \`kit.env.lights\`. Follow the style bible; never hand-pick hex colours.`;
+const DOCS = `Look \`voxel\`: chunky voxel 3D built with the kit (\`reelforge kit-docs\`): \`kit.voxel\` models, \`kit.env\` worlds (neon grid, room, city, void), \`kit.props\` objects and characters, \`kit.fx\` effects (counters, charts, maps, glitch, text). One hero object on a third, depth (foreground, hero, background), camera always moving, lighting from \`kit.env.lights\`. Real photos (B-roll, evidence) live inside the world: \`const photo = ctx.assets.image('<asset id>')\` in build(), then \`kit.props.photoFrame({ asset: photo })\` (wall, \`mount: 'stand'\` on a desk), \`polaroid\` (\`developAt\`), \`billboard\` (street) or \`assetScreen\` (monitor/laptop, \`revealAt\`, scanlines); never a flat full-frame photo. Follow the style bible; never hand-pick hex colours.`;
 
 export const voxelLook = defineLook({
   id: VOXEL_LOOK_ID,

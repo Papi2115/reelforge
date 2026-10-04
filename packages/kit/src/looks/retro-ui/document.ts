@@ -5,6 +5,7 @@
  * on at a time and marker highlights over marked phrases.
  */
 import { z } from 'zod';
+import { assetParam } from '../../assets/handle.js';
 import { hashCell } from '../../env/shared.js';
 import { EASES, progress } from '../../fx/shared.js';
 import { defineProp } from '../../registry.js';
@@ -26,7 +27,7 @@ import {
 import { dropShadow } from './chrome.js';
 import { C } from './colors.js';
 import { MarkTracker, marksParam, pixelParam, seedParam } from './marks.js';
-import { drawGreek, drawPhoto, PHOTO_KINDS } from './photo.js';
+import { drawAssetTones, drawGreek, drawPhoto, PHOTO_KINDS } from './photo.js';
 import { drawStamp, STAMP_TIME } from './stamp.js';
 import { createSurface, type AnchorMap, type RetroPainter } from './surface.js';
 
@@ -57,6 +58,11 @@ export const retroDocumentParams = z.object({
     .enum([...PHOTO_KINDS, 'none'])
     .optional()
     .describe('Halftone photo (default per variant)'),
+  asset: assetParam
+    .optional()
+    .describe(
+      "Real picture for the photo (newspaper photo, dossier mugshot): ctx.assets.image('<id>'), printed in halftone",
+    ),
   caption: z.string().max(40).default('').describe('Photo caption'),
   fields: z
     .array(
@@ -157,7 +163,8 @@ function paintNewspaper(
   if (photoKind !== 'none') {
     const photo = rect(page.x + 8, y + 1, page.w - 16, Math.round((page.w - 16) * 0.5));
     strokeRect(canvas, inset(photo, -1), C.black);
-    drawPhoto(canvas, photo, photoKind, params.seed, HALFTONE);
+    if (params.asset) drawAssetTones(canvas, photo, params.asset, HALFTONE);
+    else drawPhoto(canvas, photo, photoKind, params.seed, HALFTONE);
     anchors['photo'] = centerOf(photo);
     y = photo.y + photo.h + 3;
     if (params.caption.length > 0) {
@@ -249,7 +256,8 @@ function paintDossier(
   if (photoKind !== 'none') {
     const photo = rect(sheet.x + 8, sheet.y + 12, 56, 70);
     strokeRect(canvas, inset(photo, -1), C.black);
-    drawPhoto(canvas, photo, photoKind, params.seed, HALFTONE);
+    if (params.asset) drawAssetTones(canvas, photo, params.asset, HALFTONE);
+    else drawPhoto(canvas, photo, photoKind, params.seed, HALFTONE);
     fillRect(canvas, rect(photo.x + 10, photo.y - 5, 3, 12), C.midGrey);
     strokeRect(canvas, rect(photo.x + 8, photo.y - 6, 7, 14), C.grey);
     anchors['photo'] = centerOf(photo);
@@ -360,7 +368,7 @@ export const retroDocument = defineProp({
   anchors: {
     masthead: 'newspaper masthead / memo heading',
     headline: 'headline (memo: RE line)',
-    photo: 'halftone photo',
+    photo: 'halftone photo (or the asset)',
     body: 'body columns',
     'field:<i>': 'dossier/memo field value i',
     stamp: 'centre of the stamp',

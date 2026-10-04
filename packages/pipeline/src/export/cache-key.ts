@@ -3,11 +3,14 @@
  * pixels or its encoding changes: scene source, engine/kit version, style preset, palette
  * overrides, project seed, the anchor times the scene uses, the project props (kit-ext) it may
  * call, the shot's own manifest params, ambient variation (switch + storyboard position), fps,
- * render size, and the output settings (preset, encoder, quality). Shots that transition in also
- * depend on the previous shot's content.
+ * render size, the asset pictures it names (hash, still time, decoded size, decoder version) and
+ * the output settings (preset, encoder, quality). Shots that transition in also depend on the
+ * previous shot's content.
  */
 import { createHash } from 'node:crypto';
 import type { ManifestShot, RenderManifest, TimedWord } from '@reelforge/shared';
+import { ASSET_DECODE_VERSION } from '../assets/decode.js';
+import { refLiterals } from '../assets/refs.js';
 import type { PlannedShot } from './shot-plan.js';
 
 /** Bump when the segment format or the key recipe changes (invalidates every cached segment). */
@@ -108,10 +111,44 @@ export function kitExtensionInputs(
   extensions: RenderManifest['kitExtensions'],
 ): { name: string; source: string }[] | undefined {
   if (extensions === undefined || extensions.length === 0) return undefined;
+  return calledExtensions(source, extensions).map((extension) => ({
+    name: extension.name,
+    source: sha256Hex(extension.source),
+  }));
+}
+
+type KitExtensions = NonNullable<RenderManifest['kitExtensions']>;
+
+function calledExtensions(source: string, extensions: KitExtensions): KitExtensions {
   const dynamic = /\bprops\s*\[/.test(source);
-  return extensions
-    .filter((extension) => dynamic || new RegExp(`\\b${extension.name}\\b`).test(source))
-    .map((extension) => ({ name: extension.name, source: sha256Hex(extension.source) }));
+  return extensions.filter(
+    (extension) => dynamic || new RegExp(`\\b${extension.name}\\b`).test(source),
+  );
+}
+
+/**
+ * Asset pictures a shot can show (PLAN.md#12.11): the manifest refs its scene or the project props
+ * it calls name as string literals. Stylisation options are part of the scene source, the
+ * stylising code is covered by the engine/kit versions. Undefined without manifest assets (keys
+ * unchanged).
+ */
+export function assetInputs(
+  source: string,
+  manifest: Pick<RenderManifest, 'assets' | 'kitExtensions'>,
+): unknown[] | undefined {
+  const assets = manifest.assets;
+  if (assets === undefined || assets.length === 0) return undefined;
+  const props = calledExtensions(source, manifest.kitExtensions ?? []);
+  const named = new Set([source, ...props.map((prop) => prop.source)].flatMap(refLiterals));
+  return assets
+    .filter((asset) => named.has(asset.ref))
+    .map((asset) => ({
+      ref: asset.ref,
+      sha256: asset.sha256,
+      at: asset.at ?? null,
+      size: [asset.width, asset.height],
+      decoder: ASSET_DECODE_VERSION,
+    }));
 }
 
 function shotContent(
@@ -127,6 +164,7 @@ function shotContent(
     scene: sha256Hex(shot.scene.source),
     anchors: anchorInputs(shot, manifest, resolveAnchor),
     kitExtensions: kitExtensionInputs(shot.scene.source, manifest.kitExtensions),
+    assets: assetInputs(shot.scene.source, manifest),
     // Undefined (left out of the key) unless ambient variation is on: old keys stay valid.
     ambient: manifest.ambientVariation === undefined ? undefined : (shot.ambient ?? null),
   };

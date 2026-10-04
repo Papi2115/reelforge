@@ -10,6 +10,8 @@ import {
   FORBIDDEN_GLOBALS,
   GLOBAL_OBJECTS,
   MATH_RANDOM,
+  THREE_LOADER,
+  THREE_LOADERS,
   type ForbiddenGlobal,
 } from './forbidden.js';
 import { lookup, type Scope } from './scope.js';
@@ -98,6 +100,9 @@ export function checkMember(member: MemberExpression, scope: Scope, context: Rul
     if (key === 'random') reportForbidden(member, MATH_RANDOM, context);
     else if (key === undefined) reportDynamicMember(member, 'Math', context);
   }
+  if (key !== undefined && THREE_LOADERS.has(key)) {
+    reportForbidden(member, THREE_LOADER, context, `.${key}`);
+  }
   if (
     key === 'constructor' &&
     member.object.type === 'MemberExpression' &&
@@ -122,6 +127,19 @@ export function checkDestructure(
 ): void {
   const sourceName = globalNameOf(source, scope);
   if (sourceName !== undefined) checkPatternAgainstGlobal(pattern, sourceName, context);
+  checkLoaderDestructure(pattern, context);
+}
+
+/** `const { TextureLoader } = ctx.three`: a Three.js loader taken out by destructuring. */
+function checkLoaderDestructure(pattern: Pattern, context: RuleContext): void {
+  if (pattern.type !== 'ObjectPattern') return;
+  for (const property of pattern.properties) {
+    if (property.type !== 'Property') continue;
+    const key = staticKey(property.key, property.computed);
+    if (key !== undefined && THREE_LOADERS.has(key)) {
+      reportForbidden(property, THREE_LOADER, context, `destructuring \`${key}\``);
+    }
+  }
 }
 
 function checkPatternAgainstGlobal(

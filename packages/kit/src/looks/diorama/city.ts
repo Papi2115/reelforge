@@ -5,6 +5,7 @@
  * edges (lit windows twinkle at night, an aviation beacon blinks, a chimney smokes).
  */
 import { z } from 'zod';
+import { assetParam } from '../../assets/handle.js';
 import { hashCell } from '../../env/shared.js';
 import { defineEnv } from '../../registry.js';
 import type { Vec3 } from '../../types.js';
@@ -12,6 +13,7 @@ import { DioramaCanvas, type Facing } from './canvas.js';
 import { assembleDiorama, commonParams, type Mover } from './diorama.js';
 import { GLOW, GlowBuilder, glowColors } from './glow.js';
 import { carMover, smokeMover, walkerMover } from './movers.js';
+import { rooftopBillboard, slotPicture, type PictureSlot } from './pictures.js';
 import {
   bench,
   building,
@@ -61,6 +63,11 @@ const LIT: Readonly<Record<TimeOfDay, number>> = { day: 0.75, dusk: 0.55, night:
 export const dioramaCityParams = z.object({
   ...commonParams,
   traffic: z.number().int().min(0).max(8).default(5).describe('Cars on the ring road'),
+  billboard: assetParam
+    .optional()
+    .describe(
+      "Picture on a billboard on the landmark's roof: ctx.assets.image('<id>') (replaces the marquee sign)",
+    ),
 });
 
 function pattern(kind: CityTile, tx: number, tz: number, lx: number, lz: number): Slot {
@@ -104,6 +111,7 @@ export const dioramaCity = defineEnv({
     park: 'centre of the park (fountain)',
     road: 'front road segment, centre',
     crossing: 'zebra crossing on the front road',
+    billboard: "centre of the landmark's billboard (with the billboard param)",
   },
   methods: {
     'camera(options)':
@@ -158,20 +166,11 @@ export const dioramaCity = defineEnv({
       shop: true,
     });
     canvas.anchor('landmark', landmark.top);
-    const [lx, ly, lz] = landmark.top;
-    s.box('darkest', [lx - 6, ly, lz + 6], [lx + 6, ly + 5, lz + 7]);
-    const sign = Array.from({ length: 10 }, (_, index) => ({
-      cell: [lx - 5 + index, ly + 2, lz + 6] as Vec3,
-      face: 'z' as const,
-    }));
-    const signTop = sign.map((cell) => ({
-      ...cell,
-      cell: [cell.cell[0], cell.cell[1] + 1, cell.cell[2]] as Vec3,
-    }));
-    glow.add([...sign, ...signTop], (t, cell) => {
-      const column = cell % 10;
-      return (column + Math.floor(t * 6)) % 10 < 7 ? GLOW.accent : GLOW.dim;
-    });
+    let billboard: PictureSlot | undefined;
+    if (params.billboard) {
+      billboard = rooftopBillboard(s, landmark.top);
+      canvas.anchor('billboard', billboard.centre);
+    } else marqueeSign(s, glow, landmark.top);
     const water = fountain(s, at(5, 6, 7, 3));
     canvas.anchor('park', water.top);
     glow.add(water.glow, (t, cell) =>
@@ -245,7 +244,7 @@ export const dioramaCity = defineEnv({
         }),
       );
     }
-    return assembleDiorama(tools, {
+    const city = assembleDiorama(tools, {
       kitType: 'dioramaCity',
       canvas,
       backing: colors.road,
@@ -255,8 +254,30 @@ export const dioramaCity = defineEnv({
       glow: glow.layer(glowColors(tools.palette, params.accent)),
       movers,
     }).diorama;
+    if (params.billboard && billboard) {
+      city.add(slotPicture(tools, canvas, billboard, params.billboard, 'dioramaCity.billboard'));
+    }
+    return city;
   },
 });
+
+/** Marquee sign on the landmark's roof: two rows of chasing accent lights. */
+function marqueeSign(s: DioramaCanvas<CityTile>['sketch'], glow: GlowBuilder, top: Vec3): void {
+  const [lx, ly, lz] = top;
+  s.box('darkest', [lx - 6, ly, lz + 6], [lx + 6, ly + 5, lz + 7]);
+  const sign = Array.from({ length: 10 }, (_, index) => ({
+    cell: [lx - 5 + index, ly + 2, lz + 6] as Vec3,
+    face: 'z' as const,
+  }));
+  const signTop = sign.map((cell) => ({
+    ...cell,
+    cell: [cell.cell[0], cell.cell[1] + 1, cell.cell[2]] as Vec3,
+  }));
+  glow.add([...sign, ...signTop], (t, cell) => {
+    const column = cell % 10;
+    return (column + Math.floor(t * 6)) % 10 < 7 ? GLOW.accent : GLOW.dim;
+  });
+}
 
 /** Night windows: most stay lit, a few switch every few seconds (seeded). */
 function blinkWindow(t: number, cell: number, seed: number): boolean {
