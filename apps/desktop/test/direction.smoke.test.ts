@@ -14,11 +14,11 @@ import type { ElectronApplication, Locator, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   closeApp,
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   launchApp,
   screenshotDir,
   stubFolderPicker,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 
 let app: ElectronApplication | undefined;
@@ -91,9 +91,7 @@ describe('live co-direction', () => {
     if (app === undefined) throw new Error('the app is not running');
     await stubFolderPicker(app, dir);
     await page.getByRole('button', { name: 'Open project…' }).click();
-    await page
-      .locator('canvas.preview-canvas[data-rendered-t]')
-      .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+    await waitForProjectPreview(page);
     const before = await canvasPixels();
 
     await command('darker');

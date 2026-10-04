@@ -11,7 +11,7 @@ import { ENGINE_ASSET_DIR, ENGINE_FRAME_HTML } from '../../shared/engine-assets.
 import { errorMessage, rendererLog } from '../log.js';
 import { integerDisplaySize, type DisplaySize } from './integer-scale.js';
 import type { Player } from './player.js';
-import { PreviewController, type FrameSink } from './preview-controller.js';
+import { playerNeedsVideo, PreviewController, type FrameSink } from './preview-controller.js';
 import {
   AudioProblemNotice,
   ReloadNotice,
@@ -158,8 +158,8 @@ export function PreviewPanel({
         log.info(
           `loaded ${key}: ${String(info.duration)} s, ${String(info.width)}x${String(info.height)} @ ${String(info.fps)} fps, style ${info.style}, GPU ${info.gpu.renderer}`,
         );
-        player.setVideo(info.duration, info.fps);
       }
+      if (playerNeedsVideo(result, player.getState())) player.setVideo(info.duration, info.fps);
       setState({ status: 'ready', info, note });
       await controller.refresh(player.getState().time);
       if (isStale()) return;

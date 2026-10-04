@@ -1,7 +1,7 @@
 import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
 import type { RenderManifest, SceneSource, ShotDirection } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { PreviewController } from './preview-controller.js';
+import { playerNeedsVideo, PreviewController } from './preview-controller.js';
 
 const INFO: LoadInfo = {
   duration: 5,
@@ -280,5 +280,35 @@ describe('PreviewController', () => {
       { t: 1, renderMs: 7 },
       { t: 1, renderMs: 0 },
     ]);
+  });
+});
+
+describe('playerNeedsVideo', () => {
+  const reloaded = { kind: 'reloaded', info: INFO, shotIds: ['s00'] } as const;
+
+  it('takes the video after every full load', () => {
+    expect(playerNeedsVideo({ kind: 'loaded', info: INFO }, { duration: 5, fps: 30 })).toBe(true);
+  });
+
+  it('leaves the player alone when the applied video matches it', () => {
+    expect(playerNeedsVideo({ kind: 'unchanged', info: INFO }, { duration: 5, fps: 30 })).toBe(
+      false,
+    );
+    expect(playerNeedsVideo(reloaded, { duration: 5, fps: 30 })).toBe(false);
+  });
+
+  it('catches up after a superseded full load (the next apply is unchanged)', async () => {
+    const harness = new ManualHarness();
+    const controller = new PreviewController(harness, { draw: () => undefined }, () => {
+      throw new Error('unexpected error');
+    });
+    // The caller of this full load was superseded by a newer file change: its result is dropped,
+    // so the player still has the duration of the video before.
+    await controller.apply(MANIFEST);
+    const stalePlayer = { duration: 90, fps: 30 };
+    const again = await controller.apply(structuredClone(MANIFEST));
+    expect(again.kind).toBe('unchanged');
+    expect(playerNeedsVideo(again, stalePlayer)).toBe(true);
+    expect(playerNeedsVideo(again, { duration: 5, fps: 24 })).toBe(true);
   });
 });

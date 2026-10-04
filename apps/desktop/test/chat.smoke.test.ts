@@ -19,13 +19,13 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   frameStats,
   closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 import { showChat } from './support/pipeline-rows.js';
 
@@ -156,9 +156,7 @@ beforeAll(async () => {
   await page.getByRole('region', { name: 'Start' }).waitFor();
   await stubFolderPicker(app, projectDir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  await waitForProjectPreview(page);
   await resize(1280, 720);
 }, 180_000);
 

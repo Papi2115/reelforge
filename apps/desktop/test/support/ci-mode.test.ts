@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extraElectronArgs, isCiMode, perfBar } from './ci-mode.js';
+import { CI_TIMEOUT_SCALE, extraElectronArgs, isCiMode, perfBar, waitTimeout } from './ci-mode.js';
 import { runMediaTool } from './pipeline-film.js';
 
 describe('CI mode of the app tests', () => {
@@ -12,6 +12,11 @@ describe('CI mode of the app tests', () => {
   it('keeps the strict perf bars outside CI', () => {
     expect(perfBar(28, 15, false)).toBe(28);
     expect(perfBar(28, 15, true)).toBe(15);
+  });
+
+  it('scales waits for the app like the test timeouts in CI mode only', () => {
+    expect(waitTimeout(20_000, false)).toBe(20_000);
+    expect(waitTimeout(20_000, true)).toBe(20_000 * CI_TIMEOUT_SCALE);
   });
 
   it('parses extra Chromium switches for the launch', () => {

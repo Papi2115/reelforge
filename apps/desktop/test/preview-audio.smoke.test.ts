@@ -8,24 +8,29 @@
  */
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { setTimeout as sleep } from 'node:timers/promises';
 import path from 'node:path';
 import { renameRetrying } from '@reelforge/pipeline';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { logFile } from '../src/main/app-paths.js';
 import { masterAudio, playbackProblems, sampleMasterAudio } from './support/audio-probes.js';
+import { waitTimeout } from './support/ci-mode.js';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   closeApp,
   fixtureProject,
   launchApp,
   screenshotDir,
   stubFolderPicker,
+  waitForProjectPreview,
   waitForRenderedT,
 } from './support/electron-app.js';
 import { stereoToneWav } from './support/player-probes.js';
 
 const FILM_SECONDS = 90;
 const LONG_FILM_SECONDS = 15 * 60;
+/** Gap between two storyboard writes: longer than the project watcher's 150 ms batch. */
+const SECOND_CHANGE_MS = 200;
 
 let app: ElectronApplication;
 let page: Page;
@@ -53,6 +58,18 @@ async function videoDuration(): Promise<number> {
   return Number(await page.getByRole('slider', { name: 'Scrub' }).getAttribute('max'));
 }
 
+/** Duration of the master audio (rounded to 0.1 s) and of the video (the scrub slider's end). */
+function mediaDurations(): Promise<{ audio: number; video: number }> {
+  return page.evaluate(() => ({
+    audio:
+      Math.round(
+        (document.querySelector<HTMLAudioElement>('audio[data-testid="player-audio"]')?.duration ??
+          0) * 10,
+      ) / 10,
+    video: Number(document.querySelector<HTMLInputElement>('input[aria-label="Scrub"]')?.max),
+  }));
+}
+
 async function pause(): Promise<void> {
   await page.keyboard.press('k');
   await page.locator('section.preview[data-playing="false"]').waitFor();
@@ -70,17 +87,16 @@ beforeAll(async () => {
   await page.getByRole('region', { name: 'Start' }).waitFor();
   await stubFolderPicker(app, projectDir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  // The start screen's demo preview already has a rendered frame: wait for the project's own one
-  // (the master audio can be ready before the video has loaded, slow on CI's software GPU).
-  await page.getByRole('region', { name: 'Start' }).waitFor({ state: 'detached' });
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  // The master audio can be ready before the video has loaded (slow on CI's software GPU).
+  await waitForProjectPreview(page);
   await page.locator('section.preview[data-clock="audio"]').waitFor({ timeout: 10_000 });
 });
 
 afterAll(async () => {
   await closeApp(app);
+  await cp(logFile(userDataDir), path.join(screenshotDir, 'preview-audio-main.log')).catch(
+    () => undefined,
+  );
   await rm(userDataDir, { recursive: true, force: true });
 });
 
@@ -124,22 +140,14 @@ describe('preview audio of a whole film', () => {
     await writeFile(tmp, stereoToneWav(LONG_FILM_SECONDS));
     await renameRetrying(tmp, path.join(projectDir, 'audio', 'mix.wav'));
     await stretchVideo(LONG_FILM_SECONDS);
-    await page.waitForFunction(
-      (seconds) =>
-        Math.abs(
-          (document.querySelector<HTMLAudioElement>('audio[data-testid="player-audio"]')
-            ?.duration ?? 0) - seconds,
-        ) < 0.1,
-      LONG_FILM_SECONDS,
-      { timeout: 20_000 },
-    );
-    await page.waitForFunction(
-      (seconds) =>
-        document.querySelector<HTMLInputElement>('input[aria-label="Scrub"]')?.max ===
-        String(seconds),
-      LONG_FILM_SECONDS,
-      { timeout: 20_000 },
-    );
+    // A second change while the preview still loads the longer video (as when a slow runner splits
+    // the storyboard write into two watcher batches): the superseded full load must still give the
+    // player the new duration (it used to stay at 90 s for good).
+    await sleep(SECOND_CHANGE_MS);
+    await stretchVideo(LONG_FILM_SECONDS);
+    await expect
+      .poll(() => mediaDurations(), { timeout: waitTimeout(20_000), interval: 250 })
+      .toEqual({ audio: LONG_FILM_SECONDS, video: LONG_FILM_SECONDS });
     const resumed = await sampleMasterAudio(page, { untilT: 30, timeoutMs: 15_000 });
     expect(playbackProblems(resumed.slice(2))).toEqual([]);
 

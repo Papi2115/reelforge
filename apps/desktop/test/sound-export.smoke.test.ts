@@ -18,12 +18,12 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, settingsFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   closeApp,
   launchApp,
   screenshotDir,
   stubFolderPicker,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 import { ffprobe, synthesizeVoiceover } from './support/pipeline-film.js';
 import { showStage } from './support/pipeline-rows.js';
@@ -151,9 +151,7 @@ beforeAll(async () => {
   await page.waitForFunction(() => window.innerWidth === 1280 && window.innerHeight === 720);
   await stubFolderPicker(app, dir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  await waitForProjectPreview(page);
 }, 180_000);
 
 afterAll(async () => {

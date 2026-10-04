@@ -13,7 +13,6 @@ import path from 'node:path';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   frameStats,
   closeApp,
@@ -21,6 +20,7 @@ import {
   screenshotDir,
   stubFolderPicker,
   waitForRenderedT,
+  waitForProjectPreview,
 } from './support/electron-app.js';
 import {
   measurePlayback,
@@ -97,9 +97,7 @@ beforeAll(async () => {
   await page.getByRole('region', { name: 'Start' }).waitFor();
   await stubFolderPicker(app, projectDir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page
-    .locator('canvas.preview-canvas[data-rendered-t]')
-    .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+  await waitForProjectPreview(page);
 });
 
 afterAll(async () => {

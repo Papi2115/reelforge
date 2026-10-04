@@ -143,6 +143,18 @@ export function frameStats(page: Page): Promise<FrameStats> {
   });
 }
 
+/**
+ * After "Open project…": waits for the first frame of the project's own preview. The Start screen's
+ * demo preview has a rendered frame too, so the Start region has to be gone first.
+ */
+export async function waitForProjectPreview(
+  page: Page,
+  timeout = FIRST_FRAME_TIMEOUT_MS,
+): Promise<void> {
+  await page.getByRole('region', { name: 'Start' }).waitFor({ state: 'detached', timeout });
+  await page.locator('canvas.preview-canvas[data-rendered-t]').waitFor({ timeout });
+}
+
 /** Waits until the preview shows the frame of time `t` (as written by the canvas sink). */
 export async function waitForRenderedT(page: Page, t: string): Promise<void> {
   await page.waitForFunction(

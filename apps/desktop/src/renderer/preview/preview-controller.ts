@@ -27,6 +27,23 @@ export type ApplyResult =
   /** Only live directions changed (PLAN.md#12.14): applied without rebuilding a shot. */
   | { readonly kind: 'directed'; readonly info: LoadInfo; readonly shotIds: readonly string[] };
 
+/**
+ * Whether the player has to take the duration and frame rate of an applied manifest: after every
+ * full load, and whenever they differ from the player's. The second case matters when a newer file
+ * change superseded the caller that made the full load (its result was dropped as stale): the next
+ * apply of the same manifest is 'unchanged', and the player would keep the old duration forever.
+ */
+export function playerNeedsVideo(
+  result: ApplyResult,
+  player: { readonly duration: number; readonly fps: number },
+): boolean {
+  return (
+    result.kind === 'loaded' ||
+    player.duration !== result.info.duration ||
+    player.fps !== result.info.fps
+  );
+}
+
 interface FrameWaiter {
   /** Resolve on the first frame whose seek was issued after this serial. */
   readonly afterSerial: number;

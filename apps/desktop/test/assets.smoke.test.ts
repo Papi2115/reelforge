@@ -32,6 +32,7 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
+import { waitTimeout } from './support/ci-mode.js';
 import { showStage, stageText } from './support/pipeline-rows.js';
 
 const STAMP = '2026-10-04T10:00:00.000Z';
@@ -41,6 +42,10 @@ let server: AssetTestServer;
 let root: string;
 let app: ElectronApplication | undefined;
 let page: Page;
+
+function profileDir(projectDir: string): string {
+  return path.join(root, `profile-${path.basename(projectDir)}`);
+}
 
 function pipeline(): ReturnType<Page['getByRole']> {
   return page.getByRole('region', { name: 'Pipeline' });
@@ -64,12 +69,18 @@ async function scenesRedoHint(): Promise<string> {
   return (await redo.getAttribute('title')) ?? '';
 }
 
-/** The CLI fixture as a git project (script approved), with `project` fields merged in. */
+/**
+ * The CLI fixture as a git project (script approved), with `project` fields merged in. From scratch
+ * every time: a retried test (CI retries) must not find the asset package, the commits or the app
+ * profile of the try before.
+ */
 async function createProject(
   dir: string,
   project: Record<string, unknown>,
   withNeeds: boolean,
 ): Promise<void> {
+  await rm(dir, { recursive: true, force: true, maxRetries: 5 });
+  await rm(profileDir(dir), { recursive: true, force: true, maxRetries: 5 });
   await cp(fixtureProject, dir, { recursive: true });
   const projectFile = path.join(dir, 'project.json');
   const base = JSON.parse(await readFile(projectFile, 'utf8')) as Record<string, unknown>;
@@ -127,7 +138,7 @@ async function proposalFor(dir: string): Promise<string> {
 async function start(dir: string, script: FakeClaudeScript): Promise<void> {
   const sidecar = path.join(root, `fake-claude-${path.basename(dir)}.json`);
   await writeFile(sidecar, JSON.stringify(script));
-  app = await launchApp(path.join(root, `profile-${path.basename(dir)}`), {
+  app = await launchApp(profileDir(dir), {
     env: {
       [TEST_CLAUDE_LAUNCHER_ENV]: JSON.stringify({
         command: process.execPath,
@@ -211,15 +222,18 @@ describe('asset research', () => {
     await grid.waitFor();
     const boxes = grid.getByRole('checkbox');
     await expect.poll(() => boxes.count()).toBe(2);
+    // Served by reelforge-media:// from .reelforge/assets/thumbnails: slow on a busy runner.
     await expect
-      .poll(() =>
-        grid
-          .locator('img.asset-thumb')
-          .evaluateAll((images) =>
-            images.every((image) => image instanceof HTMLImageElement && image.naturalWidth > 0),
-          ),
+      .poll(
+        () =>
+          grid
+            .locator('img.asset-thumb')
+            .evaluateAll((images) =>
+              images.map((image) => (image instanceof HTMLImageElement ? image.naturalWidth : 0)),
+            ),
+        { timeout: waitTimeout(10_000), interval: 250 },
       )
-      .toBe(true);
+      .toEqual([64, 64]);
     expect(await boxes.nth(0).isChecked()).toBe(true);
     expect(await boxes.nth(1).isChecked()).toBe(true);
     // Keyboard: untick the NASA candidate.
