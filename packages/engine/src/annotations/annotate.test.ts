@@ -46,6 +46,7 @@ const EVERY_TYPE: Readonly<Record<string, Draw>> = {
   dimension: (ctx, s) =>
     ctx.annotate.dimension({ from: s.calc, to: s.calc, text: '14 CM', at: 1, until: 3 }),
   spotlight: (ctx, s) => ctx.annotate.spotlight({ target: s.calc, at: 1, until: 3 }),
+  sourceChip: (ctx) => ctx.annotate.sourceChip({ name: 'nasa.gov', index: 2, at: 1, until: 3 }),
 };
 
 function shotFor(draw: Draw): ReturnType<typeof deskShot> {

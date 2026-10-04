@@ -9,6 +9,7 @@ import type {
   HighlightOptions,
   PinOptions,
   RingOptions,
+  SourceChipOptions,
   SpotlightOptions,
   StampOptions,
   UnderlineOptions,
@@ -25,6 +26,8 @@ export type {
   HighlightOptions,
   PinOptions,
   RingOptions,
+  SourceChipCorner,
+  SourceChipOptions,
   SpotlightOptions,
   StampOptions,
   UnderlineOptions,
@@ -69,4 +72,9 @@ export interface AnnotateApi {
   dimension(options: DimensionOptions): AnnotationHandle;
   /** Dims the whole frame except a circle/rect around the target (dithered soft edge). */
   spotlight(options: SpotlightOptions): AnnotationHandle;
+  /**
+   * Small 'SOURCE: NAME' chip (+ optional reference number) in a free corner of the safe area,
+   * crediting the source of a claim; drawn after the other marks so it never covers them.
+   */
+  sourceChip(options: SourceChipOptions): AnnotationHandle;
 }

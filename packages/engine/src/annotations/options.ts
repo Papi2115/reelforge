@@ -227,6 +227,33 @@ export const spotlightOptionsSchema = z.strictObject({
   feather: share.default(0.05),
 });
 
+export const SOURCE_CHIP_CORNERS = [
+  'auto',
+  'bottom-right',
+  'bottom-left',
+  'top-right',
+  'top-left',
+] as const;
+export type SourceChipCorner = (typeof SOURCE_CHIP_CORNERS)[number];
+
+export const sourceChipOptionsSchema = z.strictObject({
+  ...common,
+  /** Source name ("nasa.gov", "Doom Wiki"): a URL shows as its host; long names are cut at a word. */
+  name: z.string().min(1),
+  /** Word before the name ('' = the name alone). */
+  label: z.string().max(12).default('SOURCE'),
+  /** Optional reference number (1-99) on a tiny tag at the chip's left. */
+  index: z.int().min(1).max(99).optional(),
+  /** Preferred corner of the safe area; the chip moves to a free corner when it is taken. */
+  corner: z.enum(SOURCE_CHIP_CORNERS).default('auto'),
+  /** Integer pixel scale of the text (default 2 at 360 px high). */
+  scale: textScale.optional(),
+  /** Most characters of the name shown. */
+  maxChars: z.int().min(4).max(40).default(24),
+  textColor: colorName.default('text'),
+  plate: colorName.default('shadow'),
+});
+
 export type CalloutOptions = z.input<typeof calloutOptionsSchema>;
 export type ArrowOptions = z.input<typeof arrowOptionsSchema>;
 export type RingOptions = z.input<typeof ringOptionsSchema>;
@@ -238,6 +265,7 @@ export type BadgeOptions = z.input<typeof badgeOptionsSchema>;
 export type StampOptions = z.input<typeof stampOptionsSchema>;
 export type DimensionOptions = z.input<typeof dimensionOptionsSchema>;
 export type SpotlightOptions = z.input<typeof spotlightOptionsSchema>;
+export type SourceChipOptions = z.input<typeof sourceChipOptionsSchema>;
 
 export type ParsedCallout = z.output<typeof calloutOptionsSchema>;
 export type ParsedArrow = z.output<typeof arrowOptionsSchema>;
@@ -250,6 +278,7 @@ export type ParsedBadge = z.output<typeof badgeOptionsSchema>;
 export type ParsedStamp = z.output<typeof stampOptionsSchema>;
 export type ParsedDimension = z.output<typeof dimensionOptionsSchema>;
 export type ParsedSpotlight = z.output<typeof spotlightOptionsSchema>;
+export type ParsedSourceChip = z.output<typeof sourceChipOptionsSchema>;
 
 /** Options every annotation shares (after parsing). */
 export type CommonParsed = Pick<
@@ -271,6 +300,7 @@ export const ANNOTATION_TYPES = {
   stamp: { schema: stampOptionsSchema, color: 'accent2', enter: 'pop' },
   dimension: { schema: dimensionOptionsSchema, color: 'accent1', enter: 'draw' },
   spotlight: { schema: spotlightOptionsSchema, color: 'outline', enter: 'fade' },
+  sourceChip: { schema: sourceChipOptionsSchema, color: 'accent1', enter: 'wipe' },
 } as const;
 
 export type AnnotationType = keyof typeof ANNOTATION_TYPES;

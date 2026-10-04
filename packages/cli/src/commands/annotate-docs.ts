@@ -50,6 +50,7 @@ const WHEN = [
   '  a list -> numbered badges 1-9 on the items, revealed on their words',
   '  emphasis / "the only one" -> spotlight, ring or highlight on the words',
   '  size / distance -> dimension line with the value',
+  '  a claim with a pinned source (plan kind source-chip, B-roll from research) -> sourceChip({ name }) in a free corner, the whole shot',
   'do: one or two marks at a time, labels short (1-3 words), time them with phrase: (the spoken word)',
   "don't: cover the main subject for long, stack labels, use the same form 3 times in a row",
 ].join('\n');
@@ -66,6 +67,7 @@ const EXAMPLES = [
   "  ctx.annotate.badge({ value: 2, target: { object: s.items[1], anchor: 'top' }, nudge: [0, -12] })",
   "  ctx.annotate.dimension({ from: s.calc, to: s.calc, text: '14 CM' })",
   '  ctx.annotate.spotlight({ target: s.calc, at: 3, until: 6 })',
+  "  ctx.annotate.sourceChip({ name: 'nasa.gov', index: 1, at: 0.5 })",
 ].join('\n');
 
 export function annotateDocs(): string {
