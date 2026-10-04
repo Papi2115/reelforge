@@ -45,15 +45,17 @@ One **Style** (palette, dithering, pixel fonts, sound character) and many **Look
   host-level overrides apply in well under a second; harder requests go through Claude as variants.
 
 ## Measured
-- Real run of the 2.0 looks on a real subscription: 2:17 film, 25 shots, 25 ✓, mix −14 LUFS, all anchors within
-  ±150 ms (`docs/real-run-v2.0.md`). The later versions were verified with fake-claude end-to-end tests and
-  render goldens; they have not been run on a real subscription yet.
+- Two real runs on a real subscription: the 2.0 looks (2:17, 25 shots, all ✓, `docs/real-run-v2.0.md`) and a film with
+  every 2.1–2.3 switch on (2:19, 7 looks, real Wikimedia photos, 2 open loops paid off, tension-driven pace, a slow-motion
+  landing; `docs/real-run-v2.3.md`). Mix −14 LUFS and every anchor within ±150 ms in both.
 - Preview stays at 30 fps (engine frame cost unchanged vs 1.2.0 within noise).
 
 ## Known limitations
 - Unsigned installer; Windows only; personal use (see v1.0.0 notes). Signing/auto-update (11.6) and the speed
   track (11.7) remain deferred.
 - Characters/mascot packs and series memory are the separate 2.3.5 step (not in this release).
+- Weak spots seen in the real runs: tension-driven darkening is subtle in lit voxel scenes, some retro-UI text crops,
+  weak camera-interrupt shots. A transition budget now keeps Claude from over-using dissolves.
 - Live co-direction is limited to host-level overrides (speed, tone, arrows, zoom); structural changes rebuild
   through Claude.
 - Library of Congress search could not be verified against the live API from the dev machine.
