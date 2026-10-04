@@ -5,12 +5,23 @@
  */
 import { getLook, type Look } from '@reelforge/kit';
 import { SFX_CATEGORY, type SfxRecipe } from '@reelforge/pipeline';
-import { shotLook, type LookMode, type StoryboardShot } from '@reelforge/shared';
+import {
+  shotLook,
+  type LookMode,
+  type StoryboardShot,
+  type TransitionStyleId,
+} from '@reelforge/shared';
 import { CUE_RULES } from '../cue-rules.js';
 import { BLUEPRINT_PALETTE } from './blueprint.js';
 import { DIORAMA_PALETTE } from './diorama.js';
 import { RETRO_UI_PALETTE } from './retro-ui.js';
-import type { PaletteKind, PaletteSlot, SoundPalette, SoundPaletteId } from './types.js';
+import {
+  pick,
+  type PaletteKind,
+  type PaletteSlot,
+  type SoundPalette,
+  type SoundPaletteId,
+} from './types.js';
 import { VOXEL_PALETTE } from './voxel.js';
 
 export * from './types.js';
@@ -66,9 +77,20 @@ export function paletteSlots(palette: SoundPalette, kind: PaletteKind): readonly
 }
 
 /**
- * Hook for PLAN.md#12.15 (transition sounds per look pair): the slot of a transition into a shot
- * of palette `to` from a shot of palette `from`. Today: `to`'s accents when the look changes,
- * otherwise none (the palette's usual transition sound).
+ * Signature sounds of the look-change transition styles (PLAN.md#12.15): a look change through
+ * one of them sounds like the style (the CRT powers on, tiles flip, the pen draws, pixels melt).
+ */
+export const TRANSITION_STYLE_SFX: Readonly<Partial<Record<TransitionStyleId, PaletteSlot>>> = {
+  'crt-zoom': [pick('crt-zap', ['power-on', 'degauss'], { leadS: 0.02 })],
+  'tile-flip': [pick('paper-shuffle', ['flip']), pick('servo', ['step'], { weight: 0.5 })],
+  'draw-over': [pick('pencil-scratch', ['line']), pick('plotter-pen', ['line'], { weight: 0.5 })],
+  'pixel-sort-melt': [pick('glitch'), pick('downer', [], { weight: 0.5 })],
+};
+
+/**
+ * The slot of a transition into a shot of palette `to` from a shot of palette `from` (PLAN.md
+ * #12.15): when the look changes, the transition style's own sound (TRANSITION_STYLE_SFX), else
+ * `to`'s accents; no look change = none (the palette's usual transition sound).
  */
 export function lookChangeSlot(
   from: SoundPalette,
@@ -76,6 +98,11 @@ export function lookChangeSlot(
   toShot: StoryboardShot,
 ): PaletteSlot | undefined {
   if (from.id === to.id) return undefined;
+  const transition = toShot.transitionIn;
+  const style =
+    transition === undefined || transition.type === 'cut' ? undefined : transition.style;
+  const styled = style === undefined ? undefined : TRANSITION_STYLE_SFX[style as TransitionStyleId];
+  if (styled !== undefined) return styled;
   const slot = to.accents[to.ambience.key(toShot)] ?? to.accents[''];
   return slot !== undefined && slot.length > 0 ? slot : undefined;
 }

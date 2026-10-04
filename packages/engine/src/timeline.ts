@@ -32,6 +32,8 @@ export interface TimelineSample {
   /** Present only while a non-cut transition is running: the outgoing shot. */
   readonly transition?: {
     readonly type: Exclude<TransitionType, 'cut'>;
+    /** Transition kit style (PLAN.md#12.15); absent = the plain `type`. */
+    readonly style?: string;
     readonly outgoing: ShotSample;
     /** 0 at the start of the transition, approaching 1 at its end. */
     readonly progress: number;
@@ -78,6 +80,7 @@ export function sampleTimeline(timeline: Timeline, t: number): TimelineSample {
     current,
     transition: {
       type: transition.type,
+      ...(transition.style === undefined ? {} : { style: transition.style }),
       outgoing: { index: index - 1, localTime: clamped - previous.t0 },
       progress: elapsed / transition.duration,
     },

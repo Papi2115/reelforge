@@ -4,7 +4,12 @@ import path from 'node:path';
 import { PipelineStateStore } from '@reelforge/claude-bridge';
 import { lintScene } from '@reelforge/engine';
 import { renderPrompt } from '@reelforge/prompts';
-import { storyboardFileSchema, storyboardReportSchema, type Roll } from '@reelforge/shared';
+import {
+  getTransitionStyle,
+  storyboardFileSchema,
+  storyboardReportSchema,
+  type Roll,
+} from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { SCENE_STUB_MARKER } from './stages/scene-stub.js';
@@ -177,7 +182,28 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
       ['claude-turn', 'storyboard'],
     ]);
     expect(commits[0]?.subject).toBe('Storyboard: 7 shots, 6 treatments, 2 missing props');
-    expect(commits[0]?.files).toHaveLength(6);
+    // 6 stubs + report, and storyboard.json: the mixed project's transition got its style.
+    expect(commits[0]?.files).toHaveLength(7);
+    const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
+    const spectrum = written.shots.find((shot) => shot.id === 's05_spectrum');
+    expect(spectrum?.transitionIn).toMatchObject({ style: expect.any(String) as unknown });
+    const filled = spectrum?.transitionIn;
+    const style = filled?.type === 'cut' ? undefined : getTransitionStyle(filled?.style);
+    expect(style?.type).toBe(filled?.type);
+    const others = written.shots.filter((shot) => shot.id !== 's05_spectrum');
+    expect(others.every((shot) => shot.transitionIn === undefined)).toBe(true);
+  });
+
+  it('leaves the transitions of a voxel-only storyboard as written', async () => {
+    const { dir, runner } = await setup('storyboard voxel transitions', [
+      writes({ 'storyboard.json': GOLDEN }),
+    ]);
+    const projectFile = JSON.parse(readProject(dir, 'project.json')) as Record<string, unknown>;
+    delete projectFile['lookMode'];
+    writeProject(dir, 'project.json', JSON.stringify(projectFile, null, 2));
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok).toBe(true);
+    expect(readProject(dir, 'storyboard.json')).toBe(GOLDEN);
   });
 
   it('repairs a treatment used three times in a row', async () => {

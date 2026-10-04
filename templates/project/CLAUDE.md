@@ -60,6 +60,7 @@ Camera rigs, `ctx.text` and `ctx.annotate` options, anchors, sfx, rng and easing
 
 ## Looks (one style, several looks)
 Every shot in `storyboard.json` may name a `look` (`voxel`, `retro-ui`, `diorama`, `blueprint`; absent = `voxel`) and a `roll` (`A` main story, `B` proof/illustration, `C` atmosphere/rhythm). Build the shot in the look it names, with that look's kit definitions: `reelforge kit-docs` marks every definition of a look other than voxel `(look <id>)`, and the scene-build prompt adds the look's own notes. `reelforge looks` lists the available looks, their rolls and sound palettes, and this project's look mode (`voxel-only` projects build every shot in voxel). All looks share the style (palette, pixel fonts, dithering): never bypass it with your own gradients or smooth colours.
+Transitions between shots are not drawn by scenes: the engine renders them from `storyboard.json` (`transitionIn`: `type`, `duration`, optional transition-kit `style` such as `crt-zoom`, `tile-flip`, `draw-over`, `dither-dissolve`, chosen per pair of looks; see the storyboard prompt). A scene only has to look right on its own from local t = 0; during a transition its frame is combined pixel by pixel with the neighbour's.
 
 ## Missing props (project props in `kit-ext/props/`)
 `reelforge kit-docs` lists the kit's props and this project's own (marked project-local). When the narration needs an object neither has:

@@ -149,6 +149,41 @@ describe('validateStoryboard', () => {
     );
   });
 
+  it('checks transition-kit styles: known id, its duration range, specials on look changes', () => {
+    const withTransition = (look: string, transitionIn: Record<string, unknown>): string =>
+      storyboard([
+        { t0: 0, t1: 4.5, extra: { look: 'voxel' } },
+        { t0: 4.5, t1: 10, extra: { look, transitionIn } },
+        ...GOOD.slice(2),
+      ]);
+    const issuesOf = (text: string): string[] =>
+      validateStoryboard(text, { words: WORDS }).issues.map(
+        (entry) => `${entry.severity}:${entry.code}`,
+      );
+    expect(
+      issuesOf(withTransition('blueprint', { type: 'wipe', duration: 0.6, style: 'draw-over' })),
+    ).toEqual([]);
+    expect(
+      issuesOf(withTransition('voxel', { type: 'wipe', duration: 0.5, style: 'iris' })),
+    ).toEqual([]);
+    // 0.75 s is fine for draw-over even though plain transitions warn above 0.6 s.
+    expect(
+      issuesOf(withTransition('blueprint', { type: 'wipe', duration: 0.75, style: 'draw-over' })),
+    ).toEqual([]);
+    expect(
+      issuesOf(withTransition('voxel', { type: 'glitch', duration: 0.6, style: 'glitch-cut' })),
+    ).toEqual(['warning:transition-duration']);
+    expect(
+      issuesOf(withTransition('voxel', { type: 'wipe', duration: 0.5, style: 'star-wipe' })),
+    ).toEqual(['error:transition-style']);
+    expect(
+      issuesOf(withTransition('voxel', { type: 'wipe', duration: 0.6, style: 'draw-over' })),
+    ).toEqual(['error:transition-special']);
+    expect(
+      issuesOf(withTransition('diorama', { type: 'wipe', duration: 0.6, style: 'draw-over' })),
+    ).toEqual(['warning:transition-pair']);
+  });
+
   it('reports schema errors and invalid JSON without a value', () => {
     const bad = validateStoryboard(
       JSON.stringify({ version: 1, shots: [{ id: 'S 1', t0: 0, t1: 1 }] }),

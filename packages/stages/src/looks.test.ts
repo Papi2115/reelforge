@@ -1,7 +1,20 @@
 import { defineLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
-import { lookIdSchema, treatmentSchema, type StoryboardShot } from '@reelforge/shared';
+import {
+  lookIdSchema,
+  TRANSITION_STYLE_LIST,
+  TRANSITION_STYLES,
+  treatmentSchema,
+  type StoryboardShot,
+} from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { lookLine, sceneLookVars, storyboardLookOptions, storyboardLookVars } from './looks.js';
+import {
+  availableTransitionStyles,
+  lookLine,
+  sceneLookVars,
+  storyboardLookOptions,
+  storyboardLookVars,
+  transitionLine,
+} from './looks.js';
 
 const SHOT: StoryboardShot = {
   id: 's01',
@@ -37,6 +50,7 @@ describe('look mode plumbing', () => {
     expect(storyboardLookVars('mixed')).toEqual({
       looks: available.map(lookLine).join('\n'),
       multiLook: true,
+      transitions: TRANSITION_STYLE_LIST.map(transitionLine).join('\n'),
     });
     expect(storyboardLookOptions('mixed')).toEqual({
       lookMode: 'mixed',
@@ -52,6 +66,21 @@ describe('look mode plumbing', () => {
     expect(lookLine(testLook)).toBe(
       '- `test-look` (Test look): a look that exists only in tests. Rolls: B. Treatments: ui-mockup.',
     );
+  });
+
+  it('lists the transition styles the available looks can use', () => {
+    expect(transitionLine(TRANSITION_STYLES['crt-zoom'])).toBe(
+      '- `crt-zoom` (glitch, 0.5–0.8 s; look changes only: * -> retro-ui, retro-ui -> *): zoom into the screen centre, the tube powers off to a line, the new shot powers on.',
+    );
+    expect(transitionLine(TRANSITION_STYLES.iris)).toBe(
+      '- `iris` (wipe, 0.3–0.7 s): a stair-stepped pixel circle opens from the centre with a bright rim.',
+    );
+    const ids = availableTransitionStyles([voxelLook, testLook]).map((style) => style.id);
+    expect(ids).toContain('pixel-sort-melt');
+    expect(ids).not.toContain('crt-zoom');
+    expect(ids).not.toContain('tile-flip');
+    expect(ids).not.toContain('draw-over');
+    expect(storyboardLookVars('mixed', [voxelLook])).not.toHaveProperty('transitions');
   });
 
   it("hands the scene build the shot's look docs; unknown looks build as voxel", () => {

@@ -1,12 +1,17 @@
 /**
  * `storyboard.json` written by the storyboard stage: the shared schema plus the prompt's rules
  * (contiguous shots from 0, boundaries on word starts, shot lengths, no treatment more than twice
- * in a row, scene paths, transitions) and the annotation plans' phrase and variety rules; in
+ * in a row, scene paths, transitions and their transition-kit styles) and the annotation plans' phrase and variety rules; in
  * `mixed` look mode also the look/roll rhythm (rhythm.ts, ADR-009).
  */
 import {
   DEFAULT_LOOK_ID,
+  describePairs,
+  getTransitionStyle,
+  shotLook,
   storyboardFileSchema,
+  TRANSITION_STYLE_IDS,
+  transitionSuits,
   type LookMode,
   type StoryboardShot,
   type WordsFile,
@@ -176,6 +181,69 @@ function identityIssues(shots: readonly StoryboardShot[]): ValidationIssue[] {
   return issues;
 }
 
+function durationIssue(
+  label: string,
+  duration: number,
+  min: number,
+  max: number,
+  where: string,
+): ValidationIssue[] {
+  return duration < min || duration > max
+    ? [
+        issue(
+          'warning',
+          'transition-duration',
+          `${label} lasts ${String(duration)} s (use ${String(min)}–${String(max)} s)`,
+          where,
+        ),
+      ]
+    : [];
+}
+
+/** Checks of a transition-kit `style` (PLAN.md#12.15): known id, its duration, its look pair. */
+function styleIssues(
+  shot: StoryboardShot,
+  previous: StoryboardShot,
+  style: string,
+  duration: number,
+  where: string,
+): ValidationIssue[] {
+  const known = getTransitionStyle(style);
+  if (known === undefined) {
+    return [
+      issue(
+        'error',
+        'transition-style',
+        `unknown transition style "${style}"; use one of ${TRANSITION_STYLE_IDS.join(', ')}`,
+        `${where}.style`,
+      ),
+    ];
+  }
+  const from = shotLook(previous);
+  const to = shotLook(shot);
+  const issues = durationIssue(style, duration, known.duration.min, known.duration.max, where);
+  if (known.lookChange && from === to) {
+    issues.push(
+      issue(
+        'error',
+        'transition-special',
+        `${style} is a look-change transition but ${previous.id} and ${shot.id} are both ${to}; use it only where the look changes`,
+        `${where}.style`,
+      ),
+    );
+  } else if (!transitionSuits(known, from, to, { from: previous.roll, to: shot.roll })) {
+    issues.push(
+      issue(
+        'warning',
+        'transition-pair',
+        `${style} does not suit ${from} -> ${to} (it suits ${describePairs(known)})`,
+        `${where}.style`,
+      ),
+    );
+  }
+  return issues;
+}
+
 function transitionIssues(
   shots: readonly StoryboardShot[],
   rules: StoryboardRules,
@@ -184,19 +252,18 @@ function transitionIssues(
     const transition = shot.transitionIn;
     const where = `shots[${String(index)}].transitionIn`;
     if (transition === undefined || transition.type === 'cut') return [];
-    if (index === 0)
+    const previous = shots[index - 1];
+    if (previous === undefined)
       return [issue('error', 'first-transition', 'the first shot has no transition', where)];
-    const { duration } = transition;
-    return duration < rules.minTransitionS || duration > rules.maxTransitionS
-      ? [
-          issue(
-            'warning',
-            'transition-duration',
-            `${transition.type} lasts ${String(duration)} s (use ${String(rules.minTransitionS)}–${String(rules.maxTransitionS)} s)`,
-            where,
-          ),
-        ]
-      : [];
+    const { duration, style } = transition;
+    if (style !== undefined) return styleIssues(shot, previous, style, duration, where);
+    return durationIssue(
+      transition.type,
+      duration,
+      rules.minTransitionS,
+      rules.maxTransitionS,
+      where,
+    );
   });
 }
 

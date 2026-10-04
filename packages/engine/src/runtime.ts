@@ -23,6 +23,8 @@ import { buildShot, type BuiltShot } from './shot.js';
 import { resolveStyle, type ResolvedStyle } from './style.js';
 import { checkCards, collectCardTimeline, type CardDiagnostic } from './text/check-cards.js';
 import { createTimeline, sampleTimeline } from './timeline.js';
+import { findTransition, paletteNumbers } from './transitions/index.js';
+import { createPixelTransitionRenderer } from './transitions/render.js';
 
 export interface LoadInfo {
   readonly duration: number;
@@ -170,6 +172,11 @@ export async function createRuntime(
     post: style.post,
   });
   const gpu = frameRenderer.gpuInfo();
+  const pixelTransitions = createPixelTransitionRenderer(frameRenderer, {
+    palette: paletteNumbers(style.swatches),
+  });
+  /** The last frame when it was composited on the CPU (transition kit), else read from the GPU. */
+  let composited: Uint8Array<ArrayBuffer> | undefined;
   const describe = (): LoadInfo => ({
     duration: timeline.duration,
     style: style.id,
@@ -194,6 +201,7 @@ export async function createRuntime(
     seek(t) {
       const sample = sampleTimeline(timeline, t);
       const current = shotAt(sample.current.index);
+      composited = undefined;
       if (!sample.transition) {
         current.update(sample.current.localTime);
         frameRenderer.render({ a: current, mode: 'single', progress: 0, seed: 0 });
@@ -202,15 +210,28 @@ export async function createRuntime(
       const outgoing = shotAt(sample.transition.outgoing.index);
       outgoing.update(sample.transition.outgoing.localTime);
       current.update(sample.current.localTime);
+      const seed = transitionSeeds[sample.current.index] ?? 0;
+      const pixelTransition = findTransition(sample.transition.style);
+      if (pixelTransition) {
+        composited = pixelTransitions.render({
+          a: outgoing,
+          b: current,
+          transition: pixelTransition,
+          progress: sample.transition.progress,
+          seed,
+        });
+        return;
+      }
       frameRenderer.render({
         a: outgoing,
         b: current,
         mode: sample.transition.type,
         progress: sample.transition.progress,
-        seed: transitionSeeds[sample.current.index] ?? 0,
+        seed,
       });
     },
     readFrame() {
+      if (composited) return composited.slice();
       const frame = new Uint8Array(width * height * 4);
       frameRenderer.readFrame(frame);
       return frame;

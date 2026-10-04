@@ -31,14 +31,26 @@ export const transitionTypeSchema = z.enum(['cut', 'crossfade', 'glitch', 'wipe'
 export type TransitionType = z.infer<typeof transitionTypeSchema>;
 
 /**
+ * Transition style id (PLAN.md#12.15, `TRANSITION_STYLES` in transitions.ts), kebab case. Any id
+ * parses (forward compatible); the storyboard validator rejects unknown ones and the engine
+ * renders an unknown style as its plain `type`.
+ */
+export const transitionStyleIdSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, 'transition style must be kebab case, e.g. pixel-wipe');
+
+/**
  * Transition from the previous shot into this one. It starts at this shot's t0 and lasts
- * `duration` seconds; meanwhile the previous shot keeps rendering past its own t1.
+ * `duration` seconds; meanwhile the previous shot keeps rendering past its own t1. `style`
+ * (optional, 2.0) selects a pixel transition of the transition kit; without it the plain `type`
+ * renders exactly as before.
  */
 export const transitionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('cut') }),
   z.object({
     type: z.enum(['crossfade', 'glitch', 'wipe']),
     duration: z.number().positive(),
+    style: transitionStyleIdSchema.optional(),
   }),
 ]);
 export type Transition = z.infer<typeof transitionSchema>;

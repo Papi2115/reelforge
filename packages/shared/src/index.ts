@@ -17,6 +17,8 @@ export * from './shot-variants.js';
 export * from './stage-records.js';
 export * from './storyboard.js';
 export * from './style-preset.js';
+export * from './transition-picker.js';
+export * from './transitions.js';
 export * from './usage.js';
 export * from './waveform-peaks.js';
 export * from './words.js';

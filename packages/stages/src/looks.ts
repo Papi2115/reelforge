@@ -4,14 +4,37 @@
  * project made before 2.0) gets nothing, so its prompts and checks stay exactly as they were.
  */
 import { getLook, listLooks, voxelLook, type Look } from '@reelforge/kit';
-import { shotLook, type LookMode, type StoryboardShot } from '@reelforge/shared';
+import {
+  describePairs,
+  shotLook,
+  TRANSITION_STYLE_LIST,
+  type LookMode,
+  type StoryboardShot,
+  type TransitionStyle,
+} from '@reelforge/shared';
 
 /** One line per look in the storyboard prompt. */
 export function lookLine(look: Look): string {
   return `- \`${look.id}\` (${look.label}): ${look.description}. Rolls: ${look.rolls.join(', ')}. Treatments: ${look.treatments.join(', ')}.`;
 }
 
-/** Storyboard prompt variables: none in `voxel-only`. */
+/** One line per transition style in the storyboard prompt (PLAN.md#12.15). */
+export function transitionLine(style: TransitionStyle): string {
+  const { min, max } = style.duration;
+  const pairs = style.lookChange ? `; look changes only: ${describePairs(style)}` : '';
+  return `- \`${style.id}\` (${style.type}, ${String(min)}–${String(max)} s${pairs}): ${style.description}.`;
+}
+
+/** Transition styles usable with these looks: a special needs a pair of available looks. */
+export function availableTransitionStyles(looks: readonly Look[]): TransitionStyle[] {
+  const ids = new Set(looks.map((look) => look.id));
+  const usable = (pattern: string): boolean => pattern === '*' || ids.has(pattern);
+  return TRANSITION_STYLE_LIST.filter((style) =>
+    style.pairs.some((pair) => usable(pair.from) && usable(pair.to)),
+  );
+}
+
+/** Storyboard prompt variables: none in `voxel-only`; transition styles once 2+ looks exist. */
 export function storyboardLookVars(
   mode: LookMode,
   looks: readonly Look[] = listLooks(),
@@ -19,7 +42,12 @@ export function storyboardLookVars(
   if (mode === 'voxel-only') return {};
   return {
     looks: looks.map(lookLine).join('\n'),
-    ...(looks.length >= 2 ? { multiLook: true } : { singleLook: true }),
+    ...(looks.length >= 2
+      ? {
+          multiLook: true,
+          transitions: availableTransitionStyles(looks).map(transitionLine).join('\n'),
+        }
+      : { singleLook: true }),
   };
 }
 

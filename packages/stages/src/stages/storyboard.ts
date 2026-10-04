@@ -2,12 +2,19 @@
  * Storyboard (PLAN.md#7.3): Claude (storyboard prompt; script, words, style bible, kit catalog via
  * `reelforge kit-docs`) writes `storyboard.json`; it is validated (schema, contiguous shots from 0,
  * boundaries on word starts, no treatment more than twice in a row, scene paths; in `mixed` look
- * mode rolls, looks and their rhythm, ADR-009) with one repair turn. Then stub scene modules are
- * created for new shots and `missingProps` is collected.
+ * mode rolls, looks and their rhythm, ADR-009) with one repair turn. In `mixed` mode non-cut
+ * transitions without a transition-kit style get one picked for their look pair (PLAN.md#12.15,
+ * written back to storyboard.json). Then stub scene modules are created for new shots and
+ * `missingProps` is collected.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
-import { validateStoryboard, type StoryboardOutput } from '@reelforge/prompts';
 import {
+  storyboardOutputSchema,
+  validateStoryboard,
+  type StoryboardOutput,
+} from '@reelforge/prompts';
+import {
+  assignTransitionStyles,
   projectLookMode,
   STORYBOARD_REPORT_VERSION,
   storyboardReportSchema,
@@ -50,6 +57,20 @@ async function checkStoryboard(
   };
 }
 
+/** `mixed` projects: fills the transition-kit styles the storyboard left out (ADR-011). */
+async function assignStyles(
+  ctx: StageContext,
+  storyboard: StoryboardOutput,
+  seed: number,
+): Promise<Result<StoryboardOutput, StageError>> {
+  const assigned = assignTransitionStyles(storyboard.shots, seed);
+  if (assigned.changed.length === 0) return ok(storyboard);
+  return writeProjectJson(ctx.projectDir, FILES.storyboard, storyboardOutputSchema, {
+    ...storyboard,
+    shots: assigned.shots,
+  });
+}
+
 function treatmentCounts(storyboard: StoryboardOutput): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const shot of storyboard.shots) counts[shot.treatment] = (counts[shot.treatment] ?? 0) + 1;
@@ -86,8 +107,8 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     check: () => checkStoryboard(ctx, words.value, lookMode),
   });
   if (!checked.ok) return checked;
-  const { value: storyboard, problems, repairs } = checked.value;
-  if (problems.length > 0 || storyboard === undefined) {
+  const { value: validated, problems, repairs } = checked.value;
+  if (problems.length > 0 || validated === undefined) {
     return err(
       stageError(
         'validation',
@@ -96,6 +117,10 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
       ),
     );
   }
+  const styled =
+    lookMode === 'mixed' ? await assignStyles(ctx, validated, project.value.seed) : ok(validated);
+  if (!styled.ok) return styled;
+  const storyboard = styled.value;
   ctx.step('Creating scene placeholders', 90);
   const stubs = await writeSceneStubs(ctx.projectDir, storyboard.shots);
   if (!stubs.ok) return stubs;

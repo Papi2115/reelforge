@@ -1,4 +1,4 @@
-/** @reelforge/engine: deterministic scene runtime (scene contract, clock/seek, RNG, transitions, post-fx, camera rigs, pixel text, annotations). */
+/** @reelforge/engine: deterministic scene runtime (scene contract, clock/seek, RNG, transitions + transition kit, post-fx, camera rigs, pixel text, annotations). */
 export const packageName = '@reelforge/engine';
 
 export { createAmbientApi, lookBudgetKey, shotAmbient } from './ambient.js';
@@ -27,4 +27,5 @@ export { parseManifest, type LoadInfo } from './runtime.js';
 export * from './style.js';
 export * from './text/index.js';
 export * from './timeline.js';
+export * from './transitions/index.js';
 export * from './vibe.js';

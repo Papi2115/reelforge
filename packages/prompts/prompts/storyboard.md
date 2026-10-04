@@ -1,6 +1,6 @@
 ---
 id: storyboard
-version: 3
+version: 4
 model: sonnet
 tools: [Read, Write, Glob, Grep, Bash(reelforge *)]
 output: storyboard.json
@@ -33,7 +33,9 @@ Rolls and looks: give every shot a `"roll"` and a `"look"`, e.g. `{ "id": "s04_p
 Available looks (use only these ids):
 {{looks}}
 {{#multiLook}}Rhythm: never more than 3 shots in a row in one look (A-roll voxel: 4); change roll, look or treatment at least every 6–8 s; open each act (crossfade/glitch/wipe) with a C-roll. Pick the look that tells the shot best, not the most unusual one: every look shares the same palette, pixel fonts and dithering.
-{{/multiLook}}{{#singleLook}}Only `voxel` is available for now: every shot is `"look": "voxel"`; still tag the rolls (B and C shots are voxel too) and keep an A-roll at least once in every 6 shots.
+{{#transitions}}Transition styles: a non-cut `transitionIn` (act changes) may name a `style` for the pair of looks it joins, e.g. `{ "type": "wipe", "duration": 0.6, "style": "draw-over" }`; the engine draws it in the style palette (scenes never draw transitions). Look-change styles only where the look changes; keep the duration in the style's range; never the same style twice in a row. Without a `style` one is picked for the look pair. Styles:
+{{transitions}}
+{{/transitions}}{{/multiLook}}{{#singleLook}}Only `voxel` is available for now: every shot is `"look": "voxel"`; still tag the rolls (B and C shots are voxel too) and keep an A-roll at least once in every 6 shots.
 {{/singleLook}}{{/looks}}
 Annotations (`annotations`, per shot, optional): the on-screen marks that make the narration easy to follow. First tag what the narration DOES at a phrase (`reason`), then choose the form (`kind`) from that meaning:
 - `name` (a person, product, place is named) → `pin` on the object, or `caption` (small lower-third text)

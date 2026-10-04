@@ -16,6 +16,7 @@ import {
   pick,
   pickRecipe,
   sceneRecipe,
+  TRANSITION_STYLE_SFX,
   type PaletteKind,
 } from './index.js';
 
@@ -150,6 +151,29 @@ describe('palette contents', () => {
     expect(lookChangeSlot(VOXEL_PALETTE, diorama, shot('diorama', 'A busy city street'))).toBe(
       diorama.accents['city'],
     );
+  });
+
+  it('look changes through a transition-kit style sound like the style (12.15)', () => {
+    const retro = SOUND_PALETTES['retro-ui'];
+    const styled = (style: string): StoryboardShot => ({
+      ...shot('retro-ui'),
+      transitionIn: { type: 'glitch', duration: 0.6, style },
+    });
+    expect(lookChangeSlot(VOXEL_PALETTE, retro, styled('crt-zoom'))).toBe(
+      TRANSITION_STYLE_SFX['crt-zoom'],
+    );
+    // Plain styles and unknown ids keep the entered look's accents; one look stays silent.
+    expect(lookChangeSlot(VOXEL_PALETTE, retro, styled('iris'))).toBe(retro.accents['']);
+    expect(lookChangeSlot(VOXEL_PALETTE, retro, styled('nope'))).toBe(retro.accents['']);
+    expect(lookChangeSlot(retro, retro, styled('crt-zoom'))).toBeUndefined();
+    for (const [style, slot] of Object.entries(TRANSITION_STYLE_SFX)) {
+      for (const choice of slot) {
+        expect(SFX_RECIPES, style).toContain(choice.recipe);
+        for (const variant of choice.variants) {
+          expect(SFX_VARIANTS[choice.recipe], `${style}: ${variant}`).toContain(variant);
+        }
+      }
+    }
   });
 });
 

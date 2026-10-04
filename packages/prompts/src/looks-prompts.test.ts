@@ -75,6 +75,15 @@ describe('mixed prompts', () => {
     expect(text).not.toMatch(TAG);
   });
 
+  it('list the transition styles with the rhythm rules (PLAN.md#12.15)', () => {
+    const looks = `${VOXEL_LINE}\n- \`retro-ui\` (Retro UI / CRT): retro-OS windows`;
+    const transitions = '- `iris` (wipe, 0.3–0.7 s): a pixel circle opens.';
+    const text = rendered('storyboard', { ...STYLE, looks, multiLook: true, transitions });
+    expect(text).toContain('dithering.\nTransition styles: a non-cut `transitionIn`');
+    expect(text).toContain(`Styles:\n${transitions}\n\nAnnotations (\`annotations\``);
+    expect(text).not.toMatch(TAG);
+  });
+
   it("give the scene build the shot's look and its docs", () => {
     const text = rendered('scene-build', {
       ...SCENE_VARS,

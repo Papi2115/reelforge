@@ -196,3 +196,11 @@ a look opts in by adding a budget under its key in the presets and reading `tool
 `ctx.ambient` (read-only) and must not hard-code one background for every shot. Render test and
 goldens: `packages/kit/test/render/kit-ambient.test.ts`, `ambient-*`; contact sheets
 `packages/kit/out/contact/ambient-<style>.png`.
+
+## Transitions between looks
+
+PLAN.md#12.15, ADR-011, guide `docs/transitions.md`. A non-cut `transitionIn` may name a
+transition-kit `style`; the engine composites the two post-fx frames pixel by pixel (palette
+only). Look-change specials: `crt-zoom` (retro-ui), `tile-flip` (diorama), `draw-over`
+(blueprint), `pixel-sort-melt` (C-rolls). In `mixed` projects the storyboard prompt lists the
+styles and the storyboard stage fills missing ones per look pair (`transitionFor`).
