@@ -2,7 +2,8 @@
 
 ReelForge is a Windows-first desktop app that turns a short video brief into a finished YouTube
 video: script → your voiceover → cleaned audio → word-level timestamps → storyboard → a deterministic
-voxel / pixel-art 3D animation → sound design → MP4 (1080p, optionally 1440p / 4K).
+pixel-art animation in seven looks (voxel 3D, retro UI/CRT, isometric diorama, blueprint/data, flat 2D,
+paper cut-out, whiteboard — one shared retro style) → sound design → MP4 (1080p, optionally 1440p / 4K).
 
 All AI work runs through **your own Claude subscription** via the locally installed Claude Code CLI
 (`claude`). No API keys, no cloud services beyond the CLI itself, no telemetry. ReelForge never reads

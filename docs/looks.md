@@ -1,4 +1,4 @@
-# Looks (ReelForge 2.0)
+# Looks (ReelForge 2.x)
 
 One **Style**, many **Looks** (PLAN.md phase 12, ADR-009).
 
@@ -8,7 +8,7 @@ One **Style**, many **Looks** (PLAN.md phase 12, ADR-009).
 - **Look** = a family of kit content (environments, props, effects, shot templates) plus the docs
   the runtime Claude builds with, a sound palette id and a variation budget key. Every look renders
   through the same Style. Available: `voxel` (the 1.x kit, unchanged), `retro-ui`, `diorama` and
-  `blueprint` (`reelforge looks` lists them).
+  `blueprint` (2.0), then `flat-2d`, `paper-cutout` and `whiteboard` (2.3); `reelforge looks` lists them.
 
 ## The contract (`packages/kit/src/looks/types.ts`)
 
