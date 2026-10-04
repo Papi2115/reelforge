@@ -151,6 +151,10 @@ Container: MP4 with `+faststart`.
 - `buildChaptersTxt(chapters, durationS)`: YouTube description format (`0:00 Intro`, `H:MM:SS`
   from 1 h). Enforces YouTube's rules (first at 0:00, ≥ 3 chapters, each ≥ 10 s) and fails before
   rendering when they are broken. `exportVideo({ chapters })` writes `out/chapters.txt`.
+- Chapter titles in the app (`apps/desktop/src/main/export/export-chapters.ts`): one chapter per
+  shot start (shots < 10 s merged), titled with the key phrase spoken at the chapter's start
+  (`spokenChapterTitle`, ≤ 5 words, from `timing/words.json`); without words, or when that phrase
+  is already used by another chapter, the scene's `meta.title` or the first clause of its intent.
 
 ## Progress events
 
