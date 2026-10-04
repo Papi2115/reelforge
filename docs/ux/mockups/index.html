@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ReelForge 2.4 — workspace mockup</title>
+    <meta name="viewport" content="width=1280" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <!-- Static mockup of docs/ux/redesign-2.4.md. Open by double-click; best at 1280x720 or larger.
+       No network, no build step. Everything shown is fake data from the example project. -->
+  <body data-state="mid" data-side="closed" data-inbox="closed">
+    <div class="mock-controls" role="toolbar" aria-label="Mockup states">
+      <strong>Mockup state:</strong>
+      <button type="button" data-set-state="new">1 · New project</button>
+      <button type="button" data-set-state="mid">2 · Mid-build, a failure explained</button>
+      <button type="button" data-set-state="ready">3 · Ready to export</button>
+      <button type="button" id="toggle-director">Director drawer</button>
+      <span class="hint">Click the steps, "Needs you", the rail icons and the shots. Nothing here runs.</span>
+    </div>
+
+    <div class="app">
+      <!-- Header: brand · project menu · step bar · Needs you · Library · Settings · Help -->
+      <header class="header">
+        <span class="brand"><span class="brand-mark" aria-hidden="true"></span>ReelForge</span>
+        <button type="button" class="project-menu" title="Project settings · Open folder · Close project">
+          <span data-only="new">Rainbow in a glass</span><span data-only="mid ready">Doom on a calculator</span>
+        </button>
+        <nav class="steps" aria-label="Steps" id="steps"></nav>
+        <div class="header-right">
+          <div class="needs-you">
+            <button type="button" id="inbox-button" aria-haspopup="dialog">
+              Needs you<span class="badge" id="inbox-count">2</span>
+            </button>
+            <div class="popover" role="dialog" aria-label="Needs you">
+              <h4>Needs you</h4>
+              <div data-only="new" class="inbox-item">
+                <span class="what muted">Nothing yet. Start with the brief.</span>
+              </div>
+              <div data-only="mid" class="inbox-item">
+                <span class="what"><b>s02 is broken:</b> Claude stopped before saving the scene.</span>
+                <button type="button">Retry s02</button>
+              </div>
+              <div data-only="mid" class="inbox-item">
+                <span class="what"><b>2 wow moments</b> wait for your OK (0:52 slow motion, 1:01 palette flash).</span>
+                <button type="button" data-open-director>Open Director</button>
+              </div>
+              <div data-only="ready" class="inbox-item">
+                <span class="what muted">All clear. Optional: 1 claim without a source.</span>
+                <button type="button">Open sources</button>
+              </div>
+            </div>
+          </div>
+          <button type="button" title="Photos to approve, your files, shared library, characters, your taste">Library</button>
+          <button type="button">Settings</button>
+          <button type="button">Help</button>
+        </div>
+      </header>
+
+      <!-- Now strip: one sentence + ONE primary action -->
+      <section class="now" id="now" role="status" aria-live="polite">
+        <span class="glyph" aria-hidden="true"></span>
+        <p class="sentence" data-only="new">
+          <b>Describe your video in a few sentences.</b> Claude writes the script from it; you read and approve it.
+        </p>
+        <div class="actions" data-only="new">
+          <button type="button" class="primary">Write the script <span class="cost">(Sonnet · ~2 min)</span></button>
+          <button type="button" class="link">Use my own script…</button>
+        </div>
+        <p class="sentence" data-only="mid">
+          <b>6 of 7 shots are built and play in the preview.</b> s02 failed: Claude stopped before saving the scene
+          (the process exited). The other shots are fine.
+        </p>
+        <div class="actions" data-only="mid">
+          <button type="button" class="primary">Retry s02 <span class="cost">(Opus · ~2 min)</span></button>
+          <button type="button" class="link">Ask Claude to fix s02</button>
+          <button type="button" class="link">Details</button>
+        </div>
+        <p class="sentence" data-only="ready">
+          <b>Everything is built and checked.</b> 7 of 7 shots checked · sound mixed (−14 LUFS, right for YouTube).
+        </p>
+        <div class="actions" data-only="ready">
+          <button type="button" class="primary">Export video <span class="cost">(1080p · ~1 min, no Claude)</span></button>
+          <button type="button" class="link">YouTube texts</button>
+        </div>
+      </section>
+
+      <div class="body">
+        <!-- Left: the current step's panel -->
+        <aside class="left" aria-label="Step panel">
+          <h2 class="panel-title" id="left-title">Shots <span class="mono">7</span><span class="spacer"></span>
+            <button type="button" class="icon-toggle" id="problems-only" title="Show only shots with a problem">Problems only</button>
+          </h2>
+          <div class="left-body" id="left-body"></div>
+        </aside>
+
+        <!-- Centre: preview, transport, direct input -->
+        <main class="center" aria-label="Preview">
+          <div class="stage">
+            <div class="empty-stage" data-only="new">
+              <h2>Your video will play here</h2>
+              <p class="muted">It appears shot by shot once the plan exists. No demo, no guessing.</p>
+              <ol>
+                <li><span>1</span> Script · ~2 min</li>
+                <li><span>2</span> Voice · you record</li>
+                <li><span>3</span> Plan · ~2 min</li>
+                <li><span>4</span> Scenes · ~10–20 min</li>
+                <li><span>5</span> Sound · ~1 min</li>
+                <li><span>6</span> Export · ~1 min</li>
+              </ol>
+            </div>
+            <div class="frame" data-only="mid ready" aria-label="Preview of shot s03 at 0:04.90">
+              <div class="floor"></div>
+              <div class="cube" style="left: 90px; top: 60px"></div>
+              <div class="cube c2" style="left: 170px; top: 120px"></div>
+              <div class="cube c3" style="left: 470px; top: 70px"></div>
+              <div class="cube" style="left: 540px; top: 150px; width: 24px; height: 24px"></div>
+              <div class="cube c2" style="left: 380px; top: 30px; width: 12px; height: 12px"></div>
+              <div class="title-text">DOOM RUNS ON<br /><span>ALMOST ANYTHING</span></div>
+              <div class="calc"></div>
+              <span class="frame-note" data-only="mid">s02 plays a placeholder card until it is rebuilt</span>
+            </div>
+          </div>
+          <div class="transport" data-only="mid ready" role="toolbar" aria-label="Transport">
+            <button type="button" aria-label="Play (Space)">▶</button>
+            <span class="time">0:04.90 <span class="muted">/ 0:30.50</span></span>
+            <span class="scrub" aria-hidden="true"></span>
+            <button type="button">1×</button>
+            <button type="button" aria-label="Mute (M)">🔈︎</button>
+            <input class="direct" aria-label="Direct this shot" placeholder="Direct this shot…  ( / )" />
+          </div>
+        </main>
+
+        <!-- Bottom dock: Timeline | Scenes check | Sound | Words -->
+        <section class="dock" aria-label="Dock">
+          <div class="dock-tabs" role="tablist">
+            <button type="button" class="tab" role="tab" aria-selected="true">Timeline</button>
+            <button type="button" class="tab" role="tab" data-only="mid ready">Scenes check</button>
+            <button type="button" class="tab" role="tab" data-only="ready">Sound</button>
+            <button type="button" class="tab" role="tab" data-only="mid ready">Words</button>
+          </div>
+          <p class="dock-empty" data-only="new">The timeline fills in after your voiceover.</p>
+          <div class="tracks" data-only="mid ready">
+            <span class="track-name">Shots</span>
+            <div class="lane">
+              <span class="block" style="width: 7%">s01</span>
+              <span class="block" style="width: 9%" data-only="ready">s02</span>
+              <span class="block broken" style="width: 9%" data-only="mid" title="s02: broken, placeholder">s02 ✗</span>
+              <span class="block" style="width: 21%">s03 · metaphor</span>
+              <span class="block" style="width: 20%">s04 · counter</span>
+              <span class="block" style="width: 17%">s05 · character</span>
+              <span class="block" style="width: 14%">s06</span>
+              <span class="block" style="flex: 1">s07</span>
+              <span class="playhead" aria-hidden="true"></span>
+            </div>
+            <span class="track-name">Narration</span>
+            <div class="lane">
+              <span class="word" style="width: 6%">Doom…</span><span class="word" style="width: 8%">Fridges…</span>
+              <span class="word" style="width: 22%">But this one is special…</span><span class="word" style="width: 9%">The or…</span>
+              <span class="word" style="width: 10%">Here, eve…</span><span class="word" style="width: 18%">So hackers rewrot…</span>
+              <span class="word" style="width: 13%">And there it…</span><span class="word" style="flex: 1">If it…</span>
+            </div>
+            <span class="track-name">Audio</span>
+            <div class="lane"><span class="wave"></span></div>
+          </div>
+        </section>
+
+        <!-- Side: collapsed rail, or Chat | Director -->
+        <aside class="side" aria-label="Side panel">
+          <div class="rail">
+            <button type="button" id="rail-chat" title="Chat (Ctrl+Shift+C)">Chat</button>
+            <button type="button" id="rail-director" title="Director (Ctrl+Shift+D)">Dir.</button>
+          </div>
+          <div class="side-open">
+            <div class="side-tabs" role="tablist">
+              <button type="button" class="tab" role="tab" id="tab-chat" aria-selected="false">Chat</button>
+              <button type="button" class="tab" role="tab" id="tab-director" aria-selected="true">Director</button>
+              <button type="button" class="close" id="side-close" aria-label="Collapse">›</button>
+            </div>
+            <div class="side-body" id="chat-body" hidden>
+              <p class="chat-empty">Ask Claude to change the video. Click an object in the preview to aim at it.</p>
+            </div>
+            <div class="side-body" id="director-body">
+              <section class="dir-section" aria-label="Tension curve">
+                <div class="dir-head"><h3>Tension curve</h3><span class="switch on"><i></i>On</span></div>
+                <svg class="curve" viewBox="0 0 300 48" aria-hidden="true">
+                  <polyline points="0,40 60,34 120,26 180,14 220,6 260,18 300,30" fill="none" stroke="#ff8a3d" stroke-width="2" />
+                  <g fill="#ff8a3d"><rect x="58" y="32" width="4" height="4" /><rect x="178" y="12" width="4" height="4" /><rect x="218" y="4" width="4" height="4" /></g>
+                </svg>
+                <p class="dir-status"><b>Rising · drawn by you.</b> Steers cut pace, looks, music mood and background darkness.</p>
+                <button type="button">Edit curve</button> <button type="button" class="link">Presets</button>
+              </section>
+              <section class="dir-section" aria-label="Story beats">
+                <div class="dir-head"><h3>Story beats</h3><span class="switch on"><i></i>On</span></div>
+                <p class="dir-status"><b>Surprise moments:</b> 4 planned, 3 in the frames · <b>Questions &amp; answers:</b> 2 open, both answered.</p>
+                <div class="dir-row" data-only="mid ready">
+                  <span class="what">Wow moment · slow motion on “forever.” · 0:52 · s04</span>
+                  <button type="button">Accept</button><button type="button">Reject</button><button type="button">Preview</button>
+                </div>
+                <div class="dir-row" data-only="mid">
+                  <span class="what">Wow moment · palette flash · 1:01 · s06</span>
+                  <button type="button">Accept</button><button type="button">Reject</button><button type="button">Preview</button>
+                </div>
+                <div class="dir-row" data-only="new"><span class="what muted">Planned with the script and the shot plan.</span></div>
+              </section>
+              <section class="dir-section" aria-label="Editing">
+                <div class="dir-head"><h3>Editing</h3><span class="switch on"><i></i>On</span></div>
+                <p class="dir-status"><b>Cut on the beat:</b> 94 % of cuts on the beat ✓</p>
+                <div class="dir-row" data-only="mid">
+                  <span class="what">Too much of the same: “whoosh” 4× in 21 s</span>
+                  <button type="button">Swap sound</button><button type="button">Ignore</button>
+                </div>
+                <div class="dir-row" data-only="ready new"><span class="what muted">Too much of the same: nothing repeats too often.</span></div>
+              </section>
+              <section class="dir-section" aria-label="Opening">
+                <div class="dir-head"><h3>Opening</h3></div>
+                <p class="dir-status">“Doom runs on almost anything. This calculator has only 61 KB…”</p>
+                <button type="button">Try 3 other openings (Hook lab)</button>
+              </section>
+              <section class="dir-section" aria-label="Directions">
+                <div class="dir-head"><h3>Directions</h3><span class="muted">2 this session</span></div>
+                <div class="dir-row"><span class="what">s03 · darker · tone −0.25</span><button type="button">Undo</button></div>
+                <div class="dir-row"><span class="what">s05 · arrow on “hackers” · 0.3 s</span><button type="button">Undo</button></div>
+              </section>
+              <p class="dir-footer">Switches apply at the next Plan / Scenes build. Nothing is marked out of date.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="statusbar">
+        <button type="button">History</button>
+        <span><span class="dot" aria-hidden="true"></span>Claude: connected</span>
+        <span class="right">ReelForge 2.4 (mockup)</span>
+      </footer>
+    </div>
+
+    <aside class="callout" id="callout" title="Click to hide"></aside>
+
+    <script>
+      // Data of the three states. Status keys: todo | ready | problems | done (see redesign-2.4.md §3).
+      const STEPS = ['Script', 'Voice', 'Plan', 'Scenes', 'Sound', 'Export'];
+      const STATES = {
+        new: {
+          steps: ['ready', 'todo', 'todo', 'todo', 'todo', 'todo'],
+          current: 0,
+          tone: 'accent',
+          inbox: 0,
+          callout:
+            '<b>New project.</b> No demo in the preview: an empty stage says what will appear. One orange button. No waiting chips: the step order explains itself.',
+        },
+        mid: {
+          steps: ['done', 'done', 'done', 'problems', 'todo', 'todo'],
+          current: 3,
+          tone: 'warn',
+          inbox: 2,
+          callout:
+            '<b>Mid-build, a failure explained.</b> Not "Failed": the strip says what plays (6 of 7) and what broke (s02), with one action. Sound and Export carry no text until they matter.',
+        },
+        ready: {
+          steps: ['done', 'done', 'done', 'done', 'done', 'ready'],
+          current: 5,
+          tone: 'ok',
+          inbox: 0,
+          callout:
+            '<b>Ready to export.</b> The strip confirms what was checked. The export button says the format and that it uses no Claude.',
+        },
+      };
+      const STEP_PANELS = {
+        Script: {
+          title: 'Script',
+          html:
+            '<label class="field">What is the video about?<textarea>You can make a rainbow with a glass of water and a flashlight…</textarea></label>' +
+            '<label class="field">Length (minutes)<input value="0.5" /></label>' +
+            '<label class="field">Tone<input placeholder="curious, upbeat, a bit nerdy" /></label>' +
+            '<p class="step-panel-note">Language, audience and notes are under “More”. Research, beats and Hook lab come with the script.</p>',
+        },
+        Voice: {
+          title: 'Voice',
+          html:
+            '<p class="step-panel-note">Recorded 0:31 · cleaned · 76 words timed. Compared with the script: 2 words differ.</p>' +
+            '<button type="button">Record a new take</button> <button type="button">Use a file…</button>',
+        },
+        Plan: {
+          title: 'Plan',
+          html:
+            '<p class="step-panel-note">7 shots for 0:30 · 3 looks · no photos needed (research: ask me).</p>' +
+            '<button type="button">Plan the shots again…</button>',
+        },
+        Sound: {
+          title: 'Sound',
+          html:
+            '<p class="step-panel-note">15 sound effects placed · room tone · no music yet.</p>' +
+            '<button type="button">Mix the sound</button> <button type="button" class="link">More…</button>',
+        },
+        Export: {
+          title: 'Export',
+          html:
+            '<p class="step-panel-note">1080p · Standard quality · “Doom on a calculator.mp4”. YouTube texts are ready to copy.</p>',
+        },
+      };
+      const SHOTS = [
+        ['s01', 'Doom runs on almost anything', 'Title card'],
+        ['s02', 'Fridges, watches, even a printer', 'Kinetic text'],
+        ['s03', 'A school calculator on an exam bench', 'Metaphor object'],
+        ['s04', 'Four megabytes needed, 61 KB available', 'Counter'],
+        ['s05', 'The hero points at the calculator', 'Character scene'],
+        ['s06', 'Push into the calculator screen', 'Retro UI'],
+        ['s07', 'If it has a screen, it runs Doom', 'Title card'],
+      ];
+      const glyphText = { todo: 'not started', ready: 'ready', problems: 'built with problems', done: 'done' };
+
+      let selectedStep = null;
+
+      function shotList(state) {
+        const items = SHOTS.map(([id, what, type]) => {
+          const broken = state === 'mid' && id === 's02';
+          const check = broken
+            ? '<span class="check broken">Broken</span>'
+            : '<span class="check ok">Checked</span>';
+          const fix = broken
+            ? '<div class="shot-fix"><div><p>Claude stopped before saving the scene.</p>' +
+              '<button type="button">Retry s02</button> <button type="button">Fix with Claude…</button></div></div>'
+            : '';
+          return (
+            '<li class="shot' + (broken ? ' broken' : '') + (id === 's03' ? ' selected' : '') + '" tabindex="0">' +
+            '<span class="id">' + id + '</span>' +
+            '<span class="what">' + what + '<span class="type">' + type + '</span></span>' + check + fix + '</li>'
+          );
+        });
+        return '<ul class="shots">' + items.join('') + '</ul>';
+      }
+
+      function renderLeft(state) {
+        const title = document.getElementById('left-title');
+        const body = document.getElementById('left-body');
+        const step = selectedStep ?? (state === 'new' ? 'Script' : 'Scenes');
+        document.getElementById('problems-only').hidden = step !== 'Scenes' || state === 'new';
+        const count = title.querySelector('.mono');
+        if (state === 'new' && step !== 'Script') {
+          title.firstChild.textContent = step + ' ';
+          count.hidden = true;
+          body.innerHTML =
+            '<p class="step-panel-note">Not started. Comes after ' + STEPS[STEPS.indexOf(step) - 1] + '.</p>';
+          return;
+        }
+        if (step === 'Scenes') {
+          title.firstChild.textContent = 'Shots ';
+          count.hidden = false;
+          body.innerHTML = shotList(state);
+          return;
+        }
+        title.firstChild.textContent = STEP_PANELS[step].title + ' ';
+        count.hidden = true;
+        body.innerHTML = STEP_PANELS[step].html;
+      }
+
+      function renderSteps(state) {
+        const data = STATES[state];
+        const nav = document.getElementById('steps');
+        nav.innerHTML = '';
+        STEPS.forEach((name, index) => {
+          const status = data.steps[index];
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'step';
+          button.dataset.status = status;
+          if ((selectedStep ?? STEPS[data.current]) === name) button.setAttribute('aria-current', 'step');
+          const count = status === 'problems' ? '<span class="count">6/7</span>' : '';
+          button.innerHTML =
+            '<span class="num">' + (index + 1) + '</span><span class="glyph" aria-hidden="true"></span>' + name + count;
+          button.setAttribute('aria-label', name + ': ' + glyphText[status]);
+          button.title = name + ' — ' + glyphText[status] + ' (Alt+' + (index + 1) + ')';
+          button.addEventListener('click', () => {
+            selectedStep = name;
+            renderSteps(state);
+            renderLeft(state);
+          });
+          nav.appendChild(button);
+        });
+      }
+
+      function setState(state) {
+        selectedStep = null;
+        document.body.dataset.state = state;
+        document.body.dataset.inbox = 'closed';
+        document.getElementById('now').dataset.tone = STATES[state].tone;
+        const count = document.getElementById('inbox-count');
+        count.textContent = String(STATES[state].inbox);
+        count.classList.toggle('zero', STATES[state].inbox === 0);
+        document.getElementById('callout').innerHTML = STATES[state].callout;
+        for (const button of document.querySelectorAll('[data-set-state]')) {
+          button.setAttribute('aria-pressed', String(button.dataset.setState === state));
+        }
+        renderSteps(state);
+        renderLeft(state);
+      }
+
+      function openSide(tab) {
+        document.body.dataset.side = 'open';
+        const director = tab === 'director';
+        document.getElementById('director-body').hidden = !director;
+        document.getElementById('chat-body').hidden = director;
+        document.getElementById('tab-director').setAttribute('aria-selected', String(director));
+        document.getElementById('tab-chat').setAttribute('aria-selected', String(!director));
+        document.getElementById('toggle-director').setAttribute('aria-pressed', String(director));
+      }
+
+      function closeSide() {
+        document.body.dataset.side = 'closed';
+        document.getElementById('toggle-director').setAttribute('aria-pressed', 'false');
+      }
+
+      for (const button of document.querySelectorAll('[data-set-state]')) {
+        button.addEventListener('click', () => setState(button.dataset.setState));
+      }
+      document.getElementById('toggle-director').addEventListener('click', () => {
+        if (document.body.dataset.side === 'open' && !document.getElementById('director-body').hidden) closeSide();
+        else openSide('director');
+      });
+      document.getElementById('rail-chat').addEventListener('click', () => openSide('chat'));
+      document.getElementById('rail-director').addEventListener('click', () => openSide('director'));
+      document.getElementById('tab-chat').addEventListener('click', () => openSide('chat'));
+      document.getElementById('tab-director').addEventListener('click', () => openSide('director'));
+      document.getElementById('side-close').addEventListener('click', closeSide);
+      document.getElementById('inbox-button').addEventListener('click', () => {
+        document.body.dataset.inbox = document.body.dataset.inbox === 'open' ? 'closed' : 'open';
+      });
+      for (const button of document.querySelectorAll('[data-open-director]')) {
+        button.addEventListener('click', () => {
+          document.body.dataset.inbox = 'closed';
+          openSide('director');
+        });
+      }
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          if (document.body.dataset.inbox === 'open') document.body.dataset.inbox = 'closed';
+          else closeSide();
+        }
+        if (event.altKey && event.key >= '1' && event.key <= '6') {
+          selectedStep = STEPS[Number(event.key) - 1];
+          renderSteps(document.body.dataset.state);
+          renderLeft(document.body.dataset.state);
+        }
+      });
+      document.getElementById('callout').addEventListener('click', (event) => {
+        event.currentTarget.hidden = true;
+      });
+      setState('mid');
+    </script>
+  </body>
+</html>

@@ -51,6 +51,21 @@ export function qaSheetFile(shotId: string, label: string): string {
   return `${FILES.qaFramesDir}/${shotId}/${label}.png`;
 }
 
+/**
+ * Whether the Haiku critic looks at this shot: always, unless faster checks sample it (ADR-027):
+ * then only shots with code findings and every `criticEvery`-th shot of the storyboard.
+ */
+export function criticSampled(
+  job: Pick<SceneJob, 'settings' | 'shots'>,
+  shot: Pick<StoryboardShot, 'id'>,
+  code: readonly QaFinding[],
+): boolean {
+  const every = job.settings.criticEvery;
+  if (every === undefined || code.length > 0) return true;
+  const index = job.shots.findIndex((candidate) => candidate.id === shot.id);
+  return index < 0 || index % Math.max(1, every) === 0;
+}
+
 function early(findings: QaFinding[], source: string | undefined): QaResult {
   return { findings, verdicts: [], sheet: undefined, notes: [], source, render: undefined };
 }
@@ -123,7 +138,7 @@ export async function qaRound(
   const code = [...programmaticCritique(render), ...sync, ...extra];
   const critic: TurnRunner | undefined =
     job.settings.critic && ctx.hasClaude ? (turn) => ctx.claude(turn) : undefined;
-  if (critic === undefined || fixableFindings(code).length > 0) {
+  if (critic === undefined || fixableFindings(code).length > 0 || !criticSampled(job, shot, code)) {
     return ok({ ...early(code, source), render });
   }
   const judged = await critiqueFrames(

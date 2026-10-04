@@ -12,6 +12,7 @@ import {
   type ResearchMode,
 } from './assets.js';
 import { paletteSchema } from './palette.js';
+import { shotsPerMinuteSchema } from './scene-count.js';
 import { stylePresetIdSchema } from './style-preset.js';
 import { beatSyncModeSchema } from './beat-sync.js';
 import { characterModeSchema, mascotChoiceSchema } from './characters.js';
@@ -97,6 +98,14 @@ export const projectFileSchema = z.object({
   characters: characterModeSchema.optional(),
   /** The film's mascot (`none` or a pack mascot; in effect only with `pack`). Absent = `none`. */
   mascot: mascotChoiceSchema.optional(),
+  /**
+   * Shots per minute of film (ADR-027): the storyboard keeps the film's average in this range,
+   * one idea per shot, cuts on sentence ends. Absent = no constraint (projects made before 2.3.6
+   * and new ones without a choice are unchanged).
+   */
+  shotsPerMinute: shotsPerMinuteSchema.optional(),
+  /** Faster checks (ADR-027): lighter scene QA, a small quality trade-off. Absent = off. */
+  fasterChecks: z.boolean().optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

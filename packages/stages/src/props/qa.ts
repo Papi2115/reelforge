@@ -45,10 +45,11 @@ async function critique(
   name: string,
   description: string,
   sheet: string,
+  angles: number,
 ): Promise<Result<{ findings: string[]; notes: string[] }, StageError>> {
   const prompt = render('critic', {
     imagePaths: sheet,
-    intent: `ONE voxel prop shown alone from ${String(DEFAULT_ANGLES.length)} angles on a plain stage: ${name} (${description}). ok = clearly recognisable as a ${name} from the views; off-intent = it does not read as a ${name}; blank/clipped as usual`,
+    intent: `ONE voxel prop shown alone from ${String(angles)} angles on a plain stage: ${name} (${description}). ok = clearly recognisable as a ${name} from the views; off-intent = it does not read as a ${name}; blank/clipped as usual`,
     styleId: job.styleId,
   });
   if (!prompt.ok) return prompt;
@@ -92,7 +93,8 @@ export async function propQaRound(
     const errors = lint.filter((diagnostic) => diagnostic.severity === 'error');
     return ok(failed([`lint errors:\n${formatDiagnostics(file, errors)}`]));
   }
-  const angles = DEFAULT_ANGLES;
+  // Faster checks (ADR-027) look from fewer angles.
+  const angles = job.settings.propAngles ?? DEFAULT_ANGLES;
   const paths = propPreviewPaths(name);
   const scene = await writeProjectText(ctx.projectDir, paths.scene, turntableSource(name, angles));
   if (!scene.ok) return scene;
@@ -127,7 +129,7 @@ export async function propQaRound(
   if (findings.length > 0 || !job.settings.critic || !ctx.hasClaude) {
     return ok({ findings, sheet, notes: [] });
   }
-  const judged = await critique(job, name, description, sheet);
+  const judged = await critique(job, name, description, sheet, angles.length);
   if (!judged.ok) return judged;
   return ok({ findings: judged.value.findings, sheet, notes: judged.value.notes });
 }

@@ -95,6 +95,43 @@ describe('ProjectService', () => {
     expect(written).toMatchObject({ characters: 'pack', mascot: 'fox' });
   });
 
+  it('takes the scenes per minute and faster checks of the form over the defaults (ADR-027)', async () => {
+    const projects = new ProjectService({
+      recentFile: path.join(root, 'user data', 'recent-projects.json'),
+      templateDir: DEFAULT_TEMPLATE_DIR,
+      stylesDir: DEFAULT_STYLES_DIR,
+      pickFolder: () => Promise.resolve(root),
+      newProjectDefaults: () => ({
+        characters: 'pack',
+        mascot: 'none',
+        shotsPerMinute: { min: 8, max: 12 },
+        fasterChecks: false,
+      }),
+      log: createLogger((line) => lines.push(line)),
+      git,
+    });
+    const read = async (dir: string): Promise<Record<string, unknown>> =>
+      JSON.parse(await readFile(path.join(dir, 'project.json'), 'utf8')) as Record<string, unknown>;
+    const defaults = await projects.newProject({ title: 'Defaults', language: 'en' });
+    if (defaults.status !== 'opened') throw new Error('not created');
+    expect(await read(defaults.project.dir)).toMatchObject({ shotsPerMinute: { min: 8, max: 12 } });
+    expect(await read(defaults.project.dir)).not.toHaveProperty('fasterChecks');
+    const chosen = await projects.newProject({
+      title: 'Calm',
+      language: 'en',
+      shotsPerMinute: { min: 3, max: 5 },
+      fasterChecks: true,
+    });
+    if (chosen.status !== 'opened') throw new Error('not created');
+    expect(await read(chosen.project.dir)).toMatchObject({
+      shotsPerMinute: { min: 3, max: 5 },
+      fasterChecks: true,
+    });
+    const none = await projects.newProject({ title: 'None', language: 'en', shotsPerMinute: null });
+    if (none.status !== 'opened') throw new Error('not created');
+    expect(await read(none.project.dir)).not.toHaveProperty('shotsPerMinute');
+  });
+
   it('autocommits for later stages and reverts the scene (restores content, new commit)', async () => {
     const projects = service();
     picks.push(root);

@@ -1,4 +1,5 @@
 import { useEffect, useState, type JSX } from 'react';
+import type { ShotsPerMinute } from '@reelforge/shared';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
 import { StatusBar } from './layout/StatusBar.js';
@@ -27,9 +28,13 @@ const DEMO_SOURCE = { kind: 'demo' } as const;
 function StartLayout({
   onOpened,
   defaultLanguage,
+  defaultShotsPerMinute,
+  defaultFasterChecks,
 }: {
   readonly onOpened: (project: ProjectSummary) => void;
   readonly defaultLanguage: ProjectSummary['language'] | undefined;
+  readonly defaultShotsPerMinute: ShotsPerMinute | null | undefined;
+  readonly defaultFasterChecks: boolean | undefined;
 }): JSX.Element {
   // The demo has no audio: the player runs on the system clock.
   const player = usePlayer(undefined);
@@ -37,7 +42,12 @@ function StartLayout({
     <div className="start-layout">
       <div className="start-column">
         <OpenRecovery onOpened={onOpened} />
-        <StartScreen onOpened={onOpened} defaultLanguage={defaultLanguage} />
+        <StartScreen
+          onOpened={onOpened}
+          defaultLanguage={defaultLanguage}
+          defaultShotsPerMinute={defaultShotsPerMinute}
+          defaultFasterChecks={defaultFasterChecks}
+        />
       </div>
       <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
     </div>
@@ -168,6 +178,8 @@ export function App(): JSX.Element {
         ) : project === null ? (
           <StartLayout
             defaultLanguage={appSettings?.language}
+            defaultShotsPerMinute={appSettings?.newProjectDefaults.shotsPerMinute}
+            defaultFasterChecks={appSettings?.newProjectDefaults.fasterChecks}
             onOpened={(opened) => {
               setProject(opened);
               setHistoryOpen(false);

@@ -1,6 +1,6 @@
 ---
 id: storyboard
-version: 12
+version: 13
 model: sonnet
 tools: [Read, Write, Glob, Grep, Bash(reelforge *)]
 output: storyboard.json
@@ -73,4 +73,10 @@ Density, variety and restraint: aim for about one mark every 5–10 s wherever t
 - NEVER a person whose identity matters: not a doctor, nurse, patient, scientist, researcher, engineer, teacher, historian, lawyer, judge, soldier, police officer, witness, criminal, victim, CEO, president, minister, king, nor any named or real person or anyone quoted. Those are people{{#castPack}} from the cast (or `newRoles`){{/castPack}}; the mascot does not appear in shots about them. A shot whose narration names such a person or quotes someone is not a mascot shot.
 - Mark every mascot shot with `"mascot": { "role": "pointer", "action": "points at the 2007 bar of the chart" }` (`action` ≤ 120 characters) and keep its `intent` about the content (the mascot helps, it is not the subject). Shots without the field never show the mascot.
 {{/mascotId}}
-Then run `reelforge validate` and fix any error. Reply with shot count, treatment mix, annotation mix and missing props.
+{{#shotRange}}Scenes per minute (the user chose {{shotRange}} shots per minute for this film: about {{rangeShots}} shots for its {{rangeClock}}). These rules replace the shot-length, pattern and tempo numbers above:
+- One idea = one shot. A shot covers a whole sentence or thought; short sentences about the same thing share one shot. Keep the whole film's average inside the range (the validator counts it, ±10 %) and every minute roughly near it: longer shots where the narration is calm, shorter ones at high tension. Shot length {{rangeMinShotS}}–{{rangeMaxShotS}} s, typically {{rangeTypicalMinS}}–{{rangeTypicalMaxS}} s.
+- A long sentence is ONE shot that develops, never two unrelated pictures: reveal things on its words (annotations on the phrases, objects or labels that appear on cue, a counter that ticks, a camera move from wide to close), so the eye gets something new every few seconds without a cut. Write that progression into `intent` (on "ROM" the chip lights up; on "4 KB" a counter ticks up). A long shot may carry up to 3 marks (still at most 8 per minute).
+- Cut where a sentence ends: the next shot starts on the first word after a `.`, `?` or `!` in `words.json`. Only a sentence longer than {{rangeLongSentenceS}} s may be cut inside: on a clause boundary (after `,` `;` `:` `–`), or with the next shot keeping the same look, continuing the same subject and marked `"continues": true`. When you have too many shots, merge neighbours instead of splitting ideas.
+{{#multiLook}}- One roll + look + treatment for at most {{rangePatternS}} s in a row (a `continues` shot does not count).
+{{/multiLook}}{{#tension}}- Tension targets for this range: about {{rangeCalmS}} s at tension 0 down to about {{rangePeakS}} s at tension 1 (the table above already uses them).
+{{/tension}}{{/shotRange}}Then run `reelforge validate` and fix any error. Reply with shot count, treatment mix, annotation mix and missing props.

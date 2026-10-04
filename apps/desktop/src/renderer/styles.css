@@ -242,6 +242,56 @@ button.danger {
   color: var(--muted);
 }
 
+/* Scenes per minute + faster checks (ADR-027): New project, Project settings, Settings. */
+.start-scene-count {
+  /* A fieldset is min-content wide by default: the long option labels overflowed the column. */
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.start-scene-count legend {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.start-scene-count p,
+.scene-count-estimate {
+  margin: 0;
+  font-size: 12px;
+}
+
+.scene-count-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-count-custom {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scene-count-custom input {
+  width: 72px;
+}
+
+.scene-count-fields select {
+  max-width: 100%;
+}
+
+.start-scene-count .settings-toggle {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
 .start-error {
   margin: 0;
   color: var(--error);

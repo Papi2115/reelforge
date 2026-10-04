@@ -22,6 +22,8 @@ const SETTINGS: ProjectSettings = {
   repetitionControl: 'off',
   characters: 'classic',
   mascot: 'none',
+  shotsPerMinute: null,
+  fasterChecks: false,
 };
 
 describe('research settings view', () => {

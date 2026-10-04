@@ -29,7 +29,12 @@ describe('app settings', () => {
       usage: { softBudgetUsd: null },
       performance: { exportWorkers: 'auto', encoder: 'auto', gpu: 'auto' },
       tools: { ffmpegPath: null, whisperPath: null, whisperModel: 'large-v3-turbo-q5_0' },
-      newProjectDefaults: { characters: 'pack', mascot: 'none' },
+      newProjectDefaults: {
+        characters: 'pack',
+        mascot: 'none',
+        shotsPerMinute: null,
+        fasterChecks: false,
+      },
       music: { enabled: true },
       scenes: { finalReview: true },
       assetLibrary: { saveDownloaded: true, saveOwn: false },
@@ -172,16 +177,35 @@ describe('app settings', () => {
     expect(appSettingsSchema.parse({ version: 1 }).newProjectDefaults).toEqual({
       characters: 'pack',
       mascot: 'none',
+      shotsPerMinute: null,
+      fasterChecks: false,
     });
     const fox = applyAppSettingsPatch(defaultAppSettings(), {
       newProjectDefaults: { mascot: 'fox' },
     });
-    expect(fox.newProjectDefaults).toEqual({ characters: 'pack', mascot: 'fox' });
+    expect(fox.newProjectDefaults).toMatchObject({ characters: 'pack', mascot: 'fox' });
     const classic = applyAppSettingsPatch(fox, { newProjectDefaults: { characters: 'classic' } });
-    expect(classic.newProjectDefaults).toEqual({ characters: 'classic', mascot: 'fox' });
+    expect(classic.newProjectDefaults).toMatchObject({ characters: 'classic', mascot: 'fox' });
     expect(
       appSettingsPatchSchema.safeParse({ newProjectDefaults: { mascot: 'cat' } }).success,
     ).toBe(false);
+  });
+
+  it('keeps the scene count and faster checks of new projects (ADR-027)', () => {
+    const calm = applyAppSettingsPatch(defaultAppSettings(), {
+      newProjectDefaults: { shotsPerMinute: { min: 3, max: 5 }, fasterChecks: true },
+    });
+    expect(calm.newProjectDefaults).toMatchObject({
+      shotsPerMinute: { min: 3, max: 5 },
+      fasterChecks: true,
+    });
+    const reset = applyAppSettingsPatch(calm, { newProjectDefaults: { shotsPerMinute: null } });
+    expect(reset.newProjectDefaults.shotsPerMinute).toBeNull();
+    expect(reset.newProjectDefaults.fasterChecks).toBe(true);
+    const invalid = { newProjectDefaults: { shotsPerMinute: { min: 8, max: 5 } } };
+    expect(appSettingsPatchSchema.safeParse(invalid).success).toBe(false);
+    const tooMany = { newProjectDefaults: { shotsPerMinute: { min: 5, max: 25 } } };
+    expect(appSettingsPatchSchema.safeParse(tooMany).success).toBe(false);
   });
 
   it('keeps tool paths and unknown keys out of renderer patches', () => {

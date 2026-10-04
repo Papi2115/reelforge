@@ -38,6 +38,15 @@ export interface SceneSettings {
   readonly minGlyphPx: number;
   /** Project props (kit-ext) the scene stage may build per film (PLAN.md#7.4). */
   readonly maxNewProps: number;
+  /**
+   * Faster checks (ADR-027): the Haiku critic only on shots with code findings and on every
+   * Nth shot (index 0, N, 2N, …) as a sample. Absent = every shot.
+   */
+  readonly criticEvery?: number;
+  /** Turntable angles of the project-prop QA (absent = the CLI's four). */
+  readonly propAngles?: readonly number[];
+  /** Final review: no fix turn for a shot whose only errors are legibility hints. */
+  readonly skipLegibilityOnlyFixes?: boolean;
 }
 
 export interface StageSettings {
@@ -64,6 +73,26 @@ export const DEFAULT_SCENE_SETTINGS: SceneSettings = {
   minGlyphPx: 14,
   maxNewProps: 12,
 };
+
+/** What "Faster checks" (ADR-027, project.json `fasterChecks`) changes in scene QA. */
+export const FASTER_CHECKS = {
+  criticEvery: 4,
+  maxFixIterations: 1,
+  maxNewProps: 4,
+  propAngles: [0, 90],
+} as const;
+
+/** Scene settings of a project with faster checks on (lighter QA, a small quality trade-off). */
+export function fasterSceneSettings(settings: SceneSettings): SceneSettings {
+  return {
+    ...settings,
+    maxFixIterations: Math.min(settings.maxFixIterations, FASTER_CHECKS.maxFixIterations),
+    maxNewProps: Math.min(settings.maxNewProps, FASTER_CHECKS.maxNewProps),
+    criticEvery: FASTER_CHECKS.criticEvery,
+    propAngles: FASTER_CHECKS.propAngles,
+    skipLegibilityOnlyFixes: true,
+  };
+}
 
 export const MIN_WORDS_COVERAGE = 0.85;
 

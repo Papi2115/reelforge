@@ -7,7 +7,13 @@
 import { randomInt } from 'node:crypto';
 import { mkdir, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { CharacterMode, MascotChoice, ProjectFile, VideoLanguage } from '@reelforge/shared';
+import type {
+  CharacterMode,
+  MascotChoice,
+  ProjectFile,
+  ShotsPerMinute,
+  VideoLanguage,
+} from '@reelforge/shared';
 import { writeAtomic, writeJsonAtomic } from './atomic.js';
 import { commitProjectChanges, initRepository } from './git-repo.js';
 import type { GitOptions } from './git-runner.js';
@@ -35,6 +41,12 @@ export interface CreateProjectOptions {
   /** Characters and mascot (PLAN.md#12.20, the app's new-project defaults); template's if omitted. */
   readonly characters?: CharacterMode;
   readonly mascot?: MascotChoice;
+  /**
+   * Scenes per minute and faster checks (ADR-027). null / false / omitted = not written to
+   * project.json (no constraint, checks as before).
+   */
+  readonly shotsPerMinute?: ShotsPerMinute | null;
+  readonly fasterChecks?: boolean;
   /** Project seed (uint32); random when omitted. */
   readonly seed?: number;
   readonly templateDir?: string;
@@ -96,6 +108,10 @@ async function templateProject(
     ...(options.fps === undefined ? {} : { fps: options.fps }),
     ...(options.characters === undefined ? {} : { characters: options.characters }),
     ...(options.mascot === undefined ? {} : { mascot: options.mascot }),
+    ...(options.shotsPerMinute === undefined || options.shotsPerMinute === null
+      ? {}
+      : { shotsPerMinute: options.shotsPerMinute }),
+    ...(options.fasterChecks === true ? { fasterChecks: true } : {}),
   };
   const project = parseProjectFile({ ...base, ...choices });
   if (!project.ok) {

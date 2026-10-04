@@ -4,17 +4,22 @@
  * in a row, scene paths, transitions and their transition-kit styles) and the annotation plans' phrase and variety rules; in
  * `mixed` look mode also the look/roll rhythm (rhythm.ts, ADR-009); with a tension curve the cut
  * tempo per segment (`tension-tempo`, tension.ts, PLAN.md#12.22); with the project's characters
- * the mascot and role checks (characters.ts, PLAN.md#12.20).
+ * the mascot and role checks (characters.ts, PLAN.md#12.20); with a shots-per-minute range
+ * (ADR-027) shot lengths, the pattern window and the tempo targets follow the range, plus the
+ * range and sentence-boundary checks (shot-range.ts).
  */
 import {
   DEFAULT_LOOK_ID,
   describePairs,
   getTransitionStyle,
   shotLook,
+  shotRangeRules,
+  STANDARD_TEMPO,
   storyboardFileSchema,
   TRANSITION_STYLE_IDS,
   transitionSuits,
   type LookMode,
+  type ShotsPerMinute,
   type StoryboardShot,
   type TensionFile,
   type WordsFile,
@@ -33,6 +38,7 @@ import {
   type ValidationReport,
 } from './issues.js';
 import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from './rhythm.js';
+import { checkShotRange } from './shot-range.js';
 import { checkTensionTempo } from './tension.js';
 
 /** The storyboard file plus the prompt's optional top-level `missingProps` list. */
@@ -138,12 +144,16 @@ function timelineIssues(
 function treatmentIssues(
   shots: readonly StoryboardShot[],
   rules: StoryboardRules,
+  continuesExempt: boolean,
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   let run = 0;
   shots.forEach((shot, index) => {
-    run = index > 0 && shots[index - 1]?.treatment === shot.treatment ? run + 1 : 1;
-    if (run === rules.maxTreatmentRun + 1) {
+    const same = index > 0 && shots[index - 1]?.treatment === shot.treatment;
+    // With a range (ADR-027) a `continues` shot is the same picture going on, not a repeat.
+    const exempt = continuesExempt && shot.continues === true;
+    run = same ? run + (exempt ? 0 : 1) : 1;
+    if (!exempt && run === rules.maxTreatmentRun + 1) {
       issues.push(
         issue(
           'error',
@@ -344,6 +354,24 @@ export interface StoryboardCheckOptions {
   readonly interrupts?: InterruptCheckOptions;
   /** Characters and mascot (PLAN.md#12.20): the `mascot-*` and role checks; absent = none. */
   readonly characters?: CharacterCheckOptions;
+  /**
+   * Shots per minute (ADR-027): shot lengths, the pattern window and the tempo targets follow the
+   * range, plus `shots-per-minute` and `cut-mid-sentence` (shot-range.ts). Absent = the checks
+   * exactly as before.
+   */
+  readonly shotsPerMinute?: ShotsPerMinute;
+}
+
+/** Storyboard rules of a range (`StoryboardCheckOptions.rules` still win over them). */
+export function shotRangeStoryboardRules(range: ShotsPerMinute): Partial<StoryboardRules> {
+  const derived = shotRangeRules(range);
+  return {
+    minShotS: derived.minShotS,
+    maxShotS: derived.maxShotS,
+    typicalMinShotS: derived.typicalMinShotS,
+    typicalMaxShotS: derived.typicalMaxShotS,
+    maxPatternS: derived.maxPatternS,
+  };
 }
 
 /** Rule checks on an already parsed storyboard. */
@@ -351,11 +379,17 @@ export function checkStoryboard(
   storyboard: StoryboardOutput,
   options: StoryboardCheckOptions = {},
 ): ValidationIssue[] {
-  const rules = { ...DEFAULT_STORYBOARD_RULES, ...options.rules };
+  const range = options.shotsPerMinute;
+  const ranged = range !== undefined;
+  const rules = {
+    ...DEFAULT_STORYBOARD_RULES,
+    ...(range === undefined ? {} : shotRangeStoryboardRules(range)),
+    ...options.rules,
+  };
   const { shots } = storyboard;
   return [
     ...timelineIssues(shots, rules),
-    ...treatmentIssues(shots, rules),
+    ...treatmentIssues(shots, rules, ranged),
     ...identityIssues(shots),
     ...transitionIssues(shots, rules),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
@@ -363,9 +397,27 @@ export function checkStoryboard(
     ...checkAssetNeeds(shots, options.assetNeeds),
     ...checkShotAssets(shots, options.assetIds),
     ...(options.lookMode === 'mixed'
-      ? checkLookRhythm(shots, { looks: options.looks ?? [DEFAULT_LOOK_ID], rules })
+      ? checkLookRhythm(shots, {
+          looks: options.looks ?? [DEFAULT_LOOK_ID],
+          rules,
+          ...(ranged ? { continuesExempt: true } : {}),
+        })
       : []),
-    ...(options.tension === undefined ? [] : checkTensionTempo(shots, options.tension)),
+    ...(options.tension === undefined
+      ? []
+      : checkTensionTempo(
+          shots,
+          options.tension,
+          {},
+          range === undefined ? STANDARD_TEMPO : shotRangeRules(range).tempo,
+        )),
+    ...(range === undefined
+      ? []
+      : checkShotRange(shots, options.words, {
+          range,
+          longSentenceS: shotRangeRules(range).longSentenceS,
+          boundaryToleranceS: rules.boundaryToleranceS,
+        })),
     ...(options.interrupts === undefined ? [] : checkInterrupts(shots, options.interrupts)),
     ...(options.characters === undefined
       ? []

@@ -192,6 +192,11 @@ export const storyboardShotSchema = z
      * optional, only when the project chose a mascot). The mascot id is the project's.
      */
     mascot: shotMascotSchema.optional(),
+    /**
+     * Lean pace (ADR-027): the shot continues the previous one inside one long sentence (same
+     * look, same subject). Optional; only lean storyboards write it.
+     */
+    continues: z.boolean().optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

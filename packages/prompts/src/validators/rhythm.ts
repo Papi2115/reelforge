@@ -38,6 +38,11 @@ export interface LookRhythmOptions {
   /** Ids of the available looks (voxel first). */
   readonly looks: readonly string[];
   readonly rules: LookRhythmRules;
+  /**
+   * Lean pace (ADR-027): a shot marked `continues` (one long sentence over two shots) never
+   * reports a `pattern-run`. Absent = every shot counts (standard).
+   */
+  readonly continuesExempt?: boolean;
 }
 
 const where = (index: number, field: string): string => `shots[${String(index)}].${field}`;
@@ -123,7 +128,11 @@ function patternKey(shot: StoryboardShot): string {
   return `${effectiveRoll(shot) ?? '-'}|${shotLook(shot)}|${shot.treatment}`;
 }
 
-function patternIssues(shots: readonly StoryboardShot[], maxS: number): ValidationIssue[] {
+function patternIssues(
+  shots: readonly StoryboardShot[],
+  maxS: number,
+  continuesExempt: boolean,
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   let start = 0;
   let reported = false;
@@ -134,7 +143,8 @@ function patternIssues(shots: readonly StoryboardShot[], maxS: number): Validati
     }
     const first = shots[start] ?? shot;
     const length = shot.t1 - first.t0;
-    if (!reported && index > start && length > maxS) {
+    const exempt = continuesExempt && shot.continues === true;
+    if (!reported && !exempt && index > start && length > maxS) {
       reported = true;
       issues.push(
         issue(
@@ -200,7 +210,7 @@ export function checkLookRhythm(
     ...(multiLook ? missingRollIssues(shots) : []),
     ...rollAGapIssues(shots, rules.rollAEvery),
     ...(multiLook ? lookRunIssues(shots, rules) : []),
-    ...(multiLook ? patternIssues(shots, rules.maxPatternS) : []),
+    ...(multiLook ? patternIssues(shots, rules.maxPatternS, options.continuesExempt === true) : []),
     ...(multiLook ? actChangeIssues(shots) : []),
     ...(multiLook ? transitionDensityIssues(shots, rules.transitionEveryS) : []),
   ];
