@@ -32,6 +32,11 @@ export const ROLE_NAMES = [
   'grey',
   'midGrey',
   'darkGrey',
+  /**
+   * Black text inside a bright fill (inverse-video marks): the same colour as `black`, but a CRT
+   * gives it no glow halo, so dark glyphs on a lit cell stay readable through the tube.
+   */
+  'inverseInk',
 ] as const;
 
 export type Role = (typeof ROLE_NAMES)[number];
@@ -64,6 +69,7 @@ const CHAINS: Readonly<Record<Role, readonly string[]>> = {
   grey: ['slateGrey', 'ash', 'taupe', 'textDim'],
   midGrey: ['midSlate', 'fog', 'stone', 'textDim'],
   darkGrey: ['darkSlate', 'steel', 'pebble', 'groundAlt'],
+  inverseInk: ['black', 'black', 'night', 'outline'],
 };
 
 /** One tone darker (scanlines, glow halos, pressed buttons). */
@@ -90,6 +96,7 @@ const DIM: Readonly<Record<Role, Role>> = {
   grey: 'midGrey',
   midGrey: 'darkGrey',
   darkGrey: 'indigo',
+  inverseInk: 'inverseInk',
 };
 
 const DIM_INDEX: readonly number[] = [0, ...ROLE_NAMES.map((name) => C[DIM[name]])];

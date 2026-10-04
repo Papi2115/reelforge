@@ -348,6 +348,21 @@ export function wrap(
   return lines.slice(0, maxLines);
 }
 
+/**
+ * A heading that stays inside `maxWidth`: `style` when it fits, else the same style at scale 1,
+ * else cut with '..' at scale 1 (titles, mastheads, answers never run off their page).
+ */
+export function fitHeading(
+  text: string,
+  maxWidth: number,
+  style: TextStyle,
+): { readonly text: string; readonly style: TextStyle } {
+  const line = normalize(text);
+  if (textWidth(line, style) <= maxWidth) return { text: line, style };
+  const small: TextStyle = { ...style, scale: 1 };
+  return { text: clipText(line, maxWidth, small), style: small };
+}
+
 /** Cuts `text` so it fits `maxWidth` canvas pixels (adds '..' when cut). */
 export function clipText(text: string, maxWidth: number, style: TextStyle = {}): string {
   const line = normalize(text);

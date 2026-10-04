@@ -153,6 +153,8 @@ export interface RowView {
   readonly status: RowStatus;
   /** One line under the actions (step, reason, error summary, result). */
   readonly detail: string | null;
+  /** Gating reasons of the row's next unfinished stage (what a waiting row really waits for). */
+  readonly reasons: readonly string[];
   readonly percent: number | null;
   /** Epoch ms the running stage started. */
   readonly startedAt: number | null;
@@ -339,6 +341,7 @@ export function pipelineRows(state: StagesState | undefined): RowView[] {
         spec,
         status: 'loading',
         detail: null,
+        reasons: [],
         percent: null,
         startedAt: null,
         pausedUntil: null,
@@ -365,6 +368,7 @@ export function pipelineRows(state: StagesState | undefined): RowView[] {
       spec,
       status,
       detail: rowDetail(status, spec, infos, state),
+      reasons: todo[0]?.reasons ?? [],
       percent: running ? (state.running?.percent ?? null) : null,
       startedAt: running ? (state.running?.startedAt ?? null) : null,
       pausedUntil: running ? (state.running?.paused?.until ?? null) : null,

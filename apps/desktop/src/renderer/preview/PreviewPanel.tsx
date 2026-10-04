@@ -28,6 +28,8 @@ import { useSnapshots } from './use-snapshot.js';
 const log = rendererLog('preview');
 /** How long "Reloaded s03 (…)" stays up. */
 const RELOAD_NOTICE_MS = 4000;
+/** Preview watchdog (PreviewController): a load / scene rebuild, and any other engine call. */
+const PREVIEW_TIMEOUTS = { loadMs: 120_000, callMs: 20_000 } as const;
 
 type PreviewState =
   | { readonly status: 'loading' }
@@ -130,8 +132,25 @@ export function PreviewPanel({
       frameUrl: engineFrameUrl(),
       container,
       lintScenes: true,
+      timeouts: PREVIEW_TIMEOUTS,
     });
-    const next = new PreviewController(harness, canvasSink(canvas, player), fail);
+    const watchdog = {
+      restart: () => {
+        harness.restart();
+      },
+      notify: (text: string) => {
+        if (disposed) return;
+        log.warn(text);
+        setReload({ kind: 'reloaded', text });
+      },
+    };
+    const next = new PreviewController(
+      harness,
+      canvasSink(canvas, player),
+      fail,
+      () => performance.now(),
+      watchdog,
+    );
     player.attachTarget(next);
     setController(next);
     return () => {

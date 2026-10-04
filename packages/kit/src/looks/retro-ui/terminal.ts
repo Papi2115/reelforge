@@ -139,7 +139,7 @@ function paintScreen(
   });
   const capacity = Math.max(1, Math.floor((area.h - PAD * 2 + 3) / ROW));
   const first = Math.max(0, rows.length - capacity);
-  const marks = new MarkTracker(params.marks, t, { mode: 'inverse', color: C.black });
+  const marks = new MarkTracker(params.marks, t, { mode: 'inverse', color: C.inverseInk });
   const anchors: AnchorMap = {};
   const rowY = (row: number): number => area.y + PAD + (row - first) * ROW;
   rows.forEach((row, index) => {

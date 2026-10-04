@@ -101,9 +101,18 @@ export const beatSyncReportSchema = z.object({
       reverted: z.boolean(),
     })
     .optional(),
-  /** Whooshes (transition sounds) whose peak lands within `windowS` of a beat or accent. */
+  /**
+   * Whooshes whose peak lands within `windowS` of a beat or accent, or that a scene starts on an
+   * accented spoken word (`onAccentWords` of them, counted in `inWindow`).
+   */
   whooshes: z
-    .object({ total: count, inWindow: count, fraction: share, windowS: z.number().positive() })
+    .object({
+      total: count,
+      inWindow: count,
+      fraction: share,
+      windowS: z.number().positive(),
+      onAccentWords: count.optional(),
+    })
     .optional(),
   /**
    * Cues moved onto the grid: `snapped` = all of them (the sound director's hits / risers, and the

@@ -16,6 +16,7 @@ import {
   drawText,
   drawTextCentered,
   fillRect,
+  fitHeading,
   inset,
   rect,
   strokeRect,
@@ -124,11 +125,11 @@ function paintNewspaper(
   const anchors: AnchorMap = {};
   const cx = page.x + page.w / 2;
   let y = page.y + 6;
-  const masthead = params.title ?? 'THE DAILY BYTE';
-  const mastStyle =
-    textWidth(masthead, { scale: 2, bold: true }) <= page.w - 12
-      ? { scale: 2, bold: true }
-      : { bold: true };
+  const { text: masthead, style: mastStyle } = fitHeading(
+    params.title ?? 'THE DAILY BYTE',
+    page.w - 12,
+    { scale: 2, bold: true },
+  );
   drawTextCentered(canvas, masthead, cx, y, C.black, mastStyle);
   anchors['masthead'] = [cx, y + 7];
   y += mastStyle.scale === 2 ? 17 : 10;
@@ -284,10 +285,10 @@ function paintMemo(
   marks: MarkTracker,
   t: number,
 ): AnchorMap {
-  const heading = params.title ?? 'MEMORANDUM';
-  drawText(canvas, heading, page.x + 8, page.y + 8, C.black, { scale: 2, bold: true });
+  const heading = fitHeading(params.title ?? 'MEMORANDUM', page.w - 16, { scale: 2, bold: true });
+  drawText(canvas, heading.text, page.x + 8, page.y + 8, C.black, heading.style);
   const anchors: AnchorMap = {
-    masthead: [page.x + 8 + textWidth(heading, { scale: 2, bold: true }) / 2, page.y + 15],
+    masthead: [page.x + 8 + textWidth(heading.text, heading.style) / 2, page.y + 15],
   };
   fillRect(canvas, rect(page.x + 8, page.y + 26, page.w - 16, 2), C.black);
   const fields = rect(page.x + 8, page.y + 34, page.w - 16, params.fields.length * 12);

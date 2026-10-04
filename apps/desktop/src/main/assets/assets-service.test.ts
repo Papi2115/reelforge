@@ -145,6 +145,15 @@ describe('AssetsService.state', () => {
   });
 });
 
+describe('assetView', () => {
+  it('cleans author strings as the credits do (Commons "Unknown author" repeats)', () => {
+    const commons = { ...RECORD, author: 'Unknown author Unknown author or not provided' };
+    expect(assetView(commons).author).toBe('unknown');
+    expect(assetView({ ...RECORD, author: 'NASA NASA' }).author).toBe('NASA');
+    expect(assetView({ ...RECORD, author: 'Neil Armstrong' }).author).toBe('Neil Armstrong');
+  });
+});
+
 describe('AssetsService.review', () => {
   it('approves the ticked items, marks the package reviewed and queues the download', async () => {
     await expect(service.review({ number: 1, approve: ['nasa:a1'] })).resolves.toEqual({

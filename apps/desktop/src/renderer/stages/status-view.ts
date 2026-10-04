@@ -36,7 +36,47 @@ export function blockingRow(row: RowView, rows: readonly RowView[]): RowView | u
     .findLast((candidate) => candidate.status !== 'done' && candidate.status !== 'loading');
 }
 
+/** Stage titles in the gating reasons (STAGE_TITLES, @reelforge/stages) -> short step names. */
+const TITLE_STEPS: Readonly<Record<string, string>> = {
+  Script: 'Script',
+  'Script written': 'Script',
+  Voiceover: 'Voiceover',
+  'Audio cleaned': 'Cleanup',
+  'Words timed': 'Words',
+  Storyboard: 'Storyboard',
+  Assets: 'Assets',
+  'Scenes built': 'Scenes',
+  'Sound cues': 'Sound mix',
+  'Sound design mixed': 'Sound mix',
+  'Video exported': 'Export',
+};
+
+/** What one gating reason says the step waits for, when it is a known kind of reason. */
+function reasonText(reason: string): string | undefined {
+  if (reason.includes('asset package is waiting for your review')) {
+    return 'Waiting for your review of the asset package';
+  }
+  if (reason.startsWith('Approve the script first')) return 'Waiting for your script approval';
+  if (reason.startsWith('brief.json') || reason.startsWith('The brief')) {
+    return 'Waiting for the brief';
+  }
+  if (reason.startsWith('Assets: run it first')) return 'Waiting for Assets';
+  const step = (title: string | undefined): string | undefined =>
+    title === undefined ? undefined : TITLE_STEPS[title];
+  const stale = step(/^(.+?) is out of date\b/.exec(reason)?.[1]);
+  if (stale !== undefined) return `Waiting for ${stale} (out of date)`;
+  const busy = step(/^(.+?) is still running\./.exec(reason)?.[1]);
+  if (busy !== undefined) return `Waiting for ${busy}`;
+  const missing = step(/\brun (.+?) first\b/.exec(reason)?.[1]);
+  return missing === undefined ? undefined : `Waiting for ${missing}`;
+}
+
 function waitingText(row: RowView, rows: readonly RowView[]): string {
+  // The row's own gating first: a step can wait on a review or approval, not only on a step.
+  for (const reason of row.reasons) {
+    const text = reasonText(reason);
+    if (text !== undefined) return text;
+  }
   const blocker = blockingRow(row, rows);
   if (blocker !== undefined) return `Waiting for ${shortName(blocker)}`;
   if (row.spec.id === 'script') return 'Waiting for the brief';
@@ -84,7 +124,11 @@ export const STATUS_LEGEND: readonly {
   { status: 'ready', label: 'Ready to run', meaning: 'Everything it needs is there: press Run.' },
   { status: 'review', label: 'Review & approve', meaning: 'Read the result, then approve it.' },
   { status: 'running', label: 'Running…', meaning: 'Working now; Stop is next to it.' },
-  { status: 'waiting', label: 'Waiting for …', meaning: 'An earlier step has to finish first.' },
+  {
+    status: 'waiting',
+    label: 'Waiting for …',
+    meaning: 'An earlier step, or your review or approval, has to come first.',
+  },
   {
     status: 'stale',
     label: 'Out of date — rebuild',

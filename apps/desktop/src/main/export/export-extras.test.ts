@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { defaultAppSettings, youtubeMetaFileSchema } from '@reelforge/shared';
@@ -11,6 +11,7 @@ import {
   projectChapters,
   sceneMetaTitle,
   shotTitle,
+  spokenTitles,
 } from './export-chapters.js';
 import {
   exportOptions,
@@ -170,10 +171,47 @@ describe('chapters', () => {
     const storyboard = JSON.parse(await readFile(path.join(dir, 'storyboard.json'), 'utf8')) as {
       shots: Parameters<typeof projectChapters>[1];
     };
+    // A project without timed words keeps the scene titles (with words: the test below).
+    await rm(path.join(dir, 'timing', 'words.json'), { force: true });
     const chapters = await projectChapters(dir, storyboard.shots, 33);
     expect(chapters).toEqual({
       // Titles from the scenes' meta.title (s03 reuses the s02 scene).
       text: '0:00 Doom runs everywhere\n0:11 Calculator with 61 KB\n0:22 Calculator with 61 KB\n',
+    });
+  });
+
+  it('titles chapters with the phrase spoken at their start when words.json exists', async () => {
+    const said = (text: string, t: number) => ({ text, t, tEnd: t + 0.3 });
+    const words = [
+      said('Doom', 0.1),
+      said('runs', 0.5),
+      said('everywhere.', 0.9),
+      said('The', 11.1),
+      said('rope', 11.4),
+      said('memory', 11.8),
+      said('held', 12.2),
+      said('it.', 12.5),
+    ];
+    const chapters = [
+      { t: 0, title: 'A' },
+      { t: 11, title: 'B' },
+      { t: 22, title: 'C' },
+    ];
+    expect(spokenTitles(chapters, words, 33)).toEqual([
+      { t: 0, title: 'Doom Runs Everywhere' },
+      { t: 11, title: 'Rope Memory Held' },
+      // Nothing spoken there: the chapter keeps its own title.
+      { t: 22, title: 'C' },
+    ]);
+    expect(spokenTitles(chapters, [], 33)).toEqual(chapters);
+    await threeShots();
+    await mkdir(path.join(dir, 'timing'), { recursive: true });
+    await writeFile(path.join(dir, 'timing', 'words.json'), JSON.stringify({ version: 1, words }));
+    const storyboard = JSON.parse(await readFile(path.join(dir, 'storyboard.json'), 'utf8')) as {
+      shots: Parameters<typeof projectChapters>[1];
+    };
+    expect(await projectChapters(dir, storyboard.shots, 33)).toEqual({
+      text: '0:00 Doom Runs Everywhere\n0:11 Rope Memory Held\n0:22 Calculator with 61 KB\n',
     });
   });
 });

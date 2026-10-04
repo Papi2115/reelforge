@@ -23,6 +23,7 @@ import { critiqueFrames, programmaticCritique, type TurnRunner } from './critic.
 import type { SceneJob } from './job.js';
 import { renderShot } from './render.js';
 import { assetSizeFindings } from './source-checks.js';
+import { cameraInterruptFindings } from './source-checks-camera.js';
 import { shotSyncEvents, syncFindings } from './sync.js';
 import type { ShotRender } from './tools.js';
 
@@ -100,8 +101,13 @@ export async function qaRound(
     });
     return ok({ ...early([runtime, ...consoleFindings(render.errors)], source), render });
   }
-  // Embedded photos too small to read (a warning: no fix turn, PLAN real-run v2.3).
-  const extra = [...(extraChecks?.(source) ?? []), ...assetSizeFindings(source, shot.scene)];
+  // Embedded photos too small to read, unreadable camera interrupts (warnings: no fix turn,
+  // PLAN real-run v2.3).
+  const extra = [
+    ...(extraChecks?.(source) ?? []),
+    ...assetSizeFindings(source, shot.scene),
+    ...cameraInterruptFindings(source, shot.scene, shot.interrupt),
+  ];
   const sync = syncFindings(
     shotSyncEvents({
       shot,

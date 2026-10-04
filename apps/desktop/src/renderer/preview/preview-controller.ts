@@ -4,8 +4,16 @@
  * so neither scrubbing nor playback ever queues up stale frames (late frames are dropped).
  * Loads and hot reloads (PLAN.md#6.4) run one at a time; a hot reload rebuilds only the shots
  * whose scene source changed and keeps the video playing, a failed one keeps the previous shot.
+ * Watchdog: with bounded harness calls, a call the engine frame does not answer
+ * (HarnessTimeoutError) restarts the frame and loads the video again (a load/apply retries once,
+ * a lost frame reloads in the background), with a short non-blocking message.
  */
-import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
+import {
+  HarnessTimeoutError,
+  type LoadInfo,
+  type PickInfo,
+  type ReelforgeHarness,
+} from '@reelforge/engine';
 import type { RenderManifest, SceneSource, ShotDirection } from '@reelforge/shared';
 import { planReload } from './reload-plan.js';
 
@@ -42,6 +50,14 @@ export function playerNeedsVideo(
     player.duration !== result.info.duration ||
     player.fps !== result.info.fps
   );
+}
+
+/** Recovery of an engine frame that stopped answering. */
+export interface PreviewWatchdog {
+  /** Replaces the engine frame with a fresh one (SandboxedHarness.restart). */
+  restart(): void;
+  /** Shows a short, non-blocking message. */
+  notify(message: string): void;
 }
 
 interface FrameWaiter {
@@ -99,11 +115,19 @@ export class PreviewController {
     private readonly sink: FrameSink,
     private readonly onError: (error: unknown) => void,
     private readonly now: () => number = () => performance.now(),
+    private readonly watchdog?: PreviewWatchdog,
   ) {}
 
   /** Loads a video from scratch. */
   load(manifest: RenderManifest): Promise<LoadInfo> {
-    return this.runExclusive(() => this.loadNow(manifest));
+    return this.runExclusive(async () => {
+      try {
+        return await this.loadNow(manifest);
+      } catch (error) {
+        if (!this.restartAfter(error)) throw error;
+        return this.loadNow(manifest);
+      }
+    });
   }
 
   /**
@@ -113,29 +137,38 @@ export class PreviewController {
    */
   apply(manifest: RenderManifest): Promise<ApplyResult> {
     return this.runExclusive(async () => {
-      const plan = planReload(this.manifest, manifest);
-      if (plan.kind === 'full') return { kind: 'loaded', info: await this.loadNow(manifest) };
-      const loaded = this.manifest;
-      let info = this.info;
-      if (!loaded || !info) return { kind: 'loaded', info: await this.loadNow(manifest) };
-      if (plan.kind === 'unchanged') return { kind: 'unchanged', info };
-      for (const shotId of plan.shotIds) {
-        const scene = manifest.shots.find((shot) => shot.id === shotId)?.scene;
-        if (!scene) continue;
-        info = await this.harness.reloadShot(shotId, scene);
-        this.manifest = withScene(this.manifest ?? loaded, shotId, scene);
-        this.info = info;
+      try {
+        return await this.applyNow(manifest);
+      } catch (error) {
+        if (!this.restartAfter(error)) throw error;
+        return { kind: 'loaded', info: await this.loadNow(manifest) };
       }
-      for (const shotId of plan.directionShotIds) {
-        const direction = manifest.shots.find((shot) => shot.id === shotId)?.direction;
-        await this.harness.setShotDirection(shotId, direction ?? null);
-        this.manifest = withDirection(this.manifest ?? loaded, shotId, direction);
-      }
-      if (plan.shotIds.length === 0) {
-        return { kind: 'directed', info, shotIds: plan.directionShotIds };
-      }
-      return { kind: 'reloaded', info, shotIds: plan.shotIds };
     });
+  }
+
+  private async applyNow(manifest: RenderManifest): Promise<ApplyResult> {
+    const plan = planReload(this.manifest, manifest);
+    if (plan.kind === 'full') return { kind: 'loaded', info: await this.loadNow(manifest) };
+    const loaded = this.manifest;
+    let info = this.info;
+    if (!loaded || !info) return { kind: 'loaded', info: await this.loadNow(manifest) };
+    if (plan.kind === 'unchanged') return { kind: 'unchanged', info };
+    for (const shotId of plan.shotIds) {
+      const scene = manifest.shots.find((shot) => shot.id === shotId)?.scene;
+      if (!scene) continue;
+      info = await this.harness.reloadShot(shotId, scene);
+      this.manifest = withScene(this.manifest ?? loaded, shotId, scene);
+      this.info = info;
+    }
+    for (const shotId of plan.directionShotIds) {
+      const direction = manifest.shots.find((shot) => shot.id === shotId)?.direction;
+      await this.harness.setShotDirection(shotId, direction ?? null);
+      this.manifest = withDirection(this.manifest ?? loaded, shotId, direction);
+    }
+    if (plan.shotIds.length === 0) {
+      return { kind: 'directed', info, shotIds: plan.directionShotIds };
+    }
+    return { kind: 'reloaded', info, shotIds: plan.shotIds };
   }
 
   /** Renders global time `t` (clamped to the video) as soon as the engine is free. */
@@ -162,8 +195,15 @@ export class PreviewController {
   pick(x: number, y: number, t: number): Promise<PickInfo | null> {
     return this.runExclusive(async () => {
       const info = this.info;
-      if (!info) return null;
-      return this.harness.pick(x, y, Math.min(Math.max(t, 0), info.duration));
+      const manifest = this.manifest;
+      if (!info || !manifest) return null;
+      try {
+        return await this.harness.pick(x, y, Math.min(Math.max(t, 0), info.duration));
+      } catch (error) {
+        if (!this.restartAfter(error)) throw error;
+        await this.loadNow(manifest);
+        return null;
+      }
     });
   }
 
@@ -171,6 +211,39 @@ export class PreviewController {
   shotAt(t: number): string | undefined {
     const shots = this.manifest?.shots ?? [];
     return shots.findLast((shot) => shot.t0 <= t)?.id ?? shots[0]?.id;
+  }
+
+  /**
+   * After a call the frame did not answer: restarts the frame (nothing is loaded afterwards) and
+   * tells the user. False when there is no watchdog or `error` is not a timeout.
+   */
+  private restartAfter(error: unknown): boolean {
+    if (this.watchdog === undefined || !(error instanceof HarnessTimeoutError)) return false;
+    this.generation += 1;
+    this.info = undefined;
+    this.manifest = undefined;
+    this.pending = undefined;
+    this.watchdog.restart();
+    this.watchdog.notify(
+      `The preview engine stopped answering (${error.method}); restarted it and reloading the video.`,
+    );
+    return true;
+  }
+
+  /** A frame request was lost: restart, load the video again and show `t`. */
+  private recoverSeek(error: unknown, t: number): boolean {
+    const manifest = this.manifest;
+    if (!this.restartAfter(error)) return false;
+    if (manifest === undefined) return true;
+    this.runExclusive(async () => {
+      // A load queued meanwhile has already brought a video back.
+      if (this.manifest !== undefined) return;
+      await this.loadNow(manifest);
+      this.requestSeek(t);
+    }).catch((reloadError: unknown) => {
+      this.onError(reloadError);
+    });
+    return true;
   }
 
   private runExclusive<T>(task: () => Promise<T>): Promise<T> {
@@ -194,9 +267,10 @@ export class PreviewController {
 
   private async drain(): Promise<void> {
     this.running = true;
+    let t = 0;
     try {
       while (this.pending !== undefined && this.info) {
-        const t = this.pending;
+        t = this.pending;
         const info = this.info;
         const generation = this.generation;
         this.pending = undefined;
@@ -211,7 +285,7 @@ export class PreviewController {
       }
     } catch (error) {
       this.pending = undefined;
-      this.onError(error);
+      if (!this.recoverSeek(error, t)) this.onError(error);
     } finally {
       this.running = false;
       if (this.pending === undefined) this.resolveWaiters(Number.POSITIVE_INFINITY);

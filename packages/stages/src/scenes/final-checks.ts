@@ -17,6 +17,7 @@ import { renderShot } from './render.js';
 import { reviewTimes } from './review.js';
 import type { SheetShot } from './sheet.js';
 import { assetSizeFindings, legibilityFindings } from './source-checks.js';
+import { cameraInterruptFindings } from './source-checks-camera.js';
 import { syncFindings } from './sync.js';
 
 export interface CheckedShot {
@@ -86,6 +87,7 @@ export async function checkShot(
       ...programmaticCritique(render),
       ...legibilityCheck(job, shot, render.width)(source),
       ...assetSizeFindings(source, shot.scene),
+      ...cameraInterruptFindings(source, shot.scene, shot.interrupt),
       ...(sync === undefined ? [] : syncFindings(sync.events, shot)),
     ],
     row,

@@ -2,14 +2,23 @@
  * `out/chapters.txt` of an export (PLAN.md#9.2): one chapter per storyboard shot, titled with the
  * scene's `meta.title` (read statically from the scene source, never executed) or the first clause
  * of the shot's intent; shots too short for a YouTube chapter (< 10 s) are merged into the chapter
- * before them. The pipeline's `buildChaptersTxt` applies YouTube's rules (first at 0:00, ≥ 3
- * chapters, each ≥ 10 s).
+ * before them. With timed words (timing/words.json) a chapter is titled like the publish kit's:
+ * the key phrase spoken at its start (`spokenChapterTitle`), the scene title as the fallback.
+ * The pipeline's `buildChaptersTxt` applies YouTube's rules (first at 0:00, ≥ 3 chapters, each
+ * ≥ 10 s).
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { buildChaptersTxt, MIN_CHAPTER_SECONDS, type Chapter } from '@reelforge/pipeline';
-import type { StoryboardShot } from '@reelforge/shared';
-import { isInsideFolder } from '../project-files.js';
+import {
+  buildChaptersTxt,
+  MAX_TITLE_WORDS,
+  MIN_CHAPTER_SECONDS,
+  spokenChapterTitle,
+  type Chapter,
+} from '@reelforge/pipeline';
+import { wordsFileSchema, type StoryboardShot, type TimedWord } from '@reelforge/shared';
+import { SNAPSHOT_FILES } from '../../shared/snapshot-contract.js';
+import { isInsideFolder, readProjectJson } from '../project-files.js';
 
 const MAX_TITLE_CHARS = 60;
 
@@ -86,6 +95,32 @@ async function metaTitleOf(dir: string, scene: string): Promise<string | null> {
   }
 }
 
+/**
+ * Chapters retitled with the key phrase spoken at their start (no words: unchanged); a spoken
+ * title another chapter already has keeps the chapter's own title.
+ */
+export function spokenTitles(
+  chapters: readonly Chapter[],
+  words: readonly TimedWord[],
+  durationS: number,
+): Chapter[] {
+  if (words.length === 0) return [...chapters];
+  const used = new Set<string>();
+  return chapters.map((chapter, index) => {
+    const until = chapters[index + 1]?.t ?? durationS;
+    const spoken = spokenChapterTitle(words, chapter.t, until, MAX_TITLE_WORDS);
+    const title = spoken !== undefined && !used.has(spoken.toLowerCase()) ? spoken : chapter.title;
+    used.add(title.toLowerCase());
+    return { ...chapter, title };
+  });
+}
+
+/** The project's timed words, [] without a valid timing/words.json (legacy titles). */
+async function timedWords(dir: string): Promise<readonly TimedWord[]> {
+  const words = await readProjectJson(dir, SNAPSHOT_FILES.words, wordsFileSchema);
+  return words.status === 'ok' ? words.data.words : [];
+}
+
 export type ChaptersText = { readonly text: string } | { readonly problem: string };
 
 /** chapters.txt of the storyboard (or why YouTube would not show chapters for it). */
@@ -100,7 +135,12 @@ export async function projectChapters(
       title: shotTitle(shot.intent, await metaTitleOf(dir, shot.scene)),
     })),
   );
-  const built = buildChaptersTxt(chaptersFromShots(titled, durationS), durationS);
+  const chapters = spokenTitles(
+    chaptersFromShots(titled, durationS),
+    await timedWords(dir),
+    durationS,
+  );
+  const built = buildChaptersTxt(chapters, durationS);
   return built.ok
     ? { text: built.value }
     : { problem: built.error.message.replace(/^chapters: /, '') };

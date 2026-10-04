@@ -16,6 +16,7 @@ import { cutStats, nudgeStats, whooshStats, beatSyncReport } from './report.js';
 import { gridForFilm } from './stage.js';
 import {
   MAX_CUE_SNAP_S,
+  MAX_WHOOSH_SNAP_S,
   snapCutsToBeats,
   snapGestures,
   snapWhooshCues,
@@ -207,11 +208,11 @@ describe('whooshes of the final cues on the grid (scene accents, Claude)', () =>
   const grid = new GridTimes({ beats: [1, 2, 3, 4, 5, 6, 7, 8], accents: [] });
   const cuts = [6];
 
-  it('moves a whoosh so its peak lands on a beat within 120 ms; other cues stay', () => {
+  it('moves a whoosh so its peak lands on a beat within 200 ms; other cues stay', () => {
     const cues = [
       { id: 'sfx-01', t: 1.85, name: 'whoosh' }, // peak 2.10 -> 2.00
       { id: 'sfx-02', t: 2.6, name: 'hit' },
-      { id: 'sfx-03', t: 3.5, name: 'swoosh-in' }, // peak 3.75: no beat within 120 ms
+      { id: 'sfx-03', t: 3.5, name: 'swoosh-in' }, // peak 3.75: no beat within 200 ms
       { id: 'sfx-04', t: 5.8, name: 'whoosh' }, // runs into the cut at 6 s: follows the cut
       { id: 'sfx-05', t: 6.9, file: 'audio/sfx/x.wav' },
     ];
@@ -220,13 +221,44 @@ describe('whooshes of the final cues on the grid (scene accents, Claude)', () =>
     expect(result.cues.map((cue) => cue.t)).toEqual([1.75, 2.6, 3.5, 5.8, 6.9]);
     expect(result.cues[0]).toEqual({ id: 'sfx-01', t: 1.75, name: 'whoosh' });
     expect(result.cues[1]).toBe(cues[1]);
-    // The snapped peak sits exactly on the beat (it was 100 ms off); the report's ±120 ms window
-    // is the snap window, so its count does not change.
+    // The snapped peak sits exactly on the beat (it was 100 ms off).
     expect(grid.nearest(1.75 + 0.25, 0.001)).toBe(2);
+  });
+
+  it('brings whooshes 120-200 ms off the grid into the report window', () => {
+    const cues = [
+      { t: 1.59, name: 'whoosh' }, // peak 1.84: 160 ms before the beat at 2
+      { t: 2.93, name: 'whoosh' }, // peak 3.18: 180 ms after the beat at 3
+      { t: 4.5, name: 'whoosh' }, // peak 4.75: 250 ms off, out of reach
+    ];
+    expect(MAX_WHOOSH_SNAP_S).toBe(0.2);
     const shots = [{ t0: 0 }, { t0: 6 }];
-    expect(whooshStats(result.cues, shots, grid).inWindow).toBe(
-      whooshStats(cues, shots, grid).inWindow,
-    );
+    expect(whooshStats(cues, shots, grid).inWindow).toBe(0);
+    const result = snapWhooshCues(cues, grid, cuts, []);
+    expect(result.snapped).toBe(2);
+    expect(result.cues.map((cue) => cue.t)).toEqual([1.75, 2.75, 4.5]);
+    const stats = whooshStats(result.cues, shots, grid);
+    expect(stats).toEqual({ total: 3, inWindow: 2, fraction: 0.6667, windowS: MAX_CUE_SNAP_S });
+  });
+
+  it('counts a scene whoosh started on an accented word as on the grid', () => {
+    const accented = new GridTimes({
+      beats: [1, 2, 3],
+      accents: [{ word: 4, t: 2.5, kind: 'number' }],
+    });
+    const shots = [{ t0: 0 }];
+    // Starts on the accent at 2.5 (a scene anchor): its peak 2.75 is 250 ms from every beat.
+    const scene = [{ t: 2.5, name: 'whoosh' }];
+    expect(whooshStats(scene, shots, accented, [2.5])).toEqual({
+      total: 1,
+      inWindow: 1,
+      fraction: 1,
+      windowS: MAX_CUE_SNAP_S,
+      onAccentWords: 1,
+    });
+    // Not a scene anchor (a Claude cue), or the anchored word is no accent: off the grid.
+    expect(whooshStats(scene, shots, accented, []).inWindow).toBe(0);
+    expect(whooshStats([{ t: 1.5, name: 'whoosh' }], shots, accented, [1.5]).inWindow).toBe(0);
   });
 
   it('never moves a cue matched to a scene anchor beyond ±150 ms of it', () => {
