@@ -1,5 +1,9 @@
 # ReelForge
 
+> **Personal experimental project.** This repository is a private workbench made public only so that its CI can run for free.
+> It is not a product, it is **not licensed for use, copying or redistribution**, there are no releases or installers, and there is no support.
+> It drives the author's own locally installed Claude Code; nothing here is meant for other people.
+
 ReelForge is a Windows-first desktop app that turns a short video brief into a finished YouTube
 video: script → your voiceover → cleaned audio → word-level timestamps → storyboard → a deterministic
 pixel-art animation in seven looks (voxel 3D, retro UI/CRT, isometric diorama, blueprint/data, flat 2D,
