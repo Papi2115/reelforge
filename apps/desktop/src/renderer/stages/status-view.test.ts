@@ -84,6 +84,42 @@ describe('statusLabel', () => {
     );
   });
 
+  it('says what a step waits for from its own gating reasons, not only the nearest step', () => {
+    // Cleanup is not done, but Scenes waits on the asset package review (real run v2.3).
+    const rows = pipelineRows(
+      state({
+        script: APPROVED,
+        voiceover: DONE,
+        clean: { reasons: ['No voice-over imported yet: run Voiceover first.'] },
+        storyboard: DONE,
+        assets: { ...DONE, awaitingReview: true },
+        scenes: {
+          reasons: [
+            'An asset package is waiting for your review: open Assets and approve or reject it.',
+          ],
+        },
+        'sound-cues': {
+          reasons: ['Storyboard is out of date (script changed): run it again first.'],
+        },
+        mix: { reasons: ['vo/vo_clean.wav is missing: run Audio cleaned first.'] },
+        words: { reasons: ['Approve the script first (Script written → Open → Approve script).'] },
+      }),
+    );
+    expect(labels(rows)).toMatchObject({
+      clean: 'Waiting for Voiceover',
+      scenes: 'Waiting for your review of the asset package',
+      sound: 'Waiting for Storyboard (out of date)',
+      words: 'Waiting for your script approval',
+    });
+    const running = pipelineRows(
+      state({ script: APPROVED, export: { reasons: ['Scenes built is still running.'] } }),
+    );
+    expect(labels(running)['export']).toBe('Waiting for Scenes');
+    // Unknown reasons fall back to the nearest unfinished step.
+    const odd = pipelineRows(state({ script: APPROVED, export: { reasons: ['Something else.'] } }));
+    expect(labels(odd)['export']).toBe('Waiting for Sound mix');
+  });
+
   it('says review, out of date, failed and interrupted as actions', () => {
     const rows = pipelineRows(
       state({

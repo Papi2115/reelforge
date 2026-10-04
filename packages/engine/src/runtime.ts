@@ -37,6 +37,7 @@ import {
   shotPaletteShift,
   type ShotClock,
 } from './moments.js';
+import { createMoodGrader } from './mood.js';
 import { pickInShot, type PickResult } from './pick.js';
 import { shotSeed } from './rng.js';
 import { toSceneModule } from './scene-module.js';
@@ -261,6 +262,22 @@ export async function createRuntime(
     applyPaletteShift(source.slice(), width, shifts.map, amount, shifts.out);
     composited = shifts.out;
   };
+  // Tension map mood grade (PLAN.md#12.22): undefined when no shot is graded (idle path).
+  const moodGrader = createMoodGrader(manifest, style);
+  /** Post passes of the frame just rendered: moment flash, mood grade, live co-direction. */
+  const finish = (sample: TimelineSample, t: number): void => {
+    shiftPalette(sample.current.index, sample.current.localTime);
+    const mood = moodGrader?.amount(sample) ?? 0;
+    if (moodGrader !== undefined && mood !== 0) {
+      let source = composited;
+      if (source === undefined) {
+        source = new Uint8Array(width * height * 4);
+        frameRenderer.readFrame(source);
+      }
+      composited = moodGrader.apply(source, mood);
+    }
+    direct(sample, t);
+  };
   const describe = (): LoadInfo => ({
     duration: timeline.duration,
     style: style.id,
@@ -289,8 +306,7 @@ export async function createRuntime(
       if (!sample.transition) {
         current.update(sceneTime(sample.current.index, sample.current.localTime));
         frameRenderer.render({ a: current, mode: 'single', progress: 0, seed: 0 });
-        shiftPalette(sample.current.index, sample.current.localTime);
-        direct(sample, t);
+        finish(sample, t);
         return;
       }
       const outgoing = shotAt(sample.transition.outgoing.index);
@@ -307,8 +323,7 @@ export async function createRuntime(
           progress: sample.transition.progress,
           seed,
         });
-        shiftPalette(sample.current.index, sample.current.localTime);
-        direct(sample, t);
+        finish(sample, t);
         return;
       }
       frameRenderer.render({
@@ -318,8 +333,7 @@ export async function createRuntime(
         progress: sample.transition.progress,
         seed,
       });
-      shiftPalette(sample.current.index, sample.current.localTime);
-      direct(sample, t);
+      finish(sample, t);
     },
     readFrame() {
       if (composited) return composited.slice();

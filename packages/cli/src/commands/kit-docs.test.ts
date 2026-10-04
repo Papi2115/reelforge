@@ -26,6 +26,7 @@ const catalog: KitCatalog = {
   env: [],
   props: [calculator],
   fx: [],
+  cast: [],
 };
 
 describe('kit-docs formatting', () => {

@@ -1,7 +1,7 @@
 /**
  * CRT screen processing (pure): a content canvas (UI pixels) -> the tube image at 2x density with
  * barrel curvature and rounded corners, phosphor tint, glow halos next to bright pixels (one tone
- * darker), 1-px scanlines (every other row one tone darker), seeded flicker and a rolling hum bar,
+ * darker; none on inverse-video ink), 1-px scanlines (every other row one tone darker), seeded flicker and a rolling hum bar,
  * and the power-on (line -> image) / power-off (image -> line -> dot) animations. Every effect is
  * a palette-tone step, so the frame stays in the style palette.
  */
@@ -103,6 +103,8 @@ export function paintTube(
     lineReach = power.k < 0.6 ? 1 : Math.max(0, 1 - (power.k - 0.6) / 0.4);
   }
   const base = new Uint8Array(W * H);
+  /** Tube pixels showing inverse-video ink: no glow halo, so marked glyphs stay readable. */
+  const ink = new Uint8Array(W * H);
   for (let y = 0; y < H; y += 1) {
     const v = ((y + 0.5) / H) * 2 - 1;
     for (let x = 0; x < W; x += 1) {
@@ -134,6 +136,7 @@ export function paintTube(
       const cy = Math.min(content.height - 1, Math.floor(((sampleV + 1) / 2) * content.height));
       const value = content.data[cy * content.width + cx] ?? CLEAR;
       base[offset] = value === CLEAR ? C.black : (options.tint[value] ?? C.black);
+      if (value === C.inverseInk) ink[offset] = 1;
     }
   }
   const lum = (index: number): number => options.luminance[index] ?? 0;
@@ -143,7 +146,7 @@ export function paintTube(
     for (let x = 0; x < W; x += 1) {
       const offset = y * W + x;
       let value = base[offset] ?? C.black;
-      if (power.mode !== 'off' && lum(value) < 0.15) {
+      if (power.mode !== 'off' && lum(value) < 0.15 && ink[offset] === 0) {
         const left = x > 0 ? (base[offset - 1] ?? 0) : 0;
         const right = x < W - 1 ? (base[offset + 1] ?? 0) : 0;
         const bright = lum(left) >= lum(right) ? left : right;

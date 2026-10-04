@@ -416,6 +416,7 @@ export {
   type ChapterStarts,
   type PlanShot,
 } from './publish/chapter-plan.js';
+export { spokenChapterTitle } from './publish/chapter-titles.js';
 export {
   buildPublishKit,
   hookParagraph,

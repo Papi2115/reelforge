@@ -10,6 +10,7 @@ import { revealProgress, wipeCovered } from '../../reveal.js';
 import {
   drawTextCentered,
   fillRect,
+  fitHeading,
   rect,
   setPixel,
   strokeRect,
@@ -100,15 +101,16 @@ export function redactedPainter(params: RedactedBlockParams): RetroPainter {
         drawTextCentered(canvas, params.label, cx, labelY, scheme.dim, { font: 'small' });
         fillRect(canvas, rect(frame.x + PAD, labelY + 8, frame.w - 2 * PAD, 1), scheme.border);
       }
-      const answerH = textHeight(ANSWER);
+      const answer = fitHeading(params.text, frame.w - 2 * PAD, ANSWER);
+      const answerH = textHeight(answer.style);
       const answerY = Math.round(frame.y + (frame.h - answerH) / 2);
-      drawTextCentered(canvas, params.text, cx, answerY, scheme.ink, ANSWER);
+      drawTextCentered(canvas, answer.text, cx, answerY, scheme.ink, answer.style);
       if (params.caption.length > 0) {
         drawTextCentered(canvas, params.caption, cx, frame.y + frame.h - PAD - 5, scheme.dim, {
           font: 'small',
         });
       }
-      const answerW = Math.min(frame.w - 2 * PAD, textWidth(params.text, ANSWER) + 8);
+      const answerW = Math.min(frame.w - 2 * PAD, textWidth(answer.text, answer.style) + 8);
       const bar = {
         x: Math.round(cx - answerW / 2),
         y: answerY - 4,

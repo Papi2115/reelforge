@@ -3,7 +3,8 @@
  * examples/look_retro_ui.js passes the determinism lint, seeks deterministically (the same t twice
  * and in both directions gives the same frame) and passes the vibe guard (every pixel a style
  * colour) on every rendered frame, in all three styles. Goldens: one full-resolution frame per
- * template plus the composite (`look-retro-ui-*`). Contact sheet:
+ * template plus the composite (`look-retro-ui-*`), inverse marks through a green CRT (`crtMark`)
+ * and a memo heading wider than its page (`memo`). Contact sheet:
  * packages/kit/out/contact/look-retro-ui.png (full-size tiles in out/contact/look-retro-ui/).
  * Performance: the full seek path per setup (SwiftShader informational; the hardware GPU must
  * hold the 30 fps preview budget with REELFORGE_KIT_PERF_GPU=1).
@@ -44,6 +45,8 @@ const SETUPS = [
   'dossier',
   'crt',
   'composite',
+  'crtMark',
+  'memo',
 ] as const;
 type Setup = (typeof SETUPS)[number];
 const GOLDENS: readonly (readonly [Setup, number])[] = [
@@ -54,6 +57,8 @@ const GOLDENS: readonly (readonly [Setup, number])[] = [
   ['dossier', 2.8],
   ['crt', 4.5],
   ['composite', 3.2],
+  ['crtMark', 3.2],
+  ['memo', 2],
 ];
 const SHEET_TIMES = [0.5, 1.5, 2.5, 4] as const;
 const OTHER_STYLES = ['noir-voxel', 'soft-480'] as const;

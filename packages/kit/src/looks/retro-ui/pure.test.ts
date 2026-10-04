@@ -3,9 +3,11 @@ import { CRISP_PALETTE, TOKENS_ONLY_PALETTE } from '../../testing/palettes.js';
 import {
   blit,
   charPositions,
+  clipText,
   createCanvas,
   ditherPick,
   drawText,
+  fitHeading,
   textWidth,
   wrap,
   CLEAR,
@@ -35,6 +37,16 @@ describe('retro-ui canvas', () => {
     const small = createCanvas(8, 8);
     drawText(small, '\\', 0, 0, C.green, { font: 'small' });
     expect(inked(small)).toBe(5);
+  });
+
+  it('fits headings: the asked style, else scale 1, else cut at scale 1', () => {
+    const big = { scale: 2, bold: true };
+    expect(fitHeading('MEMO', 100, big)).toEqual({ text: 'MEMO', style: big });
+    const smaller = fitHeading('MISSION RULES', textWidth('MISSION RULES', { bold: true }), big);
+    expect(smaller).toEqual({ text: 'MISSION RULES', style: { ...big, scale: 1 } });
+    const cut = fitHeading('MISSION RULES AND ALARM CODES', 80, big);
+    expect(cut.text).toBe(clipText('MISSION RULES AND ALARM CODES', 80, { bold: true }));
+    expect(textWidth(cut.text, cut.style)).toBeLessThanOrEqual(80);
   });
 
   it('wraps by width and keeps the line count', () => {
@@ -164,6 +176,28 @@ describe('CRT tube', () => {
     const twice = createCanvas(40, 20);
     paintTube(twice, content, { ...options, flicker: 1 }, powerState(1), 1.3);
     expect(twice.data).toEqual(again.data);
+  });
+
+  it('gives dark pixels next to bright ones a glow, but never inverse-video ink', () => {
+    const colors = resolveRoles(CRISP_PALETTE);
+    const content = createCanvas(20, 10);
+    content.data.fill(C.green);
+    content.data[4 * 20 + 5] = C.black;
+    content.data[4 * 20 + 12] = C.inverseInk;
+    const options = {
+      tint: tintMap(colors, 'green'),
+      luminance: colors.luminance,
+      curvature: 0,
+      scanlines: false,
+      flicker: 0,
+      seed: 1,
+    };
+    const out = createCanvas(40, 20);
+    paintTube(out, content, options, powerState(1), 1);
+    // Plain black inside the fill glows one tone darker than the fill; the ink stays black.
+    expect(out.data[8 * 40 + 10]).toBe(dimIndex(C.green));
+    expect(out.data[8 * 40 + 24]).toBe(C.black);
+    expect(out.data[8 * 40 + 25]).toBe(C.black);
   });
 });
 

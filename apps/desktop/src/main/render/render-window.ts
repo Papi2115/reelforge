@@ -2,9 +2,9 @@
  * The hidden render window (ADR-002): `show: false` (not offscreen), GPU (Chromium's default
  * ANGLE backend, D3D11 on Windows), sandboxed + context-isolated, loading the render host page
  * (same engine frame as the preview). Frames come back over IPC as structured-clone bytes.
- * Closing is graceful (`close()` + `closed`): destroy() then a new window failed in the spike.
+ * Closing is graceful first (`close()` + `closed`: destroy() then a new window failed in the
+ * spike) but bounded: a hung renderer is killed and the window destroyed (render-window-close.ts).
  */
-import { once } from 'node:events';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import type { CardDiagnostic, LoadInfo } from '@reelforge/engine';
 import type { RenderManifest } from '@reelforge/shared';
@@ -12,6 +12,7 @@ import { BrowserWindow } from 'electron';
 import { RENDER_HOST_CHANNELS, type RenderHostCall } from '../../shared/render-host-contract.js';
 import { describeError, type Logger } from '../logger.js';
 import { renderHostReplySchema, type ValidatedReply } from './host-replies.js';
+import { closeRenderWindow } from './render-window-close.js';
 import type { RenderError, RenderTarget } from './render-target.js';
 
 export interface RenderWindowOptions {
@@ -112,10 +113,9 @@ class RenderWindow implements RenderTarget {
 
   private async closeWindow(): Promise<void> {
     this.fail({ kind: 'closed', message: 'render window closed' });
-    if (this.window.isDestroyed()) return;
-    const closed = once(this.window, 'closed');
-    this.window.close();
-    await closed;
+    // A renderer that missed a deadline may never run its unload handlers: kill it first.
+    const hung = this.gone?.kind === 'timeout';
+    await closeRenderWindow(this.window, { hung, log: this.options.log });
   }
 
   private call(input: CallInput, timeoutMs: number): Promise<Result<ValidatedReply, RenderError>> {

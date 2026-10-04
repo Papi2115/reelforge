@@ -102,9 +102,12 @@ export function drawPhoto(
   }
 }
 
-/** `#rrggbb` of every role (list index i = canvas index i + 1), for full-colour asset photos. */
+/**
+ * `#rrggbb` of every role (list index i = canvas index i + 1), for full-colour asset photos;
+ * `inverseInk` (the last role, a duplicate of black for CRT marks) is left out.
+ */
 export function roleHexes(colors: RoleColors): string[] {
-  return ROLE_NAMES.map((_, position) => {
+  return ROLE_NAMES.filter((role) => role !== 'inverseInk').map((_, position) => {
     const at = (position + 1) * 4;
     const value =
       ((colors.rgba[at] ?? 0) << 16) |

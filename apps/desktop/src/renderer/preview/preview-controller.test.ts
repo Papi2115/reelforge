@@ -1,4 +1,9 @@
-import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
+import {
+  HarnessTimeoutError,
+  type LoadInfo,
+  type PickInfo,
+  type ReelforgeHarness,
+} from '@reelforge/engine';
 import type { RenderManifest, SceneSource, ShotDirection } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { playerNeedsVideo, PreviewController } from './preview-controller.js';
@@ -310,5 +315,118 @@ describe('playerNeedsVideo', () => {
     expect(again.kind).toBe('unchanged');
     expect(playerNeedsVideo(again, stalePlayer)).toBe(true);
     expect(playerNeedsVideo(again, { duration: 5, fps: 24 })).toBe(true);
+  });
+});
+
+describe('PreviewController watchdog', () => {
+  const tick = (): Promise<void> =>
+    new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+
+  /** A harness whose next calls of the listed methods time out. */
+  class LossyHarness extends ManualHarness {
+    /** Calls to lose, in order (a method listed twice loses its next two calls). */
+    readonly lose: ('load' | 'seek' | 'pick' | 'reloadShot')[] = [];
+    private lost(method: LossyHarness['lose'][number]): boolean {
+      const index = this.lose.indexOf(method);
+      if (index < 0) return false;
+      this.lose.splice(index, 1);
+      return true;
+    }
+    override load(manifest: RenderManifest): Promise<LoadInfo> {
+      if (this.lost('load')) return Promise.reject(new HarnessTimeoutError('load', 10));
+      return super.load(manifest);
+    }
+    override seek(t: number): Promise<void> {
+      if (this.lost('seek')) return Promise.reject(new HarnessTimeoutError('seek', 10));
+      return super.seek(t);
+    }
+    override pick(x: number, y: number, t: number): Promise<PickInfo | null> {
+      if (this.lost('pick')) return Promise.reject(new HarnessTimeoutError('pick', 10));
+      return super.pick(x, y, t);
+    }
+    override reloadShot(shotId: string, scene: SceneSource): Promise<LoadInfo> {
+      if (this.lost('reloadShot')) {
+        return Promise.reject(new HarnessTimeoutError('reloadShot', 10));
+      }
+      return super.reloadShot(shotId, scene);
+    }
+  }
+
+  function setup(withWatchdog = true) {
+    const harness = new LossyHarness();
+    const restarts: number[] = [];
+    const notices: string[] = [];
+    const errors: unknown[] = [];
+    const drawn: number[] = [];
+    const watchdog = {
+      restart: () => restarts.push(1),
+      notify: (text: string) => notices.push(text),
+    };
+    const controller = new PreviewController(
+      harness,
+      { draw: (_f, _w, _h, t) => drawn.push(t) },
+      (error) => errors.push(error),
+      () => 0,
+      withWatchdog ? watchdog : undefined,
+    );
+    return { harness, controller, restarts, notices, errors, drawn };
+  }
+
+  it('restarts the frame, reloads the video and shows the frame again after a lost seek', async () => {
+    const { harness, controller, restarts, notices, errors, drawn } = setup();
+    await controller.load(MANIFEST);
+    harness.lose.push('seek');
+    controller.requestSeek(2);
+    await tick();
+    await tick();
+    expect(restarts).toHaveLength(1);
+    expect(notices[0]).toContain('stopped answering (seek)');
+    expect(harness.loads).toEqual(['s00', 's00']);
+    // The reload asks for the lost time again.
+    expect(harness.seeks).toEqual([2]);
+    await harness.releaseNext();
+    expect(drawn).toEqual([2]);
+    expect(errors).toEqual([]);
+  });
+
+  it('a load or apply that times out restarts the frame and retries once', async () => {
+    const { harness, controller, restarts } = setup();
+    harness.lose.push('load');
+    await expect(controller.load(MANIFEST)).resolves.toEqual(INFO);
+    expect(restarts).toHaveLength(1);
+    harness.lose.push('reloadShot');
+    const changed: RenderManifest = {
+      ...MANIFEST,
+      shots: MANIFEST.shots.map((shot) => ({ ...shot, scene: { ...shot.scene, source: 'y' } })),
+    };
+    await expect(controller.apply(changed)).resolves.toEqual({ kind: 'loaded', info: INFO });
+    expect(restarts).toHaveLength(2);
+    // A second timeout in a row is reported to the caller (no restart loop).
+    harness.lose.push('load', 'load');
+    await expect(controller.load({ ...changed, seed: 2 })).rejects.toBeInstanceOf(
+      HarnessTimeoutError,
+    );
+    expect(restarts).toHaveLength(3);
+  });
+
+  it('a lost pick restarts and reloads, returning nothing', async () => {
+    const { harness, controller, restarts } = setup();
+    await controller.load(MANIFEST);
+    harness.lose.push('pick');
+    expect(await controller.pick(0.5, 0.5, 1)).toBeNull();
+    expect(restarts).toHaveLength(1);
+    expect(harness.loads).toEqual(['s00', 's00']);
+  });
+
+  it('without a watchdog a timeout is an ordinary error', async () => {
+    const { harness, controller, restarts, errors } = setup(false);
+    await controller.load(MANIFEST);
+    harness.lose.push('seek');
+    controller.requestSeek(1);
+    await tick();
+    expect(restarts).toEqual([]);
+    expect(errors[0]).toBeInstanceOf(HarnessTimeoutError);
   });
 });

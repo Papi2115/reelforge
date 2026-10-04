@@ -168,6 +168,7 @@ export async function reportSoundSync(
   shots: readonly StoryboardShot[],
   cues: readonly SfxCueLike[],
   snapped: SnappedCues,
+  sceneAnchors: readonly number[] = [],
 ): Promise<Result<BeatSyncReport, StageError>> {
   const previous = await readJson(projectDir, BEAT_SYNC_REPORT_FILE, beatSyncReportSchema);
   const times = new GridTimes(grid);
@@ -176,7 +177,7 @@ export async function reportSoundSync(
     beatSyncReport({
       cuts: cutStats(shots, times),
       nudges: previous?.nudges,
-      whooshes: whooshStats(cues, shots, times),
+      whooshes: whooshStats(cues, shots, times, sceneAnchors),
       cues: { snapped: snapped.director + snapped.whooshes, whooshes: snapped.whooshes },
     }),
   );
