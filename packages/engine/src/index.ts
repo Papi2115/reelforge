@@ -18,7 +18,13 @@ export {
 } from './direction.js';
 export * from './errors.js';
 export type { GpuInfo } from './gl/frame-renderer.js';
-export { createSandboxedHarness, type SandboxedHarnessOptions } from './harness/host.js';
+export {
+  createSandboxedHarness,
+  HarnessTimeoutError,
+  type HarnessTimeouts,
+  type SandboxedHarness,
+  type SandboxedHarnessOptions,
+} from './harness/host.js';
 export {
   cardDiagnosticSchema,
   loadInfoSchema,

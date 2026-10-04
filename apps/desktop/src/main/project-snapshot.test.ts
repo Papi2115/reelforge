@@ -189,6 +189,73 @@ describe('buildProjectManifest', () => {
     expect(await buildProjectManifest(dir)).toEqual({ status: 'no-storyboard' });
   });
 
+  it('shows unbuilt shots as placeholders in the preview only', async () => {
+    const storyboard = {
+      version: 1,
+      shots: [
+        {
+          id: 's01',
+          t0: 0,
+          t1: 2,
+          treatment: 'title-card',
+          intent: 'Hook.',
+          scene: 'scenes/s01_title.js',
+        },
+        {
+          id: 's02',
+          t0: 2,
+          t1: 4,
+          treatment: 'metaphor-object',
+          intent: 'Calc.',
+          scene: 'scenes/s02_new.js',
+        },
+        {
+          id: 's03',
+          t0: 4,
+          t1: 7,
+          treatment: 'title-card',
+          intent: 'Outro.',
+          scene: 'scenes/s03_end.js',
+        },
+      ],
+    };
+    await writeFile(path.join(dir, 'storyboard.json'), JSON.stringify(storyboard));
+    // An empty file (a scene being written) is not built yet either.
+    await writeFile(path.join(dir, 'scenes', 's03_end.js'), '');
+    const built = await readFile(path.join(dir, 'scenes', 's01_title.js'), 'utf8');
+
+    const preview = await buildProjectManifest(dir, { previewPlaceholders: true });
+    if (preview.status !== 'ready') throw new Error(JSON.stringify(preview));
+    expect(preview.placeholderShots).toEqual(['s02', 's03']);
+    const [first, second, third] = preview.manifest.shots;
+    expect(first?.scene).toEqual({ file: 'scenes/s01_title.js', source: built });
+    expect(second?.scene.file).toBe('scenes/s02_new.js');
+    expect(second?.scene.source).toContain('ReelForge preview placeholder');
+    expect(second?.scene.source).toContain('const INTENT = "Calc.";');
+    expect(third?.scene.source).toContain('const DETAIL = "title-card · 3.0 s";');
+    expect(preview.manifest.shots.map((shot) => [shot.t0, shot.t1])).toEqual([
+      [0, 2],
+      [2, 4],
+      [4, 7],
+    ]);
+
+    // Export / render (no option): refused exactly as before.
+    expect(await buildProjectManifest(dir)).toEqual({
+      status: 'unavailable',
+      reason: 'shot s02: scenes/s02_new.js is missing',
+    });
+    // Every scene built: no placeholders reported.
+    await writeFile(path.join(dir, 'scenes', 's02_new.js'), built);
+    await writeFile(path.join(dir, 'scenes', 's03_end.js'), built);
+    const complete = await buildProjectManifest(dir, { previewPlaceholders: true });
+    expect(complete.status === 'ready' && complete.placeholderShots).toBeUndefined();
+    // No storyboard at all: still the demo fallback.
+    await rm(path.join(dir, 'storyboard.json'));
+    expect(await buildProjectManifest(dir, { previewPlaceholders: true })).toEqual({
+      status: 'no-storyboard',
+    });
+  });
+
   it('rejects storyboards the engine cannot play', async () => {
     await writeFile(
       path.join(dir, 'storyboard.json'),

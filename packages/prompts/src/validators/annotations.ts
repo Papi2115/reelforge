@@ -25,7 +25,15 @@ export const DEFAULT_ANNOTATION_RULES: AnnotationRules = {
   minKindsPerMinute: 3,
 };
 
-const MINUTE_S = 60;
+/** Window of the `annotation-density` rule, seconds. */
+export const ANNOTATION_DENSITY_WINDOW_S = 60;
+const MINUTE_S = ANNOTATION_DENSITY_WINDOW_S;
+
+/**
+ * Rules that only say "too many / too repetitive marks": dropping marks always satisfies them, so
+ * the storyboard stage may trim instead of failing (variety is a warning and needs no fix).
+ */
+export const ANNOTATION_COUNT_CODES: readonly string[] = ['annotation-density', 'annotation-run'];
 /** A phrase may start this much before its shot (a word boundary cut). */
 const PHRASE_SLACK_S = 0.05;
 
@@ -60,11 +68,15 @@ function spokenTokens(words: WordsFile): SpokenToken[] {
   return words.words.flatMap((word) => tokens(word.text).map((token) => ({ token, t: word.t })));
 }
 
-interface TimedPlan {
+/** An annotation plan placed at the time its phrase is spoken inside its shot. */
+export interface TimedPlan {
   readonly plan: AnnotationPlan;
   readonly t: number;
   readonly path: string;
   readonly shotId: string;
+  readonly shotIndex: number;
+  /** Index in the shot's `annotations`. */
+  readonly index: number;
 }
 
 function phraseIssues(
@@ -78,13 +90,13 @@ function phraseIssues(
     (shot.annotations ?? []).forEach((plan, index) => {
       const path = `shots[${String(shotIndex)}].annotations[${String(index)}]`;
       if (spoken === undefined) {
-        timed.push({ plan, t: shot.t0, path, shotId: shot.id });
+        timed.push({ plan, t: shot.t0, path, shotId: shot.id, shotIndex, index });
         return;
       }
       const times = phraseTimes(plan.phrase, spoken);
       const inside = times.find((t) => t >= shot.t0 - PHRASE_SLACK_S && t < shot.t1);
       if (inside !== undefined) {
-        timed.push({ plan, t: inside, path, shotId: shot.id });
+        timed.push({ plan, t: inside, path, shotId: shot.id, shotIndex, index });
         return;
       }
       issues.push(
@@ -105,6 +117,17 @@ function phraseIssues(
     });
   });
   return { issues, timed: timed.sort((first, second) => first.t - second.t) };
+}
+
+/**
+ * The marks the variety rules count (source chips left out), at their phrase times, sorted by
+ * time (stable: shot order on ties); plans whose phrase is not spoken in their shot are left out.
+ */
+export function timedAnnotationPlans(
+  shots: readonly StoryboardShot[],
+  words: WordsFile | undefined,
+): TimedPlan[] {
+  return phraseIssues(shots, words).timed.filter((entry) => entry.plan.kind !== 'source-chip');
 }
 
 function runIssues(timed: readonly TimedPlan[], rules: AnnotationRules): ValidationIssue[] {

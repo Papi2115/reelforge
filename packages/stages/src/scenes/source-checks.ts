@@ -69,7 +69,7 @@ function isNode(value: unknown): value is AnyNode {
   return typeof candidate.type === 'string' && typeof candidate.start === 'number';
 }
 
-function visit(node: AnyNode, callback: (node: AnyNode) => void): void {
+export function visit(node: AnyNode, callback: (node: AnyNode) => void): void {
   callback(node);
   for (const value of Object.values(node)) {
     if (Array.isArray(value)) {
@@ -78,7 +78,7 @@ function visit(node: AnyNode, callback: (node: AnyNode) => void): void {
   }
 }
 
-function ownerIs(owner: AnyNode, name: string): boolean {
+export function ownerIs(owner: AnyNode, name: string): boolean {
   return (
     (owner.type === 'Identifier' && owner.name === name) ||
     (owner.type === 'MemberExpression' &&
@@ -100,7 +100,10 @@ function textCallKind(call: CallExpression): string | undefined {
   return undefined;
 }
 
-function optionValue(options: ObjectExpression | undefined, key: string): AnyNode | undefined {
+export function optionValue(
+  options: ObjectExpression | undefined,
+  key: string,
+): AnyNode | undefined {
   for (const property of options?.properties ?? []) {
     if (property.type !== 'Property' || property.computed) continue;
     const name = property.key.type === 'Identifier' ? property.key.name : undefined;

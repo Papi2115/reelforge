@@ -31,7 +31,13 @@ export {
   type AssetLibraryAccess,
   type AssetRuntime,
 } from './runtime.js';
-export { sanitizeText, sanitizeUrl, TEXT_LIMITS, untrustedBlock } from './untrusted.js';
+export {
+  cleanAuthor,
+  sanitizeText,
+  sanitizeUrl,
+  TEXT_LIMITS,
+  untrustedBlock,
+} from './untrusted.js';
 export { catalogueLine, recordLines } from './format.js';
 export { loopbackAssetRuntime } from './testing/loopback.js';
 export { describeUnknown } from '../errors.js';

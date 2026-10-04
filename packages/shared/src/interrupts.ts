@@ -238,8 +238,8 @@ export function interruptDirective(
     case 'enter-screen':
       return `${head}. The engine draws the transition from ${lookOf(previous) ?? 'the previous shot'} (storyboard \`transitionIn\`); open the shot on a strong, readable first frame that pays the surprise off.`;
     case 'scale-shift':
-      return `${head}. Realise it with \`ctx.camera.dollyZoom({ from, to, t0, t1 })\` in update() (resolve t0/t1 from anchors in build), within the first 1.5 s of the shot.`;
+      return `${head}. Realise it with \`ctx.camera.dollyZoom({ from, to, t0, t1 })\` in update() (resolve t0/t1 from anchors in build), within the first 1.5 s of the shot, on one subject framed whole and named on screen; \`from\`/\`to\` within 2x (e.g. 6 -> 3.5), never ending in a close-up of a texture.`;
     case 'perspective-shift':
-      return `${head}. Realise it with \`ctx.camera.orbit({ degrees, t0, t1 })\`, \`ctx.camera.rackFocus({ from, to, t0, t1 })\` or \`ctx.camera.parallax({ amount, t0, t1 })\` in update(), within the first 1.5 s of the shot.`;
+      return `${head}. Realise it with \`ctx.camera.orbit({ degrees, t0, t1 })\`, \`ctx.camera.rackFocus({ from, to, t0, t1 })\` or \`ctx.camera.parallax({ amount, t0, t1 })\` in update(), within the first 1.5 s of the shot; orbit at most 45 degrees, and label the objects the move turns or focuses between (callout/pin/label), so the new view reads.`;
   }
 }

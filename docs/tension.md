@@ -65,6 +65,7 @@ exactly as before (prompts, validators, cues and frames unchanged). New projects
 | SFX (`sound/cue-director.ts`) | gesture budget × 0.85 (calm) … 1.2 (peak), tense stretches win the spreading, emphasis (riser + hit) moves up a priority at tension ≥ 0.65; window/gap limits unchanged and the film stays under 92 % of the mix QA's 24 sound moments per minute |
 | Render manifest | per shot `ambient.tension` (mean over the shot, or its pin) and `ambient.scale = 0.6 + 0.8·tension` (ambient variation budget); needs ambient variation on |
 | Ambient variation (`kit/variation`) | above tension 0.5 a growing share of the tone families takes its closest darker member (by palette luma, `engine/ambient.ts` `darkerTones`): darker backgrounds, still in the palette (vibe guard) |
+| Mood grade (`engine/mood.ts`) | host pass on the finished frame (after a reveal flash, before live co-direction), only where the tension reaches the scene: tension ≥ 0.6 steps colours at or above the palette's median luma to their closest darker tone-family member (else the nearest darker swatch) through the 4x4 ordered dither, share `min(0.75, 1.5·(v − 0.5))`; tension ≤ 0.4 lifts colours below the median by `min(0.2, 0.5·(0.5 − v))`; 0.4–0.6 untouched. Text, dim text and outline colours are never graded; transitions blend the two shots' grades. Lit content (rooms, surfaces) now darkens too |
 | Scenes | `ctx.ambient.tension` (undefined without a map; treat as 0.5): raise particle/effect density and motion energy with it (`reelforge kit-docs ambient`) |
 
 The preview reloads when `tension.json` changes; the export cache key covers the per-shot
@@ -80,10 +81,10 @@ panel lists them as "out of date (tension)". No pipeline step is marked stale.
 ## Tests
 
 `packages/shared/src/tension.test.ts`, `packages/kit/src/variation/tension.test.ts`,
-`packages/engine/src/ambient-tension.test.ts`, `packages/prompts/src/validators/tension.test.ts`,
+`packages/engine/src/ambient-tension.test.ts`, `packages/engine/src/mood.test.ts`, `packages/prompts/src/validators/tension.test.ts`,
 `packages/stages/src/tension-stage.test.ts` (fake-claude),
 `packages/stages/src/sound/tension-sound.test.ts`, `apps/desktop/src/main/tension-service.test.ts`,
 `apps/desktop/src/renderer/tension/tension-view.test.ts`, render
-`packages/kit/test/render/kit-tension.test.ts` (calm vs tense mean luma, neutral = no map), e2e
+`packages/kit/test/render/kit-tension.test.ts` (calm vs tense mean luma incl. a lit room, neutral = no map; contact sheet `packages/kit/out/contact/tension.png`), e2e
 `apps/desktop/test/tension.smoke.test.ts`. No harm: the prompt fixtures
 (`packages/prompts/src/fixtures/*-voxel-only.txt`) and the sound no-harm snapshot are unchanged.

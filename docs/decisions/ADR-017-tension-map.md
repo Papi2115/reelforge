@@ -43,6 +43,11 @@ and later the beat sync (12.21), pattern interrupts (12.25) and reveal moments (
   member (palette luma decides, computed in the engine); variation stays in the style budget
   (`scale` 0.6–1.4 by tension), so the vibe guard holds. Tension 0.5 is neutral: scale 1 and no
   darkening = the same frame as without a map.
+  Addendum (after the v2.3 real run): lit content (rooms, the Moon's surface) outweighed the
+  darker background tones, so the engine adds a host mood grade (`engine/mood.ts`): an
+  ordered-dither palette step of the upper-luma colours toward their darker family members at
+  tension ≥ 0.6 and a small lift of the lower-luma colours at ≤ 0.4; text/outline colours are
+  protected, 0.4–0.6 is untouched, so neutral and pinned shots still render bit for bit as before.
 - **Locks.** A locked shot keeps its tension as a pin (neutral 0.5 when there was no curve), so
   its frame never changes with the curve. Unlocked shots that change are reported in the panel
   ("out of date (tension)") instead of marking pipeline steps stale (that would block Scenes

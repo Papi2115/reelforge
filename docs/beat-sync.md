@@ -58,12 +58,20 @@ every anchor stays in its shot and on its word.
   whole so their peak (the event time the rule's lead is measured from) lands on the nearest beat
   or accent within ±120 ms; budget, density rules and palettes are unchanged. Transition sounds
   follow their cut (which is already on the grid).
+- The whooshes of the final cue list (scene `sfx.at` accents, Claude's cues; `snapWhooshCues`)
+  move so their peak lands on the nearest beat or accent within **±200 ms**
+  (`MAX_WHOOSH_SNAP_S`), wider than the report's ±120 ms window, so snapping can bring a whoosh
+  that sits 120–200 ms off into it. A cue matched to a scene anchor (within 0.5 s) never ends up
+  more than ±150 ms from that anchor, a whoosh that runs into a cut follows the cut, and a move
+  never runs a sweep into a cut. A snapped file that fails the cue validation is put back.
 
 ## Report: `.reelforge/beat-sync-report.json`
 
 `cuts` (total, on the grid within ±1 frame, fraction), `nudges` (moved, locked, kept, mean / max
 ms, reverted), `whooshes` (whoosh / swoosh / whoosh-impact cues whose peak — the cut they lead into,
-else start + 0.25 s — is within ±120 ms of a beat or accent), `cues.snapped`, `ok` = >= 90 % of
+else start + 0.25 s — is within ±120 ms of a beat or accent after the snapping; a whoosh a scene
+starts on a spoken word, within one frame of a scene anchor, counts too when that word is an
+accent: it marks the accent, `onAccentWords`), `cues.snapped`, `ok` = >= 90 % of
 the cuts (and of the whooshes) on the grid. Shown in Scenes built → Editing: "Beat sync ✓ 94 % of
 cuts on the beat (±1 frame) · whooshes 100 % · 12 cuts moved (≤ 96 ms)".
 

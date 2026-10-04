@@ -186,6 +186,52 @@ const SETUPS = {
       };
     },
   },
+  // Inverse-video marks through a green tube: the marked glyphs stay dark (no glow halo).
+  crtMark: {
+    build(kit) {
+      const desktop = kit.env.retroDesktop({ wallpaper: 'plain', icons: [] });
+      const terminal = kit.props.retroTerminal({
+        frame: 'none',
+        prompt: '>',
+        header: ['AGC  PROG 00'],
+        lines: [
+          { text: 'VERB 16', input: true, at: 0.3 },
+          ' WHAT TO DO',
+          { text: 'NOUN 68', input: true },
+        ],
+        size: [120, 68],
+        marks: [
+          { text: 'VERB', at: 1.4 },
+          { text: 'NOUN', at: 2.6 },
+        ],
+      });
+      const crt = kit.props.retroCrt({
+        size: [120, 68],
+        casing: 'none',
+        tint: 'green',
+        flicker: 0,
+      });
+      crt.show(terminal);
+      crt.position.set(0, 0, 0.02);
+      return { objects: [desktop, terminal, crt], hero: crt, look: [0, 0], px: 2.6 };
+    },
+  },
+  // A memo heading longer than the page: it drops to scale 1 and is cut, never off the paper.
+  memo: {
+    build(kit) {
+      const desktop = kit.env.retroDesktop({ wallpaper: 'checker', icons: [], accent: 'green' });
+      const memo = kit.props.retroDocument({
+        variant: 'memo',
+        title: 'MISSION RULES AND ALARM CODES',
+        headline: 'PROGRAM ALARMS',
+        fields: [{ label: 'FROM', value: 'J. GARMAN' }],
+        body: '1201 EXEC OVERFLOW - GO\n1202 EXEC OVERFLOW - GO',
+        marks: [{ text: '1202 EXEC OVERFLOW - GO', at: 1.2 }],
+      });
+      memo.position.set(0, 0, 0.02);
+      return { objects: [desktop, memo], hero: memo, look: [0, 0], px: 1.5 };
+    },
+  },
 };
 
 export function build(ctx) {
@@ -211,7 +257,7 @@ export function update(t, state, ctx) {
     return;
   }
   const [x, y] = state.look;
-  const pose = frontal(ctx, state.hero, x, y);
+  const pose = frontal(ctx, state.hero, x, y, state.px);
   if (state.pan) {
     const [y0, y1] = state.pan;
     ctx.camera.dolly({

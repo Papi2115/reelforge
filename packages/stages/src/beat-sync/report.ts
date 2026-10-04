@@ -1,7 +1,7 @@
 /**
  * The beat-sync report (PLAN.md#12.21, pure): the share of cuts within one frame of a beat or an
- * accented word, the whooshes whose peak lands within the cue window of one, and what the last
- * snapping did. `ok` = at least 90 % of the cuts on the grid (and of the whooshes, when any).
+ * accented word, the whooshes whose peak lands within the cue window of one (or that a scene pins
+ * to an accented spoken word), and what the last snapping did. `ok` = at least 90 % of the cuts on the grid (and of the whooshes, when any).
  */
 import {
   BEAT_SYNC_REPORT_VERSION,
@@ -33,21 +33,42 @@ export function cutStats(
   return { total: cuts.length, onGrid, fraction: share(onGrid, cuts.length) };
 }
 
+/**
+ * A whoosh a scene starts on a spoken word (`sfx.at(ctx.anchor('word').t, …)`, within one frame
+ * of a scene anchor) that is an accented word: it marks the accent, so it counts as on the grid.
+ */
+function pinnedToAccent(cue: SfxCueLike, grid: GridTimes, anchors: readonly number[]): boolean {
+  return (
+    anchors.some((anchor) => Math.abs(anchor - cue.t) <= GRID_FRAME_S) &&
+    grid.isAccent(cue.t, GRID_FRAME_S)
+  );
+}
+
+/**
+ * Whooshes on the grid: peak within ±120 ms of a beat or accent (after the ±200 ms snapping), or
+ * pinned by a scene to an accented word (`anchors`: the scene anchors' times).
+ */
 export function whooshStats(
   cues: readonly SfxCueLike[],
   shots: readonly Pick<StoryboardShot, 't0'>[],
   grid: GridTimes,
+  anchors: readonly number[] = [],
 ): NonNullable<BeatSyncReport['whooshes']> {
   const cuts = shots.slice(1).map((shot) => shot.t0);
   const whooshes = cues.filter(isWhoosh);
-  const inWindow = whooshes.filter(
-    (cue) => grid.nearest(whooshPeak(cue.t, cuts).peak, MAX_CUE_SNAP_S) !== undefined,
-  ).length;
+  let onAccentWords = 0;
+  const inWindow = whooshes.filter((cue) => {
+    if (grid.nearest(whooshPeak(cue.t, cuts).peak, MAX_CUE_SNAP_S) !== undefined) return true;
+    if (!pinnedToAccent(cue, grid, anchors)) return false;
+    onAccentWords += 1;
+    return true;
+  }).length;
   return {
     total: whooshes.length,
     inWindow,
     fraction: share(inWindow, whooshes.length),
     windowS: MAX_CUE_SNAP_S,
+    ...(onAccentWords === 0 ? {} : { onAccentWords }),
   };
 }
 

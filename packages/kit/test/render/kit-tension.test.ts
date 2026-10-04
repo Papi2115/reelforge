@@ -3,8 +3,12 @@
  * examples/k07_ambient.js with ambient variation on: the same 6 shots under a calm and a tense
  * curve (per-shot `tension` + budget `scale` from the shared manifest helpers) render measurably
  * darker backgrounds when tense, stay in the style palette (vibe guard), and neutral tension
- * renders exactly the frames of a film without a tension map.
+ * renders exactly the frames of a film without a tension map. The lit `room` setup covers the
+ * host mood grade (engine `mood.ts`): lit content no longer outweighs the darker tones.
+ * Contact sheet (calm row, tense row per setup): packages/kit/out/contact/tension.png.
  */
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import {
   ambientShotInputs,
   withShotTension,
@@ -13,11 +17,14 @@ import {
 } from '../../../shared/src/index.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  encodePng,
   launchHarnessBrowser,
   type HarnessBrowser,
   type HarnessPage,
+  type RgbaImage,
 } from '../../../engine/src/cli/index.js';
-import { sceneSource } from '../support/scenes.js';
+import { composeSheet } from '../support/contact-sheet.js';
+import { KIT_OUT_DIR, sceneSource } from '../support/scenes.js';
 import { expectVibe } from '../support/vibe.js';
 
 const FILE = 'examples/k07_ambient.js';
@@ -27,6 +34,9 @@ const COUNT = 6;
 /** Storyboard positions 30..35 of a longer film (as in kit-ambient.test.ts). */
 const FIRST_INDEX = 30;
 const ON = { enabled: true, seed: 2115 } as const;
+/** Setup -> least mean-luma gap (calm - tense); the lit room is the mood grade's case. */
+const MIN_GAP: Readonly<Record<string, number>> = { grid: 0.03, city: 0.015, room: 0.02 };
+const SHEET_SHOTS = 3;
 
 function curve(v: number): TensionFile {
   return {
@@ -112,21 +122,28 @@ const average = (values: readonly number[]): number =>
   values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
 
 describe('tension map (SwiftShader)', () => {
-  it('a tense curve renders darker backgrounds than a calm one, inside the palette', async () => {
+  it('a tense curve renders darker frames than a calm one, inside the palette', async () => {
+    const tiles: RgbaImage[] = [];
     await withPage(async (page) => {
-      for (const setup of ['grid', 'city']) {
+      for (const [setup, gap] of Object.entries(MIN_GAP)) {
         const calm = await frames(page, film(setup, curve(0.15)));
         const tense = await frames(page, film(setup, curve(0.95)));
         tense.forEach((data, k) => {
           expectVibe({ width: 640, height: 360, data }, `${setup} tense shot ${String(k)}`);
         });
+        for (const data of [...calm.slice(0, SHEET_SHOTS), ...tense.slice(0, SHEET_SHOTS)]) {
+          tiles.push({ width: 640, height: 360, data });
+        }
         const calmLuma = average(calm.map(meanLuma));
         const tenseLuma = average(tense.map(meanLuma));
         const measured = `${setup}: calm ${calmLuma.toFixed(4)}, tense ${tenseLuma.toFixed(4)}`;
-        expect(tenseLuma, measured).toBeLessThan(calmLuma - 0.005);
+        expect(tenseLuma, measured).toBeLessThan(calmLuma - gap);
       }
       expect(page.errors).toEqual([]);
     });
+    const file = path.join(KIT_OUT_DIR, 'contact', 'tension.png');
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, encodePng(composeSheet(tiles, SHEET_SHOTS)));
   });
 
   it('neutral tension renders exactly the frames of a film without a tension map', async () => {

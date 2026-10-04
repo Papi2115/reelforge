@@ -2,7 +2,8 @@
  * Storyboard (PLAN.md#7.3): Claude (storyboard prompt; script, words, style bible, kit catalog via
  * `reelforge kit-docs`) writes `storyboard.json`; it is validated (schema, contiguous shots from 0,
  * boundaries on word starts, no treatment more than twice in a row, scene paths; in `mixed` look
- * mode rolls, looks and their rhythm, ADR-009) with one repair turn. In `mixed` mode non-cut
+ * mode rolls, looks and their rhythm, ADR-009) with one repair turn; errors that are only the
+ * annotation count rules are trimmed in code instead (annotation-trim.ts). In `mixed` mode non-cut
  * transitions without a transition-kit style get one picked for their look pair (PLAN.md#12.15,
  * written back to storyboard.json). Then stub scene modules are created for new shots and
  * `missingProps` is collected. With the tension map on (PLAN.md#12.22) the curve is read (or
@@ -15,6 +16,7 @@ import {
   validateStoryboard,
   type InterruptCheckOptions,
   type StoryboardOutput,
+  type ValidationIssue,
 } from '@reelforge/prompts';
 import {
   assignTransitionStyles,
@@ -46,6 +48,13 @@ import {
 } from '../types.js';
 import { checkWithRepair, errorLines, render, warningLines, type OutputCheck } from './repair.js';
 import { writeSceneStubs } from './scene-stub.js';
+import {
+  onlyAnnotationCountErrors,
+  softenAnnotationCounts,
+  trimAnnotations,
+  trimWarning,
+} from './annotation-trim.js';
+import { readLockedShots } from '../locks.js';
 import { beatSyncCheckOptions, storyboardBeatSync } from '../beat-sync/storyboard-step.js';
 import { currentAssetIds, storyboardAssetVars } from './storyboard-assets.js';
 import { storyboardSourceChipVars } from '../claims/source-chips.js';
@@ -54,18 +63,35 @@ import { storyboardSourceChipVars } from '../claims/source-chips.js';
 export const ECONOMY_STORYBOARD_HINT =
   '\n\nEconomy mode: keep the storyboard lean — prefer fewer, longer shots (5–8 s) and simple treatments the kit already covers.';
 
-async function checkStoryboard(
+type FileCheck = OutputCheck<StoryboardOutput> & { readonly issues: readonly ValidationIssue[] };
+
+function fileCheck(
+  value: StoryboardOutput | undefined,
+  issues: readonly ValidationIssue[],
+  notes: readonly string[] = [],
+): FileCheck {
+  return {
+    value,
+    issues,
+    problems: errorLines(issues),
+    warnings: [...notes, ...warningLines(issues)],
+  };
+}
+
+async function validateFile(
   ctx: StageContext,
   words: WordsFile,
   lookMode: LookMode,
   research: boolean,
   tension: TensionFile | undefined,
   interrupts?: InterruptCheckOptions,
-): Promise<OutputCheck<StoryboardOutput>> {
+): Promise<FileCheck> {
   const text = await readProjectText(ctx.projectDir, FILES.storyboard);
-  if (!text.ok) return { value: undefined, problems: [text.error.message], warnings: [] };
+  if (!text.ok)
+    return { value: undefined, issues: [], problems: [text.error.message], warnings: [] };
   if (text.value === undefined) {
-    return { value: undefined, problems: [`${FILES.storyboard} was not written`], warnings: [] };
+    const problems = [`${FILES.storyboard} was not written`];
+    return { value: undefined, issues: [], problems, warnings: [] };
   }
   const report = validateStoryboard(text.value, {
     words,
@@ -76,11 +102,43 @@ async function checkStoryboard(
     ...beatSyncCheckOptions(ctx.snapshot.project),
     ...(interrupts === undefined ? {} : { interrupts }),
   });
-  return {
-    value: report.value,
-    problems: errorLines(report.issues),
-    warnings: warningLines(report.issues),
-  };
+  return fileCheck(report.value, report.issues);
+}
+
+/**
+ * Validates storyboard.json; when the only errors are annotation count rules the weakest unlocked
+ * marks are trimmed (written back, validated again) and what a lock keeps becomes a warning, so
+ * neither a repair turn nor the stage is spent on them (annotation-trim.ts).
+ */
+async function checkStoryboard(
+  ctx: StageContext,
+  words: WordsFile,
+  lookMode: LookMode,
+  research: boolean,
+  tension: TensionFile | undefined,
+  interrupts?: InterruptCheckOptions,
+): Promise<OutputCheck<StoryboardOutput>> {
+  const validate = (): Promise<FileCheck> =>
+    validateFile(ctx, words, lookMode, research, tension, interrupts);
+  const first = await validate();
+  if (first.value === undefined || !onlyAnnotationCountErrors(first.issues)) return first;
+  const locked = await readLockedShots(ctx.projectDir);
+  if (!locked.ok) return first;
+  const trimmed = trimAnnotations(first.value, words, locked.value);
+  if (trimmed.removed.length === 0) {
+    return fileCheck(first.value, softenAnnotationCounts(first.issues));
+  }
+  const written = await writeProjectJson(
+    ctx.projectDir,
+    FILES.storyboard,
+    storyboardOutputSchema,
+    trimmed.storyboard,
+  );
+  if (!written.ok) return { value: undefined, problems: [written.error.message], warnings: [] };
+  const second = await validate();
+  return fileCheck(second.value, softenAnnotationCounts(second.issues), [
+    trimWarning(trimmed.removed),
+  ]);
 }
 
 function withAssetIds(ids: string[] | undefined): { assetIds?: string[] } {

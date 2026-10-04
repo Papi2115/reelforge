@@ -8,6 +8,7 @@
  */
 import {
   approveProposalItems,
+  cleanAuthor,
   creditsMarkdown,
   describeUnknown,
   listProposals,
@@ -60,7 +61,7 @@ export function assetView(record: AssetRecord, inLibrary = false): AssetView {
     id: record.id,
     kind: record.kind,
     title: sanitizeText(record.title, TEXT_LIMITS.title) || record.id,
-    author: sanitizeText(record.author, TEXT_LIMITS.author) || 'unknown',
+    author: cleanAuthor(record.author, 'unknown'),
     source: record.source,
     sourceUrl: sanitizeUrl(record.sourceUrl),
     licence: licenceView(record.licence),
@@ -93,7 +94,7 @@ export function proposalView(proposal: AssetProposal): ProposalView {
       key: candidateKey(candidate),
       kind: candidate.kind,
       title: sanitizeText(candidate.title, TEXT_LIMITS.title) || candidate.id,
-      author: sanitizeText(candidate.author, TEXT_LIMITS.author) || 'unknown',
+      author: cleanAuthor(candidate.author, 'unknown'),
       source: candidate.source,
       sourceUrl: sanitizeUrl(candidate.sourceUrl),
       licence: licenceView(candidate.licence),

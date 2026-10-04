@@ -275,10 +275,14 @@ async function run(
   const { sfx, ambience, music, moods } = produced.cues;
   const grid = prepared.value.design.beats;
   if (grid !== undefined) {
-    const synced = await reportSoundSync(ctx.projectDir, grid, prepared.value.shots, sfx, {
-      director: design.snappedCues,
-      whooshes: whooshes.value.snapped,
-    });
+    const synced = await reportSoundSync(
+      ctx.projectDir,
+      grid,
+      prepared.value.shots,
+      sfx,
+      { director: design.snappedCues, whooshes: whooshes.value.snapped },
+      design.sceneAnchors,
+    );
     if (!synced.ok) return synced;
   }
   // Repetition control (PLAN.md#12.23): the fresh cues analysed with the rest of the film.

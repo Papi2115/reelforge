@@ -1,6 +1,8 @@
 /**
  * Host side of the engine sandbox: creates the `sandbox="allow-scripts"` iframe that runs the
- * engine and exposes the harness contract over postMessage (ADR-004).
+ * engine and exposes the harness contract over postMessage (ADR-004). With `timeouts` every call
+ * is bounded (a lost reply rejects with HarnessTimeoutError instead of blocking every later call)
+ * and `restart()` replaces the frame (the preview's watchdog, PreviewController).
  */
 import {
   renderManifestSchema,
@@ -36,6 +38,35 @@ export interface SandboxedHarnessOptions {
    * `load()` rejects with a `scene-lint` error when any scene has error-level diagnostics.
    */
   readonly lintScenes?: boolean;
+  /** Bounded calls (ms); absent = wait for every reply (the render host has its own limits). */
+  readonly timeouts?: HarnessTimeouts;
+}
+
+export interface HarnessTimeouts {
+  /** `load` and `reloadShot` (scene builds). */
+  readonly loadMs: number;
+  /** Every other call (seek, cards, pick, direct). */
+  readonly callMs: number;
+}
+
+/** A call the engine frame did not answer in time (the frame may be stuck: restart it). */
+export class HarnessTimeoutError extends EngineError {
+  constructor(
+    readonly method: string,
+    readonly limitMs: number,
+  ) {
+    super('protocol', `the engine frame did not answer ${method}() within ${String(limitMs)} ms`);
+    this.name = 'HarnessTimeoutError';
+  }
+}
+
+/** The sandboxed harness of the host page: the contract plus a frame restart. */
+export interface SandboxedHarness extends ReelforgeHarness {
+  /**
+   * Replaces the engine frame with a fresh one: calls in flight reject, nothing is loaded
+   * (`load()` again). For a frame that stopped answering.
+   */
+  restart(): void;
 }
 
 /** Throws a `scene-lint` EngineError when a (schema-valid) manifest has scenes that fail the lint. */
@@ -63,23 +94,43 @@ function assertNoLintErrors(results: readonly SceneLintResult[]): void {
 
 interface Pending {
   resolve(response: RpcResponse): void;
+  reject(error: Error): void;
 }
 
-export function createSandboxedHarness(options: SandboxedHarnessOptions): ReelforgeHarness {
+type HarnessRequest =
+  | { method: 'load'; manifest: RenderManifest }
+  | { method: 'seek'; t: number }
+  | { method: 'cards'; shotId: string }
+  | { method: 'reloadShot'; shotId: string; scene: SceneSource }
+  | { method: 'pick'; x: number; y: number; t: number }
+  | { method: 'direct'; shotId: string; direction: ShotDirection | null };
+
+function createFrame(frameUrl: string): HTMLIFrameElement {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('sandbox', 'allow-scripts');
   iframe.setAttribute('aria-hidden', 'true');
   iframe.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
-  iframe.src = options.frameUrl;
+  iframe.src = frameUrl;
+  return iframe;
+}
 
+function limitOf(method: HarnessRequest['method'], timeouts: HarnessTimeouts | undefined) {
+  if (timeouts === undefined) return undefined;
+  return method === 'load' || method === 'reloadShot' ? timeouts.loadMs : timeouts.callMs;
+}
+
+export function createSandboxedHarness(options: SandboxedHarnessOptions): SandboxedHarness {
+  let iframe = createFrame(options.frameUrl);
   const pending = new Map<number, Pending>();
   let nextId = 1;
   let duration = 0;
   let lastFrame: Uint8Array<ArrayBuffer> | undefined;
   let markReady: () => void = () => undefined;
-  const ready = new Promise<void>((resolve) => {
-    markReady = resolve;
-  });
+  const newReady = (): Promise<void> =>
+    new Promise<void>((resolve) => {
+      markReady = resolve;
+    });
+  let ready = newReady();
 
   window.addEventListener('message', (event) => {
     if (event.source !== iframe.contentWindow) return;
@@ -95,24 +146,63 @@ export function createSandboxedHarness(options: SandboxedHarnessOptions): Reelfo
   });
   options.container.appendChild(iframe);
 
-  async function call(
-    request:
-      | { method: 'load'; manifest: RenderManifest }
-      | { method: 'seek'; t: number }
-      | { method: 'cards'; shotId: string }
-      | { method: 'reloadShot'; shotId: string; scene: SceneSource }
-      | { method: 'pick'; x: number; y: number; t: number }
-      | { method: 'direct'; shotId: string; direction: ShotDirection | null },
+  function restart(): void {
+    const gone = new EngineError('protocol', 'the engine frame was restarted');
+    for (const entry of pending.values()) entry.reject(gone);
+    pending.clear();
+    duration = 0;
+    lastFrame = undefined;
+    ready = newReady();
+    iframe.remove();
+    iframe = createFrame(options.frameUrl);
+    options.container.appendChild(iframe);
+  }
+
+  /** Sends one request once the frame is ready; `onSent` gets its id. */
+  async function exchange(
+    request: HarnessRequest,
+    onSent: (id: number) => void,
   ): Promise<RpcResponse> {
     await ready;
     const target = iframe.contentWindow;
     if (!target) throw new EngineError('protocol', 'engine frame is gone');
     const id = nextId;
     nextId += 1;
-    const response = new Promise<RpcResponse>((resolve) => pending.set(id, { resolve }));
+    const response = new Promise<RpcResponse>((resolve, reject) =>
+      pending.set(id, { resolve, reject }),
+    );
+    onSent(id);
     // The frame has an opaque origin, so '*' is the only usable target origin.
     target.postMessage({ channel: RPC_CHANNEL, id, ...request }, '*');
-    const result = await response;
+    return response;
+  }
+
+  async function bounded(request: HarnessRequest): Promise<RpcResponse> {
+    const limit = limitOf(request.method, options.timeouts);
+    if (limit === undefined) return exchange(request, () => undefined);
+    let sent: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        // A late reply to this id is dropped.
+        if (sent !== undefined) pending.delete(sent);
+        reject(new HarnessTimeoutError(request.method, limit));
+      }, limit);
+    });
+    try {
+      return await Promise.race([
+        exchange(request, (id) => {
+          sent = id;
+        }),
+        timeout,
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function call(request: HarnessRequest): Promise<RpcResponse> {
+    const result = await bounded(request);
     if (!result.ok) {
       const { code, message, shotId } = result.error;
       throw new EngineError(code, message, shotId === undefined ? {} : { shotId });
@@ -121,6 +211,7 @@ export function createSandboxedHarness(options: SandboxedHarnessOptions): Reelfo
   }
 
   return {
+    restart,
     async load(manifest) {
       duration = 0;
       lastFrame = undefined;

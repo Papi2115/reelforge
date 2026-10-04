@@ -91,10 +91,18 @@ export function insideWord(words: readonly DirectorWord[], t: number): boolean {
 /** Sorted, unique grid times (beats and accented word starts) with a nearest-time lookup. */
 export class GridTimes {
   readonly times: readonly number[];
+  /** Start times of the accented words (sorted). */
+  readonly accents: readonly number[];
 
   constructor(file: Pick<BeatsFile, 'beats' | 'accents'>) {
     const all = [...file.beats, ...file.accents.map((accent) => accent.t)].sort((a, b) => a - b);
     this.times = all.filter((t, index) => index === 0 || t - (all[index - 1] ?? 0) > EPSILON);
+    this.accents = file.accents.map((accent) => accent.t).sort((a, b) => a - b);
+  }
+
+  /** True when an accented word starts within `within` of `t`. */
+  isAccent(t: number, within: number): boolean {
+    return this.accents.some((accent) => Math.abs(accent - t) <= within + EPSILON);
   }
 
   /** The grid time nearest to `t` within `within` (earlier wins a tie), else undefined. */

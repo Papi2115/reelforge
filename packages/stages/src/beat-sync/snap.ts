@@ -7,7 +7,8 @@
  * - `snapGestures` moves the sound director's hits / risers / emphasis (whole gestures, so a riser
  *   still ends on its hit) so their peak — the event time the cue's lead is measured from — lands
  *   on the nearest beat or accent within ±120 ms. Transition sounds follow the cuts instead.
- * - `snapWhooshCues` does the same for the whooshes of the final cue list (scene accents, Claude).
+ * - `snapWhooshCues` does the same for the whooshes of the final cue list (scene accents, Claude)
+ *   within ±200 ms, as long as a cue matched to a scene anchor stays within ±150 ms of it.
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import type { CueEventKind } from '../sound/cue-rules.js';
@@ -16,8 +17,13 @@ import { cutRegion, GridTimes, insideWord, MAX_CUT_NUDGE_S } from './grid.js';
 
 /** One video frame at 30 fps: "on the grid" for a cut. */
 export const GRID_FRAME_S = 1 / 30;
-/** Hits and risers move at most this far (s). */
+/** Hits and risers move at most this far (s); also the report's window for whooshes. */
 export const MAX_CUE_SNAP_S = 0.12;
+/**
+ * Whooshes of the final cue list move at most this far (s): wider than the report's window, so
+ * snapping can bring a whoosh 120-200 ms off the grid into it (the anchor tolerance still holds).
+ */
+export const MAX_WHOOSH_SNAP_S = 0.2;
 /** A shot never gets shorter than this by snapping (the storyboard's hard minimum). */
 const MIN_SHOT_S = 1;
 const EPSILON = 1e-6;
@@ -191,7 +197,7 @@ export interface WhooshSnapResult<C extends CueLike> {
 /**
  * The whooshes of a cue list that the director's gesture snapping never sees (scene `sfx.at`
  * accents, Claude's cues): each moves so its peak lands on the nearest beat or accent within
- * ±120 ms. A whoosh peaking on a cut follows the cut (the cuts are snapped), and a cue matched to
+ * ±200 ms. A whoosh peaking on a cut follows the cut (the cuts are snapped), and a cue matched to
  * a scene anchor never ends up more than ±150 ms from it. Order and every other cue unchanged.
  */
 export function snapWhooshCues<C extends CueLike>(
@@ -199,7 +205,7 @@ export function snapWhooshCues<C extends CueLike>(
   grid: GridTimes,
   cuts: readonly number[],
   anchors: readonly number[],
-  maxS = MAX_CUE_SNAP_S,
+  maxS = MAX_WHOOSH_SNAP_S,
 ): WhooshSnapResult<C> {
   let snapped = 0;
   const out = cues.map((cue): C => {

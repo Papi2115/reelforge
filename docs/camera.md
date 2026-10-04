@@ -50,6 +50,22 @@ Frames without any move are untouched (byte-identical to before 12.28).
 | `orbit` (with `t0`) | `degrees`, `t0`, `t1`, `axis?` = `'y'`, `radius?`, `target?`, `ease?` | Turns the pose's position and orientation around the pivot: `'y'` turntable, `'x'` arc over the subject (positive rises), or a world axis. With `radius` the camera first moves to that distance. The old rig `orbit({ radius, degrees: [a, b] })(t)` is unchanged. |
 | `parallax` | `amount`, `t0`, `t1`, `layers?`, `ease?` | Camera travels `amount` units along its right axis (negative = left). A layer member moves with the camera by `(1 − ratio)·travel`, so it shows `ratio` × its natural parallax: 0 pinned to the frame (far sky), 1 natural, 2 a foreground racing past. Layers: `{ kit: 'floatingCubes' \| 'env' \| 'prop' \| 'fx' \| <kit name> }`, `{ objects: [...] }` or `{ near?, far? }` (top-level scene objects whose origin lies at that distance); objects with lights inside (`kit.env.lights`, `kit.fx.flicker`, diorama sets) are never moved. First matching layer wins. |
 
+## Moves as pattern interrupts
+
+A `scale-shift` / `perspective-shift` interrupt (PLAN.md#12.25) is realised with these moves, and
+it must keep the subject readable (real run v2.3: a dolly zoom ending in an unreadable close-up,
+an orbit over unlabelled floating cubes). Rules, in the interrupt directive of the scene-build
+prompt (v10), the project template's `CLAUDE.md` and checked statically by the scene QA
+(`packages/stages/src/scenes/source-checks-camera.ts`, warnings, no fix turn):
+
+- one subject framed whole and named on screen (`ctx.annotate.callout/pin/label` with text, or a
+  `ctx.text` card; a badge's number alone does not count);
+- dolly zoom: literal `from`/`to` within 2x (`MAX_DOLLY_ZOOM_RATIO`), e.g. 6 → 3.5;
+- orbit (the move form with `t0`): at most 45° (`MAX_INTERRUPT_ORBIT_DEGREES`);
+- rack focus / orbit move between labelled objects.
+
+Computed distances and angles are not judged; shots without an interrupt are not checked.
+
 ## Dither bokeh
 
 The post pass has a second program, compiled on the first frame that has a focus; frames without
