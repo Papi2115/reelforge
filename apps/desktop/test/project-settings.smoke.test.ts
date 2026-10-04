@@ -125,7 +125,7 @@ describe('project settings', () => {
     const looks = dialog.getByRole('list', { name: 'Available looks' });
     await looks.getByText('Voxel 3D', { exact: true }).waitFor();
     expect(await looks.getByRole('listitem').count()).toBeGreaterThanOrEqual(2);
-    await dialog.getByText('Applies to the next Storyboard and Scenes build.').waitFor();
+    await dialog.getByText('Applies to the next Storyboard and Scenes build.').first().waitFor();
     // Research (2.1): no researchMode in the fixture = Off. Reserved sections are not rendered.
     await dialog.getByRole('region', { name: 'Research' }).waitFor();
     expect(await research(dialog, /^Off/).isChecked()).toBe(true);
