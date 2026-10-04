@@ -32,8 +32,11 @@ export const KEYED_SOURCES = ['pexels', 'pixabay'] as const;
 export const ASSET_SOURCES = [...ALLOWLIST_SOURCES, ...KEYED_SOURCES] as const;
 export const assetSourceIdSchema = z.enum(ASSET_SOURCES);
 export type AssetSourceId = z.infer<typeof assetSourceIdSchema>;
-/** `web` = a direct URL fetched in full-auto mode (no catalogue behind it). */
-export const assetOriginSchema = z.union([assetSourceIdSchema, z.literal('web')]);
+/**
+ * `web` = a direct URL fetched in full-auto mode (no catalogue behind it); `own` = a file the user
+ * imported into the project (PLAN.md#12.12: no network, the user's own licence).
+ */
+export const assetOriginSchema = z.union([assetSourceIdSchema, z.literal('web'), z.literal('own')]);
 export type AssetOrigin = z.infer<typeof assetOriginSchema>;
 
 export const assetKindSchema = z.enum(['image', 'video']);
@@ -59,6 +62,9 @@ export const assetLicenceSchema = z.object({
   verified: z.boolean(),
 });
 export type AssetLicence = z.infer<typeof assetLicenceSchema>;
+
+/** The licence of the user's own files (PLAN.md#12.12): theirs, never flagged, never credited. */
+export const OWN_LICENCE: AssetLicence = { id: 'own', url: null, verified: true };
 
 /** A search result of a source (all text already sanitised: it comes from the internet). */
 export const assetCandidateSchema = z.object({
@@ -102,10 +108,14 @@ export const assetRecordSchema = z.object({
   height: z.int().positive().nullable(),
   /** Research mode the asset was fetched under. */
   mode: researchModeSchema,
-  /** The user approved it in the app (ask mode); false for automatic fetches. */
+  /** The user approved it in the app (ask mode) or imported it (own); false for automatic fetches. */
   approved: z.boolean(),
-  /** ISO timestamp. */
+  /** ISO timestamp (of the import for own files and library copies). */
   fetchedAt: z.string(),
+  /** What the picture shows, in the user's words (own files; editable in the app). */
+  description: z.string().max(500).optional(),
+  /** Copied from the global asset library (PLAN.md#12.19), not downloaded or imported again. */
+  fromLibrary: z.boolean().optional(),
 });
 export type AssetRecord = z.infer<typeof assetRecordSchema>;
 

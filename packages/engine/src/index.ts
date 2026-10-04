@@ -7,6 +7,15 @@ export * from './annotations/index.js';
 export * from './camera/easing.js';
 export * from './camera/rigs.js';
 export type * from './contract.js';
+export {
+  blendFrameDirections,
+  createFrameDirector,
+  directedClock,
+  directionWindows,
+  frameDirection,
+  type FrameDirection,
+  type FrameDirector,
+} from './direction.js';
 export * from './errors.js';
 export type { GpuInfo } from './gl/frame-renderer.js';
 export { createSandboxedHarness, type SandboxedHarnessOptions } from './harness/host.js';

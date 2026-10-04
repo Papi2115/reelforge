@@ -90,6 +90,15 @@ await runner.run({ stage: 'scenes', action: 'fix-what-looks-wrong' }); // a "Who
   `Shot s03: picked variant 2 (<direction>)` and optionally locks; `keep-current` / `discard` drop
   the set. Every decision goes to `.reelforge/taste.json`. Locked shots are refused. Details:
   `docs/shot-variants.md`.
+- **Taste learning** (#12.13, `taste/`): an optional `TasteLearner` on the runner (`taste`) gives
+  the storyboard and scene-build prompts the condensed profile (`tasteProfileText`, absent = the
+  prompts are unchanged; never for variant builds) and receives the variant decisions as signals
+  (`variantDecisionSignal`); `shotTasteSignals` builds lock / rebuild signals for the app.
+  Details: `docs/taste.md`.
+- **Hook lab** (#12.16, `hook-lab/`, outside the runner): `generateHooks` (one read-only Sonnet
+  turn, validated, `.reelforge/hooks/<n>.json`), `pickHook` (replaces the script's opening, marks
+  later stages stale, lists locked shots and the re-record warning, returns the commit subject),
+  `discardHooks`, `readHookLabState`. Details: `docs/hook-lab.md`.
 
 ## Runner
 

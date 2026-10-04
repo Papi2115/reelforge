@@ -3,6 +3,8 @@
  * (seconds); its scene module renders it in local time `t - t0`.
  */
 import { z } from 'zod';
+import { assetIdSchema } from './assets.js';
+import { interruptSchema } from './interrupts.js';
 
 export const STORYBOARD_FILE_VERSION = 1;
 
@@ -59,7 +61,9 @@ export const CUT: Transition = { type: 'cut' };
 
 /**
  * On-screen forms an annotation plan can ask for (PLAN.md#11.8): the `ctx.annotate.*` marks plus
- * `caption` (small text / lower third), `big-text` (a big title or 3D text) and `counter`.
+ * `caption` (small text / lower third), `big-text` (a big title or 3D text) and `counter`;
+ * `source-chip` (`ctx.annotate.sourceChip`, PLAN.md#12.18) credits a sourced claim and is not
+ * counted as a mark by the variety rules.
  */
 export const ANNOTATION_PLAN_KINDS = [
   'callout',
@@ -76,6 +80,7 @@ export const ANNOTATION_PLAN_KINDS = [
   'caption',
   'big-text',
   'counter',
+  'source-chip',
 ] as const;
 export type AnnotationPlanKind = (typeof ANNOTATION_PLAN_KINDS)[number];
 
@@ -138,6 +143,9 @@ export const assetNeedSchema = z.object({
 });
 export type AssetNeed = z.infer<typeof assetNeedSchema>;
 
+/** Existing assets one shot may show (PLAN.md#12.12). */
+export const MAX_SHOT_ASSETS = 4;
+
 /** Look a shot is built in when the storyboard names none (ADR-009). */
 export const DEFAULT_LOOK_ID = 'voxel';
 
@@ -165,6 +173,13 @@ export const storyboardShotSchema = z
     look: lookIdSchema.optional(),
     /** Real photos/footage the shot asks for (optional; only when asset research is on). */
     assetNeeds: z.array(assetNeedSchema).optional(),
+    /**
+     * Assets already in `assets.json` (the user's own files, library copies, downloads) the shot
+     * shows, by asset id (PLAN.md#12.12). Optional; the validator checks that the ids exist.
+     */
+    assets: z.array(assetIdSchema).max(MAX_SHOT_ASSETS).optional(),
+    /** A planned pattern interrupt at the shot's start (PLAN.md#12.25; optional, switch on). */
+    interrupt: interruptSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
@@ -187,6 +202,11 @@ export function storyboardAssetNeeds(
   return shots.flatMap((shot) =>
     (shot.assetNeeds ?? []).map((need) => ({ shotId: shot.id, need })),
   );
+}
+
+/** Asset ids the shots assign (`shot.assets`), each once, in shot order. */
+export function storyboardAssetIds(shots: readonly Pick<StoryboardShot, 'assets'>[]): string[] {
+  return [...new Set(shots.flatMap((shot) => shot.assets ?? []))];
 }
 
 export const storyboardFileSchema = z.object({

@@ -77,6 +77,69 @@
         "historia informatyki"
       ]
     },
-    "prop-build": "Zbudowany lunarModule: 1.6 x 1.5 x 1.6 j., złoty stopień z 4 nogami, szara kabina z oknem.\nprop-preview: wszystkie testy ok; od frontu i z 3/4 czytelny jako lądownik."
+    "prop-build": "Zbudowany lunarModule: 1.6 x 1.5 x 1.6 j., złoty stopień z 4 nogami, szara kabina z oknem.\nprop-preview: wszystkie testy ok; od frontu i z 3/4 czytelny jako lądownik.",
+    "tension": "Hook, calm introduction, rising pressure, peak at the restart alarms (0:21), quiet release.",
+    "claims": {
+      "claims": [
+        {
+          "sentence": 1,
+          "text": "Każdy telefon w twojej kieszeni ma więcej mocy obliczeniowej",
+          "kind": "number",
+          "sources": [],
+          "status": "unsourced"
+        },
+        {
+          "sentence": 1,
+          "text": "w 1969 roku wysłały ludzi na Księżyc",
+          "kind": "date",
+          "sources": ["r2"],
+          "status": "sourced"
+        },
+        {
+          "sentence": 2,
+          "text": "Komputer pokładowy Apollo miał zaledwie 4 kilobajty pamięci operacyjnej",
+          "kind": "number",
+          "sources": ["r1"],
+          "status": "sourced"
+        },
+        {
+          "sentence": 2,
+          "text": "taktowanie około jednego megaherca",
+          "kind": "number",
+          "sources": ["r1"],
+          "status": "disputed",
+          "note": "The AGC clock was 2.048 MHz; about 1 MHz is its memory cycle."
+        },
+        {
+          "sentence": 3,
+          "text": "potrafił się zrestartować w trakcie lądowania i dalej działać",
+          "kind": "causal",
+          "sources": ["r2"],
+          "status": "sourced"
+        }
+      ]
+    },
+    "hooks": {
+      "hooks": [
+        {
+          "style": "cold-open",
+          "text": "Lipiec 1969 roku, kilka minut przed lądowaniem na Księżycu. W kabinie zapala się alarm 1202, a komputer pokładowy zaczyna się restartować. Astronauci mają sekundy na decyzję: przerwać misję czy lecieć dalej. Ta maszyna miała mniej pamięci niż najprostszy zegarek, a jednak nie zawiodła. Jak to możliwe, że tak mały komputer sprowadził ludzi na Księżyc?",
+          "firstVisual": "Migający pikselowy alarm 1202 na tle szarej powierzchni Księżyca",
+          "claimsToSource": true
+        },
+        {
+          "style": "question",
+          "text": "Czy telefon, który trzymasz w dłoni, poleciałby na Księżyc? Ma tysiące razy więcej mocy niż komputer misji Apollo, a mimo to mało kto potrafiłby napisać na nim program, który przetrwa awarię w trakcie lądowania. Co właściwie wiedzieli inżynierowie tamtej epoki, czego my dziś często nie dostrzegamy, mając pod ręką prawie nieograniczone zasoby?",
+          "firstVisual": "Telefon unoszący się obok pikselowego modułu księżycowego",
+          "claimsToSource": false
+        },
+        {
+          "style": "shocking-fact",
+          "text": "Komputer, który w 1969 roku pomógł wylądować na Księżycu, miał zaledwie 2048 słów pamięci operacyjnej. To mniej niż jeden mały obrazek w twoim telefonie. Działał z taktowaniem około jednego megaherca, a jednak prowadził statek przez najtrudniejsze minuty misji i potrafił się zrestartować, nie tracąc kontroli nad lądowaniem.",
+          "firstVisual": "Ogromna pikselowa liczba 2048 nad maleńkim modułem pamięci",
+          "claimsToSource": true
+        }
+      ]
+    }
   }
 }

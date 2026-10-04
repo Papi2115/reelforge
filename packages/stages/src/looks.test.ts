@@ -48,7 +48,14 @@ describe('look mode plumbing', () => {
 
   it('lists the available looks for a mixed storyboard', () => {
     const available = listLooks();
-    expect(available.map((look) => look.id)).toEqual(['voxel', 'retro-ui', 'diorama', 'blueprint']);
+    // The 2.0 looks first, in order; the 2.3 looks (each adds itself) after them.
+    expect(available.slice(0, 4).map((look) => look.id)).toEqual([
+      'voxel',
+      'retro-ui',
+      'diorama',
+      'blueprint',
+    ]);
+    expect(available.map((look) => look.id)).toContain('flat-2d');
     expect(storyboardLookVars('mixed')).toEqual({
       looks: available.map(lookLine).join('\n'),
       multiLook: true,
@@ -56,7 +63,7 @@ describe('look mode plumbing', () => {
     });
     expect(storyboardLookOptions('mixed')).toEqual({
       lookMode: 'mixed',
-      looks: ['voxel', 'retro-ui', 'diorama', 'blueprint'],
+      looks: available.map((look) => look.id),
     });
     expect(storyboardLookVars('mixed', [voxelLook])).toEqual({
       looks: lookLine(voxelLook),

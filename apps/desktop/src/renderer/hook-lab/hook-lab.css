@@ -1,0 +1,154 @@
+/* Hook lab (PLAN.md#12.16): the dialog with the current opening and three alternatives. */
+.hook-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(1180px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  padding: 14px 16px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.hook-lab:focus {
+  outline: none;
+}
+
+.hook-lab-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.hook-lab-head .modal-title {
+  margin: 0;
+}
+
+.hook-lab-head .small-button {
+  margin-left: auto;
+}
+
+.hook-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (width < 1000px) {
+  .hook-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.hook-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.hook-card.current {
+  border-style: dashed;
+}
+
+.hook-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hook-card-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.hook-card-head .muted {
+  font-size: 12px;
+}
+
+.hook-text {
+  flex: 1;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.hook-visual,
+.hook-source {
+  margin: 0;
+  font-size: 12px;
+}
+
+.hook-source {
+  color: var(--warn);
+}
+
+.hook-card > button {
+  align-self: flex-start;
+}
+
+.hook-diff {
+  font-size: 12px;
+}
+
+.hook-diff p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.hook-diff ins {
+  color: var(--ok);
+  background: var(--ok-soft);
+  text-decoration: none;
+}
+
+.hook-diff del {
+  color: var(--error);
+}
+
+.hook-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 640px;
+}
+
+.hook-empty p,
+.hook-notice p {
+  margin: 0;
+}
+
+.hook-notice {
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.hook-notice ul,
+.hook-confirm ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.hook-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.hook-confirm h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.hook-lab-entry {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}

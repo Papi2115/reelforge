@@ -342,6 +342,8 @@ export class StageService {
   private async followAssets(pipeline: ProjectPipeline, done: QueuedRun): Promise<void> {
     const stage = done.request.stage;
     if (stage !== 'storyboard' && stage !== 'assets') return;
+    // Proposing the tension curve (PLAN.md#12.22) leaves the storyboard as it was.
+    if (done.request.stage === 'storyboard' && (done.request.action ?? 'build') !== 'build') return;
     const next = assetsFollowUp(stage, await this.snapshot(pipeline.dir));
     if (next === 'queue-assets') {
       pipeline.queue.unshift({ request: { stage: 'assets' }, group: done.group });

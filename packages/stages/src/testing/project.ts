@@ -3,7 +3,7 @@
  * temp dirs (a space and Polish letters in the path), git isolated from the developer's config,
  * and the golden eval-case files of @reelforge/prompts as stage inputs/outputs.
  */
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createProject, history, type GitOptions, type HistoryEntry } from '@reelforge/project';
@@ -25,9 +25,21 @@ export function goldenFile(relative: string): string {
   return readFileSync(path.join(EVAL_CASE_DIR, ...relative.split('/')), 'utf8');
 }
 
+export const TEMPLATE_DIR = path.join(REPO_ROOT, 'templates', 'project');
+
+export interface CreateTestProjectOptions {
+  /**
+   * Tension map of the new project (PLAN.md#12.22). Default `off`: the stage tests written before
+   * 2.2 script their Claude turns without the tension turn; `auto` = the real template.
+   */
+  readonly tensionMap?: 'auto' | 'off';
+}
+
 export class TestProjects {
   readonly root: string;
   readonly git: GitOptions;
+  /** The project template with the tension map off (see CreateTestProjectOptions). */
+  private readonly templateWithoutTension: string;
 
   constructor() {
     this.root = mkdtempSync(path.join(os.tmpdir(), 'rf stages żółw '));
@@ -39,10 +51,29 @@ export class TestProjects {
       GIT_CONFIG_NOSYSTEM: '1',
     };
     this.git = { env };
+    this.templateWithoutTension = path.join(this.root, 'template');
+    mkdirSync(this.templateWithoutTension);
+    cpSync(TEMPLATE_DIR, this.templateWithoutTension, { recursive: true });
+    const projectJson = path.join(this.templateWithoutTension, 'project.json');
+    const template = JSON.parse(readFileSync(projectJson, 'utf8')) as Record<string, unknown>;
+    // Dramaturgy switches (PLAN.md#12.25-12.27) off too: tests opt in by editing project.json.
+    const off = { patternInterrupts: 'off', openLoops: 'off', revealMoments: 'off' };
+    writeFileSync(
+      projectJson,
+      JSON.stringify(
+        { ...template, tensionMap: 'off', beatSync: 'off', repetitionControl: 'off', ...off },
+        null,
+        2,
+      ),
+    );
   }
 
   /** A new project (template + git), language en, with the given golden files copied in. */
-  async create(name: string, golden: readonly string[] = []): Promise<string> {
+  async create(
+    name: string,
+    golden: readonly string[] = [],
+    options: CreateTestProjectOptions = {},
+  ): Promise<string> {
     const dir = path.join(this.root, name);
     const created = await createProject({
       dir,
@@ -50,6 +81,7 @@ export class TestProjects {
       language: 'en',
       seed: 1672,
       git: this.git,
+      templateDir: options.tensionMap === 'auto' ? TEMPLATE_DIR : this.templateWithoutTension,
     });
     if (!created.ok) throw new Error(`createProject: ${created.error.message}`);
     for (const relative of golden) {

@@ -8,6 +8,7 @@ import { blueprintChart } from './chart.js';
 import { blueprintCounter } from './counter.js';
 import { blueprintGraph } from './graph.js';
 import { blueprintMap } from './map.js';
+import { maskedRegion } from './masked.js';
 import { blueprintSchematic } from './schematic.js';
 import { blueprintSheet } from './sheet.js';
 import { blueprintTimeline } from './timeline.js';
@@ -19,6 +20,7 @@ const DOCS = `Look \`blueprint\`: flat 2D technical drawings on blueprint paper 
 - \`kit.fx.blueprintTimeline\`: \`events\` { value: year, label, caption, at }, \`views\` [{ at, range }] to zoom, now-marker.
 - \`kit.fx.blueprintMap\`: \`view\` world/europe/asia/... or [w, s, e, n], \`views\` to zoom on cue, \`markers\` [{ id, position: [lon, lat], label, at }], \`routes\` [{ from, to, at }], \`highlights\` [{ region: 'FRA' | 'France' | 'europe', at }].
 - \`kit.fx.blueprintSchematic\`: \`parts\` (rect/circle/line/poly in 640x360-frame pixels, line styles, hatch fills) trace in, then \`dimensions\` and \`callouts\` on their phrases.
+- \`kit.fx.maskedRegion\`: open-loop veil, a value (\`text\`) under a hatched mask with a question mark until \`revealAt\` (the closing phrase), then the mask wipes off and the value lights up.
 - \`kit.env.blueprintSheet\`: bare sheet; \`headline\`/\`subline\` make a title card.
 Example: \`const chart = kit.fx.blueprintChart({ size: [ctx.shot.width, ctx.shot.height], anchor: ctx.anchor, title: 'UNITS SOLD', csv: 'year,units,say\\n1998,12,ninety-eight\\n2000,40,two thousand', suffix: 'M' });\`
 Rules: one idea per board, at most ~8 bars or ~10 events or ~10 nodes; plot only numbers the narration or \`research.md\` states, never invent values to fill a chart (show fewer bars instead); labels short (<= 14 characters); reveal each datum on the word that says it; use \`highlight\`/\`hot\` for the one number that matters; prefer roles (ink, dim, accent, hot, alt, good) over palette names. Titles are plain captions without figure numbers (\`'BROWSER SHARE'\`, not \`'FIG. 3 BROWSER SHARE'\`: every shot is built on its own, so the numbers would clash across the film). A counter alone on a board uses \`digitScale: 7\`-\`8\` so the number carries the frame. Put \`ctx.text\` on a free part of the board (top band or an empty corner), never over the plotted data, the map or the digits.`;
@@ -50,6 +52,7 @@ export const blueprintLook = defineLook({
       blueprintTimeline,
       blueprintMap,
       blueprintSchematic,
+      maskedRegion,
     ],
   },
 });

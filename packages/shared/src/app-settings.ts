@@ -7,6 +7,7 @@
 import { z } from 'zod';
 import { videoLanguageSchema } from './project.js';
 import { stylePresetIdSchema } from './style-preset.js';
+import { tasteLearningSchema } from './taste-profile.js';
 
 export const APP_SETTINGS_VERSION = 1;
 
@@ -120,6 +121,21 @@ export const appSettingsSchema = z.object({
   music: z.object({ enabled: z.boolean().default(true) }).prefault({}),
   /** Scenes built: the quiet final review after a whole-film build (PLAN.md#11.5). */
   scenes: z.object({ finalReview: z.boolean().default(true) }).prefault({}),
+  /**
+   * Global asset library (PLAN.md#12.19): what is saved to it automatically. Downloaded assets
+   * the user approved (or with a verified licence) by default; own imports only when asked.
+   */
+  assetLibrary: z
+    .object({
+      saveDownloaded: z.boolean().default(true),
+      saveOwn: z.boolean().default(false),
+    })
+    .prefault({}),
+  /**
+   * Taste learning (PLAN.md#12.13): a file without the field (an install from before 2.3) reads
+   * as `off`; a new install starts with `auto` (`defaultAppSettings`).
+   */
+  taste: z.object({ learning: tasteLearningSchema.default('off') }).prefault({}),
   /** Last choices of the export dialog (PLAN.md#9.1); encoder and workers live in `performance`. */
   export: z
     .object({
@@ -151,8 +167,9 @@ export const appSettingsSchema = z.object({
 });
 export type AppSettings = z.output<typeof appSettingsSchema>;
 
+/** Settings of a new install (no settings file yet): taste learning on. */
 export function defaultAppSettings(): AppSettings {
-  return appSettingsSchema.parse({ version: APP_SETTINGS_VERSION });
+  return appSettingsSchema.parse({ version: APP_SETTINGS_VERSION, taste: { learning: 'auto' } });
 }
 
 /**
@@ -192,6 +209,11 @@ export const appSettingsPatchSchema = z.strictObject({
   tools: z.strictObject({ whisperModel: settingsWhisperModelSchema }).partial().optional(),
   music: z.strictObject({ enabled: z.boolean() }).partial().optional(),
   scenes: z.strictObject({ finalReview: z.boolean() }).partial().optional(),
+  assetLibrary: z
+    .strictObject({ saveDownloaded: z.boolean(), saveOwn: z.boolean() })
+    .partial()
+    .optional(),
+  taste: z.strictObject({ learning: tasteLearningSchema }).partial().optional(),
   // The output folder is absent on purpose: main sets it only from its own folder picker.
   export: z
     .strictObject({
@@ -227,6 +249,8 @@ export function applyAppSettingsPatch(settings: AppSettings, patch: AppSettingsP
     tools: { ...settings.tools, ...patch.tools },
     music: { ...settings.music, ...patch.music },
     scenes: { ...settings.scenes, ...patch.scenes },
+    assetLibrary: { ...settings.assetLibrary, ...patch.assetLibrary },
+    taste: { ...settings.taste, ...patch.taste },
     export: { ...settings.export, ...patch.export },
     onboarding: { ...settings.onboarding, ...patch.onboarding },
   });

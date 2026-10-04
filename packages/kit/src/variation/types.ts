@@ -64,6 +64,13 @@ export interface AmbientInput {
   readonly budget: VariationBudget;
   /** Budget multiplier (default 1; 0 = no variation). */
   readonly scale?: number | undefined;
+  /**
+   * The shot's tension 0..1 (tension map, PLAN.md#12.22). Above TENSION_DARKEN_FROM a growing
+   * share of the tone families takes the darker member from `darker`.
+   */
+  readonly tension?: number | undefined;
+  /** Family -> its closest darker member (the engine derives it from the style palette). */
+  readonly darker?: Readonly<Record<string, string>> | undefined;
 }
 
 /** Parameters of one shot: what environments apply (ctx.kit) and scenes may read (ctx.ambient). */
@@ -90,4 +97,6 @@ export interface AmbientVariation {
   readonly layout: number;
   /** Camera drift at the end of the shot, [yaw, pitch] degrees (the start is the opposite). */
   readonly cameraDrift: readonly [number, number];
+  /** The shot's tension 0..1 when the project has a tension map (absent otherwise). */
+  readonly tension?: number;
 }

@@ -12,6 +12,7 @@ import {
   describeUnknown,
   listProposals,
   readCatalogue,
+  readLibrary,
   readResearchSettings,
   sanitizeText,
   sanitizeUrl,
@@ -54,7 +55,7 @@ function licenceView(licence: AssetLicence): AssetLicenceView {
 }
 
 /** assets.json may be edited by hand or by Claude: every text is cleaned again. */
-export function assetView(record: AssetRecord): AssetView {
+export function assetView(record: AssetRecord, inLibrary = false): AssetView {
   return {
     id: record.id,
     kind: record.kind,
@@ -65,7 +66,23 @@ export function assetView(record: AssetRecord): AssetView {
     licence: licenceView(record.licence),
     approved: record.approved,
     image: record.kind === 'image' ? servedFile(record.file, ASSETS_DIR) : null,
+    own: record.source === 'own',
+    description: sanitizeText(record.description ?? '', TEXT_LIMITS.description),
+    width: record.width,
+    height: record.height,
+    fromLibrary: record.fromLibrary === true,
+    inLibrary,
   };
+}
+
+/** sha256 of every library entry (empty without a library or when it cannot be read). */
+async function librarySha(dir: string | undefined): Promise<ReadonlySet<string>> {
+  if (dir === undefined) return new Set();
+  try {
+    return new Set((await readLibrary(dir)).library.entries.map((entry) => entry.sha256));
+  } catch {
+    return new Set(); // an unreadable library: the Library dialog reports it
+  }
 }
 
 export function proposalView(proposal: AssetProposal): ProposalView {
@@ -114,6 +131,8 @@ export interface AssetsServiceOptions {
   readonly changed: () => void;
   readonly now?: () => Date;
   readonly log: Logger;
+  /** The global asset library folder (PLAN.md#12.19), for the "in library" marks. */
+  readonly libraryDir?: string;
 }
 
 type Settled<T> =
@@ -142,12 +161,13 @@ export class AssetsService {
       settle(listProposals(dir)),
     ]);
     const records: AssetsFile['assets'] = catalogue.ok ? catalogue.value.assets : [];
+    const inLibrary = await librarySha(this.options.libraryDir);
     const problems = [catalogue, proposals].flatMap((read) => (read.ok ? [] : [read.message]));
     return {
       status: 'ok',
       mode: settings.value.mode,
       sources: [...settings.value.sources],
-      assets: records.map(assetView),
+      assets: records.map((record) => assetView(record, inLibrary.has(record.sha256))),
       pending: (proposals.ok ? proposals.value : [])
         .filter((proposal) => proposal.reviewedAt === undefined)
         .map(proposalView),

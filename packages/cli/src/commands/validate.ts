@@ -1,5 +1,7 @@
 /** `reelforge validate`: zod-validates the project's JSON files and checks them against each other. */
 import { COMMON_OPTIONS, parseCommandArgs } from '../args.js';
+import { readCatalogue } from '../assets/store.js';
+import { describeUnknown } from '../errors.js';
 import { result, type Command } from '../command.js';
 import { countBySeverity, formatProblem, plural, verdictLine } from '../format.js';
 import { crossFileProblems } from '../project/checks.js';
@@ -14,7 +16,8 @@ import { PROJECT_PATHS } from '../project/paths.js';
 
 export const VALIDATE_USAGE = `usage: reelforge validate [--json]
 Validates project.json, brief.json, storyboard.json, timing/words.json and cues.json (schema and
-version) and checks them against each other (contiguous shots, scene files, style, time ranges).
+version) and checks them against each other (contiguous shots, scene files, style, time ranges,
+asset ids the shots assign exist in assets.json).
 Exit code: 0 valid (warnings allowed), 1 errors found, 2 usage error.`;
 
 export interface FileStatus {
@@ -81,6 +84,38 @@ export function allProblems(files: ProjectFiles): Problem[] {
   return [...missingProject, ...fileProblems(files), ...crossFileProblems(files)];
 }
 
+/** `shot.assets` ids (PLAN.md#12.12) that assets.json does not have. */
+export async function assetIdProblems(root: string, files: ProjectFiles): Promise<Problem[]> {
+  if (files.storyboard.status !== 'ok') return [];
+  const shots = files.storyboard.data.shots;
+  if (!shots.some((shot) => (shot.assets ?? []).length > 0)) return [];
+  let known: Set<string>;
+  try {
+    known = new Set((await readCatalogue(root)).assets.map((asset) => asset.id));
+  } catch (error) {
+    return [
+      {
+        severity: 'error',
+        file: 'assets.json',
+        at: '',
+        message: describeUnknown(error),
+        fix: 'restore assets.json from git history or ask the user',
+      },
+    ];
+  }
+  return shots.flatMap((shot, index) =>
+    (shot.assets ?? [])
+      .filter((id) => !known.has(id))
+      .map((id): Problem => ({
+        severity: 'error',
+        file: PROJECT_PATHS.storyboard,
+        at: `shots[${String(index)}].assets`,
+        message: `${shot.id} assigns asset "${id}", which is not in assets.json`,
+        fix: 'use an id from `reelforge assets list` (or copy one in with `reelforge assets library use`), or remove it',
+      })),
+  );
+}
+
 export const validateCommand: Command = {
   name: 'validate',
   summary: 'zod-validate the project JSON files and cross-check them',
@@ -89,7 +124,7 @@ export const validateCommand: Command = {
     parseCommandArgs(argv, COMMON_OPTIONS, false);
     const files = await readProjectFiles(context.root);
     const statuses = fileStatuses(files);
-    const problems = allProblems(files);
+    const problems = [...allProblems(files), ...(await assetIdProblems(context.root, files))];
     const { errors, warnings } = countBySeverity(problems);
     const lines = [
       'files:',

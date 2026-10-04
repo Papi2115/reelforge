@@ -1,6 +1,6 @@
 /**
  * "Project settings": options stored in the open project's project.json (look mode, ambient
- * variation, research assets). Sections and rows are data (project-settings-view.ts): a later option adds a row to
+ * variation, research assets, tension map). Sections and rows are data (project-settings-view.ts): a later option adds a row to
  * `rows` with its section, and the section appears. Every change is saved and committed by main
  * right away; it applies to future builds and marks no step out of date.
  */
@@ -12,9 +12,14 @@ import type {
 } from '../../shared/project-settings-contract.js';
 import {
   AMBIENT_NOTE,
+  DRAMATURGY_CHOICES,
+  DRAMATURGY_NOTE,
+  EDITING_CHOICES,
+  EDITING_NOTE,
   groupBySection,
   LOOK_MODE_NOTE,
   lookModeChoices,
+  TENSION_MAP_NOTE,
   type SectionRow,
 } from './project-settings-view.js';
 import {
@@ -183,6 +188,86 @@ function ResearchRow({ settings, update }: RowProps): JSX.Element {
   );
 }
 
+/** Tension map (PLAN.md#12.22): the dramatic curve steers tempo, looks, music and backgrounds. */
+function TensionMapRow({ settings, update }: RowProps): JSX.Element {
+  return (
+    <SettingRow title="Tension map" note={TENSION_MAP_NOTE}>
+      {() => (
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.tensionMap === 'auto'}
+            onChange={(event) => {
+              update({ tensionMap: event.target.checked ? 'auto' : 'off' });
+            }}
+          />
+          <span>
+            <strong>Steer the film by a tension curve</strong>
+            <span className="muted">
+              Calm, rising, peak and release set the cut tempo, the choice of looks, the music mood
+              per act, how dark the backgrounds get and how busy the effects are.
+            </span>
+          </span>
+        </label>
+      )}
+    </SettingRow>
+  );
+}
+
+/** Dramaturgy (PLAN.md#12.25-12.27): pattern interrupts, open loops, reveal moments. */
+function DramaturgyRow({ settings, update }: RowProps): JSX.Element {
+  return (
+    <SettingRow title="Dramaturgy" note={DRAMATURGY_NOTE}>
+      {() => (
+        <div className="project-setting-choices">
+          {DRAMATURGY_CHOICES.map((choice) => (
+            <label key={choice.key} className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={settings[choice.key] === 'auto'}
+                onChange={(event) => {
+                  update({ [choice.key]: event.target.checked ? 'auto' : 'off' });
+                }}
+              />
+              <span>
+                <strong>{choice.title}</strong>
+                <span className="muted">{choice.hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </SettingRow>
+  );
+}
+
+/** Editing (PLAN.md#12.21, #12.23): beat sync and repetition control. */
+function EditingRow({ settings, update }: RowProps): JSX.Element {
+  return (
+    <SettingRow title="Editing" note={EDITING_NOTE}>
+      {() => (
+        <div className="project-setting-choices">
+          {EDITING_CHOICES.map((choice) => (
+            <label key={choice.key} className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={settings[choice.key] === 'auto'}
+                onChange={(event) => {
+                  update({ [choice.key]: event.target.checked ? 'auto' : 'off' });
+                }}
+              />
+              <span>
+                <strong>{choice.title}</strong>
+                <span className="muted">{choice.hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </SettingRow>
+  );
+}
+
 interface RowDefinition extends SectionRow {
   readonly Row: (props: RowProps) => JSX.Element;
 }
@@ -192,6 +277,9 @@ const ROWS: readonly RowDefinition[] = [
   { id: 'look-mode', section: 'visuals', Row: LookModeRow },
   { id: 'ambient-variation', section: 'visuals', Row: AmbientRow },
   { id: 'research-assets', section: 'research', Row: ResearchRow },
+  { id: 'tension-map', section: 'direction', Row: TensionMapRow },
+  { id: 'dramaturgy', section: 'direction', Row: DramaturgyRow },
+  { id: 'editing', section: 'direction', Row: EditingRow },
 ];
 
 export interface ProjectSettingsDialogProps {

@@ -7,9 +7,16 @@ import { z } from 'zod';
 import { ambientShotSchema, ambientVariationSettingsSchema } from './ambient-variation.js';
 import { assetIdSchema, assetMimeSchema } from './assets.js';
 import { kitExtensionSchema } from './kit-extensions.js';
+import { shotDirectionSchema } from './live-direction.js';
 import { paletteSchema } from './palette.js';
 import { shotIdSchema, transitionSchema } from './storyboard.js';
 import { stylePresetIdSchema } from './style-preset.js';
+import {
+  effectWindowProblems,
+  MAX_SHOT_EFFECT_WINDOWS,
+  paletteShiftWindowSchema,
+  timeRemapWindowSchema,
+} from './time-remap.js';
 import { wordsFileSchema } from './words.js';
 
 export const RENDER_MANIFEST_VERSION = 1;
@@ -34,8 +41,24 @@ export const manifestShotSchema = z
     scene: sceneSourceSchema,
     /** Storyboard position of the shot for ambient variation (absent: derived from the order). */
     ambient: ambientShotSchema.optional(),
+    /**
+     * Slow-motion windows of accepted reveal moments (PLAN.md#12.27, time-remap.ts), film
+     * seconds inside the shot; scene time equals film time outside them. Absent = none.
+     */
+    timeRemap: z.array(timeRemapWindowSchema).max(MAX_SHOT_EFFECT_WINDOWS).optional(),
+    /** Palette-shift flashes of accepted reveal moments (film seconds). Absent = none. */
+    paletteShift: z.array(paletteShiftWindowSchema).max(MAX_SHOT_EFFECT_WINDOWS).optional(),
+    /** Live co-direction overrides (PLAN.md#12.14, live-direction.ts). Absent = none. */
+    direction: shotDirectionSchema.optional(),
   })
-  .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
+  .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] })
+  .superRefine((shot, issues) => {
+    for (const key of ['timeRemap', 'paletteShift'] as const) {
+      for (const message of effectWindowProblems(shot[key] ?? [], shot)) {
+        issues.addIssue({ code: 'custom', message, path: [key] });
+      }
+    }
+  });
 export type ManifestShot = z.infer<typeof manifestShotSchema>;
 
 /**

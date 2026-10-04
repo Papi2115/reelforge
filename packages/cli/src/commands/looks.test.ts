@@ -21,9 +21,12 @@ describe('reelforge looks', () => {
   it('lists every available look with rolls, sound palette and description', async () => {
     const run = await runCli(project.root, 'looks');
     expect(run.code).toBe(0);
-    expect(run.stdout).toContain('looks (4 available;');
+    expect(run.stdout).toContain(`looks (${String(listLooks().length)} available;`);
+    const width = Math.max(...listLooks().map((look) => look.id.length));
     for (const look of listLooks()) {
-      expect(run.stdout).toContain(`  ${look.id.padEnd(9)}  ${look.label}: ${look.description}`);
+      expect(run.stdout).toContain(
+        `  ${look.id.padEnd(width)}  ${look.label}: ${look.description}`,
+      );
       expect(run.stdout).toContain(
         `rolls ${look.rolls.join(', ')} · sound palette ${look.soundPalette} · treatments ${look.treatments.join(', ')}`,
       );
@@ -43,12 +46,7 @@ describe('reelforge looks', () => {
     expect(json.code).toBe(0);
     const parsed = JSON.parse(json.stdout) as { lookMode: string; looks: { id: string }[] };
     expect(parsed.lookMode).toBe('mixed');
-    expect(parsed.looks.map((look) => look.id)).toEqual([
-      'voxel',
-      'retro-ui',
-      'diorama',
-      'blueprint',
-    ]);
+    expect(parsed.looks.map((look) => look.id)).toEqual(listLooks().map((look) => look.id));
   });
 
   it('works outside a project and rejects positional arguments', async () => {

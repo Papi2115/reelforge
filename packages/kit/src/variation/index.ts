@@ -4,6 +4,8 @@ export {
   debrisCount,
   guaranteedAxes,
   layoutLabel,
+  TENSION_DARKEN_FROM,
+  tensionDarkShare,
   toneOf,
   variationDistance,
 } from './ambient.js';

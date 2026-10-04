@@ -13,6 +13,10 @@ import {
 } from './assets.js';
 import { paletteSchema } from './palette.js';
 import { stylePresetIdSchema } from './style-preset.js';
+import { beatSyncModeSchema } from './beat-sync.js';
+import { repetitionControlModeSchema } from './repetition.js';
+import { dramaturgyModeSchema } from './dramaturgy.js';
+import { tensionMapModeSchema } from './tension.js';
 
 export const PROJECT_FILE_VERSION = 1;
 export const BRIEF_FILE_VERSION = 1;
@@ -60,6 +64,30 @@ export const projectFileSchema = z.object({
   researchMode: researchModeSchema.optional(),
   /** Sources the `allowlist` mode may use (subset of the global allowlist). */
   researchSources: z.array(z.enum(ALLOWLIST_SOURCES)).optional(),
+  /**
+   * Tension map (PLAN.md#12.22, ADR-017): `auto` = the storyboard, the sound design and the
+   * render read `tension.json`. Absent = `off` (projects made before 2.2 are unchanged); new
+   * projects get `auto` from the template.
+   */
+  tensionMap: tensionMapModeSchema.optional(),
+  /**
+   * Beat-synced editing (PLAN.md#12.21, ADR-018): `auto` = cuts, music and accents snap to the
+   * beat grid (timing/beats.json). Absent = `off` (projects made before 2.2 are unchanged); new
+   * projects get `auto` from the template.
+   */
+  beatSync: beatSyncModeSchema.optional(),
+  /**
+   * Film-level repetition control (PLAN.md#12.23, ADR-019): `auto` = repeated visuals,
+   * transitions, SFX and phrases are found and replacements proposed. Absent = `off`.
+   */
+  repetitionControl: repetitionControlModeSchema.optional(),
+  /**
+   * Dramaturgy (PLAN.md#12.25–12.27, ADR-020): planned pattern interrupts, open loops and reveal
+   * moments. Absent = `off` (projects made before 2.2 are unchanged); new projects get `auto`.
+   */
+  patternInterrupts: dramaturgyModeSchema.optional(),
+  openLoops: dramaturgyModeSchema.optional(),
+  revealMoments: dramaturgyModeSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

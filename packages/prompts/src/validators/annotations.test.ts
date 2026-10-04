@@ -82,6 +82,16 @@ describe('annotation plans', () => {
     expect(runs({ 0: [on('arrow', 1), on('ring', 4)], 1: [on('arrow', 8)] })).toEqual([]);
   });
 
+  it('does not count source chips as marks (PLAN.md#12.18), but checks their phrase', () => {
+    const chips = Object.fromEntries(
+      Array.from({ length: 9 }, (_, index) => [index, [on('source-chip', index * 6 + 1, 'claim')]]),
+    );
+    expect(codes(chips)).toEqual([]);
+    expect(codes({ 0: [on('source-chip', 10, 'claim')] })).toEqual([
+      'error:annotation-phrase-outside-shot',
+    ]);
+  });
+
   it('caps the marks per minute and asks for 3+ forms per busy minute of a long film', () => {
     const kinds = ['pin', 'arrow', 'ring'] as const;
     const busy = Object.fromEntries(

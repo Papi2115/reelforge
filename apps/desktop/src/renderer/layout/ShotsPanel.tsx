@@ -55,6 +55,9 @@ export interface ShotsPanelProps {
   readonly onVariants: (shotId: string) => void;
   /** Shots with variants waiting for a decision. */
   readonly withVariants: ReadonlySet<string>;
+  /** Shots carrying live directions (PLAN.md#12.14) and their summary for the tooltip. */
+  readonly directed?: ReadonlySet<string>;
+  readonly directionSummary?: (shotId: string) => string;
 }
 
 function Placeholder({ storyboard }: Pick<ShotsPanelProps, 'storyboard'>): JSX.Element {
@@ -266,6 +269,14 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                     {props.withVariants.has(shot.id) && (
                       <span className="chip variants-chip" title="Variants wait for your pick">
                         variants
+                      </span>
+                    )}
+                    {props.directed?.has(shot.id) === true && (
+                      <span
+                        className="chip direction-chip"
+                        title={`Directions: ${props.directionSummary?.(shot.id) ?? ''}`}
+                      >
+                        directions
                       </span>
                     )}
                     {compact && <span className="shot-time mono">{formatTime(shot.t0)}</span>}

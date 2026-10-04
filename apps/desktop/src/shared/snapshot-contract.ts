@@ -9,6 +9,7 @@ import {
   renderManifestSchema,
   shotLocksFileSchema,
   storyboardFileSchema,
+  tensionFileSchema,
   wordsFileSchema,
 } from '@reelforge/shared';
 import { z } from 'zod';
@@ -21,6 +22,8 @@ export const SNAPSHOT_FILES = {
   words: 'timing/words.json',
   cues: 'cues.json',
   locks: 'locks.json',
+  /** The tension curve (PLAN.md#12.22). */
+  tension: 'tension.json',
 } as const;
 
 export const FILE_ERROR_KINDS = [
@@ -113,6 +116,8 @@ export const projectSnapshotSchema = z.object({
   cues: fileStateSchema(cuesViewSchema),
   /** `locks.json`: shots the user locked (PLAN.md#11.4). */
   locks: fileStateSchema(shotLocksFileSchema),
+  /** `tension.json`: the tension curve (PLAN.md#12.22); absent in snapshots made before 2.2. */
+  tension: fileStateSchema(tensionFileSchema).optional(),
   /** Damaged files (invalid JSON / schema) with the fix the app offers. */
   problems: z.array(fileProblemSchema),
 });

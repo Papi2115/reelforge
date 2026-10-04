@@ -46,6 +46,9 @@ that produced it. The harness always renders with SwiftShader, so goldens live i
 Annotation goldens (`annotations-<style>-sheet`) are 2x2 contact sheets of
 `examples/s02_annotations.js` (one settled frame per act, every `ctx.annotate` type) per style,
 which keeps them small (`packages/engine/test/render/annotations.test.ts`).
+Source chip goldens (`source-chip-default|top-left|avoid`, PLAN 12.18) are full Crisp 640 frames of
+`examples/s04_source_chip.js`: default corner, preferred corner, and the chip moving to the free
+corner past a callout and a lower third (`packages/engine/test/render/source-chip.test.ts`).
 
 The kit's goldens (`kit-*`) live next to the kit, in `packages/kit/test/goldens/swiftshader/`
 (`compareWithGolden(name, frame, undefined, { goldenDir })`), rendered by the same harness.

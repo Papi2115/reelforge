@@ -2,7 +2,8 @@
  * `storyboard.json` written by the storyboard stage: the shared schema plus the prompt's rules
  * (contiguous shots from 0, boundaries on word starts, shot lengths, no treatment more than twice
  * in a row, scene paths, transitions and their transition-kit styles) and the annotation plans' phrase and variety rules; in
- * `mixed` look mode also the look/roll rhythm (rhythm.ts, ADR-009).
+ * `mixed` look mode also the look/roll rhythm (rhythm.ts, ADR-009); with a tension curve the cut
+ * tempo per segment (`tension-tempo`, tension.ts, PLAN.md#12.22).
  */
 import {
   DEFAULT_LOOK_ID,
@@ -14,11 +15,13 @@ import {
   transitionSuits,
   type LookMode,
   type StoryboardShot,
+  type TensionFile,
   type WordsFile,
 } from '@reelforge/shared';
 import { z } from 'zod';
 import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
-import { checkAssetNeeds, type AssetNeedRules } from './asset-needs.js';
+import { checkAssetNeeds, checkShotAssets, type AssetNeedRules } from './asset-needs.js';
+import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
 import {
   issue,
   parseJsonText,
@@ -28,6 +31,7 @@ import {
   type ValidationReport,
 } from './issues.js';
 import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from './rhythm.js';
+import { checkTensionTempo } from './tension.js';
 
 /** The storyboard file plus the prompt's optional top-level `missingProps` list. */
 export const storyboardOutputSchema = storyboardFileSchema.extend({
@@ -47,6 +51,11 @@ export interface StoryboardRules extends LookRhythmRules {
   readonly maxTreatmentRun: number;
   /** Shot boundary vs. a word start, seconds. Default 0.05. */
   readonly boundaryToleranceS: number;
+  /**
+   * A boundary in the silence before a word start, at most this much earlier, is on that word
+   * too (beat sync moves cuts into the pause, PLAN.md#12.21). Default 0 (off).
+   */
+  readonly pauseLeadS: number;
   /** Last t1 may exceed the last word's end by up to this. Default 1. */
   readonly maxTailS: number;
   /** Non-cut transition duration range (warning outside). Default 0.2 / 0.6. */
@@ -61,6 +70,7 @@ export const DEFAULT_STORYBOARD_RULES: StoryboardRules = {
   typicalMaxShotS: 8,
   maxTreatmentRun: 2,
   boundaryToleranceS: 0.05,
+  pauseLeadS: 0,
   maxTailS: 1,
   minTransitionS: 0.2,
   maxTransitionS: 0.6,
@@ -281,8 +291,11 @@ function wordIssues(
     const onStart = words.words.some(
       (word) => Math.abs(word.t - boundary) <= rules.boundaryToleranceS,
     );
-    if (onStart) return;
     const inside = words.words.find((word) => boundary > word.t && boundary < word.tEnd);
+    const inPause =
+      inside === undefined &&
+      words.words.some((word) => word.t >= boundary && word.t - boundary <= rules.pauseLeadS);
+    if (onStart || inPause) return;
     const detail = inside === undefined ? 'not on a word start' : `mid-word ("${inside.text}")`;
     issues.push(
       issue(
@@ -321,6 +334,12 @@ export interface StoryboardCheckOptions {
   readonly looks?: readonly string[];
   /** Asset need rules (PLAN.md#12.10); absent = research off. */
   readonly assetNeeds?: Partial<AssetNeedRules>;
+  /** Asset ids in assets.json (PLAN.md#12.12): `shot.assets` must name one; absent = unchecked. */
+  readonly assetIds?: readonly string[];
+  /** Tension curve (PLAN.md#12.22): adds the `tension-tempo` check; absent = map off. */
+  readonly tension?: Pick<TensionFile, 'points' | 'segments'>;
+  /** Pattern interrupts (PLAN.md#12.25): adds the `interrupt-*` checks; absent = switch off. */
+  readonly interrupts?: InterruptCheckOptions;
 }
 
 /** Rule checks on an already parsed storyboard. */
@@ -338,9 +357,12 @@ export function checkStoryboard(
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),
     ...checkAssetNeeds(shots, options.assetNeeds),
+    ...checkShotAssets(shots, options.assetIds),
     ...(options.lookMode === 'mixed'
       ? checkLookRhythm(shots, { looks: options.looks ?? [DEFAULT_LOOK_ID], rules })
       : []),
+    ...(options.tension === undefined ? [] : checkTensionTempo(shots, options.tension)),
+    ...(options.interrupts === undefined ? [] : checkInterrupts(shots, options.interrupts)),
   ];
 }
 

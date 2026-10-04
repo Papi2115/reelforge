@@ -12,6 +12,7 @@ import {
   validateScript,
 } from '@reelforge/prompts';
 import { SCRIPT_REPORT_VERSION, scriptReportSchema, type BriefFile } from '@reelforge/shared';
+import { scriptDramaturgyVars } from '../dramaturgy.js';
 import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES, REPORTS } from '../paths.js';
 import {
@@ -134,6 +135,10 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     targetWords,
     tone: brief.value.tone ?? NOT_SPECIFIED,
     audience: brief.value.audience ?? NOT_SPECIFIED,
+    // Surprise beats / open loops in beats.md (PLAN.md#12.25-12.26); nothing with the switches off.
+    ...(ctx.snapshot.project.status === 'ok'
+      ? scriptDramaturgyVars(ctx.snapshot.project.value)
+      : {}),
   });
   if (!prompt.ok) return prompt;
   ctx.step('Beat sheet and script', 45);

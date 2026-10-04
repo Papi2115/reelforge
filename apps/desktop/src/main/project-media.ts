@@ -8,6 +8,7 @@
  */
 import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
+import { LIBRARY_MEDIA_HOST } from '../shared/library-contract.js';
 import { MEDIA_HOST, MEDIA_SCHEME } from '../shared/player-contract.js';
 import { isInsideFolder } from './project-files.js';
 
@@ -89,6 +90,39 @@ export function resolveProjectMedia(
   const file = path.resolve(root, ...relative.split('/'));
   if (!isInsideFolder(root, file)) return failure(403, `${relative} is outside the project`);
   const width = isFrame ? thumbnailWidth(url) : undefined;
+  return ok(
+    width === undefined ? { file, contentType } : { file, contentType, thumbnailWidth: width },
+  );
+}
+
+/** True for `reelforge-media://library/…` URLs (pictures of the global asset library). */
+export function isLibraryMediaUrl(requestUrl: string): boolean {
+  return URL.canParse(requestUrl) && new URL(requestUrl).host === LIBRARY_MEDIA_HOST;
+}
+
+/**
+ * `reelforge-media://library/<sha256>.<ext>[?w=]` (PLAN.md#12.19): a picture of the global asset
+ * library, by its strict file name only (no folders), from `<library>/files/`. PNG/JPEG pictures
+ * can be downscaled with `?w=`.
+ */
+export function resolveLibraryMedia(
+  libraryDir: string | undefined,
+  requestUrl: string,
+): Result<MediaFile, MediaError> {
+  if (!URL.canParse(requestUrl)) return failure(400, `not a URL: ${requestUrl}`);
+  const url = new URL(requestUrl);
+  if (url.protocol !== `${MEDIA_SCHEME}:` || url.host !== LIBRARY_MEDIA_HOST) {
+    return failure(400, `not a library media URL: ${requestUrl}`);
+  }
+  if (libraryDir === undefined) return failure(404, 'no asset library');
+  const name = url.pathname.replace(/^\/+/, '');
+  const match = /^[0-9a-f]{64}\.(png|jpg|webp|gif)$/.exec(name);
+  const contentType = match === null ? undefined : IMAGE_TYPES[`.${match[1] ?? ''}`];
+  if (match === null || contentType === undefined) {
+    return failure(400, `not a library picture: ${requestUrl}`);
+  }
+  const file = path.join(libraryDir, 'files', name);
+  const width = match[1] === 'png' || match[1] === 'jpg' ? thumbnailWidth(url) : undefined;
   return ok(
     width === undefined ? { file, contentType } : { file, contentType, thumbnailWidth: width },
   );

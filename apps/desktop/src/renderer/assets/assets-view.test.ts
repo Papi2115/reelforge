@@ -4,10 +4,13 @@ import {
   approvedKeys,
   approveLabel,
   assetsSummary,
+  droppedMedia,
   exportAssetsView,
   initialSelection,
   licenceBadge,
+  ownAssetMeta,
   sourceLabel,
+  splitAssets,
   toggled,
 } from './assets-view.js';
 
@@ -39,6 +42,22 @@ function asset(id: string, verified: boolean): AssetView {
     licence: { id: verified ? 'NASA' : 'unverified', url: null, verified },
     approved: false,
     image: null,
+    own: false,
+    description: '',
+    width: 640,
+    height: 480,
+    fromLibrary: false,
+    inLibrary: false,
+  };
+}
+
+function own(id: string): AssetView {
+  return {
+    ...asset(id, true),
+    source: 'own',
+    licence: { id: 'own', url: null, verified: true },
+    own: true,
+    description: 'my desk',
   };
 }
 
@@ -111,5 +130,30 @@ describe('export dialog assets', () => {
     expect(assetsSummary({ status: 'error', message: 'No project is open.' })).toBe(
       'No project is open.',
     );
+  });
+});
+
+describe('own files (PLAN.md#12.12)', () => {
+  it('lists them apart, never warns or credits them, and counts them in the heading', () => {
+    const mixed = [own('own-desk'), asset('web-x', false), asset('nasa-1', true)];
+    const split = splitAssets(mixed);
+    expect(split.own.map((item) => item.id)).toEqual(['own-desk']);
+    expect(split.downloaded.map((item) => item.id)).toEqual(['web-x', 'nasa-1']);
+    expect(exportAssetsView(state([own('own-desk')]))).toBeNull();
+    expect(exportAssetsView(state(mixed))?.unverified.map((item) => item.id)).toEqual(['web-x']);
+    expect(assetsSummary({ ...state(mixed), mode: 'off' })).toBe(
+      'Research: Off (no network) · 1 your file · 2 downloaded · 1 ⚠ unverified',
+    );
+    expect(sourceLabel('own')).toBe('Your file');
+    expect(ownAssetMeta(own('own-desk'))).toBe('Image · 640×480');
+    expect(
+      ownAssetMeta({ ...own('own-clip'), kind: 'video', width: null, fromLibrary: true }),
+    ).toBe('Video · from your library');
+  });
+
+  it('takes dropped images and videos by extension and counts the rest', () => {
+    expect(
+      droppedMedia(['C:/a/Logo.PNG', 'C:/b/clip.webm', 'C:/c/notes.txt', '', 'D:/x/gif']),
+    ).toEqual({ accepted: ['C:/a/Logo.PNG', 'C:/b/clip.webm'], skipped: 3 });
   });
 });

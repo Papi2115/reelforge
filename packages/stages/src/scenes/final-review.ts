@@ -18,6 +18,7 @@ import {
   type StoryboardShot,
   type SyncReport,
 } from '@reelforge/shared';
+import { finalReviewDramaturgy } from '../dramaturgy.js';
 import { writeProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
 import type { StageError } from '../types.js';
@@ -30,6 +31,7 @@ import { runShotJobs } from './run-shots.js';
 import { writeContactSheet, type SheetShot } from './sheet.js';
 import { refineShot } from './shot-job.js';
 import { syncReport } from './sync-report.js';
+import { reviewRepetitions } from '../repetition/stage.js';
 
 /** Work items of the final review's fixes in pipeline.json. */
 export const FINAL_REVIEW_QUEUE = 'scenes-final-review';
@@ -275,6 +277,21 @@ export async function finalReview(
   );
   const merged = await mergeIntoReport(job, entries);
   if (!merged.ok) return merged;
+  // Pattern interrupts realised in the frames, open-loop warnings (PLAN.md#12.25-12.26).
+  const { project } = ctx.snapshot;
+  if (project.status === 'ok') {
+    const drama = await finalReviewDramaturgy(
+      ctx.projectDir,
+      ctx.now(),
+      project.value,
+      job.shots,
+      job.words,
+    );
+    if (!drama.ok) return drama;
+    notes.push(...drama.value);
+  }
+  // Film-level repetition control (PLAN.md#12.23): read-only analysis, its count as a note.
+  notes.push(...(await reviewRepetitions(ctx.projectDir, ctx.snapshot.project)));
   const review: FinalReview = {
     version: FINAL_REVIEW_VERSION,
     trigger,

@@ -11,7 +11,9 @@ import {
   type CuesFileInput,
   type MusicMood,
 } from '@reelforge/pipeline';
-import type { LookMode, StoryboardShot } from '@reelforge/shared';
+import type { BeatsFile, LookMode, StoryboardShot, TensionPoint } from '@reelforge/shared';
+import { GridTimes } from '../beat-sync/grid.js';
+import { snapGestures } from '../beat-sync/snap.js';
 import { FILES, inProject } from '../paths.js';
 import {
   defaultDurationS,
@@ -20,7 +22,7 @@ import {
 } from '../stages/default-cues.js';
 import type { SceneSfxProvider, StageError } from '../types.js';
 import { actMoods, detectActs, type FilmAct } from './acts.js';
-import type { DirectorWord } from './cue-events.js';
+import { findGestures, type DirectorWord } from './cue-events.js';
 import { isGeneratedMusic, renderActMusic } from './music.js';
 import { loadSceneEvents } from './scene-events.js';
 
@@ -36,6 +38,10 @@ export interface SoundDesignInput {
   readonly musicEnabled: boolean;
   /** The project's look mode: sound palettes per look in `mixed` (absent = `voxel-only`). */
   readonly lookMode?: LookMode | undefined;
+  /** The tension map's curve (PLAN.md#12.22): act energy/mood and SFX density; absent = 1.x. */
+  readonly tension?: readonly TensionPoint[] | undefined;
+  /** Beat grid (PLAN.md#12.21): beds locked to it, hits snapped; absent = beat sync off. */
+  readonly beats?: BeatsFile | undefined;
   readonly sceneSfx: SceneSfxProvider | undefined;
   readonly signal: AbortSignal;
   readonly onStep?: ((label: string) => void) | undefined;
@@ -49,6 +55,10 @@ export interface SoundDesign {
   readonly moods: readonly MusicMood[];
   /** The user's own music files used instead of generated beds. */
   readonly userMusic: readonly string[];
+  /** The beat grid the design used (beat sync on). */
+  readonly beats?: BeatsFile | undefined;
+  /** Hits / risers the director's events moved onto the grid. */
+  readonly snappedCues: number;
 }
 
 /** The user's own music in `audio/music/` (generated beds excluded), sorted. */
@@ -68,7 +78,7 @@ export async function designSound(
   input: SoundDesignInput,
 ): Promise<Result<SoundDesign, StageError>> {
   const durationS = defaultDurationS({ shots: input.shots, words: input.words });
-  const acts = detectActs(input.shots, durationS);
+  const acts = detectActs(input.shots, durationS, input.tension);
   const userMusic = await userMusicFiles(input.projectDir);
   const scene = await loadSceneEvents(input.projectDir, input.sceneSfx, input.signal);
   let moods: MusicMood[] = [];
@@ -81,6 +91,7 @@ export async function designSound(
       moods,
       seed: input.seed,
       durationS,
+      grid: input.beats,
     });
     if (!rendered.ok) return rendered;
     music = { cues: rendered.value, moods };
@@ -94,8 +105,30 @@ export async function designSound(
     music,
     durationS,
     palettes: { lookMode: input.lookMode },
+    tension: input.tension,
+    ...(input.beats === undefined ? {} : { beats: input.beats }),
   });
-  return ok({ cues, durationS, acts, moods, userMusic });
+  const snappedCues =
+    input.beats === undefined
+      ? 0
+      : snapGestures(
+          findGestures({
+            shots: input.shots,
+            words: input.words,
+            sceneSfx: scene.sfx,
+            anchors: scene.anchors,
+          }),
+          new GridTimes(input.beats),
+        ).snapped;
+  return ok({
+    cues,
+    durationS,
+    acts,
+    moods,
+    userMusic,
+    ...(input.beats === undefined ? {} : { beats: input.beats }),
+    snappedCues,
+  });
 }
 
 const sameMoods = (a: readonly MusicMood[], b: readonly MusicMood[]): boolean =>
@@ -121,6 +154,7 @@ export async function applyMoodHint(
     moods: actMoods(design.acts, '', hint),
     seed: input.seed,
     durationS: design.durationS,
+    grid: design.beats,
   });
   if (!rendered.ok) return rendered;
   const fresh = new Map(rendered.value.map((cue) => [cue.id, MusicCueSchema.parse(cue)]));

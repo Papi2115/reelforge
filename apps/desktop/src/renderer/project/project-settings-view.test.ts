@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ProjectSettings } from '../../shared/project-settings-contract.js';
 import {
+  DRAMATURGY_CHOICES,
+  DRAMATURGY_NOTE,
   groupBySection,
   lookModeChoices,
   shortLookLabel,
@@ -56,6 +58,12 @@ describe('withProjectSettingsPatch', () => {
       ambientVariation: false,
       researchMode: 'ask',
       researchSources: [],
+      tensionMap: 'off',
+      patternInterrupts: 'off',
+      openLoops: 'off',
+      revealMoments: 'off',
+      beatSync: 'off',
+      repetitionControl: 'off',
     };
     expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
       ...settings,
@@ -68,5 +76,20 @@ describe('withProjectSettingsPatch', () => {
     expect(
       withProjectSettingsPatch(settings, { researchMode: 'allowlist', researchSources: ['nasa'] }),
     ).toEqual({ ...settings, researchMode: 'allowlist', researchSources: ['nasa'] });
+    expect(withProjectSettingsPatch(settings, { revealMoments: 'auto' })).toEqual({
+      ...settings,
+      revealMoments: 'auto',
+    });
+  });
+});
+
+describe('dramaturgy row (PLAN.md#12.25-12.27)', () => {
+  it('offers one checkbox per switch, in plan order', () => {
+    expect(DRAMATURGY_CHOICES.map((choice) => choice.key)).toEqual([
+      'patternInterrupts',
+      'openLoops',
+      'revealMoments',
+    ]);
+    expect(DRAMATURGY_NOTE).toContain('Off: the project behaves as before.');
   });
 });

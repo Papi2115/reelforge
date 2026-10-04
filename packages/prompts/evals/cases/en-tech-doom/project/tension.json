@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "source": "claude",
+  "note": "A bold hook, calm history, rising engine tricks, the peak when the source goes free, a short release.",
+  "points": [
+    {
+      "t": 0,
+      "v": 0.5
+    },
+    {
+      "t": 4.28,
+      "v": 0.3
+    },
+    {
+      "t": 12.305,
+      "v": 0.5
+    },
+    {
+      "t": 24.05,
+      "v": 0.75
+    },
+    {
+      "t": 31.345,
+      "v": 0.85
+    },
+    {
+      "t": 38.27,
+      "v": 0.5
+    },
+    {
+      "t": 41.45,
+      "v": 0.3
+    }
+  ],
+  "segments": [
+    {
+      "from": 0,
+      "to": 4.28,
+      "kind": "rising",
+      "label": "the hook"
+    },
+    {
+      "from": 4.28,
+      "to": 12.305,
+      "kind": "calm",
+      "label": "floppies and the title"
+    },
+    {
+      "from": 12.305,
+      "to": 31.345,
+      "kind": "rising",
+      "label": "how the engine fits"
+    },
+    {
+      "from": 31.345,
+      "to": 38.27,
+      "kind": "peak",
+      "label": "the source code release"
+    },
+    {
+      "from": 38.27,
+      "to": 41.45,
+      "kind": "release",
+      "label": "the memory footnote"
+    }
+  ]
+}

@@ -27,6 +27,7 @@ import type { SceneTools } from './scenes/tools.js';
 import { isReviewRun, statusAfter } from './run-status.js';
 import { readProjectSnapshot, type ProjectSnapshot } from './snapshot.js';
 import { BUILT_IN_STAGES, type StageRegistry } from './stages/registry.js';
+import type { TasteLearner } from './taste/signals.js';
 import { TurnDriver } from './turns.js';
 import {
   stageError,
@@ -52,6 +53,8 @@ export interface StageRunnerOptions {
   readonly sceneSfx?: SceneSfxProvider | undefined;
   /** Asset sources/transport of the Assets stage (default: the real ones; tests: a local server). */
   readonly assets?: AssetRuntime | undefined;
+  /** Taste learning (PLAN.md#12.13): the app's local profile; absent = off. */
+  readonly taste?: TasteLearner | undefined;
   /** Needed by Scenes built: frame renderer (+ kit names, missing-prop handler). */
   readonly scenes?: SceneTools | undefined;
   readonly store?: PipelineStateStore;
@@ -172,6 +175,7 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
           ? Promise.resolve(err(stageError('missing-tool', 'Claude is not connected')))
           : driver.run(turn),
       assets: this.options.assets,
+      taste: this.options.taste,
       scenes: this.options.scenes,
       store: this.store,
       claudeConcurrency: () => this.options.guard?.concurrency ?? Number.POSITIVE_INFINITY,

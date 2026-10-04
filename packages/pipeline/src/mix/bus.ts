@@ -26,6 +26,50 @@ export interface BusEvent {
   readonly fadeOutFrames: number;
 }
 
+/**
+ * A silence of the bus (reveal moment "silence hit", PLAN.md#12.27): over [startFrame, endFrame)
+ * the bus fades to SILENCE_FLOOR in SILENCE_FADE_FRAMES (raised cosine), holds, and is back at
+ * full level at `endFrame`, where the hit lands.
+ */
+export interface BusSilence {
+  readonly startFrame: number;
+  readonly endFrame: number;
+}
+
+/** Level inside a silence (−40 dB: near silence, still a room). */
+export const SILENCE_FLOOR = 0.01;
+/** Fade into the silence (30 ms). */
+export const SILENCE_FADE_FRAMES = Math.round(MIX_SAMPLE_RATE * 0.03);
+
+/** Gain of the silences at timeline frame `frame` (1 outside them). */
+export function silenceGain(silences: readonly BusSilence[], frame: number): number {
+  for (const silence of silences) {
+    if (frame < silence.startFrame || frame >= silence.endFrame) continue;
+    const length = silence.endFrame - silence.startFrame;
+    const fade = Math.min(SILENCE_FADE_FRAMES, Math.floor(length / 2));
+    const position = frame - silence.startFrame;
+    if (fade <= 0 || position >= fade) return SILENCE_FLOOR;
+    return 1 - (1 - SILENCE_FLOOR) * fadeCurve((position + 0.5) / fade);
+  }
+  return 1;
+}
+
+/** Multiplies the block by the silences' gain (no-op without silences). */
+export function applySilences(
+  silences: readonly BusSilence[],
+  blockStart: number,
+  left: Float64Array,
+  right: Float64Array,
+): void {
+  if (silences.length === 0) return;
+  for (let at = 0; at < left.length; at++) {
+    const gain = silenceGain(silences, blockStart + at);
+    if (gain === 1) continue;
+    left[at] = (left[at] ?? 0) * gain;
+    right[at] = (right[at] ?? 0) * gain;
+  }
+}
+
 /** Block size for streaming (10 s). */
 export const BUS_BLOCK_FRAMES = MIX_SAMPLE_RATE * 10;
 
@@ -81,12 +125,16 @@ function isAborted(signal: AbortSignal | undefined): boolean {
   return signal?.aborted === true;
 }
 
-/** Renders `events` over `totalFrames` frames into a 48 kHz stereo float32 WAV at `filePath`. */
+/**
+ * Renders `events` over `totalFrames` frames into a 48 kHz stereo float32 WAV at `filePath`;
+ * `silences` (reveal moments) duck the whole bus, none = the same bytes as before.
+ */
 export async function writeBusWav(
   filePath: string,
   events: readonly BusEvent[],
   totalFrames: number,
   signal: AbortSignal | undefined,
+  silences: readonly BusSilence[] = [],
 ): Promise<Result<void, FfmpegError>> {
   if (isAborted(signal)) return err(cancelled());
   let failure: FfmpegError | null = null;
@@ -103,6 +151,7 @@ export async function writeBusWav(
         const left = new Float64Array(frames);
         const right = new Float64Array(frames);
         mixBlock(events, blockStart, left, right);
+        applySilences(silences, blockStart, left, right);
         const channels = [Float32Array.from(left), Float32Array.from(right)];
         await handle.write(encodeSamples(channels, 0, frames, 'float32'));
       }

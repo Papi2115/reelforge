@@ -174,6 +174,12 @@ export interface AmbientApi {
   readonly enabled: boolean;
   /** The parameter set (undefined when off). */
   readonly params: AmbientVariation | undefined;
+  /**
+   * The shot's tension 0 (calm) .. 1 (peak) from the project's tension map (PLAN.md#12.22);
+   * undefined without one. Scenes may raise particle/effect density with it (treat undefined as
+   * 0.5).
+   */
+  readonly tension: number | undefined;
   /** The palette name used for `name` in this shot (a member of its family, or `name`). */
   tone(name: string): string;
 }

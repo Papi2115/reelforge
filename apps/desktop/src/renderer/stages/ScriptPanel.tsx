@@ -1,11 +1,14 @@
 /**
  * Brief -> Script view over the preview (PLAN.md#7.1): the brief form, the script (live progress
  * with Claude's steps while the Script stage runs, else the editor with the acceptance gate),
- * research.md and beats.md read-only, and the research sources.
+ * research.md and beats.md read-only, and the claims with their sources (PLAN.md#12.18) above the
+ * research links.
  */
 import type { JSX } from 'react';
 import type { ProjectSummary } from '../../shared/project-contract.js';
 import type { ScriptDocument, StageInfo } from '../../shared/stages-contract.js';
+import { HookLabButton } from '../hook-lab/HookLab.js';
+import { SourcesPanel } from '../publish/SourcesPanel.js';
 import { BriefForm } from './BriefForm.js';
 import { ScriptEditor } from './ScriptEditor.js';
 import { StageProgress } from './StageProgress.js';
@@ -103,6 +106,10 @@ function ScriptTabView(props: {
           )}
         </div>
       )}
+      {/* Hook lab (PLAN.md#12.16): alternative openings, before the voice-over. */}
+      <div className="hook-lab-entry">
+        <HookLabButton disabled={props.document.script === null} />
+      </div>
       <ScriptEditor
         script={props.document.script}
         targetMinutes={props.document.targetMinutes}
@@ -148,7 +155,11 @@ export function ScriptPanel(props: ScriptPanelProps): JSX.Element {
       case 'beats':
         return <ReadOnlyText text={document.beats} missing="No beats.md yet." />;
       case 'sources':
-        return <Sources document={document} />;
+        return (
+          <SourcesPanel>
+            <Sources document={document} />
+          </SourcesPanel>
+        );
     }
   };
 

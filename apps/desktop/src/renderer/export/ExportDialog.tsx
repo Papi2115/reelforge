@@ -5,7 +5,8 @@
  * the playhead frame"), then "Add to queue". Shots the final review (PLAN.md#11.5) left ⚠/✗ are
  * listed first (click one to go to it); with any listed the button reads "Export anyway", and a
  * scene that cannot render at all blocks it. The queue and the YouTube suggestions sit beside the
- * form. The last choices are saved by main when a job is queued.
+ * form, then the publish kit (PLAN.md#12.17). The last choices are saved by main when a job is
+ * queued.
  */
 import { useEffect, useRef, useState, type JSX } from 'react';
 import {
@@ -16,6 +17,7 @@ import {
 import type { ExportOptions } from '../../shared/export-contract.js';
 import { ExportAssets } from '../assets/ExportAssets.js';
 import { errorMessage } from '../log.js';
+import { PublishKit } from '../publish/PublishKit.js';
 import { ExportPreflight } from '../stages/FinalReview.js';
 import type { Preflight } from '../stages/final-review-view.js';
 import { ExportQueueList } from './ExportQueueList.js';
@@ -409,6 +411,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
               chapters={options?.chapters ?? { text: null, problem: null }}
               onMeta={data.setMeta}
             />
+            <PublishKit revision={data.meta?.generatedAt ?? ''} />
           </div>
         </div>
       </div>

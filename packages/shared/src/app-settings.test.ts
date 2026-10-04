@@ -31,6 +31,8 @@ describe('app settings', () => {
       tools: { ffmpegPath: null, whisperPath: null, whisperModel: 'large-v3-turbo-q5_0' },
       music: { enabled: true },
       scenes: { finalReview: true },
+      assetLibrary: { saveDownloaded: true, saveOwn: false },
+      taste: { learning: 'auto' },
       export: {
         preset: '1080p30',
         quality: 'standard',
@@ -63,6 +65,20 @@ describe('app settings', () => {
     const toured = applyAppSettingsPatch(gatePassed, { onboarding: { tourDone: true } });
     expect(toured.onboarding.tourDone).toBe(true);
     expect(toured.onboarding.welcomeDone).toBe(false);
+  });
+
+  it('turns taste learning on for new installs only (PLAN.md#12.13)', () => {
+    // An existing settings file without the field (an install from before 2.3): off.
+    expect(appSettingsSchema.parse({ version: 1 }).taste).toEqual({ learning: 'off' });
+    expect(migrateAppSettings({ language: 'pl' })).toMatchObject({
+      ok: true,
+      settings: { taste: { learning: 'off' } },
+    });
+    // No settings file yet: the defaults of a new install.
+    expect(defaultAppSettings().taste.learning).toBe('auto');
+    const off = applyAppSettingsPatch(defaultAppSettings(), { taste: { learning: 'off' } });
+    expect(off.taste.learning).toBe('off');
+    expect(appSettingsPatchSchema.safeParse({ taste: { learning: 'always' } }).success).toBe(false);
   });
 
   it('keeps the export dialog choices, backward-compatibly (PLAN.md#9.1)', () => {
@@ -140,7 +156,9 @@ describe('app settings', () => {
       economy: true,
       models: { storyboard: 'opus' },
       performance: { encoder: 'nvenc' },
+      assetLibrary: { saveOwn: true },
     });
+    expect(next.assetLibrary).toEqual({ saveDownloaded: true, saveOwn: true });
     expect(next.language).toBe('pl');
     expect(next.economy).toBe(true);
     expect(next.models.storyboard).toBe('opus');

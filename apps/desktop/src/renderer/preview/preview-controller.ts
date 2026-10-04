@@ -6,7 +6,7 @@
  * whose scene source changed and keeps the video playing, a failed one keeps the previous shot.
  */
 import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
-import type { RenderManifest, SceneSource } from '@reelforge/shared';
+import type { RenderManifest, SceneSource, ShotDirection } from '@reelforge/shared';
 import { planReload } from './reload-plan.js';
 
 export interface FrameSink {
@@ -23,7 +23,9 @@ export interface FrameSink {
 export type ApplyResult =
   | { readonly kind: 'unchanged'; readonly info: LoadInfo }
   | { readonly kind: 'loaded'; readonly info: LoadInfo }
-  | { readonly kind: 'reloaded'; readonly info: LoadInfo; readonly shotIds: readonly string[] };
+  | { readonly kind: 'reloaded'; readonly info: LoadInfo; readonly shotIds: readonly string[] }
+  /** Only live directions changed (PLAN.md#12.14): applied without rebuilding a shot. */
+  | { readonly kind: 'directed'; readonly info: LoadInfo; readonly shotIds: readonly string[] };
 
 interface FrameWaiter {
   /** Resolve on the first frame whose seek was issued after this serial. */
@@ -43,6 +45,22 @@ function withScene(manifest: RenderManifest, shotId: string, scene: SceneSource)
   return {
     ...manifest,
     shots: manifest.shots.map((shot) => (shot.id === shotId ? { ...shot, scene } : shot)),
+  };
+}
+
+function withDirection(
+  manifest: RenderManifest,
+  shotId: string,
+  direction: ShotDirection | undefined,
+): RenderManifest {
+  return {
+    ...manifest,
+    shots: manifest.shots.map((shot) => {
+      if (shot.id !== shotId) return shot;
+      const next = { ...shot };
+      delete next.direction;
+      return direction === undefined ? next : { ...next, direction };
+    }),
   };
 }
 
@@ -90,6 +108,14 @@ export class PreviewController {
         info = await this.harness.reloadShot(shotId, scene);
         this.manifest = withScene(this.manifest ?? loaded, shotId, scene);
         this.info = info;
+      }
+      for (const shotId of plan.directionShotIds) {
+        const direction = manifest.shots.find((shot) => shot.id === shotId)?.direction;
+        await this.harness.setShotDirection(shotId, direction ?? null);
+        this.manifest = withDirection(this.manifest ?? loaded, shotId, direction);
+      }
+      if (plan.shotIds.length === 0) {
+        return { kind: 'directed', info, shotIds: plan.directionShotIds };
       }
       return { kind: 'reloaded', info, shotIds: plan.shotIds };
     });

@@ -85,6 +85,38 @@ export async function addToCatalogue(root: string, record: AssetRecord): Promise
   await writeJsonAtomic(projectPath(root, ASSET_PATHS.catalogue), { ...catalogue, assets });
 }
 
+/** Rewrites assets.json with `update` applied to its records (validated before writing). */
+export async function updateCatalogue(
+  root: string,
+  update: (assets: readonly AssetRecord[]) => AssetRecord[],
+): Promise<AssetsFile> {
+  const catalogue = await readCatalogue(root);
+  const next = assetsFileSchema.parse({ ...catalogue, assets: update(catalogue.assets) });
+  await writeJsonAtomic(projectPath(root, ASSET_PATHS.catalogue), next);
+  return next;
+}
+
+/**
+ * Removes asset `id` from assets.json and deletes its file when it lies in the store and no other
+ * record names it. Returns the removed record (undefined: there was none).
+ */
+export async function removeFromCatalogue(
+  root: string,
+  id: string,
+): Promise<AssetRecord | undefined> {
+  const catalogue = await readCatalogue(root);
+  const removed = catalogue.assets.find((asset) => asset.id === id);
+  if (removed === undefined) return undefined;
+  const assets = catalogue.assets.filter((asset) => asset.id !== id);
+  await writeJsonAtomic(projectPath(root, ASSET_PATHS.catalogue), { ...catalogue, assets });
+  const shared = assets.some((asset) => asset.file === removed.file);
+  if (!shared && removed.file.startsWith(`${ASSET_PATHS.files}/`)) {
+    const file = resolveInProject(root, removed.file, 'asset store');
+    await rm(file, { force: true, maxRetries: 5, retryDelay: 50 });
+  }
+  return removed;
+}
+
 function proposalFile(root: string, number: number): string {
   return projectPath(root, `${ASSET_PATHS.proposals}/${String(number)}.json`);
 }

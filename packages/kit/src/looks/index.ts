@@ -8,9 +8,12 @@ import { KitError } from '../errors.js';
 import type { KitDefinition, KitKind } from '../registry.js';
 import { blueprintLook } from './blueprint/index.js';
 import { dioramaLook } from './diorama/index.js';
+import { flat2dLook } from './flat-2d/index.js';
+import { paperCutoutLook } from './paper-cutout/index.js';
 import { retroUiLook } from './retro-ui/index.js';
 import { lookDefinitions, type Look } from './types.js';
 import { VOXEL_LOOK_ID, voxelLook } from './voxel/index.js';
+import { whiteboardLook } from './whiteboard/index.js';
 
 export * from './types.js';
 export { VOXEL_LOOK_ID, voxelLook };
@@ -21,6 +24,9 @@ export const LOOKS: readonly Look[] = Object.freeze([
   retroUiLook,
   dioramaLook,
   blueprintLook,
+  paperCutoutLook,
+  whiteboardLook,
+  flat2dLook,
 ]);
 
 /** The available looks, voxel first. */

@@ -167,6 +167,11 @@ function shotContent(
     assets: assetInputs(shot.scene.source, manifest),
     // Undefined (left out of the key) unless ambient variation is on: old keys stay valid.
     ambient: manifest.ambientVariation === undefined ? undefined : (shot.ambient ?? null),
+    // Reveal moments (PLAN.md#12.27): undefined (left out) without any, so old keys stay valid.
+    timeRemap: shot.timeRemap,
+    paletteShift: shot.paletteShift,
+    // Live co-direction (PLAN.md#12.14): undefined (left out) without one.
+    direction: shot.direction,
   };
 }
 

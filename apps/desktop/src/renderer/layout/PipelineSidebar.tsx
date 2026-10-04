@@ -179,6 +179,16 @@ export function PipelineSidebar({
         <button
           type="button"
           className="small-button heading-action"
+          title="Your files, downloaded photos and your asset library"
+          onClick={() => {
+            onOpen({ kind: 'assets' });
+          }}
+        >
+          Assets
+        </button>
+        <button
+          type="button"
+          className="small-button heading-action"
           title="Topic, length, tone, audience and language of the video"
           onClick={onBrief}
         >

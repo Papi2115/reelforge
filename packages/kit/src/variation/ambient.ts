@@ -45,6 +45,12 @@ function axisValue(budget: VariationBudget, axis: ContinuousAxis, level: number,
   return neutral + (raw - neutral) * scale;
 }
 
+/**
+ * Tension map (PLAN.md#12.22): from this tension up a growing share of the tone families takes
+ * its darker member (none at this value, every family that has one at tension 1).
+ */
+export const TENSION_DARKEN_FROM = 0.5;
+
 function checkInput(input: AmbientInput): number {
   const scale = input.scale ?? 1;
   if (!Number.isFinite(scale) || scale < 0) {
@@ -55,16 +61,36 @@ function checkInput(input: AmbientInput): number {
   if (!Number.isInteger(input.actIndex) || input.actIndex < 0) {
     throw new RangeError(`ambientVariation: actIndex must be an integer >= 0`);
   }
+  const tension = input.tension;
+  if (tension !== undefined && !(tension >= 0 && tension <= 1)) {
+    throw new RangeError(`ambientVariation: tension must be in 0..1 (got ${String(tension)})`);
+  }
   return scale;
+}
+
+/** Share of the tone families a shot of this tension darkens. */
+export function tensionDarkShare(tension: number | undefined): number {
+  if (tension === undefined) return 0;
+  return Math.min(1, Math.max(0, (tension - TENSION_DARKEN_FROM) / (1 - TENSION_DARKEN_FROM)));
 }
 
 function toneMap(input: AmbientInput, share: number): Record<string, string> {
   const { seed, budget, shotId, index, actIndex } = input;
   const roll = input.roll ?? '-';
+  const dark = tensionDarkShare(input.tension);
   const tones: Record<string, string> = {};
   for (const family of Object.keys(budget.tones).sort()) {
     const members = budget.tones[family] ?? [];
     if (members.length === 0) continue;
+    const darker = input.darker?.[family];
+    if (
+      darker !== undefined &&
+      members.includes(darker) &&
+      unitHash(`dark:${family}:${String(index)}:${shotId}`, seed) < dark
+    ) {
+      tones[family] = darker;
+      continue;
+    }
     if (unitHash(`tone:${family}:${String(index)}:${shotId}`, seed) >= share) continue;
     const pick = hash32(`tone:${family}:act:${String(actIndex)}:${roll}`, seed) % members.length;
     const member = members[pick];
@@ -105,6 +131,7 @@ export function ambientVariation(input: AmbientInput): AmbientVariation {
       Math.cos(angle) * maxYaw * scale,
       Math.sin(angle) * maxPitch * scale,
     ] as const),
+    ...(input.tension === undefined ? {} : { tension: input.tension }),
   });
 }
 

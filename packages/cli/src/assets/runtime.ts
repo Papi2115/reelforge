@@ -3,6 +3,7 @@
  * (all injectable through the CLI context so tests use a local server and fixed time), plus the
  * project's research settings read from project.json.
  */
+import path from 'node:path';
 import { projectFileSchema, projectResearchMode } from '@reelforge/shared';
 import { ProjectError } from '../errors.js';
 import { checkJsonFile } from '../project/files.js';
@@ -10,6 +11,7 @@ import { PROJECT_PATHS } from '../project/paths.js';
 import type { ResearchSettings } from './guard.js';
 import { urlPolicy } from './guard.js';
 import { getJson, type TransportOptions } from './http.js';
+import { ASSET_LIBRARY_ENV } from './library/store.js';
 import {
   createSourceRegistry,
   type SourceAdapter,
@@ -17,14 +19,35 @@ import {
   type SourceRegistry,
 } from './sources/index.js';
 
+/** The global asset library (PLAN.md#12.19) as the asset layer may use it. */
+export interface AssetLibraryAccess {
+  /** Library folder (`<app data>/library`). */
+  readonly dir: string;
+  /** Save downloaded, approved / verified assets into it automatically (app setting; stages). */
+  readonly saveDownloaded: () => boolean;
+}
+
 export interface AssetRuntime {
   readonly sources: SourceRegistry;
   readonly transport: TransportOptions;
   readonly now: () => Date;
+  /** Absent: no library (outside the app, unless REELFORGE_ASSET_LIBRARY names one). */
+  readonly library?: AssetLibraryAccess | undefined;
 }
 
-export function defaultAssetRuntime(): AssetRuntime {
-  return { sources: createSourceRegistry(), transport: {}, now: () => new Date() };
+/** The library the app named for Claude's processes (an absolute folder), else undefined. */
+export function libraryFromEnv(env: NodeJS.ProcessEnv): AssetLibraryAccess | undefined {
+  const dir = env[ASSET_LIBRARY_ENV] ?? '';
+  return dir !== '' && path.isAbsolute(dir) ? { dir, saveDownloaded: () => false } : undefined;
+}
+
+export function defaultAssetRuntime(env: NodeJS.ProcessEnv = process.env): AssetRuntime {
+  return {
+    sources: createSourceRegistry(),
+    transport: {},
+    now: () => new Date(),
+    library: libraryFromEnv(env),
+  };
 }
 
 /**

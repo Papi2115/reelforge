@@ -70,6 +70,10 @@ async function handle(request: RpcRequest): Promise<void> {
       if (!runtime) throw new EngineError('not-loaded', 'pick() before a successful load()');
       const result = runtime.pick(request.t, request.x, request.y) ?? null;
       post({ ...reply, ok: true, method: 'pick', result });
+    } else if (request.method === 'direct') {
+      if (!runtime) throw new EngineError('not-loaded', 'direct() before a successful load()');
+      runtime.setShotDirection(request.shotId, request.direction ?? undefined);
+      post({ ...reply, ok: true, method: 'direct', result: null });
     } else if (request.method === 'reloadShot') {
       const result = await reloadShot(request.shotId, request.scene);
       post({ ...reply, ok: true, method: 'reloadShot', result });

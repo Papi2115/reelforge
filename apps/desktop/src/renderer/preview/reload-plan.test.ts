@@ -40,7 +40,29 @@ describe('planReload', () => {
       const shot = manifest.shots[1];
       if (shot) shot.scene.source = 'two, edited';
     });
-    expect(planReload(BASE, next)).toEqual({ kind: 'shots', shotIds: ['s02'] });
+    expect(planReload(BASE, next)).toEqual({
+      kind: 'shots',
+      shotIds: ['s02'],
+      directionShotIds: [],
+    });
+  });
+
+  it('swaps live directions in without a rebuild (PLAN.md#12.14)', () => {
+    const directed = edit((manifest) => {
+      const shot = manifest.shots[0];
+      if (shot) shot.direction = { dim: -0.25 };
+    });
+    expect(planReload(BASE, directed)).toEqual({
+      kind: 'shots',
+      shotIds: [],
+      directionShotIds: ['s01'],
+    });
+    expect(planReload(directed, BASE)).toEqual({
+      kind: 'shots',
+      shotIds: [],
+      directionShotIds: ['s01'],
+    });
+    expect(planReload(directed, structuredClone(directed))).toEqual({ kind: 'unchanged' });
   });
 
   it('loads in full when a project prop (kit-ext) changes: every shot may use it', () => {

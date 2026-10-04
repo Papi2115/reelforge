@@ -229,6 +229,7 @@ export {
   MUSIC_MOODS,
   generateActMusic,
   generateMusic,
+  moodTempoRange,
   musicCacheKey,
   musicFilePath,
   planActMusic,
@@ -291,7 +292,13 @@ export {
   type StemName,
 } from './mix/report.js';
 export { STEM_FILE_NAMES } from './mix/master.js';
-export { mixAudio, type MixAudioOptions, type MixProgress, type MixStage } from './mix/mix.js';
+export {
+  mixAudio,
+  type MixAudioOptions,
+  type MixProgress,
+  type MixSilenceWindow,
+  type MixStage,
+} from './mix/mix.js';
 export {
   MAX_PREVIEW_WINDOW_S,
   mixPreview,
@@ -399,3 +406,27 @@ export {
   type RasterImage,
 } from './assets/pixels.js';
 export { refAt, refId, refLiterals, referencedAssetRefs } from './assets/refs.js';
+export {
+  boundaryStrength,
+  chapterLinesOf,
+  chapterTitle,
+  MAX_TITLE_WORDS,
+  planChapterStarts,
+  titleChapters,
+  type ChapterStarts,
+  type PlanShot,
+} from './publish/chapter-plan.js';
+export {
+  buildPublishKit,
+  hookParagraph,
+  LINKS_PLACEHOLDER,
+  publishChapters,
+  publishTags,
+  PUBLISH_DIR,
+  PUBLISH_FILES,
+  unverifiedWarning,
+  type PublishCredits,
+  type PublishFileName,
+  type PublishKit,
+  type PublishKitInput,
+} from './publish/publish-kit.js';

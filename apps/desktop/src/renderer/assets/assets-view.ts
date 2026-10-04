@@ -33,9 +33,10 @@ export function licenceBadge(licence: AssetLicenceView): LicenceBadge {
       };
 }
 
-/** `wikimedia` -> `Wikimedia Commons`; `web` -> a direct link (full auto). */
+/** `wikimedia` -> `Wikimedia Commons`; `web` -> a direct link (full auto); `own` -> your file. */
 export function sourceLabel(source: string): string {
   if (source === 'web') return 'Web (direct link)';
+  if (source === 'own') return 'Your file';
   return RESEARCH_SOURCE_CHOICES.find((choice) => choice.id === source)?.label ?? source;
 }
 
@@ -71,9 +72,44 @@ export function sizeText(width: number | null, height: number | null): string | 
   return width === null || height === null ? null : `${String(width)}×${String(height)}`;
 }
 
-/** Downloaded assets with an unverified licence (⚠). */
+/** Downloaded assets with an unverified licence (⚠); the user's own files never are. */
 export function unverifiedAssets(assets: readonly AssetView[]): AssetView[] {
-  return assets.filter((asset) => !asset.licence.verified);
+  return assets.filter((asset) => !asset.own && !asset.licence.verified);
+}
+
+/** The user's own files and everything else (downloads, library copies of downloads). */
+export function splitAssets(assets: readonly AssetView[]): {
+  readonly own: readonly AssetView[];
+  readonly downloaded: readonly AssetView[];
+} {
+  return {
+    own: assets.filter((asset) => asset.own),
+    downloaded: assets.filter((asset) => !asset.own),
+  };
+}
+
+/** File types "Add my assets" takes (main checks the content again). */
+export const OWN_ASSET_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'webm'] as const;
+
+/** Paths of dropped files with an image/video extension, and how many were skipped. */
+export function droppedMedia(paths: readonly string[]): {
+  readonly accepted: readonly string[];
+  readonly skipped: number;
+} {
+  const accepted = paths.filter((file) => {
+    const extension = /\.([a-z0-9]+)$/i.exec(file)?.[1]?.toLowerCase() ?? '';
+    return file !== '' && (OWN_ASSET_EXTENSIONS as readonly string[]).includes(extension);
+  });
+  return { accepted, skipped: paths.length - accepted.length };
+}
+
+/** The text under an own file: kind, size and where it also lives. */
+export function ownAssetMeta(asset: AssetView): string {
+  const size = sizeText(asset.width, asset.height);
+  const parts = [asset.kind === 'image' ? 'Image' : 'Video'];
+  if (size !== null) parts.push(size);
+  if (asset.fromLibrary) parts.push('from your library');
+  return parts.join(' · ');
 }
 
 export interface ExportAssetsView {
@@ -86,7 +122,8 @@ export interface ExportAssetsView {
 
 /** The export dialog's asset section (nothing to show without assets). */
 export function exportAssetsView(state: AssetsState | undefined): ExportAssetsView | null {
-  if (state?.status !== 'ok' || state.assets.length === 0) return null;
+  // The user's own files need no credit and no warning.
+  if (state?.status !== 'ok' || state.assets.every((asset) => asset.own)) return null;
   const unverified = unverifiedAssets(state.assets);
   const count = unverified.length;
   return {
@@ -110,7 +147,9 @@ export function assetsSummary(state: AssetsState): string {
   if (state.mode === 'allowlist') {
     parts.push(`sources: ${state.sources.map(sourceLabel).join(', ') || 'none'}`);
   }
-  parts.push(`${String(state.assets.length)} downloaded`);
+  const { own, downloaded } = splitAssets(state.assets);
+  if (own.length > 0) parts.push(`${String(own.length)} your file${own.length === 1 ? '' : 's'}`);
+  parts.push(`${String(downloaded.length)} downloaded`);
   const flagged = unverifiedAssets(state.assets).length;
   if (flagged > 0) parts.push(`${String(flagged)} ⚠ unverified`);
   return parts.join(' · ');

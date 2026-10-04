@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "source": "claude",
+  "note": "A curious hook, a calm setup, rising curiosity about the rainbow, the payoff on violet bending most, then Newton as the release.",
+  "points": [
+    {
+      "t": 0,
+      "v": 0.45
+    },
+    {
+      "t": 5.33,
+      "v": 0.25
+    },
+    {
+      "t": 11.675,
+      "v": 0.5
+    },
+    {
+      "t": 19.295,
+      "v": 0.6
+    },
+    {
+      "t": 26.745,
+      "v": 0.85
+    },
+    {
+      "t": 30.325,
+      "v": 0.5
+    },
+    {
+      "t": 36.705,
+      "v": 0.25
+    }
+  ],
+  "segments": [
+    {
+      "from": 0,
+      "to": 5.33,
+      "kind": "rising",
+      "label": "the hook"
+    },
+    {
+      "from": 5.33,
+      "to": 11.675,
+      "kind": "calm",
+      "label": "the setup"
+    },
+    {
+      "from": 11.675,
+      "to": 26.745,
+      "kind": "rising",
+      "label": "why water bends light"
+    },
+    {
+      "from": 26.745,
+      "to": 30.325,
+      "kind": "peak",
+      "label": "red versus violet"
+    },
+    {
+      "from": 30.325,
+      "to": 36.705,
+      "kind": "release",
+      "label": "Newton names it"
+    }
+  ]
+}

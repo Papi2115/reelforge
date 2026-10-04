@@ -14,7 +14,10 @@ import {
 import { CUE_RULES } from '../cue-rules.js';
 import { BLUEPRINT_PALETTE } from './blueprint.js';
 import { DIORAMA_PALETTE } from './diorama.js';
+import { FLAT_2D_PALETTE } from './flat-2d.js';
+import { PAPER_CUTOUT_PALETTE } from './paper-cutout.js';
 import { RETRO_UI_PALETTE } from './retro-ui.js';
+import { WHITEBOARD_PALETTE } from './whiteboard.js';
 import {
   pick,
   type PaletteKind,
@@ -34,6 +37,9 @@ export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   'retro-ui': RETRO_UI_PALETTE,
   diorama: DIORAMA_PALETTE,
   blueprint: BLUEPRINT_PALETTE,
+  'flat-2d': FLAT_2D_PALETTE,
+  whiteboard: WHITEBOARD_PALETTE,
+  'paper-cutout': PAPER_CUTOUT_PALETTE,
 };
 
 /** A palette by id (undefined for unknown ids). */

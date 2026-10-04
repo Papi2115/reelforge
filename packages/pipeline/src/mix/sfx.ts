@@ -44,6 +44,7 @@ import {
   relayClick,
   rulerTickSfx,
 } from './sfx/blueprint.js';
+import { chimeUp, flatTick, shapePop, swooshSoft, textSnap, whooshFlat } from './sfx/flat-2d.js';
 import { chair, ledBlipSfx, paperShuffle, serverWhir, softKeys } from './sfx/diorama.js';
 import { birdChirp, hornBlip, servoSfx, trafficPass } from './sfx/diorama-world.js';
 import {
@@ -56,6 +57,24 @@ import {
   windowOpen,
 } from './sfx/retro-ui.js';
 import { crtZap, diskSeek, modemHandshake } from './sfx/retro-ui-machines.js';
+import {
+  boardChime,
+  boardTap,
+  boardTick,
+  capPop,
+  eraserSwipe,
+  markerSqueak,
+  markerStroke,
+} from './sfx/whiteboard.js';
+import {
+  pageFlip,
+  paperPop,
+  paperRustle,
+  paperSlide,
+  scissorSnip,
+  tapeTear,
+  woodTick,
+} from './sfx/paper-cutout.js';
 import { writeWavAtomic } from './wav.js';
 
 export type { SfxCategory } from './sfx/layers.js';
@@ -125,6 +144,29 @@ export const SFX_RECIPES = [
   'measure-blip',
   'relay-click',
   'data-ping',
+  // flat-2d palette
+  'shape-pop',
+  'swoosh-soft',
+  'whoosh-flat',
+  'flat-tick',
+  'chime-up',
+  'text-snap',
+  // whiteboard palette
+  'marker-stroke',
+  'marker-squeak',
+  'cap-pop',
+  'eraser-swipe',
+  'board-tap',
+  'board-chime',
+  'board-tick',
+  // paper-cutout palette
+  'paper-rustle',
+  'paper-slide',
+  'scissor-snip',
+  'tape-tear',
+  'paper-pop',
+  'wood-tick',
+  'page-flip',
 ] as const;
 export type SfxRecipe = (typeof SFX_RECIPES)[number];
 
@@ -186,6 +228,26 @@ const DEFINITIONS: Readonly<Record<SfxRecipe, SfxDefinition>> = {
   'measure-blip': measureBlipSfx,
   'relay-click': relayClick,
   'data-ping': dataPing,
+  'shape-pop': shapePop,
+  'swoosh-soft': swooshSoft,
+  'whoosh-flat': whooshFlat,
+  'flat-tick': flatTick,
+  'chime-up': chimeUp,
+  'text-snap': textSnap,
+  'marker-stroke': markerStroke,
+  'marker-squeak': markerSqueak,
+  'cap-pop': capPop,
+  'eraser-swipe': eraserSwipe,
+  'board-tap': boardTap,
+  'board-chime': boardChime,
+  'board-tick': boardTick,
+  'paper-rustle': paperRustle,
+  'paper-slide': paperSlide,
+  'scissor-snip': scissorSnip,
+  'tape-tear': tapeTear,
+  'paper-pop': paperPop,
+  'wood-tick': woodTick,
+  'page-flip': pageFlip,
 };
 
 const mapRecipes = <T>(pick: (definition: SfxDefinition) => T): Readonly<Record<SfxRecipe, T>> =>

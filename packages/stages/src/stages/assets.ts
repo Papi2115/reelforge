@@ -38,6 +38,7 @@ import {
   type StageError,
   type StageSummary,
 } from '../types.js';
+import { saveDownloadsToLibrary, withLibrarySave } from './assets-library.js';
 import { render } from './repair.js';
 
 /** `- s04 · apollo-launch (image): the launch · search: "apollo 11" · shown as: photo on a CRT` */
@@ -168,12 +169,9 @@ async function research(
   const after = await catalogue(ctx);
   if (!after.ok) return after;
   const known = new Set(before.value.assets.map((record) => record.id));
-  return ok(
-    fetchedSummary(
-      project,
-      after.value.assets.filter((record) => !known.has(record.id)),
-    ),
-  );
+  const added = after.value.assets.filter((record) => !known.has(record.id));
+  const saved = await saveDownloadsToLibrary(ctx, added);
+  return ok(withLibrarySave(fetchedSummary(project, added), saved));
 }
 
 /** Downloads the approved items of reviewed packages (ask mode) through the guarded layer. */
@@ -210,12 +208,20 @@ async function fetchApproved(ctx: StageContext): Promise<Result<StageSummary, St
     keys.length === 0
       ? 'Nothing approved to download: the shots use kit visuals'
       : `Downloaded ${plural(fetched.length, 'approved asset')}${failures.length > 0 ? `, ${String(failures.length)} failed` : ''}`;
+  const after = await catalogue(ctx);
+  const records = after.ok
+    ? after.value.assets.filter((record) => fetched.includes(record.id))
+    : [];
+  const saved = await saveDownloadsToLibrary(ctx, records);
   return ok(
-    summary(message, fetched.length > 0, failures, {
-      fetched: fetched.length,
-      failed: failures.length,
-      awaitingReview: false,
-    }),
+    withLibrarySave(
+      summary(message, fetched.length > 0, failures, {
+        fetched: fetched.length,
+        failed: failures.length,
+        awaitingReview: false,
+      }),
+      saved,
+    ),
   );
 }
 

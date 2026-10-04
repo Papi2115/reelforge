@@ -57,7 +57,7 @@ const PAINTERS: readonly (readonly [string, RetroPainter])[] = [
 ];
 
 describe('look retro-ui', () => {
-  it('is available with five templates, one environment and docs', () => {
+  it('is available with six templates (redactedBlock: PLAN.md#12.26), one environment and docs', () => {
     expect(retroUiLook.available).toBe(true);
     expect(retroUiLook.rolls).toEqual(['B', 'C']);
     expect(lookDefinitions(retroUiLook).map((definition) => definition.name)).toEqual([
@@ -67,6 +67,7 @@ describe('look retro-ui', () => {
       'retroBrowser',
       'retroDocument',
       'retroCrt',
+      'redactedBlock',
     ]);
     for (const name of ['retroWindow', 'retroCrt', 'fitDistance', 'show(child)', 'mark:<text>']) {
       expect(retroUiLook.docs).toContain(name);

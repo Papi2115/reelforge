@@ -146,8 +146,38 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.helpOpen, handlers.helpOpen);
   registerInvoke(IPC.projectSettingsGet, handlers.projectSettingsGet);
   registerInvoke(IPC.projectSettingsUpdate, handlers.projectSettingsUpdate);
+  registerInvoke(IPC.tensionSave, handlers.tensionSave);
+  registerInvoke(IPC.tensionReset, handlers.tensionReset);
+  registerInvoke(IPC.tensionPropose, handlers.tensionPropose);
+  registerInvoke(IPC.dramaturgyState, handlers.dramaturgyState);
+  registerInvoke(IPC.editingState, handlers.editingState);
+  registerInvoke(IPC.repetitionAction, handlers.repetitionAction);
+  registerInvoke(IPC.momentDecide, handlers.momentDecide);
+  registerInvoke(IPC.directionsState, handlers.directionsState);
+  registerInvoke(IPC.directionApply, handlers.directionApply);
   registerInvoke(IPC.assetsState, handlers.assetsState);
   registerInvoke(IPC.assetsReview, handlers.assetsReview);
+  registerInvoke(IPC.assetsImport, handlers.assetsImport);
+  registerInvoke(IPC.assetsEdit, handlers.assetsEdit);
+  registerInvoke(IPC.assetsRemove, handlers.assetsRemove);
+  registerInvoke(IPC.assetsLibrary, handlers.assetsLibrary);
+  registerInvoke(IPC.libraryState, handlers.libraryState);
+  registerInvoke(IPC.libraryEdit, handlers.libraryEdit);
+  registerInvoke(IPC.libraryRemove, handlers.libraryRemove);
+  registerInvoke(IPC.libraryUse, handlers.libraryUse);
+  registerInvoke(IPC.publishKit, handlers.publishKit);
+  registerInvoke(IPC.publishSave, handlers.publishSave);
+  registerInvoke(IPC.publishOpenFolder, handlers.publishOpenFolder);
+  registerInvoke(IPC.claimsState, handlers.claimsState);
+  registerInvoke(IPC.claimsCheck, handlers.claimsCheck);
+  registerInvoke(IPC.claimsEdit, handlers.claimsEdit);
+  registerInvoke(IPC.hookLabState, handlers.hookLabState);
+  registerInvoke(IPC.hookLabGenerate, handlers.hookLabGenerate);
+  registerInvoke(IPC.hookLabPick, handlers.hookLabPick);
+  registerInvoke(IPC.hookLabDiscard, handlers.hookLabDiscard);
+  registerInvoke(IPC.tasteState, handlers.tasteState);
+  registerInvoke(IPC.tasteReset, handlers.tasteReset);
+  registerInvoke(IPC.tasteExport, handlers.tasteExport);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

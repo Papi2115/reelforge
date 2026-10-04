@@ -8,7 +8,15 @@ import type { AmbienceRecipe, SfxCategory, SfxRecipe } from '@reelforge/pipeline
 import type { StoryboardShot } from '@reelforge/shared';
 import type { CueEventKind, RecipeChoice } from '../cue-rules.js';
 
-export const SOUND_PALETTE_IDS = ['voxel', 'retro-ui', 'diorama', 'blueprint'] as const;
+export const SOUND_PALETTE_IDS = [
+  'voxel',
+  'retro-ui',
+  'diorama',
+  'blueprint',
+  'flat-2d',
+  'whiteboard',
+  'paper-cutout',
+] as const;
 export type SoundPaletteId = (typeof SOUND_PALETTE_IDS)[number];
 
 export interface PaletteChoice extends RecipeChoice {

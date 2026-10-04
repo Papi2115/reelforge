@@ -14,6 +14,7 @@ import {
   type StoryboardShot,
   type WordsFile,
 } from '@reelforge/shared';
+import { loadSceneDramaturgy, type SceneDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson } from '../files.js';
 import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
@@ -49,8 +50,10 @@ export interface SceneJob {
   readonly locked: ReadonlySet<string>;
   /** Asset research is on (PLAN.md#12.10): build prompts list the shot's needs and assets. */
   readonly research: boolean;
-  /** assets.json entries (empty when research is off). */
+  /** assets.json entries (also in mode off: assigned own/library assets, PLAN.md#12.12). */
   readonly assets: readonly AssetRecord[];
+  /** Interrupt and open-loop directives (PLAN.md#12.25-12.26); absent = switches off. */
+  readonly dramaturgy?: SceneDramaturgy | undefined;
 }
 
 let defaultKitNames: KitNames | undefined;
@@ -81,7 +84,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   const kitNames = tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog());
   const settings = ctx.settings.scenes;
   const styleId = project.value.style;
-  const assets = await sceneAssetCatalogue(ctx.projectDir, project.value);
+  const assets = await sceneAssetCatalogue(ctx.projectDir);
   return ok({
     ctx,
     frames: tools.frames,
@@ -100,6 +103,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     locked: locked.value,
     research: projectResearchMode(project.value) !== 'off',
     assets,
+    dramaturgy: await loadSceneDramaturgy(ctx.projectDir, project.value),
   });
 }
 

@@ -1,5 +1,6 @@
 /** Filesystem locations of the app (pure; Electron supplies the base directories). */
 import path from 'node:path';
+import { TASTE_PROFILE_FILE } from '@reelforge/shared';
 
 export const APP_NAME = 'ReelForge';
 /**
@@ -87,6 +88,22 @@ export function appLayout(location: AppLocation): AppLayout {
 /** Recently opened projects (start screen). */
 export function recentProjectsFile(userDataDir: string): string {
   return path.join(userDataDir, 'recent-projects.json');
+}
+
+/**
+ * The global asset library (PLAN.md#12.19, ADR-015): `library.json` + `files/`, shared by every
+ * project, outside every project folder and outside git.
+ */
+export function assetLibraryDir(userDataDir: string): string {
+  return path.join(userDataDir, 'library');
+}
+
+/**
+ * The taste profile (PLAN.md#12.13, ADR-022): one local file for every project, never in a project
+ * or in git.
+ */
+export function tasteFile(userDataDir: string): string {
+  return path.join(userDataDir, TASTE_PROFILE_FILE);
 }
 
 /** App settings (PLAN.md#6.7). */

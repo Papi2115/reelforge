@@ -16,6 +16,7 @@ import {
   normalizePropName,
   type StoryboardShot,
 } from '@reelforge/shared';
+import { sceneDramaturgyVars } from '../dramaturgy.js';
 import { readProjectText } from '../files.js';
 import { sceneLookVars } from '../looks.js';
 import { projectPropNames } from '../props/builder.js';
@@ -77,7 +78,9 @@ function neighbours(job: SceneJob, shot: StoryboardShot): object[] {
 /** The shot as the build prompt shows it: annotation plan and asset needs go in their sections. */
 function shotForPrompt(shot: StoryboardShot): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(shot).filter(([key]) => key !== 'annotations' && key !== 'assetNeeds'),
+    Object.entries(shot).filter(
+      ([key]) => key !== 'annotations' && key !== 'assetNeeds' && key !== 'interrupt',
+    ),
   );
 }
 
@@ -110,11 +113,14 @@ async function buildTurn(
     styleId: job.styleId,
     ...sceneLookVars(job.lookMode, shot),
     annotationPlan: annotationPlanText(shot),
+    ...sceneDramaturgyVars(job.dramaturgy, job.shots, shot),
     ...shotAssetVars(shot, job.research, job.assets),
     ...(newProps.length === 0
       ? {}
       : { newProps: newProps.map((name) => `kit.props.${name}`).join(', ') }),
     ...variantVars(variant),
+    // Taste profile (PLAN.md#12.13), not for variants: they must stay genuinely different.
+    ...(variant === undefined ? { tasteProfile: job.ctx.taste?.profile() } : {}),
   });
   if (!prompt.ok) return prompt;
   const turn = await job.ctx.claude({

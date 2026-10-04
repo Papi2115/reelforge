@@ -224,3 +224,129 @@ photo otherwise); diorama `dioramaCity({ billboard })`, `dioramaOffice({ screen 
 stylises the picture into the colours the look asks for (style palette, retro roles, or luminance
 for halftone ramps). Render test and goldens: `packages/kit/test/render/kit-assets.test.ts`,
 `asset-*`; contact sheets `packages/kit/out/contact/assets*.png`.
+
+## Look: whiteboard
+
+`packages/kit/src/looks/whiteboard/` (PLAN.md#12.7; goldens `look-whiteboard-*`, contact sheets
+`packages/kit/out/contact/look-whiteboard-<style>.png`). Rolls B and C; treatments
+`metaphor-object`, `node-graph/timeline`, `counter/odometer`, `kinetic-text`, `title-card`; sound
+palette `whiteboard` (`marker-stroke`, `marker-squeak`, `cap-pop`, `eraser-swipe`, `board-tap`,
+`board-chime`, `board-tick`; bed `room-tone`) and variation budget `whiteboard` (none yet).
+
+- **Templates** (each a full-frame board): `kit.fx.whiteboardSketch` (strokes from a compact
+  stroke language: `line`, `curve`, `arrow`, `box`, `circle`, `bracket`, `underline`, `zigzag`,
+  `hatch`, `dot`, `write x y TEXT`, plus 24 doodles such as `person`, `bulb`, `gear`, `house`,
+  `computer`, `axes`, `bars`, `pie`, `cloud`, `magnifier`, `rocket`, `coin`, `heart`, `question`,
+  `check`), `whiteboardText` (lines written glyph by glyph, emphasis underline / double / circle /
+  box / strike), `whiteboardDiagram` (`flow` with auto layout row / snake / column / cycle,
+  `timeline`, `equation`), `whiteboardCounter` (numbers written, crossed out and replaced, the last
+  one circled) and `kit.env.whiteboardBoard` (bare board or handwritten title card).
+- **Stroke model.** A drawing is a list of marks; a mark is one thing drawn in one ink (black,
+  blue, red, green role chains): pen paths of integer pixels (Bezier and arcs flattened, wobbled by
+  seeded smooth noise rounded to whole pixels, then Bresenham) inked with a 2-3 px nib, or font
+  cells for handwriting (the kit's 5x7 caps put in pen order, slanted, bobbing a pixel). Progress is
+  a pure function of t: the pen walks the paths along their arc length (each path eases in and out,
+  lifts cost time by distance), with the hand sprite (or a bare marker) at the head and travelling
+  between marks. Timing per item: `at` (seconds or phrase), `duration`, or auto by ink length at
+  `speed`; auto items hurry (down to a third of their time) so the hand is free for the next
+  pinned phrase. `erase: [{ at }]` passes wipe everything drawn before them with a ragged,
+  Bayer-dithered front and the felt eraser at it, leaving a faint ghost.
+- **How it renders.** Like blueprint: a CPU raster at the shot size, the surface (wall, aluminium
+  frame, grain, ghosts of old marker, optional dot/line grid, tray with markers and eraser) painted
+  once and restored per frame, marks and sprites on top, palette colours only, on a clip-space quad
+  (no depth write) through the shared post pass. `region` + `board: false` make overlays.
+- **Sync and annotations.** `board.strokeTime(i)` gives `{ t, tEnd }` of item i (for `ctx.sfx`),
+  `board.stroke(i)` and `board.point(name)` are `ctx.annotate` screen targets (`'id'`,
+  `'id.top'`, `'id.end'`, `'stroke:<i>'`, `'word:<k>'`, `'value:<i>'`, `'pen'`). Transitions: the
+  wildcard styles (`pixel-wipe`, `dither-dissolve`, `glitch-cut`, `iris`, `scanline-sweep`,
+  `mosaic-reveal`; `pixel-sort-melt` with a C-roll side) pair with it; no special style of its own.
+
+## Look: paper-cutout
+
+`packages/kit/src/looks/paper-cutout/` (PLAN.md#12.6; render test
+`packages/kit/test/render/look-paper-cutout.test.ts` + `look-paper-cutout-scenes.ts`, goldens
+`look-paper-cutout-*`, contact sheets `packages/kit/out/contact/look-paper-cutout-<style>.png`).
+Rolls A, B and C; treatments `metaphor-object`, `character-scene`, `3d-reconstruction`,
+`title-card`, `montage/transition`; sound palette `paper-cutout` (`paper-rustle`, `paper-slide`,
+`scissor-snip`, `tape-tear`, `paper-pop`, `wood-tick`, `page-flip`; bed `room-tone`, no bass) and
+variation budget `paper-cutout` (none yet).
+
+- **Stage and pieces.** `kit.env.paperStage` is the set: a torn-paper sky sheet (`backdrop` day /
+  dusk / night, or a plain kraft / paper sheet), built-in depth strips (`scenery` hills with a row
+  of trees, a two-row city skyline, or none; `layers` 1-4), sun / moon / stars / clouds, and the
+  clock. Pieces are props placed on it with `stage.place(piece, { layer, x, y })` (layers 1 far ..
+  5 near, 0 = pasted on the sky; x, y in 640x360 px): `paperHills`, `paperTrees`, `paperClouds`,
+  `paperBuildings` (strips spanning the frame plus a pan margin), `paperRoom` (toy-theatre room:
+  shell, furniture one layer nearer, curtains two layers nearer), `paperPuppet` (jointed character
+  with brass fasteners: idle / wave / walk / talk / point / cheer, `walk: { from, to, start, end }`),
+  `paperSign`, `paperLabel`, `paperCard` (lettered paper; text never rotates), `paperStack`
+  (photos and documents dealt one by one; `asset` puts a stylised picture on top).
+- **How it renders.** Each piece is cut as palette-index sprites: scanline polygons and ellipses
+  with seeded torn edges, a light rim on torn / cut edges (two steps lighter on near-black paper),
+  sparse 2-3 px grain fibres one shade darker. The stage composites all sprites into one frame-size
+  index raster back to front and shows it on a clip-space quad (no depth write: never outlined,
+  still dithered, vignetted and palette-snapped by the shared post pass). Before a piece is pasted
+  its drop shadow darkens what lies beneath through a palette `shade` map (CIELAB nearest darker
+  colour, a few hand-tuned Crisp pairs); the offset and the soft 50 % checker fringe grow with the
+  layer gap, and shadows of several pieces stack. `light: 'low'` lifts shadows above each layer's
+  edge (landscapes), `'high'` drops them down-right (rooms, desks, walls).
+- **Parallax and camera.** Layers sit at fixed depths in front of the preset camera
+  (`stage.camera({ t, pan, rise, drift })`: fov 30, the middle layer 10 units away, `parallax`
+  scales the gaps); every layer is drawn 1:1 in frame pixels at the preset. Each frame the stage
+  projects every piece's world position through the camera actually used (the pan, an idle sway,
+  `ctx.camera.parallax`, the ambient drift) and pastes it at whole pixels, so near layers move
+  more than far ones and annotations on piece anchors line up. Lateral moves only: an orbit, dolly
+  or push-in would not scale the paper.
+- **Stop-motion.** Moving pieces pose from `t` snapped to the stage clock (`fps`, default 8; 12
+  for smoother) with a seeded 1-px hand jitter per frame (`wobble`); puppets are re-cut per frame
+  from pure pose functions, so any seek order gives the same image and one image lasts 1/8 s.
+- **Anchors.** World points kept up to date on every `stage.update(t)`: puppet `head`, `face`,
+  `hand`, `feet`; room items (`window`, `shelf`, `table`, ...); stack `photo`, `caption`; card
+  `title`, `subtitle`; sign `text`, `base`; trees `tree<i>`, clouds `cloud<i>`, hills `peak`;
+  stage `horizon`, `layer<n>`; any frame pixel via `stage.point(layer, x, y)`.
+- **Transitions.** No special style of its own: the wildcard styles (`pixel-wipe`,
+  `dither-dissolve`, `glitch-cut`, `iris`, `scanline-sweep`, `mosaic-reveal`; `pixel-sort-melt`
+  with a C-roll side) pair with it; the look-pair golden matrix is a fixed circuit of the 2.0
+  looks and was not extended.
+
+## Look: flat-2d
+
+`packages/kit/src/looks/flat-2d/` (PLAN.md#12.5; goldens `look-flat-2d-*` incl. the icon sheet
+`look-flat-2d-sheet-t1`, contact sheets `packages/kit/out/contact/look-flat-2d-<style>.png`).
+Rolls B and C; treatments `kinetic-text`, `title-card`, `metaphor-object`, `counter/odometer`,
+`data-chart-3d`, `node-graph/timeline`; sound palette and variation budget `flat-2d` (no budget
+in the presets yet: the stage does not drift between shots).
+
+- **When.** Explainer beats in clean flat motion graphics: a concept as icons, a list of steps,
+  a percentage, A vs B, one big number, a phrase that must land, a name plate. Blueprint stays
+  the look for charts, maps, schematics and timelines from data; retro-ui for proof on a screen
+  or on paper.
+- **Templates** (each a board, see below): `kit.env.flatStage` (field in a tone family:
+  indigo, violet, teal, night, wine, cream; pattern solid, dithered gradient, spot, stripes,
+  dots, grid, checker or sunburst rays, drifting with t; seeded floating decor on the edges),
+  `kit.fx.flatShapes` (circle, rect, pill, triangle, diamond, hexagon, star, plus, ring, line,
+  arrow; flat drop shadows, labels; entrances pop / scale / slide / drop / spin / wipe / fade,
+  idles float / pulse / spin / wobble, exits; `morph` keys change kind, size, position and colour
+  on cues), `kit.fx.flatIcons` (26 hand-made 16x16 icons on badges; `sheet: true` shows the set),
+  `kit.fx.flatInfographic` (`kind` icons / progress / ring / versus / stat; numbers count up),
+  `kit.fx.flatKinetic` (bold pixel caps, per-word effects pop / slide / drop / shake / type /
+  fade and marks underline / plate / box / strike) and `kit.fx.flatLowerThird` (bar, name plate,
+  caption strip, icon; overlay over any shot).
+- **How it renders.** Like blueprint: a CPU raster at the shot's low-res size repainted for every
+  t (stage, then content) with integer primitives (scanline polygons and ellipses at pixel
+  centres, Bresenham strokes, Bayer-ordered coverage for fades, gradients and colour morphs),
+  the kit's 5x7 caps font (bold for display type) at integer scales, palette roles per tone
+  (chains Crisp, Noir, Soft, token), shown on a clip-space quad without depth. Morphs blend the
+  radial profiles of two shapes angle by angle; nothing is anti-aliased, so the vibe guard passes
+  by construction. `overlay: true` (default for lower thirds) draws after the scene's objects.
+- **Composition.** One idea per board, at most 6 elements on screen, everything inside the 5 %
+  safe area (the layouts keep it); elements land on the words that name them (`at: 'phrase'`,
+  `anchor: ctx.anchor`), the rest staggered 0.2-0.4 s; one accent carries the point.
+- **Anchors.** `board.target(name)` gives a `ctx.annotate` target `{ screen, size }` of a part at
+  rest: `shape:<i>`, `icon:<i>` / `icon:<name>`, `item:<i>` and `vs`, `word:<i>` / `line:<i>`,
+  `name` / `caption` / `plate` / `icon`. Around badges prefer `ring({ shape: 'rect' })`.
+- **Sound.** Palette `flat-2d` (docs/sfx.md): `shape-pop`, `swoosh-soft`, `whoosh-flat`,
+  `flat-tick`, `chime-up`, `text-snap`; clean, short, no heavy lows; room-tone bed.
+- **Transitions.** No look-change style of its own: the wildcard styles pair with it (and
+  `pixel-sort-melt` with a C-roll side); the look-pair golden matrix is a fixed circuit of the
+  2.0 looks and was not extended.

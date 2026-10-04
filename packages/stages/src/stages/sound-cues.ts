@@ -10,10 +10,18 @@ import { existsSync } from 'node:fs';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { CuesFileSchema, MUSIC_MOODS, type CuesFile } from '@reelforge/pipeline';
 import { validateCues } from '@reelforge/prompts';
-import { projectLookMode, storyboardFileSchema, wordsFileSchema } from '@reelforge/shared';
+import {
+  projectLookMode,
+  storyboardFileSchema,
+  wordsFileSchema,
+  type StoryboardShot,
+} from '@reelforge/shared';
+import { activeBeatGrid, reportSoundSync } from '../beat-sync/stage.js';
+import { reviewRepetitions } from '../repetition/stage.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
 import { FILES, inProject } from '../paths.js';
 import { applyMoodHint, designSound, type SoundDesign } from '../sound/design.js';
+import { activeTension } from '../tension.js';
 import {
   stageError,
   type StageContext,
@@ -124,6 +132,7 @@ interface Prepared {
   readonly design: SoundDesign;
   readonly styleId: string;
   readonly seed: number;
+  readonly shots: readonly StoryboardShot[];
 }
 
 async function prepare(ctx: StageContext): Promise<Result<Prepared, StageError>> {
@@ -139,6 +148,16 @@ async function prepare(ctx: StageContext): Promise<Result<Prepared, StageError>>
   if (!words.ok) return words;
   ctx.step('Default sound design', 5);
   const { style: styleId, seed } = project.value;
+  // Tension map (PLAN.md#12.22): act moods/energy and SFX density follow the curve when it is on.
+  const tension = await activeTension(ctx.projectDir, project.value);
+  // Beat sync (PLAN.md#12.21): the grid locks the beds and snaps hits; off = undefined.
+  const beats = await activeBeatGrid(ctx.projectDir, project.value, {
+    shots: storyboard.value.shots,
+    words: words.value.words,
+    styleId,
+    tension: tension?.points,
+  });
+  if (!beats.ok) return beats;
   const design = await designSound({
     projectDir: ctx.projectDir,
     shots: storyboard.value.shots,
@@ -147,13 +166,17 @@ async function prepare(ctx: StageContext): Promise<Result<Prepared, StageError>>
     seed,
     musicEnabled: ctx.settings.music.enabled,
     lookMode: projectLookMode(project.value),
+    tension: tension?.points,
+    beats: beats.value,
     sceneSfx: ctx.sceneSfx,
     signal: ctx.signal,
     onStep: (label) => {
       ctx.step(label, 10);
     },
   });
-  return design.ok ? ok({ design: design.value, styleId, seed }) : design;
+  return design.ok
+    ? ok({ design: design.value, styleId, seed, shots: storyboard.value.shots })
+    : design;
 }
 
 /** Claude's valid cues with the beds of its `moods` re-rendered when it changed any. */
@@ -207,6 +230,19 @@ async function run(
   }
   warnings.push(...produced.warnings);
   const { sfx, ambience, music, moods } = produced.cues;
+  const grid = prepared.value.design.beats;
+  if (grid !== undefined) {
+    const synced = await reportSoundSync(
+      ctx.projectDir,
+      grid,
+      prepared.value.shots,
+      sfx,
+      design.snappedCues,
+    );
+    if (!synced.ok) return synced;
+  }
+  // Repetition control (PLAN.md#12.23): the fresh cues analysed with the rest of the film.
+  warnings.push(...(await reviewRepetitions(ctx.projectDir, ctx.snapshot.project)));
   return ok({
     message: `${String(sfx.length)} sfx, ${String(ambience.length)} ambience, ${String(music.length)} music (${produced.source})`,
     outputs: [FILES.cues],

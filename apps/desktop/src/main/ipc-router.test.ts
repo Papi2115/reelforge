@@ -11,6 +11,7 @@ import type { SettingsHandlers } from './settings-ipc.js';
 import type { SoundHandlers } from './sound/sound-ipc.js';
 import type { VariantsHandlers } from './stages/variants-ipc.js';
 import type { ExportHandlers } from './export/export-ipc.js';
+import type { AssetsHandlers } from './assets/assets-ipc.js';
 
 type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
 
@@ -75,6 +76,22 @@ const WHISPER_STATE: WhisperState = {
   },
   job: null,
 };
+
+/** Own-asset and library actions (PLAN.md#12.12, #12.19). */
+function assetActionStubs(
+  record: <T>(request: unknown, response: T) => Promise<T>,
+): Omit<AssetsHandlers, 'assetsState' | 'assetsReview' | 'libraryState'> {
+  const none = { status: 'error', message: 'No project is open.' } as const;
+  return {
+    assetsImport: (request) => record(request, none),
+    assetsEdit: (request) => record(request, none),
+    assetsRemove: (request) => record(request, none),
+    assetsLibrary: (request) => record(request, none),
+    libraryEdit: (request) => record(request, none),
+    libraryRemove: (request) => record(request, none),
+    libraryUse: (request) => record(request, none),
+  };
+}
 
 /** Settings channels (PLAN.md#6.7); their requests are checked in the test below. */
 function settingsStubs(record: <T>(request: unknown, response: T) => Promise<T>): SettingsHandlers {
@@ -203,6 +220,7 @@ function setup(): {
   registerIpc(ipc, {
     handlers: {
       appInfo: () => Promise.resolve(appInfo),
+      libraryState: (request) => record(request, { status: 'error', message: 'n/a' } as const),
       demoManifest: () => Promise.reject(new Error('not in this test')),
       projectNew: (request) => record(request, opened),
       projectOpen: (request) => record(request, { status: 'cancelled' } as const),
@@ -213,9 +231,32 @@ function setup(): {
         record(request, { status: 'error', message: 'no project is open' } as const),
       projectSettingsUpdate: (request) =>
         record(request, { status: 'error', message: 'no project is open' } as const),
+      tensionSave: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      tensionReset: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      tensionPropose: (request) => record(request, { status: 'queued', message: null } as const),
+      dramaturgyState: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      momentDecide: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      directionsState: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      directionApply: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      editingState: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      repetitionAction: (request) => record(request, { status: 'error', message: 'n/a' } as const),
       assetsState: (request) =>
         record(request, { status: 'error', message: 'No project is open.' } as const),
       assetsReview: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      ...assetActionStubs(record),
+      publishKit: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      publishSave: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      publishOpenFolder: (request) => record(request, { status: 'opened' } as const),
+      claimsState: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      claimsCheck: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      claimsEdit: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      hookLabState: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      hookLabGenerate: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      hookLabPick: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      hookLabDiscard: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      tasteState: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      tasteReset: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+      tasteExport: (request) => record(request, { status: 'cancelled' } as const),
       projectRecent: (request) => record(request, []),
       projectCurrent: (request) => record(request, null),
       projectClose: (request) => record(request, null),

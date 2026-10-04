@@ -1,5 +1,5 @@
 import type { LoadInfo, PickInfo, ReelforgeHarness } from '@reelforge/engine';
-import type { RenderManifest, SceneSource } from '@reelforge/shared';
+import type { RenderManifest, SceneSource, ShotDirection } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { PreviewController } from './preview-controller.js';
 
@@ -74,6 +74,12 @@ class ManualHarness implements ReelforgeHarness {
       id: 'props.calculator#0',
       description: 'calculator',
     });
+  }
+  /** `shotId:json` of every setShotDirection call. */
+  readonly directions: string[] = [];
+  setShotDirection(shotId: string, direction: ShotDirection | null): Promise<void> {
+    this.directions.push(`${shotId}:${JSON.stringify(direction)}`);
+    return Promise.resolve();
   }
   async releaseNext(): Promise<void> {
     this.release.shift()?.();
@@ -210,6 +216,22 @@ describe('PreviewController', () => {
     expect(harness.loads).toEqual(['s01', 's01']);
     expect(controller.shotAt(1)).toBe('s01');
     expect(controller.shotAt(3)).toBe('s02');
+  });
+
+  it('hot-applies live directions without rebuilding or reloading (PLAN.md#12.14)', async () => {
+    const harness = new ManualHarness();
+    const controller = new PreviewController(harness, { draw: () => undefined }, () => {
+      throw new Error('unexpected error');
+    });
+    await controller.apply(MANIFEST);
+    const directed = structuredClone(MANIFEST);
+    if (directed.shots[0]) directed.shots[0].direction = { zoom: 1.1 };
+    expect(await controller.apply(directed)).toMatchObject({ kind: 'directed', shotIds: ['s00'] });
+    expect(await controller.apply(structuredClone(directed))).toMatchObject({ kind: 'unchanged' });
+    expect(await controller.apply(MANIFEST)).toMatchObject({ kind: 'directed' });
+    expect(harness.directions).toEqual(['s00:{"zoom":1.1}', 's00:null']);
+    expect(harness.loads).toEqual(['s00']);
+    expect(harness.reloads).toEqual([]);
   });
 
   it('keeps the previous shot (and retries it) when a shot reload fails', async () => {

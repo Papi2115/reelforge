@@ -7,6 +7,7 @@ import {
   sceneSourceSchema,
   type RenderManifest,
   type SceneSource,
+  type ShotDirection,
 } from '@reelforge/shared';
 import { EngineError } from '../errors.js';
 import {
@@ -100,7 +101,8 @@ export function createSandboxedHarness(options: SandboxedHarnessOptions): Reelfo
       | { method: 'seek'; t: number }
       | { method: 'cards'; shotId: string }
       | { method: 'reloadShot'; shotId: string; scene: SceneSource }
-      | { method: 'pick'; x: number; y: number; t: number },
+      | { method: 'pick'; x: number; y: number; t: number }
+      | { method: 'direct'; shotId: string; direction: ShotDirection | null },
   ): Promise<RpcResponse> {
     await ready;
     const target = iframe.contentWindow;
@@ -155,6 +157,11 @@ export function createSandboxedHarness(options: SandboxedHarnessOptions): Reelfo
       const response = await call({ method: 'pick', x, y, t });
       if (response.ok && response.method === 'pick') return response.result;
       throw new EngineError('protocol', 'unexpected reply to pick()');
+    },
+    async setShotDirection(shotId, direction) {
+      const response = await call({ method: 'direct', shotId, direction });
+      if (response.ok && response.method === 'direct') return;
+      throw new EngineError('protocol', 'unexpected reply to setShotDirection()');
     },
     get duration() {
       return duration;

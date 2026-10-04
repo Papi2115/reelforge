@@ -65,10 +65,15 @@ export function sanitizeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
 
 /**
  * The only names an app may add to a child's env on top of the sanitized parent env (the URL and
- * per-launch token of the app's local render service, used by the `reelforge` CLI that Claude
- * runs). Anything else, and every stripped name, is dropped.
+ * per-launch token of the app's local render service, and the folder of the user's global asset
+ * library (PLAN.md#12.19), both used by the `reelforge` CLI that Claude runs). Anything else, and
+ * every stripped name, is dropped.
  */
-export const EXTRA_ENV_ALLOWLIST = ['REELFORGE_RENDER_URL', 'REELFORGE_RENDER_TOKEN'] as const;
+export const EXTRA_ENV_ALLOWLIST = [
+  'REELFORGE_RENDER_URL',
+  'REELFORGE_RENDER_TOKEN',
+  'REELFORGE_ASSET_LIBRARY',
+] as const;
 export type ExtraEnvName = (typeof EXTRA_ENV_ALLOWLIST)[number];
 export type ExtraEnv = Readonly<Partial<Record<ExtraEnvName, string>>>;
 

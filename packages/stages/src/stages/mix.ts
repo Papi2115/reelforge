@@ -11,8 +11,10 @@ import {
   MixQaReportSchema,
   MixReportSchema,
   buildMixQaReport,
+  type CuesFile,
   type MixReport,
 } from '@reelforge/pipeline';
+import { mixMoments, type MixMoments } from '../dramaturgy.js';
 import { requireProjectJson, writeProjectJson } from '../files.js';
 import { FILES, REPORTS, inProject } from '../paths.js';
 import {
@@ -24,6 +26,22 @@ import {
   type StageSummary,
 } from '../types.js';
 import { toolFailure } from './clean.js';
+
+/** Gain of a reveal moment's hit (dB): it lands in a silence, so it needs no extra push. */
+const MOMENT_HIT_GAIN_DB = -2;
+
+/** The cues plus one `hit` per accepted silence-hit moment (unchanged without any). */
+export function withMomentHits(cues: CuesFile, hits: readonly number[]): CuesFile {
+  if (hits.length === 0) return cues;
+  const added = hits.map((t, index) => ({
+    id: `moment-hit-${String(index + 1)}`,
+    t,
+    name: 'hit' as const,
+    gainDb: MOMENT_HIT_GAIN_DB,
+    pan: 0,
+  }));
+  return { ...cues, sfx: [...cues.sfx, ...added].sort((left, right) => left.t - right.t) };
+}
 
 /** Problems with the master's loudness (empty = passes PLAN.md#8.3). */
 export function loudnessProblems(report: MixReport, toleranceLu: number): string[] {
@@ -47,8 +65,15 @@ async function run(
   request: RequestOf<'mix'>,
 ): Promise<Result<StageSummary, StageError>> {
   if (ctx.audio === undefined) return err(stageError('missing-tool', 'ffmpeg is not configured'));
-  const cues = await requireProjectJson(ctx.projectDir, FILES.cues, CuesFileSchema);
-  if (!cues.ok) return cues;
+  const read = await requireProjectJson(ctx.projectDir, FILES.cues, CuesFileSchema);
+  if (!read.ok) return read;
+  // Accepted silence hits (PLAN.md#12.27): the bed ducks before the word, a hit lands on it.
+  const { project } = ctx.snapshot;
+  const moments: MixMoments =
+    project.status === 'ok'
+      ? await mixMoments(ctx.projectDir, project.value)
+      : { silences: [], hits: [] };
+  const cues = { value: withMomentHits(read.value, moments.hits) };
   ctx.step('Mixing', 0);
   const report = await ctx.audio.mix(cues.value, {
     voPath: inProject(ctx.projectDir, FILES.voClean),
@@ -56,6 +81,7 @@ async function run(
     baseDir: ctx.projectDir,
     workDir: inProject(ctx.projectDir, FILES.mixWorkDir),
     stemsDir: request.stems === true ? inProject(ctx.projectDir, FILES.stemsDir) : undefined,
+    ...(moments.silences.length === 0 ? {} : { silences: moments.silences }),
     signal: ctx.signal,
     onProgress: (progress) => {
       ctx.step(
@@ -85,7 +111,11 @@ async function run(
     message: `${String(after.integratedLufs)} LUFS, true peak ${String(after.truePeakDbtp)} dBTP`,
     outputs: [FILES.mix],
     changed: true,
-    warnings: [...report.value.warnings, ...qa.warnings],
+    warnings: [
+      ...report.value.warnings,
+      ...qa.warnings,
+      ...(moments.problem === undefined ? [] : [moments.problem]),
+    ],
     metrics: {
       duckingDb: measured?.duckingDepthDb ?? null,
       speechMarginDb: measured?.speechMarginDb ?? null,

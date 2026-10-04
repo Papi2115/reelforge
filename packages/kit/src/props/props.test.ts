@@ -45,6 +45,7 @@ const PROP_NAMES = [
   'polaroid',
   'billboard',
   'assetScreen',
+  'veiledProp',
 ];
 
 /** Asset props (PLAN.md#12.11) need a picture: tests pass a stand-in handle. */

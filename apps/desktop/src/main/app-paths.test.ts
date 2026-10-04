@@ -2,10 +2,12 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   appLayout,
+  assetLibraryDir,
   defaultProjectsDir,
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
+  tasteFile,
   TEST_PROJECTS_DIR_ENV,
   USER_DATA_ENV,
 } from './app-paths.js';
@@ -79,6 +81,20 @@ describe('appLayout', () => {
       bashGuardHook: path.join(resourcesPath, 'hooks', 'bash-guard.mjs'),
       cliBundle: path.join(resourcesPath, 'cli', 'reelforge.mjs'),
     });
+  });
+});
+
+describe('assetLibraryDir', () => {
+  it('lives in the app data folder, outside every project (PLAN.md#12.19)', () => {
+    const userData = path.join(appData, 'ReelForge');
+    expect(assetLibraryDir(userData)).toBe(path.join(appData, 'ReelForge', 'library'));
+  });
+});
+
+describe('tasteFile', () => {
+  it('lives in the app data folder, outside every project (PLAN.md#12.13)', () => {
+    const userData = path.join(appData, 'ReelForge');
+    expect(tasteFile(userData)).toBe(path.join(appData, 'ReelForge', 'taste.json'));
   });
 });
 

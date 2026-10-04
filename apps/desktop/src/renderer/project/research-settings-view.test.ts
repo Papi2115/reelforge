@@ -14,6 +14,12 @@ const SETTINGS: ProjectSettings = {
   ambientVariation: true,
   researchMode: 'ask',
   researchSources: [],
+  tensionMap: 'off',
+  patternInterrupts: 'off',
+  openLoops: 'off',
+  revealMoments: 'off',
+  beatSync: 'off',
+  repetitionControl: 'off',
 };
 
 describe('research settings view', () => {

@@ -113,6 +113,41 @@ covers them like the voxel set.
 | `relay-click` | ui | 0.1 | 0·small, 1·latch, 2·bank | Blueprint: a relay / switch clicks (a node turns on, a circuit closes). |
 | `data-ping` | tonal | 0.7 | 0·ping, 1·double, 2·soft | Blueprint: a data ping (result found, value highlighted, closing card). |
 
+**flat-2d** (`mix/sfx/flat-2d.ts`)
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `shape-pop` | ui | 0.18 | 0·round, 1·double, 2·bright | Flat 2D: a shape, icon or badge pops in; list items (round -> double -> bright). |
+| `swoosh-soft` | motion | 0.4 | 0·right, 1·left, 2·up | Flat 2D: something slides in (a card, a word, a shape); soft and airy. |
+| `whoosh-flat` | motion | 0.55 | 0·cut, 1·long, 2·reverse | Flat 2D: a clean whoosh for cuts and board changes (cut = quick, reverse = builds up). |
+| `flat-tick` | ui | 0.05 | 0·soft, 1·wood, 2·high | Flat 2D: a clean counter / progress tick (soft, wood, high). |
+| `chime-up` | tonal | 0.9 | 0·two, 1·triad, 2·sparkle | Flat 2D: a rising chime for a reveal, a big number landing or an end card. |
+| `text-snap` | ui | 0.09 | 0·snap, 1·thock, 2·tap | Flat 2D: a word or number lands (kinetic type, a value snaps into place). |
+
+**whiteboard** (`mix/sfx/whiteboard.ts`)
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `marker-stroke` | texture | 0.6 | 0·short, 1·long, 2·scribble | Whiteboard: a felt marker draws a stroke (short line, long line or a quick scribble). |
+| `marker-squeak` | texture | 0.3 | 0·up, 1·down, 2·double | Whiteboard: the marker squeaks (a sharp turn, a tick mark, an emphatic underline). |
+| `cap-pop` | ui | 0.08 | 0·off, 1·on, 2·click | Whiteboard: the marker cap pops off (a new drawing starts) or clicks back on (done). |
+| `eraser-swipe` | texture | 0.6 | 0·swipe, 1·scrub, 2·flick | Whiteboard: the eraser wipes the board (one long swipe or a quick scrub). |
+| `board-tap` | ui | 0.12 | 0·tip, 1·knock, 2·double | Whiteboard: a marker tip taps the board (a dot, pointing at something, a bullet). |
+| `board-chime` | tonal | 0.7 | 0·single, 1·double, 2·soft | Whiteboard: a soft chime (the idea clicks, a box is ticked, the closing card). |
+| `board-tick` | ui | 0.05 | 0·low, 1·mid, 2·high | Whiteboard: a tiny pitched tick (counter steps, list items low -> mid -> high). |
+
+**paper-cutout** (`mix/sfx/paper-cutout.ts`)
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `paper-rustle` | texture | 0.55 | 0·soft, 1·busy, 2·crinkle | Paper cut-out: pieces of paper rustle as they are picked up, shifted or crumpled. |
+| `paper-slide` | motion | 0.5 | 0·short, 1·long, 2·in, 3·out | Paper cut-out: a sheet or a cut-out slides across the set (moves, entrances, cuts). |
+| `scissor-snip` | texture | 0.32 | 0·single, 1·double, 2·cut | Paper cut-out: scissors snip a piece out (a reveal, a new shape, a quick series = cutting). |
+| `tape-tear` | texture | 0.5 | 0·tear, 1·peel, 2·stick | Paper cut-out: sticky tape is pulled and torn off the roll, or a piece is taped down. |
+| `paper-pop` | ui | 0.18 | 0·low, 1·mid, 2·high | Paper cut-out: a cut piece is pressed onto the set (appear); list items rise low -> mid -> high. |
+| `wood-tick` | ui | 0.3 | 0·tick, 1·tock, 2·double | Paper cut-out: a wooden tick of the stop-motion rig (counter steps, small marks, numbers). |
+| `page-flip` | texture | 0.6 | 0·flip, 1·riffle, 2·turn | Paper cut-out: a page turns (chapter, new scene, end card); riffle = many pages. |
+
 ## How cues are chosen (the sound director)
 
 The **Sound design mixed** stage writes a deterministic `cues.json` first (no Claude; same inputs ->
@@ -202,6 +237,22 @@ density, transition handling); the shot's palette only decides **which recipe** 
 | Emphasis riser / hit | `riser` / `hit-soft` | `modem` / `crt-zap` power-on | `server-whir` spin-up / `horn-blip` | `pencil-scratch` hatch / `relay-click` latch |
 | End card | `chime` | `window-open` chime | `bird-chirp` | `data-ping` double |
 | Ambience (bed / under music) | room-tone, hum -28 / room-tone -32 | `crt-hum` -30 / -34 | by type -28 / -33 | `electric-tick` -30 / -33 |
+
+**flat-2d** (look 12.5, clean and light): cut `swoosh-soft` (into UI-like) / `whoosh-flat` cut (into 3D); crossfade `whoosh-flat` long, glitch `text-snap` snap, wipe `swoosh-soft`; into the look `swoosh-soft` up + `chime-up` two; appear `shape-pop` / `shape-pop` double / `flat-tick` soft; list items `shape-pop` (round -> double -> bright); counter step `flat-tick` / landing `chime-up` two, `text-snap` thock; number `text-snap`, big number `chime-up` triad; text in `swoosh-soft` up, typed `flat-tick`; emphasis riser `whoosh-flat` reverse / hit `text-snap` thock; end card `chime-up` sparkle; ambience `room-tone` -32 / -36.
+
+**whiteboard** (look 12.7, clean and short): cut `cap-pop` off, `marker-squeak` up (into UI-like) / `eraser-swipe` (into 3D); crossfade and wipe `eraser-swipe` swipe, glitch `eraser-swipe` scrub; into the look `cap-pop` off + `marker-squeak` up; appear `marker-stroke` short / `board-tap` tip / `marker-squeak`; list items `board-tick` (low -> mid -> high); counter step `board-tick` low / high, landing `board-chime` single, `marker-squeak` double; number `board-tap`, big number `marker-stroke` long; text in `marker-stroke`, typed `marker-stroke` scribble; emphasis riser `marker-stroke` long / hit `marker-squeak` double; end card `board-chime` double + `cap-pop` on; ambience `room-tone` -32 / -35.
+
+**paper-cutout** (look 12.6, light craft-table foley, no bass): cut `paper-slide` in / short, `tape-tear` stick (into UI-like) / `page-flip` flip, `paper-rustle` soft (into 3D); crossfade `paper-rustle` soft, glitch `scissor-snip` cut, wipe `paper-slide` long; into the look `page-flip` turn + `paper-rustle` soft; appear `paper-pop` / `paper-rustle` crinkle / `wood-tick` tick; list items `paper-pop` (low -> mid -> high); counter step `wood-tick` tick / tock, landing `paper-pop` high, `tape-tear` stick; number `wood-tick` double, big number `scissor-snip` double; text in `paper-slide` short / in, typed `scissor-snip` cut; emphasis riser `tape-tear` peel / hit `paper-pop` low; end card `page-flip` turn; ambience `room-tone` -32 / -36.
+
+## Beat sync and repetition (PLAN.md#12.21, #12.23)
+
+- With `"beatSync": "auto"` the director's spoken-number hits, big-number whoosh-impacts and
+  emphasis riser + hit move as a whole (at most 120 ms) so their peak lands on a beat or an
+  accented word (`docs/beat-sync.md`); transition sounds follow their (snapped) cut. Budget,
+  density and palettes are unchanged.
+- With `"repetitionControl": "auto"` the same recipe 3× in 30 s or twice in a row is reported and
+  Apply re-picks every other occurrence through `pickRecipe` with a history, inside the shot's
+  palette (`docs/repetition.md`). The director itself still picks without a history.
 
 ## Mix QA (`.reelforge/mix-report.json`)
 

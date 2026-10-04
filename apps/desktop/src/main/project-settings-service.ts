@@ -6,16 +6,23 @@
  * Research mode (PLAN.md#12.10) steers the next Assets step; nothing already fetched is removed.
  *
  * Invalidation: the settings only steer FUTURE builds (look mode: the next storyboard / scene
- * build / sound cues; ambient variation: the render manifest, so the preview and the next export).
+ * build / sound cues; ambient variation: the render manifest, so the preview and the next export;
+ * tension map: the next storyboard and sound cues, and the manifest's per-shot tension).
  * No pipeline step is marked out of date.
  */
 import path from 'node:path';
 import { writeJsonAtomic } from '@reelforge/project';
 import {
   projectAmbientVariation,
+  projectBeatSync,
+  projectRepetitionControl,
   projectFileSchema,
   projectLookMode,
+  projectOpenLoops,
+  projectPatternInterrupts,
   projectResearchMode,
+  projectRevealMoments,
+  projectTensionMap,
   type LookMode,
   type ResearchMode,
   type ProjectFile,
@@ -60,6 +67,12 @@ export function effectiveProjectSettings(project: ProjectFile): ProjectSettings 
     ambientVariation: projectAmbientVariation(project),
     researchMode: projectResearchMode(project),
     researchSources: [...(project.researchSources ?? [])],
+    tensionMap: projectTensionMap(project),
+    patternInterrupts: projectPatternInterrupts(project),
+    openLoops: projectOpenLoops(project),
+    revealMoments: projectRevealMoments(project),
+    beatSync: projectBeatSync(project),
+    repetitionControl: projectRepetitionControl(project),
   };
 }
 
@@ -73,6 +86,11 @@ export function applyProjectSettingsPatch(
   if (patch.ambientVariation !== undefined) next['ambientVariation'] = patch.ambientVariation;
   if (patch.researchMode !== undefined) next['researchMode'] = patch.researchMode;
   if (patch.researchSources !== undefined) next['researchSources'] = [...patch.researchSources];
+  if (patch.tensionMap !== undefined) next['tensionMap'] = patch.tensionMap;
+  for (const key of [...DRAMATURGY_KEYS, ...EDITING_KEYS]) {
+    const value = patch[key];
+    if (value !== undefined) next[key] = value;
+  }
   return next;
 }
 
@@ -81,6 +99,23 @@ const RESEARCH_MODE_WORDS: Readonly<Record<ResearchMode, string>> = {
   allowlist: 'auto from selected sources',
   'full-auto': 'full auto (unverified licences)',
   off: 'off',
+};
+
+/** The dramaturgy switches (PLAN.md#12.25-12.27), in dialog order. */
+const DRAMATURGY_KEYS = ['patternInterrupts', 'openLoops', 'revealMoments'] as const;
+
+const DRAMATURGY_WORDS: Readonly<Record<(typeof DRAMATURGY_KEYS)[number], string>> = {
+  patternInterrupts: 'pattern interrupts',
+  openLoops: 'open loops',
+  revealMoments: 'reveal moments',
+};
+
+/** The editing switches (PLAN.md#12.21, #12.23), in dialog order. */
+const EDITING_KEYS = ['beatSync', 'repetitionControl'] as const;
+
+const EDITING_WORDS: Readonly<Record<(typeof EDITING_KEYS)[number], string>> = {
+  beatSync: 'beat sync',
+  repetitionControl: 'repetition control',
 };
 
 const LOOK_MODE_WORDS: Readonly<Record<LookMode, string>> = {
@@ -103,6 +138,19 @@ export function describeSettingsChange(before: ProjectSettings, after: ProjectSe
   if (before.researchSources.join(',') !== after.researchSources.join(',')) {
     parts.push(`research sources ${after.researchSources.join(', ') || 'none'}`);
   }
+  if (before.tensionMap !== after.tensionMap) {
+    parts.push(`tension map ${after.tensionMap === 'auto' ? 'on' : 'off'}`);
+  }
+  for (const key of DRAMATURGY_KEYS) {
+    if (before[key] !== after[key]) {
+      parts.push(`${DRAMATURGY_WORDS[key]} ${after[key] === 'auto' ? 'on' : 'off'}`);
+    }
+  }
+  for (const key of EDITING_KEYS) {
+    if (before[key] !== after[key]) {
+      parts.push(`${EDITING_WORDS[key]} ${after[key] === 'auto' ? 'on' : 'off'}`);
+    }
+  }
   return `Project settings: ${parts.length === 0 ? 'no change' : parts.join(', ')}`;
 }
 
@@ -111,7 +159,10 @@ function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
     left.lookMode === right.lookMode &&
     left.ambientVariation === right.ambientVariation &&
     left.researchMode === right.researchMode &&
-    left.researchSources.join(',') === right.researchSources.join(',')
+    left.researchSources.join(',') === right.researchSources.join(',') &&
+    left.tensionMap === right.tensionMap &&
+    DRAMATURGY_KEYS.every((key) => left[key] === right[key]) &&
+    EDITING_KEYS.every((key) => left[key] === right[key])
   );
 }
 

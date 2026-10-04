@@ -63,13 +63,18 @@ function kitWith(looks: readonly Look[]) {
 
 describe('look registry', () => {
   it('ships voxel first and the three 2.0 looks as available', () => {
-    expect(LOOKS.map((look) => look.id)).toEqual(['voxel', 'retro-ui', 'diorama', 'blueprint']);
-    expect(listLooks().map((look) => look.id)).toEqual([
-      VOXEL_LOOK_ID,
+    // The 2.0 looks first, in order; the 2.3 looks (each adds itself) after them.
+    expect(LOOKS.slice(0, 4).map((look) => look.id)).toEqual([
+      'voxel',
       'retro-ui',
       'diorama',
       'blueprint',
     ]);
+    expect(LOOKS.map((look) => look.id)).toContain('whiteboard');
+    expect(listLooks().map((look) => look.id)).toEqual(
+      LOOKS.filter((look) => look.available).map((look) => look.id),
+    );
+    expect(listLooks()[0]?.id).toBe(VOXEL_LOOK_ID);
     expect(getLook('voxel')).toBe(voxelLook);
     expect(getLook('retro-ui')?.id).toBe('retro-ui');
     expect(getLook('retro-ui', [voxelLook])).toBeUndefined();
@@ -108,7 +113,12 @@ describe('look registry', () => {
     expect(Object.keys(api.props)).toEqual([...names(PROP_DEFINITIONS), ...lookNames('prop')]);
     expect(Object.keys(api.fx)).toEqual([...names(FX_DEFINITIONS), ...lookNames('fx')]);
     const owners = new Set([...extra.env, ...extra.prop, ...extra.fx].map((entry) => entry.look));
-    expect([...owners].sort()).toEqual(['blueprint', 'diorama', 'retro-ui']);
+    expect([...owners].sort()).toEqual(
+      listLooks()
+        .map((look) => look.id)
+        .filter((id) => id !== VOXEL_LOOK_ID)
+        .sort(),
+    );
   });
 
   it('rejects bad metadata and definitions in the wrong slot', () => {

@@ -20,6 +20,7 @@ import {
   type WordsRaw,
 } from '@reelforge/pipeline';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
+import type { MixSilence } from '@reelforge/shared';
 
 export interface ToolError {
   /** `cancelled` when aborted; otherwise the pipeline's error kind (`not-found`, `exit-code`, …). */
@@ -63,6 +64,8 @@ export interface MixRequest extends ToolCall {
   readonly workDir: string;
   /** Also write the stems here. */
   readonly stemsDir?: string | undefined;
+  /** Bed silences before the hits of accepted reveal moments (PLAN.md#12.27), film seconds. */
+  readonly silences?: readonly MixSilence[] | undefined;
 }
 
 export interface AudioTools {
@@ -161,6 +164,7 @@ export function createPipelineAudioTools(options: PipelineAudioToolsOptions = {}
         baseDir: request.baseDir,
         workDir: request.workDir,
         stemsDir: request.stemsDir,
+        silences: request.silences,
         signal: request.signal,
         onProgress:
           onProgress === undefined

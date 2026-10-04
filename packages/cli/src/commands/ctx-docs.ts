@@ -98,6 +98,9 @@ const AMBIENT = [
   "  enabled: boolean — true when the project varies its environments and the shot's look has a variation budget",
   '  params — { tones, cell, horizon, fade, lightAzimuth, lightElevation, debris, layout, cameraDrift, ... } | undefined when off',
   '  tone(name) -> the palette swatch name used for `name` in this shot (a member of its family, or `name` itself when off)',
+  "  tension: number | undefined — the shot's tension 0 (calm) .. 1 (peak) from the tension map (tension.json); undefined without one (treat as 0.5)",
+  '    raise particle/effect density and motion energy with it, e.g. count = Math.round(base * (0.7 + 0.6 * (ctx.ambient.tension ?? 0.5)))',
+  '    (backgrounds already darken and vary more at high tension by themselves; never flash or strobe)',
   '  kit environments apply it by themselves: never hard-code one background for every shot; a scene that paints its own',
   "  background follows the shot's tones: scene.background = new ctx.three.Color(ctx.palette[ctx.ambient.tone('navy')] ?? ctx.palette.sky)",
 ].join('\n');

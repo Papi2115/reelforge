@@ -10,6 +10,8 @@ import { loadManifestAssets, locateAssetFfmpeg } from '@reelforge/pipeline';
 import {
   ambientShotInputs,
   projectAmbientVariation,
+  projectTensionMap,
+  withShotTension,
   type AmbientShot,
   type AmbientVariationSettings,
   type KitExtensionSource,
@@ -140,6 +142,19 @@ function unknownShot(id: string, storyboard: StoryboardFile): ProjectError {
   return new ProjectError(`unknown shot "${id}"`, `use one of the storyboard shot ids: ${ids}`);
 }
 
+/**
+ * Ambient inputs of the storyboard shots, with each shot's tension when the project uses the
+ * tension map (PLAN.md#12.22) and tension.json is valid.
+ */
+export function storyboardAmbient(files: ProjectFiles, storyboard: StoryboardFile): AmbientShot[] {
+  const inputs = ambientShotInputs(storyboard.shots);
+  const { project, tension } = files;
+  if (project.status !== 'ok' || projectTensionMap(project.data) !== 'auto') return inputs;
+  return tension?.status === 'ok'
+    ? withShotTension(inputs, storyboard.shots, tension.data)
+    : inputs;
+}
+
 export async function planForShot(
   files: ProjectFiles,
   id: string,
@@ -150,7 +165,7 @@ export async function planForShot(
   const shot = storyboard.shots[index];
   if (!shot) throw unknownShot(id, storyboard);
   const { file, source } = await readScene(files.root, scene ?? shot.scene);
-  const ambient = ambientShotInputs(storyboard.shots)[index];
+  const ambient = storyboardAmbient(files, storyboard)[index];
   return { id: shot.id, t0: shot.t0, t1: shot.t1, file, source, standalone: false, ambient };
 }
 

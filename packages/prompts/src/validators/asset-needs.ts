@@ -1,7 +1,8 @@
 /**
  * Asset needs of a storyboard (PLAN.md#12.10): ids unique in the film (they become asset ids),
  * at most `maxAssetNeeds` in total (warning: the Assets stage only looks for the first ones), and
- * none at all when asset research is off (warning: they are ignored).
+ * none at all when asset research is off (warning: they are ignored). Assigned assets
+ * (`shot.assets`, PLAN.md#12.12) must exist in assets.json.
  */
 import {
   DEFAULT_MAX_ASSET_NEEDS,
@@ -14,6 +15,38 @@ export interface AssetNeedRules {
   /** Research mode is on (absent = off: needs are not expected). */
   readonly research: boolean;
   readonly maxAssetNeeds: number;
+}
+
+/**
+ * `shot.assets` ids that are not in assets.json (`known`; undefined = not checked) are errors; an
+ * id twice in one shot is a warning.
+ */
+export function checkShotAssets(
+  shots: readonly StoryboardShot[],
+  known: readonly string[] | undefined,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const ids = new Set(known ?? []);
+  shots.forEach((shot, index) => {
+    const assigned = shot.assets ?? [];
+    const where = `shots[${String(index)}].assets`;
+    if (new Set(assigned).size < assigned.length) {
+      issues.push(issue('warning', 'asset-twice', `${shot.id} lists an asset twice`, where));
+    }
+    if (known === undefined) return;
+    for (const id of assigned) {
+      if (ids.has(id)) continue;
+      issues.push(
+        issue(
+          'error',
+          'asset-unknown',
+          `${shot.id} assigns asset "${id}", which is not in assets.json; use an id from the asset list (\`reelforge assets list\`) or remove it`,
+          where,
+        ),
+      );
+    }
+  });
+  return issues;
 }
 
 export function checkAssetNeeds(

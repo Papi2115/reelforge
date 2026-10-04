@@ -65,6 +65,12 @@ describe('effectiveProjectSettings', () => {
       ambientVariation: false,
       researchMode: 'off',
       researchSources: [],
+      tensionMap: 'off',
+      patternInterrupts: 'off',
+      openLoops: 'off',
+      revealMoments: 'off',
+      beatSync: 'off',
+      repetitionControl: 'off',
     });
     expect(
       effectiveProjectSettings({
@@ -77,6 +83,12 @@ describe('effectiveProjectSettings', () => {
       ambientVariation: true,
       researchMode: 'off',
       researchSources: [],
+      tensionMap: 'off',
+      patternInterrupts: 'off',
+      openLoops: 'off',
+      revealMoments: 'off',
+      beatSync: 'off',
+      repetitionControl: 'off',
     });
   });
 });
@@ -92,6 +104,9 @@ describe('applyProjectSettingsPatch', () => {
       ambientVariation: true,
     });
     expect(Object.keys(next)).toEqual(['version', 'title', 'custom', 'ambientVariation']);
+    expect(applyProjectSettingsPatch(raw, { tensionMap: 'auto' })).toMatchObject({
+      tensionMap: 'auto',
+    });
     expect(raw).not.toHaveProperty('ambientVariation');
   });
 });
@@ -103,6 +118,12 @@ describe('describeSettingsChange', () => {
       ambientVariation: false,
       researchMode: 'off',
       researchSources: [],
+      tensionMap: 'off',
+      patternInterrupts: 'off',
+      openLoops: 'off',
+      revealMoments: 'off',
+      beatSync: 'off',
+      repetitionControl: 'off',
     };
     expect(
       describeSettingsChange(before, { ...before, lookMode: 'mixed', ambientVariation: true }),
@@ -123,6 +144,29 @@ describe('describeSettingsChange', () => {
     expect(describeSettingsChange(before, { ...before, researchMode: 'full-auto' })).toBe(
       'Project settings: research assets full auto (unverified licences)',
     );
+    expect(describeSettingsChange(before, { ...before, tensionMap: 'auto' })).toBe(
+      'Project settings: tension map on',
+    );
+    expect(
+      describeSettingsChange(before, {
+        ...before,
+        patternInterrupts: 'auto',
+        revealMoments: 'auto',
+        beatSync: 'off',
+        repetitionControl: 'off',
+      }),
+    ).toBe('Project settings: pattern interrupts on, reveal moments on');
+    expect(
+      describeSettingsChange(before, { ...before, beatSync: 'auto', repetitionControl: 'auto' }),
+    ).toBe('Project settings: beat sync on, repetition control on');
+    expect(applyProjectSettingsPatch({ version: 1 }, { beatSync: 'auto' })).toEqual({
+      version: 1,
+      beatSync: 'auto',
+    });
+    expect(applyProjectSettingsPatch({ version: 1 }, { openLoops: 'auto' })).toEqual({
+      version: 1,
+      openLoops: 'auto',
+    });
   });
 });
 
@@ -136,6 +180,12 @@ describe('ProjectSettingsService', () => {
         ambientVariation: false,
         researchMode: 'off',
         researchSources: [],
+        tensionMap: 'off',
+        patternInterrupts: 'off',
+        openLoops: 'off',
+        revealMoments: 'off',
+        beatSync: 'off',
+        repetitionControl: 'off',
       },
       looks: LOOKS,
     });
@@ -150,6 +200,12 @@ describe('ProjectSettingsService', () => {
         ambientVariation: true,
         researchMode: 'off',
         researchSources: [],
+        tensionMap: 'off',
+        patternInterrupts: 'off',
+        openLoops: 'off',
+        revealMoments: 'off',
+        beatSync: 'off',
+        repetitionControl: 'off',
       },
       committed: true,
     });
@@ -176,6 +232,12 @@ describe('ProjectSettingsService', () => {
         ambientVariation: false,
         researchMode: 'off',
         researchSources: [],
+        tensionMap: 'off',
+        patternInterrupts: 'off',
+        openLoops: 'off',
+        revealMoments: 'off',
+        beatSync: 'off',
+        repetitionControl: 'off',
       },
       committed: false,
     });

@@ -5,7 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { chromium, type Browser, type Page } from 'playwright';
-import type { RenderManifest, SceneSource } from '@reelforge/shared';
+import type { RenderManifest, SceneSource, ShotDirection } from '@reelforge/shared';
 import type { PickInfo, ReelforgeHarness } from '../harness/protocol.js';
 import type { LoadInfo } from '../runtime.js';
 import type { CardDiagnostic } from '../text/check-cards.js';
@@ -26,6 +26,8 @@ export interface HarnessPage {
   reloadShot(shotId: string, scene: SceneSource): Promise<LoadInfo>;
   /** Object at normalized frame point (x, y) at global time t (PLAN.md#6.6); null = background. */
   pick(x: number, y: number, t: number): Promise<PickInfo | null>;
+  /** Live co-direction of one shot (PLAN.md#12.14); null clears it. */
+  setShotDirection(shotId: string, direction: ShotDirection | null): Promise<void>;
   /** Console errors and uncaught page errors (host page and engine frame). */
   readonly errors: readonly string[];
   close(): Promise<void>;
@@ -90,6 +92,15 @@ function wrapPage(page: Page): HarnessPage {
       page.evaluate(
         (input) => (window as unknown as HarnessWindow).__reelforge.pick(input.x, input.y, input.t),
         { x, y, t },
+      ),
+    setShotDirection: (shotId, direction) =>
+      page.evaluate(
+        (input) =>
+          (window as unknown as HarnessWindow).__reelforge.setShotDirection(
+            input.shotId,
+            input.direction,
+          ),
+        { shotId, direction },
       ),
     errors,
     close: () => page.close(),

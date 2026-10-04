@@ -9,6 +9,7 @@ import { retroBrowser } from './browser.js';
 import { retroCrt } from './crt.js';
 import { retroDesktop } from './desktop.js';
 import { retroDocument } from './document.js';
+import { redactedBlock } from './redacted.js';
 import { retroTerminal } from './terminal.js';
 import { retroWindow } from './window.js';
 
@@ -20,6 +21,7 @@ Pick one hero template per shot:
 - \`kit.props.retroBrowser\`: "it was online": \`typeAt\` types the URL, \`loadAt\` loads the page (interlaced photo), headline + photo + hit counter; \`asset: ctx.assets.image('<id>')\` puts a real picture in the photo block.
 - \`kit.props.retroDocument\`: \`newspaper\` (masthead, headline, halftone photo), \`dossier\` (mugshot, fields with \`redactAt\` bars), \`memo\`; \`stamp: { text, at }\` slams on; \`asset\` prints a real picture in halftone (newspaper photo, mugshot).
 - \`kit.props.retroCrt\`: monitor/TV casing or bare tube; \`crt.show(child)\` shows a template through the tube (child built with \`frame: 'none'\` for terminals); \`tint: 'green' | 'amber'\` phosphor, \`powerOn\`/\`powerOff\`; without a child \`asset\` shows a real picture on the tube.
+- \`kit.props.redactedBlock\`: open-loop veil, a CLASSIFIED slip whose answer (\`text\`) hides under a hatched black bar until \`revealAt\` (the closing phrase), then wipes off in a dither.
 - \`kit.env.retroDesktop\`: \`os\` desktop (menu bar, icons, synthwave wallpaper) or \`desk\` (dark wall + voxel desk: \`crt.on(env, { at: 'desk' })\`, add \`kit.env.lights()\`).
 
 Composition: the hero fills 50-80 % of the frame, at most one more template beside/behind it; desktop at z = 0, templates at z = 0.02, 0.04 (never further: parallax breaks the pixel grid); one \`pixel\` value for all. Colours are fixed by the look (accents: violet, teal, orange, pink, green).
@@ -41,6 +43,6 @@ export const retroUiLook = defineLook({
   available: true,
   kit: {
     env: [retroDesktop],
-    templates: [retroWindow, retroTerminal, retroBrowser, retroDocument, retroCrt],
+    templates: [retroWindow, retroTerminal, retroBrowser, retroDocument, retroCrt, redactedBlock],
   },
 });

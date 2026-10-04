@@ -14,7 +14,14 @@ import {
   type MusicCueInput,
   type MusicMood,
 } from '@reelforge/pipeline';
-import type { StoryboardShot } from '@reelforge/shared';
+import {
+  tensionAt,
+  type BeatsFile,
+  type StoryboardShot,
+  type TensionPoint,
+} from '@reelforge/shared';
+import { GridTimes } from '../beat-sync/grid.js';
+import { snapGestures } from '../beat-sync/snap.js';
 import type { SceneSfxEvent } from '../types.js';
 import { ambienceCues } from '../sound/ambience-plan.js';
 import { directCues } from '../sound/cue-director.js';
@@ -43,6 +50,10 @@ export interface DefaultCuesInput {
   readonly durationS?: number;
   /** Look mode and looks for the sound palettes (absent = `voxel-only`: the 1.x sound). */
   readonly palettes?: PaletteOptions | undefined;
+  /** The tension map's curve (PLAN.md#12.22): denser, riser-friendlier SFX when tense. */
+  readonly tension?: readonly TensionPoint[] | undefined;
+  /** Beat grid (PLAN.md#12.21): hits, risers and emphasis snap to it; absent = as before. */
+  readonly beats?: BeatsFile | undefined;
 }
 
 const USER_MUSIC_GAIN_DB = -18;
@@ -76,13 +87,17 @@ function sfxCues(
   durationS: number,
   palettes: ShotPalettes,
 ): NonNullable<CuesFileInput['sfx']> {
-  const gestures = findGestures({
+  const found = findGestures({
     shots: input.shots,
     words: input.words,
     sceneSfx: input.sceneSfx ?? [],
     anchors: input.anchors ?? [],
   });
-  return directCues(gestures, input.shots, durationS, palettes).map((cue, index) => ({
+  const gestures =
+    input.beats === undefined ? found : snapGestures(found, new GridTimes(input.beats)).gestures;
+  const points = input.tension;
+  const tension = points === undefined ? undefined : (t: number) => tensionAt(points, t);
+  return directCues(gestures, input.shots, durationS, palettes, tension).map((cue, index) => ({
     id: cueId('sfx', index),
     t: cue.t,
     name: cue.name,

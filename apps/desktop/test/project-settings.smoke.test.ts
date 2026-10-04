@@ -129,9 +129,15 @@ describe('project settings', () => {
     // Research (2.1): no researchMode in the fixture = Off. Reserved sections are not rendered.
     await dialog.getByRole('region', { name: 'Research' }).waitFor();
     expect(await research(dialog, /^Off/).isChecked()).toBe(true);
-    for (const name of ['Direction', 'Taste']) {
-      expect(await dialog.getByRole('region', { name }).count(), name).toBe(0);
-    }
+    // Direction (2.2): the tension map, off without the field (tension.smoke.test.ts turns it on).
+    const direction = dialog.getByRole('region', { name: 'Direction' });
+    await direction.waitFor();
+    expect(
+      await direction
+        .getByRole('checkbox', { name: /^Steer the film by a tension curve/ })
+        .isChecked(),
+    ).toBe(false);
+    expect(await dialog.getByRole('region', { name: 'Taste' }).count()).toBe(0);
 
     await mixed(dialog).click();
     await expectCommit('Project settings: look mode mixed looks');

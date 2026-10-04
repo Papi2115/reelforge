@@ -736,6 +736,32 @@ Methods:
 - `power(on)`: screen on/off (true/false or 0..1)
 - `open(amount)`: laptop lid 0 (closed) .. 1 (open)
 
+### `kit.props.veiledProp(params)`
+
+Open-loop veil (voxel look): a question-mark crate that hides an object until the answer is spoken, then dissolves top-down in a pixel dither. cover(object) puts the object inside; update(t) every frame; revealAt on the closing phrase.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `size` | [number, number, number] | `[1,1,1]` | Crate size [w, h, d] in units: a little larger than what it covers |
+| `revealAt` | number | `1` | Local time the reveal starts: the closing phrase, e.g. ctx.anchor('the answer').t |
+| `duration` | number (0..3) | `0.6` | Seconds the dissolve takes |
+| `mark` | boolean | `true` | Question marks on the front and side faces |
+| `shake` | boolean | `true` | The crate trembles for 0.3 s before the reveal |
+| `color` | string |  | Palette name of the crate panels (default: style-aware) |
+| `scale` | number | `1` | Uniform size multiplier (1 = catalog size) |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `top`: top centre of the crate
+- `mark`: centre of the front question mark
+- `inside`: centre of the crate (where the covered object stands)
+
+Methods:
+
+- `update(t)`: trembles, dissolves and removes the crate for local time t; call every frame
+- `cover(object)`: puts a kit object inside the crate (at its bottom centre); returns it
+- `progress(t)`: reveal progress 0..1 at local time t
+
 ## Environments
 
 ### `kit.env.sky(params)`
@@ -1368,6 +1394,33 @@ Methods:
 - `show(child)`: displays a retro template through the tube; the child itself is hidden
 - `fitDistance(px = 2, fov = 50)`: camera distance for one screen UI pixel = px frame pixels
 
+### `kit.props.redactedBlock(params)`
+
+Open-loop veil (look retro-ui): a CLASSIFIED slip on paper or a screen whose answer hides under a hatched black bar until the closing phrase, then the bar wipes off in a pixel dither. update(t) every frame; revealAt on the closing phrase.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `text` | string |  | The answer under the bar (revealed on the closing phrase) |
+| `label` | string | `"CLASSIFIED"` | Heading above the answer |
+| `caption` | string | `""` | Small line under the answer |
+| `surface` | "paper" \| "screen" | `"paper"` | paper (cream slip, dark ink) or screen (dark panel, light text) |
+| `revealAt` | number | `1` | Local time the bar starts to lift: the closing phrase, e.g. ctx.anchor('the answer').t |
+| `duration` | number (0..3) | `0.5` | Seconds the wipe takes |
+| `size` | [integer, integer] | `[200,90]` | [width, height] in UI pixels (a 320x180 UI fills the frame at fitDistance(2)) |
+| `pixel` | number | `0.02` | World size of one UI pixel (keep it equal for templates shown together) |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `block`: the redaction bar (and the answer under it)
+- `answer`: the answer text
+- `label`: the heading
+- `caption`: the small line under the answer
+
+Methods:
+
+- `update(t)`: repaints for local time t (the bar lifts from revealAt); call every frame
+- `fitDistance(px = 2, fov = 50)`: camera distance for one UI pixel = px frame pixels
+
 ### `kit.env.retroDesktop(params)`
 
 Backdrop of the retro-ui look: os = retro-OS desktop (menu bar, blinking clock, icons, synthwave/checker wallpaper); desk = dithered dark wall with a voxel wooden desk for a CRT. A flat plane facing +z; put retro templates in front of it.
@@ -1722,6 +1775,635 @@ Blueprint technical drawing: parts (rect with optional round corners, circle, li
 Methods:
 
 - `update(t)`: Repaints the board for local time t: call it every frame
+
+### `kit.fx.maskedRegion(params)`
+
+Open-loop veil (look blueprint): a value hidden under a hatched mask plate with a question mark until the closing phrase (revealAt: seconds or the phrase), then the mask wipes off in a pixel dither and the value lights up. Full-frame 2D board (region for a part of the frame): call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `text` | string |  | The hidden value or word (revealed on the closing phrase) |
+| `caption` | string | `""` | Dimension-style caption under it |
+| `revealAt` | number \| string | `1` | When the mask starts to lift (seconds or the closing phrase) |
+| `duration` | number (0..3) | `0.6` | Seconds the wipe takes |
+| `textScale` | integer (2..8) | `5` | Value scale at 640x360 |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, width, height] (0..1 from the top left) the board covers; positions are 640x360-frame pixels from its corner |
+| `paper` | boolean | `true` | Draw the blueprint sheet (grid, border, rulers); false = transparent overlay |
+| `title` | string | `""` | Heading lettered top left, e.g. "SALES 1998-2000" (no figure numbers) |
+| `titleBlock` | object |  | Title block in the bottom-right corner (omit for none) |
+| `drift` | [number, number] | `[-4,0]` | Grid drift in pixels per second (keeps the shot alive); [0, 0] = still |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+
+## Look `paper-cutout`: Paper cut-out
+
+layered paper cut-out sets (hills, city, rooms) with a jointed paper puppet, signs and title strips; soft shadows, parallax and stop-motion movement.
+
+### `kit.props.paperHills(params)`
+
+A strip of torn-paper hills spanning the frame (rolling, peaks, dunes or flat ground). Add it to a paper stage on a depth layer; y = ridge baseline.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `kind` | "rolling" \| "peaks" \| "dunes" \| "flat" | `"rolling"` | Ridge shape |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: greenMid) |
+| `height` | number (0..200) | `28` | Bump height (640x360 px) |
+| `width` | number (20..800) | `220` | Bump width (640x360 px) |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `peak`: Highest point of the ridge (in the frame centre +-160 px)
+
+### `kit.props.paperTrees(params)`
+
+A row of cut-paper trees (round, pine or mixed) that sway on the stop-motion clock. y = ground line of the trunks; put the next hill layer in front to hide the bases.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `kind` | "round" \| "pine" \| "mixed" | `"mixed"` |  |
+| `count` | integer (1..12) | `5` |  |
+| `spread` | [number, number] | `[40,600]` | x range of the row (640x360 px) |
+| `height` | number (10..220) | `48` | Tree height (640x360 px), +-20 % |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: greenMid) |
+| `trunk` | string |  | Paper colour: a palette name or a look role (default: wood) |
+| `sway` | number (0..10) | `2` | Sway in degrees (0 = still) |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `tree<i>`: Crown of tree i (0-based, left to right)
+
+### `kit.props.paperClouds(params)`
+
+Scalloped paper clouds drifting sideways on the stop-motion clock (they wrap around). Usually layer 1, in front of the sky.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `count` | integer (1..8) | `3` |  |
+| `band` | [number, number] | `[30,120]` | y range of the clouds (640x360 px) |
+| `size` | number (16..240) | `70` | Cloud width (640x360 px), +-25 % |
+| `drift` | number (-60..60) | `6` | Drift in px per second (+ = right) |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: paper) |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `cloud<i>`: Centre of cloud i
+
+### `kit.props.paperBuildings(params)`
+
+A city skyline strip of cut-paper buildings with punched windows (some switch on and off), spanning the frame. y = street line.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `count` | integer (3..16) | `8` | Buildings across the strip (about) |
+| `height` | [number, number] | `[50,130]` | Height range (640x360 px) |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: stone) |
+| `roof` | string |  | Paper colour: a palette name or a look role (default: heroDark) |
+| `window` | string |  | Paper colour: a palette name or a look role (default: sun) |
+| `lit` | number (0..1) | `0.35` | Share of lit windows |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `tallest`: Roof of the tallest building near the frame centre
+
+### `kit.props.paperRoom(params)`
+
+A cut-away paper room like a toy theatre: wallpapered back wall, planked floor in perspective, furniture one layer nearer, optional curtains in front. Fills the frame; add it at layer 2 (puppets at 4, y about 300).
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `furniture` | "window" \| "frame" \| "shelf" \| "table" \| "chair" \| "lamp" \| "plant" \| "rug"[] | `["window","frame","shelf","table","chair","lamp","plant","rug"]` | Items to place (fixed spots) |
+| `wall` | string |  | Paper colour: a palette name or a look role (default: kraft) |
+| `floor` | string |  | Paper colour: a palette name or a look role (default: woodLight) |
+| `wood` | string |  | Paper colour: a palette name or a look role (default: wood) |
+| `curtains` | boolean | `true` | Theatre curtains in front (two layers nearer) |
+| `curtain` | string |  | Paper colour: a palette name or a look role (default: wine) |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `window`: The window (when placed)
+- `frame`: The frame (when placed)
+- `shelf`: The shelf (when placed)
+- `table`: The table (when placed)
+- `chair`: The chair (when placed)
+- `lamp`: The lamp (when placed)
+- `plant`: The plant (when placed)
+- `rug`: The rug (when placed)
+- `wall`: Centre of the back wall
+- `floor`: Middle of the floor
+
+### `kit.props.paperPuppet(params)`
+
+A jointed paper character (brass fasteners at the joints) posed on the stop-motion clock: idle, wave, walk, talk, point, cheer; can walk across the set. y = ground under its feet.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `pose` | "idle" \| "wave" \| "walk" \| "talk" \| "point" \| "cheer" | `"idle"` |  |
+| `facing` | "right" \| "left" | `"right"` |  |
+| `height` | number (24..300) | `96` | Height (640x360 px) |
+| `walk` | object |  | Walk along the ground: walks between start and end, then holds `pose` |
+| `coat` | string |  | Paper colour: a palette name or a look role (default: hero) |
+| `pants` | string |  | Paper colour: a palette name or a look role (default: stoneDark) |
+| `skin` | string |  | Paper colour: a palette name or a look role (default: kraft) |
+| `hair` | string |  | Paper colour: a palette name or a look role (default: wood) |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `head`: Top of the head
+- `face`: Centre of the face
+- `hand`: Front hand (follows the pose)
+- `feet`: Between the feet
+
+### `kit.props.paperSign(params)`
+
+A paper sign on a wooden stick (lettered in pixel caps) that can swing a little; y = where the stick meets the ground. Good for place names and labels in the set.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `text` | string |  |  |
+| `scale` | integer (1..4) | `2` | Text scale (2 = 14-px caps) |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: paper) |
+| `ink` | string |  | Paper colour: a palette name or a look role (default: ink) |
+| `stick` | number (0..200) | `40` | Stick height (640x360 px); 0 = none |
+| `swing` | number (0..15) | `3` | Swing in degrees |
+| `at` | number | `0` | Time (s) the piece enters |
+| `enter` | "bottom" \| "top" \| "left" \| "right" \| "drop" \| "none" | `"none"` |  |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `text`: Centre of the board
+- `base`: Foot of the stick
+
+### `kit.props.paperLabel(params)`
+
+A small paper tag (pixel caps) pinned with a tack, a piece of tape or hung on a string; x, y = its centre. For naming things in the set.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `text` | string |  |  |
+| `scale` | integer (1..3) | `1` | Text scale (1 = 7-px caps) |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: paper) |
+| `ink` | string |  | Paper colour: a palette name or a look role (default: ink) |
+| `pin` | "tack" \| "tape" \| "string" | `"tack"` |  |
+| `tilt` | number (-12..12) | `-3` | Paper tilt in degrees (text stays level) |
+| `at` | number | `0` | Time (s) the piece enters |
+| `enter` | "bottom" \| "top" \| "left" \| "right" \| "drop" \| "none" | `"drop"` |  |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `text`: Centre of the tag
+
+### `kit.props.paperCard(params)`
+
+Title card: a torn strip of paper taped onto the set with a big pixel-caps title (and subtitle) that slides in on the stop-motion clock. x, y = its centre.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `title` | string |  |  |
+| `subtitle` | string | `""` |  |
+| `width` | number (0.3..0.95) | `0.72` | Width as a share of the frame |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: paper) |
+| `ink` | string |  | Paper colour: a palette name or a look role (default: ink) |
+| `band` | string |  | Paper colour: a palette name or a look role (default: hero) |
+| `at` | number | `0` | Time (s) the piece enters |
+| `enter` | "bottom" \| "top" \| "left" \| "right" \| "drop" \| "none" | `"bottom"` |  |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `title`: Centre of the title line
+- `subtitle`: Centre of the subtitle line
+
+### `kit.props.paperStack(params)`
+
+A pile of photos and/or documents dealt onto the set one by one; the top photo shows a real picture (asset: ctx.assets.image('<id>')) or a cut-paper landscape. x, y = centre of the pile.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `kind` | "photos" \| "documents" \| "mixed" | `"mixed"` |  |
+| `count` | integer (1..7) | `4` |  |
+| `size` | number (40..300) | `130` | Sheet width (640x360 px) |
+| `asset` | object |  | Picture from ctx.assets.image('<asset id>') (build only) |
+| `caption` | string | `""` | Line under the top photo (pixel caps) |
+| `tone` | string |  | Paper colour: a palette name or a look role (default: paper) |
+| `at` | number | `0` | Time (s) the first sheet lands |
+| `interval` | number (0.1..3) | `0.4` | Seconds between sheets |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `photo`: Centre of the top sheet
+- `caption`: The caption line
+
+### `kit.env.paperStage(params)`
+
+Paper cut-out set: a torn-paper sky sheet and depth layers of hills or a city skyline, soft dithered drop shadows, real parallax under its camera preset and a stop-motion clock for the pieces you place on it.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `backdrop` | "day" \| "dusk" \| "night" \| "kraft" \| "paper" | `"dusk"` | Sky sheet (kraft/paper = plain sheet) |
+| `scenery` | "hills" \| "city" \| "none" | `"hills"` | Built-in depth strips: hills, city skyline, or none (add your own pieces) |
+| `layers` | integer (1..4) | `3` | Number of built-in scenery strips |
+| `hills` | "rolling" \| "peaks" \| "dunes" \| "flat" | `"rolling"` | Ridge shape of built-in hills |
+| `sky` | boolean | `true` | Sun (day/dusk), moon and stars (night), clouds (day) |
+| `horizon` | number (0.3..0.85) | `0.6` | Horizon height (0..1 from top) |
+| `fps` | integer (4..24) | `8` | Stop-motion cadence of moving pieces (8 or 12) |
+| `wobble` | number (0..2) | `1` | Hand-placed jitter of moving pieces (0 = none) |
+| `shadow` | number (0..2) | `1` | Drop shadow length (0 = none, 2 = long) |
+| `light` | "low" \| "high" | `"low"` | 'low': shadows rise above each layer (landscapes); 'high': they fall down-right (walls) |
+| `parallax` | number (0..2) | `1` | Depth between layers (0 = flat, 2 = deep) |
+| `drift` | number (0..40) | `10` | Idle camera sway in px (0 = still) |
+| `seed` | integer (0..99999) |  | Seed of the cut (shapes, positions); default: a seed of its own per call |
+
+Anchors (besides center, top, bottom, front, back, left, right):
+
+- `horizon`: Centre of the horizon on the middle layer
+- `layer<n>`: Horizon centre on layer n (1 far .. 5 near)
+
+Methods:
+
+- `update(t)`: Poses all pieces for local time t: call it every frame
+- `camera({ t, pan?, rise?, drift? })`: Camera preset pose: ctx.camera.set(stage.camera({ t })) every frame; pan/rise in px of the middle layer
+- `place(piece, { layer?, x?, y? })`: Adds a kit.props.paper* piece on a layer (1 far .. 5 near, 0 = on the sky); x, y in 640x360 px
+- `point(layer, x, y)`: World point of a frame pixel on a layer (place voxel props, aim marks)
+
+## Look `whiteboard`: Whiteboard
+
+hand-drawn whiteboard explainer: a hand draws doodles, arrows, flow charts, timelines and handwriting in marker on a whiteboard, synced to the words.
+
+### `kit.env.whiteboardBoard(params)`
+
+Whiteboard backdrop (look whiteboard): framed off-white board with grain, marker tray and optional grid; optional headline written by hand and underlined (title card) and extra strokes. Full-frame 2D board under voxel objects and ctx.text: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `headline` | string | `""` | Big centred handwriting (title card) |
+| `subline` | string | `""` | Smaller line under the headline |
+| `at` | number \| string |  | When the headline starts (default: the board start) |
+| `underline` | string | `"red"` | Ink of the headline's underline ('none' = no underline) |
+| `strokes` | string \| object[] | `[]` | Extra strokes (stroke language, see whiteboardSketch) |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, w, h] (0..1) the board covers; positions are 640x360-frame pixels from its corner |
+| `board` | boolean | `true` | Draw the board surface; false = transparent overlay |
+| `frame` | boolean | `true` | Aluminium frame and wall around the board |
+| `tray` | boolean | `true` | Marker tray (markers, eraser) along the bottom |
+| `grid` | "none" \| "dots" \| "lines" | `"none"` | Faint grid on the board |
+| `title` | string | `""` | Heading written by hand top left, underlined |
+| `pen` | "hand" \| "marker" \| "none" | `"hand"` | What draws: a hand holding a marker, a bare marker, or nothing |
+| `color` | string | `"black"` | Default ink: black, blue, red, green (or a palette name) |
+| `width` | integer (1..4) | `2` | Marker width in 640x360-frame pixels |
+| `wobble` | number (0..3) | `1` | Hand wobble in pixels (0 = ruled lines) |
+| `speed` | number (60..2000) | `380` | Drawing speed, 640x360-frame pixels per second (auto-timed strokes) |
+| `start` | number \| string | `0.3` | When drawing starts (seconds or phrase) |
+| `gap` | number (0..3) | `0.15` | Pause between auto-timed strokes (s) |
+| `erase` | object[] | `[]` | Eraser passes: wipe everything drawn before them (later strokes draw on the clean board) |
+| `seed` | integer |  | Seed of the hand wobble and board grain (default: from the shot) |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `stroke(i)`: Annotation target { screen, size } of stroke/item i (pass to ctx.annotate)
+- `point(name)`: Annotation target of a named point: item ids ('id', 'id.top', 'id.end'...), 'stroke:<i>', 'pen' (the pen tip now)
+- `strokeTime(i)`: { t, tEnd }: when item i is drawn (sync SFX/annotations)
+- `doneAt()`: Time the last stroke is finished
+
+### `kit.fx.whiteboardSketch(params)`
+
+Whiteboard sketch (look whiteboard): a hand draws strokes in order on a whiteboard (lines, arrows, boxes, circles, brackets, zigzags, labels and 20+ doodles: person, bulb, gear, house, computer, axes, bars, pie, cloud, rocket...). Full-frame 2D board: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `strokes` | string \| object[] |  | What to draw, in order: strings like 'circle 320 180 60 blue' or { draw, at, duration, color, id }. Shapes: line, curve, arrow, box, circle, bracket, underline, zigzag, hatch, dot, write; doodles: person, bulb, gear, house, computer, axes, bars, pie, cloud, magnifier, rocket, coin, heart, question, check, cross, star, clock, target, smiley, lock, phone, book, trophy, globe |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, w, h] (0..1) the board covers; positions are 640x360-frame pixels from its corner |
+| `board` | boolean | `true` | Draw the board surface; false = transparent overlay |
+| `frame` | boolean | `true` | Aluminium frame and wall around the board |
+| `tray` | boolean | `true` | Marker tray (markers, eraser) along the bottom |
+| `grid` | "none" \| "dots" \| "lines" | `"none"` | Faint grid on the board |
+| `title` | string | `""` | Heading written by hand top left, underlined |
+| `pen` | "hand" \| "marker" \| "none" | `"hand"` | What draws: a hand holding a marker, a bare marker, or nothing |
+| `color` | string | `"black"` | Default ink: black, blue, red, green (or a palette name) |
+| `width` | integer (1..4) | `2` | Marker width in 640x360-frame pixels |
+| `wobble` | number (0..3) | `1` | Hand wobble in pixels (0 = ruled lines) |
+| `speed` | number (60..2000) | `380` | Drawing speed, 640x360-frame pixels per second (auto-timed strokes) |
+| `start` | number \| string | `0.3` | When drawing starts (seconds or phrase) |
+| `gap` | number (0..3) | `0.15` | Pause between auto-timed strokes (s) |
+| `erase` | object[] | `[]` | Eraser passes: wipe everything drawn before them (later strokes draw on the clean board) |
+| `seed` | integer |  | Seed of the hand wobble and board grain (default: from the shot) |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `stroke(i)`: Annotation target { screen, size } of stroke/item i (pass to ctx.annotate)
+- `point(name)`: Annotation target of a named point: item ids ('id', 'id.top', 'id.end'...), 'stroke:<i>', 'pen' (the pen tip now)
+- `strokeTime(i)`: { t, tEnd }: when item i is drawn (sync SFX/annotations)
+- `doneAt()`: Time the last stroke is finished
+
+### `kit.fx.whiteboardText(params)`
+
+Whiteboard handwriting (look whiteboard): lines written glyph by glyph by a hand with a marker, each on its phrase, then words underlined, circled, boxed or struck out. Full-frame 2D board: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `lines` | string \| object[] |  | Lines to write, top to bottom (short: <= 24 chars reads best) |
+| `scale` | integer (2..8) |  | Letter cell size at 640x360 (3 = 21-px caps); default: the largest that fits, up to 5 |
+| `align` | "left" \| "center" \| "right" | `"center"` |  |
+| `position` | [number, number] |  | Centre of the text block, 640x360-frame pixels (default: the middle of the board) |
+| `rate` | number (2..40) | `9` | Letters per second |
+| `emphasis` | object[] | `[]` |  |
+| `strokes` | string \| object[] | `[]` | Extra strokes drawn after (stroke language, see whiteboardSketch) |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, w, h] (0..1) the board covers; positions are 640x360-frame pixels from its corner |
+| `board` | boolean | `true` | Draw the board surface; false = transparent overlay |
+| `frame` | boolean | `true` | Aluminium frame and wall around the board |
+| `tray` | boolean | `true` | Marker tray (markers, eraser) along the bottom |
+| `grid` | "none" \| "dots" \| "lines" | `"none"` | Faint grid on the board |
+| `title` | string | `""` | Heading written by hand top left, underlined |
+| `pen` | "hand" \| "marker" \| "none" | `"hand"` | What draws: a hand holding a marker, a bare marker, or nothing |
+| `color` | string | `"black"` | Default ink: black, blue, red, green (or a palette name) |
+| `width` | integer (1..4) | `2` | Marker width in 640x360-frame pixels |
+| `wobble` | number (0..3) | `1` | Hand wobble in pixels (0 = ruled lines) |
+| `speed` | number (60..2000) | `380` | Drawing speed, 640x360-frame pixels per second (auto-timed strokes) |
+| `start` | number \| string | `0.3` | When drawing starts (seconds or phrase) |
+| `gap` | number (0..3) | `0.15` | Pause between auto-timed strokes (s) |
+| `erase` | object[] | `[]` | Eraser passes: wipe everything drawn before them (later strokes draw on the clean board) |
+| `seed` | integer |  | Seed of the hand wobble and board grain (default: from the shot) |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `stroke(i)`: Annotation target { screen, size } of stroke/item i (pass to ctx.annotate)
+- `point(name)`: Annotation target of a named point: item ids ('id', 'id.top', 'id.end'...), 'stroke:<i>', 'pen' (the pen tip now)
+- `strokeTime(i)`: { t, tEnd }: when item i is drawn (sync SFX/annotations)
+- `doneAt()`: Time the last stroke is finished
+
+### `kit.fx.whiteboardDiagram(params)`
+
+Whiteboard diagram (look whiteboard): a flow chart (boxes, circles, clouds or doodles joined by arrows, auto laid out), a timeline or an equation row (IDEA + WORK = $), drawn in order by hand, each part on its phrase. Full-frame 2D board: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `kind` | "flow" \| "timeline" \| "equation" | `"flow"` |  |
+| `nodes` | object[] | `[]` | flow: nodes in drawing order |
+| `edges` | object[] |  | flow: arrows (default: a chain through the nodes in order) |
+| `layout` | "auto" \| "row" \| "column" \| "cycle" | `"auto"` | flow: auto = a row up to 4 nodes, two snaking rows above |
+| `events` | object[] | `[]` | timeline: events left to right |
+| `terms` | string \| object[] | `[]` | equation: words, operators ('+', '-', '=', 'x', '->') or { doodle: 'bulb' } |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, w, h] (0..1) the board covers; positions are 640x360-frame pixels from its corner |
+| `board` | boolean | `true` | Draw the board surface; false = transparent overlay |
+| `frame` | boolean | `true` | Aluminium frame and wall around the board |
+| `tray` | boolean | `true` | Marker tray (markers, eraser) along the bottom |
+| `grid` | "none" \| "dots" \| "lines" | `"none"` | Faint grid on the board |
+| `title` | string | `""` | Heading written by hand top left, underlined |
+| `pen` | "hand" \| "marker" \| "none" | `"hand"` | What draws: a hand holding a marker, a bare marker, or nothing |
+| `color` | string | `"black"` | Default ink: black, blue, red, green (or a palette name) |
+| `width` | integer (1..4) | `2` | Marker width in 640x360-frame pixels |
+| `wobble` | number (0..3) | `1` | Hand wobble in pixels (0 = ruled lines) |
+| `speed` | number (60..2000) | `380` | Drawing speed, 640x360-frame pixels per second (auto-timed strokes) |
+| `start` | number \| string | `0.3` | When drawing starts (seconds or phrase) |
+| `gap` | number (0..3) | `0.15` | Pause between auto-timed strokes (s) |
+| `erase` | object[] | `[]` | Eraser passes: wipe everything drawn before them (later strokes draw on the clean board) |
+| `seed` | integer |  | Seed of the hand wobble and board grain (default: from the shot) |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `stroke(i)`: Annotation target { screen, size } of stroke/item i (pass to ctx.annotate)
+- `point(name)`: Annotation target of a named point: item ids ('id', 'id.top', 'id.end'...), 'stroke:<i>', 'pen' (the pen tip now)
+- `strokeTime(i)`: { t, tEnd }: when item i is drawn (sync SFX/annotations)
+- `doneAt()`: Time the last stroke is finished
+
+### `kit.fx.whiteboardCounter(params)`
+
+Whiteboard number (look whiteboard): a number written large by hand, crossed out and replaced by the next (up to 4, each on its phrase), the last one circled, with a caption. Full-frame 2D board: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `values` | number \| string \| object[] |  | Numbers in order: each crosses out the one before |
+| `prefix` | string | `""` | Before every number, e.g. "$" |
+| `suffix` | string | `""` | After every number, e.g. "%" or "M" |
+| `groups` | boolean | `true` | Commas between digit groups |
+| `label` | string | `""` | Caption written under the numbers |
+| `strike` | "line" \| "cross" \| "scribble" | `"line"` | How a replaced number is crossed out |
+| `strikeColor` | string | `"red"` |  |
+| `final` | "circle" \| "underline" \| "box" \| "none" | `"circle"` | Emphasis on the last number |
+| `finalColor` | string | `"blue"` |  |
+| `scale` | integer (2..12) |  | Digit cell size at 640x360 (default: the largest that fits, up to 9) |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, w, h] (0..1) the board covers; positions are 640x360-frame pixels from its corner |
+| `board` | boolean | `true` | Draw the board surface; false = transparent overlay |
+| `frame` | boolean | `true` | Aluminium frame and wall around the board |
+| `tray` | boolean | `true` | Marker tray (markers, eraser) along the bottom |
+| `grid` | "none" \| "dots" \| "lines" | `"none"` | Faint grid on the board |
+| `title` | string | `""` | Heading written by hand top left, underlined |
+| `pen` | "hand" \| "marker" \| "none" | `"hand"` | What draws: a hand holding a marker, a bare marker, or nothing |
+| `color` | string | `"black"` | Default ink: black, blue, red, green (or a palette name) |
+| `width` | integer (1..4) | `2` | Marker width in 640x360-frame pixels |
+| `wobble` | number (0..3) | `1` | Hand wobble in pixels (0 = ruled lines) |
+| `speed` | number (60..2000) | `380` | Drawing speed, 640x360-frame pixels per second (auto-timed strokes) |
+| `start` | number \| string | `0.3` | When drawing starts (seconds or phrase) |
+| `gap` | number (0..3) | `0.15` | Pause between auto-timed strokes (s) |
+| `erase` | object[] | `[]` | Eraser passes: wipe everything drawn before them (later strokes draw on the clean board) |
+| `seed` | integer |  | Seed of the hand wobble and board grain (default: from the shot) |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `stroke(i)`: Annotation target { screen, size } of stroke/item i (pass to ctx.annotate)
+- `point(name)`: Annotation target of a named point: item ids ('id', 'id.top', 'id.end'...), 'stroke:<i>', 'pen' (the pen tip now)
+- `strokeTime(i)`: { t, tEnd }: when item i is drawn (sync SFX/annotations)
+- `doneAt()`: Time the last stroke is finished
+
+## Look `flat-2d`: Flat 2D motion graphics
+
+flat 2D motion graphics: shapes, pixel icons, infographics (steps, bars, gauges, versus, big numbers), kinetic type and lower thirds.
+
+### `kit.env.flatStage(params)`
+
+Flat 2D motion-graphics stage: a field in one tone family (indigo, violet, teal, night, wine, cream) with a dithered gradient, spot, stripes, dots, grid, checker or sunburst rays drifting slowly, plus optional floating decor shapes along the edges. Backdrop for flat boards, ctx.text or voxel objects: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `decor` | integer (0..12) | `6` | Floating decor shapes along the edges (0 = none) |
+| `decorStyle` | "subtle" \| "confetti" | `"subtle"` | subtle (stage tone) or confetti (accent colours) |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, width, height] (0..1 from the top left) the board covers; positions are 640x360-frame pixels from its corner |
+| `tone` | "indigo" \| "violet" \| "teal" \| "night" \| "wine" \| "cream" | `"indigo"` | Stage tone family: indigo (default, dark), violet, teal, night (darkest), wine, cream (light, dark lettering) |
+| `stage` | "solid" \| "gradient" \| "spot" \| "stripes" \| "dots" \| "grid" \| "checker" \| "rays" \| "none" | `"gradient"` | Background: solid, gradient (dithered, top to bottom), spot (dithered glow in the centre), stripes, dots, grid, checker, rays (sunburst), none (transparent overlay) |
+| `drift` | number (0..60) | `8` | Pattern drift in pixels per second (rays: degrees per second); 0 = still |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `overlay` | boolean | `false` | Draw over voxel objects too (lower thirds, captions on a 3D shot) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `target(name)`: ctx.annotate target { screen, size } of a named part at rest: none
+
+### `kit.fx.flatShapes(params)`
+
+Flat motion-graphics shapes (circle, rect, pill, triangle, diamond, hexagon, star, plus, ring, line, arrow) with flat shadows and labels; pop/scale/slide/drop/spin/wipe in on cues, idle (float, pulse, spin, wobble), morph into other shapes, colours and positions on cues. Full-frame 2D board: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `shapes` | object[] |  | Shapes, drawn in order (max ~6 on screen) |
+| `start` | number | `0.3` | First entrance when a shape has no `at` (s) |
+| `stagger` | number | `0.2` | Seconds between default entrances |
+| `morphTime` | number (0.05..3) | `0.5` | Length of each morph (s) |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, width, height] (0..1 from the top left) the board covers; positions are 640x360-frame pixels from its corner |
+| `tone` | "indigo" \| "violet" \| "teal" \| "night" \| "wine" \| "cream" | `"indigo"` | Stage tone family: indigo (default, dark), violet, teal, night (darkest), wine, cream (light, dark lettering) |
+| `stage` | "solid" \| "gradient" \| "spot" \| "stripes" \| "dots" \| "grid" \| "checker" \| "rays" \| "none" | `"solid"` | Background: solid, gradient (dithered, top to bottom), spot (dithered glow in the centre), stripes, dots, grid, checker, rays (sunburst), none (transparent overlay) |
+| `drift` | number (0..60) | `8` | Pattern drift in pixels per second (rays: degrees per second); 0 = still |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `overlay` | boolean | `false` | Draw over voxel objects too (lower thirds, captions on a 3D shot) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `target(name)`: ctx.annotate target { screen, size } of a named part at rest: shape:<i> (each shape in order, at its first position)
+
+### `kit.fx.flatIcons(params)`
+
+Flat 2D pixel icons (16x16 cells: person, gear, lightbulb, lock, cloud, phone, chart, star, arrow, check, cross, heart, clock, globe, magnifier, document, envelope, battery, wifi, coin, rocket, shield, camera, play, bolt, flag) on flat badges, placed freely and entering on cues (pop, slide, drop...). Full-frame 2D board: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `icons` | object[] | `[]` | Icons to place (at most ~6 on screen) |
+| `sheet` | boolean | `false` | Show every icon of the set in a labelled grid (reference sheet) |
+| `start` | number | `0.3` | First entrance when an icon has no `at` (s) |
+| `stagger` | number | `0.2` | Seconds between default entrances |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, width, height] (0..1 from the top left) the board covers; positions are 640x360-frame pixels from its corner |
+| `tone` | "indigo" \| "violet" \| "teal" \| "night" \| "wine" \| "cream" | `"indigo"` | Stage tone family: indigo (default, dark), violet, teal, night (darkest), wine, cream (light, dark lettering) |
+| `stage` | "solid" \| "gradient" \| "spot" \| "stripes" \| "dots" \| "grid" \| "checker" \| "rays" \| "none" | `"dots"` | Background: solid, gradient (dithered, top to bottom), spot (dithered glow in the centre), stripes, dots, grid, checker, rays (sunburst), none (transparent overlay) |
+| `drift` | number (0..60) | `8` | Pattern drift in pixels per second (rays: degrees per second); 0 = still |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `overlay` | boolean | `false` | Draw over voxel objects too (lower thirds, captions on a 3D shot) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `target(name)`: ctx.annotate target { screen, size } of a named part at rest: icon:<i> (each icon in order), icon:<name>
+
+### `kit.fx.flatInfographic(params)`
+
+Flat infographic board: icons (row/grid of icon badges with captions and a dotted connector, steps of a process), progress (labelled bars filling up), ring (1-3 donut gauges), versus (split screen, two cards and a VS badge) or stat (1-3 cards with big count-up numbers); items appear on spoken cues. Call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `kind` | "icons" \| "progress" \| "ring" \| "versus" \| "stat" | `"icons"` | icons (row/grid, <= 8), progress (bars, <= 5), ring (gauges, <= 3), versus (2), stat (cards, <= 3) |
+| `items` | object[] |  | { label, value?, icon?, color?, at? } |
+| `title` | string | `""` | Heading at the top |
+| `prefix` | string | `""` | Before numbers, e.g. "$" |
+| `suffix` | string | `""` | After numbers, e.g. "%" or "M" |
+| `decimals` | integer (0..2) | `0` |  |
+| `max` | number | `100` | progress/ring: the full bar or ring |
+| `duration` | number (0.1..5) | `1.2` | Count-up / fill length (s) |
+| `connect` | boolean | `true` | icons: dotted connector between steps |
+| `columns` | integer (1..4) |  | icons: columns of the grid |
+| `highlight` | integer (0..7) |  | Item that wins (versus) or stands out |
+| `start` | number | `0.3` | First item when it has no `at` (s) |
+| `stagger` | number | `0.4` | Seconds between default item cues |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, width, height] (0..1 from the top left) the board covers; positions are 640x360-frame pixels from its corner |
+| `tone` | "indigo" \| "violet" \| "teal" \| "night" \| "wine" \| "cream" | `"indigo"` | Stage tone family: indigo (default, dark), violet, teal, night (darkest), wine, cream (light, dark lettering) |
+| `stage` | "solid" \| "gradient" \| "spot" \| "stripes" \| "dots" \| "grid" \| "checker" \| "rays" \| "none" | `"gradient"` | Background: solid, gradient (dithered, top to bottom), spot (dithered glow in the centre), stripes, dots, grid, checker, rays (sunburst), none (transparent overlay) |
+| `drift` | number (0..60) | `8` | Pattern drift in pixels per second (rays: degrees per second); 0 = still |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `overlay` | boolean | `false` | Draw over voxel objects too (lower thirds, captions on a 3D shot) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `target(name)`: ctx.annotate target { screen, size } of a named part at rest: item:<i> (each item: badge, bar, ring or card), vs (versus)
+
+### `kit.fx.flatKinetic(params)`
+
+Kinetic typography in bold pixel caps: words land one by one on spoken phrases (pop, slide out of a mask, drop, shake, type, fade) and get marks (underline, plate, box, strike); auto-fitted, centred or left-aligned; all leave together on `out`. Full-frame 2D board: call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `words` | object[] |  | Words with their own cues, effects, marks |
+| `text` | string |  | Shorthand: words on `stagger`; "/" breaks the line, *word* gets the mark |
+| `effect` | "pop" \| "slide" \| "drop" \| "shake" \| "type" \| "fade" \| "none" | `"pop"` | Default entrance: pop, slide, drop, shake, type, fade, none |
+| `mark` | "none" \| "underline" \| "plate" \| "box" \| "strike" | `"underline"` | Mark of *starred* words in `text` |
+| `markColor` | string | `"primary"` | Colour of marks (role or palette name) |
+| `start` | number | `0.3` | First word when it has no `at` (s) |
+| `stagger` | number | `0.3` | Seconds between default word cues |
+| `scale` | integer (0..12) | `0` | Type scale at 640x360 (0 = fit the frame) |
+| `align` | "center" \| "left" | `"center"` |  |
+| `y` | number | `180` | Vertical centre of the block (frame pixels) |
+| `out` | number \| string |  | When every word leaves (slides up into its mask) |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, width, height] (0..1 from the top left) the board covers; positions are 640x360-frame pixels from its corner |
+| `tone` | "indigo" \| "violet" \| "teal" \| "night" \| "wine" \| "cream" | `"indigo"` | Stage tone family: indigo (default, dark), violet, teal, night (darkest), wine, cream (light, dark lettering) |
+| `stage` | "solid" \| "gradient" \| "spot" \| "stripes" \| "dots" \| "grid" \| "checker" \| "rays" \| "none" | `"solid"` | Background: solid, gradient (dithered, top to bottom), spot (dithered glow in the centre), stripes, dots, grid, checker, rays (sunburst), none (transparent overlay) |
+| `drift` | number (0..60) | `8` | Pattern drift in pixels per second (rays: degrees per second); 0 = still |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `overlay` | boolean | `false` | Draw over voxel objects too (lower thirds, captions on a 3D shot) |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `target(name)`: ctx.annotate target { screen, size } of a named part at rest: word:<i> (each word in order), line:<i>
+
+### `kit.fx.flatLowerThird(params)`
+
+Flat lower third: accent bar, name plate (bold caps) and caption strip wiping in on a cue, optional icon badge, leaving in reverse on `out`; transparent around the plate and drawn over voxel objects (overlay) so it fits any shot. Call update(t) every frame.
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | string |  | Big line: a name or the headline fact |
+| `caption` | string | `""` | Small line: role, source, place, date |
+| `icon` | "person" \| "gear" \| "lightbulb" \| "lock" \| "cloud" \| "phone" \| "chart" \| "star" \| "arrow" \| "check" \| "cross" \| "heart" \| "clock" \| "globe" \| "magnifier" \| "document" \| "envelope" \| "battery" \| "wifi" \| "coin" \| "rocket" \| "shield" \| "camera" \| "play" \| "bolt" \| "flag" |  | Icon on a badge left of the plate |
+| `at` | number \| string | `0.3` | When it slides in (seconds or phrase) |
+| `out` | number \| string |  | When it leaves (default: stays) |
+| `side` | "left" \| "right" | `"left"` |  |
+| `color` | string | `"primary"` | Accent bar and caption strip (role or palette name) |
+| `plateColor` | string | `"card"` | Name plate colour |
+| `y` | number | `312` | Bottom of the caption strip in frame pixels |
+| `size` | [integer, integer] | `[640,360]` | Frame size in pixels: pass [ctx.shot.width, ctx.shot.height] |
+| `region` | [number, number, number, number] | `[0,0,1,1]` | Part of the frame [x, y, width, height] (0..1 from the top left) the board covers; positions are 640x360-frame pixels from its corner |
+| `tone` | "indigo" \| "violet" \| "teal" \| "night" \| "wine" \| "cream" | `"indigo"` | Stage tone family: indigo (default, dark), violet, teal, night (darkest), wine, cream (light, dark lettering) |
+| `stage` | "solid" \| "gradient" \| "spot" \| "stripes" \| "dots" \| "grid" \| "checker" \| "rays" \| "none" | `"none"` | Background: solid, gradient (dithered, top to bottom), spot (dithered glow in the centre), stripes, dots, grid, checker, rays (sunburst), none (transparent overlay) |
+| `drift` | number (0..60) | `8` | Pattern drift in pixels per second (rays: degrees per second); 0 = still |
+| `layer` | integer (0..9) | `0` | Draw order among boards (higher = on top) |
+| `overlay` | boolean | `true` |  |
+| `anchor` | function \| value |  | Pass ctx.anchor when any time is a spoken phrase |
+
+Methods:
+
+- `update(t)`: Repaints the board for local time t: call it every frame
+- `target(name)`: ctx.annotate target { screen, size } of a named part at rest: name, caption, plate, icon
 
 ## Voxel toolbox (`kit.voxel`)
 

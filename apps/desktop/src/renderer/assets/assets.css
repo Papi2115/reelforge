@@ -163,3 +163,120 @@
   font-size: 11px;
   white-space: pre-wrap;
 }
+
+/* Tabs, your files (PLAN.md#12.12) and the asset library (PLAN.md#12.19). */
+.assets-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.assets-tabs button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.own-assets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed var(--border-soft);
+  border-radius: 4px;
+}
+
+.own-assets-dragging {
+  border-color: var(--accent);
+  background: var(--panel-raised);
+}
+
+.own-assets-heading {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.own-assets-hint,
+.own-asset-description,
+.library-count {
+  font-size: 12px;
+}
+
+.own-asset-description {
+  overflow-wrap: anywhere;
+}
+
+.own-asset-row {
+  align-items: flex-start;
+}
+
+.own-asset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  max-width: 300px;
+}
+
+.own-asset-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.own-asset-form textarea {
+  resize: vertical;
+}
+
+.asset-library-toggle {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.library-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.library-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.library-search {
+  flex: 1 1 220px;
+}
+
+.library-favourites {
+  padding-bottom: 6px;
+}
+
+.library-card-title {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.library-star {
+  flex: none;
+  width: 26px;
+  height: 24px;
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.library-tags input {
+  width: 100%;
+}

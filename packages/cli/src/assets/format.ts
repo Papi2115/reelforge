@@ -34,13 +34,32 @@ export function candidateBlock(candidates: readonly AssetCandidate[]): string[] 
   return untrustedBlock(candidates.flatMap((candidate, index) => candidateLines(candidate, index)));
 }
 
+/** `own` -> `the user's own file`; library copies say so. */
+export function originLabel(record: Pick<AssetRecord, 'source' | 'fromLibrary'>): string {
+  const origin = record.source === 'own' ? "the user's own file" : `from ${record.source}`;
+  return record.fromLibrary === true ? `${origin} (via the asset library)` : origin;
+}
+
 /** A catalogue entry (assets.json may have been edited, so its text is cleaned again). */
 export function recordLines(record: AssetRecord): string[] {
+  const own = record.source === 'own';
+  const description = sanitizeText(record.description ?? '', TEXT_LIMITS.description);
   return [
-    `- ${record.id}  ${record.kind} ${record.mime} ${formatSize(record.width, record.height)} ${formatBytes(record.bytes)}  from ${record.source}  licence ${licenceLabel(record.licence)}${record.approved ? '  approved by the user' : ''}`,
+    `- ${record.id}  ${record.kind} ${record.mime} ${formatSize(record.width, record.height)} ${formatBytes(record.bytes)}  ${originLabel(record)}  licence ${own ? 'own' : licenceLabel(record.licence)}${record.approved && !own ? '  approved by the user' : ''}`,
     `   title: ${quoted(sanitizeText(record.title, TEXT_LIMITS.title))}`,
-    `   author: ${quoted(sanitizeText(record.author, TEXT_LIMITS.author))}`,
+    ...(own ? [] : [`   author: ${quoted(sanitizeText(record.author, TEXT_LIMITS.author))}`]),
+    ...(description === '' ? [] : [`   description: ${quoted(description)}`]),
   ];
+}
+
+/** One line per asset for the storyboard: id, kind, size, origin and what it shows. */
+export function catalogueLine(record: AssetRecord): string {
+  const what =
+    sanitizeText(record.description ?? '', TEXT_LIMITS.description) ||
+    sanitizeText(record.title, TEXT_LIMITS.title) ||
+    record.id;
+  const flag = record.licence.verified ? '' : '  ⚠ licence unverified';
+  return `- ${record.id}  ${record.kind} ${formatSize(record.width, record.height)}  ${originLabel(record)}  ${quoted(what)}${flag}`;
 }
 
 /** Guard refusals and network/source failures as a project error (exit 1, message + fix). */

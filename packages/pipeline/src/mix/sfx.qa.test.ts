@@ -93,6 +93,29 @@ const CENTROID_HZ: Readonly<Record<SfxRecipe, readonly [number, number]>> = {
   'measure-blip': [700, 2000],
   'relay-click': [2500, 4500],
   'data-ping': [900, 2000],
+  // flat-2d palette
+  'shape-pop': [300, 2500],
+  'swoosh-soft': [700, 4500],
+  'whoosh-flat': [500, 5000],
+  'flat-tick': [900, 5000],
+  'chime-up': [900, 3500],
+  'text-snap': [400, 4500],
+  // whiteboard palette
+  'marker-stroke': [1200, 4500],
+  'marker-squeak': [1000, 4000],
+  'cap-pop': [800, 4500],
+  'eraser-swipe': [500, 2500],
+  'board-tap': [400, 3500],
+  'board-chime': [800, 2600],
+  'board-tick': [600, 3500],
+  // paper-cutout palette
+  'paper-rustle': [3500, 7000],
+  'paper-slide': [3000, 5500],
+  'scissor-snip': [3000, 5000],
+  'tape-tear': [2800, 5000],
+  'paper-pop': [350, 1100],
+  'wood-tick': [600, 1600],
+  'page-flip': [3000, 5000],
 };
 
 /** Minimum power share above 150 Hz (phone speakers); impacts are allowed a heavier sub. */

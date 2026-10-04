@@ -197,6 +197,40 @@ describe('segmentCacheKey', () => {
     };
     expect(keyOf({ manifest: moved })).not.toBe(keyOf({ manifest: on }));
   });
+
+  it('depends on reveal-moment effects only when a shot has them (PLAN.md#12.27)', () => {
+    const plain = manifest();
+    const slowed: RenderManifest = {
+      ...plain,
+      shots: plain.shots.map((s, index) =>
+        index === 0 ? { ...s, timeRemap: [{ from: s.t0, to: s.t0 + 0.5, rate: 0.4 }] } : s,
+      ),
+    };
+    expect(keyOf({ manifest: slowed })).not.toBe(base);
+    const flashed: RenderManifest = {
+      ...plain,
+      shots: plain.shots.map((s, index) =>
+        index === 0 ? { ...s, paletteShift: [{ from: s.t0, to: s.t0 + 0.5 }] } : s,
+      ),
+    };
+    expect(keyOf({ manifest: flashed })).not.toBe(base);
+    expect(keyOf({ manifest: flashed })).not.toBe(keyOf({ manifest: slowed }));
+  });
+
+  it('depends on live directions only when a shot has one (PLAN.md#12.14)', () => {
+    const plain = manifest();
+    const directed = (direction: { dim?: number; zoom?: number }): RenderManifest => ({
+      ...plain,
+      shots: plain.shots.map((s, index) => (index === 0 ? { ...s, direction } : s)),
+    });
+    expect(keyOf({ manifest: directed({ dim: -0.25 }) })).not.toBe(base);
+    expect(keyOf({ manifest: directed({ dim: -0.25 }) })).not.toBe(
+      keyOf({ manifest: directed({ zoom: 1.1 }) }),
+    );
+    expect(keyOf({ manifest: directed({ dim: -0.25 }) })).toBe(
+      keyOf({ manifest: directed({ dim: -0.25 }) }),
+    );
+  });
 });
 
 describe('planShots', () => {

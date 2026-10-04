@@ -56,6 +56,7 @@ const MINIMAL: Readonly<Record<string, readonly ['fx' | 'env', unknown]>> = {
     'fx',
     { size: SIZE, parts: [{ kind: 'circle', center: [320, 180], r: 40 }] },
   ],
+  maskedRegion: ['fx', { size: SIZE, text: '1672' }],
 };
 
 describe('look blueprint', () => {
@@ -73,7 +74,7 @@ describe('look blueprint', () => {
     expect(names.sort()).toEqual(Object.keys(MINIMAL).sort());
     for (const name of names) expect(blueprintLook.docs).toContain(name);
     const extra = extraLookDefinitions([voxelLook, blueprintLook]);
-    expect(extra.fx).toHaveLength(6);
+    expect(extra.fx).toHaveLength(7);
     expect(extra.env.map((entry) => entry.definition.name)).toEqual(['blueprintSheet']);
   });
 

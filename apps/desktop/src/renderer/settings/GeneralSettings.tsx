@@ -250,6 +250,42 @@ export function ProjectsPage({ state, update }: PageProps): JSX.Element {
           </select>
         </label>
       </div>
+      <h3 className="settings-heading">Asset library</h3>
+      <p className="muted">
+        Your asset library keeps copies of assets on this computer, shared by all your projects
+        (Assets → Library). Each asset also has its own &quot;Save to library&quot; box.
+      </p>
+      <label className="settings-toggle">
+        <input
+          type="checkbox"
+          checked={settings.assetLibrary.saveDownloaded}
+          onChange={(event) => {
+            update({ assetLibrary: { saveDownloaded: event.target.checked } });
+          }}
+        />
+        <span>
+          <strong>Save downloaded assets to the library</strong>
+          <span className="muted">
+            Photos and footage you approve (or with a verified open licence) are kept for your other
+            projects, so they are never downloaded twice.
+          </span>
+        </span>
+      </label>
+      <label className="settings-toggle">
+        <input
+          type="checkbox"
+          checked={settings.assetLibrary.saveOwn}
+          onChange={(event) => {
+            update({ assetLibrary: { saveOwn: event.target.checked } });
+          }}
+        />
+        <span>
+          <strong>Save my own files to the library</strong>
+          <span className="muted">
+            Files you add to a project are kept for your other projects.
+          </span>
+        </span>
+      </label>
     </div>
   );
 }

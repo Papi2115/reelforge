@@ -2,7 +2,7 @@
  * Sandboxed preload (bundled to out/preload/preload.cjs): exposes `window.reelforge`, one named
  * function per IPC channel. Responses are validated with zod before they reach the page.
  */
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import { z } from 'zod';
 import {
   API_GLOBAL,
@@ -136,8 +136,39 @@ const api: ReelforgeApi = {
   openHelpTarget: (target) => invoke(IPC.helpOpen, { target }),
   getProjectSettings: () => invoke(IPC.projectSettingsGet, null),
   updateProjectSettings: (patch) => invoke(IPC.projectSettingsUpdate, patch),
+  saveTension: (request) => invoke(IPC.tensionSave, request),
+  resetTension: () => invoke(IPC.tensionReset, null),
+  proposeTension: () => invoke(IPC.tensionPropose, null),
+  getDramaturgy: () => invoke(IPC.dramaturgyState, null),
+  decideMoment: (request) => invoke(IPC.momentDecide, request),
+  getDirections: () => invoke(IPC.directionsState, null),
+  applyDirection: (request) => invoke(IPC.directionApply, request),
+  getEditing: () => invoke(IPC.editingState, null),
+  actOnRepetition: (request) => invoke(IPC.repetitionAction, request),
   getAssetsState: () => invoke(IPC.assetsState, null),
   reviewAssets: (request) => invoke(IPC.assetsReview, request),
+  getPublishKit: () => invoke(IPC.publishKit, null),
+  savePublishKit: () => invoke(IPC.publishSave, null),
+  openPublishFolder: () => invoke(IPC.publishOpenFolder, null),
+  getClaimsState: () => invoke(IPC.claimsState, null),
+  checkSources: () => invoke(IPC.claimsCheck, null),
+  editClaim: (request) => invoke(IPC.claimsEdit, request),
+  getHookLab: () => invoke(IPC.hookLabState, null),
+  generateHooks: () => invoke(IPC.hookLabGenerate, null),
+  pickHook: (request) => invoke(IPC.hookLabPick, request),
+  discardHooks: (number) => invoke(IPC.hookLabDiscard, { number }),
+  getTasteState: () => invoke(IPC.tasteState, null),
+  resetTaste: () => invoke(IPC.tasteReset, null),
+  exportTaste: () => invoke(IPC.tasteExport, null),
+  importAssets: (request) => invoke(IPC.assetsImport, request),
+  editAsset: (request) => invoke(IPC.assetsEdit, request),
+  removeAsset: (id) => invoke(IPC.assetsRemove, { id }),
+  setAssetInLibrary: (request) => invoke(IPC.assetsLibrary, request),
+  droppedFilePaths: (files) => files.map((file) => webUtils.getPathForFile(file)),
+  getLibraryState: (query) => invoke(IPC.libraryState, query),
+  editLibraryEntry: (request) => invoke(IPC.libraryEdit, request),
+  removeLibraryEntry: (sha256) => invoke(IPC.libraryRemove, { sha256 }),
+  useLibraryEntry: (sha256) => invoke(IPC.libraryUse, { sha256 }),
   log: (entry) => {
     ipcRenderer.send(IPC_EVENTS.log.name, entry);
   },

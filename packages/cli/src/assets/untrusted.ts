@@ -10,7 +10,13 @@ export const UNTRUSTED_BEGIN =
 export const UNTRUSTED_END = '--- END UNTRUSTED EXTERNAL DATA ---';
 
 /** Text limits of the stored metadata. */
-export const TEXT_LIMITS = { title: 200, author: 120, licence: 80, url: 1000 } as const;
+export const TEXT_LIMITS = {
+  title: 200,
+  author: 120,
+  licence: 80,
+  url: 1000,
+  description: 500,
+} as const;
 
 const NAMED_ENTITIES: Readonly<Record<string, string>> = {
   amp: '&',

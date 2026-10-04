@@ -1,8 +1,10 @@
-# Assets from the internet (ReelForge 2.1, PLAN.md#12.9)
+# Assets: from the internet, your own files, your library (ReelForge 2.1, PLAN.md#12.9–12.19)
 
 The runtime Claude can search and download openly licensed images and footage into a project —
 only through the `reelforge` CLI, only as the project's research mode allows, with licence
 metadata for every file. Design: [ADR-012](decisions/ADR-012-assets.md). Commands: [cli.md](cli.md).
+The user's own files and the global asset library (no network, every mode):
+[ADR-015](decisions/ADR-015-asset-library.md), sections below.
 
 ## Research modes (`project.json` → `researchMode`)
 
@@ -110,6 +112,57 @@ never verify (scenes always pixelise and recolour an asset, and videos may be mo
   CLI output prints it only between `--- BEGIN UNTRUSTED EXTERNAL DATA … ---` and
   `--- END UNTRUSTED EXTERNAL DATA ---`.
 
+## Your own files (PLAN.md#12.12)
+
+**In the app**: the **Assets** button of the Pipeline panel (or Open on the Assets row) → tab
+"This project" → **Your files**: "Add my assets…" (file picker, several at once) or drop files on
+the box. PNG, JPG, WebP, GIF, MP4, WebM, checked by content like downloads (images ≤ 25 MB, videos
+≤ 120 MB); anything else is refused with a message. Each file becomes a record with
+`source: "own"`, licence `own` (verified, never ⚠, never in the credits), `approved: true`, id
+`own-<file name>` (`-2`, `-3`… when taken); the same bytes are stored once (sha256). Per file:
+**Describe** (title + "What it shows (Claude reads this)", default = the file name in words),
+**Save to library**, **Remove** (asks first; the original file is not touched). Every change is
+committed.
+
+**Storyboard**: when the project has any assets (or research is on, or the library has entries)
+the storyboard prompt lists them (id, kind, size, origin, description — inside the untrusted-data
+block) and Claude assigns them to shots with `"assets": ["own-nokia-front"]` (shared schema,
+optional, ≤ 4 per shot). In mode `off` the prompt adds: build every B-roll ONLY from the kit and
+these assets. The validator (and `reelforge validate`) rejects ids missing from `assets.json`.
+Without assets, library entries and research the prompt is byte for byte the old one.
+
+**Scenes**: every shot with `assets` gets them in the scene-build prompt (`shotAssets`: "Assets the
+storyboard assigned to this shot", full records), in every research mode; scenes show them like
+downloads (`ctx.assets.image('<id>')`, see "In scenes"). Mode `off` still has no Assets step and
+makes zero requests.
+
+## The asset library (PLAN.md#12.19)
+
+One library per user, in the app data folder: `%APPDATA%/ReelForge/library/` (`library.json` +
+`files/<sha256>.<ext>`), outside every project and outside git. Entries
+(`assetLibraryFileSchema`, version 1): `sha256`, `file`, `kind`, `mime`, `bytes`, `width`/`height`,
+`assetId` (the id it gets in a project), `source`, `sourceItemId`, `sourceUrl`, `downloadUrl`,
+`title`, `author`, `description`, `licence` (an unverified licence stays unverified), `tags`,
+`favorite`, `addedAt`, `originProject` (folder name only). Writes are atomic; a damaged index is
+moved to `library.corrupt-<time>.json` and the library starts empty.
+
+| How an asset gets in | When |
+|---|---|
+| Assets step (downloads) | automatically, if approved by the user or with a verified licence, when Settings → Projects → "Save downloaded assets to the library" is on (default) |
+| "Add my assets…" | when "Save my own files to the library" is on (default off) |
+| "Save to library" on an asset | any asset, any time (unticking removes the library entry) |
+
+**In the app**: Assets → tab **Library**: search box, filters (images/videos, licence: verified /
+⚠ unverified / your files, tag, favourites only), thumbnails, ★ favourite, tags (comma separated),
+**Use in project** (copies the file and its metadata into the open project, `fromLibrary: true`,
+nothing downloaded) and Remove (projects keep their copies).
+
+**For the runtime Claude** (`REELFORGE_ASSET_LIBRARY`, set by the app): `reelforge assets library
+search [--query] [--tag] [--kind] [--licence verified|unverified|own] [--favorites]` and
+`reelforge assets library use <key> [--as <id>]` (key = the first 12 hex digits of the sha256, or
+the asset id). Allowed in every research mode, also `off` (no network); the runtime Claude can
+never add to or change the library.
+
 ## Files
 
 | Path | Tracked | Content |
@@ -124,13 +177,15 @@ Asset record (`assets.json` → `assets[]`): `id` (file name: `wm-105654713`, `n
 `sourceItemId`, `sourceUrl` (human page), `downloadUrl` (final URL after redirects), `title`,
 `author` (sanitised), `licence { id, url, verified }`, `file`, `sha256`, `bytes`, `mime`,
 `width`/`height` (images), `mode` (research mode at fetch time), `approved` (user approval in
-`ask`), `fetchedAt` (ISO).
+`ask`; always true for own files), `fetchedAt` (ISO), optional `description` (own files) and
+`fromLibrary` (copied from the asset library). `source` is `own` for the user's files.
 
 ## Credits
 
 `reelforge assets credits` prints one line per asset a scene module or `storyboard.json` names
 (`--all`: every asset): `- "Title" by Author, Licence (licence URL), source URL`. Unverified
-licences get `[check licence]` and a closing `WARNING:` line. The publish kit (12.17) reuses
+licences get `[check licence]` and a closing `WARNING:` line. The user's own files are never
+listed (library copies of downloads are, with their original licence). The publish kit (12.17) reuses
 `creditsMarkdown`.
 
 ## In scenes (PLAN.md#12.11)

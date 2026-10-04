@@ -82,6 +82,11 @@ export const ambientShotSchema = z.object({
   look: lookIdSchema.optional(),
   /** Per-shot budget multiplier (the tension map, PLAN.md#12.22). */
   scale: variationScaleSchema.optional(),
+  /**
+   * The shot's tension 0..1 (tension map, PLAN.md#12.22): darker tones of the palette families
+   * at high tension, and `ctx.ambient.tension` for the scene's effect density. Absent = no map.
+   */
+  tension: z.number().min(0).max(1).optional(),
 });
 export type AmbientShot = z.infer<typeof ambientShotSchema>;
 

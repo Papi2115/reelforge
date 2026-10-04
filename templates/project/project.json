@@ -7,5 +7,11 @@
   "seed": 1,
   "lookMode": "mixed",
   "ambientVariation": true,
-  "researchMode": "ask"
+  "researchMode": "ask",
+  "tensionMap": "auto",
+  "patternInterrupts": "auto",
+  "openLoops": "auto",
+  "revealMoments": "auto",
+  "beatSync": "auto",
+  "repetitionControl": "auto"
 }

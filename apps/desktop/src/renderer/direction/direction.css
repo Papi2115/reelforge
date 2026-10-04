@@ -1,0 +1,105 @@
+/* Live co-direction command bar under the preview (PLAN.md#12.14). */
+.command-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--panel);
+}
+
+.command-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.command-shot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 3.5em;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.direction-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.command-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.command-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.command-chip {
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.command-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.command-status-applied,
+.command-status-sent {
+  color: var(--ok);
+}
+
+.command-status-error,
+.command-status-locked {
+  color: var(--error);
+}
+
+.command-status-claude {
+  color: var(--warn);
+}
+
+.command-history {
+  max-height: 140px;
+  margin: 0;
+  padding-left: 20px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.command-history .undone {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.command-history-shot {
+  font-family: var(--font-mono);
+  color: var(--accent-text);
+}
+
+.command-history-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  list-style: none;
+}
+
+.shot-direction-badge {
+  margin-left: 4px;
+  color: var(--accent);
+  font-size: 11px;
+}

@@ -77,6 +77,7 @@ describe('affectsPreview', () => {
     expect(affectsPreview(event(['timing/words.json']))).toBe(true);
     expect(affectsPreview(event(['project.json']))).toBe(true);
     expect(affectsPreview(event(['kit-ext/props/fridge.js']))).toBe(true);
+    expect(affectsPreview(event(['directions.json']))).toBe(true);
     expect(affectsPreview(event(['out/video.mp4', 'cues.json', 'script.txt']))).toBe(false);
     expect(affectsPreview(event([], true))).toBe(true);
   });

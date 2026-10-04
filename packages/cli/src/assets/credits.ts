@@ -21,8 +21,12 @@ function creditLine(record: AssetRecord): string {
   return `- "${title.replaceAll('"', '”')}" by ${author}, ${licence}${link === '' ? '' : `, ${link}`}${marker}`;
 }
 
-/** Markdown credits of `records` (in catalogue order). */
-export function creditsMarkdown(records: readonly AssetRecord[]): string {
+/**
+ * Markdown credits of `all` (in catalogue order). The user's own files (source `own`,
+ * PLAN.md#12.12) are never listed: they need no credit.
+ */
+export function creditsMarkdown(all: readonly AssetRecord[]): string {
+  const records = all.filter((record) => record.source !== 'own');
   if (records.length === 0) return 'Credits\n\n(no external assets used)\n';
   const unverified = records.filter((record) => !record.licence.verified).length;
   const lines = ['Credits', '', ...records.map(creditLine)];

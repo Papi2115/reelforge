@@ -47,11 +47,18 @@ import {
   type SnapshotSaveResult,
 } from './player-contract.js';
 import { ASSETS_IPC, type AssetsApi } from './assets-contract.js';
+import { PUBLISH_IPC, type PublishApi } from './publish-contract.js';
+import { HOOK_LAB_IPC, type HookLabApi } from './hook-lab-contract.js';
+import { TASTE_IPC, type TasteApi } from './taste-contract.js';
 import { CHAT_IPC, CHAT_PUSH, type ChatApi } from './chat-contract.js';
 import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
 import { ONBOARDING_IPC, type OnboardingApi } from './onboarding-contract.js';
 import { PROJECT_SETTINGS_IPC, type ProjectSettingsApi } from './project-settings-contract.js';
 import { SETTINGS_IPC, type SettingsApi } from './settings-contract.js';
+import { TENSION_IPC, type TensionApi } from './tension-contract.js';
+import { DIRECTIONS_IPC, type DirectionsApi } from './directions-contract.js';
+import { DRAMATURGY_IPC, type DramaturgyApi } from './dramaturgy-contract.js';
+import { EDITING_IPC, type EditingApi } from './editing-contract.js';
 import { WHISPER_IPC, WHISPER_PUSH, type WhisperApi } from './whisper-contract.js';
 import { SOUND_IPC, type SoundApi } from './sound-contract.js';
 import { YOUTUBE_IPC, type YoutubeApi } from './youtube-contract.js';
@@ -232,8 +239,22 @@ export const IPC = {
   ...ONBOARDING_IPC,
   /** Per-project options in project.json: look mode, ambient variation (PLAN.md#12.1, #12.8). */
   ...PROJECT_SETTINGS_IPC,
+  /** Tension panel: curve edits, Reset, "Propose with Claude" (PLAN.md#12.22). */
+  ...TENSION_IPC,
+  /** Dramaturgy section: interrupt/loop report, reveal moments (PLAN.md#12.25-12.27). */
+  ...DRAMATURGY_IPC,
+  /** Live co-direction: directions.json (PLAN.md#12.14). */
+  ...DIRECTIONS_IPC,
+  /** Editing section: beat-sync report, repetition list with Apply / Ignore (PLAN.md#12.21, #12.23). */
+  ...EDITING_IPC,
   /** Asset research: research mode, assets, package review, credits (PLAN.md#12.10). */
   ...ASSETS_IPC,
+  /** Publish kit and the Sources panel: claims.json, Check sources (PLAN.md#12.17, #12.18). */
+  ...PUBLISH_IPC,
+  /** Hook lab in the Script step: three alternative openings (PLAN.md#12.16). */
+  ...HOOK_LAB_IPC,
+  /** Settings → Taste: the local taste profile, reset, export (PLAN.md#12.13). */
+  ...TASTE_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -271,7 +292,14 @@ export interface ReelforgeApi
     YoutubeApi,
     OnboardingApi,
     ProjectSettingsApi,
-    AssetsApi {
+    TensionApi,
+    DramaturgyApi,
+    DirectionsApi,
+    EditingApi,
+    AssetsApi,
+    PublishApi,
+    HookLabApi,
+    TasteApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;

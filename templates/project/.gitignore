@@ -1,5 +1,5 @@
 # ReelForge video project. Tracked: what is authored (project.json, brief.json, research.md,
-# script.txt, beats.md, timing/, storyboard.json, cues.json, scenes/, CLAUDE.md).
+# script.txt, beats.md, timing/, storyboard.json, cues.json, scenes/, CLAUDE.md, claims.json, publish/).
 # Not tracked: heavy media, renders and app state (sessions, usage, caches, frames, debug dumps).
 
 # Audio originals, cleaned VO and mixes (heavy; re-importable). The folder itself is kept.

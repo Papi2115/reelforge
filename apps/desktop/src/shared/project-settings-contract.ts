@@ -1,12 +1,20 @@
 /**
  * IPC payloads of the per-project settings dialog: options stored in the open project's
- * `project.json` (2.x: look mode, ambient variation, research mode + sources; later tension curve,
+ * `project.json` (2.x: look mode, ambient variation, research mode + sources, tension map; later
  * taste).
  * Main reads and writes the file (zod-validated, atomic, autocommitted); the renderer only sees
  * the effective values and sends patches. Changes apply to future builds: nothing is marked
  * out of date. Merged into ipc-contract.ts.
  */
-import { ALLOWLIST_SOURCES, lookModeSchema, researchModeSchema } from '@reelforge/shared';
+import {
+  ALLOWLIST_SOURCES,
+  beatSyncModeSchema,
+  dramaturgyModeSchema,
+  lookModeSchema,
+  repetitionControlModeSchema,
+  researchModeSchema,
+  tensionMapModeSchema,
+} from '@reelforge/shared';
 import { z } from 'zod';
 
 /** Sources the `allowlist` research mode may use (no duplicates). */
@@ -24,6 +32,15 @@ export const projectSettingsSchema = z.object({
   /** Asset research (PLAN.md#12.10); absent in project.json = `off`. */
   researchMode: researchModeSchema,
   researchSources: researchSourcesSchema,
+  /** Tension map (PLAN.md#12.22); absent in project.json = `off`. */
+  tensionMap: tensionMapModeSchema,
+  /** Dramaturgy (PLAN.md#12.25-12.27); absent in project.json = `off`. */
+  patternInterrupts: dramaturgyModeSchema,
+  openLoops: dramaturgyModeSchema,
+  revealMoments: dramaturgyModeSchema,
+  /** Beat sync (PLAN.md#12.21), repetition control (#12.23); absent in project.json = `off`. */
+  beatSync: beatSyncModeSchema,
+  repetitionControl: repetitionControlModeSchema,
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 
@@ -34,6 +51,12 @@ export const projectSettingsPatchSchema = z
     ambientVariation: z.boolean().optional(),
     researchMode: researchModeSchema.optional(),
     researchSources: researchSourcesSchema.optional(),
+    tensionMap: tensionMapModeSchema.optional(),
+    patternInterrupts: dramaturgyModeSchema.optional(),
+    openLoops: dramaturgyModeSchema.optional(),
+    revealMoments: dramaturgyModeSchema.optional(),
+    beatSync: beatSyncModeSchema.optional(),
+    repetitionControl: repetitionControlModeSchema.optional(),
   })
   .refine((patch) => Object.values(patch).some((value) => value !== undefined), {
     message: 'the patch changes nothing',

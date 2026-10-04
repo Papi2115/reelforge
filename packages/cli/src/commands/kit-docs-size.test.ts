@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { kitCatalog, LOOKS, voxelLook, type KitCatalogEntry } from '@reelforge/kit';
+import { kitCatalog, listLooks, LOOKS, voxelLook, type KitCatalogEntry } from '@reelforge/kit';
 import type { LookMode } from '@reelforge/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { copyFixtureProject, runCli, type TempProject } from '../testing/fixture.js';
@@ -38,6 +38,8 @@ function projectProp(index: number): KitCatalogEntry {
   };
 }
 
+/** Available look ids, voxel first (the 2.0 looks, then the 2.3 ones). */
+const LOOK_IDS = listLooks().map((look) => look.id);
 const PROPS = Array.from({ length: 12 }, (_, index) => projectProp(index));
 const LOOK_NAMES = LOOKS.filter((look) => look.id !== 'voxel').flatMap((look) => [
   ...(look.kit.env ?? []),
@@ -65,12 +67,7 @@ describe('kit-docs index size', () => {
 
   it('stays under the limit with 12 project props in a mixed project with all four looks', () => {
     const catalog = kitCatalog(PROPS);
-    expect(catalog.looks.map((look) => look.id)).toEqual([
-      'voxel',
-      'retro-ui',
-      'diorama',
-      'blueprint',
-    ]);
+    expect(catalog.looks.map((look) => look.id)).toEqual(LOOK_IDS);
     const mixed = formatCatalog(catalog, { lookMode: 'mixed' });
     expect(mixed.length).toBeLessThan(LIMIT);
     for (const definition of LOOK_NAMES) {
@@ -93,7 +90,7 @@ describe('kit-docs index size', () => {
     const mixed = formatCatalog(kitCatalog(PROPS), { lookMode: 'mixed' }).split('\n').at(-1);
     expect(mixed).toMatch(/^\(kept under 27,500 characters so it is never cut off; /);
     expect(mixed).toContain(
-      'reelforge kit-docs props|env|fx|templates|project|voxel|retro-ui|diorama|blueprint --full',
+      `reelforge kit-docs props|env|fx|templates|project|${LOOK_IDS.join('|')} --full`,
     );
     expect(mixed).toContain('reelforge kit-docs <name>');
     const voxel = formatCatalog(kitCatalog(), { lookMode: 'voxel-only' }).split('\n').at(-1);
@@ -205,8 +202,9 @@ describe('kit-docs <kind | look>', () => {
       /did you mean: calculator/,
     );
     expect(() => describeKitName(catalog, 'xyzzy')).toThrow(
-      /^no kit function "xyzzy"\nkinds: props, env, fx, templates, project; looks: voxel, retro-ui, diorama, blueprint; scene context: ctx, camera/,
+      /^no kit function "xyzzy"\nkinds: props, env, fx, templates, project; looks: voxel, retro-ui, diorama, blueprint(?:, [a-z0-9-]+)*; scene context: ctx, camera/,
     );
+    expect(() => describeKitName(catalog, 'xyzzy')).toThrow(`looks: ${LOOK_IDS.join(', ')};`);
     expect(suggestNames('prop', ['props', 'project', 'key', 'env'])).toEqual(['props']);
     expect(suggestNames('monkey', ['key', 'money'])).toEqual(['money']);
   });

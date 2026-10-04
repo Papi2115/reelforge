@@ -87,6 +87,12 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
     'Diorama: an isometric cut-away room, office or city block seen from the fixed iso camera (no perspective close-ups); pins and labels sit clear of each other.',
   blueprint:
     'Blueprint: a flat 2D blueprint board (grid paper, line drawings, charts, maps, counters in pixel text); titles, labels, axis values and numbers are whole and do not collide.',
+  'flat-2d':
+    'Flat 2D: clean flat motion graphics on a solid or patterned field (shapes, pixel icons on badges, cards, bars, gauges, bold pixel-caps words); at most ~6 elements, all inside the safe margin, nothing overlapping or cut off.',
+  whiteboard:
+    'Whiteboard: hand-drawn marker lines, doodles and handwritten pixel caps on a framed off-white whiteboard (a hand may be drawing); drawings stay inside the board clear of the tray, labels whole and not crossing each other.',
+  'paper-cutout':
+    'Paper cut-out: flat paper pieces with torn or cut edges on layered depth strips (sky bands, hills, city, a toy-theatre room) with soft dithered drop shadows, a jointed paper puppet, pixel-caps signs and title strips; seen straight on, no perspective close-ups; text whole and not over the puppet.',
 };
 
 /**

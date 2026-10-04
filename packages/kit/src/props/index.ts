@@ -20,6 +20,7 @@ import { server } from './server.js';
 import { truck } from './truck.js';
 import { cash, suitcase } from './valuables.js';
 import { car, van } from './vehicles.js';
+import { veiledProp } from './veil.js';
 
 export const PROP_DEFINITIONS = [
   calculator,
@@ -54,6 +55,7 @@ export const PROP_DEFINITIONS = [
   polaroid,
   billboard,
   assetScreen,
+  veiledProp,
 ] as const satisfies readonly KitDefinition[];
 
 export type { PixelScreen } from './screen.js';
