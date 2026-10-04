@@ -8,7 +8,6 @@
  */
 import { VOXEL_LOOK_ID, type KitCatalog, type KitCatalogEntry } from '@reelforge/kit';
 import type { LookMode } from '@reelforge/shared';
-import { CHARACTERS_INDEX_LINE } from './kit-docs-characters.js';
 import { ENTRY_DETAILS, entryLine, entryLook, type EntryDetail } from './kit-docs-lines.js';
 
 /** Most characters of any kit-docs output (a margin under the ~30,000 Bash output limit). */
@@ -114,7 +113,6 @@ export function formatCatalog(
   }));
   const tail = [
     'details + example: reelforge kit-docs <name>; a missing prop can be built: reelforge kit-docs prop-module',
-    CHARACTERS_INDEX_LINE,
     'camera rigs, ctx.text options, ctx.annotate (arrows, callouts, pins...), anchors, sfx, rng, easings: reelforge kit-docs ctx (or camera, text, annotate, ...)',
     ...(options.problems ?? []),
   ];

@@ -19,7 +19,6 @@ import { checkJsonFile } from '../project/files.js';
 import { readKitExtensions } from '../project/kit-ext.js';
 import { PROJECT_PATHS } from '../project/paths.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
-import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
 import { formatCatalog } from './kit-docs-index.js';
 import { callName, NAMESPACE, originNote } from './kit-docs-lines.js';
 import { describeSlice, sliceNames } from './kit-docs-slices.js';
@@ -36,7 +35,6 @@ to show in full. With a name (e.g. calculator, props.calculator, fromGrid): deta
 With a kind (props, env, fx, templates, project) or a look id (voxel, retro-ui, diorama, blueprint):
 one line per entry of that slice; --full adds every param (long slices come in pages: --page 2).
 The rest of the scene context: reelforge kit-docs ctx (or camera, text, annotate, anchor, sfx, rng, ease, shot).
-The character pack (kit.cast: mascots, cast, mannequin, role specs): reelforge kit-docs characters.
 Project props (kit-ext/props/*.js) are listed as project-local; writing one: reelforge kit-docs prop-module.
 Exit code: 0 ok, 2 usage error (unknown name).`;
 
@@ -95,7 +93,6 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
     ...sliceNames(catalog),
     ...CTX_TOPICS,
     PROP_MODULE_TOPIC,
-    CHARACTERS_TOPIC,
   ];
   const bare = name.split('.').at(-1) ?? name;
   const guesses = suggestNames(bare, known);
@@ -128,8 +125,6 @@ export function describeKitName(
     page: options.page ?? 1,
   });
   if (slice !== undefined) return slice;
-  const characters = describeCharacters(name);
-  if (characters !== undefined) return characters;
   const [first, second] = name.split('.');
   const bare = second ?? first ?? '';
   const voxelDoc = Object.entries(catalog.voxel).find(([key]) => key === bare);
