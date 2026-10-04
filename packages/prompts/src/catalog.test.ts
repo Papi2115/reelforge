@@ -103,7 +103,8 @@ describe('renderPrompt', () => {
     for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
       expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
     }
-    expect(loadPrompt('sound-cues').version).toBe(2);
+    expect(loadPrompt('sound-cues').version).toBe(3);
+    expect(text).toContain("each shot's sound palette follows its `look`");
   });
 
   it('fills a prompt and leaves no template tags behind', () => {

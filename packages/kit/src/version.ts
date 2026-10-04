@@ -3,4 +3,4 @@
  * bump it whenever a kit change can alter rendered pixels (meshing, AO, props, environments,
  * effects). Kept equal to `packages/kit/package.json#version` (checked by a unit test).
  */
-export const KIT_VERSION = '0.2.0';
+export const KIT_VERSION = '0.3.0';

@@ -1,6 +1,6 @@
 /**
  * `reelforge kit-docs ctx|camera|text|annotate|...`: reference of the scene context (`ctx.camera`,
- * `ctx.text`, `ctx.annotate`, `ctx.anchor`, ...), next to the kit catalog. In the first real run (PLAN.md#10.4)
+ * `ctx.text`, `ctx.annotate`, `ctx.anchor`, `ctx.ambient`, ...), next to the kit catalog. In the first real run (PLAN.md#10.4)
  * every scene author asked `kit-docs camera` / `kit-docs text` and then guessed option names;
  * text options are generated from the engine's own schemas so they cannot drift.
  */
@@ -85,6 +85,15 @@ const SHOT = [
   'ctx.three — the Three.js namespace; ctx.scene — this shot’s THREE.Scene (add objects, background, fog)',
 ].join('\n');
 
+const AMBIENT = [
+  'ctx.ambient — read-only ambient variation of this shot (project.json "ambientVariation": true; off = nothing changes)',
+  "  enabled: boolean — true when the project varies its environments and the shot's look has a variation budget",
+  '  params — { tones, cell, horizon, fade, lightAzimuth, lightElevation, debris, layout, cameraDrift, ... } | undefined when off',
+  '  tone(name) -> the palette swatch name used for `name` in this shot (a member of its family, or `name` itself when off)',
+  '  kit environments apply it by themselves: never hard-code one background for every shot; a scene that paints its own',
+  "  background follows the shot's tones: scene.background = new ctx.three.Color(ctx.palette[ctx.ambient.tone('navy')] ?? ctx.palette.sky)",
+].join('\n');
+
 const TOPICS: Readonly<Record<string, () => string>> = {
   camera: () => CAMERA,
   text: textDocs,
@@ -95,6 +104,7 @@ const TOPICS: Readonly<Record<string, () => string>> = {
   ease: easeDocs,
   shot: () => SHOT,
   palette: () => SHOT,
+  ambient: () => AMBIENT,
 };
 
 /** Names `kit-docs` resolves here (`ctx` = all of them). */
@@ -104,7 +114,17 @@ export const CTX_TOPICS: readonly string[] = ['ctx', ...Object.keys(TOPICS)];
 export function describeCtxTopic(input: string): string | undefined {
   const name = input.replace(/^ctx\.?/, '');
   if (name === '') {
-    const parts = [CAMERA, textDocs(), annotateDocs(), ANCHOR, sfxDocs(), RNG, easeDocs(), SHOT];
+    const parts = [
+      CAMERA,
+      textDocs(),
+      annotateDocs(),
+      ANCHOR,
+      sfxDocs(),
+      RNG,
+      easeDocs(),
+      SHOT,
+      AMBIENT,
+    ];
     return [`ctx (scene context; scenes import nothing, everything comes from ctx)`, ...parts].join(
       '\n',
     );

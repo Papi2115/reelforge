@@ -99,9 +99,14 @@ describe('kit-docs formatting', () => {
       'ctx.sfx.at',
       'ctx.rng',
       'ctx.ease',
+      'ctx.ambient',
     ]) {
       expect(all).toContain(part);
     }
+    const ambient = describeKitName(catalog, 'ctx.ambient');
+    expect(describeKitName(catalog, 'ambient')).toBe(ambient);
+    expect(ambient).toContain('tone(name) -> the palette swatch name');
+    expect(ambient).toContain('never hard-code one background for every shot');
     expect(formatCatalog(catalog)).toContain('reelforge kit-docs ctx');
     expect(() => describeKitName(catalog, 'cam')).toThrow(/scene context: ctx, camera, text/);
   });

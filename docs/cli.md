@@ -20,7 +20,8 @@ error (wrong option; stderr says which). Every command accepts `--help` and `--j
 | `reelforge render-shot s03` / `--step 0.25`                      | judge motion and timing: one strip image of frames every step                                |
 | `reelforge anchors --phrase "61 KB"`                             | find when a phrase is spoken (fuzzy: `61KB`, `sixty one kilobytes` match too) and in which shot |
 | `reelforge anchors` / `--shot s03`                               | list the anchors and sfx cues each scene declares in `build()` with the ±150 ms landing check |
-| `reelforge kit-docs` / `reelforge kit-docs desk`                 | the `ctx.kit` reference (project props marked project-local); with a name: params, anchors and an example call; `kit-docs prop-module`: how to write a project prop; `kit-docs ctx` / `annotate`: the scene context and `ctx.annotate` |
+| `reelforge kit-docs` / `reelforge kit-docs desk`                 | the `ctx.kit` reference (project props marked project-local); with a name: params, anchors and an example call; `kit-docs prop-module`: how to write a project prop; `kit-docs ctx` / `annotate` / `ambient`: the scene context, `ctx.annotate` and `ctx.ambient`; entries of looks other than voxel are marked `(look <id>)` |
+| `reelforge looks`                                                | the available looks (2.0: `voxel`, `retro-ui`, `diorama`, `blueprint`) with their rolls, treatments and sound palette, what rolls A/B/C mean, and the project's look mode (`voxel-only` / `mixed`) |
 | `reelforge prop-preview fridge` / `--angles 0,45,90`             | a project prop (`kit-ext/props/fridge.js`) alone on a neutral stage from 4 angles, one sheet to Read, plus checks: lint, not blank, size 0.3–4 units, no floating parts, deterministic |
 
 ## Reading the output

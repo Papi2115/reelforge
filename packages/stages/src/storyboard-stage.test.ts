@@ -79,12 +79,33 @@ const ROLLS: Readonly<Record<string, Roll>> = {
   s07_newton: 'A',
 };
 
-/** The golden storyboard with a roll and the voxel look on every shot. */
-function rolled(rolls: Readonly<Record<string, Roll>>): string {
-  const storyboard = JSON.parse(GOLDEN) as { shots: { id: string }[] };
-  const shots = storyboard.shots.map((shot) => ({ ...shot, roll: rolls[shot.id], look: 'voxel' }));
+/**
+ * Looks of the golden storyboard in a mixed project (2.0): no look runs longer than two shots,
+ * every look used for a roll and treatment it supports.
+ */
+const LOOK_IDS: Readonly<Record<string, string>> = {
+  s01_hook: 'retro-ui',
+  s02_glass: 'voxel',
+  s03_flashlight: 'voxel',
+  s04_rainbow: 'diorama',
+  s05_spectrum: 'blueprint',
+  s06_red_violet: 'retro-ui',
+  s07_newton: 'voxel',
+};
+
+/** A storyboard (JSON text) with a roll and a look on every shot, as a mixed project needs. */
+function rolled(rolls: Readonly<Record<string, Roll>> = ROLLS, source = GOLDEN): string {
+  const storyboard = JSON.parse(source) as { shots: { id: string }[] };
+  const shots = storyboard.shots.map((shot) => ({
+    ...shot,
+    roll: rolls[shot.id],
+    look: LOOK_IDS[shot.id],
+  }));
   return JSON.stringify({ ...storyboard, shots }, null, 2);
 }
+
+/** The golden storyboard as a mixed project's storyboard turn writes it. */
+const MIXED = rolled();
 
 /** fake-claude's `rate-limit` reset time (epoch s). */
 const FAKE_RESETS_AT = 1_790_902_800;
@@ -122,7 +143,7 @@ function nextEvent(runner: StageRunner, type: StageEvent['type']): Promise<Stage
 describe('storyboard stage', { timeout: 60_000 }, () => {
   it('writes a valid storyboard, stub scenes for new shots, missing props, and commits', async () => {
     const { dir, harness, runner } = await setup('storyboard ok', [
-      writes({ 'storyboard.json': WITH_MISSING }),
+      writes({ 'storyboard.json': rolled(ROLLS, WITH_MISSING) }),
     ]);
     const result = await runner.run({ stage: 'storyboard' });
     expect(result.ok && result.value).toMatchObject({
@@ -161,8 +182,8 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
 
   it('repairs a treatment used three times in a row', async () => {
     const { harness, runner } = await setup('storyboard repair', [
-      writes({ 'storyboard.json': THREE_IN_A_ROW }),
-      writes({ 'storyboard.json': GOLDEN }),
+      writes({ 'storyboard.json': rolled(ROLLS, THREE_IN_A_ROW) }),
+      writes({ 'storyboard.json': MIXED }),
     ]);
     const result = await runner.run({ stage: 'storyboard' });
     expect(result.ok && result.value.metrics['repairs']).toBe(1);
@@ -177,8 +198,8 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
       s05_spectrum: [{ kind: 'callout', phrase: 'white lights', reason: 'definition' }],
     });
     const { dir, harness, runner } = await setup('storyboard annotations', [
-      writes({ 'storyboard.json': repeated }),
-      writes({ 'storyboard.json': planned(PLANS) }),
+      writes({ 'storyboard.json': rolled(ROLLS, repeated) }),
+      writes({ 'storyboard.json': rolled(ROLLS, planned(PLANS)) }),
     ]);
     const result = await runner.run({ stage: 'storyboard' });
     expect(result.ok && result.value.metrics).toMatchObject({ repairs: 1, annotations: 8 });
@@ -197,18 +218,20 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
     const noAnchor = rolled({ ...ROLLS, s02_glass: 'B', s03_flashlight: 'B', s07_newton: 'B' });
     const { dir, harness, runner } = await setup('storyboard looks', [
       writes({ 'storyboard.json': noAnchor }),
-      writes({ 'storyboard.json': rolled(ROLLS) }),
+      writes({ 'storyboard.json': MIXED }),
     ]);
     const result = await runner.run({ stage: 'storyboard' });
     expect(result.ok && result.value.metrics['repairs']).toBe(1);
     const prompt = harness.specs[0]?.prompt ?? '';
     expect(prompt).toContain('- `A` = the main visual story');
     expect(prompt).toContain('- `voxel` (Voxel 3D):');
-    expect(prompt).toContain('Only `voxel` is available for now');
+    expect(prompt).toContain('- `retro-ui` (Retro UI / CRT):');
+    expect(prompt).toContain('never more than 3 shots in a row in one look');
+    expect(prompt).not.toContain('Only `voxel` is available for now');
     expect(harness.specs[1]?.prompt).toContain('roll-a-gap');
     const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
     expect(written.shots.map((shot) => [shot.roll, shot.look])).toEqual(
-      Object.values(ROLLS).map((roll) => [roll, 'voxel']),
+      Object.entries(ROLLS).map(([id, roll]) => [roll, LOOK_IDS[id]]),
     );
   });
 
@@ -231,7 +254,7 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
     const clock = new ManualClock((FAKE_RESETS_AT - 3600) * 1000);
     const { dir, harness, runner, events } = await setup(
       'storyboard limit',
-      ['rate-limit', writes({ 'storyboard.json': GOLDEN })],
+      ['rate-limit', writes({ 'storyboard.json': MIXED })],
       clock,
     );
     const paused = nextEvent(runner, 'paused');

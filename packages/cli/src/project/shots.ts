@@ -213,7 +213,10 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
     ...(setup.palette ? { palette: setup.palette } : {}),
     ...(setup.words ? { words: setup.words } : {}),
     ...(setup.kitExtensions.length > 0 ? { kitExtensions: [...setup.kitExtensions] } : {}),
-    ...(setup.ambientVariation ? { ambientVariation: setup.ambientVariation } : {}),
+    // Only storyboard shots vary: a standalone scene (a prop turntable, a draft the storyboard
+    // does not list yet) has no storyboard position and renders neutral, so the camera drift
+    // cannot make one view differ from itself at another time.
+    ...(setup.ambientVariation && plan.ambient ? { ambientVariation: setup.ambientVariation } : {}),
     shots: [
       ...pad,
       {

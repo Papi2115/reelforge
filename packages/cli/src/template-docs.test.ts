@@ -35,4 +35,11 @@ describe('templates/project/CLAUDE.md', () => {
     expect(text).toContain('## Annotations: when to use what');
     expect(text).toMatch(/exactly ONE plain `reelforge …` command — no `cd`, no `&&`/);
   });
+
+  it('explains looks and ctx.ambient (ReelForge 2.0)', () => {
+    expect(text).toContain('## Looks (one style, several looks)');
+    expect(text).toContain('`reelforge looks`');
+    expect(text).toContain('`reelforge kit-docs ambient`');
+    expect(CTX_TOPICS).toContain('ambient');
+  });
 });

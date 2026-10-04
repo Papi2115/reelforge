@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { KitError } from '../errors.js';
+import { voxelLook } from '../looks/index.js';
 import { createKit, kitCatalog } from '../kit.js';
 import { isKitObject } from '../object.js';
 import { CRISP_PALETTE, TOKENS_ONLY_PALETTE } from '../testing/palettes.js';
@@ -22,6 +23,10 @@ const ENV_NAMES = [
 
 function kit(palette: KitPalette = CRISP_PALETTE, seed = 5) {
   return createKit({ three: THREE, palette, rng: testRng(seed) });
+}
+
+function voxelKit() {
+  return createKit({ three: THREE, palette: CRISP_PALETTE, rng: testRng(5), looks: [voxelLook] });
 }
 
 function find(root: THREE.Object3D, name: string): THREE.Object3D {
@@ -68,9 +73,15 @@ function geometryPositions(root: THREE.Object3D): number[] {
 
 describe('kit.env registry', () => {
   it('registers every environment with complete catalog metadata', () => {
-    expect(Object.keys(kit().api.env)).toEqual(ENV_NAMES);
-    const entries = kitCatalog().env;
+    expect(Object.keys(voxelKit().api.env)).toEqual(ENV_NAMES);
+    const entries = kitCatalog([], [voxelLook]).env;
     expect(entries.map((entry) => entry.name)).toEqual(ENV_NAMES);
+    // With every available look, the voxel kit comes first and the rest belong to other looks.
+    const all = kitCatalog().env;
+    expect(Object.keys(kit().api.env)).toEqual(all.map((entry) => entry.name));
+    expect(all.slice(0, ENV_NAMES.length)).toEqual(entries);
+    for (const entry of all.slice(ENV_NAMES.length))
+      expect(entry.look, entry.name).not.toBe('voxel');
     for (const entry of entries) {
       expect(entry.kind).toBe('env');
       expect(entry.description.length, entry.name).toBeGreaterThan(40);

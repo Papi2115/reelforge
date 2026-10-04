@@ -1,4 +1,4 @@
-import { defineLook, LOOKS, voxelLook, type Look } from '@reelforge/kit';
+import { defineLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
 import { lookIdSchema, treatmentSchema, type StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { lookLine, sceneLookVars, storyboardLookOptions, storyboardLookVars } from './looks.js';
@@ -31,9 +31,21 @@ describe('look mode plumbing', () => {
     expect(sceneLookVars('voxel-only', { ...SHOT, look: 'test-look' })).toEqual({});
   });
 
-  it('lists the available looks for a mixed storyboard (voxel alone today)', () => {
-    expect(storyboardLookVars('mixed')).toEqual({ looks: lookLine(voxelLook), singleLook: true });
-    expect(storyboardLookOptions('mixed')).toEqual({ lookMode: 'mixed', looks: ['voxel'] });
+  it('lists the available looks for a mixed storyboard', () => {
+    const available = listLooks();
+    expect(available.map((look) => look.id)).toEqual(['voxel', 'retro-ui', 'diorama', 'blueprint']);
+    expect(storyboardLookVars('mixed')).toEqual({
+      looks: available.map(lookLine).join('\n'),
+      multiLook: true,
+    });
+    expect(storyboardLookOptions('mixed')).toEqual({
+      lookMode: 'mixed',
+      looks: ['voxel', 'retro-ui', 'diorama', 'blueprint'],
+    });
+    expect(storyboardLookVars('mixed', [voxelLook])).toEqual({
+      looks: lookLine(voxelLook),
+      singleLook: true,
+    });
     const two = storyboardLookVars('mixed', [voxelLook, testLook]);
     expect(two).toMatchObject({ multiLook: true });
     expect(String(two['looks']).split('\n')).toEqual([lookLine(voxelLook), lookLine(testLook)]);
@@ -48,7 +60,16 @@ describe('look mode plumbing', () => {
       lookId: 'test-look',
       lookDocs: 'Build with test things.',
     });
+    const retroUi = LOOKS.find((look) => look.id === 'retro-ui');
     expect(sceneLookVars('mixed', { ...SHOT, look: 'retro-ui' })).toEqual({
+      lookId: 'retro-ui',
+      lookDocs: retroUi?.docs,
+    });
+    expect(sceneLookVars('mixed', { ...SHOT, look: 'retro-ui' }, [voxelLook])).toEqual({
+      lookId: 'voxel',
+      lookDocs: voxelLook.docs,
+    });
+    expect(sceneLookVars('mixed', { ...SHOT, look: 'test-look' })).toEqual({
       lookId: 'voxel',
       lookDocs: voxelLook.docs,
     });

@@ -62,11 +62,17 @@ function kitWith(looks: readonly Look[]) {
 }
 
 describe('look registry', () => {
-  it('ships voxel as the only available look; the 2.0 stubs wait behind their flags', () => {
+  it('ships voxel first and the three 2.0 looks as available', () => {
     expect(LOOKS.map((look) => look.id)).toEqual(['voxel', 'retro-ui', 'diorama', 'blueprint']);
-    expect(listLooks().map((look) => look.id)).toEqual([VOXEL_LOOK_ID]);
+    expect(listLooks().map((look) => look.id)).toEqual([
+      VOXEL_LOOK_ID,
+      'retro-ui',
+      'diorama',
+      'blueprint',
+    ]);
     expect(getLook('voxel')).toBe(voxelLook);
-    expect(getLook('retro-ui')).toBeUndefined();
+    expect(getLook('retro-ui')?.id).toBe('retro-ui');
+    expect(getLook('retro-ui', [voxelLook])).toBeUndefined();
     expect(getLook('nope')).toBeUndefined();
     for (const look of LOOKS) expect(lookMetaSchema.safeParse(look).success, look.id).toBe(true);
   });
@@ -83,12 +89,26 @@ describe('look registry', () => {
     expect(voxelLook.kit.env).toBe(ENV_DEFINITIONS);
     expect(voxelLook.kit.props).toBe(PROP_DEFINITIONS);
     expect(voxelLook.kit.fx).toBe(FX_DEFINITIONS);
-    const extra = extraLookDefinitions();
+    const extra = extraLookDefinitions([voxelLook]);
     expect([...extra.env, ...extra.prop, ...extra.fx]).toEqual([]);
-    const { api } = createKit({ three: THREE, palette: CRISP_PALETTE, rng: testRng(3) });
+    const { api } = kitWith([voxelLook]);
     expect(Object.keys(api.env)).toEqual(ENV_DEFINITIONS.map((definition) => definition.name));
     expect(Object.keys(api.props)).toEqual(PROP_DEFINITIONS.map((definition) => definition.name));
     expect(Object.keys(api.fx)).toEqual(FX_DEFINITIONS.map((definition) => definition.name));
+  });
+
+  it('binds the 2.0 looks after the voxel kit, each definition tagged with its look', () => {
+    const extra = extraLookDefinitions();
+    const { api } = createKit({ three: THREE, palette: CRISP_PALETTE, rng: testRng(3) });
+    const names = (definitions: readonly { name: string }[]) =>
+      definitions.map((definition) => definition.name);
+    const lookNames = (kind: 'env' | 'prop' | 'fx') =>
+      extra[kind].map((entry) => entry.definition.name);
+    expect(Object.keys(api.env)).toEqual([...names(ENV_DEFINITIONS), ...lookNames('env')]);
+    expect(Object.keys(api.props)).toEqual([...names(PROP_DEFINITIONS), ...lookNames('prop')]);
+    expect(Object.keys(api.fx)).toEqual([...names(FX_DEFINITIONS), ...lookNames('fx')]);
+    const owners = new Set([...extra.env, ...extra.prop, ...extra.fx].map((entry) => entry.look));
+    expect([...owners].sort()).toEqual(['blueprint', 'diorama', 'retro-ui']);
   });
 
   it('rejects bad metadata and definitions in the wrong slot', () => {
@@ -146,17 +166,26 @@ describe('an available second look', () => {
 });
 
 describe('docs/kit-catalog.md', () => {
-  it('is unchanged by the look registry (voxel only)', () => {
-    const docs = path.join(REPO_ROOT, 'docs');
-    const thumbnails = Object.fromEntries(
-      readdirSync(path.join(docs, 'kit-catalog'))
-        .filter((file) => file.endsWith('.png'))
-        .map((file) => [file.slice(0, -'.png'.length), `kit-catalog/${file}`]),
-    );
-    const committed = readFileSync(path.join(docs, 'kit-catalog.md'), 'utf8').replaceAll(
-      '\r\n',
-      '\n',
-    );
+  const docs = path.join(REPO_ROOT, 'docs');
+  const thumbnails = Object.fromEntries(
+    readdirSync(path.join(docs, 'kit-catalog'))
+      .filter((file) => file.endsWith('.png'))
+      .map((file) => [file.slice(0, -'.png'.length), `kit-catalog/${file}`]),
+  );
+  const committed = readFileSync(path.join(docs, 'kit-catalog.md'), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+
+  it('is up to date with kitCatalog() (run `pnpm kit:catalog`)', () => {
     expect(kitCatalogMarkdown(kitCatalog(), { thumbnails })).toBe(committed);
+  });
+
+  it('reads, without the look sections, exactly as the voxel-only catalog', () => {
+    const lookSections = /^## Look `[^`]+`:[\s\S]*?(?=^## )/gm;
+    expect(committed.match(lookSections)?.length).toBe(listLooks().length - 1);
+    const voxelOnly = kitCatalogMarkdown(kitCatalog([], [voxelLook]), { thumbnails });
+    expect(voxelOnly).not.toContain('## Look `');
+    expect(committed.replace(lookSections, '')).toBe(voxelOnly);
   });
 });
