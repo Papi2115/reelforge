@@ -11,6 +11,7 @@ import {
   type Roll,
 } from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { setShotsLocked } from './locks.js';
 import { StageRunner } from './runner.js';
 import { SCENE_STUB_MARKER } from './stages/scene-stub.js';
 import { continuationPrompt } from './turns.js';
@@ -67,8 +68,17 @@ const PLANS: Readonly<Record<string, readonly object[]>> = {
   ],
 };
 
-function planned(plans: Readonly<Record<string, readonly object[]>>): string {
-  const storyboard = JSON.parse(GOLDEN) as { shots: { id: string }[] };
+/** Nine marks within one minute (max 8): one decorative emphasis mark too many. */
+const BUSY_PLANS: Readonly<Record<string, readonly object[]>> = {
+  ...PLANS,
+  s04_rainbow: [
+    ...(PLANS['s04_rainbow'] ?? []),
+    { kind: 'highlight', phrase: 'wall', target: 'wall', reason: 'emphasis' },
+  ],
+};
+
+function planned(plans: Readonly<Record<string, readonly object[]>>, source = GOLDEN): string {
+  const storyboard = JSON.parse(source) as { shots: { id: string }[] };
   const shots = storyboard.shots.map((shot) => ({ ...shot, annotations: plans[shot.id] ?? [] }));
   return JSON.stringify({ ...storyboard, shots }, null, 2);
 }
@@ -238,6 +248,79 @@ describe('storyboard stage', { timeout: 60_000 }, () => {
       (shot.annotations ?? []).map((plan) => plan.kind),
     );
     expect(new Set(kinds).size).toBeGreaterThanOrEqual(6);
+  });
+
+  it('trims 9 annotations in a minute to 8 without a repair turn, with a warning', async () => {
+    const { dir, harness, runner } = await setup('storyboard trim', [
+      writes({ 'storyboard.json': rolled(ROLLS, planned(BUSY_PLANS)) }),
+    ]);
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok && result.value.metrics).toMatchObject({ repairs: 0, annotations: 8 });
+    expect(result.ok && result.value.warnings).toContain(
+      'Trimmed 1 annotation to fit the density rules (s04_rainbow)',
+    );
+    expect(harness.specs).toHaveLength(1);
+    const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
+    // The decorative emphasis mark goes; the rest of the plan stays as written.
+    expect(written.shots.find((shot) => shot.id === 's04_rainbow')?.annotations).toEqual(
+      PLANS['s04_rainbow'],
+    );
+    const report = storyboardReportSchema.parse(
+      JSON.parse(readProject(dir, '.reelforge/reports/storyboard.json')),
+    );
+    expect(report.warnings).toContain(
+      'Trimmed 1 annotation to fit the density rules (s04_rainbow)',
+    );
+  });
+
+  it('never trims a locked shot; a density only locked shots could fix stays a warning', async () => {
+    const { dir, harness, runner } = await setup('storyboard trim locked', [
+      writes({ 'storyboard.json': rolled(ROLLS, planned(BUSY_PLANS)) }),
+    ]);
+    const locked = await setShotsLocked(dir, ['s04_rainbow'], true, new Date(0));
+    expect(locked.ok).toBe(true);
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok && result.value.warnings).toContain(
+      'Trimmed 1 annotation to fit the density rules (s01_hook)',
+    );
+    expect(harness.specs).toHaveLength(1);
+    const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
+    expect(written.shots.find((shot) => shot.id === 's04_rainbow')?.annotations).toEqual(
+      BUSY_PLANS['s04_rainbow'],
+    );
+    expect(written.shots.find((shot) => shot.id === 's01_hook')?.annotations).toEqual([]);
+
+    const all = await setup('storyboard trim all locked', [
+      writes({ 'storyboard.json': rolled(ROLLS, planned(BUSY_PLANS)) }),
+    ]);
+    await setShotsLocked(all.dir, Object.keys(ROLLS), true, new Date(0));
+    const kept = await all.runner.run({ stage: 'storyboard' });
+    expect(
+      kept.ok && kept.value.warnings.some((line) => line.startsWith('annotation-density')),
+    ).toBe(true);
+    expect(all.harness.specs).toHaveLength(1);
+    const untouched = storyboardFileSchema.parse(
+      JSON.parse(readProject(all.dir, 'storyboard.json')),
+    );
+    expect(untouched.shots.map((shot) => shot.annotations)).toEqual(
+      Object.keys(ROLLS).map((id) => BUSY_PLANS[id]),
+    );
+  });
+
+  it('still fails when other errors remain next to the annotation density', async () => {
+    const broken = rolled(ROLLS, planned(BUSY_PLANS, THREE_IN_A_ROW));
+    const { dir, harness, runner } = await setup('storyboard trim mixed', [
+      writes({ 'storyboard.json': broken }),
+      writes({ 'storyboard.json': broken }),
+    ]);
+    const result = await runner.run({ stage: 'storyboard' });
+    expect(result.ok).toBe(false);
+    const message = result.ok ? '' : result.error.message;
+    expect(message).toContain('storyboard.json is still invalid after a repair');
+    expect(message).toContain('treatment-run');
+    expect(message).toContain('annotation-density');
+    expect(harness.specs[1]?.prompt).toContain('annotation-density');
+    expect(readProject(dir, 'storyboard.json')).toBe(broken);
   });
 
   it('assigns rolls and looks in a new (mixed) project and repairs a missing A-roll', async () => {
