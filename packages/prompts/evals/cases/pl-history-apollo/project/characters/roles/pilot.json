@@ -1,0 +1,37 @@
+{
+  "id": "pilot",
+  "label": "Pilot",
+  "description": "peaked cap, navy jacket, tie, badge, clipboard",
+  "skin": "peach",
+  "hair": {
+    "style": "short",
+    "color": "indigo"
+  },
+  "headgear": {
+    "id": "peakedCap",
+    "color": "navy",
+    "trim": "lightOrange"
+  },
+  "top": {
+    "color": "navy"
+  },
+  "layers": [
+    {
+      "id": "suit",
+      "color": "navy",
+      "trim": "cream"
+    },
+    {
+      "id": "tie",
+      "color": "navy"
+    }
+  ],
+  "legs": {
+    "color": "navy"
+  },
+  "shoes": {
+    "color": "black"
+  },
+  "accessories": ["badge"],
+  "held": "clipboard"
+}

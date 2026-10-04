@@ -1,6 +1,7 @@
 /**
  * The preview's render manifest for the open project (PLAN.md#6.3): project.json + storyboard +
- * scene sources + timed words + project props (kit-ext/props, PLAN.md#7.4) + the decoded asset
+ * scene sources + timed words + project props (kit-ext/props, PLAN.md#7.4) + project roles
+ * (characters/, PLAN.md#12.20) + the decoded asset
  * pictures the scenes name (PLAN.md#12.11), inlined so the sandboxed engine never touches the
  * disk (ADR-004). With the tension map on (PLAN.md#12.22) each shot's ambient inputs carry its
  * tension; an invalid tension.json renders as if there were none (the Tension panel reports it).
@@ -8,7 +9,14 @@
  * asks for `previewPlaceholders`: shots whose scene file is missing or unreadable then show a
  * placeholder card (placeholder-scene.ts) instead; export and render keep refusing them.
  */
-import { describeUnknown, readKitExtensions, type KitExtensionFiles } from '@reelforge/cli/service';
+import {
+  describeUnknown,
+  manifestCastRoles,
+  readCastRoles,
+  readKitExtensions,
+  type CastRoleFiles,
+  type KitExtensionFiles,
+} from '@reelforge/cli/service';
 import { loadManifestAssets, locateAssetFfmpeg } from '@reelforge/pipeline';
 import {
   ambientShotInputs,
@@ -155,6 +163,13 @@ export async function buildProjectManifest(
   } catch (error) {
     return unavailable(`kit-ext/props cannot be read: ${describeUnknown(error)}`);
   }
+  let roles: CastRoleFiles;
+  try {
+    roles = await readCastRoles(dir);
+  } catch (error) {
+    return unavailable(`characters/ cannot be read: ${describeUnknown(error)}`);
+  }
+  const castRoles = manifestCastRoles(roles);
   // Asset pictures the scenes name (PLAN.md#12.11), decoded once into .reelforge/assets/decoded.
   const assets = await loadManifestAssets({
     root: dir,
@@ -174,6 +189,7 @@ export async function buildProjectManifest(
     ...(palette ? { palette } : {}),
     ...(words.status === 'ok' ? { words: words.data } : {}),
     ...(props.extensions.length > 0 ? { kitExtensions: props.extensions } : {}),
+    ...(castRoles === undefined ? {} : { castRoles }),
     ...(ambient ? { ambientVariation: { enabled: true, seed } } : {}),
     ...(assets.value ? { assets: assets.value } : {}),
     shots: manifestShots,

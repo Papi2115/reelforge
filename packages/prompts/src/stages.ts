@@ -28,6 +28,9 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   assets: 'storyboard',
   // A project prop is scene-building work: same tools (project edits + reelforge), Opus.
   'prop-build': 'scene-build',
+  // A project role (PLAN.md#12.20) is a role spec, data not code: planning work like the
+  // storyboard (Sonnet, project edits + reelforge).
+  roles: 'storyboard',
   // The tension map (PLAN.md#12.22) is planning before the storyboard: Sonnet, project edits.
   tension: 'storyboard',
   // Fact-checking the script (PLAN.md#12.18) only reads: the critic's permissions (read-only

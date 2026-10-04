@@ -16,6 +16,7 @@ import {
 } from '@reelforge/shared';
 import { useId, useState, type JSX } from 'react';
 import type { SettingsState } from '../../shared/settings-contract.js';
+import { NewProjectCharacters } from './NewProjectCharacters.js';
 
 export interface PageProps {
   readonly state: SettingsState;
@@ -250,6 +251,7 @@ export function ProjectsPage({ state, update }: PageProps): JSX.Element {
           </select>
         </label>
       </div>
+      <NewProjectCharacters state={state} update={update} />
       <h3 className="settings-heading">Asset library</h3>
       <p className="muted">
         Your asset library keeps copies of assets on this computer, shared by all your projects

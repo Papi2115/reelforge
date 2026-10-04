@@ -64,6 +64,8 @@ describe('withProjectSettingsPatch', () => {
       revealMoments: 'off',
       beatSync: 'off',
       repetitionControl: 'off',
+      characters: 'classic',
+      mascot: 'none',
     };
     expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
       ...settings,
@@ -79,6 +81,11 @@ describe('withProjectSettingsPatch', () => {
     expect(withProjectSettingsPatch(settings, { revealMoments: 'auto' })).toEqual({
       ...settings,
       revealMoments: 'auto',
+    });
+    expect(withProjectSettingsPatch(settings, { characters: 'pack', mascot: 'fox' })).toEqual({
+      ...settings,
+      characters: 'pack',
+      mascot: 'fox',
     });
   });
 });

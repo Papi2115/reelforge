@@ -1,15 +1,12 @@
 /**
  * "Project settings": options stored in the open project's project.json (look mode, ambient
- * variation, research assets, tension map). Sections and rows are data (project-settings-view.ts): a later option adds a row to
- * `rows` with its section, and the section appears. Every change is saved and committed by main
+ * variation, characters and mascot, research assets, tension map, dramaturgy, editing). Sections
+ * and rows are data (project-settings-view.ts): a later option adds a row to `rows` with its
+ * section, and the section appears. Every change is saved and committed by main
  * right away; it applies to future builds and marks no step out of date.
  */
-import { useEffect, useId, useRef, type JSX, type ReactNode } from 'react';
-import type {
-  LookSummary,
-  ProjectSettings,
-  ProjectSettingsPatch,
-} from '../../shared/project-settings-contract.js';
+import { useEffect, useId, useRef, type JSX } from 'react';
+import { CharactersRow, MascotRow } from './CharacterRows.js';
 import {
   AMBIENT_NOTE,
   DRAMATURGY_CHOICES,
@@ -31,35 +28,8 @@ import {
   researchModePatch,
   researchSourcePatch,
 } from './research-settings-view.js';
+import { SettingRow, type RowProps } from './SettingRow.js';
 import { useProjectSettings } from './use-project-settings.js';
-
-interface SettingRowProps {
-  readonly title: string;
-  /** When the change takes effect. */
-  readonly note: string;
-  /** The control; `labelId` names it (e.g. `aria-labelledby` of a radio group). */
-  readonly children: (labelId: string) => ReactNode;
-}
-
-/** One setting: a title, its control and a note on when the change applies. */
-function SettingRow({ title, note, children }: SettingRowProps): JSX.Element {
-  const labelId = useId();
-  return (
-    <div className="project-setting-row">
-      <span className="project-setting-title" id={labelId}>
-        {title}
-      </span>
-      {children(labelId)}
-      <p className="project-setting-note muted">{note}</p>
-    </div>
-  );
-}
-
-interface RowProps {
-  readonly settings: ProjectSettings;
-  readonly looks: readonly LookSummary[];
-  readonly update: (patch: ProjectSettingsPatch) => void;
-}
 
 function LookModeRow({ settings, looks, update }: RowProps): JSX.Element {
   const name = useId();
@@ -276,6 +246,8 @@ interface RowDefinition extends SectionRow {
 const ROWS: readonly RowDefinition[] = [
   { id: 'look-mode', section: 'visuals', Row: LookModeRow },
   { id: 'ambient-variation', section: 'visuals', Row: AmbientRow },
+  { id: 'characters', section: 'characters', Row: CharactersRow },
+  { id: 'mascot', section: 'mascot', Row: MascotRow },
   { id: 'research-assets', section: 'research', Row: ResearchRow },
   { id: 'tension-map', section: 'direction', Row: TensionMapRow },
   { id: 'dramaturgy', section: 'direction', Row: DramaturgyRow },

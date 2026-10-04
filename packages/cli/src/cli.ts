@@ -5,6 +5,7 @@
 import type { CliIo, CliServices, Command } from './command.js';
 import { anchorsCommand } from './commands/anchors.js';
 import { assetsCommand } from './commands/assets.js';
+import { castCommand } from './commands/cast.js';
 import { contactSheetCommand } from './commands/contact-sheet.js';
 import { fetchAssetCommand } from './commands/fetch-asset.js';
 import { framesCommand } from './commands/frames.js';
@@ -28,6 +29,7 @@ export const COMMANDS: readonly Command[] = [
   kitDocsCommand,
   looksCommand,
   propPreviewCommand,
+  castCommand,
   assetsCommand,
   fetchAssetCommand,
 ];

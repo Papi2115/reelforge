@@ -13,3 +13,6 @@ export type { ShotPlan } from '../project/shots.js';
 export { readKitExtensions, type KitExtensionFiles } from '../project/kit-ext.js';
 export * from '../props/checks.js';
 export * from '../props/turntable.js';
+export * from '../cast/checks.js';
+export * from '../cast/lineup.js';
+export { manifestCastRoles, readCastRoles, type CastRoleFiles } from '../project/cast-roles.js';

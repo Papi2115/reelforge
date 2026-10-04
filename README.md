@@ -34,6 +34,10 @@ or stores your Claude credentials. v1 is for personal use (see "Licensing and te
   chip (`docs/publish.md`).
 - **Project settings** per video: voxel only or mixed looks (retro UI, diorama, blueprint) and
   subtle background variation between shots, saved in `project.json` and the project history.
+- **Characters and a mascot** per video: people from the character pack (10 cast members, a
+  mannequin, new professions in the same style) or the classic hoodie hero, and an optional channel
+  mascot (Bulb, Screen, Fox, Bean) that Claude gives sparse screen time in impersonal roles only —
+  never as a doctor, a scientist or a real person (`docs/characters.md`).
 - **Tension map**: a calm → rising → peak → release curve (proposed by Claude, drawn or edited
   under the timeline) sets the cut tempo, the choice of rolls/looks, the music mood per act, how
   dark the backgrounds get and how busy the effects are; locked shots keep theirs

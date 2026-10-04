@@ -22,6 +22,7 @@ import {
 } from '@reelforge/shared';
 import type { z } from 'zod';
 import { describeUnknown } from '../errors.js';
+import { readCastRoles, type CastRoleFiles } from './cast-roles.js';
 import { readKitExtensions, type KitExtensionFiles } from './kit-ext.js';
 import { PROJECT_PATHS, projectPath } from './paths.js';
 
@@ -115,19 +116,23 @@ export interface ProjectFiles {
   readonly tension?: FileCheck<TensionFile> | undefined;
   /** Project props (`kit-ext/props/*.js`). */
   readonly kitExtensions: KitExtensionFiles;
+  /** Project roles (`characters/`, ADR-026); absent in hand-made file sets = none. */
+  readonly castRoles?: CastRoleFiles | undefined;
 }
 
 export async function readProjectFiles(root: string): Promise<ProjectFiles> {
-  const [project, brief, storyboard, words, cues, tension, kitExtensions] = await Promise.all([
-    checkJsonFile(root, PROJECT_PATHS.project, projectFileSchema),
-    checkJsonFile(root, PROJECT_PATHS.brief, briefFileSchema),
-    checkJsonFile(root, PROJECT_PATHS.storyboard, storyboardFileSchema),
-    checkJsonFile(root, PROJECT_PATHS.words, WordsFileSchema),
-    checkJsonFile(root, PROJECT_PATHS.cues, CuesFileSchema),
-    checkJsonFile(root, PROJECT_PATHS.tension, tensionFileSchema),
-    readKitExtensions(root),
-  ]);
-  return { root, project, brief, storyboard, words, cues, tension, kitExtensions };
+  const [project, brief, storyboard, words, cues, tension, kitExtensions, castRoles] =
+    await Promise.all([
+      checkJsonFile(root, PROJECT_PATHS.project, projectFileSchema),
+      checkJsonFile(root, PROJECT_PATHS.brief, briefFileSchema),
+      checkJsonFile(root, PROJECT_PATHS.storyboard, storyboardFileSchema),
+      checkJsonFile(root, PROJECT_PATHS.words, WordsFileSchema),
+      checkJsonFile(root, PROJECT_PATHS.cues, CuesFileSchema),
+      checkJsonFile(root, PROJECT_PATHS.tension, tensionFileSchema),
+      readKitExtensions(root),
+      readCastRoles(root),
+    ]);
+  return { root, project, brief, storyboard, words, cues, tension, kitExtensions, castRoles };
 }
 
 /** Problems of the files that exist but do not validate. */

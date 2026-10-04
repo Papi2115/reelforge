@@ -40,6 +40,9 @@ export const FILES = {
   /** Project props built by the scene stage (PLAN.md#7.4) and the modules that failed QA. */
   propsReport: '.reelforge/props-report.json',
   propsFailedDir: '.reelforge/props-failed',
+  /** Project roles built before the scenes (PLAN.md#12.20) and the role files that failed. */
+  rolesReport: '.reelforge/roles-report.json',
+  rolesFailedDir: '.reelforge/roles-failed',
 } as const;
 
 export const REPORTS = {

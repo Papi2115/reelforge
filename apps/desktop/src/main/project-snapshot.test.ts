@@ -179,6 +179,24 @@ describe('buildProjectManifest', () => {
     ]);
   });
 
+  it('inlines the project roles (characters/, PLAN.md#12.20) only when there are any', async () => {
+    const before = await buildProjectManifest(dir);
+    if (before.status !== 'ready') throw new Error(before.status);
+    expect(before.manifest.castRoles).toBeUndefined();
+    const chef = '{ "id": "chef", "label": "Chef", "top": { "color": "cream" } }\n';
+    await mkdir(path.join(dir, 'characters', 'roles'), { recursive: true });
+    await writeFile(path.join(dir, 'characters', 'roles', 'chef.json'), chef);
+    const result = await buildProjectManifest(dir);
+    if (result.status !== 'ready') throw new Error(result.status);
+    expect(result.manifest.castRoles).toEqual({
+      roles: [{ id: 'chef', file: 'characters/roles/chef.json', source: chef }],
+      accessories: [],
+    });
+    const { castRoles, ...rest } = result.manifest;
+    expect(castRoles?.roles).toHaveLength(1);
+    expect(JSON.stringify(rest)).toBe(JSON.stringify(before.manifest));
+  });
+
   it('says why a project cannot be previewed', async () => {
     await rm(path.join(dir, 'scenes', 's02_calc.js'));
     expect(await buildProjectManifest(dir)).toEqual({

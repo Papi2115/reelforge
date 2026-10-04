@@ -10,15 +10,19 @@ import {
   propExtensionCatalogEntry,
   type KitCatalog,
   type KitCatalogEntry,
+  type ProjectCast,
 } from '@reelforge/kit';
 import { projectFileSchema, projectLookMode, type LookMode } from '@reelforge/shared';
 import { COMMON_OPTIONS, parseCommandArgs, parseInteger } from '../args.js';
 import { result, type Command } from '../command.js';
 import { UsageError } from '../errors.js';
+import { readCastRoles } from '../project/cast-roles.js';
 import { checkJsonFile } from '../project/files.js';
 import { readKitExtensions } from '../project/kit-ext.js';
 import { PROJECT_PATHS } from '../project/paths.js';
+import { projectCastOf } from './cast-preview.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
+import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
 import { formatCatalog } from './kit-docs-index.js';
 import { callName, NAMESPACE, originNote } from './kit-docs-lines.js';
 import { describeSlice, sliceNames } from './kit-docs-slices.js';
@@ -35,6 +39,7 @@ to show in full. With a name (e.g. calculator, props.calculator, fromGrid): deta
 With a kind (props, env, fx, templates, project) or a look id (voxel, retro-ui, diorama, blueprint):
 one line per entry of that slice; --full adds every param (long slices come in pages: --page 2).
 The rest of the scene context: reelforge kit-docs ctx (or camera, text, annotate, anchor, sfx, rng, ease, shot).
+The character pack (kit.cast: mascots, cast, mannequin, role specs): reelforge kit-docs characters.
 Project props (kit-ext/props/*.js) are listed as project-local; writing one: reelforge kit-docs prop-module.
 Exit code: 0 ok, 2 usage error (unknown name).`;
 
@@ -81,6 +86,8 @@ function formatEntry(entry: KitCatalogEntry): string {
 
 export interface DescribeOptions {
   readonly lookMode?: LookMode;
+  /** The project's roles and accessories (kit-docs characters lists them). */
+  readonly cast?: ProjectCast | undefined;
   readonly full?: boolean;
   readonly page?: number;
 }
@@ -93,6 +100,7 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
     ...sliceNames(catalog),
     ...CTX_TOPICS,
     PROP_MODULE_TOPIC,
+    CHARACTERS_TOPIC,
   ];
   const bare = name.split('.').at(-1) ?? name;
   const guesses = suggestNames(bare, known);
@@ -103,6 +111,7 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
       `\nkinds: ${sliceNames(catalog).slice(0, 5).join(', ')}`,
       `; looks: ${catalog.looks.map((look) => look.id).join(', ')}`,
       `; scene context: ${CTX_TOPICS.join(', ')}`,
+      `; characters (mascots, cast, roles): ${CHARACTERS_TOPIC}`,
       '\nthe index: reelforge kit-docs; one kind with every param: reelforge kit-docs props --full',
     ].join(''),
   );
@@ -125,6 +134,8 @@ export function describeKitName(
     page: options.page ?? 1,
   });
   if (slice !== undefined) return slice;
+  const characters = describeCharacters(name, options.cast);
+  if (characters !== undefined) return characters;
   const [first, second] = name.split('.');
   const bare = second ?? first ?? '';
   const voxelDoc = Object.entries(catalog.voxel).find(([key]) => key === bare);
@@ -180,6 +191,7 @@ export const kitDocsCommand: Command = {
     const { positionals, values } = parseCommandArgs(argv, KIT_DOCS_OPTIONS, true);
     if (positionals.length > 1) throw new UsageError('kit-docs takes at most one name');
     const project = await projectProps(context.root);
+    const { cast } = projectCastOf(await readCastRoles(context.root));
     const catalog = kitCatalog(project.entries);
     const lookMode = await readLookMode(context.root);
     const name = positionals[0];
@@ -192,7 +204,7 @@ export const kitDocsCommand: Command = {
     const text =
       name === undefined
         ? formatCatalog(catalog, { lookMode, problems: project.problems })
-        : describeKitName(catalog, name, { lookMode, full: values.full, page });
+        : describeKitName(catalog, name, { lookMode, full: values.full, page, cast });
     const json = name === undefined ? { ...catalog, problems: project.problems } : { name, text };
     return result(0, [text], json);
   },

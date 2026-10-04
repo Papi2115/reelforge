@@ -1,8 +1,8 @@
 /**
  * Markdown rendering of kitCatalog() for docs/kit-catalog.md (`pnpm kit:catalog`): one section
  * per prop (thumbnail, description, params table, anchors, methods), then environments,
- * effects, one section per other available look and the kit.voxel functions. Pure: the
- * thumbnails are rendered by the generator.
+ * effects, the character pack (kit.cast), one section per other available look and the
+ * kit.voxel functions. Pure: the thumbnails are rendered by the generator.
  */
 import type { KitCatalog } from './kit.js';
 import type { KitCatalogEntry } from './registry.js';
@@ -131,6 +131,14 @@ export function kitCatalogMarkdown(
     '## Effects',
     '',
     ...inLook(catalog.fx, VOXEL_LOOK).flatMap((entry) => entrySection('fx', entry)),
+    '## Characters (`kit.cast`)',
+    '',
+    'The character pack (ADR-024, docs/characters.md): scenes call the positional forms',
+    "`kit.cast.mascot('bulb', params)`, `kit.cast.person('engineer', params)`, `kit.cast.mannequin(params)`,",
+    '`kit.cast.role(spec, params)`; the params below include the id / spec. Details and the role-spec',
+    'vocabulary: `reelforge kit-docs characters`.',
+    '',
+    ...catalog.cast.flatMap((entry) => entrySection('cast', entry, thumbnails[entry.name])),
     ...lookSections(catalog, thumbnails),
     '## Voxel toolbox (`kit.voxel`)',
     '',

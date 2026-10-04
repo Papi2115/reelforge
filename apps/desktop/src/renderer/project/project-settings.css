@@ -116,3 +116,66 @@
   padding: 0 4px;
   font-size: 12px;
 }
+
+/* Characters and mascot (PLAN.md#12.20): mascot cards with a 1:1 crop of the preview sheet. */
+.mascot-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.mascot-cards .settings-toggle.mascot-card {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.mascot-card input {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  margin: 0;
+}
+
+.mascot-card:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.mascot-card.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.settings-toggle > .mascot-preview {
+  display: block;
+  flex: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  border-radius: 4px;
+}
+
+.settings-toggle > .mascot-preview-none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 130px;
+  height: 158px;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 24px;
+}
+
+.mascot-card-text {
+  align-items: center;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.project-settings-body .mascot-classic-note {
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  font-size: 12px;
+}

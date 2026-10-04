@@ -8,12 +8,15 @@
  * written back to storyboard.json). Then stub scene modules are created for new shots and
  * `missingProps` is collected. With the tension map on (PLAN.md#12.22) the curve is read (or
  * proposed by Claude first, tension.ts), handed to the prompt as a table and checked against the
- * cut tempo (`tension-tempo`); the `tension` action only proposes the curve.
+ * cut tempo (`tension-tempo`); the `tension` action only proposes the curve. The project's
+ * characters and mascot (PLAN.md#12.20, characters.ts) add their prompt sections and checks.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
+  storyboardCharacterVars,
   storyboardOutputSchema,
   validateStoryboard,
+  type CharacterCheckOptions,
   type InterruptCheckOptions,
   type StoryboardOutput,
   type ValidationIssue,
@@ -33,6 +36,7 @@ import {
   type TensionFile,
   type WordsFile,
 } from '@reelforge/shared';
+import { loadCharacterSettings, storyboardCharacterOptions } from '../characters.js';
 import { finishStoryboardDramaturgy, prepareStoryboardDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
 import { storyboardLookOptions, storyboardLookVars } from '../looks.js';
@@ -84,6 +88,7 @@ async function validateFile(
   lookMode: LookMode,
   research: boolean,
   tension: TensionFile | undefined,
+  characters: CharacterCheckOptions,
   interrupts?: InterruptCheckOptions,
 ): Promise<FileCheck> {
   const text = await readProjectText(ctx.projectDir, FILES.storyboard);
@@ -101,6 +106,7 @@ async function validateFile(
     ...(tension === undefined ? {} : { tension }),
     ...beatSyncCheckOptions(ctx.snapshot.project),
     ...(interrupts === undefined ? {} : { interrupts }),
+    characters,
   });
   return fileCheck(report.value, report.issues);
 }
@@ -116,10 +122,11 @@ async function checkStoryboard(
   lookMode: LookMode,
   research: boolean,
   tension: TensionFile | undefined,
+  characters: CharacterCheckOptions,
   interrupts?: InterruptCheckOptions,
 ): Promise<OutputCheck<StoryboardOutput>> {
   const validate = (): Promise<FileCheck> =>
-    validateFile(ctx, words, lookMode, research, tension, interrupts);
+    validateFile(ctx, words, lookMode, research, tension, characters, interrupts);
   const first = await validate();
   if (first.value === undefined || !onlyAnnotationCountErrors(first.issues)) return first;
   const locked = await readLockedShots(ctx.projectDir);
@@ -190,6 +197,9 @@ async function run(
     curve,
   );
   if (!drama.ok) return drama;
+  // Characters and mascot (PLAN.md#12.20); classic without a mascot = nothing changes.
+  const characters = await loadCharacterSettings(ctx.projectDir, project.value);
+  const characterChecks = storyboardCharacterOptions(characters);
   const prompt = render('storyboard', {
     styleId: project.value.style,
     ...storyboardLookVars(lookMode, undefined, (words.value.words.at(-1)?.tEnd ?? 0) + 0.5),
@@ -198,6 +208,7 @@ async function run(
     ...(await storyboardAssetVars(ctx, research)),
     ...(await storyboardSourceChipVars(ctx.projectDir)),
     ...drama.value.vars,
+    ...storyboardCharacterVars(characters),
     // The user's taste profile (PLAN.md#12.13); absent = the prompt is exactly as without it.
     tasteProfile: ctx.taste?.profile(),
   });
@@ -219,7 +230,15 @@ async function run(
     file: FILES.storyboard,
     label: 'storyboard',
     check: () =>
-      checkStoryboard(ctx, words.value, lookMode, research, curve, drama.value.interrupts),
+      checkStoryboard(
+        ctx,
+        words.value,
+        lookMode,
+        research,
+        curve,
+        characterChecks,
+        drama.value.interrupts,
+      ),
   });
   if (!checked.ok) return checked;
   const { value: validated, problems, repairs } = checked.value;
@@ -242,7 +261,16 @@ async function run(
     styled.value,
     words.value,
     curve,
-    () => checkStoryboard(ctx, words.value, lookMode, research, curve, drama.value.interrupts),
+    () =>
+      checkStoryboard(
+        ctx,
+        words.value,
+        lookMode,
+        research,
+        curve,
+        characterChecks,
+        drama.value.interrupts,
+      ),
   );
   if (!synced.ok) return synced;
   const storyboard = synced.value.storyboard;

@@ -11,11 +11,20 @@ import type {
 } from '../../shared/project-settings-contract.js';
 
 /** Sections in display order; a section without rows is not rendered. */
-export const PROJECT_SETTINGS_SECTIONS = ['visuals', 'research', 'direction', 'taste'] as const;
+export const PROJECT_SETTINGS_SECTIONS = [
+  'visuals',
+  'characters',
+  'mascot',
+  'research',
+  'direction',
+  'taste',
+] as const;
 export type ProjectSettingsSectionId = (typeof PROJECT_SETTINGS_SECTIONS)[number];
 
 export const SECTION_TITLES: Readonly<Record<ProjectSettingsSectionId, string>> = {
   visuals: 'Visuals',
+  characters: 'Characters',
+  mascot: 'Mascot',
   research: 'Research',
   direction: 'Direction',
   taste: 'Taste',
@@ -59,6 +68,8 @@ export function withProjectSettingsPatch(
     revealMoments: patch.revealMoments ?? settings.revealMoments,
     beatSync: patch.beatSync ?? settings.beatSync,
     repetitionControl: patch.repetitionControl ?? settings.repetitionControl,
+    characters: patch.characters ?? settings.characters,
+    mascot: patch.mascot ?? settings.mascot,
   };
 }
 

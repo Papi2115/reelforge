@@ -2,7 +2,7 @@
  * Engine runtime for one loaded video: validates the manifest, imports and builds every shot,
  * and renders any global time synchronously. Runs inside the sandboxed engine frame.
  */
-import type { KitDefinition } from '@reelforge/kit';
+import { loadProjectCast, type KitDefinition } from '@reelforge/kit';
 import {
   renderManifestSchema,
   type RenderManifest,
@@ -122,6 +122,8 @@ function createShotBuilder(
   style: ResolvedStyle,
   kitExtensions: readonly KitDefinition[],
 ): ShotBuilder {
+  // Project roles (PLAN.md#12.20): invalid files are left out, a scene naming one gets the error.
+  const cast = loadProjectCast(manifest.castRoles);
   const resolveAnchor = manifest.words
     ? createExactAnchorResolver(manifest.words.words)
     : NO_ANCHORS;
@@ -147,6 +149,7 @@ function createShotBuilder(
       safeArea: style.safeArea,
       resolveAnchor,
       kitExtensions,
+      cast,
       ambient: shotAmbient(manifest, style, index),
       assets,
     });

@@ -13,5 +13,7 @@
   "openLoops": "auto",
   "revealMoments": "auto",
   "beatSync": "auto",
-  "repetitionControl": "auto"
+  "repetitionControl": "auto",
+  "characters": "pack",
+  "mascot": "none"
 }

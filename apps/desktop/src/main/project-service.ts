@@ -26,6 +26,7 @@ import {
   type ProjectError,
   type Result,
 } from '@reelforge/project';
+import type { CharacterMode, MascotChoice } from '@reelforge/shared';
 import type {
   HistoryResult,
   NewProjectRequest,
@@ -59,6 +60,11 @@ export interface ProjectServiceOptions {
   readonly pickFolder: (purpose: FolderPurpose) => Promise<string | undefined>;
   /** Style preset of new projects (app settings); the template's when omitted. */
   readonly defaultStyle?: () => string;
+  /** Characters and mascot of new projects (app settings, PLAN.md#12.20); the template's if omitted. */
+  readonly newProjectDefaults?: () => {
+    readonly characters: CharacterMode;
+    readonly mascot: MascotChoice;
+  };
   readonly log: Logger;
   readonly git?: GitOptions;
   /** Called with the open project's folder (undefined after close) whenever it changes. */
@@ -110,6 +116,7 @@ export class ProjectService {
       title: request.title,
       language: request.language,
       ...(this.options.defaultStyle === undefined ? {} : { style: this.options.defaultStyle() }),
+      ...this.options.newProjectDefaults?.(),
       templateDir: this.options.templateDir,
       stylesDir: this.options.stylesDir,
       ...this.gitOption(),

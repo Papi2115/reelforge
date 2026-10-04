@@ -5,6 +5,7 @@
  * default style); tests in apps/desktop keep them in sync.
  */
 import { z } from 'zod';
+import { characterModeSchema, mascotChoiceSchema } from './characters.js';
 import { videoLanguageSchema } from './project.js';
 import { stylePresetIdSchema } from './style-preset.js';
 import { tasteLearningSchema } from './taste-profile.js';
@@ -117,6 +118,16 @@ export const appSettingsSchema = z.object({
       whisperModel: settingsWhisperModelSchema.default('large-v3-turbo-q5_0'),
     })
     .prefault({}),
+  /**
+   * Characters and mascot new projects start with (PLAN.md#12.20), so a channel mascot carries
+   * over from project to project; each project keeps its own choice afterwards.
+   */
+  newProjectDefaults: z
+    .object({
+      characters: characterModeSchema.default('pack'),
+      mascot: mascotChoiceSchema.default('none'),
+    })
+    .prefault({}),
   /** Sound design: generated background music per act (the sound-cues stage). */
   music: z.object({ enabled: z.boolean().default(true) }).prefault({}),
   /** Scenes built: the quiet final review after a whole-film build (PLAN.md#11.5). */
@@ -207,6 +218,10 @@ export const appSettingsPatchSchema = z.strictObject({
     .partial()
     .optional(),
   tools: z.strictObject({ whisperModel: settingsWhisperModelSchema }).partial().optional(),
+  newProjectDefaults: z
+    .strictObject({ characters: characterModeSchema, mascot: mascotChoiceSchema })
+    .partial()
+    .optional(),
   music: z.strictObject({ enabled: z.boolean() }).partial().optional(),
   scenes: z.strictObject({ finalReview: z.boolean() }).partial().optional(),
   assetLibrary: z
@@ -247,6 +262,7 @@ export function applyAppSettingsPatch(settings: AppSettings, patch: AppSettingsP
     usage: { ...settings.usage, ...patch.usage },
     performance: { ...settings.performance, ...patch.performance },
     tools: { ...settings.tools, ...patch.tools },
+    newProjectDefaults: { ...settings.newProjectDefaults, ...patch.newProjectDefaults },
     music: { ...settings.music, ...patch.music },
     scenes: { ...settings.scenes, ...patch.scenes },
     assetLibrary: { ...settings.assetLibrary, ...patch.assetLibrary },

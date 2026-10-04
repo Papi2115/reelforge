@@ -15,6 +15,7 @@ import {
   type AmbientShot,
   type AmbientVariationSettings,
   type KitExtensionSource,
+  type ManifestCastRoles,
   type NamedPalette,
   type ProjectFile,
   type RenderManifest,
@@ -22,6 +23,7 @@ import {
   type WordsFile,
 } from '@reelforge/shared';
 import { describeUnknown, ProjectError } from '../errors.js';
+import { manifestCastRoles, NO_CAST_ROLES } from './cast-roles.js';
 import type { FileCheck, ProjectFiles } from './files.js';
 import { projectRelative, resolveInProject, samePath } from './paths.js';
 
@@ -36,6 +38,8 @@ export interface RenderSetup {
   readonly words: WordsFile | undefined;
   /** Project props (`kit-ext/props/*.js`), registered in every shot. */
   readonly kitExtensions: readonly KitExtensionSource[];
+  /** Project roles (`characters/`, ADR-026); undefined without any. */
+  readonly castRoles?: ManifestCastRoles | undefined;
   /** Ambient variation switch (PLAN.md#12.8); absent when the project has it off. */
   readonly ambientVariation?: AmbientVariationSettings | undefined;
 }
@@ -119,6 +123,7 @@ export function renderSetup(
     palette: project.palette,
     words,
     kitExtensions: files.kitExtensions.extensions,
+    castRoles: manifestCastRoles(files.castRoles ?? NO_CAST_ROLES),
     ...(projectAmbientVariation(project)
       ? { ambientVariation: { enabled: true, seed: project.seed } }
       : {}),
@@ -229,6 +234,7 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
     ...(setup.palette ? { palette: setup.palette } : {}),
     ...(setup.words ? { words: setup.words } : {}),
     ...(setup.kitExtensions.length > 0 ? { kitExtensions: [...setup.kitExtensions] } : {}),
+    ...(setup.castRoles === undefined ? {} : { castRoles: setup.castRoles }),
     // Only storyboard shots vary: a standalone scene (a prop turntable, a draft the storyboard
     // does not list yet) has no storyboard position and renders neutral, so the camera drift
     // cannot make one view differ from itself at another time.

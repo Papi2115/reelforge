@@ -4,6 +4,13 @@
  */
 import { z } from 'zod';
 import { assetIdSchema } from './assets.js';
+import {
+  newRoleSchema,
+  shotMascotSchema,
+  type MascotChoice,
+  type MascotId,
+  type ShotMascot,
+} from './characters.js';
 import { interruptSchema } from './interrupts.js';
 
 export const STORYBOARD_FILE_VERSION = 1;
@@ -180,9 +187,28 @@ export const storyboardShotSchema = z
     assets: z.array(assetIdSchema).max(MAX_SHOT_ASSETS).optional(),
     /** A planned pattern interrupt at the shot's start (PLAN.md#12.25; optional, switch on). */
     interrupt: interruptSchema.optional(),
+    /**
+     * The project's mascot appears in this shot in an impersonal role (PLAN.md#12.20, ADR-025;
+     * optional, only when the project chose a mascot). The mascot id is the project's.
+     */
+    mascot: shotMascotSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;
+
+/** The mascot of a shot: the project's mascot id with the shot's role and action. */
+export interface ResolvedShotMascot extends ShotMascot {
+  readonly id: MascotId;
+}
+
+/** `shot.mascot` resolved to the project's mascot; undefined when either is absent. */
+export function shotMascot(
+  shot: Pick<StoryboardShot, 'mascot'>,
+  mascot: MascotChoice,
+): ResolvedShotMascot | undefined {
+  if (shot.mascot === undefined || mascot === 'none') return undefined;
+  return { id: mascot, ...shot.mascot };
+}
 
 /** The look a shot is built in: its `look`, or `voxel` when the storyboard names none. */
 export function shotLook(shot: Pick<StoryboardShot, 'look'>): string {
@@ -212,5 +238,10 @@ export function storyboardAssetIds(shots: readonly Pick<StoryboardShot, 'assets'
 export const storyboardFileSchema = z.object({
   version: z.literal(STORYBOARD_FILE_VERSION),
   shots: z.array(storyboardShotSchema).min(1),
+  /**
+   * People the story needs that the character pack does not have (PLAN.md#12.20; optional, pack
+   * projects only): built as roles in the pack's style before the scenes.
+   */
+  newRoles: z.array(newRoleSchema).optional(),
 });
 export type StoryboardFile = z.infer<typeof storyboardFileSchema>;

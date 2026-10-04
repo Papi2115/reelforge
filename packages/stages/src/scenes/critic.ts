@@ -22,7 +22,10 @@ export interface CritiqueInput {
   /** What the shot must communicate (storyboard intent). */
   readonly intent: string;
   readonly styleId: string;
-  /** The shot's look, roll and look rules (criticLookVars; empty in voxel-only projects). */
+  /**
+   * The shot's look, roll and look rules (criticLookVars; empty in voxel-only projects) and its
+   * mascot check (criticCharacterVars; only for a shot with the project's mascot).
+   */
   readonly lookVars?: Readonly<Record<string, string>> | undefined;
   readonly render: ShotRenderOk;
   /** Project-relative PNG the critic reads (written here). */
