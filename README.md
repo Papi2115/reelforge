@@ -23,6 +23,8 @@ or stores your Claude credentials. v1 is for personal use (see "Licensing and te
 - **Sound design**: synthesized SFX, ambience, your music with sidechain ducking, −14 LUFS master.
 - **Export**: per-shot cached and resumable; hardware encoders (NVENC / AMF / QSV) with x264 fallback;
   chapters, thumbnail and title/description/tag suggestions.
+- **Project settings** per video: voxel only or mixed looks (retro UI, diorama, blueprint) and
+  subtle background variation between shots, saved in `project.json` and the project history.
 - **Local first**: a project is a folder plus a git repo (autocommit after every step and Claude turn,
   history + revert in the app).
 - **Resilient**: recovers from usage limits (pause and auto-resume), crashes, killed processes and

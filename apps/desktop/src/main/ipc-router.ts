@@ -144,6 +144,8 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.mixPreview, handlers.mixPreview);
   registerInvoke(IPC.projectOpenExample, handlers.projectOpenExample);
   registerInvoke(IPC.helpOpen, handlers.helpOpen);
+  registerInvoke(IPC.projectSettingsGet, handlers.projectSettingsGet);
+  registerInvoke(IPC.projectSettingsUpdate, handlers.projectSettingsUpdate);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

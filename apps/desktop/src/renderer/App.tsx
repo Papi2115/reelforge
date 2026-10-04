@@ -13,6 +13,7 @@ import { HelpMenu } from './onboarding/HelpMenu.js';
 import { WelcomeScreen } from './onboarding/WelcomeScreen.js';
 import { HistoryDrawer } from './project/HistoryDrawer.js';
 import { OpenRecovery } from './project/OpenRecovery.js';
+import { ProjectSettingsDialog } from './project/ProjectSettingsDialog.js';
 import { StartScreen } from './project/StartScreen.js';
 import { FirstRunGate } from './settings/FirstRunGate.js';
 import { SettingsDialog, type SettingsTab } from './settings/SettingsDialog.js';
@@ -48,6 +49,7 @@ export function App(): JSX.Element {
   const [project, setProject] = useState<ProjectSummary | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
   const settings = useSettings();
   const claude = useClaudeStatus();
   const appSettings = settings.state?.settings;
@@ -85,6 +87,7 @@ export function App(): JSX.Element {
 
   const closeProject = (): void => {
     setHistoryOpen(false);
+    setProjectSettingsOpen(false);
     window.reelforge.closeProject().then(
       () => {
         setProject(null);
@@ -110,6 +113,15 @@ export function App(): JSX.Element {
             <span className="project-meta">
               {project.language.toUpperCase()} · {project.style} · {project.fps} fps
             </span>
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => {
+                setProjectSettingsOpen(true);
+              }}
+            >
+              Project settings
+            </button>
             <button type="button" className="link-button" onClick={closeProject}>
               Close project
             </button>
@@ -176,6 +188,15 @@ export function App(): JSX.Element {
               setHistoryOpen(false);
             }}
             onReverted={refreshProject}
+          />
+        )}
+        {project !== null && projectSettingsOpen && (
+          <ProjectSettingsDialog
+            key={project.dir}
+            projectTitle={project.title}
+            onClose={() => {
+              setProjectSettingsOpen(false);
+            }}
           />
         )}
         {settingsTab !== null && (

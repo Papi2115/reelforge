@@ -209,6 +209,10 @@ function setup(): {
       projectOpenRecent: (request) => record(request, opened),
       projectOpenExample: (request) => record(request, opened),
       helpOpen: (request) => record(request, { status: 'opened', path: 'logs' } as const),
+      projectSettingsGet: (request) =>
+        record(request, { status: 'error', message: 'no project is open' } as const),
+      projectSettingsUpdate: (request) =>
+        record(request, { status: 'error', message: 'no project is open' } as const),
       projectRecent: (request) => record(request, []),
       projectCurrent: (request) => record(request, null),
       projectClose: (request) => record(request, null),

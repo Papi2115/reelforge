@@ -362,7 +362,7 @@ function main(): void {
         if (!manifest.ok) throw new Error(manifest.error);
         return manifest.value;
       },
-      ...projectHandlers(projects, log.child('snapshot')),
+      ...projectHandlers(projects, log.child('project')),
       ...onboardingHandlers({
         projects,
         logsDir: path.dirname(logFile(userDataDir)),

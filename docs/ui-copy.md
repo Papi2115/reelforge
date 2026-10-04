@@ -42,4 +42,5 @@ Same colour and dot per status everywhere; the legend is the (i) next to "Pipeli
 - Empty states say what to do next: "No shots yet. Add your voiceover, then run Words timed and Storyboard: the shots appear here."
 - Counts use the right noun form (`plural()` in `apps/desktop/src/shared/plural.ts`): "1 shot", "16 shots".
 - Icon-only buttons always have a tooltip; a keyboard shortcut goes into the tooltip in brackets: "Hide chat (Ctrl+Shift+C)", "Play (Space)", "Lock this shot … (Shift+L)".
+- Settings vs Project settings: **Settings** (header, right) are app-wide; **Project settings** (header, next to the project title) live in `project.json` — Visuals: "Voxel only — the classic look" / "Mixed looks — voxel + <looks>", "Vary backgrounds subtly between shots"; every option says when it applies ("Applies to the next Storyboard and Scenes build") and never marks a step out of date.
 - Listen toggle: "Full mix" (voice, effects, ambience, music with your latest edits) / "Voice only".
