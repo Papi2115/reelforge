@@ -8,6 +8,7 @@ import { lintScene } from '@reelforge/engine';
 import { ok, type Result } from '@reelforge/claude-bridge';
 import type { CriticVerdictRecord, QaFinding, StoryboardShot } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
+import { criticLookVars } from '../looks.js';
 import { FILES } from '../paths.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
@@ -111,6 +112,7 @@ export async function qaRound(
       shotId: shot.id,
       intent: shot.intent,
       styleId: job.styleId,
+      lookVars: criticLookVars(job.lookMode, shot),
       render,
       sheetFile: qaSheetFile(shot.id, label),
     },

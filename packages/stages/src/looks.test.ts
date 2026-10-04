@@ -9,6 +9,8 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   availableTransitionStyles,
+  CRITIC_LOOK_RULES,
+  criticLookVars,
   lookLine,
   sceneLookVars,
   storyboardLookOptions,
@@ -102,6 +104,24 @@ describe('look mode plumbing', () => {
       lookId: 'voxel',
       lookDocs: voxelLook.docs,
     });
+  });
+
+  it("hands the critic the shot's look, roll and look rules (none in voxel-only)", () => {
+    expect(criticLookVars('voxel-only', { ...SHOT, look: 'retro-ui', roll: 'B' })).toEqual({});
+    expect(criticLookVars('mixed', { ...SHOT, look: 'retro-ui', roll: 'B' })).toEqual({
+      lookId: 'retro-ui',
+      roll: 'B',
+      lookRules: CRITIC_LOOK_RULES['retro-ui'],
+    });
+    expect(criticLookVars('mixed', SHOT)).toEqual({
+      lookId: 'voxel',
+      lookRules: CRITIC_LOOK_RULES['voxel'],
+    });
+    expect(criticLookVars('mixed', { ...SHOT, look: 'test-look' }, [voxelLook, testLook])).toEqual({
+      lookId: 'test-look',
+      lookRules: 'Test look: a look that exists only in tests.',
+    });
+    for (const look of listLooks()) expect(CRITIC_LOOK_RULES[look.id], look.id).toBeDefined();
   });
 
   it('keeps every look module in line with the storyboard schema', () => {

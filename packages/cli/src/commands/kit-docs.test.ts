@@ -45,7 +45,7 @@ describe('kit-docs formatting', () => {
     expect(text).toContain('kit.env: (none yet)');
   });
 
-  it('marks entries of looks other than voxel (ADR-009)', () => {
+  it('marks entries of looks other than voxel, listed only in mixed projects (ADR-009)', () => {
     const tagged: KitCatalog = {
       ...catalog,
       props: [
@@ -53,10 +53,11 @@ describe('kit-docs formatting', () => {
         { ...calculator, name: 'crtMonitor', look: 'retro-ui' },
       ],
     };
-    const text = formatCatalog(tagged);
+    const text = formatCatalog(tagged, { lookMode: 'mixed' });
     expect(text).toContain('kit.props.calculator({ screen: "off"|"doom", size?: number = 1');
     expect(text).not.toContain('(look voxel)');
-    expect(text).toContain('}) (look retro-ui) — Graphing calculator');
+    expect(text).toContain('  kit.props.crtMonitor (look retro-ui) — Graphing calculator');
+    expect(formatCatalog(tagged)).not.toContain('crtMonitor');
   });
 
   it('describes a function by any of its names, with anchors and an example', () => {
@@ -107,6 +108,12 @@ describe('kit-docs formatting', () => {
     expect(describeKitName(catalog, 'ambient')).toBe(ambient);
     expect(ambient).toContain('tone(name) -> the palette swatch name');
     expect(ambient).toContain('never hard-code one background for every shot');
+    const assets = describeKitName(catalog, 'ctx.assets');
+    expect(describeKitName(catalog, 'assets')).toBe(assets);
+    expect(all).toContain(assets);
+    for (const part of ['image(ref,', 'build() only', 'has(ref)', 'photoFrame', 'never execute']) {
+      expect(assets).toContain(part);
+    }
     expect(formatCatalog(catalog)).toContain('reelforge kit-docs ctx');
     expect(() => describeKitName(catalog, 'cam')).toThrow(/scene context: ctx, camera, text/);
   });

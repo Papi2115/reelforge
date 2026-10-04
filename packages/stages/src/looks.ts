@@ -72,3 +72,39 @@ export function sceneLookVars(
   const look = getLook(shotLook(shot), looks) ?? voxelLook;
   return { lookId: look.id, lookDocs: look.docs };
 }
+
+/**
+ * What a frame of each look must look like, for the frame critic (Haiku reads one contact sheet:
+ * a few sentences, not the build docs). Real run v2.0: told nothing, it called blueprint and
+ * retro-ui frames "voxel style" and passed every crop.
+ */
+export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
+  voxel:
+    'Voxel: a chunky voxel 3D world (blocks, hard pixel edges, flat lighting) with pixel-font cards inside the safe margin.',
+  'retro-ui':
+    'Retro UI: flat pixel-art retro-OS windows, terminals, browsers, documents or CRT screens seen straight on over a desktop; the window title bar and the headline stay whole and readable in every frame.',
+  diorama:
+    'Diorama: an isometric cut-away room, office or city block seen from the fixed iso camera (no perspective close-ups); pins and labels sit clear of each other.',
+  blueprint:
+    'Blueprint: a flat 2D blueprint board (grid paper, line drawings, charts, maps, counters in pixel text); titles, labels, axis values and numbers are whole and do not collide.',
+};
+
+/**
+ * Critic prompt variables: none in `voxel-only` (the prompt stays as before looks); in `mixed`
+ * the shot's look (unknown looks judge as voxel), its roll when the storyboard gives one, and the
+ * look's visual rules.
+ */
+export function criticLookVars(
+  mode: LookMode,
+  shot: StoryboardShot,
+  looks?: readonly Look[],
+): Readonly<Record<string, string>> {
+  if (mode === 'voxel-only') return {};
+  const look = getLook(shotLook(shot), looks) ?? voxelLook;
+  const rules = CRITIC_LOOK_RULES[look.id] ?? `${look.label}: ${look.description}.`;
+  return {
+    lookId: look.id,
+    lookRules: rules,
+    ...(shot.roll === undefined ? {} : { roll: shot.roll }),
+  };
+}

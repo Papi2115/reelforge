@@ -35,6 +35,11 @@ const PHOTO_RAMP = [C.black, C.indigo, C.violet, C.pink, C.amber, C.cream];
 export const retroBrowserParams = z.object({
   url: z.string().max(60).default('WWW.BYTE-TIMES.COM').describe('Address bar text'),
   title: z.string().max(30).default('BYTE TIMES').describe('Tab and window title'),
+  appName: z
+    .string()
+    .max(20)
+    .optional()
+    .describe('Browser name after the window title, e.g. "MOSAIC" (omit = the title alone)'),
   site: z.string().max(30).default('THE BYTE TIMES').describe('Site banner'),
   headline: z
     .string()
@@ -228,7 +233,7 @@ export function browserPainter(params: RetroBrowserParams, roles?: RoleColors): 
       const frame = rect(0, 0, canvas.width - 4, canvas.height - 4);
       dropShadow(canvas, frame, 4);
       const layout = drawChrome(canvas, frame, {
-        title: `${params.title} - NETSURF`,
+        title: params.appName === undefined ? params.title : `${params.title} - ${params.appName}`,
         active: true,
         accent: params.accent,
         content: C.grey,

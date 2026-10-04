@@ -22,6 +22,8 @@ export interface CritiqueInput {
   /** What the shot must communicate (storyboard intent). */
   readonly intent: string;
   readonly styleId: string;
+  /** The shot's look, roll and look rules (criticLookVars; empty in voxel-only projects). */
+  readonly lookVars?: Readonly<Record<string, string>> | undefined;
   readonly render: ShotRenderOk;
   /** Project-relative PNG the critic reads (written here). */
   readonly sheetFile: string;
@@ -60,6 +62,7 @@ async function askCritic(
     imagePaths: input.sheetFile,
     intent: input.intent,
     styleId: input.styleId,
+    ...input.lookVars,
   });
   if (!prompt.ok) return prompt;
   const turn = await runTurn({
