@@ -1,0 +1,109 @@
+html,
+body {
+  margin: 0;
+  background: #07060e;
+  color: #a5b1dd;
+  font: 13px/1.45 Consolas, 'Cascadia Mono', monospace;
+}
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px 24px;
+}
+h1 {
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  color: #5b67a8;
+  margin: 0;
+}
+h1 b {
+  color: #ff2e4a;
+  font-weight: normal;
+}
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+  box-shadow: 0 0 0 1px #1f2763, 0 10px 40px #000;
+}
+#wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+}
+.bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+button {
+  font: inherit;
+  background: #11143a;
+  color: #a5b1dd;
+  border: 1px solid #34428c;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+button.on {
+  background: #ff2e4a;
+  border-color: #ff2e4a;
+  color: #fff4d8;
+}
+.scrubber {
+  position: relative;
+  width: 100%;
+}
+#scrub {
+  width: 100%;
+  margin: 0;
+}
+#marks {
+  position: relative;
+  height: 14px;
+}
+#marks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-1px);
+  border-left: 1px solid #ff2e4a;
+  padding-left: 3px;
+  font-size: 10px;
+  color: #5b67a8;
+}
+#time {
+  min-width: 250px;
+  color: #5b67a8;
+}
+#caption {
+  min-height: 2.9em;
+  text-align: center;
+  color: #fff4d8;
+  font-size: 15px;
+}
+#caption.hidden {
+  visibility: hidden;
+}
+#note {
+  text-align: center;
+  color: #5b67a8;
+  font-style: italic;
+}
+#note b {
+  color: #7af6ea;
+  font-style: normal;
+  font-weight: normal;
+}
+label {
+  color: #5b67a8;
+  cursor: pointer;
+}
+.keys {
+  color: #34428c;
+  font-size: 11px;
+}
