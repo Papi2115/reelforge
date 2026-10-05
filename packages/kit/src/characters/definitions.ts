@@ -12,6 +12,7 @@ import { createCharacter, type CharacterObject } from './character.js';
 import { EXPRESSIONS, POSES } from './clips.js';
 import { buildMannequin } from './mannequin.js';
 import { buildMascot, MASCOTS } from './mascots.js';
+import { REACTIONS } from './reactions.js';
 import { buildRole } from './role-build.js';
 import { NO_PROJECT_CAST, type ProjectCast } from './project-roles.js';
 import type { AnyRoleSpec, RoleSpecInput } from './role-spec.js';
@@ -53,6 +54,7 @@ const METHODS = {
   'update(t)': 'poses everything at t from the cues (call every frame; cues below: build() only)',
   'pose(name, { at })': `cues a pose (${POSES.join(', ')}) at scene time or ctx.anchor(...); blends 0.35 s`,
   'expression(name, { at })': `mascots: cues a face (auto, ${EXPRESSIONS.join(', ')})`,
+  'reaction(name, { at, toward })': `plays a short reaction on top of the pose (${REACTIONS.join(', ')}); mascots react in their own anatomy`,
   'walkTo([x, y, z], { at, speed = 0.8, then = "calm" })':
     'walks in a straight line (parent space), turning into the walk and back; queues after the previous walk',
   'lookAt(target, { at, until })': 'turns the head to a kit object or world [x, y, z]',
@@ -66,7 +68,7 @@ function phaseSeed(tools: KitTools, seed: number | undefined): number {
 export const mascot = defineProp({
   name: 'mascot',
   description:
-    'A mascot of the pack (~2 units tall, faces +z): bulb (channel mascot, glows on "eureka"), screen, fox, bean; 8 poses, 7 expressions with blinking.',
+    'A mascot of the pack (~2 units tall, faces +z): bulb (channel mascot, glows on "eureka"), screen, fox, bean; 8 poses, 11 expressions with blinking, 8 reactions.',
   params: z.object({
     id: z.enum(MASCOTS).describe('Which mascot'),
     expression: z

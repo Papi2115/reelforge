@@ -1,6 +1,11 @@
 import type { StoryboardShot, WordsFile } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { checkCharacters, impersonationCue, type CharacterCheckOptions } from './characters.js';
+import {
+  checkCharacters,
+  impersonationCue,
+  namedReaction,
+  type CharacterCheckOptions,
+} from './characters.js';
 import { matchesWordList, PERSON_ROLE_WORDS } from './mascot-words.js';
 import { validateStoryboard } from './storyboard.js';
 
@@ -224,5 +229,76 @@ describe('the narration window', () => {
     expect(checkCharacters({ shots }, spoken, FOX)).toEqual([]);
     const inside = words(30, 36, 'the doctor said');
     expect(codes(checkCharacters({ shots }, inside, FOX))).toContain('error:mascot-impersonation');
+  });
+});
+
+describe('mascot reactions (2.3.7)', () => {
+  const reactor = (action: string, extra: Partial<StoryboardShot> = {}): StoryboardShot =>
+    shot('The counter lands on 4 MB.', { mascot: { role: 'reactor', action }, ...extra });
+
+  it('reads the reaction a reactor action names', () => {
+    expect(namedReaction('jaw-drop at the 4 MB number')).toBe('jaw-drop');
+    expect(namedReaction('a Double Take when the bar jumps')).toBe('double-take');
+    expect(namedReaction('smug nod')).toBe('smug');
+    expect(namedReaction('nod-told-you as the answer closes the loop')).toBe('nod-told-you');
+    expect(namedReaction('looks amazed')).toBeUndefined();
+    // Whole words only: "winking" or "surprises" are not a reaction id.
+    expect(namedReaction('surprises everyone')).toBeUndefined();
+  });
+
+  it('warns (never errors) when a reactor names no reaction from the vocabulary', () => {
+    /** Ten 6 s shots, the sixth one with the mascot. */
+    const one = (mascot: StoryboardShot['mascot']) =>
+      film(10, 6, []).map((entry, index) => (index === 5 ? { ...entry, mascot } : entry));
+    const check = (mascot: StoryboardShot['mascot']) =>
+      checkCharacters({ shots: one(mascot) }, undefined, FOX);
+    expect(check({ role: 'reactor', action: 'surprise as the chart jumps' })).toEqual([]);
+    const vague = check({ role: 'reactor', action: 'looks amazed' });
+    expect(codes(vague)).toEqual(['warning:mascot-action']);
+    expect(vague[0]?.message).toContain('jaw-drop');
+    expect(vague[0]?.path).toBe('shots[5].mascot.action');
+    // Other roles describe what they do, not a reaction.
+    expect(check(POINTER)).toEqual([]);
+  });
+
+  it('still refuses a reaction to a person and counts reactions toward the 12 s rule', () => {
+    const toPerson = reactor('jaw-drop at the witness');
+    expect(codes(checkCharacters({ shots: [toPerson] }, undefined, FOX))).toContain(
+      'error:mascot-impersonation',
+    );
+    const shots = film(20, 5, []).map((entry, index) =>
+      index === 4 || index === 6
+        ? { ...entry, mascot: { role: 'reactor' as const, action: 'surprise' } }
+        : entry,
+    );
+    expect(codes(checkCharacters({ shots }, undefined, FOX))).toContain('error:mascot-overuse');
+  });
+
+  it('lets a reactor micro-beat be as short as 1.2 s (other shots keep the minimum)', () => {
+    const film3 = (middle: StoryboardShot['mascot']) =>
+      [
+        {
+          ...shot('Hook.', { id: 's01', t0: 0, t1: 4, scene: 'scenes/s01.js' }),
+          mascot: undefined,
+        },
+        {
+          ...shot('Reaction.', { id: 's02', t0: 4, t1: 5.3, scene: 'scenes/s02.js' }),
+          mascot: middle,
+        },
+        {
+          ...shot('Chart.', { id: 's03', t0: 5.3, t1: 10, scene: 'scenes/s03.js' }),
+          mascot: undefined,
+        },
+      ].map(({ mascot, ...rest }) => (mascot === undefined ? rest : { ...rest, mascot }));
+    const lengths = (middle: StoryboardShot['mascot'], rules = {}) =>
+      validateStoryboard(JSON.stringify({ version: 1, shots: film3(middle) }), {
+        characters: FOX,
+        rules: { minShotS: 1.85, ...rules },
+      }).issues.filter((entry) => entry.code === 'shot-length' && entry.path === 'shots[1]');
+    expect(codes(lengths(undefined))).toEqual(['error:shot-length']);
+    expect(lengths({ role: 'reactor', action: 'surprise' })).toEqual([]);
+    expect(codes(lengths({ role: 'pointer', action: 'points at the bar' }))).toEqual([
+      'error:shot-length',
+    ]);
   });
 });

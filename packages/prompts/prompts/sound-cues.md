@@ -1,6 +1,6 @@
 ---
 id: sound-cues
-version: 3
+version: 4
 model: sonnet
 tools: [Read, Write, Bash(reelforge *)]
 output: cues.json
@@ -14,7 +14,7 @@ Format (strict keys — unknown keys are rejected):
 `{"version":1,"global":{"voGainDb":0,"targetLufs":-14,"truePeakMaxDbtp":-1},"sfx":[{"id":"sfx-01","t":12.4,"name":"hit-soft","gainDb":-9,"pan":0,"seed":7}],"ambience":[{"from":0,"to":30,"name":"room-tone","gainDb":-28}],"music":[{"id":"music-01","from":0,"to":61,"file":"audio/music/gen-calm-tech-1-ab12cd34ef.wav","gainDb":-5,"ducking":{"enabled":true}}],"moods":["calm-tech"]}`
 Times are seconds on the voice-over timeline (shot t0 + local time). `seed % variants` picks a recipe's variant (`reelforge kit-docs sfx` lists recipes, variants and uses).
 
-Sounds (built-in names only): motion whoosh, swoosh-in, swoosh-out, riser, downer; impact hit, hit-soft, boom, whoosh-impact, stamp, snap; texture pop, bubble, bubble-up, typewriter, glitch, scribble, paper, camera-shutter; UI click, tick, tock, blip, blip-up, blip-down, notification, success, error-buzz; tonal ding, chime, coin, sparkle. Shots in other looks have their own palette (keep it there): retro-ui key-click, keyboard, mouse-click, window-open, window-close, disk-seek, modem, crt-zap, error-beep, terminal-tick; diorama soft-keys, chair, paper-shuffle, server-whir, led-blip, traffic-pass, horn-blip, bird-chirp, servo; blueprint pencil-scratch, plotter-pen, ruler-tick, measure-blip, relay-click, data-ping; flat-2d shape-pop, swoosh-soft, whoosh-flat, flat-tick, chime-up, text-snap; whiteboard marker-stroke, marker-squeak, cap-pop, eraser-swipe, board-tap, board-chime, board-tick; paper-cutout paper-rustle, paper-slide, scissor-snip, tape-tear, paper-pop, wood-tick, page-flip. Ambience beds: room-tone, hum, wind, city, crt-hum, office, server-room, electric-tick.
+Sounds (built-in names only): motion whoosh, swoosh-in, swoosh-out, riser, downer; impact hit, hit-soft, boom, whoosh-impact, stamp, snap; texture pop, bubble, bubble-up, typewriter, glitch, scribble, paper, camera-shutter, glass-crack; UI click, tick, tock, blip, blip-up, blip-down, notification, success, error-buzz; tonal ding, chime, coin, sparkle. Shots in other looks have their own palette (keep it there): retro-ui key-click, keyboard, mouse-click, window-open, window-close, disk-seek, modem, crt-zap, error-beep, terminal-tick; diorama soft-keys, chair, paper-shuffle, server-whir, led-blip, traffic-pass, horn-blip, bird-chirp, servo; blueprint pencil-scratch, plotter-pen, ruler-tick, measure-blip, relay-click, data-ping; flat-2d shape-pop, swoosh-soft, whoosh-flat, flat-tick, chime-up, text-snap; whiteboard marker-stroke, marker-squeak, cap-pop, eraser-swipe, board-tap, board-chime, board-tick; paper-cutout paper-rustle, paper-slide, scissor-snip, tape-tear, paper-pop, wood-tick, page-flip. Ambience beds: room-tone, hum, wind, city, crt-hum, office, server-room, electric-tick.
 
 Looks: each shot's sound palette follows its `look` in `storyboard.json` (absent = voxel): voxel keeps the sounds above, retro-ui, diorama and blueprint shots use their own recipes and beds (`reelforge looks` names each look's palette). The default cues already apply the palette; when you swap or add a cue in a non-voxel shot, prefer that palette's own recipes over the generic ones, and keep the look's bed under it.
 

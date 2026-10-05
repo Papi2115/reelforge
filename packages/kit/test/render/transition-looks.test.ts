@@ -17,45 +17,12 @@ import {
 } from '../../../engine/src/cli/index.js';
 import { TRANSITIONS } from '../../../engine/src/index.js';
 import { composeSheet } from '../support/contact-sheet.js';
-import {
-  DEMO_FILE,
-  KIT_GOLDEN_DIR,
-  KIT_OUT_DIR,
-  sceneSource,
-  type RenderManifest,
-} from '../support/scenes.js';
+import { KIT_GOLDEN_DIR, KIT_OUT_DIR, type RenderManifest } from '../support/scenes.js';
 import { expectVibe } from '../support/vibe.js';
-import { blueprintManifest, blueprintSource } from './look-blueprint-scenes.js';
+import { blueprintManifest } from './look-blueprint-scenes.js';
+import { LOOK_SCENES as SCENES, type LookId } from './transition-look-scenes.js';
 
-type LookId = 'voxel' | 'retro-ui' | 'diorama' | 'blueprint';
 type TransitionStyleId = keyof typeof TRANSITIONS;
-
-const DIORAMA_SCENE = `
-export const meta = { id: 'dio', title: 'Diorama office', treatment: '3d-reconstruction' };
-
-export function build(ctx) {
-  const { three, scene, palette, kit } = ctx;
-  scene.background = new three.Color(palette.sky);
-  const diorama = kit.env.dioramaOffice({ seed: 3 });
-  scene.add(diorama);
-  return { diorama };
-}
-
-export function update(t, state, ctx) {
-  state.diorama.update(t);
-  ctx.camera.set(state.diorama.camera({ t, screen: [ctx.shot.width, ctx.shot.height] }));
-}
-`;
-
-const SCENES: Readonly<Record<LookId, { readonly file: string; readonly source: string }>> = {
-  voxel: { file: DEMO_FILE, source: sceneSource(DEMO_FILE) },
-  'retro-ui': {
-    file: 'examples/look_retro_ui.js',
-    source: sceneSource('examples/look_retro_ui.js'),
-  },
-  diorama: { file: 'look-diorama-office.js', source: DIORAMA_SCENE },
-  blueprint: { file: 'look-blueprint.js', source: blueprintSource('graph') },
-};
 
 /** Every ordered look pair once: the look of each shot, then the style into the next one. */
 const CIRCUIT: readonly (readonly [LookId, TransitionStyleId])[] = [

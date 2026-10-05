@@ -2,13 +2,16 @@
  * Film-level repetition analysis (PLAN.md#12.23, pure, read-only): `findRepetitions` looks over
  * the whole film for (a) the same visual signature (look + treatment + kit definitions) within
  * 45 s and the same chart/template 3+ times a minute, (b) the same transition style twice within
- * 20 s, (c) the same SFX recipe 3+ times in 30 s or twice in a row, (d) the same narration phrase
+ * 20 s (a wow style within 90 s, ADR-028; scale-sequence dives excepted), (c) the same SFX recipe 3+ times in 30 s or twice in a row, (d) the same narration phrase
  * (3+ words) 3+ times in a minute — thresholds configurable — and proposes replacements
  * (`proposals.ts`) that never touch a locked shot. It changes nothing; `apply.ts` does, on request.
  */
 import { SFX_RECIPES, type SfxRecipe } from '@reelforge/pipeline';
 import {
+  continuesScaleSequence,
   DEFAULT_REPETITION_THRESHOLDS,
+  isWowStyle,
+  WOW_RULES,
   REPETITIONS_VERSION,
   type LookMode,
   type RepetitionChange,
@@ -184,10 +187,11 @@ function variantItem(
 
 function transitionItems(ctx: Context): RepetitionItem[] {
   const { shots } = ctx.film;
+  // A dive that continues a scale sequence (ADR-028) is the same designed move, not a repeat.
   const all = shots.flatMap((shot, index) => {
     const style = transitionStyleOf(shot.transitionIn);
     const previous = shots[index - 1];
-    return style === undefined || previous === undefined
+    return style === undefined || previous === undefined || continuesScaleSequence(shots, index)
       ? []
       : [{ t: shot.t0, shot, previous, style }];
   });
@@ -195,15 +199,16 @@ function transitionItems(ctx: Context): RepetitionItem[] {
   for (const entry of all) byStyle.set(entry.style, [...(byStyle.get(entry.style) ?? []), entry]);
   const items: RepetitionItem[] = [];
   for (const [style, group] of byStyle) {
-    for (const cluster of clusters(group, 2, ctx.rules.transitionWindowS)) {
+    // A wow transition is memorable: the same one within WOW_RULES.repeatWindowS is a repeat.
+    const windowS = isWowStyle(style)
+      ? Math.max(ctx.rules.transitionWindowS, WOW_RULES.repeatWindowS)
+      : ctx.rules.transitionWindowS;
+    for (const cluster of clusters(group, 2, windowS)) {
       const later = cluster.slice(1);
       const changes = later.flatMap((entry): RepetitionChange[] => {
         if (ctx.locked.has(entry.shot.id)) return [];
         const near = all
-          .filter(
-            (other) =>
-              other !== entry && Math.abs(other.t - entry.t) <= ctx.rules.transitionWindowS,
-          )
+          .filter((other) => other !== entry && Math.abs(other.t - entry.t) <= windowS)
           .map((other) => other.style);
         const next = repickTransition(
           entry.shot,
@@ -226,7 +231,7 @@ function transitionItems(ctx: Context): RepetitionItem[] {
           cluster.map((entry) => ({ t: entry.t, shotId: entry.shot.id })),
           'transition',
           changes,
-          closest <= ctx.rules.transitionWindowS / 2 ? 'warning' : 'info',
+          closest <= windowS / 2 ? 'warning' : 'info',
           later.every((entry) => ctx.locked.has(entry.shot.id)),
         ),
       );

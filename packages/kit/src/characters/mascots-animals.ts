@@ -98,28 +98,32 @@ export function buildFox(tools: KitTools): CharacterBuild {
     headTop: [0, 8, 0],
     faceAt: [0, 4, 4],
     hand: [0, -1.6, 0],
-    secondary({ pose, time, velocity, expression }) {
+    secondary({ pose, time, velocity, expression, fx }) {
       if (!tail1 || !tail2 || !tail3 || !earL || !earR || !scarf) return;
       const sway = pose.pelvisY + pose.spineY + pose.pelvisZ;
-      const glad = expression === 'joy';
+      const glad = expression === 'joy' || expression === 'wink' || fx.wag > 0.5;
       const f = glad ? 2.6 : 0.8;
       const a = glad ? 0.55 : 0.3;
       tail1.rotation.set(
-        0.7 + 0.12 * Math.sin(TAU * time * 0.6) + 0.1 * velocity,
+        0.7 + 0.12 * Math.sin(TAU * time * 0.6) + 0.1 * velocity + 0.4 * fx.tailPuff,
         a * Math.sin(TAU * f * time) - 1.5 * sway,
         0,
       );
       tail2.rotation.set(0.35, a * Math.sin(TAU * f * time - 0.8), 0);
       tail3.rotation.set(0.25, a * Math.sin(TAU * f * time - 1.6), 0);
+      // A startled fox puffs its tail up (thicker segments) and lays its ears back.
+      const puff = 1 + 0.45 * fx.tailPuff;
+      for (const segment of [tail1, tail2, tail3]) segment.scale.set(puff, puff, 1);
       const twitch = bump(0, 0.05, 0.1, 0.2, mod(time, 3.7));
       const back =
-        expression === 'surprised' || expression === 'alarm'
+        expression === 'surprised' || expression === 'alarm' || expression === 'jaw-drop'
           ? -0.45
-          : expression === 'sceptical'
+          : expression === 'sceptical' || expression === 'smug' || expression === 'brow-raise'
             ? 0.2
             : 0;
-      earL.rotation.set(back, 0, -0.25 - 0.3 * twitch);
-      earR.rotation.set(back, 0, 0.25);
+      const laid = back + (-0.45 - back) * fx.earsBack;
+      earL.rotation.set(laid, 0, -0.25 - 0.3 * twitch + fx.earFlick);
+      earR.rotation.set(laid, 0, 0.25 - 0.6 * fx.earFlick);
       scarf.rotation.set(
         0.15 - 0.12 * velocity + 0.06 * Math.sin(TAU * 0.7 * time),
         0,
@@ -194,12 +198,14 @@ export function buildBean(tools: KitTools): CharacterBuild {
     headTop: [0, 11, 0],
     faceAt: [0, 5, 4.8],
     hand: [0, -1.4, 0],
-    secondary({ pose, time, velocity }) {
+    secondary({ pose, time, velocity, fx }) {
       tuft?.rotation.set(
-        0.35 * velocity + 0.05 * Math.sin(TAU * 0.5 * time),
+        0.35 * velocity + 0.05 * Math.sin(TAU * 0.5 * time) - 0.4 * fx.boing,
         0,
-        0.18 * Math.sin(TAU * 0.9 * time) - 2 * pose.headZ * 0.3,
+        0.18 * Math.sin(TAU * 0.9 * time) - 2 * pose.headZ * 0.3 + fx.boing,
       );
+      // A reaction wobbles the bean on its feet like a roly-poly toy.
+      rig.body.rotation.z = fx.wobble;
     },
   };
 }

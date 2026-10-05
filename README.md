@@ -49,6 +49,11 @@ or stores your Claude credentials. v1 is for personal use (see "Licensing and te
 - **Beat sync**: the music beds follow the narration's pace; cuts (±100 ms, never into a word),
   whooshes and hits land on a beat or a stressed word, with a ✓/⚠ report; locked shots never move
   (`docs/beat-sync.md`).
+- **Wow transitions** (mixed looks): rare showpiece transitions the storyboard picks by content —
+  enter through a magnifying lens, binoculars, a window or a keyhole on the subject, roll the
+  picture up like paper, turn it like a page, scrub it off with a sponge, shatter it like glass,
+  smash it with voxel cubes, or dive 8x into a point and out of the next shot — about one per
+  40–90 s, each with its own sound, identical in preview and export (`docs/transitions.md`).
 - **Repetition control**: finds the same visual, chart, transition, sound or phrase used too often
   across the film and proposes a swap (sound, transition) or shot variants, with Apply / Ignore
   under the final review (`docs/repetition.md`).

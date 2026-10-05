@@ -8,6 +8,7 @@ import { CAST, CAST_SPECS, EXAMPLE_ROLES } from './cast-presets.js';
 import { EXPRESSIONS, POSES } from './clips.js';
 import { MANNEQUIN_INFO } from './mannequin.js';
 import { MASCOT_INFO, MASCOTS } from './mascots.js';
+import { REACTION_INFO, REACTIONS } from './reactions.js';
 import { ACCESSORY_ITEMS } from './role-accessories.js';
 import { HELD_ITEMS } from './role-held.js';
 import { HAIR_ITEMS, HEADGEAR_ITEMS } from './role-head.js';
@@ -131,6 +132,9 @@ export function charactersDocs(project: ProjectCast = NO_PROJECT_CAST): string {
     'cues (build() only, before the first update(); at = scene seconds or ctx.anchor(...); a cue at the same time replaces the earlier one):',
     `  .pose(name, { at }) — ${POSES.join(', ')} (blends 0.35 s; anticipation, overshoot, lagging head)`,
     `  .expression(name, { at }) — mascots: auto (the pose's), ${EXPRESSIONS.join(', ')}; blinking is automatic`,
+    "  .reaction(name, { at, toward }) — a short human beat on top of the pose, timed to the key word (at: ctx.anchor('phrase'), a few frames before it lands); its face wins over earlier expression cues while it plays; mascots react in their own anatomy (Bulb's glass flickers, Screen glitches to O_O, Fox flicks its ears and puffs its tail, Bean wobbles and squints); keep the face visible (front or three-quarter, >= 1/4 of the frame height):",
+    ...REACTIONS.map((name) => `    ${name} — ${REACTION_INFO[name]}`),
+    '    glance-camera: toward = the camera position you give ctx.camera.set (default: straight out along +z)',
     '  .walkTo([x, y, z], { at, speed = 0.8, then = "calm" }) — parent space; queues after the previous walk; .walkEnd() = arrival time',
     '  .lookAt(objectOr[x, y, z], { at, until }) — head turns to a kit object or world point',
     '  point raises the right arm along the way the body faces (+z): to point at a thing, turn the whole character toward it (rotation.y = Math.atan2(dx, dz)), three-quarter to the camera; lookAt turns only the head',

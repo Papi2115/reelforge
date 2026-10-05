@@ -1206,12 +1206,12 @@ vocabulary: `reelforge kit-docs characters`.
 
 ![mascot](kit-catalog/mascot.png)
 
-A mascot of the pack (~2 units tall, faces +z): bulb (channel mascot, glows on "eureka"), screen, fox, bean; 8 poses, 7 expressions with blinking.
+A mascot of the pack (~2 units tall, faces +z): bulb (channel mascot, glows on "eureka"), screen, fox, bean; 8 poses, 11 expressions with blinking, 8 reactions.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | "bulb" \| "screen" \| "fox" \| "bean" |  | Which mascot |
-| `expression` | "auto" \| "neutral" \| "joy" \| "curious" \| "surprised" \| "thinking" \| "sceptical" \| "alarm" | `"auto"` | Face from t = 0 (auto = what the pose suggests); later: .expression(name, { at }) |
+| `expression` | "auto" \| "neutral" \| "joy" \| "curious" \| "surprised" \| "thinking" \| "sceptical" \| "alarm" \| "brow-raise" \| "jaw-drop" \| "wink" \| "smug" | `"auto"` | Face from t = 0 (auto = what the pose suggests); later: .expression(name, { at }) |
 | `light` | boolean | `true` | Bulb: a point light while it glows |
 | `pose` | "calm" \| "wave" \| "think" \| "point" \| "shrug" \| "joy" \| "walk" \| "eureka" | `"calm"` | Pose from t = 0; later changes: .pose(name, { at }) |
 | `energy` | number (0..1) |  | Personality 0..1: anticipation, overshoot, head tilts (default: mascots 1, cast 0.45, mannequin 0.25) |
@@ -1232,7 +1232,8 @@ Methods:
 
 - `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
 - `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
-- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm, brow-raise, jaw-drop, wink, smug)
+- `reaction(name, { at, toward })`: plays a short reaction on top of the pose (surprise, double-take, glance-camera, brow-raise, jaw-drop, facepalm-lite, shrug-grin, nod-told-you); mascots react in their own anatomy
 - `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
 - `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
 - `walkEnd()`: time the last queued walk arrives
@@ -1267,7 +1268,8 @@ Methods:
 
 - `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
 - `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
-- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm, brow-raise, jaw-drop, wink, smug)
+- `reaction(name, { at, toward })`: plays a short reaction on top of the pose (surprise, double-take, glance-camera, brow-raise, jaw-drop, facepalm-lite, shrug-grin, nod-told-you); mascots react in their own anatomy
 - `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
 - `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
 - `walkEnd()`: time the last queued walk arrives
@@ -1299,7 +1301,8 @@ Methods:
 
 - `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
 - `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
-- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm, brow-raise, jaw-drop, wink, smug)
+- `reaction(name, { at, toward })`: plays a short reaction on top of the pose (surprise, double-take, glance-camera, brow-raise, jaw-drop, facepalm-lite, shrug-grin, nod-told-you); mascots react in their own anatomy
 - `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
 - `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
 - `walkEnd()`: time the last queued walk arrives
@@ -1332,7 +1335,8 @@ Methods:
 
 - `update(t)`: poses everything at t from the cues (call every frame; cues below: build() only)
 - `pose(name, { at })`: cues a pose (calm, wave, think, point, shrug, joy, walk, eureka) at scene time or ctx.anchor(...); blends 0.35 s
-- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm)
+- `expression(name, { at })`: mascots: cues a face (auto, neutral, joy, curious, surprised, thinking, sceptical, alarm, brow-raise, jaw-drop, wink, smug)
+- `reaction(name, { at, toward })`: plays a short reaction on top of the pose (surprise, double-take, glance-camera, brow-raise, jaw-drop, facepalm-lite, shrug-grin, nod-told-you); mascots react in their own anatomy
 - `walkTo([x, y, z], { at, speed = 0.8, then = "calm" })`: walks in a straight line (parent space), turning into the walk and back; queues after the previous walk
 - `lookAt(target, { at, until })`: turns the head to a kit object or world [x, y, z]
 - `walkEnd()`: time the last queued walk arrives

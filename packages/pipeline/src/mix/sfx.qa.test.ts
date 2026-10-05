@@ -116,6 +116,8 @@ const CENTROID_HZ: Readonly<Record<SfxRecipe, readonly [number, number]>> = {
   'paper-pop': [350, 1100],
   'wood-tick': [600, 1600],
   'page-flip': [3000, 5000],
+  // wow transitions
+  'glass-crack': [2500, 7000],
 };
 
 /** Minimum power share above 150 Hz (phone speakers); impacts are allowed a heavier sub. */

@@ -6,7 +6,8 @@
  * tempo per segment (`tension-tempo`, tension.ts, PLAN.md#12.22); with the project's characters
  * the mascot and role checks (characters.ts, PLAN.md#12.20); with a shots-per-minute range
  * (ADR-027) shot lengths, the pattern window and the tempo targets follow the range, plus the
- * range and sentence-boundary checks (shot-range.ts).
+ * range and sentence-boundary checks (shot-range.ts); the wow-transition budget and order rules
+ * (wow.ts, ADR-028) apply wherever a wow style is named.
  */
 import {
   DEFAULT_LOOK_ID,
@@ -40,6 +41,7 @@ import {
 import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from './rhythm.js';
 import { checkShotRange } from './shot-range.js';
 import { checkTensionTempo } from './tension.js';
+import { checkWowTransitions } from './wow.js';
 
 /** The storyboard file plus the prompt's optional top-level `missingProps` list. */
 export const storyboardOutputSchema = storyboardFileSchema.extend({
@@ -87,6 +89,8 @@ export const DEFAULT_STORYBOARD_RULES: StoryboardRules = {
 
 const EPSILON = 1e-3;
 const fmt = (seconds: number): string => seconds.toFixed(3);
+/** Shortest mascot reactor shot (a reaction micro-beat), seconds. */
+export const REACTOR_MIN_SHOT_S = 1.2;
 
 function timelineIssues(
   shots: readonly StoryboardShot[],
@@ -118,21 +122,27 @@ function timelineIssues(
     }
     const length = shot.t1 - shot.t0;
     const where = `shots[${String(index)}]`;
-    if (length < rules.minShotS || length > rules.maxShotS) {
+    // A mascot reaction may be a micro-beat as short as REACTOR_MIN_SHOT_S (2.3.7).
+    const reactor = shot.mascot?.role === 'reactor';
+    const minShotS = reactor ? Math.min(rules.minShotS, REACTOR_MIN_SHOT_S) : rules.minShotS;
+    const typicalMinS = reactor
+      ? Math.min(rules.typicalMinShotS, REACTOR_MIN_SHOT_S)
+      : rules.typicalMinShotS;
+    if (length < minShotS || length > rules.maxShotS) {
       issues.push(
         issue(
           'error',
           'shot-length',
-          `${shot.id} lasts ${length.toFixed(2)} s (allowed ${String(rules.minShotS)}–${String(rules.maxShotS)} s)`,
+          `${shot.id} lasts ${length.toFixed(2)} s (allowed ${String(minShotS)}–${String(rules.maxShotS)} s)`,
           where,
         ),
       );
-    } else if (length < rules.typicalMinShotS || length > rules.typicalMaxShotS) {
+    } else if (length < typicalMinS || length > rules.typicalMaxShotS) {
       issues.push(
         issue(
           'warning',
           'shot-length',
-          `${shot.id} lasts ${length.toFixed(2)} s (typical ${String(rules.typicalMinShotS)}–${String(rules.typicalMaxShotS)} s)`,
+          `${shot.id} lasts ${length.toFixed(2)} s (typical ${String(typicalMinS)}–${String(rules.typicalMaxShotS)} s)`,
           where,
         ),
       );
@@ -392,6 +402,7 @@ export function checkStoryboard(
     ...treatmentIssues(shots, rules, ranged),
     ...identityIssues(shots),
     ...transitionIssues(shots, rules),
+    ...checkWowTransitions(shots),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),
     ...checkAssetNeeds(shots, options.assetNeeds),

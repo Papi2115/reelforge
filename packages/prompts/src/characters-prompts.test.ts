@@ -150,6 +150,46 @@ describe('a chosen mascot', () => {
     expect(text).not.toMatch(TAG);
   });
 
+  it('plans wow-moment reactions in the storyboard (mascot projects only)', () => {
+    const text = rendered('storyboard', { ...STYLE, ...storyboardCharacterVars(FOX) });
+    expect(text).toContain('- Wow moments: where the narration lands a surprising fact');
+    expect(text).toContain('a short shot of its own (1.2–2.5 s, cut on word starts');
+    expect(text).toContain(
+      'one of `surprise`, `double-take`, `glance-camera`, `brow-raise`, `jaw-drop`, `facepalm-lite`, `shrug-grin`, `nod-told-you`',
+    );
+    const pack = rendered('storyboard', { ...STYLE, ...storyboardCharacterVars(PACK) });
+    expect(pack).not.toContain('Wow moments');
+  });
+
+  it('times a reactor shot to the key word in the scene build and checks it in the critic', () => {
+    const reactorShot: StoryboardShot = {
+      ...SHOT,
+      mascot: { role: 'reactor', action: 'jaw-drop at the 4 MB number' },
+    };
+    const vars = sceneCharacterVars(FOX, reactorShot);
+    expect(vars).toMatchObject({ mascotReactor: true });
+    const text = rendered('scene-build', { ...SCENE_VARS, shotJson: reactorShot, ...vars });
+    expect(text).toContain('Reaction beat (the mascot is the reactor)');
+    expect(text).toContain("`mascot.reaction('jaw-drop', { at: ctx.anchor('4 MB').t - 0.15 })`");
+    expect(text).toContain('never `noir` or darkness');
+    expect(text).toContain(
+      'expressions: auto, neutral, joy, curious, surprised, thinking, sceptical, alarm, brow-raise, jaw-drop, wink, smug',
+    );
+    expect(text).not.toMatch(TAG);
+    const pointer = rendered('scene-build', {
+      ...SCENE_VARS,
+      shotJson: MASCOT_SHOT,
+      ...sceneCharacterVars(FOX, MASCOT_SHOT),
+    });
+    expect(pointer).not.toContain('Reaction beat');
+    const critic = rendered('critic', { ...CRITIC_VARS, ...criticCharacterVars(FOX, reactorShot) });
+    expect(critic).toContain(
+      'Reaction check: the mascot reacts here (jaw-drop at the 4 MB number)',
+    );
+    expect(critic).toContain('`mascot:`.\n\nReturn ONLY JSON');
+    expect(critic).not.toMatch(TAG);
+  });
+
   it('asks the critic to check the mascot of a mascot shot only', () => {
     expect(criticCharacterVars(FOX, SHOT)).toEqual({});
     const text = rendered('critic', { ...CRITIC_VARS, ...criticCharacterVars(FOX, MASCOT_SHOT) });
@@ -159,6 +199,7 @@ describe('a chosen mascot', () => {
     expect(text).toContain('→ `off-intent` with a note starting `mascot:`');
     expect(text).toContain('too small to recognise at 640x360 → `clipped`');
     expect(text).toContain('`mascot:`.\n\nReturn ONLY JSON');
+    expect(text).not.toContain('Reaction check');
     expect(text).not.toMatch(TAG);
   });
 });

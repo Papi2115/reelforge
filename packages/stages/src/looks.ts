@@ -9,6 +9,8 @@ import {
   describePairs,
   shotLook,
   TRANSITION_STYLE_LIST,
+  WOW_STYLE_LIST,
+  wowBudget,
   type LookMode,
   type StoryboardShot,
   type TransitionStyle,
@@ -26,18 +28,30 @@ export function transitionLine(style: TransitionStyle): string {
   return `- \`${style.id}\` (${style.type}, ${String(min)}–${String(max)} s${pairs}): ${style.description}.`;
 }
 
-/** Transition styles usable with these looks: a special needs a pair of available looks. */
+/** One line per wow transition (ADR-028): duration range, whether it uses `focus`, content. */
+export function wowTransitionLine(style: TransitionStyle): string {
+  const { min, max } = style.duration;
+  const focus = style.wow?.focus === true ? ', set focus' : '';
+  return `- \`${style.id}\` (${style.type}, ${String(min)}–${String(max)} s${focus}): ${style.description}. Fits: ${(style.wow?.content ?? []).join(', ')}.`;
+}
+
+/**
+ * Transition styles usable with these looks (wow transitions are listed on their own): a special
+ * needs a pair of available looks.
+ */
 export function availableTransitionStyles(looks: readonly Look[]): TransitionStyle[] {
   const ids = new Set(looks.map((look) => look.id));
   const usable = (pattern: string): boolean => pattern === '*' || ids.has(pattern);
-  return TRANSITION_STYLE_LIST.filter((style) =>
-    style.pairs.some((pair) => usable(pair.from) && usable(pair.to)),
+  return TRANSITION_STYLE_LIST.filter(
+    (style) =>
+      style.wow === undefined && style.pairs.some((pair) => usable(pair.from) && usable(pair.to)),
   );
 }
 
 /**
- * Storyboard prompt variables: none in `voxel-only`; transition styles once 2+ looks exist, with
- * the film's budget of non-cut transitions when its length (`durationS`) is known.
+ * Storyboard prompt variables: none in `voxel-only`; transition styles and the wow transitions
+ * (ADR-028) once 2+ looks exist, with the film's budget of non-cut and wow transitions when its
+ * length (`durationS`) is known.
  */
 export function storyboardLookVars(
   mode: LookMode,
@@ -52,6 +66,7 @@ export function storyboardLookVars(
           maxTransitions: String(
             maxNonCutTransitions(durationS, DEFAULT_LOOK_RHYTHM_RULES.transitionEveryS),
           ),
+          wowBudget: String(wowBudget(durationS)),
         };
   return {
     looks: looks.map(lookLine).join('\n'),
@@ -59,6 +74,7 @@ export function storyboardLookVars(
       ? {
           multiLook: true,
           transitions: availableTransitionStyles(looks).map(transitionLine).join('\n'),
+          wowTransitions: WOW_STYLE_LIST.map(wowTransitionLine).join('\n'),
           ...budget,
         }
       : { singleLook: true }),

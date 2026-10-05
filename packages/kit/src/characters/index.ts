@@ -108,6 +108,7 @@ export { EXPRESSIONS, POSES, type Expression, type PoseName } from './clips.js';
 export { CAST_DEFINITIONS, castDefinitions } from './definitions.js';
 export { castListing, charactersDocs, type CastListingEntry } from './docs.js';
 export { MASCOTS, type MascotId } from './mascots.js';
+export { REACTIONS, type ReactionName } from './reactions.js';
 export {
   checkProjectCast,
   loadProjectCast,

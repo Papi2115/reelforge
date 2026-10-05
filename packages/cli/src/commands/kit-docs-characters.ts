@@ -12,7 +12,7 @@ const ALIASES = new Set(['characters', 'cast', 'mascot', 'person', 'mannequin', 
 
 /** One index line for the pack. */
 export const CHARACTERS_INDEX_LINE =
-  'kit.cast (characters: mascots bulb/screen/fox/bean, 10 cast members, mannequin, role specs for new professions; poses, expressions, walkTo, lookAt): reelforge kit-docs characters';
+  'kit.cast (characters: mascots bulb/screen/fox/bean, 10 cast members, mannequin, role specs for new professions; poses, expressions, reactions, walkTo, lookAt): reelforge kit-docs characters';
 
 /** How a scene calls the character `id` names (a mascot, a cast member or a project role). */
 function characterCall(id: string, cast: ProjectCast | undefined): string | undefined {

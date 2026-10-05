@@ -3,9 +3,10 @@
  * p = 0.5 between two synthetic shots (stripes -> hello) as goldens `transition-kind-<style>`,
  * each palette-only (vibe guard) and byte-equal to `compositeTransition` of the two shots' own
  * frames, i.e. the engine composites exactly the pure function. Plain transitions (no style)
- * keep their goldens in engine.test.ts.
+ * keep their goldens in engine.test.ts; the wow transitions theirs in transition-wow.test.ts.
  */
 import {
+  isWowStyle,
   TRANSITION_STYLE_IDS,
   TRANSITION_STYLES,
   type ManifestShot,
@@ -87,7 +88,7 @@ describe('transition kit in the engine (SwiftShader)', () => {
     const seed = shotSeed(manifest([]).seed, 'transition:b');
     const params = { palette: paletteNumbers(STYLE.swatches) };
     await withPage(async (page) => {
-      for (const style of TRANSITION_STYLE_IDS) {
+      for (const style of TRANSITION_STYLE_IDS.filter((id) => !isWowStyle(id))) {
         await page.load(styledManifest(style));
         const data = new Uint8Array(await page.frameAt(MID));
         const expected = compositeTransition(

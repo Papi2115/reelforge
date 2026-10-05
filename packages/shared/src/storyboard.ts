@@ -49,10 +49,20 @@ export const transitionStyleIdSchema = z
   .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, 'transition style must be kebab case, e.g. pixel-wipe');
 
 /**
+ * Subject point of a wow transition (ADR-028): what it enters, breaks at or dives into, as a share
+ * of the frame from the left / top edge (0..1). Absent = the centre.
+ */
+export const transitionFocusSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+});
+export type TransitionFocus = z.infer<typeof transitionFocusSchema>;
+
+/**
  * Transition from the previous shot into this one. It starts at this shot's t0 and lasts
  * `duration` seconds; meanwhile the previous shot keeps rendering past its own t1. `style`
  * (optional, 2.0) selects a pixel transition of the transition kit; without it the plain `type`
- * renders exactly as before.
+ * renders exactly as before. `focus` (optional, 2.3.7) is the subject point of a wow style.
  */
 export const transitionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('cut') }),
@@ -60,6 +70,7 @@ export const transitionSchema = z.discriminatedUnion('type', [
     type: z.enum(['crossfade', 'glitch', 'wipe']),
     duration: z.number().positive(),
     style: transitionStyleIdSchema.optional(),
+    focus: transitionFocusSchema.optional(),
   }),
 ]);
 export type Transition = z.infer<typeof transitionSchema>;
@@ -197,6 +208,16 @@ export const storyboardShotSchema = z
      * look, same subject). Optional; only lean storyboards write it.
      */
     continues: z.boolean().optional(),
+    /**
+     * The shot belongs to the opening hook (ADR-028): an `enter-*` wow transition may open it even
+     * in the first 6 s. Optional.
+     */
+    hook: z.boolean().optional(),
+    /**
+     * The shot is a step of a scale sequence (ADR-028: flat -> street -> city -> globe): `dive-in`
+     * / `dive-out` may chain over consecutive shots marked so. Optional.
+     */
+    scaleSequence: z.boolean().optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

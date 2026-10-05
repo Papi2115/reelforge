@@ -1,7 +1,7 @@
 /**
  * The character object of the pack (ADR-024): wraps a built rig (mascot, cast member, role,
- * mannequin) as a kit object whose `update(t)` evaluates its cues (pose, expression, walkTo,
- * lookAt) as a pure function of t, drives the face, blink and secondary motion and moves the
+ * mannequin) as a kit object whose `update(t)` evaluates its cues (pose, expression, reaction,
+ * walkTo, lookAt) as a pure function of t, drives the face, blink and secondary motion and moves the
  * anchors (head, face, hand, handL, handR, prop, feet) with the pose.
  */
 import type * as THREE from 'three';
@@ -21,8 +21,12 @@ import {
 } from './clips.js';
 import { blinkAt } from './expressions.js';
 import { stringHash } from './math.js';
+import { mascotFx } from './reaction-fx.js';
+import { applyReactions, isReaction, REACTIONS, type ReactionCue } from './reactions.js';
 import { applyPose, pointIn } from './rig.js';
+import { didYouMean } from './suggest.js';
 import {
+  cueIndex,
   evaluatePose,
   expressionAt,
   hipVelocity,
@@ -52,9 +56,16 @@ export interface LookOptions extends CueOptions {
   readonly until?: unknown;
 }
 
+export interface ReactionOptions extends CueOptions {
+  /** glance-camera: the camera position [x, y, z] or a kit object (default: out along +z). */
+  readonly toward?: unknown;
+}
+
 export interface CharacterMethods {
   pose(name: string, options?: CueOptions): CharacterObject;
   expression(name: string, options?: CueOptions): CharacterObject;
+  /** A short reaction on top of the pose (reactions.ts); the face for mascots. */
+  reaction(name: string, options?: ReactionOptions): CharacterObject;
   walkTo(point: unknown, options?: WalkOptions): CharacterObject;
   lookAt(target: unknown, options?: LookOptions): CharacterObject;
   /** Seconds when the last queued walk arrives (0 without walks). */
@@ -131,6 +142,7 @@ export function createCharacter(
   let expressions: ExpressionCue[] = [{ at: 0, expression: settings.expression }];
   const walks: WalkSegment[] = [];
   let looks: LookCue[] = [];
+  let reactions: ReactionCue[] = [];
   const restFace = pointIn(three, object, rig.joints.neck, build.faceAt, rig.spec.unit);
   const u = rig.spec.unit;
   const toVec = (point: THREE.Vector3): Vec3 => [point.x, point.y, point.z];
@@ -138,59 +150,88 @@ export function createCharacter(
     if (node) object.setAnchor(name, toVec(pointIn(three, object, node, point, u)));
   };
 
+  /** Head yaw and pitch that face a world point / kit object (default: out along world +z). */
+  const aim = (target: unknown, bodyYaw: number, spineYaw: number) => {
+    object.updateWorldMatrix(true, false);
+    let world: THREE.Vector3;
+    if (target === undefined) {
+      world = object.localToWorld(restFace.clone()).add(new three.Vector3(0, 0, 50));
+    } else {
+      const point = pointArg(three, 'lookAt', target);
+      if (point instanceof three.Vector3) {
+        world = point.clone();
+      } else {
+        point.updateWorldMatrix(true, false);
+        world = point.localToWorld(point.anchor('center'));
+      }
+    }
+    const d = object.worldToLocal(world).sub(restFace);
+    const turn = Math.atan2(d.x, d.z) - bodyYaw - spineYaw;
+    return {
+      yaw: Math.max(-1.2, Math.min(1.2, Math.atan2(Math.sin(turn), Math.cos(turn)))),
+      pitch: Math.max(-0.6, Math.min(0.6, Math.atan2(d.y, Math.hypot(d.x, d.z)))),
+    };
+  };
+
   const lookOffset = (
     t: number,
     bodyYaw: number,
     spineYaw: number,
+    glance: { readonly weight: number; readonly toward: unknown },
   ): { yaw: number; pitch: number } => {
     let yaw = 0;
     let pitch = 0;
     for (const cue of looks) {
       const weight = lookWeight(cue, t);
       if (weight <= 0) continue;
-      const target = pointArg(three, 'lookAt', cue.target);
-      let local: THREE.Vector3;
-      if (target instanceof three.Vector3) {
-        local = target.clone();
-      } else {
-        target.updateWorldMatrix(true, false);
-        local = target.localToWorld(target.anchor('center'));
-      }
-      object.updateWorldMatrix(true, false);
-      object.worldToLocal(local);
-      const d = local.sub(restFace);
-      const turn = Math.atan2(d.x, d.z) - bodyYaw - spineYaw;
-      yaw += weight * Math.max(-1.2, Math.min(1.2, Math.atan2(Math.sin(turn), Math.cos(turn))));
-      pitch += weight * Math.max(-0.6, Math.min(0.6, Math.atan2(d.y, Math.hypot(d.x, d.z))));
+      const head = aim(cue.target, bodyYaw, spineYaw);
+      yaw += weight * head.yaw;
+      pitch += weight * head.pitch;
     }
-    return { yaw, pitch };
+    if (glance.weight <= 0) return { yaw, pitch };
+    // A glance at the camera wins over a look-at while it lasts.
+    const head = aim(glance.toward, bodyYaw, spineYaw);
+    const k = glance.weight;
+    return { yaw: yaw + (head.yaw - yaw) * k, pitch: pitch + (head.pitch - pitch) * k };
   };
 
   const pose = (t: number): void => {
     const frame = evaluatePose(poses, t, personality);
+    const reacted = applyReactions(frame.pose, reactions, t, personality);
     const walk = walkState(walks, t, object.rotation.y);
     if (walk.position) object.position.set(walk.position[0], object.position.y, walk.position[1]);
     rig.body.rotation.y = walk.yaw;
+    const glance = { weight: reacted.glance, toward: reacted.glanceCue?.toward };
     const look =
-      looks.length > 0
-        ? lookOffset(t, walk.yaw, frame.pose.spineY + frame.pose.pelvisY)
+      looks.length > 0 || glance.weight > 0
+        ? lookOffset(t, walk.yaw, reacted.pose.spineY + reacted.pose.pelvisY, glance)
         : { yaw: 0, pitch: 0 };
     const posed = {
-      ...frame.pose,
-      headY: frame.pose.headY + look.yaw,
-      headX: frame.pose.headX - look.pitch,
+      ...reacted.pose,
+      headY: reacted.pose.headY + look.yaw,
+      headX: reacted.pose.headX - look.pitch,
     };
     applyPose(rig, posed);
     const global = t + personality.phase;
-    const blink = blinkAt(global, personality.phase);
-    const expression = expressionAt(expressions, t, frame.expression);
-    build.face?.update(expression, global, blink);
+    const blink = Math.min(
+      blinkAt(global, personality.phase),
+      1 - 0.9 * Math.min(1, reacted.channels.blink),
+    );
+    // A reaction's face wins over expression cues set before it started (later cues win).
+    const cued = expressions[cueIndex(expressions, t)];
+    const expression =
+      reacted.expression !== undefined && reacted.expressionAt >= (cued?.at ?? -Infinity)
+        ? reacted.expression
+        : expressionAt(expressions, t, frame.expression);
+    const fx = mascotFx(build.id, reacted.channels);
+    build.face?.update(expression, global, blink, fx.face);
     if (build.blinkEyes) build.blinkEyes.scale.y = blink;
     build.secondary?.({
       pose: posed,
       time: global,
-      velocity: hipVelocity(poses, t, personality, posed.hipY),
+      velocity: hipVelocity(poses, t, personality, frame.pose.hipY) + reacted.velocity,
       expression,
+      fx,
     });
     const shin = rig.spec.leg - rig.spec.thigh;
     anchor('head', rig.joints.neck, build.headTop);
@@ -292,6 +333,23 @@ export function createCharacter(
       const until =
         options.until === undefined ? undefined : timeArg(call('lookAt'), options.until, 0);
       looks = insertCue(looks, { at, until, target });
+      return character;
+    },
+    reaction(name, options = {}) {
+      cueing('reaction()');
+      if (!isReaction(name)) {
+        const face = isExpression(name) ? `; "${name}" is a face: .expression('${name}')` : '';
+        throw new KitError(
+          'invalid-params',
+          `${call('reaction')}: unknown reaction "${name}"${didYouMean(name, REACTIONS)} (${REACTIONS.join(', ')})${face}`,
+        );
+      }
+      if (options.toward !== undefined) pointArg(three, call('reaction'), options.toward);
+      reactions = insertCue(reactions, {
+        at: timeArg(call('reaction'), options.at, 0),
+        name,
+        toward: options.toward,
+      });
       return character;
     },
     walkEnd: () => walks.at(-1)?.end ?? 0,

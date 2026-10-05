@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { CAST, EXPRESSIONS, MASCOTS, POSES } from '@reelforge/kit';
-import { MASCOT_EXPRESSIONS, MASCOT_POSES } from '@reelforge/prompts';
+import { CAST, EXPRESSIONS, MASCOTS, POSES, REACTIONS } from '@reelforge/kit';
+import { MASCOT_EXPRESSIONS, MASCOT_POSES, MASCOT_REACTIONS } from '@reelforge/prompts';
 import { CAST_PERSON_IDS, MASCOT_IDS } from '@reelforge/shared';
 import { afterAll, describe, expect, it } from 'vitest';
 import { builtRoleIds, loadCharacterSettings, storyboardCharacterOptions } from './characters.js';
@@ -19,6 +19,7 @@ describe('characters plumbing (PLAN.md#12.20)', () => {
     expect([...MASCOT_POSES]).toEqual([...POSES]);
     // `auto` (what the pose suggests) is the default of the expression cue.
     expect([...MASCOT_EXPRESSIONS]).toEqual(['auto', ...EXPRESSIONS]);
+    expect([...MASCOT_REACTIONS]).toEqual([...REACTIONS]);
   });
 
   it('lists the roles built for the project', async () => {

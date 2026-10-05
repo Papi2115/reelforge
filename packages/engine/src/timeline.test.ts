@@ -32,6 +32,24 @@ describe('shotIndexAt', () => {
 });
 
 describe('sampleTimeline', () => {
+  it('passes a wow style and its focus point to the transition sample', () => {
+    const styled = createTimeline([
+      { id: 'a', t0: 0, t1: 2, transitionIn: { type: 'cut' } },
+      {
+        id: 'b',
+        t0: 2,
+        t1: 4,
+        transitionIn: { type: 'wipe', duration: 1, style: 'enter-lens', focus: { x: 0.2, y: 0.7 } },
+      },
+    ]);
+    expect(sampleTimeline(styled, 2.5).transition).toMatchObject({
+      style: 'enter-lens',
+      focus: { x: 0.2, y: 0.7 },
+      progress: 0.5,
+    });
+    expect(sampleTimeline(timeline, 2.5).transition).not.toHaveProperty('focus');
+  });
+
   it('maps global to local time without a transition', () => {
     expect(sampleTimeline(timeline, 1.5)).toEqual({ current: { index: 0, localTime: 1.5 } });
     expect(sampleTimeline(timeline, 5.25)).toEqual({ current: { index: 2, localTime: 0.25 } });

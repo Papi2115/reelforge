@@ -1,14 +1,24 @@
 /**
  * Mascot expressions (ADR-024), 1:1 from the concept page: voxel faces (eye shape and size, brow
  * raise and tilt, mouth, pupil look) and the 12x8 pixel bitmaps of Screen's display, plus the
- * seeded blink schedule (a pure function of time: same t and seed, same lids).
+ * seeded blink schedule (a pure function of time: same t and seed, same lids). The reaction faces
+ * of 2.3.7 (brow-raise, jaw-drop, wink, smug) and the reaction modifiers (bigger eyes, squint,
+ * Screen's glitch and O_O) follow the same rules.
  */
 import type { Expression } from './clips.js';
 import { bump, hash } from './math.js';
 
 export type EyeShape = 'open' | 'happy' | 'wide' | 'half';
-export type MouthShape = 'smile' | 'grin' | 'o' | 'flat' | 'small' | 'side';
-export const MOUTH_SHAPES: readonly MouthShape[] = ['smile', 'grin', 'o', 'flat', 'small', 'side'];
+export type MouthShape = 'smile' | 'grin' | 'o' | 'flat' | 'small' | 'side' | 'gape';
+export const MOUTH_SHAPES: readonly MouthShape[] = [
+  'smile',
+  'grin',
+  'o',
+  'flat',
+  'small',
+  'side',
+  'gape',
+];
 
 /** Pairs are [right eye, left eye]. */
 export interface FaceExpression {
@@ -21,7 +31,23 @@ export interface FaceExpression {
   readonly mouth: MouthShape;
   /** Pupil (or eye) offset [x, y]. */
   readonly look: readonly [number, number];
+  /** The eye (0 right, 1 left) drawn closed as an arc: a wink. */
+  readonly wink?: 0 | 1;
 }
+
+/** Per-frame face modifiers of a reaction (reaction-fx.ts); NO_FACE_FX = none. */
+export interface FaceFx {
+  /** Extra eye size (0.3 = 30 % bigger). */
+  readonly eyeBoost: number;
+  /** Lids lowered 0..1. */
+  readonly squint: number;
+  /** Screen: display glitch 0..1. */
+  readonly glitch: number;
+  /** Screen: shows O_O instead of the expression. */
+  readonly oo: boolean;
+}
+
+export const NO_FACE_FX: FaceFx = { eyeBoost: 0, squint: 0, glitch: 0, oo: false };
 
 export const FACE_EXPRESSIONS: Readonly<Record<Expression, FaceExpression>> = {
   neutral: {
@@ -79,6 +105,39 @@ export const FACE_EXPRESSIONS: Readonly<Record<Expression, FaceExpression>> = {
     tilt: [0.3, 0.3],
     mouth: 'o',
     look: [0, 0],
+  },
+  'brow-raise': {
+    eye: 'open',
+    size: [0.9, 1.15],
+    brow: [-0.5, 2.3],
+    tilt: [-0.25, 0.3],
+    mouth: 'side',
+    look: [0.3, 0.1],
+  },
+  'jaw-drop': {
+    eye: 'wide',
+    size: [1.15, 1.15],
+    brow: [2.1, 2.1],
+    tilt: [0.3, 0.3],
+    mouth: 'gape',
+    look: [0, 0],
+  },
+  wink: {
+    eye: 'open',
+    size: [1, 1],
+    brow: [0.7, -0.3],
+    tilt: [0.1, -0.25],
+    mouth: 'grin',
+    look: [0, 0],
+    wink: 1,
+  },
+  smug: {
+    eye: 'half',
+    size: [1, 1],
+    brow: [0.6, 0.6],
+    tilt: [-0.3, -0.3],
+    mouth: 'side',
+    look: [-0.4, 0],
   },
 };
 
@@ -140,6 +199,30 @@ export const SCREEN_FACES: Readonly<Record<Expression, ScreenFace>> = {
     noBlink: true,
     alarm: true,
   },
+  'brow-raise': {
+    eyes: ['........###.', '.###........', '..##....##..', '..##....##..', '............'],
+    mouth: ['.........#..', '....#####...', '............'],
+  },
+  'jaw-drop': {
+    eyes: ['.###....###.', '.#.#....#.#.', '.#.#....#.#.', '.###....###.', '............'],
+    mouth: ['....####....', '....#..#....', '....####....'],
+  },
+  wink: {
+    eyes: ['............', '........##..', '..##...#..#.', '..##........', '............'],
+    mouth: ['..#......#..', '...######...', '............'],
+    noBlink: true,
+  },
+  smug: {
+    eyes: ['............', '............', '.####..####.', '..##....##..', '............'],
+    mouth: ['.........#..', '.....####...', '............'],
+  },
+};
+
+/** Screen's startled face after a reaction's glitch: literally O_O. */
+export const SCREEN_OO: ScreenFace = {
+  eyes: ['.####..####.', '.#..#..#..#.', '.#..#..#..#.', '.####..####.', '.....##.....'],
+  mouth: ['............', '............', '............'],
+  noBlink: true,
 };
 
 export const SCREEN_BLINK_EYES: readonly string[] = [
@@ -156,9 +239,38 @@ export const SCREEN_ROWS = 8;
 /** Pixel colour index of Screen's display: 0 background, 1 lit, 2 alarm, 3 alarm flash. */
 export type ScreenPixel = 0 | 1 | 2 | 3;
 
-/** The 12x8 display (row-major, top row first) for an expression at global time t. */
-export function screenPixels(expression: Expression, t: number, blink: number): ScreenPixel[] {
-  const face = SCREEN_FACES[expression];
+/**
+ * A glitched display (a reaction's startle): rows shift sideways and pixels flip, a new pattern
+ * every 1/24 s, seeded by the frame index (pure in t). `level` 0..1.
+ */
+function glitched(pixels: ScreenPixel[], t: number, level: number): ScreenPixel[] {
+  const frame = Math.floor(t * 24);
+  const result: ScreenPixel[] = [];
+  for (let y = 0; y < SCREEN_ROWS; y += 1) {
+    const roll = hash(frame * 7.3 + y * 1.9);
+    const shift = roll < level * 0.7 ? Math.round((hash(frame + y * 3.7) - 0.5) * 6) : 0;
+    for (let x = 0; x < SCREEN_COLUMNS; x += 1) {
+      const from = (((x - shift) % SCREEN_COLUMNS) + SCREEN_COLUMNS) % SCREEN_COLUMNS;
+      const flip = hash(frame * 13.1 + y * 5.3 + x * 0.71) < level * 0.18;
+      const pixel = pixels[y * SCREEN_COLUMNS + from] ?? 0;
+      result.push(flip ? (pixel === 0 ? 1 : 0) : pixel);
+    }
+  }
+  return result;
+}
+
+/**
+ * The 12x8 display (row-major, top row first) for an expression at global time t, with a
+ * reaction's glitch and O_O face (`fx`).
+ */
+export function screenPixels(
+  expression: Expression,
+  t: number,
+  blink: number,
+  fx: FaceFx = NO_FACE_FX,
+): ScreenPixel[] {
+  // The jaw drop keeps its own gaping face (O eyes and an open mouth) instead of O_O.
+  const face = fx.oo && expression !== 'jaw-drop' ? SCREEN_OO : SCREEN_FACES[expression];
   const eyes = blink < 0.5 && face.noBlink !== true ? SCREEN_BLINK_EYES : face.eyes;
   const dots = face.dots === true ? Math.floor(t * 3) % 4 : 3;
   const flash = face.alarm === true && Math.floor(t * 4) % 2 === 1;
@@ -170,5 +282,5 @@ export function screenPixels(expression: Expression, t: number, blink: number): 
       pixels.push(on ? lit : 0);
     }
   });
-  return pixels;
+  return fx.glitch > 0.02 ? glitched(pixels, t, fx.glitch) : pixels;
 }

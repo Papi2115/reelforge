@@ -148,6 +148,12 @@ covers them like the voxel set.
 | `wood-tick` | ui | 0.3 | 0·tick, 1·tock, 2·double | Paper cut-out: a wooden tick of the stop-motion rig (counter steps, small marks, numbers). |
 | `page-flip` | texture | 0.6 | 0·flip, 1·riffle, 2·turn | Paper cut-out: a page turns (chapter, new scene, end card); riffle = many pages. |
 
+Wow transitions (ADR-028, any palette): the `shatter` and `cube-smash` transitions sound like glass.
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `glass-crack` | texture | 0.7 | 0·crack, 1·shatter, 2·tinkle | Glass cracks or shatters (the shatter / cube-smash transitions, a break-in, a crash); tinkle = only shards falling. |
+
 ## How cues are chosen (the sound director)
 
 The **Sound design mixed** stage writes a deterministic `cues.json` first (no Claude; same inputs ->

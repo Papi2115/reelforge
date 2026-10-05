@@ -6,6 +6,22 @@
  */
 import type { Roll } from './storyboard.js';
 
+/** Wow transitions (ADR-028): rare showpieces, chosen by content. */
+export const WOW_STYLE_IDS = [
+  'enter-lens',
+  'enter-binoculars',
+  'enter-window',
+  'enter-keyhole',
+  'paper-roll',
+  'cube-smash',
+  'sponge-wipe',
+  'page-turn',
+  'shatter',
+  'dive-in',
+  'dive-out',
+] as const;
+export type WowStyleId = (typeof WOW_STYLE_IDS)[number];
+
 export const TRANSITION_STYLE_IDS = [
   'pixel-wipe',
   'dither-dissolve',
@@ -17,8 +33,13 @@ export const TRANSITION_STYLE_IDS = [
   'tile-flip',
   'draw-over',
   'pixel-sort-melt',
+  ...WOW_STYLE_IDS,
 ] as const;
 export type TransitionStyleId = (typeof TRANSITION_STYLE_IDS)[number];
+
+/** Families of the wow transitions (ADR-028). */
+export const WOW_FAMILIES = ['enter', 'texture', 'dive'] as const;
+export type WowFamily = (typeof WOW_FAMILIES)[number];
 
 /** Look id or `*` (any look). */
 export type LookPattern = string;
@@ -49,6 +70,19 @@ export interface TransitionStyle {
   /** Look-change special: only where the look changes (validator error otherwise). */
   readonly lookChange: boolean;
   readonly vibe: readonly string[];
+  /**
+   * Wow transition (ADR-028): a rare showpiece chosen by content, with its own budget (about one
+   * per 40–90 s, never two in a row except a scale sequence). Absent on the other styles.
+   */
+  readonly wow?: WowInfo;
+}
+
+export interface WowInfo {
+  readonly family: WowFamily;
+  /** What the shot is about when this style fits (the storyboard chooses by content). */
+  readonly content: readonly string[];
+  /** The style uses `transitionIn.focus` (the subject point it enters, breaks at or dives into). */
+  readonly focus: boolean;
 }
 
 const ANY: readonly TransitionPair[] = [{ from: '*', to: '*' }];
@@ -57,6 +91,153 @@ const both = (look: string): readonly TransitionPair[] => [
   { from: '*', to: look },
   { from: look, to: '*' },
 ];
+
+interface WowStyleSpec {
+  readonly label: string;
+  readonly description: string;
+  readonly type: TransitionStyle['type'];
+  readonly duration: TransitionDuration;
+  readonly family: WowFamily;
+  readonly content: readonly string[];
+  readonly focus: boolean;
+  readonly vibe: readonly string[];
+}
+
+const wowStyle = (id: WowStyleId, spec: WowStyleSpec): TransitionStyle => ({
+  id,
+  label: spec.label,
+  description: spec.description,
+  type: spec.type,
+  duration: spec.duration,
+  pairs: ANY,
+  lookChange: false,
+  vibe: spec.vibe,
+  wow: { family: spec.family, content: spec.content, focus: spec.focus },
+});
+
+/** The wow transitions (ADR-028): any look pair, durations 0.5–1.4 s. */
+const WOW_STYLES: Readonly<Record<WowStyleId, TransitionStyle>> = {
+  'enter-lens': wowStyle('enter-lens', {
+    label: 'Enter: lens',
+    description:
+      'a magnifying glass pops onto the focus point, the subject resolves into the new shot inside it, then the lens rushes at the camera',
+    type: 'wipe',
+    duration: { min: 0.7, max: 1.3, default: 1 },
+    family: 'enter',
+    content: ['surveillance', 'search', 'detail', 'investigation', 'evidence', 'clue'],
+    focus: true,
+    vibe: ['focus', 'curious'],
+  }),
+  'enter-binoculars': wowStyle('enter-binoculars', {
+    label: 'Enter: binoculars',
+    description:
+      'a binocular mask closes on the focus point, the view zooms and refocuses on the new shot, then the mask opens',
+    type: 'wipe',
+    duration: { min: 0.8, max: 1.4, default: 1.1 },
+    family: 'enter',
+    content: ['watching', 'distance', 'spying', 'lookout', 'wildlife', 'horizon'],
+    focus: true,
+    vibe: ['tense', 'cinematic'],
+  }),
+  'enter-window': wowStyle('enter-window', {
+    label: 'Enter: window',
+    description:
+      'a framed window opens on the focus point with the new shot behind the glass, then the camera flies through it',
+    type: 'wipe',
+    duration: { min: 0.6, max: 1.2, default: 0.9 },
+    family: 'enter',
+    content: ['place', 'people', 'home', 'building', 'inside', 'neighbourhood'],
+    focus: true,
+    vibe: ['warm', 'cinematic'],
+  }),
+  'enter-keyhole': wowStyle('enter-keyhole', {
+    label: 'Enter: keyhole',
+    description:
+      'a dark door with a brass keyhole closes around the focus point, the new shot shows through the keyhole, then the camera pushes through',
+    type: 'wipe',
+    duration: { min: 0.8, max: 1.4, default: 1.1 },
+    family: 'enter',
+    content: ['secret', 'hidden', 'private', 'locked', 'conspiracy', 'mystery'],
+    focus: true,
+    vibe: ['mysterious', 'tense'],
+  }),
+  'paper-roll': wowStyle('paper-roll', {
+    label: 'Paper roll',
+    description:
+      'the picture rolls up like a sheet of paper from one edge, revealing the new shot under it',
+    type: 'wipe',
+    duration: { min: 0.6, max: 1.2, default: 0.9 },
+    family: 'texture',
+    content: ['documents', 'records', 'archive', 'scroll', 'map', 'contract'],
+    focus: false,
+    vibe: ['tactile', 'calm'],
+  }),
+  'cube-smash': wowStyle('cube-smash', {
+    label: 'Cube smash',
+    description:
+      'voxel cubes fly at the screen, cracks run along block seams and the picture falls apart in blocks onto the new shot',
+    type: 'glitch',
+    duration: { min: 0.8, max: 1.4, default: 1.1 },
+    family: 'texture',
+    content: ['games', 'digital', 'collapse', 'destruction', 'blocks', 'disruption'],
+    focus: true,
+    vibe: ['energetic', 'playful'],
+  }),
+  'sponge-wipe': wowStyle('sponge-wipe', {
+    label: 'Sponge wipe',
+    description:
+      'a kitchen sponge scrubs back and forth across the picture, wiping it off like a whiteboard and leaving wet streaks',
+    type: 'wipe',
+    duration: { min: 0.8, max: 1.4, default: 1.1 },
+    family: 'texture',
+    content: ['correction', 'explanation', 'whiteboard', 'cleaning', 'reset', 'mistake'],
+    focus: false,
+    vibe: ['playful', 'tactile'],
+  }),
+  'page-turn': wowStyle('page-turn', {
+    label: 'Page turn',
+    description: 'the picture peels off from a corner like a book page, its back shaded in dither',
+    type: 'wipe',
+    duration: { min: 0.6, max: 1.2, default: 0.9 },
+    family: 'texture',
+    content: ['history', 'books', 'chapter', 'story', 'diary', 'past'],
+    focus: false,
+    vibe: ['calm', 'storybook'],
+  }),
+  shatter: wowStyle('shatter', {
+    label: 'Shatter',
+    description:
+      'the picture cracks like glass from the focus point into a web of shards that drop away onto the new shot',
+    type: 'glitch',
+    duration: { min: 0.7, max: 1.3, default: 1 },
+    family: 'texture',
+    content: ['failure', 'crash', 'security', 'breach', 'shock', 'broken'],
+    focus: true,
+    vibe: ['dramatic', 'tense'],
+  }),
+  'dive-in': wowStyle('dive-in', {
+    label: 'Dive in',
+    description:
+      'the camera dives into the focus point up to 8x, the pixels grow, and the new shot settles out of the same point',
+    type: 'crossfade',
+    duration: { min: 0.6, max: 1.2, default: 0.9 },
+    family: 'dive',
+    content: ['scale', 'zoom', 'micro', 'inside', 'cells', 'atoms'],
+    focus: true,
+    vibe: ['epic', 'energetic'],
+  }),
+  'dive-out': wowStyle('dive-out', {
+    label: 'Dive out',
+    description:
+      'the camera pulls back: the picture shrinks into the focus point of the new shot, which sharpens around it',
+    type: 'crossfade',
+    duration: { min: 0.6, max: 1.2, default: 0.9 },
+    family: 'dive',
+    content: ['scale', 'space', 'zoom', 'city', 'planet', 'big picture'],
+    focus: true,
+    vibe: ['epic', 'calm'],
+  }),
+};
 
 export const TRANSITION_STYLES: Readonly<Record<TransitionStyleId, TransitionStyle>> = {
   'pixel-wipe': {
@@ -164,6 +345,7 @@ export const TRANSITION_STYLES: Readonly<Record<TransitionStyleId, TransitionSty
     lookChange: true,
     vibe: ['dreamy', 'atmosphere'],
   },
+  ...WOW_STYLES,
 };
 
 /** Every style in declaration order. */
@@ -177,6 +359,20 @@ export function isTransitionStyleId(id: string): id is TransitionStyleId {
 
 export function getTransitionStyle(id: string | undefined): TransitionStyle | undefined {
   return id !== undefined && isTransitionStyleId(id) ? TRANSITION_STYLES[id] : undefined;
+}
+
+/** The wow transitions in declaration order. */
+export const WOW_STYLE_LIST: readonly TransitionStyle[] = WOW_STYLE_IDS.map(
+  (id) => TRANSITION_STYLES[id],
+);
+
+/** The wow info of a style id (undefined: not a wow transition or unknown). */
+export function wowInfo(style: string | undefined): WowInfo | undefined {
+  return getTransitionStyle(style)?.wow;
+}
+
+export function isWowStyle(style: string | undefined): style is WowStyleId {
+  return wowInfo(style) !== undefined;
 }
 
 /** Rolls of the two shots a transition joins (absent = untagged). */
