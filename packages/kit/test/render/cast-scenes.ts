@@ -5,10 +5,21 @@
  * copies the page: navy sky, indigo floor with a grid, purple pedestals, the page's four lights.
  */
 import { EXAMPLE_ROLES } from '../../src/characters/cast-presets.js';
+import { REACTIONS } from '../../src/characters/reactions.js';
 import type { RenderManifest } from '../support/scenes.js';
 
 export const CAST_SETUPS = ['mascots', 'faces', 'cast', 'mannequin', 'roles', 'walk'] as const;
-export type CastSetup = (typeof CAST_SETUPS)[number];
+/** Mascot reactions (2.3.7): the golden trio, and every reaction one after another. */
+export const REACTION_SETUPS = ['reactions', 'reaction-tour'] as const;
+export type CastSetup = (typeof CAST_SETUPS)[number] | (typeof REACTION_SETUPS)[number];
+/** Reactions of the `reactions` setup and their cue times (each plays 2.5 s). */
+export const GOLDEN_REACTIONS = [
+  ['surprise', 0.5],
+  ['jaw-drop', 3],
+  ['nod-told-you', 5.5],
+] as const;
+/** The `reaction-tour` plays REACTIONS (kit order) every 2.5 s from 0.5 s. */
+export const TOUR_STEP = 2.5;
 
 const FILE = 'kit-cast.js';
 
@@ -21,6 +32,9 @@ const ROLES = __ROLES__;
 const MASCOTS = ['bulb', 'screen', 'fox', 'bean'];
 const CAST = ['scientist', 'doctor', 'engineer', 'finance', 'teacher', 'historian', 'kid', 'hacker', 'detective', 'astronaut'];
 const FACES = ['neutral', 'joy', 'curious', 'surprised', 'thinking', 'sceptical', 'alarm'];
+const GOLDEN_REACTIONS = __GOLDEN_REACTIONS__;
+const REACTIONS = __REACTIONS__;
+const TOUR_STEP = __TOUR_STEP__;
 
 function stage(ctx, rig) {
   const { three, scene, palette, kit } = ctx;
@@ -137,6 +151,25 @@ const SETUPS = {
     chef.pose('shrug', { at: 3 });
     return { people: [bulb, fox, engineer, chef], camera: { position: [0, 2.2, 7.4], target: [0, 0.9, -0.6], fov: 40 } };
   },
+  reactions(ctx) {
+    const people = MASCOTS.map((id, index) => {
+      const mascot = place(ctx, ctx.kit.cast.mascot(id, { seed: index + 1, light: false }), -3.3 + index * 2.2, 0, 0, 0.7);
+      for (const [name, at] of GOLDEN_REACTIONS) mascot.reaction(name, { at });
+      return mascot;
+    });
+    return { people, camera: { position: [0, 1.6, 7.6], target: [0, 1.05, 0], fov: 34 } };
+  },
+  'reaction-tour'(ctx) {
+    const camera = { position: [0, 1.6, 7.6], target: [0, 1.05, 0], fov: 34 };
+    const people = MASCOTS.map((id, index) => {
+      const mascot = place(ctx, ctx.kit.cast.mascot(id, { seed: index + 1, light: false }), -3.3 + index * 2.2, 0, 0, 0.7);
+      // Three-quarter to the camera, so glance-camera reads.
+      mascot.rotation.y = index < 2 ? 0.8 : -0.8;
+      REACTIONS.forEach((name, slot) => mascot.reaction(name, { at: 0.5 + slot * TOUR_STEP, toward: camera.position }));
+      return mascot;
+    });
+    return { people, camera };
+  },
 };
 
 export function build(ctx) {
@@ -152,10 +185,11 @@ export function update(t, state, ctx) {
 
 export function castSource(setup: CastSetup): string {
   const declaration = "const SETUP = 'mascots';";
-  return SOURCE.replace('__ROLES__', JSON.stringify(EXAMPLE_ROLES)).replace(
-    declaration,
-    `const SETUP = '${setup}';`,
-  );
+  return SOURCE.replace('__ROLES__', JSON.stringify(EXAMPLE_ROLES))
+    .replace('__GOLDEN_REACTIONS__', JSON.stringify(GOLDEN_REACTIONS))
+    .replace('__REACTIONS__', JSON.stringify(REACTIONS))
+    .replace('__TOUR_STEP__', String(TOUR_STEP))
+    .replace(declaration, `const SETUP = '${setup}';`);
 }
 
 export function castManifest(setup: CastSetup, style?: string, duration = 12): RenderManifest {

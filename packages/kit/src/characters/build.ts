@@ -7,6 +7,7 @@ import type * as THREE from 'three';
 import type { Vec3 } from '../types.js';
 import type { Expression, Pose } from './clips.js';
 import type { Face } from './face.js';
+import type { MascotFx } from './reaction-fx.js';
 import type { Rig } from './rig.js';
 
 /** Inputs of secondary motion (tail, ears, scarf, antenna, tuft, bulb glow). */
@@ -17,6 +18,8 @@ export interface SecondaryInput {
   /** Vertical hip velocity proxy (page: hipY change over 0.1 s, halved). */
   readonly velocity: number;
   readonly expression: Expression;
+  /** The active reaction in this character's anatomy (NO_MASCOT_FX without one). */
+  readonly fx: MascotFx;
 }
 
 export interface HeldPoint {

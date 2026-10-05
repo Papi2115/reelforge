@@ -43,6 +43,24 @@ describe('characterSourceFindings (PLAN.md#12.20)', () => {
     expect(wrong[0]?.message).toContain("calls kit.cast.mascot('bulb') but the channel's mascot");
   });
 
+  it('warns about a reactor shot without a reaction or expression cue (2.3.7)', () => {
+    const reactor: StoryboardShot = {
+      ...SHOT,
+      mascot: { role: 'reactor', action: 'jaw-drop at the 4 MB number' },
+    };
+    const reacting = `${FOX_SCENE}\nfox.reaction('jaw-drop', { at: ctx.anchor('4 MB').t - 0.15 });`;
+    expect(characterSourceFindings(reacting, 's04.js', reactor, FOX)).toEqual([]);
+    const faced = `${FOX_SCENE}\nfox.expression('surprised', { at: 2 });`;
+    expect(characterSourceFindings(faced, 's04.js', reactor, FOX)).toEqual([]);
+    const still = characterSourceFindings(FOX_SCENE, 's04.js', reactor, FOX);
+    expect(still).toHaveLength(1);
+    expect(still[0]).toMatchObject({ severity: 'warning', source: 'scene' });
+    expect(still[0]?.message).toContain('never cues a reaction');
+    // A pointer needs no reaction; a missing mascot is the error, not this warning.
+    expect(characterSourceFindings(FOX_SCENE, 's04.js', MASCOT_SHOT, FOX)).toEqual([]);
+    expect(characterSourceFindings(PERSON_SCENE, 's04.js', reactor, FOX)).toHaveLength(1);
+  });
+
   it('warns about a mascot the storyboard did not plan', () => {
     expect(summary(characterSourceFindings(FOX_SCENE, 's04.js', SHOT, FOX))).toEqual([
       'warning: shows the mascot although the storyboard did not plan it in this shot (its screen time is planned sparsely); remove it or plan it in the storyboard.',

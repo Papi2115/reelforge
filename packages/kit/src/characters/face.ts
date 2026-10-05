@@ -10,9 +10,11 @@ import type { Expression } from './clips.js';
 import {
   FACE_EXPRESSIONS,
   MOUTH_SHAPES,
+  NO_FACE_FX,
   screenPixels,
   SCREEN_COLUMNS,
   SCREEN_ROWS,
+  type FaceFx,
   type MouthShape,
 } from './expressions.js';
 import { TAU } from './math.js';
@@ -23,7 +25,8 @@ import { meshShape, Shape } from './shape.js';
 export const INK = 'navy';
 
 export interface Face {
-  update(expression: Expression, t: number, blink: number): void;
+  /** `fx`: a reaction's modifiers (bigger eyes, squint, Screen's glitch and O_O). */
+  update(expression: Expression, t: number, blink: number, fx?: FaceFx): void;
 }
 
 export interface VoxelFaceSpec {
@@ -72,6 +75,10 @@ function mouthShapes(unit: number, mw: number): Readonly<Record<MouthShape, Shap
       0.6,
     ),
     o: new Shape(unit).cb(INK, [0, -0.7, 0], [1.2, 1.4, 0.45]),
+    // Jaw drop: a tall open mouth with a pink tongue at the bottom.
+    gape: new Shape(unit)
+      .cb(INK, [0, -2.2, 0], [mw * 0.85, 2.6, 0.45])
+      .cb('pink', [0, -2.1, 0.1], [mw * 0.55, 0.6, 0.45]),
     flat: new Shape(unit).cb(INK, [0, 0, 0], [mw * 0.6, 0.45, 0.45]),
     small: new Shape(unit).cb(INK, [0, 0, 0], [0.8, 0.45, 0.45]),
     side: new Shape(unit)
@@ -150,14 +157,15 @@ export function voxelFace(tools: KitTools, parent: THREE.Object3D, spec: VoxelFa
   );
   parent.add(alert);
   return {
-    update(expression, t, blink) {
+    update(expression, t, blink, fx = NO_FACE_FX) {
       const face = FACE_EXPRESSIONS[expression];
-      const happy = face.eye === 'happy';
       eyes.forEach((eye, index) => {
+        const happy = face.eye === 'happy' || face.wink === index;
         eye.open.visible = !happy;
         eye.happy.visible = happy;
-        const size = (face.size[index] ?? 1) * (face.eye === 'wide' ? 1.2 : 1);
-        const lid = face.eye === 'half' ? 0.5 : 1;
+        const wide = face.eye === 'wide' ? 1.2 : 1;
+        const size = (face.size[index] ?? 1) * wide * (1 + fx.eyeBoost);
+        const lid = (face.eye === 'half' ? 0.5 : 1) * (1 - 0.55 * fx.squint);
         eye.group.scale.set(size, happy ? 1 : size * lid * blink, 1);
         const [lookX, lookY] = face.look;
         if (eye.pupil) {
@@ -214,8 +222,8 @@ export function screenFace(
   parent.add(plane);
   let shown = '';
   return {
-    update(expression, t, blink) {
-      const pixels = screenPixels(expression, t, blink);
+    update(expression, t, blink, fx = NO_FACE_FX) {
+      const pixels = screenPixels(expression, t, blink, fx);
       const key = pixels.join('');
       if (key === shown) return;
       shown = key;

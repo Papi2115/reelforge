@@ -43,15 +43,46 @@ state.people.forEach((person) => person.update(t));
 - Cues (in `build()` only: after the first `update()` they throw, because a cue added during
   playback would make frames depend on the seek history; `at` = scene seconds or a
   `ctx.anchor(...)` result; a cue at the same time replaces the earlier one):
-  `pose(name, { at })`, `expression(name, { at })`, `walkTo([x, y, z], { at, speed = 0.8,
-  then = 'calm' })`, `lookAt(kitObjectOrWorldPoint, { at, until })`, `walkEnd()`.
+  `pose(name, { at })`, `expression(name, { at })`, `reaction(name, { at, toward })`,
+  `walkTo([x, y, z], { at, speed = 0.8, then = 'calm' })`, `lookAt(kitObjectOrWorldPoint, { at,
+  until })`, `walkEnd()`.
 - Poses (page keys 1-8): `calm`, `wave`, `think`, `point`, `shrug`, `joy`, `walk`, `eureka`. A
   change blends over 0.35 s from the previous pose (which keeps playing); the head lags the body
   by `0.05 + 0.1 * energy` s; springs give overshoot, wave/point/joy have anticipation, squash and
   stretch scale with energy. `eureka` loops every 4.6 s: think, freeze, pop (finger up, jump),
   Bulb's glass glows with a flicker, rays and a point light, then fades.
 - Expressions (page keys Q-I): `auto` (what the pose suggests), `neutral`, `joy`, `curious`,
-  `surprised`, `thinking`, `sceptical`, `alarm` (pink "!" above the head, Screen flashes).
+  `surprised`, `thinking`, `sceptical`, `alarm` (pink "!" above the head, Screen flashes); since
+  2.3.7 also `brow-raise` (one brow up, half-smile), `jaw-drop` (wide eyes, a gaping mouth with a
+  tongue), `wink` (one eye closed as an arc, grin) and `smug` (lowered lids, smirk); each has a
+  voxel face and a 12x8 Screen bitmap.
+- Reactions (2.3.7, `packages/kit/src/characters/reactions.ts`): `reaction(name, { at, toward })`
+  plays a short, human beat on top of the current pose (any pose, a walk, a look-at) and returns
+  to it; cue it a few frames before the key word (`at: ctx.anchor('phrase')`). Same personality as
+  the poses: anticipation, spring overshoot, the head lagging the body by the character's lag.
+
+  | Reaction | Beat | Length |
+  | --- | --- | --- |
+  | `surprise` | squash, pop up with arms out, eyes wide | 1.6 s |
+  | `double-take` | glances away, snaps back (overshoot) with bigger eyes and a double blink | 2.1 s |
+  | `glance-camera` | the head turns to the viewer 0.12 s late, deadpan (sceptical) eye contact with one slow blink, back | 1.9 s |
+  | `brow-raise` | one brow up, head tilt, sceptical half-smile | 1.8 s |
+  | `jaw-drop` | a lean in, then the mouth falls open, the body leans back on soft knees, arms hang | 2.3 s |
+  | `facepalm-lite` | a sigh, the hand up to the chin (the pack's short arms cannot reach the eyes), eyes shut, a slow head shake | 2.2 s |
+  | `shrug-grin` | shoulders up, palms out, sheepish grin | 2 s |
+  | `nod-told-you` | two smug nods, chin up, then a wink | 2.2 s |
+
+  Per mascot (`reaction-fx.ts`): Bulb's glass flickers and pops rays on a startle and glows warm on
+  the told-you nod and the grin; Screen's display glitches (rows shift, pixels flip) and then shows
+  `O_O` (the jaw drop keeps its gaping face), its LED flashes and the antenna boings; Fox flicks its
+  ears, lays them back and puffs its tail up, and wags on the happy ones; Bean wobbles on its feet
+  like a roly-poly toy, its sprout boings and it squints on the sceptical ones. People (cast,
+  roles, mannequin) play the body part with their blink. While a reaction plays its face wins
+  over expression cues set before it (a later `expression()` cue wins); reactions at overlapping
+  times stack in cue order. `toward` (glance-camera) is the camera position given to
+  `ctx.camera.set` or a kit object; the default looks straight out along world +z. Readable at
+  640x360 when the mascot is at least about a quarter of the frame height, front or
+  three-quarter, under the `default` or `dramatic` light preset (goldens `character-reaction-*`).
 - Secondary motion: Fox's tail (wags fast when joyful), ears (twitch, flatten on surprise/alarm)
   and scarf; Bean's sprout; Screen's antenna (blinking LED); Bulb's rays.
 - Anchors (follow the pose, for `ctx.annotate`): `head`, `face`, `hand` (the holding hand),
@@ -287,7 +318,10 @@ Screen's display background (`#071a26` on the page) is drawn with `navy`.
   (`cast-scenes.ts`): goldens `character-*` (mascots in four poses, the seven expressions sheet,
   the cast calm and posed, the mannequin, firefighter + engineer + chef), vibe guard on every
   frame, Noir/Soft renders, seek determinism, perf (4 characters walking: SwiftShader ~30 fps,
-  RTX 4050 ~450 fps).
+  RTX 4050 ~450 fps). `kit-cast-reactions.test.ts`: goldens `character-reaction-*` (the four
+  mascots play surprise, jaw-drop and nod-told-you; the beat and the hold of each), seek
+  determinism, and a review sheet per reaction three-quarter to the camera
+  (`packages/kit/out/contact/character-reaction-tour-<name>.png`).
 - Staging note: the Style's palette LUT snaps lit colours to swatches, so warm mid-tones (tan,
   cream) need a warm fill to keep their hue; the test stage uses the page's light directions
   with a cream fill (`kit.env.lights()` presets work too).

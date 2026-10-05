@@ -139,12 +139,14 @@ function bulb(tools: KitTools, options: MascotOptions): CharacterBuild {
     headTop: [0, 14.5, 0],
     faceAt: [0, 9, 5],
     hand: [0, -1.7, 0],
-    secondary({ pose, time }) {
-      const glow = pose.glow;
+    secondary({ pose, time, fx }) {
+      // A reaction pops the glow (flicker) or warms it; the rays follow the larger of the two.
+      const glow = Math.max(pose.glow, fx.glow);
+      const ray = Math.max(pose.glow, fx.rays);
       glassMaterial.emissiveIntensity = 0.1 + 0.8 * glow;
       if (light) light.intensity = 3.5 * glow;
-      rays.visible = glow > 0.05;
-      rays.scale.setScalar(0.7 + 0.3 * glow);
+      rays.visible = ray > 0.05;
+      rays.scale.setScalar(0.7 + 0.3 * ray);
       rays.rotation.z = time * 0.5;
     },
   };
@@ -202,11 +204,16 @@ function screen(tools: KitTools): CharacterBuild {
     headTop: [0, 8, 0],
     faceAt: [0, 4.3, 3.2],
     hand: [0, -1.75, 0],
-    secondary({ time, velocity }) {
-      const lit = mod(time, 1.3) < 0.9;
+    secondary({ time, velocity, fx }) {
+      // The LED flashes fast while a reaction glitches the display.
+      const lit = fx.face.glitch > 0.05 ? mod(time, 0.16) < 0.08 : mod(time, 1.3) < 0.9;
       if (on) on.visible = lit;
       if (off) off.visible = !lit;
-      antenna.rotation.set(0.1 * velocity, 0, 0.12 * Math.sin(TAU * 0.9 * time) - 0.06 * velocity);
+      antenna.rotation.set(
+        0.1 * velocity - 0.5 * fx.boing,
+        0,
+        0.12 * Math.sin(TAU * 0.9 * time) - 0.06 * velocity + fx.boing,
+      );
     },
   };
 }

@@ -5,6 +5,7 @@
  *   mascot than the project's is an error too (the channel has one mascot);
  * - a shot without `shot.mascot` that calls the mascot, or a mascot in a pack project without
  *   one: warning (screen time is planned);
+ * - a `reactor` shot (2.3.7) that never cues a reaction or an expression: warning;
  * - a pack project calling `kit.props.character` (the classic hero): warning;
  * - a classic project calling `kit.cast.*`: warning.
  * Literal ids only (a computed `mascot(id)` is not judged). The classic hero without a mascot
@@ -17,6 +18,8 @@ import { finding } from './checks.js';
 const MASCOT_CALL = /\bcast\s*\.\s*mascot\s*\(\s*(?:(['"`])([^'"`]*)\1)?/g;
 const CAST_CALL = /\bcast\s*\.\s*(?:mascot|person|mannequin|role|spec)\s*\(/;
 const CLASSIC_HERO_CALL = /\bprops\s*\.\s*character\s*\(/;
+/** A reaction or expression cue (`.reaction(`, `.expression(`, or `expression:` at creation). */
+const REACTION_CALL = /\.\s*(?:reaction|expression)\s*\(|\bexpression\s*:/;
 
 interface MascotCalls {
   /** Any `cast.mascot(` call, literal or not. */
@@ -73,6 +76,15 @@ function mascotFindings(
         'scene',
         'error',
         `${file}: the storyboard plans the mascot here (the ${planned.role}: ${planned.action}) but the scene never calls kit.cast.mascot('${chosen}'); add it beside the content, readable at 640x360.`,
+      ),
+    );
+  }
+  if (planned?.role === 'reactor' && calls.ids.includes(chosen) && !REACTION_CALL.test(source)) {
+    findings.push(
+      finding(
+        'scene',
+        'warning',
+        `${file}: the storyboard plans the mascot as the reactor (${planned.action}) but the scene never cues a reaction; add mascot.reaction('<name>', { at: ctx.anchor('<key phrase>').t - 0.15 }) or an .expression(...) cue on the key word.`,
       ),
     );
   }

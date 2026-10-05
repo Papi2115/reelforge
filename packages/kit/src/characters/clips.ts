@@ -46,7 +46,10 @@ export type Pose = Readonly<Record<PoseKey, number>>;
 export const POSES = ['calm', 'wave', 'think', 'point', 'shrug', 'joy', 'walk', 'eureka'] as const;
 export type PoseName = (typeof POSES)[number];
 
-/** Mascot expressions (keys W-I of the page; `auto` = the one the pose suggests). */
+/**
+ * Mascot expressions (keys W-I of the page; `auto` = the one the pose suggests), then the
+ * reaction faces of 2.3.7 (also used by `reaction(...)`, reactions.ts).
+ */
 export const EXPRESSIONS = [
   'neutral',
   'joy',
@@ -55,6 +58,10 @@ export const EXPRESSIONS = [
   'thinking',
   'sceptical',
   'alarm',
+  'brow-raise',
+  'jaw-drop',
+  'wink',
+  'smug',
 ] as const;
 export type Expression = (typeof EXPRESSIONS)[number];
 
