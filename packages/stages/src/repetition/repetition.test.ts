@@ -192,6 +192,56 @@ describe('findRepetitions', () => {
   });
 });
 
+describe('wow transitions in repetition control (ADR-028)', () => {
+  /** 40 shots of 4 s, cuts except the given transitions (shot index -> transition). */
+  function wowFilm(
+    into: Readonly<Record<number, StoryboardShot['transitionIn']>>,
+    marked: readonly number[] = [],
+  ): RepetitionFilm {
+    const list = Array.from({ length: 40 }, (_, index): StoryboardShot => {
+      const id = `w${String(index).padStart(2, '0')}`;
+      const transitionIn = into[index];
+      return {
+        id,
+        t0: index * SHOT_S,
+        t1: (index + 1) * SHOT_S,
+        treatment: 'map',
+        intent: id,
+        scene: `scenes/${id}.js`,
+        ...(transitionIn === undefined ? {} : { transitionIn }),
+        ...(marked.includes(index) ? { scaleSequence: true } : {}),
+      };
+    });
+    return { shots: list, lookMode: 'mixed', seed: 3 };
+  }
+  const wow = (style: string): StoryboardShot['transitionIn'] => ({
+    type: 'glitch',
+    duration: 1,
+    style,
+  });
+
+  it('counts the same wow style within 90 s as a repeat and proposes a plain style', () => {
+    const { items } = findRepetitions(wowFilm({ 3: wow('shatter'), 20: wow('shatter') }));
+    const repeat = items.find((entry) => entry.kind === 'transition');
+    expect(repeat?.subject).toBe('shatter');
+    expect(repeat?.occurrences.map((entry) => entry.shotId)).toEqual(['w03', 'w20']);
+    expect(repeat?.changes).toEqual([
+      { target: 'w20', from: 'shatter', to: expect.any(String) as unknown },
+    ]);
+    expect(repeat?.changes[0]?.to).not.toBe('shatter');
+    // 23 shots of 4 s apart (92 s): no longer a repeat; plain styles keep their 20-s window.
+    expect(findRepetitions(wowFilm({ 3: wow('shatter'), 26: wow('shatter') })).items).toEqual([]);
+  });
+
+  it('does not count the dives of a scale sequence as repeats', () => {
+    const chain = { 10: wow('dive-out'), 11: wow('dive-out'), 12: wow('dive-out') };
+    expect(findRepetitions(wowFilm(chain, [9, 10, 11, 12])).items).toEqual([]);
+    expect(findRepetitions(wowFilm(chain)).items.map((entry) => entry.subject)).toEqual([
+      'dive-out',
+    ]);
+  });
+});
+
 describe('signatures and phrases', () => {
   it('scans kit definitions (common ones dropped)', () => {
     expect(

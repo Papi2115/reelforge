@@ -67,7 +67,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 13, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 14, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -110,7 +110,7 @@ describe('renderPrompt', () => {
     for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
       expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
     }
-    expect(loadPrompt('sound-cues').version).toBe(3);
+    expect(loadPrompt('sound-cues').version).toBe(4);
     expect(text).toContain("each shot's sound palette follows its `look`");
   });
 

@@ -325,6 +325,7 @@ export async function createRuntime(
           transition: pixelTransition,
           progress: sample.transition.progress,
           seed,
+          focus: sample.transition.focus,
         });
         finish(sample, t);
         return;

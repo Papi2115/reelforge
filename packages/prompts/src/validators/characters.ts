@@ -8,6 +8,8 @@
  * - `mascot-overuse` (error): more than 30% of the shots, or two mascot shots starting less than
  *   12 s apart; `mascot-gap` (warning): more than 90 s without the mascot in a film over 3 min;
  *   `mascot-in-hook` (warning): a mascot in the first 3 s outside a title card.
+ * - `mascot-action` (warning, 2.3.7): a `reactor` whose action names no reaction or expression
+ *   of the kit's vocabulary (`jaw-drop`, "double take", `smug`...).
  * - `unknown-role` (error, pack): `newRoles` repeating an id or naming a cast member, the
  *   mannequin or a mascot; an intent calling `kit.cast.person('<id>')` with an id that is neither
  *   in the cast, built for the project, nor in `newRoles`. `role-built` (warning): a `newRoles`
@@ -25,6 +27,7 @@ import {
   type StoryboardShot,
   type WordsFile,
 } from '@reelforge/shared';
+import { MASCOT_REACTION_WORDS, MASCOT_REACTIONS } from '../characters.js';
 import { issue, type ValidationIssue } from './issues.js';
 import {
   HONORIFICS,
@@ -168,6 +171,35 @@ function impersonations(
   });
 }
 
+/** "jaw drop", "Jaw-Drop!" -> "jaw-drop" for matching reaction words. */
+const kebab = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-|-$/g, '');
+
+/** The reaction or expression a reactor's action names, or undefined. */
+export function namedReaction(action: string): string | undefined {
+  const words = `-${kebab(action)}-`;
+  return MASCOT_REACTION_WORDS.find((name) => words.includes(`-${name}-`));
+}
+
+function reactorActions(shots: readonly StoryboardShot[]): ValidationIssue[] {
+  return shots.flatMap((shot, index) => {
+    if (shot.mascot?.role !== 'reactor' || namedReaction(shot.mascot.action) !== undefined) {
+      return [];
+    }
+    return [
+      issue(
+        'warning',
+        'mascot-action',
+        `${shot.id}: the mascot reacts here but its action ("${shot.mascot.action}") names no reaction; start it with one of ${MASCOT_REACTIONS.join(', ')} (or an expression like smug, wink), e.g. "jaw-drop at the 4 MB number"`,
+        `shots[${String(index)}].mascot.action`,
+      ),
+    ];
+  });
+}
+
 function rhythm(shots: readonly StoryboardShot[], rules: MascotRules): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const indexed = shots.map((shot, index) => ({ shot, index }));
@@ -293,6 +325,10 @@ export function checkCharacters(
   const mascot =
     options.mascot === 'none'
       ? withoutChoice(shots, options)
-      : [...impersonations(shots, words, options.mascot), ...rhythm(shots, rules)];
+      : [
+          ...impersonations(shots, words, options.mascot),
+          ...reactorActions(shots),
+          ...rhythm(shots, rules),
+        ];
   return [...mascot, ...roleIssues(storyboard, options)];
 }

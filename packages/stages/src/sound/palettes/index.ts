@@ -26,11 +26,13 @@ import {
   type SoundPaletteId,
 } from './types.js';
 import { VOXEL_PALETTE } from './voxel.js';
+import { wowSlot } from './wow-sfx.js';
 
 export * from './types.js';
 export { NO_HISTORY, pickRecipe, type RecipePickRequest } from './pick.js';
 export { dioramaKind } from './diorama.js';
 export { VOXEL_PALETTE };
+export { WOW_PALETTE_SFX, WOW_STYLE_SFX, wowSlot } from './wow-sfx.js';
 
 export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   voxel: VOXEL_PALETTE,
@@ -95,18 +97,22 @@ export const TRANSITION_STYLE_SFX: Readonly<Partial<Record<TransitionStyleId, Pa
 
 /**
  * The slot of a transition into a shot of palette `to` from a shot of palette `from` (PLAN.md
- * #12.15): when the look changes, the transition style's own sound (TRANSITION_STYLE_SFX), else
- * `to`'s accents; no look change = none (the palette's usual transition sound).
+ * #12.15): a wow style (ADR-028) always sounds like itself in `to`'s voice (`wow-sfx.ts`), look
+ * or no look change; when the look changes, the transition style's own sound
+ * (TRANSITION_STYLE_SFX), else `to`'s accents; no look change = none (the palette's usual
+ * transition sound).
  */
 export function lookChangeSlot(
   from: SoundPalette,
   to: SoundPalette,
   toShot: StoryboardShot,
 ): PaletteSlot | undefined {
-  if (from.id === to.id) return undefined;
   const transition = toShot.transitionIn;
   const style =
     transition === undefined || transition.type === 'cut' ? undefined : transition.style;
+  const wow = wowSlot(to.id, style);
+  if (wow !== undefined) return wow;
+  if (from.id === to.id) return undefined;
   const styled = style === undefined ? undefined : TRANSITION_STYLE_SFX[style as TransitionStyleId];
   if (styled !== undefined) return styled;
   const slot = to.accents[to.ambience.key(toShot)] ?? to.accents[''];

@@ -3,7 +3,8 @@
  * ADR-025). A project with the classic hero and no mascot gets none, so its prompts render byte
  * for byte as before 2.3.5. `pack` adds the cast rules; a chosen mascot (pack only) adds its
  * screen-time rules to the storyboard, its directive to the scene build of shots with
- * `shot.mascot` (and "do not show it" to the others) and a mascot check to the frame critic.
+ * `shot.mascot` (and "do not show it" to the others) and a mascot check to the frame critic;
+ * since 2.3.7 also the reaction vocabulary (wow-moment micro-beats, the `reactor` role).
  */
 import {
   CAST_PERSON_IDS,
@@ -47,6 +48,21 @@ export const MASCOT_EXPRESSIONS = [
   'thinking',
   'sceptical',
   'alarm',
+  'brow-raise',
+  'jaw-drop',
+  'wink',
+  'smug',
+] as const;
+/** Mascot reactions (= `REACTIONS` of packages/kit, 2.3.7; same sync test). */
+export const MASCOT_REACTIONS = [
+  'surprise',
+  'double-take',
+  'glance-camera',
+  'brow-raise',
+  'jaw-drop',
+  'facepalm-lite',
+  'shrug-grin',
+  'nod-told-you',
 ] as const;
 
 const code = (ids: readonly string[]): string => ids.map((id) => `\`${id}\``).join(', ');
@@ -68,6 +84,7 @@ function mascotVars(mascot: MascotChoice): Vars {
     mascotId: mascot,
     mascotName: profile.label,
     mascotPersonality: profile.personality,
+    mascotReactions: code(MASCOT_REACTIONS),
   };
 }
 
@@ -92,8 +109,15 @@ export function sceneCharacterVars(settings: CharacterSettings, shot: Storyboard
     mascotAction: planned.action,
     mascotPoses: MASCOT_POSES.join(', '),
     mascotExpressions: MASCOT_EXPRESSIONS.join(', '),
+    ...(planned.role === 'reactor' ? { mascotReactor: true } : {}),
   };
 }
+
+/** Words of a reactor's `action` that name the reaction (a reaction or an expression id). */
+export const MASCOT_REACTION_WORDS: readonly string[] = [
+  ...MASCOT_REACTIONS,
+  ...MASCOT_EXPRESSIONS.filter((name) => name !== 'auto'),
+];
 
 /** Critic prompt: the mascot check of a shot that shows the mascot; nothing otherwise. */
 export function criticCharacterVars(
@@ -102,5 +126,6 @@ export function criticCharacterVars(
 ): Readonly<Record<string, string>> {
   const planned = shotMascot(shot, settings.mascot);
   if (planned === undefined) return {};
-  return { mascotCheck: `${MASCOT_PROFILES[planned.id].label}, as the ${planned.role}` };
+  const check = { mascotCheck: `${MASCOT_PROFILES[planned.id].label}, as the ${planned.role}` };
+  return planned.role === 'reactor' ? { ...check, mascotReaction: planned.action } : check;
 }

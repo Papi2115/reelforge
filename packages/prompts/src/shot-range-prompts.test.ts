@@ -48,12 +48,13 @@ const FULL_VARS = {
   mascotId: 'fox',
   mascotName: 'Fox',
   mascotPersonality: 'curious and quick',
+  mascotReactions: '`surprise`, `jaw-drop`',
 } as const;
 const TAG = /\{\{[#/]?\w+\}\}/;
 
 describe('storyboard prompt without a range', () => {
   it('renders every section exactly as storyboard v12', () => {
-    expect(loadPrompt('storyboard').version).toBe(13);
+    expect(loadPrompt('storyboard').version).toBe(14);
     expect(rendered(FULL_VARS)).toBe(fixture('storyboard-standard-full.txt'));
     expect(rendered({ ...FULL_VARS, ...storyboardShotRangeVars(undefined, 642) })).toBe(
       fixture('storyboard-standard-full.txt'),

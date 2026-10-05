@@ -42,6 +42,59 @@ unknown `style` renders as its plain `type` (the validator reports it).
 The last four are **look-change specials**: only where the look changes (validator error
 otherwise). p = 0 always gives A exactly, p = 1 gives B exactly (unit-tested).
 
+## Wow transitions (ReelForge 2.3.7, ADR-028)
+
+Rare showpieces for any look pair, chosen by **content** (the storyboard names one where the shot is
+about what it fits), about one per 40–90 s. `transitionIn.focus: { x, y }` (0..1 of the outgoing
+frame from the left / top; default the centre) is the subject they enter, break at or dive into.
+
+| Style | Family | Type | Duration (default) | Focus | Fits (content tags) | Look |
+| --- | --- | --- | --- | --- | --- | --- |
+| `enter-lens` | enter | wipe | 0.7–1.3 s (1.0) | yes | surveillance, search, detail, investigation, evidence, clue | a magnifying glass (metal rim, wooden handle, glint) pops onto the subject showing it magnified, the subject dissolves into B inside, the lens rushes at the camera while A zooms (nearest neighbour) and dims around it |
+| `enter-binoculars` | enter | wipe | 0.8–1.4 s (1.1) | yes | watching, distance, spying, lookout, wildlife, horizon | a black two-circle mask closes on the subject, A zooms and goes out of focus (mosaic), B comes into focus (8 -> 1 px blocks), the mask opens |
+| `enter-window` | enter | wipe | 0.6–1.2 s (0.9) | yes | place, people, home, building, inside, neighbourhood | a four-pane window with a sill pops onto the subject, B behind the glass (reflections), the camera flies through the pane on the subject |
+| `enter-keyhole` | enter | wipe | 0.8–1.4 s (1.1) | yes | secret, hidden, private, locked, conspiracy, mystery | a dark plank door with a rounded brass plate closes around the subject, B shows through the keyhole, the camera pushes through |
+| `paper-roll` | texture | wipe | 0.6–1.2 s (0.9) | – | documents, records, archive, scroll, map, contract | A rolls up from an edge (seed) into a growing cylinder (the picture wraps around it, dither shading), B under it with a soft shadow |
+| `cube-smash` | texture | glitch | 0.8–1.4 s (1.1) | yes | games, digital, collapse, destruction, blocks, disruption | three voxel cubes fly at the screen (the first at the focus), impact bursts, jagged cracks run along a hidden block wall, the blocks fall away with voxel side faces, nearest first |
+| `sponge-wipe` | texture | wipe | 0.8–1.4 s (1.1) | – | correction, explanation, whiteboard, cleaning, reset, mistake | a kitchen sponge (foam + green pad) scrubs three bands left / right / left, wavy edges, wet streaks of A and foam that dry up by the end |
+| `page-turn` | texture | wipe | 0.6–1.2 s (0.9) | – | history, books, chapter, story, diary, past | the picture peels off from a corner (seed) along a straight fold; the flap shows the paper back with a curl highlight; shadows on both shots |
+| `shatter` | texture | glitch | 0.7–1.3 s (1.0) | yes | failure, crash, security, breach, shock, broken | impact star and shake at the focus, a spider-web of jagged rays and straight ring chords spreads, shards drop away (inner first), turning and shrinking, glass-edged |
+| `dive-in` | dive | crossfade | 0.6–1.2 s (0.9) | yes | scale, zoom, micro, inside, cells, atoms | A zooms 1 -> 8x into the focus with growing mosaic and speed lines, 16-px tiles flip to B at 8x, B settles to 1x on the same point |
+| `dive-out` | dive | crossfade | 0.6–1.2 s (0.9) | yes | scale, space, zoom, city, planet, big picture | the camera pulls back 8x: A shrinks into the focus point of B, which sharpens around it; A dissolves once small |
+
+Rules (`WOW_RULES`, `packages/shared/src/wow-transitions.ts`; validator
+`packages/prompts/src/validators/wow.ts`, run on every storyboard that names a wow style):
+
+- `wow-early` (error): none in the first 6 s, except an `enter-*` into a shot marked `"hook": true`.
+- `wow-spacing`: two wow moments closer than 25 s = error, closer than 40 s = warning;
+  `wow-budget`: more than one per 25 s of film = error, more than one per 40 s = warning.
+- `wow-in-a-row` (error): never two consecutive shots opening with a wow transition, except a
+  **scale sequence**: `dive-in` / `dive-out` chained over consecutive shots all marked
+  `"scaleSequence": true` (flat -> street -> city -> globe), which counts as one moment;
+  `wow-scale-sequence` (warning) above 4 chained dives.
+- `wow-repeat` (warning): the same wow style within 90 s. Repetition control (PLAN.md#12.23,
+  `docs/repetition.md`) reports it too (window 90 s for wow styles, scale-sequence dives excepted)
+  and proposes a plain style.
+- `wow-too-long` (error): longer than the shot; `transition-duration` (warning) outside the range;
+  `transition-focus` (warning): `focus` on a style that does not use it. A focus outside 0..1 does
+  not parse.
+
+Choosing: the storyboard prompt (`mixed` with 2+ looks; voxel-only text unchanged) lists the wow
+styles with their content tags and the film's budget (`wowBudget`: one per 40 s, at least one) and
+asks Claude to choose by content and set `focus` on the thing being entered. `transitionFor` never
+picks a wow style unless the caller allows one (`wow: { content, avoid }`); then only wow styles
+whose content tags the shot's intent names are candidates (weight 4). `assignTransitionStyles`
+allows one only from 6 s on, at least 60 s from any other wow transition, not next to one, in a
+shot of 2.4 s or more, avoiding wow styles used within 90 s. Repetition re-picks never choose one.
+
+How they are drawn: `enter.ts` (portal: the shape per 2x2 cell, A zoomed nearest-neighbour around
+the focus outside, B inside, size and centre per phase; the size at which a shape covers the frame
+is searched numerically), `paper.ts` (roll, page, sponge), `shatter.ts` and `cube-smash.ts` (a piece
+map per pixel built once per transition with `lastValueCache`, then pieces drawn by inverse mapping
+with rational rotations, `pieces.ts`), `dive.ts`; helpers in `wow.ts`. Only copies of A / B pixels
+and palette colours (`tones.nearest(0xRRGGBB)` for materials: paper, brass, wood, sponge), no
+trigonometry (diamond angles, half-angle rotations, a polynomial arc).
+
 Metadata (`TRANSITION_STYLES` in `packages/shared/src/transitions.ts`): id, label, description
 (one line in the storyboard prompt), plain `type`, duration range + default, look pairs (`*` =
 any look, optional rolls), `lookChange`, vibe tags. The engine registry `TRANSITIONS` adds the
@@ -66,8 +119,12 @@ compositor to every entry.
 
 ## Sound
 
-`lookChangeSlot` (`packages/stages/src/sound/palettes/index.ts`): a look change through a special
-plays its own sound (`TRANSITION_STYLE_SFX`: CRT power-on, paper flip/servo, pencil/plotter,
+`lookChangeSlot` (`packages/stages/src/sound/palettes/index.ts`): a wow transition always plays its
+own sound in the entered palette's voice (`palettes/wow-sfx.ts`: swoosh / whoosh for enter and dive,
+`paper` / `paper-slide` for the roll, `page-flip` for the page, `eraser-swipe` for the sponge,
+`glass-crack` for shatter and cube smash, the cubes landing 0.15 s in; a retro UI window chirps
+open, flat 2D uses `whoosh-flat`, paper cut-out and blueprint their paper sounds); a look change
+through a special plays its own sound (`TRANSITION_STYLE_SFX`: CRT power-on, paper flip/servo, pencil/plotter,
 glitch/downer); other look changes keep the entered look's accents; within one look the palette's
 usual `transition-*` sound plays (the gesture kind follows `type`). Voxel-only films never reach
 it (one palette).
@@ -86,12 +143,22 @@ it (one palette).
   `transition-look-<from>-<to>-p<35|65>`, contact sheet `packages/kit/out/contact/
   transition-looks.png`); vibe guard on every golden.
 - Parity: `packages/pipeline/src/export/transition-parity.integration.test.ts` (export frames =
-  preview frames).
+  preview frames, including a `shatter` with a focus point).
+- Wow: `packages/engine/src/transitions/wow.test.ts` (exact ends and palette purity at 19 progress
+  values for every focus style at corner focus points, the focus is followed, cached geometry
+  stays deterministic, masks, dives), `packages/shared/src/transitions.test.ts` (picker by content,
+  an 8-minute storyboard within the budget), `packages/prompts/src/validators/wow.test.ts` (every
+  rule, an 8-minute storyboard with no issue), repetition and sound tests; render goldens
+  `transition-wow-<style>-p35|p65` (engine, synthetic shots, byte-equal to `compositeTransition`
+  with the focus) and `transition-wow-look-<style>-p35|p65` (kit, six real look pairs, contact
+  sheet `packages/kit/out/contact/transition-wow-looks.png`).
 
 ## Adding a style
 
 1. Add the id to `TRANSITION_STYLE_IDS` and its entry to `TRANSITION_STYLES` (shared): type,
-   duration range within 0.2–0.8 s, pairs, `lookChange`, vibe, a one-line description.
+   duration range within 0.2–0.8 s, pairs, `lookChange`, vibe, a one-line description. A wow
+   style goes into `WOW_STYLE_IDS` / `WOW_STYLES` (0.5–1.4 s, family, content tags, focus) and
+   needs a sound in `WOW_STYLE_SFX`.
 2. Write the compositor in `packages/engine/src/transitions/` (`basic.ts` for any-pair styles,
    `looks.ts` for specials): a pure `Compositor` that writes only pixels of `a`/`b` or `tones`
    values, gives A at p = 0 and B at p = 1, and uses only integer hashes (`hashOf`, `unit`),

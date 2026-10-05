@@ -97,6 +97,8 @@ export const BUILTIN_SFX_NAMES = [
   'paper-pop',
   'wood-tick',
   'page-flip',
+  // wow transitions (ADR-028)
+  'glass-crack',
 ] as const;
 
 export const CUE_TRACKS = ['sfx', 'ambience', 'music'] as const;

@@ -1,6 +1,6 @@
 /**
- * Preview = export for the transition kit (CLAUDE.md §3.3, PLAN.md#12.15): a 3-shot film with two
- * transition-kit styles is exported through `exportVideo` (real engine in Playwright Chromium,
+ * Preview = export for the transition kit (CLAUDE.md §3.3, PLAN.md#12.15): a 4-shot film with two
+ * transition-kit styles and a wow transition with a focus point (ADR-028) is exported through `exportVideo` (real engine in Playwright Chromium,
  * SwiftShader; raw-frame media, so no ffmpeg) and every exported frame of the transitions must be
  * byte-equal to the frame the preview harness shows at that time (seeked backwards, from a fresh
  * page). Skipped when Playwright's Chromium is missing.
@@ -31,11 +31,13 @@ const unavailable = await launchHarnessBrowser().then(
   (error: unknown) => describeUnknown(error).split('\n')[0] ?? 'unknown error',
 );
 
-/** Frame indices covered by the transitions (into s02 at 1 s, into s03 at 2 s). */
+/** Frame indices covered by the transitions (into s02 at 1 s, s03 at 2 s, s04 at 3 s). */
 const TRANSITION_FRAMES = [
   ...Array.from({ length: 18 }, (_, index) => 30 + index),
   ...Array.from({ length: 21 }, (_, index) => 60 + index),
+  ...Array.from({ length: 30 }, (_, index) => 90 + index),
 ];
+const DURATION_S = 4;
 
 describe.skipIf(unavailable !== null)(
   unavailable === null
@@ -82,6 +84,18 @@ describe.skipIf(unavailable !== null)(
             transitionIn: { type: 'glitch', duration: 0.7, style: 'crt-zoom' },
             scene: stripes,
           },
+          {
+            id: 's04',
+            t0: 3,
+            t1: DURATION_S,
+            transitionIn: {
+              type: 'glitch',
+              duration: 1,
+              style: 'shatter',
+              focus: { x: 0.35, y: 0.6 },
+            },
+            scene: hello,
+          },
         ],
       };
       const preset: unknown = JSON.parse(await read('src/presets/voxel-pixel-crisp640.json'));
@@ -113,7 +127,7 @@ describe.skipIf(unavailable !== null)(
       });
       if (!exported.ok) throw new Error(exported.error.message);
       const video = await readFile(exported.value.output);
-      expect(video.length).toBe(3 * FPS * FRAME_BYTES);
+      expect(video.length).toBe(DURATION_S * FPS * FRAME_BYTES);
       const page = await browser.open();
       try {
         await page.load(manifest);

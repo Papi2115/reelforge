@@ -4,6 +4,7 @@
  * transition writes either a pixel copied from one of the two post-fx frames or a palette colour
  * from the ladder, so its output never leaves the style palette.
  */
+import type { TransitionFocus } from '@reelforge/shared';
 import { bayerMatrix, LUMA_WEIGHTS } from '../palette.js';
 
 /** An RGBA8 frame, row-major, top-down (what `EngineRuntime.readFrame` returns). */
@@ -19,9 +20,13 @@ export interface Tones {
   shift(pixel: number, steps: number): number;
   /** Luma rank of a pixel (palette index on the ladder; non-palette pixels: their 8-bit luma). */
   rank(pixel: number): number;
+  /** The palette colour (as a pixel) closest to a 0xRRGGBB colour: material tones (paper, wood). */
+  nearest(rgb: number): number;
   readonly darkest: number;
   readonly brightest: number;
 }
+
+export const CENTRE_FOCUS: TransitionFocus = { x: 0.5, y: 0.5 };
 
 /** Everything a transition reads and writes for one frame. */
 export interface Composition {
@@ -35,6 +40,8 @@ export interface Composition {
   /** uint32 seed of this transition. */
   readonly seed: number;
   readonly tones: Tones;
+  /** Subject point the wow transitions enter, dive into or break at (default: the centre). */
+  readonly focus: TransitionFocus;
 }
 
 export type Compositor = (composition: Composition) => void;
@@ -67,7 +74,16 @@ export function createTones(palette: readonly number[]): Tones {
   );
   const ranks = new Map(ladder.map((pixel, index) => [pixel, index]));
   const top = ladder.length - 1;
+  const nearestCache = new Map<number, number>();
   return {
+    nearest(rgb) {
+      const cached = nearestCache.get(rgb);
+      if (cached !== undefined) return cached;
+      const found = nearestColour(palette, rgb);
+      const pixel = found === undefined ? OPAQUE_BLACK : packPixel(found);
+      nearestCache.set(rgb, pixel);
+      return pixel;
+    },
     shift(pixel, steps) {
       const index = ranks.get(pixel);
       if (index === undefined) return pixel;
@@ -79,6 +95,24 @@ export function createTones(palette: readonly number[]): Tones {
     darkest: ladder[0] ?? OPAQUE_BLACK,
     brightest: ladder[top] ?? OPAQUE_BLACK,
   };
+}
+
+/** The palette colour closest to `rgb` (luma-weighted RGB distance, like the palette quantizer). */
+function nearestColour(palette: readonly number[], rgb: number): number | undefined {
+  let best: number | undefined;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const colour of palette) {
+    const dr = ((colour >>> 16) & 0xff) - ((rgb >>> 16) & 0xff);
+    const dg = ((colour >>> 8) & 0xff) - ((rgb >>> 8) & 0xff);
+    const db = (colour & 0xff) - (rgb & 0xff);
+    const distance =
+      LUMA_WEIGHTS[0] * dr * dr + LUMA_WEIGHTS[1] * dg * dg + LUMA_WEIGHTS[2] * db * db;
+    if (distance < bestDistance) {
+      best = colour;
+      bestDistance = distance;
+    }
+  }
+  return best;
 }
 
 /** 32-bit avalanche hash (uint32 -> uint32). */

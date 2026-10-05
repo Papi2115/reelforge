@@ -25,6 +25,7 @@ export * from './validators/storyboard.js';
 export * from './validators/rhythm.js';
 export * from './validators/tension.js';
 export * from './validators/shot-range.js';
+export * from './validators/wow.js';
 export * from './shot-range-vars.js';
 export * from './validators/dramaturgy.js';
 export * from './validators/characters.js';

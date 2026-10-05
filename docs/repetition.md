@@ -15,7 +15,7 @@ analysed or written). Project settings → Direction → Editing → "Watch for 
 | --- | --- | --- |
 | Visual | same look + treatment + kit definitions twice within 45 s | variant build of the later shot(s), with a hint |
 | Template | same chart / template definition in 3 shots within 60 s | variant build of the later shots |
-| Transition | same transition style (or plain type) twice within 20 s | re-pick with `transitionFor` (mixed) / another plain type (voxel-only) |
+| Transition | same transition style (or plain type) twice within 20 s; a wow style (ADR-028) within 90 s, the dives of a scale sequence excepted | re-pick with `transitionFor` (mixed) / another plain type (voxel-only) |
 | SFX | same recipe 3× within 30 s, or twice in a row | every other occurrence (the second of a pair) re-picked with `pickRecipe` + a history |
 | Phrase | the same 3+ word phrase 3× within 60 s | report only |
 

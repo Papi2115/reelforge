@@ -1,6 +1,8 @@
 import { AMBIENCE_RECIPES, SFX_RECIPES, SFX_VARIANTS, type SfxRecipe } from '@reelforge/pipeline';
-import type { StoryboardShot } from '@reelforge/shared';
+import { WOW_STYLE_IDS, type StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
+import { directCues } from '../cue-director.js';
+import { findGestures } from '../cue-events.js';
 import { CUE_EVENT_KINDS, HEAVY_VARIANTS } from '../cue-rules.js';
 import { ALL_LOOKS } from '../../testing/sound-films.js';
 import {
@@ -16,7 +18,11 @@ import {
   pick,
   pickRecipe,
   sceneRecipe,
+  shotPalettes,
   TRANSITION_STYLE_SFX,
+  WOW_PALETTE_SFX,
+  WOW_STYLE_SFX,
+  wowSlot,
   type PaletteKind,
 } from './index.js';
 
@@ -174,6 +180,55 @@ describe('palette contents', () => {
         }
       }
     }
+  });
+});
+
+describe('wow transition sounds (ADR-028)', () => {
+  it('give every wow style a light sound in every palette, within one look too', () => {
+    for (const id of SOUND_PALETTE_IDS) {
+      for (const style of WOW_STYLE_IDS) {
+        const slot = wowSlot(id, style);
+        expect(slot, `${id} ${style}`).toBeDefined();
+        for (const choice of slot ?? []) {
+          expect(SFX_RECIPES, style).toContain(choice.recipe);
+          const heavy = HEAVY_VARIANTS[choice.recipe] ?? [];
+          for (const variant of choice.variants) {
+            expect(SFX_VARIANTS[choice.recipe], `${style}: ${variant}`).toContain(variant);
+            expect(heavy, `${style}: ${variant} is bass-heavy`).not.toContain(variant);
+          }
+        }
+      }
+    }
+    expect(wowSlot('voxel', 'iris')).toBeUndefined();
+    expect(wowSlot('retro-ui', 'enter-window')).toBe(WOW_PALETTE_SFX['retro-ui']?.['enter-window']);
+    expect(wowSlot('voxel', 'shatter')).toBe(WOW_STYLE_SFX.shatter);
+    const retro = SOUND_PALETTES['retro-ui'];
+    const into = (look: string, style: string): StoryboardShot => ({
+      ...shot(look),
+      transitionIn: { type: 'glitch', duration: 1, style },
+    });
+    expect(lookChangeSlot(retro, retro, into('retro-ui', 'shatter'))).toBe(WOW_STYLE_SFX.shatter);
+    expect(lookChangeSlot(VOXEL_PALETTE, VOXEL_PALETTE, into('voxel', 'sponge-wipe'))).toBe(
+      WOW_STYLE_SFX['sponge-wipe'],
+    );
+  });
+
+  it('plays the glass of a shatter in the sound design of a voxel film', () => {
+    const shots: StoryboardShot[] = [0, 1, 2].map((index) => ({
+      ...shot('voxel'),
+      id: `s0${String(index + 1)}`,
+      t0: index * 5,
+      t1: (index + 1) * 5,
+      scene: `scenes/s0${String(index + 1)}.js`,
+      ...(index === 1
+        ? { transitionIn: { type: 'glitch' as const, duration: 1, style: 'shatter' } }
+        : {}),
+    }));
+    const gestures = findGestures({ shots, words: [], sceneSfx: [], anchors: [] });
+    const cues = directCues(gestures, shots, 15, shotPalettes(shots));
+    expect(cues.find((cue) => cue.shotId === 's02' && cue.kind === 'transition-glitch')?.name).toBe(
+      'glass-crack',
+    );
   });
 });
 

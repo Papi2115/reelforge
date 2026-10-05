@@ -3,6 +3,7 @@
  * full GPU post pass on their own (exactly their normal frames), are read back, and are composited
  * on the CPU by `compositeTransition`. The result is what `EngineRuntime.readFrame` returns.
  */
+import type { TransitionFocus } from '@reelforge/shared';
 import type { FrameRenderer, RenderView } from '../gl/frame-renderer.js';
 import { compositeTransition, type EngineTransition, type TransitionParams } from './index.js';
 
@@ -12,6 +13,8 @@ export interface PixelTransitionInput {
   readonly transition: EngineTransition;
   readonly progress: number;
   readonly seed: number;
+  /** Subject point of a wow transition (`transitionIn.focus`). */
+  readonly focus?: TransitionFocus | undefined;
 }
 
 export interface PixelTransitionRenderer {
@@ -33,12 +36,12 @@ export function createPixelTransitionRenderer(
     frameRenderer.readFrame(target);
   };
   return {
-    render({ a, b, transition, progress, seed }) {
+    render({ a, b, transition, progress, seed, focus }) {
       single(a, frameA);
       single(b, frameB);
       return compositeTransition(
         transition.id,
-        params,
+        { ...params, focus },
         { width, height, data: frameA },
         { width, height, data: frameB },
         progress,

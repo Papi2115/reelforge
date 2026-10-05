@@ -5,7 +5,7 @@
  * lasts `duration`; during it the previous shot keeps rendering past its own t1 ("overhang"),
  * so a shot's local time is always >= 0 and t = 0 is when it starts to appear.
  */
-import type { Transition, TransitionType } from '@reelforge/shared';
+import type { Transition, TransitionFocus, TransitionType } from '@reelforge/shared';
 
 export interface TimelineShot {
   readonly id: string;
@@ -34,6 +34,8 @@ export interface TimelineSample {
     readonly type: Exclude<TransitionType, 'cut'>;
     /** Transition kit style (PLAN.md#12.15); absent = the plain `type`. */
     readonly style?: string;
+    /** Subject point of a wow style (ADR-028); absent = the centre. */
+    readonly focus?: TransitionFocus;
     readonly outgoing: ShotSample;
     /** 0 at the start of the transition, approaching 1 at its end. */
     readonly progress: number;
@@ -81,6 +83,7 @@ export function sampleTimeline(timeline: Timeline, t: number): TimelineSample {
     transition: {
       type: transition.type,
       ...(transition.style === undefined ? {} : { style: transition.style }),
+      ...(transition.focus === undefined ? {} : { focus: transition.focus }),
       outgoing: { index: index - 1, localTime: clamped - previous.t0 },
       progress: elapsed / transition.duration,
     },

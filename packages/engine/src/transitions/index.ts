@@ -9,6 +9,7 @@
 import {
   TRANSITION_STYLE_IDS,
   TRANSITION_STYLES,
+  type TransitionFocus,
   type TransitionStyle,
   type TransitionStyleId,
 } from '@reelforge/shared';
@@ -20,8 +21,13 @@ import {
   pixelWipe,
   scanlineSweep,
 } from './basic.js';
+import { cubeSmash } from './cube-smash.js';
+import { diveIn, diveOut } from './dive.js';
+import { enterBinoculars, enterKeyhole, enterLens, enterWindow } from './enter.js';
 import { crtZoom, drawOver, pixelSortMelt, tileFlip } from './looks.js';
+import { pageTurn, paperRoll, spongeWipe } from './paper.js';
 import {
+  CENTRE_FOCUS,
   clamp01,
   createTones,
   pixelView,
@@ -29,6 +35,7 @@ import {
   type TransitionFrame,
   type Tones,
 } from './pixels.js';
+import { shatter } from './shatter.js';
 
 export { createTones, type TransitionFrame, type Tones } from './pixels.js';
 
@@ -48,6 +55,17 @@ const COMPOSITORS: Readonly<Record<TransitionStyleId, Compositor>> = {
   'tile-flip': tileFlip,
   'draw-over': drawOver,
   'pixel-sort-melt': pixelSortMelt,
+  'enter-lens': enterLens,
+  'enter-binoculars': enterBinoculars,
+  'enter-window': enterWindow,
+  'enter-keyhole': enterKeyhole,
+  'paper-roll': paperRoll,
+  'cube-smash': cubeSmash,
+  'sponge-wipe': spongeWipe,
+  'page-turn': pageTurn,
+  shatter,
+  'dive-in': diveIn,
+  'dive-out': diveOut,
 };
 
 export const TRANSITIONS: Readonly<Record<TransitionStyleId, EngineTransition>> =
@@ -69,6 +87,8 @@ export function findTransition(style: string | undefined): EngineTransition | un
 export interface TransitionParams {
   /** Style palette (0xRRGGBB, project overrides included): the tones a transition may draw. */
   readonly palette: readonly number[];
+  /** Subject point of a wow transition (storyboard `transitionIn.focus`); default the centre. */
+  readonly focus?: TransitionFocus | undefined;
 }
 
 const toneCache = new WeakMap<readonly number[], Tones>();
@@ -116,6 +136,7 @@ export function compositeTransition(
     p: clamp01(progress),
     seed: seed >>> 0,
     tones: tonesOf(params.palette),
+    focus: params.focus ?? CENTRE_FOCUS,
   });
   return target;
 }

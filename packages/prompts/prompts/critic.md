@@ -1,6 +1,6 @@
 ---
 id: critic
-version: 5
+version: 6
 model: haiku
 tools: [Read]
 output: json
@@ -23,5 +23,6 @@ Look checks: text, a window title or a headline cut by the frame edge or by a ca
 {{#sourceChip}}The plan gives this shot a source credit: a small "SOURCE: {{sourceChip}}" plate in a corner is intended (not a watermark, not an overlap).
 {{/sourceChip}}
 {{/lookId}}{{#mascotCheck}}Mascot check: this shot shows the channel mascot ({{mascotCheck}}) as a small helper beside the content. Dressed or posed as a professional or a real person (lab coat, uniform, stethoscope, a doctor's, soldier's or speaker's role) → `off-intent` with a note starting `mascot:`; cut off, hidden or too small to recognise at 640x360 → `clipped` with a note starting `mascot:`.
-
+{{#mascotReaction}}Reaction check: the mascot reacts here ({{mascotReaction}}), a short beat about the content (a head briefly turned aside in a double-take or a look into the camera is intended). Its face must read: eyes, brows and mouth visible, front or three-quarter, lit (not lost in darkness) → otherwise `clipped` with a note starting `mascot:`; a reaction staged as a person (at a desk or a podium, in a uniform, speaking to a crowd) → `off-intent` with a note starting `mascot:`.
+{{/mascotReaction}}
 {{/mascotCheck}}Return ONLY JSON, no prose: `{"frames":[{"path":"…","verdict":"ok","note":"≤15 words"}]}`
