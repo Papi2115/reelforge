@@ -42,8 +42,8 @@
     const sh = NB.props.castShadow(g.pts, 'desk');
     const d = W.G.desk;
     const keep = [];
-    for (let i = 0; i < sh.length; i += 3) {
-      const ok = sh[i] > d.x0 && sh[i] < d.x1 && sh[i + 2] > d.z0 && sh[i + 2] < d.z1 && g.pts[i + 1] > d.y;
+    for (let i = sh.length - 3; i >= 0; i -= 3) {
+      const ok = sh[i] > d.x0 && sh[i] < d.x1 && sh[i + 2] > d.z0 && sh[i + 2] < d.z1 && g.pts[i + 1] > d.y && g.pts[i + 1] < d.y + 0.07;
       if (ok) keep.push(sh[i], sh[i + 1], sh[i + 2]);
       else if (keep.length) break;
     }
@@ -68,7 +68,19 @@
       const hi = sp.map((v, i) => (i % 2 ? v - Math.floor(w / 2) : v));
       NB.polyline2(hi, 1, C.RED_HOT);
     }
+    // payoff: once the loop closes, a spark runs through every connection in story order
+    const k = g.s ? NB.seg(g.t, PULSE_T0 + g.s.order * 0.12, PULSE_T0 + g.s.order * 0.12 + 0.42) : 0;
+    if (k > 0 && k < 1) {
+      const n = sp.length >> 1;
+      const c = NB.E.sine(k) * (n - 1);
+      const a = Math.max(0, Math.floor(c - 3));
+      const b = Math.min(n - 1, Math.ceil(c + 3));
+      const seg = sp.slice(a * 2, b * 2 + 2);
+      NB.polyline2(seg, w + 5, { glow: C.RED });
+      NB.polyline2(seg, w + 1, C.RED_HOT);
+    }
   }
+  const PULSE_T0 = 61.25;
   function drawTip(g) {
     if (!g.tip) return;
     const n = g.tipN || [0, 0, -1];
@@ -138,6 +150,22 @@
     return lower.concat(upper).flat();
   }
 
+  // Occlusion masks: pixels hidden behind the opaque board front or the desk top are never lit or painted.
+  const maskBoard = NB.newMask();
+  const maskRoom = NB.newMask();
+  function buildMasks() {
+    const G = W.G;
+    const d = G.desk;
+    const f = G.board.frame;
+    maskBoard.fill(1);
+    NB.setClip(maskBoard);
+    NB.poly3([d.x0, d.y, d.z0, d.x1, d.y, d.z0, d.x1, d.y, d.z1, d.x0, d.y, d.z1], { mask: 2 });
+    maskRoom.set(maskBoard);
+    NB.setClip(maskRoom);
+    NB.poly3([W.BX0 - f, W.BY0 - f, -0.03, W.BX1 + f, W.BY0 - f, -0.03, W.BX1 + f, W.BY1 + f, -0.03, W.BX0 - f, W.BY1 + f, -0.03], { mask: 2 });
+    NB.setClip(null);
+  }
+
   function render(tRaw) {
     const t = Math.floor(tRaw * FPS + 1e-6) / FPS;
     const L = NB.light;
@@ -157,8 +185,11 @@
     [L.nx, L.ny, L.nz] = W.G.neon;
     NB.setCamera(NB.camera.poseAt(t));
     NB.beginFrame();
+    buildMasks();
     W.drawOutside(t, L.neonOn);
+    NB.setClip(maskRoom);
     W.drawRoom();
+    NB.setClip(maskBoard);
     W.drawBoardBody();
     for (const it of S.ITEMS) {
       if (it.support !== 'board') continue;
@@ -168,7 +199,7 @@
     const strings = [];
     for (const s of S.STRINGS) {
       const g = S.stringAt(s, t);
-      if (g) strings.push(g);
+      if (g) strings.push(Object.assign(g, { t }));
     }
     const pins = S.pinsAt(t);
     const boardPins = pins.filter((p) => p.n[1] < 0.5);
@@ -179,6 +210,7 @@
     boardPins.forEach(drawPin);
     strings.forEach((g) => !g.air && drawTip(g));
     drawBeam();
+    NB.setClip(null);
     W.drawDeskBody();
     for (const it of S.ITEMS) if (it.support === 'desk') NB.props.drawCard(it, S.frameOf(it, t), t);
     deskPins.forEach((p) => drawPinShadow(p, 'desk'));

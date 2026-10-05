@@ -1,4 +1,4 @@
-/* Card art (millimetres, y down, origin top-left of the card) and the card renderer.
+/* Card art (millimetres, y down, origin top-left of the card).
  * Every "photo" is a stylised duotone illustration - no real faces, no invented text. Ops: p = filled (lit) polygon,
  * l = stroke, t = laid-out text strokes, d = darken (printed shadow). Marks with t0/t1 draw on over global time. */
 'use strict';
@@ -188,8 +188,8 @@
     a.line([218, 146, 196, 150, 172, 140, 150, 116], 1.4, C.INK);
     a.text('SEATTLE', { font: 'type', size: 10, x: 16, y: 192 });
     // tape label slapped on later
-    a.poly([128, 186, 296, 182, 297, 204, 129, 209], 'paperB', { t0: tl.tape });
-    a.text('PASSENGERS RELEASED', { font: 'type', size: 7.5, x: 136, y: 191, show: tl.tape });
+    a.poly([96, 184, 298, 179, 299, 205, 97, 210], 'paperB', { t0: tl.tape });
+    a.text('PASSENGERS RELEASED', { font: 'type', size: 8.6, x: 104, y: 189, show: tl.tape, weight: 1.3 });
     return a;
   };
 
@@ -209,11 +209,12 @@
     a.line([194, 14, 266, 9, 268, 17, 196, 21, 194, 14], 1.2, C.INK);
     a.line([158, 54, 214, 52, 218, 70, 160, 72, 158, 54], 1.2, C.INK);
     for (let x = 22; x < 150; x += 10) a.line([x, 76, x + 2.5, 76], 1.3, 'paper');
-    a.poly([194, 99, 216, 97, 204, 172, 180, 170], 'pMid');
-    a.line([194, 99, 180, 170, 204, 172, 216, 97], 1.4, C.INK);
+    // the open door light spills down the stair: the brightest thing in the night print
+    a.poly([194, 99, 216, 97, 204, 172, 180, 170], 'paper');
+    a.line([194, 99, 180, 170, 204, 172, 216, 97], 1.6, C.INK);
     for (let k = 1; k < 7; k++) {
       const f = k / 7;
-      a.line([194 - 14 * f, 99 + 71 * f, 216 - 12 * f, 97 + 75 * f], 1.0, C.INK);
+      a.line([194 - 14 * f, 99 + 71 * f, 216 - 12 * f, 97 + 75 * f], 1.2, 'pMid');
     }
     // the man, small, arms up, already below the stair
     a.poly(ell(222, 182, 3.4, 3.4, 8), 'ink');
@@ -224,8 +225,8 @@
     a.line([226, 196, 230, 202], 1.5, C.INK);
     a.text('REAR STAIR', { font: 'type', size: 10, x: 18, y: 214 });
     // two-stroke red arrow from the label to the stair
-    a.line([128, 220, 168, 214, 184, 190], 2.6, C.RED, { t0: tl.arrow, t1: tl.arrow + 0.28 });
-    a.line([176, 194, 185, 188, 188, 198], 2.6, C.RED, { t0: tl.arrow + 0.4, t1: tl.arrow + 0.52 });
+    a.line([126, 222, 160, 218, 178, 206, 186, 186], 3, C.RED, { t0: tl.arrow, t1: tl.arrow + 0.3 });
+    a.line([177, 192, 186, 184, 191, 195], 3, C.RED, { t0: tl.arrow + 0.42, t1: tl.arrow + 0.54 });
     return a;
   };
 
@@ -261,9 +262,9 @@
     const a = new Art();
     a.text('FBI', { font: 'type', size: 15, x: 18, y: 18, weight: 2.6 });
     a.line([18, 42, 242, 42], 0.9, 'pMid');
-    a.text('2016', { font: 'disp', size: 34, x: 150, y: 56, weight: 4 });
-    a.text('ACTIVE', { font: 'type', size: 9, x: 18, y: 60 });
-    a.text('INVESTIGATION', { font: 'type', size: 9, x: 18, y: 76 });
+    a.text('2016', { font: 'disp', size: 34, x: 160, y: 52, weight: 4 });
+    a.text('ACTIVE', { font: 'type', size: 10.5, x: 18, y: 58, weight: 1.5 });
+    a.text('INVESTIGATION', { font: 'type', size: 10.5, x: 18, y: 76, weight: 1.5 });
     // the stamp lands with a squash; a worn rubber stamp drops a few bits of ink
     const st = tl.stamp;
     if (t >= st) {
@@ -382,147 +383,10 @@
     a.text('MEXICO CITY', { font: 'hand', size: 9, x: mx(-122.6) + 10, y: 276, seed: 77, c: C.GRAPH, weight: 1.2 });
     a.ops.push({ k: 't', s: NB.font.layout('?', { font: 'hand', size: 20, x: mx(-122.4), y: my(46.62), seed: 4 }).strokes, w: 1.6, c: C.GRAPH });
     // coffee ring from the mug, not closed, slightly doubled
-    a.line(ell(352, 236, 30, 30, 28).slice(0, 46), 1.2, 'paperB');
-    a.line(ell(355, 239, 29, 28, 28).slice(10, 34), 0.8, 'paperB');
+    a.line(ell(78, 252, 28, 28, 28).slice(4, 50), 1.0, 'paperB');
+    a.line(ell(81, 255, 27, 26, 28).slice(14, 36), 0.7, 'paperB');
     return a;
   };
 
-  // ---------- card renderer ----------
-  const cache = {};
-  function artFor(card, t) {
-    if (card.dynamic) return ART[card.art](t, card.tl, card);
-    if (!cache[card.id]) cache[card.id] = ART[card.art](0, card.tl, card);
-    return cache[card.id];
-  }
-  /** fr: {o, ax, ay, n, lean0, lean1, plane, support:'board'|'desk'} */
-  function makeXf(card, fr) {
-    const w = card.w;
-    const h = card.h;
-    const k = card.k || 1;
-    return function (p) {
-      const out = new Array((p.length / 2) * 3);
-      for (let i = 0, j = 0; i < p.length; i += 2, j += 3) {
-        const X = ((p[i] - w / 2) * k) / 1000;
-        const Y = ((h / 2 - p[i + 1]) * k) / 1000;
-        const ln = fr.lean0 + (fr.lean1 - fr.lean0) * NB.clamp(p[i + 1] / h, 0, 1);
-        out[j] = fr.o[0] + fr.ax[0] * X + fr.ay[0] * Y + fr.n[0] * ln;
-        out[j + 1] = fr.o[1] + fr.ax[1] * X + fr.ay[1] * Y + fr.n[1] * ln;
-        out[j + 2] = fr.o[2] + fr.ax[2] * X + fr.ay[2] * Y + fr.n[2] * ln;
-      }
-      return out;
-    };
-  }
-  /** Project world points from the lamp onto the support plane (board z=0 or desk y=deskY). */
-  function castShadow(pts, support) {
-    const L = NB.light.lamps[support === 'desk' ? 1 : 0];
-    const out = pts.slice();
-    for (let i = 0; i < pts.length; i += 3) {
-      const dx = pts[i] - L.x;
-      const dy = pts[i + 1] - L.y;
-      const dz = pts[i + 2] - L.z;
-      const s = support === 'desk' ? (W.G.desk.y + 0.0005 - L.y) / dy : (-0.0005 - L.z) / dz;
-      out[i] = L.x + dx * s;
-      out[i + 1] = L.y + dy * s;
-      out[i + 2] = L.z + dz * s;
-    }
-    return out;
-  }
-  function partial(p, k) {
-    if (k >= 1) return p;
-    let total = 0;
-    for (let i = 2; i < p.length; i += 2) total += Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]);
-    let left = total * k;
-    const out = [p[0], p[1]];
-    for (let i = 2; i < p.length; i += 2) {
-      const l = Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]);
-      if (left >= l) {
-        out.push(p[i], p[i + 1]);
-        left -= l;
-      } else {
-        const f = l > 0 ? left / l : 0;
-        out.push(p[i - 2] + (p[i] - p[i - 2]) * f, p[i - 1] + (p[i + 1] - p[i - 1]) * f);
-        break;
-      }
-    }
-    return out;
-  }
-  function shaderFor(c, plane) {
-    if (typeof c === 'number') return c;
-    return { mat: W.M[c], plane };
-  }
-  function shapeOf(card) {
-    const w = card.w;
-    const h = card.h;
-    if (card.shape === 'tornR') {
-      const p = [0, 0, w - 12, 0];
-      for (let y = 0, i = 0; y < h; y += 9, i++) p.push(w - 12 + (i % 2 ? 0 : 7), Math.min(h, y + 9));
-      p.push(0, h);
-      return p;
-    }
-    if (card.shape === 'tornL') {
-      const p = [12, 0, w, 0, w, h, 12, h];
-      for (let y = h, i = 0; y > 0; y -= 9, i++) p.push(12 - (i % 2 ? 0 : 7), Math.max(0, y - 9));
-      return p;
-    }
-    if (card.curl) {
-      const c = card.curl;
-      return [0, 0, w, 0, w, h - c, w - c, h, 0, h];
-    }
-    return [0, 0, w, 0, w, h, 0, h];
-  }
-  function drawCard(card, fr, t, opts) {
-    const base = makeXf(card, fr);
-    const mag = opts && opts.mag;
-    const xf = mag
-      ? (p) => base(p.map((v, i) => mag.c[i % 2] + (v - mag.c[i % 2]) * mag.k))
-      : base;
-    const plane = fr.plane;
-    const shape = shapeOf(card);
-    const world = xf(shape);
-    if (!mag) NB.poly3(castShadow(world, fr.support), { dark: 1 });
-    NB.poly3(world, { mat: W.M[card.paper || 'paper'], plane });
-    const art = artFor(card, t);
-    for (const op of art.ops) {
-      if (op.t0 !== undefined && t < op.t0) continue;
-      if (op.k === 'p') NB.poly3(xf(op.p), shaderFor(op.m, plane));
-      else if (op.k === 'd') NB.poly3(xf(op.p), { dark: 1 });
-      else if (op.k === 'l') {
-        const k = op.t1 !== undefined ? NB.seg(t, op.t0, op.t1) : 1;
-        if (k <= 0) continue;
-        NB.polyline3(xf(partial(op.p, k)), op.w / 1000, 1, 6, shaderFor(op.c, plane), op.closed && k >= 1);
-      } else if (op.k === 't') {
-        if (op.t1 !== undefined && t >= op.t1) continue;
-        const mode = shaderFor(op.c, plane);
-        for (const s of op.s) {
-          if (s.ts >= 0 && t < s.ts) continue;
-          const k = s.ts >= 0 ? NB.seg(t, s.ts, s.te) : 1;
-          NB.polyline3(xf(partial(s.p, k)), op.w / 1000, 1, 5, mode);
-        }
-      }
-    }
-    if (card.curl) {
-      const c = card.curl;
-      const fold = xf([card.w, card.h - c, card.w - c, card.h, card.w - c * 0.86, card.h - c * 0.86]);
-      NB.poly3(fold, { mat: W.M.paperB, plane });
-      NB.polyline3(fold, 0.0012, 1, 2, C.INK, true);
-    }
-    if (mag) return;
-    const ow = NB.clamp(Math.round((0.0016 * NB.cam.f) / Math.max(0.2, distTo(fr.o))), 1, 3);
-    NB.polyline3(world, 0, ow, ow, C.INK, true);
-    if (card.tape) card.tape.forEach((tp) => drawTape(xf, tp, plane));
-  }
-  function drawTape(xf, tp, plane) {
-    const [x, y, len, ang] = tp;
-    const c = Math.cos(ang);
-    const s = Math.sin(ang);
-    const hw = 9;
-    const p = [x - c * len + s * hw, y - s * len - c * hw, x + c * len + s * hw, y + s * len - c * hw, x + c * len - s * hw, y + s * len + c * hw, x - c * len - s * hw, y - s * len + c * hw];
-    NB.poly3(xf(p), { mat: W.M.paperB, plane });
-    NB.polyline3(xf(p), 0, 1, 1, C.SLATE, true);
-  }
-  function distTo(o) {
-    return Math.hypot(o[0] - NB.cam.px, o[1] - NB.cam.py, o[2] - NB.cam.pz);
-  }
-
-  NB.props = { ART, Art, drawCard, makeXf, castShadow, partial, ell, distTo };
+  NB.art = { ART, Art, ell };
 })();

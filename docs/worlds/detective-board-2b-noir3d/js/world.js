@@ -154,6 +154,22 @@
     // vertical sign: backing plate, tube letters H-O-T-E-L (the middle T has a bad electrode)
     const sx = 2.62;
     const zz = Zf - 0.12;
+    // neon spill on the bricks: two hand-placed dither rings, only over the dark wall
+    if (neonOn) {
+      const halo = (pad, dens) => {
+        const x0 = sx - pad;
+        const x1 = sx + 0.36 + pad;
+        const y0 = 0.62 - pad;
+        const y1 = 3.05 + pad;
+        const c = pad * 0.9;
+        const z = Zf - 0.003;
+        NB.poly3([x0 + c, y0, z, x1 - c, y0, z, x1, y0 + c, z, x1, y1 - c, z, x1 - c, y1, z, x0 + c, y1, z, x0, y1 - c, z, x0, y0 + c, z], {
+          fn: (x, y) => (NB.fb[y * NB.W + x] === C.INK && NB.bayer(x, y) < dens ? C.TEAL_D : -1),
+        });
+      };
+      halo(0.34, 0.1);
+      halo(0.17, 0.28);
+    }
     NB.poly3([sx - 0.06, 0.62, zz + 0.02, sx + 0.42, 0.62, zz + 0.02, sx + 0.42, 3.05, zz + 0.02, sx - 0.06, 3.05, zz + 0.02], C.INK);
     NB.polyline3([sx - 0.06, 0.62, zz, sx + 0.42, 0.62, zz, sx + 0.42, 3.05, zz, sx - 0.06, 3.05, zz], 0.012, 1, 2, C.GRAPH, true);
     const letters = 'HOTEL';
@@ -292,8 +308,8 @@
   // Desk lamp: weighted base, two-segment arm, small shade aimed at the map.
   const deskLamp = (function () {
     const base = [-0.7, G.desk.y, -1.42];
-    const elbow = [-0.66, 1.14, -1.4];
-    const pos = [-0.44, 1.16, -1.3];
+    const elbow = [-0.66, 1.3, -1.42];
+    const pos = [-0.36, 1.34, -1.3];
     const axis = v3.norm(v3.sub([0.06, G.desk.y, -1.12], pos));
     return { base, elbow, pos, axis, pivot: elbow };
   })();

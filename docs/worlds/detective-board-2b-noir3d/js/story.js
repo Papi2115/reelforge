@@ -20,19 +20,19 @@
     card({ id: 'plane', art: 'plane', w: 300, h: 220, u: -0.72, v: -0.4, rot: -2, anchor: [150, 14], curl: 14 }),
     card({ id: 'briefcase', art: 'briefcase', w: 240, h: 190, u: -0.33, v: -0.3, rot: 3, anchor: [120, 14], tape: [[16, 180, 18, -0.7]] }),
     card({ id: 'demand', art: 'demand', w: 280, h: 170, u: -0.05, v: -0.02, rot: -1.5, anchor: [30, 14], pins: [[252, 15]], tl: { circle: 18.85 } }),
-    card({ id: 'seattle', art: 'seattle', w: 300, h: 220, u: 0.18, v: 0.4, rot: 2.5, anchor: [150, 14], curl: 12, tl: { tape: 22.25 } }),
+    card({ id: 'seattle', art: 'seattle', w: 300, h: 220, u: 0.18, v: 0.4, rot: 2.5, anchor: [20, 172], pins: [[150, 12]], curl: 12, tl: { tape: 22.25 } }),
     card({ id: 'jump', art: 'jump', w: 300, h: 240, u: 0.56, v: 0.02, rot: -3, anchor: [150, 14], tl: { arrow: 34.15 } }),
     card({ id: 'landed', art: 'landed', w: 120, h: 110, k: 1.25, u: 0.63, v: -0.31, rot: -7, anchor: [60, 9], tIn: 34.8, lean: [0.001, 0.006] }),
     card({ id: 'survived', art: 'survived', w: 120, h: 110, k: 1.25, u: 0.92, v: -0.21, rot: 5, anchor: [60, 9], tIn: 35.22, lean: [0.001, 0.006] }),
     card({ id: 'died', art: 'died', w: 130, h: 115, k: 1.2, u: 0.99, v: 0.19, rot: -4, anchor: [65, 9], tIn: 35.68, lean: [0.001, 0.006] }),
     card({ id: 'spent', art: 'spent', w: 130, h: 115, k: 1.2, u: 1.1, v: -0.53, rot: 3, anchor: [24, 12], pins: [[108, 12]], tIn: 39.85, tl: { cross: 44.75 }, lean: [0.001, 0.006] }),
     card({ id: 'river', art: 'river', w: 300, h: 220, k: 1.15, u: -0.3, v: -0.57, rot: 2, anchor: [150, 14], tIn: 47.45, curl: 12, tl: { money: 50.05 } }),
-    card({ id: 'memo', art: 'memo', w: 260, h: 180, u: 0.9, v: 0.52, rot: -2, anchor: [130, 12], tIn: 54.85, tl: { stamp: 57.05 }, dynamic: 1 }),
+    card({ id: 'memo', art: 'memo', w: 260, h: 180, u: 0.9, v: 0.52, rot: -2, anchor: [12, 104], pins: [[236, 12]], tIn: 54.85, tl: { stamp: 57.05 }, dynamic: 1 }),
   ];
   ITEMS.forEach((it, i) => (it.index = i));
   const BY = {};
   ITEMS.forEach((it) => (BY[it.id] = it));
-  BY.who = card({ id: 'who', art: 'who', w: 110, h: 100, u: -0.37, v: 0.53, rot: 6, tIn: 4.35, tl: { write: 4.8 }, lean: [0.001, 0.006] });
+  BY.who = card({ id: 'who', art: 'who', w: 110, h: 100, u: -0.37, v: 0.53, rot: 6, tIn: 4.75, tl: { write: 5.2 }, lean: [0.001, 0.006] });
   ITEMS.splice(3, 0, BY.who);
 
   const rotAbout = (v, a, ang) => {
@@ -126,6 +126,10 @@
     S('s13', 'river', 'memo', 55.0, 56.6, { arc: 1 }),
     S('s14', 'memo', 'sketch', 58.0, 61.0, { arc: -1, sag: 0.05 }),
   ];
+  STRINGS.forEach((s, i) => {
+    s.seed = 400 + i * 17;
+    s.order = i;
+  });
   const PIN_H = 0.019;
   const NECK = 0.011;
   function anchorOf(ref) {
@@ -186,7 +190,8 @@
     }
     return out;
   }
-  const twang = (dt, span) => (dt < 0 || dt > 1.4 ? 0 : 0.03 * span * Math.exp(-4.2 * dt) * Math.sin(2 * Math.PI * 7.5 * dt));
+  const twang = (dt, span, seed) =>
+    dt < 0 || dt > 1.4 ? 0 : (0.022 + 0.016 * NB.rnd(seed, 1)) * span * Math.exp(-(3.4 + 1.8 * NB.rnd(seed, 2)) * dt) * Math.sin(2 * Math.PI * (6 + 3 * NB.rnd(seed, 3)) * dt);
   /**
    * Geometry of a string at t: {pts, tip (carried pin head pos or null), kind}. Null before it starts.
    */
@@ -195,19 +200,19 @@
     const A = pinAt(s.a, t);
     if (!A) return null;
     const out = [];
-    if (s.relay && t >= T_POP) return danglingOrRelay(s, A, t, out);
+    if (s.relay && t >= T_POP) return Object.assign(danglingOrRelay(s, A, t, out), { s });
     const Bp = pinAt(s.b, Math.max(t, s.t1));
     if (t < s.t1) {
       const k = NB.seg(t, s.t0, s.t1);
       const tip = tipAt(s, A, Bp, k, s.air);
       catenary(A.neck, tip, 0.1 - 0.04 * k, null, out);
-      return { pts: out, tip, tipN: Bp.n, air: s.air };
+      return { pts: out, tip, tipN: Bp.n, air: s.air, s };
     }
     const span = Math.hypot(...v3.sub(Bp.neck, A.neck));
     const dt = t - s.t1;
     let sag = s.sag + (0.08 - s.sag) * Math.exp(-9 * dt);
     let vib = null;
-    const tw = twang(dt, span);
+    const tw = twang(dt, span, s.seed);
     if (tw) vib = v3.add(v3.mul(A.n, tw * 0.6), [0, tw, 0]);
     if (s.relay && t >= 42.2) {
       const k = NB.E.inOut(NB.seg(t, 42.2, T_POP - 0.1));
@@ -216,7 +221,7 @@
       vib = v3.add(vib || [0, 0, 0], v3.mul(A.n, tr));
     }
     catenary(A.neck, Bp.neck, sag, vib, out);
-    return { pts: out, tip: null, air: s.air };
+    return { pts: out, tip: null, air: s.air, s };
   }
   /** s11 after the pop: the free end swings on the string, later it is picked up and pinned to the 1980 card. */
   function dangleEnd(s, A, t) {
@@ -246,7 +251,7 @@
     }
     const span = Math.hypot(...v3.sub(Bp.neck, A.neck));
     const dt = t - R.t1;
-    const tw = twang(dt, span);
+    const tw = twang(dt, span, s.seed + 50);
     catenary(A.neck, Bp.neck, 0.045 + 0.04 * Math.exp(-9 * dt), tw ? [0, tw, 0] : null, out);
     return { pts: out, tip: null };
   }
@@ -289,14 +294,14 @@
     return false;
   }
   function lampLevel(t) {
-    if (t < 0.95) return 0;
-    if (inAny(t, [[1.0, 1.12], [1.16, 1.22], [41.72, 41.8], [42.98, 43.06]])) return 0;
-    if (inAny(t, [[0.95, 1.0], [1.12, 1.16], [42.5, 42.57], [44.02, 44.08]])) return 1;
+    if (t < 1.3) return 0;
+    if (inAny(t, [[1.35, 1.46], [1.5, 1.57], [41.72, 41.8], [42.98, 43.06]])) return 0;
+    if (inAny(t, [[1.3, 1.35], [1.46, 1.5], [42.5, 42.57], [44.02, 44.08]])) return 1;
     return 2;
   }
   const deskLampLevel = (t) => (inAny(t, [[43.12, 43.2]]) ? 0 : 2);
   const neonLevel = (t) => (inAny(t, [[41.9, 42.06], [42.72, 42.77], [43.12, 43.32]]) ? 0 : 1);
-  const brokenT = (t) => (t >= 39.5 && t < 47 ? Math.floor(t * 9) % 7 === 3 || Math.floor(t * 9) % 11 === 5 : false) || inAny(t, [[0.2, 0.32]]);
+  const brokenT = (t) => (t >= 39.5 && t < 47 ? Math.floor(t * 9) % 7 === 3 || Math.floor(t * 9) % 11 === 5 : false) || inAny(t, [[0.2, 0.32], [0.5, 0.55], [64.2, 64.34]]);
   /**
    * Where the pendant points. It is knocked at 42.7 s: the first sweep lands the pool on the dying theory at the pop,
    * and while it swings the shade twists on its cord and settles aimed lower-right - so the 1980 turn is in the light.

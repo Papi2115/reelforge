@@ -21,8 +21,8 @@
     return S.localToWorld(map, S.frameOf(map, t), mm);
   }
   function pencil(t) {
-    const a = mapPoint([300, 228], t);
-    const b = mapPoint([392, 168], t);
+    const a = mapPoint([318, 284], t);
+    const b = mapPoint([408, 236], t);
     const roll = t >= 29.2 ? Math.min(1, (t - 29.2) / 0.35) : 0;
     const shift = [0, 0, -0.006 * NB.E.outBack(roll)];
     const p0 = v3.add(a, shift);
@@ -62,6 +62,8 @@
     const mm = [LENS_MM[0] + (1 - k) * 120, LENS_MM[1] + (1 - k) * 70];
     const base = S.localToWorld(map, fr, mm);
     const c = v3.add(base, [0, 0.042, 0]);
+    const cp = NB.proj(c[0], c[1], c[2]);
+    if (!cp || cp[0] < -200 || cp[0] > NB.W + 200 || cp[1] < -200 || cp[1] > NB.H + 200) return;
     const n = v3.norm([0.12, 1, -0.2]);
     const ring = circle3(c, n, LENS_R, 30);
     const inner = circle3(c, n, LENS_R - 0.006, 30);
@@ -70,8 +72,8 @@
     const h1 = v3.add(v3.add(c, v3.mul(handleDir, LENS_R + 0.12)), [0, -0.028, 0]);
     // ring shadow + the caustic the lens throws from the lamp
     const shadow = NB.props.castShadow(ring, 'desk');
-    NB.polyline3(shadow, 0.009, 1, 9, 'dark', true);
-    NB.polyline3(NB.props.castShadow([].concat(h0, h1), 'desk'), 0.012, 1, 10, 'dark');
+    NB.polyline3(shadow, 0.004, 1, 4, 'dark', true);
+    NB.polyline3(NB.props.castShadow([].concat(h0, h1), 'desk'), 0.009, 1, 8, 'dark');
     const DL = NB.light.lamps[1];
     if (DL.on > 0) {
       const L = [DL.x, DL.y, DL.z];
@@ -91,7 +93,7 @@
     mask.fill(0);
     NB.setClip(mask);
     NB.poly2(pts, { mask: 1 });
-    NB.props.drawCard(map, fr, t, { mag: { c: mm, k: MAG }, at: c });
+    NB.props.drawCard(map, fr, t, { mag: { c: mm, k: MAG } });
     NB.setClip(null);
     NB.polyline2(pts, 1, C.ICE, true);
     // rim, glint and handle
