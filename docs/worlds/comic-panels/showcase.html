@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ReelForge world showcase - comic-panels - Apollo 11: the 1202 alarm</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #121014;
+        color: #d8d0bf;
+        font: 13px/1.45 Consolas, 'Cascadia Mono', monospace;
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 18px 12px 28px;
+      }
+      h1 {
+        font-size: 13px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        color: #8b8578;
+        margin: 0;
+      }
+      h1 b {
+        color: #efd690;
+        font-weight: normal;
+      }
+      canvas {
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        display: block;
+        box-shadow: 0 0 0 1px #2a262c, 0 10px 40px #000;
+      }
+      .bar {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      button {
+        font: inherit;
+        background: #1f1c22;
+        color: #d8d0bf;
+        border: 1px solid #3a3540;
+        padding: 4px 10px;
+        cursor: pointer;
+      }
+      button.on {
+        background: #d8381f;
+        border-color: #d8381f;
+        color: #f1e5c9;
+      }
+      input[type='range'] {
+        width: min(640px, 70vw);
+      }
+      #time {
+        min-width: 92px;
+        text-align: right;
+        color: #8b8578;
+      }
+      #caption {
+        max-width: 760px;
+        min-height: 2.9em;
+        text-align: center;
+        color: #f1e5c9;
+        font-size: 15px;
+      }
+      #caption.hidden {
+        visibility: hidden;
+      }
+      #note {
+        max-width: 760px;
+        text-align: center;
+        color: #8b8578;
+        font-style: italic;
+      }
+      #note b {
+        color: #c35a70;
+        font-style: normal;
+        font-weight: normal;
+      }
+      label {
+        color: #8b8578;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>REELFORGE WORLD &middot; <b>COMIC-PANELS</b> &middot; Apollo 11: the 1202 alarm</h1>
+      <canvas id="frame" width="640" height="360"></canvas>
+      <div id="caption"></div>
+      <div class="bar" id="shots"></div>
+      <div class="bar">
+        <button id="play">pause</button>
+        <input id="scrub" type="range" min="0" max="7" step="0.0333333" value="0" />
+        <span id="time">0.00 s</span>
+        <label><input id="showCaption" type="checkbox" checked /> dev caption</label>
+      </div>
+      <div id="note"></div>
+    </main>
+    <script src="engine.js"></script>
+    <script src="lettering.js"></script>
+    <script src="art.js"></script>
+    <script src="page.js"></script>
+    <script src="shots-a.js"></script>
+    <script src="shots-b.js"></script>
+    <script src="shots-c.js"></script>
+    <script src="player.js"></script>
+  </body>
+</html>
