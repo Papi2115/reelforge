@@ -52,3 +52,6 @@ repo (so the $250 cloud credit applies; agents launched from the desktop app wit
 Each session works in its own new folder, commits to `worlds/<name>`, opens a PR into `phase-12/v2.5-worlds`; the Manager pulls the folder with
 `git checkout origin/worlds/<name> -- docs/worlds/<folder>` and reviews the PNGs. Standalone HTML = plain classic scripts (file:// blocks ES modules), 640×360 or 960×540
 indexed canvas, pure function of t, seeded PRNG, palette ≤ 24–32 colours.
+
+## Sketchbook resolution (Papi, 2026-10-06)
+960×540 indexed page scaled ×2 (nearest) to 1080p is approved ("git, nie kombinuj"): the stair-stepped hard edges read as hand-made. Do NOT build the native 1920×1080 variant.
