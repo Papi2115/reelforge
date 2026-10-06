@@ -124,7 +124,21 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     await brief.waitFor();
     await expect
       .poll(() => stageRow(page, 'Script written').textContent())
-      .toBe('Script writtenWaiting for the brief');
+      .toBe('Script writtenNeeds you');
+    // A new project shows the empty stage, never the demo scene, and no direction bar yet.
+    const empty = page.getByTestId('preview-empty');
+    await empty.waitFor();
+    expect(await empty.textContent()).toContain('Nothing to show yet — Describe the video');
+    expect(await page.locator('canvas.preview-canvas[data-rendered-t]').count()).toBe(0);
+    expect(await page.getByRole('region', { name: 'Direct the shot' }).count()).toBe(0);
+    await page.getByRole('button', { name: 'Back to preview' }).click();
+    await empty.waitFor();
+    await shot('empty-stage');
+    await page
+      .getByRole('region', { name: 'Pipeline' })
+      .getByRole('button', { name: 'Brief', exact: true })
+      .click();
+    await brief.waitFor();
     await brief
       .getByLabel('What is the video about?')
       .fill(
@@ -141,7 +155,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     await progress.locator('.step-tool').first().waitFor({ timeout: 15_000 });
     await expect
       .poll(() => stageRow(page, 'Script written').textContent())
-      .toMatch(/^Script writtenRunning…/);
+      .toMatch(/^Script writtenWorking/);
     await shot('progress');
 
     const editor = page.getByRole('textbox', { name: 'Script' });
@@ -159,7 +173,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
       .toEqual(expect.arrayContaining(['Claude turn: research', 'Claude turn: script']));
     await expect
       .poll(() => stageRow(page, 'Script written').textContent())
-      .toBe('Script writtenReview & approve');
+      .toBe('Script writtenNeeds you');
     await shot('script');
 
     const view = page.getByRole('region', { name: 'Script' });
@@ -199,7 +213,8 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     const run = actions.getByRole('button', { name: 'Run' });
     expect(await run.getAttribute('aria-disabled')).toBe('true');
     expect(await run.getAttribute('title')).toContain('run Words timed first');
-    await pipeline.getByText('timing/words.json is missing: run Words timed first.').waitFor();
+    // The detail line translates the requirement; the raw reason stays in the Run tooltip.
+    await pipeline.getByText('Needs: timed words.').waitFor();
     await run.hover();
     await shot('gating');
 

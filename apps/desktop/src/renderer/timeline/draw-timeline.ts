@@ -47,7 +47,8 @@ export type DrawContext = Pick<
 
 export type WaveformView =
   | { readonly kind: 'ok'; readonly source: PeakSource }
-  | { readonly kind: 'message'; readonly text: string };
+  /** `missing`: the project has no audio file yet (the Audio track hides, track-visibility.ts). */
+  | { readonly kind: 'message'; readonly text: string; readonly missing?: true };
 
 export interface DrawInput {
   readonly model: TimelineModel;

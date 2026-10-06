@@ -14,6 +14,7 @@ import type { Player } from './player.js';
 import { playerNeedsVideo, PreviewController, type FrameSink } from './preview-controller.js';
 import {
   AudioProblemNotice,
+  EmptyStage,
   ReloadNotice,
   SnapshotNotice,
   StatsOverlay,
@@ -34,6 +35,8 @@ const PREVIEW_TIMEOUTS = { loadMs: 120_000, callMs: 20_000 } as const;
 type PreviewState =
   | { readonly status: 'loading' }
   | { readonly status: 'error'; readonly message: string }
+  /** A project without a video yet: the empty-stage card, no frame (never the demo). */
+  | { readonly status: 'empty'; readonly problem: string | undefined }
   | { readonly status: 'ready'; readonly info: LoadInfo; readonly note: string | undefined };
 
 function canvasSink(canvas: HTMLCanvasElement, player: Player): FrameSink {
@@ -87,6 +90,8 @@ export interface PreviewPanelProps {
   readonly marker?: PreviewMarker | null;
   /** Docked under the transport (the live co-direction command bar, PLAN.md#12.14). */
   readonly footer?: ReactNode;
+  /** The next action the empty stage suggests (a project without a video yet). */
+  readonly emptyHint?: string | undefined;
 }
 
 export function PreviewPanel({
@@ -96,6 +101,7 @@ export function PreviewPanel({
   onPick,
   marker,
   footer,
+  emptyHint,
 }: PreviewPanelProps): JSX.Element {
   const frameHostRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -169,7 +175,19 @@ export function PreviewPanel({
     const isStale = (): boolean => stale;
     const started = performance.now();
     const show = async (): Promise<void> => {
-      const { manifest, note } = await resolvePreview(source, window.reelforge);
+      const resolved = await resolvePreview(source, window.reelforge);
+      if (isStale()) return;
+      if (resolved.kind === 'empty') {
+        // A video was on screen: keep its last frame and say why it cannot update.
+        if (readyRef.current && resolved.problem !== undefined) {
+          setReload({ kind: 'failed', message: resolved.problem });
+        } else {
+          player.pause();
+          setState({ status: 'empty', problem: resolved.problem });
+        }
+        return;
+      }
+      const { manifest, note } = resolved;
       const result = await controller.apply(manifest);
       if (isStale()) return;
       const { info } = result;
@@ -239,7 +257,7 @@ export function PreviewPanel({
       data-playing={String(playerState.playing)}
     >
       <div className="preview-stage" ref={stageRef}>
-        <div className="preview-canvas-wrap">
+        <div className="preview-canvas-wrap" hidden={state.status === 'empty'}>
           <canvas
             ref={canvasRef}
             className={`preview-canvas${onPick ? ' pickable' : ''}`}
@@ -271,6 +289,7 @@ export function PreviewPanel({
           )}
         </div>
         {state.status === 'loading' && <p className="preview-status">Loading engine…</p>}
+        {state.status === 'empty' && <EmptyStage hint={emptyHint} problem={state.problem} />}
         {state.status === 'error' && (
           <p className="preview-status preview-error" role="alert">
             {state.message}

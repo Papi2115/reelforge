@@ -177,7 +177,7 @@ describe('the app is killed while the Storyboard stage runs', () => {
     await rowAction(first.page, 'Storyboard', /^Run$/);
     await expect
       .poll(() => rowText(first.page, 'Storyboard'), { timeout: 30_000 })
-      .toMatch(/^StoryboardRunning/);
+      .toMatch(/^StoryboardWorking/);
     const sessions = path.join(dir, '.reelforge', 'sessions.json');
     await waitFor(
       () =>
@@ -202,7 +202,7 @@ describe('the app is killed while the Storyboard stage runs', () => {
     await openFolder(second.app, second.page, dir);
     await expect
       .poll(() => rowText(second.page, 'Storyboard'), { timeout: 30_000 })
-      .toMatch(/^StoryboardInterrupted/);
+      .toMatch(/^StoryboardStopped/);
     expect(gitHealth(dir)).toEqual({ lock: false, status: 0, fsck: 0 });
     const state = pipelineStateSchema.parse(
       JSON.parse(await readFile(path.join(dir, '.reelforge', 'pipeline.json'), 'utf8')),
@@ -215,7 +215,8 @@ describe('the app is killed while the Storyboard stage runs', () => {
     await rowAction(second.page, 'Storyboard', /^Resume$/);
     await expect
       .poll(() => rowText(second.page, 'Storyboard'), { timeout: 90_000, interval: 500 })
-      .toMatch(/^StoryboardDone/);
+      // The fixture has no voiceover: the storyboard is output kept from before.
+      .toMatch(/^StoryboardKept from before/);
     expect(existsSync(path.join(dir, 'storyboard.json'))).toBe(true);
     expect(gitHealth(dir).lock).toBe(false);
     await second.app.close();

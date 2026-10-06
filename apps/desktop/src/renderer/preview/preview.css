@@ -77,6 +77,34 @@
   font-size: 12px;
 }
 
+/* Empty stage: a project without a video yet (docs/ux/redesign-2.4.md §5), a DOM card, no frame. */
+.preview-empty {
+  max-width: min(440px, calc(100% - 32px));
+  padding: var(--space-4) 16px;
+  border: 2px solid var(--border);
+  box-shadow: 4px 4px 0 0 rgb(0 0 0 / 60%);
+  color: var(--text);
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.preview-empty-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.preview-empty-sub {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.preview-empty-problem {
+  margin: 6px 0 0;
+  color: var(--warn);
+  overflow-wrap: anywhere;
+}
+
 /* Holds the engine's (invisible) sandboxed iframe. */
 .preview-engine-host {
   position: absolute;

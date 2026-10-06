@@ -200,7 +200,8 @@ describe('shot locks and the final review', () => {
     await confirm.getByRole('button', { name: 'Redo' }).click();
     await expect
       .poll(() => rowText('Scenes built'), { timeout: 300_000, interval: 500 })
-      .toMatch(/^Scenes builtDone.*Review done: 1 ✓, 1 ⚠; 1 locked/);
+      // The fixture has no voiceover: the scenes are output kept from before.
+      .toMatch(/^Scenes builtKept from before.*Review done: 1 ✓, 1 ⚠; 1 locked/);
     await shot('reviewed');
     // s02 was never built (the fixture has no scenes report): only s01 has a build record.
     const scenes = JSON.parse(

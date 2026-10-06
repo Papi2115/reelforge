@@ -171,6 +171,19 @@
   background: rgb(242 193 78 / 35%);
 }
 
+.status-problems .stage-dot,
+.stage-dot.status-problems {
+  border-color: var(--warn);
+  background: var(--warn);
+}
+
+/* Kept from before: a muted filled square (output from before, an earlier step is not done). */
+.status-kept .stage-dot,
+.stage-dot.status-kept {
+  border-color: var(--muted);
+  background: var(--muted);
+}
+
 .status-failed .stage-dot,
 .stage-dot.status-failed {
   border-color: var(--error);
@@ -208,7 +221,8 @@
 
 .status-chip.status-paused,
 .status-chip.status-stale,
-.status-chip.status-interrupted {
+.status-chip.status-interrupted,
+.status-chip.status-problems {
   color: var(--warn);
   background: rgb(242 193 78 / 14%);
 }
@@ -276,9 +290,13 @@
   -webkit-box-orient: vertical;
 }
 
-.stage-detail.status-failed .stage-detail-line,
-.stage-detail.status-interrupted .stage-detail-line {
+.stage-detail.status-failed .stage-detail-line {
   color: var(--error);
+}
+
+.stage-detail.status-problems .stage-detail-line,
+.stage-detail.status-interrupted .stage-detail-line {
+  color: var(--warn);
 }
 
 .stage-detail .link-button {

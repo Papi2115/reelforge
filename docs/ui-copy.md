@@ -29,20 +29,40 @@ One word per thing, everywhere in the app (pipeline, buttons, panels, chat, sett
 
 ## Step status words
 
-Same colour and dot per status everywhere; the legend is the (i) next to "Pipeline".
+Status model v2 (docs/ux/redesign-2.4.md §3, `stages/stations-view.ts`). Same colour and square dot per status
+everywhere; the legend is the (i) next to "Pipeline". The chip shows the word; the row tooltip and the line under
+the actions show one sentence: `<what exists>. <what is wrong>. <one action>.` Never "Waiting for …", never
+"Failed" next to output that still plays, no file names (raw errors only behind "Show details").
 
-| Status | Chip | Means |
+| Status | Chip | Sentence examples |
 |---|---|---|
-| done | Done | Finished; Redo runs it again. |
-| ready | Ready to run | Everything it needs is there. |
-| review | Review & approve | Read the result (the script, the asset package), then approve it. |
-| running | Running… 42 % | Working now; the detail line names the current step. |
-| queued | Queued | Starts when the running step finishes. |
-| waiting | Waiting for *Voiceover* | Names the nearest earlier step that is not done (short names: Script, Voiceover, Cleanup, Words, Storyboard, Assets, Scenes, Sound mix, Export); "Waiting for the brief", "Needs your recording" at the start. |
-| stale | Out of date — rebuild | Something it uses changed. |
-| paused | Paused (usage limit) — resumes 14:05 | The Claude usage limit; resumes by itself. |
-| interrupted | Interrupted — Resume | The app closed while it ran. |
-| failed | Failed — see details | Select it for the error, then Retry. |
+| Not started □ | Not started | "Needs: timed words." · "Needs: an approved script." · "Needs: your review of the asset package." · "Needs: the storyboard made again (script changed)." · "Needs: the scenes (being made now)." |
+| Ready ▶ | Ready | "Clean up the voiceover audio." · "Build 7 scenes." |
+| Working ● | Working · 42 % / Queued / Paused / Stopped | the current step ("Transcribing.") · "Starts when the running step finishes (#2 in line)." · "Paused by your Claude usage limit — resumes at 14:05." · "Stopped when the app closed. Resume continues it." |
+| Needs you ◆ | Needs you | "Describe your video in a few sentences (the brief), then write the script." · "The script is written. Read it and approve it." · "Record your voiceover (read the approved script) or import a file." · "An asset package is ready. Approve or reject the photos and footage." |
+| Done ■ | Done | the run's message ("Review done: 7 ✓") or "Script approved.", "Every word timed.", "Shots planned." … |
+| Done ■ (muted) | Kept from before | "Kept from before: it updates after the voiceover. Every word timed." (an earlier step is not done) |
+| Built with problems ▲ | Built with problems | "6 of 7 scenes built. s02 failed: blank frames. Retry s02." · "7 of 7 scenes built. s03 failed: the scene does not run. Rebuild s03 from the Shots list." · "The result from before is kept. The last run failed: your Claude usage limit was reached. Retry." |
+| Out of date ◇ | Out of date | "Made before a change (script changed). Run it again." |
+| Failed ✗ (nothing usable) | Failed | "Nothing usable came out. The audio or video tool stopped with an error. Retry." |
+
+Error causes: "another step was running", "a tool it needs is missing (Settings → Tools)", "Claude could not start
+(check the connection in Settings)", "your Claude usage limit was reached", "Claude stopped with an error", "Claude's
+result did not pass the checks", "the audio or video tool stopped with an error", "a project file could not be read or
+written", "you stopped it". Shot causes: "the scene does not run", "blank frames", "something is cut off", "things
+overlap", "it does not show what the shot plans", "missing <props>". The next-step card for a failed step reads
+"<Step> stopped with a problem." with "See what went wrong".
+
+## Empty stage and hide until usable
+
+- A project without a video (no storyboard yet) shows the empty stage in the preview, never the demo scene:
+  "Nothing to show yet — <next step's sentence>" (e.g. "… — Describe the video in the brief, then write the
+  script."), "Your video will play here.", and when the files cannot become a video "The preview cannot be built:
+  <reason>". The start screen keeps the demo.
+- The direction bar under the preview shows once there is a shot. The timeline's Tension and Tracks tools show once
+  there are timed words. Timeline rows show once they have something: Shots, Narration, Ambience / Music with content,
+  Cues and Audio once there is a voiceover; the Cards row is gone. An empty timeline is one line: "Nothing on the
+  timeline yet: it fills in once your voiceover is in".
 
 ## Buttons and sentences
 

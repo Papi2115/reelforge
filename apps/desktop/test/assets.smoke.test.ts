@@ -209,7 +209,7 @@ describe('asset research', () => {
     await rowAction('Assets', /^Run$/);
     await expect
       .poll(() => stageText(page, 'Assets'), { timeout: 60_000, interval: 500 })
-      .toMatch(/^AssetsReview/);
+      .toMatch(/^AssetsNeeds you/);
     expect(await scenesRedoHint()).toContain('An asset package is waiting for your review');
 
     await openStage(page, 'Assets');
@@ -262,7 +262,9 @@ describe('asset research', () => {
     expect(fileRequests()).toBe(filesBefore + 1);
     await screenshot('approved');
     await dialog.getByRole('button', { name: 'Close' }).click();
-    await expect.poll(() => stageText(page, 'Assets'), { timeout: 30_000 }).toMatch(/^AssetsDone/);
+    await expect
+      .poll(() => stageText(page, 'Assets'), { timeout: 30_000 })
+      .toMatch(/^AssetsKept from before/);
     expect(await scenesRedoHint()).not.toContain('asset package');
   }, 240_000);
 

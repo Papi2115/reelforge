@@ -99,7 +99,12 @@ function attentionStep(row: RowView): Pick<NextStep, 'text' | 'button' | 'action
         action: { kind: 'open', target: { kind: 'script' } },
       };
     case 'failed':
-      return { text: `${label} failed.`, button: 'See what failed', action: { kind: 'select' } };
+      // Never "failed" next to output that still plays (docs/ux/redesign-2.4.md §3, rule 1).
+      return {
+        text: `${label} stopped with a problem.`,
+        button: 'See what went wrong',
+        action: { kind: 'select' },
+      };
     case 'stale':
       return {
         text: `${label} is out of date: something it uses changed.`,

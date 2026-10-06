@@ -131,8 +131,8 @@ describe('nextStep', () => {
     });
     const failed = pipelineRows(state({ script: APPROVED, voiceover: { status: 'failed' } }));
     expect(nextStep(failed)).toMatchObject({
-      text: 'Voiceover added failed.',
-      button: 'See what failed',
+      text: 'Voiceover added stopped with a problem.',
+      button: 'See what went wrong',
       action: { kind: 'select' },
     });
     const stale = pipelineRows(state({ script: { ...APPROVED, stale: true, ready: true } }));

@@ -27,6 +27,7 @@ import {
   shotBadges,
 } from '../stages/scenes-view.js';
 import { useShotLocks } from '../stages/use-shot-locks.js';
+import { emptyStageHint, stationFacts } from '../stages/stations-view.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { useVariantsDock } from '../stages/use-variants-dock.js';
@@ -271,6 +272,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             />
             <PipelineSidebar
               stages={stages}
+              facts={stationFacts(reports?.scenes ?? null, shots, built)}
               onOpen={openStage}
               {...(onOpenToolsSettings === undefined
                 ? {}
@@ -338,6 +340,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             <PreviewPanel
               source={variants.source(previewRevision)}
               player={player}
+              emptyHint={emptyStageHint(stages.state)}
               footer={
                 <CommandBar
                   controls={direction}

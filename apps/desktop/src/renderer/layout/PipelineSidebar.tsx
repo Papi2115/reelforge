@@ -17,6 +17,7 @@ import {
   type RowView,
 } from '../stages/pipeline-view.js';
 import { nextStep, type NextStep } from '../stages/next-step.js';
+import { stations, type StationFacts } from '../stages/stations-view.js';
 import { pipelineSummary } from '../stages/status-view.js';
 import type { StagesControls } from '../stages/use-stages.js';
 import { needsWhisper, wordsSetupView } from '../stages/words-setup.js';
@@ -36,6 +37,8 @@ export interface PipelineSidebarProps {
   readonly onBrief: () => void;
   /** Settings → Tools (whisper.cpp install problems). */
   readonly onOpenSettings?: () => void;
+  /** What the files and reports say about the output (scenes built / failed). */
+  readonly facts?: StationFacts;
 }
 
 /** Re-renders every second while `active` (elapsed time of the running stage). */
@@ -63,8 +66,10 @@ export function PipelineSidebar({
   onOpen,
   onBrief,
   onOpenSettings,
+  facts,
 }: PipelineSidebarProps): JSX.Element {
   const rows = pipelineRows(stages.state);
+  const views = stations(rows, stages.state, facts);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [confirm, setConfirm] = useState<RowView | undefined>(undefined);
   const [notice, setNotice] = useState<string | undefined>(undefined);
@@ -229,11 +234,12 @@ export function PipelineSidebar({
       )}
       {prefs.collapsed ? (
         <p className="pipeline-summary" data-testid="pipeline-summary">
-          {pipelineSummary(rows)}
+          {pipelineSummary(rows, views)}
         </p>
       ) : (
         <StageList
           rows={rows}
+          stations={views}
           selectedId={selected?.spec.id}
           onSelect={select}
           onOpen={openRow}
@@ -315,6 +321,7 @@ export function PipelineSidebar({
           <StageDetail
             key={`${selected.spec.id}:${String(detailsNonce)}`}
             row={selected}
+            station={views.find((view) => view.rowId === selected.spec.id)}
             now={now}
             detailsOpen={detailsNonce > 0}
           />

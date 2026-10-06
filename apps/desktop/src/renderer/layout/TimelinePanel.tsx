@@ -1,6 +1,7 @@
 /**
  * Timeline (PLAN.md#6.5, #11.2): toolbar (zoom, fit, undo/redo, gain of the selected cue, the
  * Tracks menu that shows / hides rows (remembered), save status), track labels, the canvas lanes (timeline/TimelineCanvas.tsx) with a horizontal scrollbar, and
+ * rows with nothing to show left out until they are usable (timeline/track-visibility.ts), and
  * the sound picker opened by double-clicking the Cues track. The playhead follows the player;
  * clicks and ruler drags seek / scrub through the player API. A boundary move that changes a locked
  * shot's length asks first (PLAN.md#11.4).
@@ -16,7 +17,12 @@ import type { WaveformView } from '../timeline/draw-timeline.js';
 import { itemKey, selectedCues, useSelection, type SelectionStore } from '../timeline/selection.js';
 import { addSfxChange } from '../timeline/timeline-changes.js';
 import { TimelineCanvas } from '../timeline/TimelineCanvas.js';
-import { trackLayout, type TimelineModel, type ToggleTrack } from '../timeline/timeline-model.js';
+import {
+  TOGGLE_TRACKS,
+  trackLayout,
+  type TimelineModel,
+  type ToggleTrack,
+} from '../timeline/timeline-model.js';
 import {
   clampView,
   contentWidth,
@@ -29,6 +35,11 @@ import {
   ZOOM_STEP,
   type TimelineView,
 } from '../timeline/timeline-view.js';
+import {
+  EMPTY_TIMELINE_TEXT,
+  timelineToolsUsable,
+  unusableTracks,
+} from '../timeline/track-visibility.js';
 import type { TimelineEditing } from '../timeline/use-timeline-edits.js';
 import { formatTime } from './timeline-scale.js';
 import { GainField, SfxPicker, ToolButton, TrackMenu } from './TimelineTools.js';
@@ -61,7 +72,6 @@ const EMPTY_TEXT = {
   shots: 'No shots yet: run Storyboard',
   narration: 'No words yet: run Words timed',
   cues: 'No sound effects yet · double-click here to add one',
-  cards: 'On-screen cards are not shown here yet',
   ambience: 'No ambience or music yet',
 } as const;
 
@@ -91,8 +101,18 @@ function useLaneWidth(): [RefObject<HTMLDivElement | null>, number] {
 export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
   const { model, duration, time, playing, selection, editing } = props;
   const [tracks, setTracks] = usePref(TRACKS_PREFS_KEY, tracksPrefsSchema, DEFAULT_TRACKS_PREFS);
-  const hidden = useMemo(() => new Set(tracks.hidden), [tracks.hidden]);
-  const layout = useMemo(() => trackLayout(hidden), [hidden]);
+  const chosen = useMemo(
+    () => new Set(tracks.hidden.filter((id) => TOGGLE_TRACKS.some((track) => track.id === id))),
+    [tracks.hidden],
+  );
+  // Cheap (seven rows): recomputed on every render, the canvas redraws on every render anyway.
+  const unusable = unusableTracks(model, props.waveform);
+  const layout = trackLayout(new Set<ToggleTrack>([...chosen, ...unusable]));
+  const emptyText =
+    model.words.length === 0 && !unusable.has('narration')
+      ? { ...EMPTY_TEXT, narration: EMPTY_TIMELINE_TEXT }
+      : EMPTY_TEXT;
+  const toolsUsable = timelineToolsUsable(model);
   const selected = useSelection(selection);
   const [laneRef, laneWidth] = useLaneWidth();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -182,17 +202,19 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
           {view.pxPerSecond >= 10 ? Math.round(view.pxPerSecond) : view.pxPerSecond.toFixed(1)} px/s
         </span>
         <span className="toolbar-gap" />
-        <TrackMenu
-          hidden={hidden}
-          onToggle={(track, shown) => {
-            setTracks((current) => ({
-              hidden: shown
-                ? current.hidden.filter((id) => id !== track)
-                : [...current.hidden.filter((id) => id !== track), track],
-            }));
-          }}
-        />
-        {props.onToggleTension !== undefined && (
+        {toolsUsable && (
+          <TrackMenu
+            hidden={chosen}
+            onToggle={(track, shown) => {
+              setTracks((current) => ({
+                hidden: shown
+                  ? current.hidden.filter((id) => id !== track)
+                  : [...current.hidden.filter((id) => id !== track), track],
+              }));
+            }}
+          />
+        )}
+        {toolsUsable && props.onToggleTension !== undefined && (
           <ToolButton
             label={props.tensionOpen === true ? 'Hide the tension curve' : 'Show the tension curve'}
             onClick={props.onToggleTension}
@@ -279,7 +301,7 @@ export function TimelinePanel(props: TimelinePanelProps): JSX.Element {
               selection={selection}
               selected={selected}
               waveform={props.waveform}
-              emptyText={EMPTY_TEXT}
+              emptyText={emptyText}
               layout={layout}
               onSeek={props.onSeek}
               onScrub={props.onScrub}

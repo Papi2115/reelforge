@@ -155,7 +155,7 @@ describe('first run', () => {
     await shot('tour-preview');
 
     for (const label of DONE_ROWS) await waitDone(label, 30_000);
-    expect(await rowText('Sound design mixed')).toMatch(/^Sound design mixedReady to run/);
+    expect(await rowText('Sound design mixed')).toMatch(/^Sound design mixedReady/);
     expect(await page.getByTestId('next-step').textContent()).toContain('Sound design mixed');
 
     const preview = page.getByRole('dialog', { name: 'Preview' });

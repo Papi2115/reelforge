@@ -4,6 +4,7 @@
  * done, offers "Unlock this shot" for a locked shot and "Rebuild with Claude" for commands only
  * Claude can do, hint chips and the session history with undo. One line of fixed height (the
  * status replaces the chips, the history opens above the bar) so the preview keeps its scale.
+ * Hidden until there is a shot to direct (docs/ux/redesign-2.4.md §5).
  */
 import type { DirectionWord } from '@reelforge/shared';
 import { useEffect, useRef, useState, type JSX } from 'react';
@@ -14,11 +15,20 @@ export interface CommandBarProps {
   readonly controls: DirectionControls;
   /** Word spoken at the playhead (fills the "arrow on the word …" chip). */
   readonly wordAtPlayhead: () => DirectionWord | undefined;
-  /** Shot under the playhead and whether it carries directions. */
+  /** Shot under the playhead (undefined: no storyboard yet, the bar is hidden). */
   readonly shotId: string | undefined;
 }
 
-export function CommandBar({ controls, wordAtPlayhead, shotId }: CommandBarProps): JSX.Element {
+export function CommandBar(props: CommandBarProps): JSX.Element | null {
+  const { shotId } = props;
+  return shotId === undefined ? null : <ShotCommandBar {...props} shotId={shotId} />;
+}
+
+function ShotCommandBar({
+  controls,
+  wordAtPlayhead,
+  shotId,
+}: CommandBarProps & { readonly shotId: string }): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [command, setCommand] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -53,7 +63,7 @@ export function CommandBar({ controls, wordAtPlayhead, shotId }: CommandBarProps
     });
   };
 
-  const directedHere = shotId !== undefined && controls.directed.has(shotId);
+  const directedHere = controls.directed.has(shotId);
   const line = statusText(status);
   return (
     <section className="command-bar" aria-label="Direct the shot">
@@ -65,7 +75,7 @@ export function CommandBar({ controls, wordAtPlayhead, shotId }: CommandBarProps
         }}
       >
         <span className="command-shot" title="Commands change the shot under the playhead">
-          {shotId ?? '–'}
+          {shotId}
           {directedHere && (
             <span
               className="direction-dot"
