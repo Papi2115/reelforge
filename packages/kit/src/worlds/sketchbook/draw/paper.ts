@@ -167,7 +167,15 @@ export function paintSheet(
   toScreen: Xform,
   width: number,
   height: number,
-  options: { readonly fill: number; readonly fibre: number; readonly fibreOffset: number },
+  options: {
+    readonly fill: number;
+    readonly fibre: number;
+    readonly fibreOffset: number;
+    /** Ink of the specks (default the fibre ink). */
+    readonly speck?: number;
+    /** Ink of the cut edge (default shade). */
+    readonly edge?: number;
+  },
 ): void {
   const xf: Xform = (u, v) => {
     const [x, y] = place.toPage(u, v);
@@ -190,9 +198,10 @@ export function paintSheet(
     const u = o0[0] + ux * x + uy * y;
     const v = o0[1] + vx * x + vy * y;
     const f = fibreAt(u + options.fibreOffset, v + 200);
-    return f === 0 ? options.fill : options.fibre;
+    if (f === 0) return options.fill;
+    return f === 2 ? (options.speck ?? options.fibre) : options.fibre;
   });
-  canvas.outline(poly, INK.SHADE);
+  canvas.outline(poly, options.edge ?? INK.SHADE);
 }
 
 /** Inverse of a scale-only page->screen map (the page view has no rotation). */

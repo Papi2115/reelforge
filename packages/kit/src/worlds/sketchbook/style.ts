@@ -38,4 +38,25 @@ export const SKETCHBOOK_STYLE = {
     outline: 'graphite',
   },
   dither: { matrix: 'bayer4', spread: 0 },
+  /**
+   * Ambient variation budget of the world's looks (`variationBudget: 'sketchbook'`). Neutral on
+   * purpose: it is one notebook, so no tone family drifts between shots (orange is every sun, red
+   * is only the correction) and the full-frame page has no horizon, light, grid, debris or camera
+   * to drift; shots differ by the hand (seeded wobble, layout, pace). The budget exists so the
+   * key resolves and ctx.ambient (tension, layout variant) reaches the scenes.
+   */
+  variation: {
+    sketchbook: {
+      tones: {},
+      toneShare: 0,
+      steps: 3,
+      cell: [1, 1],
+      horizon: [0, 0],
+      fade: [1, 1],
+      lightAzimuth: [0, 0],
+      lightElevation: [0, 0],
+      debris: [1, 1],
+      cameraDrift: [0, 0],
+    },
+  },
 } as const;

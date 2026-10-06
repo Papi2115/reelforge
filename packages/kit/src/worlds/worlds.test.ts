@@ -151,6 +151,21 @@ describe('the test world', () => {
       extraLookDefinitions(looks, { style: 'other-world', experimental: true }),
     ).not.toThrow();
   });
+
+  it('lets the looks of one world share a definition object (bound and listed once)', () => {
+    const scope = { style: TEST_WORLD_ID, experimental: true };
+    const sibling = { ...testWorldLook, id: 'test-world-notes' };
+    const extra = extraLookDefinitions([...WITH_TEST_WORLD, sibling], scope);
+    expect(extra.prop.map((entry) => [entry.definition.name, entry.look])).toEqual([
+      ['testWorldPage', 'test-world-page'],
+    ]);
+    const [own] = testWorldLook.kit.props ?? [];
+    if (own === undefined) throw new Error('the test look has a prop');
+    const impostor = { ...sibling, kit: { props: [{ ...own }] } };
+    expect(() => extraLookDefinitions([...WITH_TEST_WORLD, impostor], scope)).toThrow(
+      /already defined by look "test-world-page"/,
+    );
+  });
 });
 
 describe('no harm to the built-in styles', () => {

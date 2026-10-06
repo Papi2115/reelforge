@@ -11,6 +11,7 @@ import { TOOL_NAMES } from '../draw/marks.js';
 import { EASE_NAMES } from '../draw/math.js';
 import { SWATCH_NAMES, type SwatchName } from '../inks.js';
 import { attachParam, expressionParam, poseParam } from './motion.js';
+import { SHEET_PAPERS } from './sheet.js';
 
 const swatch = z.enum(SWATCH_NAMES as unknown as readonly [SwatchName, ...SwatchName[]]);
 const seconds = z.number().min(0.02).max(30);
@@ -30,6 +31,10 @@ export const penOptions = z.object({
   held: z.boolean().default(true).describe('The visible hand draws it'),
   boil: z.number().min(0).max(2).optional().describe('Line boil amplitude (0 = printed)'),
   fps: z.number().min(4).max(24).optional().describe('Boil cadence (default the page boilFps)'),
+  nib: z
+    .tuple([z.number().min(2).max(40), z.number().min(-90).max(90), z.int().min(1).max(8)])
+    .optional()
+    .describe('Chisel nib [length, angle, thickness] of the marker/highlighter (big words)'),
   attach: attachParam,
 });
 export type PenOptions = z.output<typeof penOptions>;
@@ -139,6 +144,11 @@ export const sheetOptions = z.object({
   deg: z.number().min(-30).max(30).default(0),
   at: whenParam.optional().describe('Slapped on: lands at this time (default: taped in before)'),
   holes: z.boolean().default(false).describe('Two punched holes at the top'),
+  paper: z
+    .enum(SHEET_PAPERS)
+    .default('paper')
+    .describe('paper (white insert), kraft (envelope, brown card), sticky (yellow note)'),
+  envelope: z.boolean().default(false).describe('Back of an envelope: printed flap seams'),
   seed: z.int().min(0).optional(),
 });
 

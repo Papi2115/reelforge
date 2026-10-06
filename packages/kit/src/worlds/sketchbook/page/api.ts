@@ -33,6 +33,7 @@ import type { SketchPage } from './model.js';
 import type { PageFrame } from './motion.js';
 import * as S from './schemas.js';
 import { addSheet, addTrace, type SheetHandle, type TraceKind } from './api-inserts.js';
+import { pageExtras } from './api-extra.js';
 import { addFigure, type FigureHandle, type Timed } from './api-figure.js';
 
 export type { FigureHandle, Timed };
@@ -46,11 +47,17 @@ export interface PageContext {
   readonly call: string;
 }
 
+/** Chisel nib options of a mark (undefined = the tool's own nib). */
+function nibOf(nib: S.PenOptions['nib']): { len?: number; deg?: number; thick?: number } {
+  return nib === undefined ? {} : { len: nib[0], deg: nib[1], thick: nib[2] };
+}
+
 export function createPageApi(context: PageContext) {
   const { page, resolve, call } = context;
   let calls = 0;
   let cursor = 0;
   let sealed = false;
+  const seals: (() => void)[] = [];
   const begin = (method: string): string => {
     if (sealed)
       throw new KitError(
@@ -105,6 +112,7 @@ export function createPageApi(context: PageContext) {
         fps: options.fps ?? context.fps,
         smooth: recipe.smooth,
         ease: recipe.ease,
+        ...nibOf(options.nib),
       });
       t = mark.t0 + mark.dur;
       return mark;
@@ -164,6 +172,7 @@ export function createPageApi(context: PageContext) {
         boil: o.boil ?? (o.hand === 'type' ? 0 : undefined),
         fps: o.fps ?? context.fps,
         held: o.held,
+        ...nibOf(o.nib),
         source: o.attach
           ? (pts, corners) => shapeSource(o.attach, pts, corners) ?? (() => ({ pts, corners }))
           : undefined,
@@ -329,11 +338,23 @@ export function createPageApi(context: PageContext) {
         S.parse<z.ZodType<HandName>>(S.writeOptions.shape.hand, hand, `${call}.textWidth()`),
       ),
     doneAt: () => page.doneAt(),
+    ...pageExtras({
+      page,
+      resolve,
+      begin,
+      seedOf,
+      subApi: (sub: SketchPage, seed: number): object => {
+        const made = createPageApi({ ...context, page: sub, seed, call: `${call}.flipbook()` });
+        seals.push(made.seal);
+        return made.api;
+      },
+    }),
   };
   return {
     api,
     seal: () => {
       sealed = true;
+      for (const sealSub of seals) sealSub();
     },
   };
 }

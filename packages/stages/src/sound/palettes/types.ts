@@ -16,6 +16,7 @@ export const SOUND_PALETTE_IDS = [
   'flat-2d',
   'whiteboard',
   'paper-cutout',
+  'sketchbook',
 ] as const;
 export type SoundPaletteId = (typeof SOUND_PALETTE_IDS)[number];
 
@@ -60,6 +61,12 @@ export interface PaletteAmbience {
 export interface SoundPalette {
   readonly id: SoundPaletteId;
   readonly label: string;
+  /**
+   * The world (style id) whose looks use it. A world's style is exclusive (ADR-029): its films
+   * never mix with the built-in looks, so a world palette may reuse their recipes; palettes of one
+   * world (or of the built-in looks) keep their recipes apart.
+   */
+  readonly world?: string | undefined;
   /** Slots per re-voiced kind; kinds left out keep the `CUE_RULES` choices. */
   readonly sfx: Readonly<Partial<Record<PaletteKind, readonly PaletteSlot[]>>>;
   /**

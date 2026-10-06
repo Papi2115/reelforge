@@ -48,6 +48,8 @@ export function addSheet(
     deg: options.deg,
     at: options.at === undefined ? undefined : resolve(options.at, 0),
     holes: options.holes,
+    paper: options.paper,
+    envelope: options.envelope,
     seed,
   });
   page.addLayer(sheet.layer(page.toScreen));

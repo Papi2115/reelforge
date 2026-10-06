@@ -122,3 +122,13 @@ export const TAPE: Remap = remap([
   ['RULE', 'GRID'],
   ['GRID', 'FIBRE'],
 ]);
+
+/**
+ * The ink tables for code outside the page renderer (the engine's page-native transitions): the
+ * inks in index order and the paper-like / soft-shadow tables over those indices.
+ */
+export const SKETCHBOOK_INKS = Object.freeze({
+  table: INK_TABLE,
+  paperlike: PAPERLIKE,
+  soft: SOFT,
+});

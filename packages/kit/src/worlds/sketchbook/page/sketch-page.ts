@@ -5,21 +5,22 @@
  * `page.update(t)` every frame; the page is repainted from scratch for each t.
  */
 import { z } from 'zod';
-import { emptyBounds } from '../../../../env/shared.js';
-import { asFx, type FxObject } from '../../../../fx/shared.js';
-import { anchorParam, createResolver } from '../../../../looks/blueprint/timing.js';
-import { hexPixel, Raster } from '../../../../looks/blueprint/raster.js';
-import { createQuad } from '../../../../looks/whiteboard/quad.js';
-import { createKitObject } from '../../../../object.js';
-import { defineFx, type KitTools } from '../../../../registry.js';
-import { InkCanvas } from '../../draw/canvas.js';
-import { writeMarks, strokeMark, TOOL_NAMES, type Mark } from '../../draw/marks.js';
-import { ellipsePts } from '../../draw/paths.js';
-import { STOCK_NAMES } from '../../draw/paper.js';
-import { INK_TABLE } from '../../inks.js';
-import { createPageApi, type PageApi } from '../../page/api.js';
-import { SketchPage } from '../../page/model.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../../style.js';
+import { emptyBounds } from '../../../env/shared.js';
+import { asFx, type FxObject } from '../../../fx/shared.js';
+import { anchorParam, createResolver } from '../../../looks/blueprint/timing.js';
+import { hexPixel, Raster } from '../../../looks/blueprint/raster.js';
+import { createQuad } from '../../../looks/whiteboard/quad.js';
+import { createKitObject } from '../../../object.js';
+import { defineFx, type KitTools } from '../../../registry.js';
+import { InkCanvas } from '../draw/canvas.js';
+import { writeMarks, strokeMark, TOOL_NAMES, type Mark } from '../draw/marks.js';
+import { ellipsePts } from '../draw/paths.js';
+import { STOCK_NAMES } from '../draw/paper.js';
+import { INK_TABLE } from '../inks.js';
+import { paintStubs } from '../traces.js';
+import { createPageApi, type PageApi } from './api.js';
+import { SketchPage } from './model.js';
+import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
 
 const point = z.tuple([z.number(), z.number()]);
 
@@ -35,6 +36,10 @@ export const sketchPageParams = z.object({
   page: z.int().min(1).max(999).optional().describe('Page number, circled top right'),
   pageTool: z.enum(TOOL_NAMES).default('fine').describe("Pen of the page number (that page's pen)"),
   margin: z.number().min(40).max(940).optional().describe('x of a pencil-ruled margin line'),
+  torn: z
+    .boolean()
+    .default(false)
+    .describe('Stubs of a torn-out page left in the spiral (after a torn-strip transition)'),
   pen: z.boolean().default(true).describe('Show the writing hand'),
   rest: z
     .union([z.literal('off'), point])
@@ -61,7 +66,7 @@ export type SketchPageObject = FxObject & PageApi;
 
 const PAGE_METHODS = {
   'update(t)': 'Repaints the page for local time t: call it every frame',
-  'write(text, { x, y, size, hand, tool, color, at, until, rot })':
+  'write(text, { x, y, size, hand, tool, color, at, until, rot, nib })':
     'Hand-lettered text written stroke by stroke (hand print/scrawl/marker/type)',
   'figure({ x, y, h, pose, expression, at, until })':
     'A crude stick person drawn by the hand; pose/expression = object, keys [{ at, to, ease, ... }] or (t) => {...}; returns { at, end, joint(name), carry(name), head(), jointAt(name, t) }',
@@ -72,8 +77,12 @@ const PAGE_METHODS = {
   'arrow(points, opts) / loop(cx, cy, rx, ry, opts) / underline(x0, x1, y, opts) / ruled(x0, y0, x1, y1, opts) / crossOut(x, y, w, h, { style })':
     'Hand marks: two-stroke arrow, loose circle, hooked underline, ruler line, x/strike/zigzag cross-out',
   'sun(cx, cy, r, { rays, fill, until })': 'Sun doodle with uneven rays and an orange pencil fill',
-  'sheet({ x, y, w, h, deg, at, holes })':
-    'A taped-in (or slapped-on at `at`) paper insert: .print(), .rule(), .calendar({ title }) -> { cell(day) }, .tape(), .frame()',
+  'sheet({ x, y, w, h, deg, at, holes, paper, envelope })':
+    'A taped-in (or slapped-on at `at`) insert of paper, kraft or sticky: .print(), .rule(), .calendar({ title }) -> { cell(day) }, .tape(), .point(u, v), .frame()',
+  'ruler(x, y, { at, until, length })':
+    'A clear plastic ruler slid in under a line (in place at `at`, slides out at `until`)',
+  'flipbook({ count, at, until })':
+    'A thumb riffles the page corner through `count` pages between at and until; .page(k) = the page API of page k (write, stroke, sun, ...), drawn once, no hand',
   'tape / coffeeRing / clip / sticky / smudge (..., { at })':
     'Physical traces, static once they appear',
   'keepClear(x, y, w, h)':
@@ -136,6 +145,16 @@ function buildPage(params: z.output<typeof sketchPageParams>, tools: KitTools): 
     restGap: params.restGap,
   });
   page.addMarks(paperMarks(params, seed % 100_000));
+  if (params.torn) {
+    page.addLayer({
+      key: Number.NEGATIVE_INFINITY,
+      from: Number.NEGATIVE_INFINITY,
+      draw: (canvas) => {
+        paintStubs(canvas, page.toScreen, seed % 1000);
+        return null;
+      },
+    });
+  }
   const { api, seal } = createPageApi({
     page,
     seed,

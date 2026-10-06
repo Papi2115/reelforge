@@ -27,6 +27,18 @@ const SLAP_FALL = 0.2;
 const SLAP_SETTLE = 0.28;
 const TAPE_DELAY = 0.3;
 
+export const SHEET_PAPERS = ['paper', 'kraft', 'sticky'] as const;
+export type SheetPaper = (typeof SHEET_PAPERS)[number];
+
+/** Fill, fibre, speck and edge inks of each sheet paper. */
+const PAPERS: Readonly<
+  Record<SheetPaper, { fill: number; fibre: number; speck: number; edge: number }>
+> = {
+  paper: { fill: INK.PAPER, fibre: INK.FIBRE, speck: INK.FIBRE, edge: INK.SHADE },
+  kraft: { fill: INK.KRAFT, fibre: INK.COFFEE_L, speck: INK.KRAFT_D, edge: INK.KRAFT_D },
+  sticky: { fill: INK.STICKY, fibre: INK.STICKY, speck: INK.STICKY, edge: INK.STICKY_D },
+};
+
 export interface SheetSpec {
   readonly x: number;
   readonly y: number;
@@ -36,6 +48,9 @@ export interface SheetSpec {
   /** Landing time of a slapped-on sheet; undefined = taped in before the shot. */
   readonly at: number | undefined;
   readonly holes: boolean;
+  readonly paper: SheetPaper;
+  /** Back of an envelope: printed flap seams. */
+  readonly envelope: boolean;
   readonly seed: number;
 }
 
@@ -178,6 +193,18 @@ export class Sheet {
     };
   }
 
+  /** The flap seams of an envelope back (faint printed folds). */
+  private seams(canvas: InkCanvas, xf: Xform): void {
+    const { w, h } = this.spec;
+    const seam = (from: Point, to: Point, skip: number): void => {
+      printLine(canvas, xf, from, to, INK.KRAFT_D, skip);
+    };
+    seam([0, 0], [w / 2, h * 0.6], 0.25);
+    seam([w / 2, h * 0.6], [w, 0], 0.25);
+    seam([0, h], [w * 0.4, h * 0.54], 0.35);
+    seam([w, h], [w * 0.6, h * 0.54], 0.35);
+  }
+
   private paint(canvas: InkCanvas, t: number, toScreen: Xform, slapped: boolean): void {
     const { spec } = this;
     const place = this.placementAt(t);
@@ -199,10 +226,17 @@ export class Sheet {
       lift > 0.3 ? SOFT : HARD,
     );
     paintSheet(canvas, place, toScreen, spec.w, spec.h, {
-      fill: INK.PAPER,
-      fibre: INK.FIBRE,
+      ...PAPERS[spec.paper],
       fibreOffset: spec.seed % 997,
     });
+    if (spec.paper === 'sticky') {
+      const { w, h } = spec;
+      canvas.fillPoly(
+        [...xf(0, h * 0.86), ...xf(w, h * 0.83), ...xf(w, h), ...xf(0, h)],
+        INK.STICKY_D,
+      );
+    }
+    if (spec.envelope) this.seams(canvas, xf);
     for (const line of this.lines) printLine(canvas, xf, line.from, line.to, line.color);
     if (spec.holes) {
       for (const u of [spec.w * 0.2, spec.w * 0.8])

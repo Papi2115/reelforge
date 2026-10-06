@@ -5,7 +5,9 @@
  * threshold, geometry and a seed) or a palette tone, so the result stays in the style palette.
  * Preview and export both get their frames from `EngineRuntime.seek`, so they share this code.
  * Styles and their metadata come from `@reelforge/shared` (`TRANSITION_STYLES`); the continuity
- * links between shots (PLAN.md#13.2, `CONTINUITY_STYLES`) are composited the same way.
+ * links between shots (PLAN.md#13.2, `CONTINUITY_STYLES`) and the page-native transitions of the
+ * Sketchbook world (PLAN.md#13.6, `SKETCHBOOK_TRANSITION_STYLES`, world-scoped) are composited
+ * the same way.
  */
 import {
   CONTINUITY_STYLE_IDS,
@@ -42,11 +44,28 @@ import {
   type Tones,
 } from './pixels.js';
 import { shatter } from './shatter.js';
+import {
+  isSketchbookTransition,
+  SKETCHBOOK_COMPOSITORS,
+  SKETCHBOOK_TRANSITION_STYLES,
+  type SketchbookTransitionId,
+  type WorldTransitionStyle,
+} from './sketchbook/index.js';
 
 export { createTones, type TransitionFrame, type Tones } from './pixels.js';
+export {
+  isSketchbookTransition,
+  SKETCHBOOK_TRANSITION_IDS,
+  SKETCHBOOK_TRANSITION_STYLES,
+  type SketchbookTransitionId,
+  type WorldTransitionStyle,
+} from './sketchbook/index.js';
 
-/** Everything the engine composites: the transition-kit styles and the continuity links. */
-export type EngineTransitionId = TransitionStyleId | ContinuityStyleId;
+/**
+ * Everything the engine composites: the transition-kit styles, the continuity links and the
+ * world-scoped page-native transitions.
+ */
+export type EngineTransitionId = TransitionStyleId | ContinuityStyleId | SketchbookTransitionId;
 
 /** A transition the engine can composite, with its compositor. */
 export interface EngineTransition {
@@ -61,6 +80,11 @@ export interface KitTransition extends TransitionStyle {
 
 /** A continuity link style (PLAN.md#13.2) with its compositor. */
 export interface ContinuityTransition extends ContinuityStyle {
+  readonly composite: Compositor;
+}
+
+/** A world's page-native transition (PLAN.md#13.6) with its compositor. */
+export interface WorldTransition extends WorldTransitionStyle {
   readonly composite: Compositor;
 }
 
@@ -89,6 +113,7 @@ const COMPOSITORS: Readonly<Record<EngineTransitionId, Compositor>> = {
   'continuity-zoom-through': zoomThrough,
   'continuity-shared-object': sharedObject,
   'continuity-carry-environment': carryEnvironment,
+  ...SKETCHBOOK_COMPOSITORS,
 };
 
 export const TRANSITIONS: Readonly<Record<TransitionStyleId, KitTransition>> = Object.fromEntries(
@@ -103,9 +128,21 @@ export const CONTINUITY_TRANSITIONS: Readonly<Record<ContinuityStyleId, Continui
     ]),
   ) as Record<ContinuityStyleId, ContinuityTransition>;
 
-/** The engine transition of a storyboard style id (kit or continuity); undefined for unknown ids. */
+export const WORLD_TRANSITIONS: Readonly<Record<SketchbookTransitionId, WorldTransition>> =
+  Object.fromEntries(
+    Object.values(SKETCHBOOK_TRANSITION_STYLES).map((style) => [
+      style.id,
+      { ...style, composite: COMPOSITORS[style.id] },
+    ]),
+  ) as Record<SketchbookTransitionId, WorldTransition>;
+
+/**
+ * The engine transition of a storyboard style id (kit, continuity or a world's page-native one);
+ * undefined for unknown ids.
+ */
 export function findTransition(style: string | undefined): EngineTransition | undefined {
   if (style === undefined) return undefined;
+  if (isSketchbookTransition(style)) return WORLD_TRANSITIONS[style];
   if ((TRANSITION_STYLE_IDS as readonly string[]).includes(style)) {
     return TRANSITIONS[style as TransitionStyleId];
   }

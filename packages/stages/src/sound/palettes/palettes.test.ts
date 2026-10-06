@@ -1,4 +1,5 @@
 import { AMBIENCE_RECIPES, SFX_RECIPES, SFX_VARIANTS, type SfxRecipe } from '@reelforge/pipeline';
+import { SKETCHBOOK_TRANSITION_IDS } from '@reelforge/engine';
 import { WOW_STYLE_IDS, type StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { directCues } from '../cue-director.js';
@@ -21,7 +22,9 @@ import {
   shotPalettes,
   TRANSITION_STYLE_SFX,
   WOW_PALETTE_SFX,
+  WORLD_TRANSITION_SFX,
   WOW_STYLE_SFX,
+  worldTransitionSlot,
   wowSlot,
   type PaletteKind,
 } from './index.js';
@@ -124,9 +127,11 @@ describe('palette contents', () => {
     const own = [...(paletteRecipes(palette) ?? [])];
     expect(own.length).toBeGreaterThan(4);
     expect(own.filter((recipe) => voxel.has(recipe))).toEqual([]);
-    const others = OTHERS.filter((other) => other !== palette).flatMap((other) => [
-      ...(paletteRecipes(other) ?? []),
-    ]);
+    // A world's films never meet the built-in looks (ADR-029): only palettes that can share a
+    // film keep their recipes apart.
+    const others = OTHERS.filter(
+      (other) => other !== palette && other.world === palette.world,
+    ).flatMap((other) => [...(paletteRecipes(other) ?? [])]);
     expect(own.filter((recipe) => others.includes(recipe))).toEqual([]);
   });
 
@@ -180,6 +185,46 @@ describe('palette contents', () => {
         }
       }
     }
+  });
+});
+
+describe('sketchbook world palette (PLAN.md#13.6)', () => {
+  it('voices the sketchbook looks and every page-native transition with light paper sounds', () => {
+    const sketchbook = SOUND_PALETTES.sketchbook;
+    expect(sketchbook.world).toBe('sketchbook');
+    for (const look of ALL_LOOKS.filter((entry) => entry.styles?.includes('sketchbook'))) {
+      expect(look.soundPalette, look.id).toBe('sketchbook');
+    }
+    expect(Object.keys(WORLD_TRANSITION_SFX).sort()).toEqual([...SKETCHBOOK_TRANSITION_IDS].sort());
+    for (const [style, slot] of Object.entries(WORLD_TRANSITION_SFX)) {
+      expect(slot.length, style).toBeGreaterThan(0);
+      for (const choice of slot) {
+        expect(paletteRecipes(sketchbook)?.has(choice.recipe), `${style} ${choice.recipe}`).toBe(
+          true,
+        );
+        for (const variant of choice.variants) {
+          expect(SFX_VARIANTS[choice.recipe], `${style}: ${variant}`).toContain(variant);
+          expect(HEAVY_VARIANTS[choice.recipe] ?? []).not.toContain(variant);
+        }
+      }
+    }
+  });
+
+  it('a page-native transition sounds like itself, within the look too; other ids do not', () => {
+    const sketchbook = SOUND_PALETTES.sketchbook;
+    const into = (style: string): StoryboardShot => ({
+      ...shot('sketch-graph'),
+      transitionIn: { type: 'wipe', duration: 0.8, style },
+    });
+    expect(lookChangeSlot(sketchbook, sketchbook, into('sketchbook-crumple-toss'))).toBe(
+      WORLD_TRANSITION_SFX['sketchbook-crumple-toss'],
+    );
+    expect(worldTransitionSlot('sketchbook-page-flip')).toBe(
+      WORLD_TRANSITION_SFX['sketchbook-page-flip'],
+    );
+    expect(worldTransitionSlot('iris')).toBeUndefined();
+    expect(worldTransitionSlot('toString')).toBeUndefined();
+    expect(lookChangeSlot(sketchbook, sketchbook, into('iris'))).toBeUndefined();
   });
 });
 

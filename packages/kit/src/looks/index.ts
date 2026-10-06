@@ -73,7 +73,9 @@ export interface LookDefinition {
 /**
  * Definitions of the looks offered in `scope` other than voxel (whose definitions are the kit's
  * own), by kind. Throws when two of those looks (or a look and the voxel kit) use one name in one
- * namespace, or when two share an id; looks of different styles never meet, so they may.
+ * namespace, or when two share an id; looks of different styles never meet, so they may. World
+ * looks (scoped to a style) may list the very same definition object (a world-level template
+ * such as `sketchPage`): it is bound and catalogued once, under the first look that lists it.
  */
 export function extraLookDefinitions(
   looks: readonly Look[] = LOOKS,
@@ -85,25 +87,27 @@ export function extraLookDefinitions(
     if (ids.has(look.id)) throw new KitError('invalid-look', `look id "${look.id}" repeats`);
     ids.add(look.id);
   }
-  const taken = new Map<string, string>(
+  const taken = new Map<string, LookDefinition & { readonly shared: boolean }>(
     lookDefinitions(voxelLook).map((definition) => [
       `${definition.kind}:${definition.name}`,
-      VOXEL_LOOK_ID,
+      { look: VOXEL_LOOK_ID, definition, shared: false },
     ]),
   );
   const result: Record<KitKind, LookDefinition[]> = { env: [], prop: [], fx: [] };
   for (const look of available) {
     if (look.id === VOXEL_LOOK_ID) continue;
+    const shared = look.styles !== undefined;
     for (const definition of lookDefinitions(look)) {
       const key = `${definition.kind}:${definition.name}`;
       const owner = taken.get(key);
+      if (owner?.shared === true && shared && owner.definition === definition) continue;
       if (owner !== undefined) {
         throw new KitError(
           'invalid-look',
-          `look "${look.id}": ${definition.kind} "${definition.name}" is already defined by look "${owner}"`,
+          `look "${look.id}": ${definition.kind} "${definition.name}" is already defined by look "${owner.look}"`,
         );
       }
-      taken.set(key, look.id);
+      taken.set(key, { look: look.id, definition, shared });
       result[definition.kind].push({ look: look.id, definition });
     }
   }

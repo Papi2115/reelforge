@@ -250,6 +250,17 @@ density, transition handling); the shot's palette only decides **which recipe** 
 
 **paper-cutout** (look 12.6, light craft-table foley, no bass): cut `paper-slide` in / short, `tape-tear` stick (into UI-like) / `page-flip` flip, `paper-rustle` soft (into 3D); crossfade `paper-rustle` soft, glitch `scissor-snip` cut, wipe `paper-slide` long; into the look `page-flip` turn + `paper-rustle` soft; appear `paper-pop` / `paper-rustle` crinkle / `wood-tick` tick; list items `paper-pop` (low -> mid -> high); counter step `wood-tick` tick / tock, landing `paper-pop` high, `tape-tear` stick; number `wood-tick` double, big number `scissor-snip` double; text in `paper-slide` short / in, typed `scissor-snip` cut; emphasis riser `tape-tear` peel / hit `paper-pop` low; end card `page-flip` turn; ambience `room-tone` -32 / -36.
 
+**sketchbook** (world Sketchbook, PLAN.md#13.6, experimental; one notebook heard up close, no bass): a world palette
+(`world: 'sketchbook'`): the world's style is exclusive (ADR-029), so it reuses the built-in paper and pen recipes. Cut `cap-pop`
+click, `paper-rustle` soft (into UI-like) / `page-flip` flip (into 3D); crossfade `paper-rustle` soft, glitch `paper-rustle` crinkle,
+wipe `page-flip`; appear `pencil-scratch` line / `paper-pop` low (a marker thump) / `marker-stroke` short; list items `board-tick`
+(low -> mid -> high); counter step `ruler-tick` plastic / double, landing `paper-pop` mid, `tape-tear` stick; number `cap-pop`
+click (the ballpoint), big number `paper-pop` low + `marker-stroke` long; text in / typed `pencil-scratch`; emphasis riser
+`marker-stroke` long / hit `paper-pop` low; end card `page-flip` turn; ambience `room-tone` -33 / -36. The page-native
+transitions sound like themselves within the look too (`WORLD_TRANSITION_SFX`): page flip `page-flip` flip/turn, riffle
+`page-flip` riffle, crumple and toss `paper-rustle` crinkle/busy, tape peel `tape-tear` peel, torn strip `tape-tear` tear (no
+paper-tear recipe yet).
+
 ## Beat sync and repetition (PLAN.md#12.21, #12.23)
 
 - With `"beatSync": "auto"` the director's spoken-number hits, big-number whoosh-impacts and

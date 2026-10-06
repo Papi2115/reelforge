@@ -166,3 +166,44 @@ export function paintSmudge(
     return hash(px, py, seed) < density * (1 - r * r) * streak ? color : -1;
   });
 }
+
+/** Paper stubs left in the spiral after the previous page was torn out (four coils). */
+export function paintStubs(canvas: InkCanvas, toScreen: Xform, seed: number): void {
+  for (const coil of [3, 7, 12, 16]) {
+    const y = 9 + coil * 25.5;
+    const stub: Pts = [...toScreen(38, y - 11)];
+    for (let k = 0; k <= 6; k += 1)
+      stub.push(...toScreen(48 + hash(k, y | 0, seed) * 9, y - 11 + k * 3.7));
+    stub.push(...toScreen(38, y + 11));
+    canvas.fillPoly(stub, INK.PAPER);
+    canvas.outline(stub, INK.SHADE);
+  }
+}
+
+/** Clear plastic ruler (length x 30) with its top edge at y: soft body, edges, mm ticks. */
+export function paintRuler(
+  canvas: InkCanvas,
+  toScreen: Xform,
+  x: number,
+  y: number,
+  length: number,
+): void {
+  const box = (x0: number, y0: number, x1: number, y1: number): Pts => [
+    ...toScreen(x0, y0),
+    ...toScreen(x1, y0),
+    ...toScreen(x1, y1),
+    ...toScreen(x0, y1),
+  ];
+  const [y0, y1] = [y + 1, y + 31];
+  canvas.remapped(SOFT, () => {
+    canvas.fillPoly(box(x + 4, y1, x + length + 4, y1 + 4), 0);
+    canvas.fillPoly(box(x, y0, x + length, y1), 0);
+  });
+  canvas.line([...toScreen(x, y0), ...toScreen(x + length, y0)], INK.GRAPH_L);
+  canvas.line([...toScreen(x, y1), ...toScreen(x + length, y1)], INK.GRAPH_L);
+  for (let k = 0; k * 6 < length - 8; k += 1) {
+    const tick = k % 10 === 0 ? 9 : k % 5 === 0 ? 6 : 3;
+    const tx = Math.round(x + 6 + k * 6);
+    canvas.line([...toScreen(tx, y0 + 1), ...toScreen(tx, y0 + tick)], INK.GRAPHITE);
+  }
+}

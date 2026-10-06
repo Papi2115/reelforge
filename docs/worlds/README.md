@@ -18,7 +18,16 @@ goldens stay as they are. Contract: PLAN.md#13.1. Code: `packages/kit/src/worlds
   `reelforge check`, prompts). `pnpm render:frames -- --preset <world-id> --experimental …` is the showcase render; without
   `--experimental` the render is refused.
 - The engine registers the world's `style` (validated with `stylePresetSchema` of `@reelforge/shared`; `id` = world id) next to the built-in
-  presets; `fonts` map the text roles `display`/`mono` to engine font ids (today only the two pixel fonts, `display` and `mono`).
+  presets; `fonts` map the text roles `display`/`mono` to engine font ids (today only the two pixel fonts, `display` and `mono`). A world
+  with its own lettering (Sketchbook) draws it inside its page template and tells its looks to write all text there, not with `ctx.text`.
+- **World-level templates**: the looks of one world may list the very same definition object (Sketchbook's `kit.fx.sketchPage`); it is
+  bound and catalogued once, under the first look. Two different definitions with one name still clash.
+- **Page-native transitions** are engine compositors with world-prefixed ids (`sketchbook-page-flip`, … in
+  `packages/engine/src/transitions/sketchbook/`), found by `findTransition` like the continuity links but never part of
+  `TRANSITION_STYLES`, the picker, the wow budget or the kit-docs of the built-in styles; `type: 'wipe'` is their plain fallback.
+- **World sound palette** (`packages/stages/src/sound/palettes/<world>.ts`, `world: '<id>'`): its films never mix with the built-in looks,
+  so it may reuse their recipes; its page-native transitions sound like themselves (`WORLD_TRANSITION_SFX`). The world's variation budget
+  lives in its style preset under the looks' `variationBudget` key.
 
 ## Folder layout
 ```

@@ -1,8 +1,8 @@
 /**
- * World `sketchbook` (PLAN.md#13.6, part a): registered in WORLDS, experimental, its style a valid
- * world style (palette, tokens, resolution, palette-pure post), its look A offered only in its
- * own style (and only to scopes that ask for experimental looks), its template bound in ctx.kit
- * only there.
+ * World `sketchbook` (PLAN.md#13.6): registered in WORLDS, experimental, its style a valid world
+ * style (palette, tokens, resolution, palette-pure post, a neutral variation budget), its looks
+ * A/B/C offered only in its own style (and only to scopes that ask for experimental looks), the
+ * one world-level template they share bound in ctx.kit (and catalogued) once, only there.
  */
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
@@ -12,7 +12,14 @@ import { CRISP_PALETTE } from '../../testing/palettes.js';
 import { testRng } from '../../testing/rng.js';
 import { WORLDS } from '../index.js';
 import { LETTERING_CHARS } from './draw/glyphs.js';
-import { SKETCHBOOK, SKETCHBOOK_ID, SKETCHBOOK_STYLE, sketchStoryLook } from './index.js';
+import {
+  SKETCHBOOK,
+  SKETCHBOOK_ID,
+  SKETCHBOOK_STYLE,
+  sketchGraphLook,
+  sketchLoudLook,
+  sketchStoryLook,
+} from './index.js';
 import { INK_TABLE, SWATCH_NAMES } from './inks.js';
 import { SKETCHBOOK_PALETTE } from '../../testing/palettes.js';
 
@@ -40,15 +47,37 @@ function fxNames(style: string | undefined, palette = CRISP_PALETTE): string[] {
 }
 
 describe('world sketchbook', () => {
-  it('is registered, experimental, with look A only (parts b/c come later)', () => {
+  it('is registered, experimental, with looks A, B and C on the sketchbook sound palette', () => {
     expect(WORLDS).toContain(SKETCHBOOK);
     expect(SKETCHBOOK.id).toBe(SKETCHBOOK_ID);
     expect(SKETCHBOOK.experimental).toBe(true);
-    expect(SKETCHBOOK.looks).toEqual([sketchStoryLook]);
-    expect(sketchStoryLook.styles).toEqual([SKETCHBOOK_ID]);
-    expect(sketchStoryLook.experimental).toBe(true);
-    expect(sketchStoryLook.rolls).toEqual(['A']);
+    expect(SKETCHBOOK.looks).toEqual([sketchStoryLook, sketchGraphLook, sketchLoudLook]);
+    expect(SKETCHBOOK.looks.map((look) => look.rolls)).toEqual([['A'], ['B'], ['C']]);
+    expect(SKETCHBOOK.soundPalette).toBe('sketchbook');
+    for (const look of SKETCHBOOK.looks) {
+      expect(look.styles, look.id).toEqual([SKETCHBOOK_ID]);
+      expect(look.experimental, look.id).toBe(true);
+      expect(look.soundPalette, look.id).toBe('sketchbook');
+      expect(look.variationBudget, look.id).toBe('sketchbook');
+    }
     expect(Object.isFrozen(SKETCHBOOK)).toBe(true);
+  });
+
+  it('shares one world-level sketchPage definition between its looks', () => {
+    const [shared] = sketchStoryLook.kit.templates ?? [];
+    expect(shared?.name).toBe('sketchPage');
+    for (const look of SKETCHBOOK.looks) expect(look.kit.templates, look.id).toEqual([shared]);
+  });
+
+  it('has a neutral variation budget under the key of its looks', () => {
+    const budget = SKETCHBOOK_STYLE.variation.sketchbook;
+    expect(budget.tones).toEqual({});
+    expect(budget.toneShare).toBe(0);
+    expect(budget.cameraDrift).toEqual([0, 0]);
+    for (const axis of ['cell', 'horizon', 'fade', 'lightAzimuth', 'lightElevation', 'debris']) {
+      const [min, max] = budget[axis as 'cell'];
+      expect(min, axis).toBe(max);
+    }
   });
 
   it('has a style with <= 32 unique colours, every token mapped and no token-named swatch', () => {
@@ -71,19 +100,29 @@ describe('world sketchbook', () => {
     expect(INK_TABLE.map(([, , hex]) => hex)).toEqual(Object.values(SKETCHBOOK_STYLE.palette));
   });
 
-  it('offers look A only in its own style, and only to scopes asking for experimental looks', () => {
+  it('offers its looks only in its own style, and only to scopes asking for experimental looks', () => {
     expect(isWorldStyle(SKETCHBOOK_ID)).toBe(true);
     expect(listLooks(LOOKS, { style: SKETCHBOOK_ID })).toEqual([]);
     expect(listLooks(LOOKS, { style: SKETCHBOOK_ID, experimental: true })).toEqual([
       sketchStoryLook,
+      sketchGraphLook,
+      sketchLoudLook,
     ]);
     for (const style of [undefined, 'voxel-pixel-crisp640', 'noir-voxel', 'soft-480']) {
-      expect(listLooks(LOOKS, { style, experimental: true })).not.toContain(sketchStoryLook);
-      expect(getLook('sketch-story', LOOKS, { style, experimental: true })).toBeUndefined();
+      for (const look of SKETCHBOOK.looks) {
+        expect(listLooks(LOOKS, { style, experimental: true })).not.toContain(look);
+        expect(getLook(look.id, LOOKS, { style, experimental: true })).toBeUndefined();
+      }
     }
     const catalog = kitCatalog([], LOOKS, { style: SKETCHBOOK_ID, experimental: true });
-    expect(catalog.looks.map((look) => look.id)).toEqual(['sketch-story']);
-    expect(catalog.fx.map((entry) => entry.name)).toEqual(['sketchPage']);
+    expect(catalog.looks.map((look) => look.id)).toEqual([
+      'sketch-story',
+      'sketch-graph',
+      'sketch-loud',
+    ]);
+    expect(catalog.fx.map((entry) => [entry.name, entry.look])).toEqual([
+      ['sketchPage', 'sketch-story'],
+    ]);
     expect(kitCatalog([], LOOKS, { style: SKETCHBOOK_ID }).looks).toEqual([]);
   });
 
@@ -95,11 +134,15 @@ describe('world sketchbook', () => {
   });
 
   it('keeps the craft brief and references in the look docs', () => {
-    expect(sketchStoryLook.docs).toContain('kit.fx.sketchPage');
     expect(sketchStoryLook.docs).toMatch(/focal point and three human traces/);
     expect(sketchStoryLook.docs).toMatch(/never polish/);
-    expect(sketchStoryLook.docs).toContain('docs/worlds/sketchbook-v2/shots/');
-    expect(sketchStoryLook.docs.match(/s\d-t[\d.]+\.png/g)).toHaveLength(3);
+    for (const look of SKETCHBOOK.looks) {
+      expect(look.docs, look.id).toContain('kit.fx.sketchPage');
+      expect(look.docs, look.id).toMatch(/focal point and (three )?(human )?traces/);
+      expect(look.docs, look.id).toMatch(/always `page.write`/);
+      expect(look.docs, look.id).toContain('docs/worlds/sketchbook-v2/shots/');
+      expect(look.docs.match(/s\d+-t[\d.]+\.png/g), look.id).toHaveLength(3);
+    }
   });
 
   it('writes every character the showcase pages use (own CC0 stroke lettering)', () => {
