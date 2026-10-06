@@ -51,6 +51,14 @@ export const sketchPageParams = z.object({
     .max(10)
     .default(1.5)
     .describe('Pauses longer than this send the hand to rest'),
+  duration: z
+    .number()
+    .min(0.5)
+    .max(600)
+    .optional()
+    .describe(
+      'Shot length (pass ctx.shot.duration, in update(t) time): the hand clears the subject for the last 0.4 s',
+    ),
   boilFps: z
     .number()
     .min(8)
@@ -90,7 +98,9 @@ const PAGE_METHODS = {
   'tape / coffeeRing / clip / sticky / smudge (..., { at })':
     'Physical traces, static once they appear',
   'keepClear(x, y, w, h)':
-    'A subject box the hand keeps off while writing nearby (figures add theirs)',
+    'A subject box the hand keeps off: it turns the wrist, glides around it, never rests on it (figures add theirs)',
+  '{ parallel: true } (option of every pen mark)':
+    'One hand: a mark that overlaps another far away waits for the hand (<= 0.6 s; the returned at/end are the real times), else or with parallel it appears without the hand',
   'textWidth(text, size, hand) / doneAt()': 'Layout width of a text; time the last mark ends',
 } as const;
 
@@ -147,6 +157,7 @@ function buildPage(params: z.output<typeof sketchPageParams>, tools: KitTools): 
     pen: params.pen,
     rest: params.rest === 'off' ? null : params.rest,
     restGap: params.restGap,
+    duration: params.duration,
   });
   page.addMarks(paperMarks(params, seed % 100_000));
   if (params.torn) {

@@ -9,7 +9,7 @@ import { defineLook } from '../../../../looks/types.js';
 import { sketchPage } from '../../page/sketch-page.js';
 import { SKETCHBOOK_ID } from '../../style.js';
 
-const DOCS = `Look \`sketch-loud\` (world Sketchbook, C roll): a loud moment of paper, short and rare. ONE \`kit.fx.sketchPage({ size: [ctx.shot.width, ctx.shot.height], stock: 'lined', page: N, anchor: ctx.anchor })\`; draw in build(), \`page.update(t)\` in update(t). Page coordinates 960x540.
+const DOCS = `Look \`sketch-loud\` (world Sketchbook, C roll): a loud moment of paper, short and rare. ONE \`kit.fx.sketchPage({ size: [ctx.shot.width, ctx.shot.height], duration: ctx.shot.duration, stock: 'lined', page: N, anchor: ctx.anchor })\`; draw in build(), \`page.update(t)\` in update(t). Page coordinates 960x540.
 - The word: \`page.write('365', { x, y, size: 150-180, hand: 'marker', tool: 'marker', nib: [19, -42, 3], rot: -3 })\` written fast (~1 s), crooked, off-centre, one word or number only; a smudge where the hand dragged through it.
 - The correction: a beat (>= 0.5 s still), then \`tool: 'red'\` strikes / inserts / circles on the point; a small pencil afterthought (\`hand: 'scrawl', tool: 'pencil'\`).
 - Flipbook: \`const book = page.flipbook({ count: 22, at, until })\`; draw each \`book.page(k)\` (the same doodle, the changing number huge in marker), \`pen: false\` on the page.

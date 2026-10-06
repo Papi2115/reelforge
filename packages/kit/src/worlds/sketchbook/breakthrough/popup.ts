@@ -218,7 +218,7 @@ export function addPopup(o: PopupOptions, deps: PopupDeps): PopupHandle {
     tabEnd: (t) => (times.pull ? card.x0 - TAB_OUT - tabAt(times, t) : null),
   };
   const red = redMarks(art, pulled);
-  if (red) page.addMarks(red.marks);
+  if (red) page.addMarks(red.marks, 'exact');
   const first = red?.marks[0];
   const loopStart: Point | null =
     first?.type === 'stroke' ? [first.shape.pts[0] ?? 0, first.shape.pts[1] ?? 0] : null;

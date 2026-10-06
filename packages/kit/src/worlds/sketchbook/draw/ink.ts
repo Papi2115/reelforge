@@ -130,19 +130,24 @@ function hatchTip(poly: Pts, front: number, dir: number, t: number): Point | nul
   return [(front + v) / 2, (dir * (front - v)) / 2];
 }
 
-/** Pencil hatch revealed along its sweep; returns the scribbling tip while active. */
-function drawFill(canvas: InkCanvas, mark: FillMark, t: number, xf: Xform): Point | null {
+/** A fill at t: its progress, polygon (screen px) and the sweep front. */
+function fillAt(mark: FillMark, t: number, xf: Xform): { p: number; poly: Pts; front: number } {
   const p = mark.dur > 0 ? clamp01((t - mark.t0) / mark.dur) : 1;
   const poly = xformPts(mark.source ? mark.source(drawnTime(t)) : mark.poly, xf);
-  const { dir, seed, spacing } = mark;
   let s0 = Infinity;
   let s1 = -Infinity;
   for (let i = 0; i < poly.length; i += 2) {
-    const s = at(poly, i) + at(poly, i + 1) * dir;
+    const s = at(poly, i) + at(poly, i + 1) * mark.dir;
     s0 = Math.min(s0, s);
     s1 = Math.max(s1, s);
   }
-  const front = s0 + (s1 - s0 + 4) * ease('hand', p);
+  return { p, poly, front: s0 + (s1 - s0 + 4) * ease('hand', p) };
+}
+
+/** Pencil hatch revealed along its sweep; returns the scribbling tip while active. */
+function drawFill(canvas: InkCanvas, mark: FillMark, t: number, xf: Xform): Point | null {
+  const { p, poly, front } = fillAt(mark, t, xf);
+  const { dir, seed, spacing } = mark;
   canvas.fillPoly(poly, (x, y) => {
     const along = x + y * dir;
     const line = Math.floor(along / spacing);
@@ -165,18 +170,34 @@ export interface ActiveMark {
   readonly tip: Point;
 }
 
-/** Draws one mark at t; returns its tip while the hand is drawing it. */
-export function drawMark(canvas: InkCanvas, mark: Mark, t: number, xf: Xform): Point | null {
-  if (t < mark.t0) return null;
-  if (mark.type === 'fill') return drawFill(canvas, mark, t, xf);
+/** The drawn part of a stroke at t (screen px) and its progress. */
+function strokeAt(mark: StrokeMark, t: number, xf: Xform): { p: number; pts: Pts; tip: Point } {
   const p = mark.dur > 0 ? clamp01((t - mark.t0) / mark.dur) : 1;
   const src = markShape(mark, t);
   const frame = Math.floor(t * mark.fps + 1e-6);
   const boiled = boilPts(mark, src.pts, frame, xf);
   const path = mark.smooth ? smoothPath(boiled, src.corners, 2.5) : boiled;
-  const drawn = prefix(path, mark.ease === 'lin' ? p : ease(mark.ease, p));
-  rasterStroke(canvas, drawn.pts, mark, p >= 1);
-  return p < 1 ? drawn.tip : null;
+  return { p, ...prefix(path, mark.ease === 'lin' ? p : ease(mark.ease, p)) };
+}
+
+/** Draws one mark at t; returns its tip while the hand is drawing it. */
+export function drawMark(canvas: InkCanvas, mark: Mark, t: number, xf: Xform): Point | null {
+  if (t < mark.t0) return null;
+  if (mark.type === 'fill') return drawFill(canvas, mark, t, xf);
+  const { p, pts, tip } = strokeAt(mark, t, xf);
+  rasterStroke(canvas, pts, mark, p >= 1);
+  return p < 1 ? tip : null;
+}
+
+/** Where the tip of a mark is at t while it is being drawn (what drawMark returns), no pixels. */
+export function markTip(mark: Mark, t: number, xf: Xform): Point | null {
+  if (t < mark.t0) return null;
+  if (mark.type === 'fill') {
+    const { p, poly, front } = fillAt(mark, t, xf);
+    return p >= 1 ? null : hatchTip(poly, front, mark.dir, t);
+  }
+  const { p, tip } = strokeAt(mark, t, xf);
+  return p < 1 ? tip : null;
 }
 
 /** Draws marks in order; returns the newest started mark the hand is drawing (or null). */

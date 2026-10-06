@@ -29,6 +29,10 @@ export const penOptions = z.object({
   speed: z.number().min(20).max(4000).optional().describe('Page px per second'),
   seed: z.int().min(0).optional(),
   held: z.boolean().default(true).describe('The visible hand draws it'),
+  parallel: z
+    .boolean()
+    .default(false)
+    .describe('If the hand is busy elsewhere then, appear without it instead of waiting'),
   boil: z.number().min(0).max(2).optional().describe('Line boil amplitude (0 = printed)'),
   fps: z.number().min(4).max(24).optional().describe('Boil cadence (default the page boilFps)'),
   nib: z
@@ -79,6 +83,7 @@ export const fillOptions = z.object({
   dense: z.boolean().default(false).describe('Crayon tooth between the hatch lines'),
   seed: z.int().min(0).optional(),
   held: z.boolean().default(true),
+  parallel: z.boolean().default(false).describe('Appear without the hand if it is busy then'),
   attach: attachParam,
 });
 

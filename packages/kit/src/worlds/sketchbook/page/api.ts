@@ -74,13 +74,13 @@ export function createPageApi(context: PageContext) {
     resolve(at, calls <= 1 && cursor === 0 ? 0.3 : cursor + 0.12);
   const colorOf = (name: string | undefined): number | undefined =>
     name === undefined ? undefined : inkOfSwatch(name);
-  const commit = (marks: Mark[], until?: number): Timed => {
+  const commit = (marks: Mark[], until?: number, parallel = false): Timed => {
     const first = marks[0];
     if (!first) return { at: cursor, end: cursor };
     if (until !== undefined) fitMarks(marks, 0, first.t0, until);
-    page.addMarks(marks);
-    const at = Math.min(...marks.map((mark) => mark.t0));
-    const end = Math.max(...marks.map((mark) => mark.t0 + mark.dur));
+    const placed = page.addMarks(marks, parallel ? 'parallel' : 'queue');
+    const at = Math.min(...placed.map((mark) => mark.t0));
+    const end = Math.max(...placed.map((mark) => mark.t0 + mark.dur));
     cursor = Math.max(cursor, end);
     return { at, end };
   };
@@ -127,7 +127,11 @@ export function createPageApi(context: PageContext) {
   ): Timed => {
     const name = begin(method);
     const parsed = S.parse(schema, options, name);
-    return commit(strokes(recipes(parsed, seedOf(parsed.seed)), parsed));
+    return commit(
+      strokes(recipes(parsed, seedOf(parsed.seed)), parsed),
+      undefined,
+      parsed.parallel,
+    );
   };
   const num = (value: unknown, name: string, method: string): number =>
     S.finite(value, name, `${call}.${method}()`);
@@ -179,7 +183,11 @@ export function createPageApi(context: PageContext) {
           : undefined,
       });
       const [x0, y0, x1, y1] = textSpan(layoutText(text, layout));
-      return { ...commit(marks), width: x1 - x0, box: [x0, y0, x1 - x0, y1 - y0] as const };
+      return {
+        ...commit(marks, undefined, o.parallel),
+        width: x1 - x0,
+        box: [x0, y0, x1 - x0, y1 - y0] as const,
+      };
     },
     stroke(points: unknown, options?: unknown) {
       const name = begin('stroke');
@@ -188,6 +196,8 @@ export function createPageApi(context: PageContext) {
       const corners = cornersOf(o.corners, pts.length / 2);
       return commit(
         strokes([{ pts, corners, gap: 0, seed: 0, smooth: o.smooth, ease: o.ease }], o),
+        undefined,
+        o.parallel,
       );
     },
     fill(points: unknown, options?: unknown) {
@@ -206,7 +216,7 @@ export function createPageApi(context: PageContext) {
         dense: o.dense,
         source: frame ? (t) => xformPts(pts, frame.at(t)) : undefined,
       });
-      return commit([mark]);
+      return commit([mark], undefined, o.parallel);
     },
     arrow: (points: unknown, options?: unknown) =>
       pen('arrow', S.arrowOptions, options, (o) =>
@@ -274,7 +284,7 @@ export function createPageApi(context: PageContext) {
         );
       }
       const start = marks[0]?.t0 ?? 0;
-      return commit(marks, o.until === undefined ? undefined : resolve(o.until, start));
+      return commit(marks, o.until === undefined ? undefined : resolve(o.until, start), o.parallel);
     },
     figure(options: unknown): FigureHandle {
       const name = begin('figure');
