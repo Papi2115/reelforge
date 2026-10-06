@@ -10,6 +10,7 @@ export * from './cast-roles.js';
 export * from './characters.js';
 export * from './claims.js';
 export * from './claims-ops.js';
+export * from './continuity.js';
 export * from './dramaturgy.js';
 export * from './final-review.js';
 export * from './hook-lab.js';

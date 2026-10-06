@@ -87,7 +87,9 @@ describe('look registry', () => {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
-    expect(folders).toEqual(LOOKS.map((look) => look.id).sort());
+    // World looks live in their world's folder (worlds/<id>/, PLAN.md#13.1).
+    const builtIn = LOOKS.filter((look) => look.styles === undefined);
+    expect(folders).toEqual(builtIn.map((look) => look.id).sort());
   });
 
   it('makes the voxel look exactly the existing kit', () => {

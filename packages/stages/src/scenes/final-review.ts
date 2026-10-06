@@ -18,6 +18,7 @@ import {
   type StoryboardShot,
   type SyncReport,
 } from '@reelforge/shared';
+import { continuityReviewNotes } from '../continuity.js';
 import { finalReviewDramaturgy } from '../dramaturgy.js';
 import { writeProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
@@ -302,6 +303,8 @@ export async function finalReview(
     if (!drama.ok) return drama;
     notes.push(...drama.value);
   }
+  // Continuity links (PLAN.md#13.2): planned vs rendered; no links = no line.
+  notes.push(...continuityReviewNotes(job.shots, entries));
   // Film-level repetition control (PLAN.md#12.23): read-only analysis, its count as a note.
   notes.push(...(await reviewRepetitions(ctx.projectDir, ctx.snapshot.project)));
   const review: FinalReview = {

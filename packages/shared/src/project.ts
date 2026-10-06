@@ -106,6 +106,11 @@ export const projectFileSchema = z.object({
   shotsPerMinute: shotsPerMinuteSchema.optional(),
   /** Faster checks (ADR-027): lighter scene QA, a small quality trade-off. Absent = off. */
   fasterChecks: z.boolean().optional(),
+  /**
+   * Continuity links (PLAN.md#13.2, continuity.ts): the storyboard may link shots through a shared
+   * object. Absent = off (the storyboard prompt is exactly as before).
+   */
+  continuityLinks: z.boolean().optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

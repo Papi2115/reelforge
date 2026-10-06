@@ -3,7 +3,7 @@
  * prompt get from the project's `lookMode` and the kit's look registry. `voxel-only` (every
  * project made before 2.0) gets nothing, so its prompts and checks stay exactly as they were.
  */
-import { getLook, listLooks, voxelLook, type Look } from '@reelforge/kit';
+import { getLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
 import { DEFAULT_LOOK_RHYTHM_RULES, maxNonCutTransitions } from '@reelforge/prompts';
 import {
   describePairs,
@@ -15,6 +15,14 @@ import {
   type StoryboardShot,
   type TransitionStyle,
 } from '@reelforge/shared';
+
+/**
+ * The looks a project of this style offers (PLAN.md#13.1): the looks of every style plus those of
+ * its world; for the built-in styles exactly `listLooks()`.
+ */
+export function styleLooks(style: string | undefined): Look[] {
+  return listLooks(LOOKS, { style });
+}
 
 /** One line per look in the storyboard prompt. */
 export function lookLine(look: Look): string {

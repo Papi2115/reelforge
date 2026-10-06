@@ -38,10 +38,38 @@ export interface Look {
   readonly variationBudget: string;
   /** Registered for storyboards and ctx.kit only when true. */
   readonly available: boolean;
+  /**
+   * Style ids (worlds, docs/worlds/README.md) the look belongs to: listed, documented and bound
+   * into ctx.kit only while one of them is the active style. Absent = every style (the 2.x looks).
+   */
+  readonly styles?: readonly string[] | undefined;
+  /**
+   * Work in progress (a world being ported): bound into ctx.kit of its styles so showcase renders
+   * work, but never listed for storyboards, kit-docs or the catalog unless a scope asks for it.
+   */
+  readonly experimental?: boolean | undefined;
   readonly kit: LookKit;
 }
 
+/** Which looks a caller offers: the active style and whether experimental looks count. */
+export interface LookScope {
+  /** Active style id; absent = only the looks without `styles`. */
+  readonly style?: string | undefined;
+  /** Include experimental looks (showcase renders, ctx.kit). Default false. */
+  readonly experimental?: boolean | undefined;
+}
+
+/** True when an available look is offered in this scope (style membership, experimental flag). */
+export function lookInScope(look: Look, scope: LookScope = {}): boolean {
+  if (!look.available) return false;
+  if (look.experimental === true && scope.experimental !== true) return false;
+  if (look.styles === undefined) return true;
+  return scope.style !== undefined && look.styles.includes(scope.style);
+}
+
 const LOOK_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+/** Same rule as `stylePresetIdSchema` in @reelforge/shared (the kit has no shared dependency). */
+const STYLE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /** Metadata checks (the kit definitions are checked by their own registry). */
 export const lookMetaSchema = z.object({
@@ -54,6 +82,11 @@ export const lookMetaSchema = z.object({
   soundPalette: z.string().min(1),
   variationBudget: z.string().min(1),
   available: z.boolean(),
+  styles: z
+    .array(z.string().regex(STYLE_ID, 'style ids are kebab case, e.g. sketchbook'))
+    .min(1)
+    .optional(),
+  experimental: z.boolean().optional(),
 });
 
 const KIT_SLOTS: readonly (readonly [keyof Omit<LookKit, 'templates'>, KitKind])[] = [

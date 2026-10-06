@@ -7,6 +7,7 @@
 import { extractPropMeta } from '@reelforge/engine';
 import {
   kitCatalog,
+  LOOKS,
   propExtensionCatalogEntry,
   type KitCatalog,
   type KitCatalogEntry,
@@ -176,10 +177,17 @@ export async function projectProps(
   return { entries, problems };
 }
 
-/** The project's look mode; voxel-only without a valid project.json (the default). */
-async function readLookMode(root: string): Promise<LookMode> {
+/**
+ * The project's look mode (voxel-only without a valid project.json, the default) and style (its
+ * world's looks join the catalog, PLAN.md#13.1; none without a project).
+ */
+async function readLookSettings(
+  root: string,
+): Promise<{ lookMode: LookMode; style: string | undefined }> {
   const project = await checkJsonFile(root, PROJECT_PATHS.project, projectFileSchema);
-  return project.status === 'ok' ? projectLookMode(project.data) : 'voxel-only';
+  return project.status === 'ok'
+    ? { lookMode: projectLookMode(project.data), style: project.data.style }
+    : { lookMode: 'voxel-only', style: undefined };
 }
 
 export const kitDocsCommand: Command = {
@@ -192,8 +200,8 @@ export const kitDocsCommand: Command = {
     if (positionals.length > 1) throw new UsageError('kit-docs takes at most one name');
     const project = await projectProps(context.root);
     const { cast } = projectCastOf(await readCastRoles(context.root));
-    const catalog = kitCatalog(project.entries);
-    const lookMode = await readLookMode(context.root);
+    const { lookMode, style } = await readLookSettings(context.root);
+    const catalog = kitCatalog(project.entries, LOOKS, { style });
     const name = positionals[0];
     if (name === undefined && (values.full || values.page !== undefined)) {
       throw new UsageError(

@@ -2,23 +2,25 @@
  * Look registry (ADR-009). `LOOKS` lists every look module the kit ships; only those with
  * `available: true` reach storyboards, scene-build docs, `ctx.kit` and the catalog. A new look
  * lives in its own folder (`looks/<id>/index.ts`) and flips its own flag: this file and the
- * shared kit code never need an edit for it.
+ * shared kit code never need an edit for it. World looks (PLAN.md#13.1) come from `WORLDS` and
+ * are scoped to their world's style (`Look.styles`, `LookScope`).
  */
 import { KitError } from '../errors.js';
 import type { KitDefinition, KitKind } from '../registry.js';
+import { worldLooks } from '../worlds/index.js';
 import { blueprintLook } from './blueprint/index.js';
 import { dioramaLook } from './diorama/index.js';
 import { flat2dLook } from './flat-2d/index.js';
 import { paperCutoutLook } from './paper-cutout/index.js';
 import { retroUiLook } from './retro-ui/index.js';
-import { lookDefinitions, type Look } from './types.js';
+import { lookDefinitions, lookInScope, type Look, type LookScope } from './types.js';
 import { VOXEL_LOOK_ID, voxelLook } from './voxel/index.js';
 import { whiteboardLook } from './whiteboard/index.js';
 
 export * from './types.js';
 export { VOXEL_LOOK_ID, voxelLook };
 
-/** Every look module, available or not; voxel first (it is the kit itself). */
+/** Every look module, available or not; voxel first (it is the kit itself), world looks last. */
 export const LOOKS: readonly Look[] = Object.freeze([
   voxelLook,
   retroUiLook,
@@ -27,16 +29,31 @@ export const LOOKS: readonly Look[] = Object.freeze([
   paperCutoutLook,
   whiteboardLook,
   flat2dLook,
+  ...worldLooks(),
 ]);
 
-/** The available looks, voxel first. */
-export function listLooks(looks: readonly Look[] = LOOKS): Look[] {
-  return looks.filter((look) => look.available);
+/**
+ * The available looks offered in `scope`, voxel first. The default scope (no style) leaves out
+ * every look scoped to a style and every experimental look, so callers that do not pass a style
+ * see exactly the looks of the built-in styles.
+ */
+export function listLooks(looks: readonly Look[] = LOOKS, scope: LookScope = {}): Look[] {
+  return looks.filter((look) => lookInScope(look, scope));
 }
 
-/** An available look by id (undefined for unknown or not-yet-available ones). */
-export function getLook(id: string, looks: readonly Look[] = LOOKS): Look | undefined {
-  return listLooks(looks).find((look) => look.id === id);
+/**
+ * An available look by id (undefined for unknown or not-yet-available ones). Without a scope any
+ * available look of `looks` resolves (pass a scoped list to restrict it); with one, only a look
+ * offered in that scope.
+ */
+export function getLook(
+  id: string,
+  looks: readonly Look[] = LOOKS,
+  scope?: LookScope,
+): Look | undefined {
+  return looks.find(
+    (look) => look.id === id && (scope === undefined ? look.available : lookInScope(look, scope)),
+  );
 }
 
 /** A kit definition with the look it comes from. */
@@ -46,14 +63,15 @@ export interface LookDefinition {
 }
 
 /**
- * Definitions of the available looks other than voxel (whose definitions are the kit's own),
- * by kind. Throws when two looks (or a look and the voxel kit) use one name in one namespace,
- * or when two looks share an id.
+ * Definitions of the looks offered in `scope` other than voxel (whose definitions are the kit's
+ * own), by kind. Throws when two of those looks (or a look and the voxel kit) use one name in one
+ * namespace, or when two share an id; looks of different styles never meet, so they may.
  */
 export function extraLookDefinitions(
   looks: readonly Look[] = LOOKS,
+  scope: LookScope = {},
 ): Readonly<Record<KitKind, readonly LookDefinition[]>> {
-  const available = listLooks(looks);
+  const available = listLooks(looks, scope);
   const ids = new Set<string>();
   for (const look of available) {
     if (ids.has(look.id)) throw new KitError('invalid-look', `look id "${look.id}" repeats`);

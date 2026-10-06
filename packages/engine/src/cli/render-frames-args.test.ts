@@ -28,7 +28,16 @@ describe('render:frames arguments', () => {
       duration: undefined,
       seed: undefined,
       lint: true,
+      experimental: false,
       help: false,
+    });
+  });
+
+  it('parses --experimental (showcase renders of experimental world styles)', () => {
+    const argv = ['--scene', 'a.js', '--at', '1', '--preset', 'test-world', '--experimental'];
+    expect(parseRenderFramesArgs(argv)).toMatchObject({
+      preset: 'test-world',
+      experimental: true,
     });
   });
 

@@ -14,7 +14,7 @@ import {
 import { z } from 'zod';
 import { formatDiagnostics, hasErrors } from '../lint/diagnostics.js';
 import { lintManifestScenes } from '../lint/manifest.js';
-import { STYLE_PRESET_IDS } from '../presets/index.js';
+import { renderStyleProblem, STYLE_REGISTRY } from '../presets/index.js';
 import { launchHarnessBrowser } from './harness-session.js';
 import type { CliIo } from './io.js';
 import { DEFAULT_FRAMES_DIR } from './paths.js';
@@ -144,13 +144,26 @@ async function manifestInputs(manifestPath: string, cwd: string): Promise<Inputs
   return { manifest, name: path.basename(file, path.extname(file)) };
 }
 
-function withPreset(manifest: RenderManifest, preset: string | undefined): RenderManifest {
-  if (preset === undefined) return manifest;
-  if (!STYLE_PRESET_IDS.includes(preset)) {
-    throw new UsageError(
-      `--preset: unknown style "${preset}"; available: ${STYLE_PRESET_IDS.join(', ')}`,
-    );
+/**
+ * Applies `--preset`; experimental world styles (from `--preset` or the manifest) need
+ * `--experimental`. An unknown manifest style is left to the engine's own error.
+ */
+function withPreset(
+  manifest: RenderManifest,
+  preset: string | undefined,
+  experimental = false,
+): RenderManifest {
+  if (preset === undefined) {
+    const style = manifest.style;
+    const problem =
+      style !== undefined && STYLE_REGISTRY.isExperimental(style)
+        ? renderStyleProblem(STYLE_REGISTRY, style, experimental)
+        : undefined;
+    if (problem !== undefined) throw new UsageError(`manifest: ${problem}`);
+    return manifest;
   }
+  const problem = renderStyleProblem(STYLE_REGISTRY, preset, experimental);
+  if (problem !== undefined) throw new UsageError(`--preset: ${problem}`);
   // The render size comes from the style unless the manifest pins it.
   return { ...manifest, style: preset };
 }
@@ -215,7 +228,7 @@ export async function runRenderFramesCli(
       args.scene !== undefined
         ? await sceneInputs(args, args.scene, cwd)
         : await manifestInputs(args.manifest ?? '', cwd);
-    inputs = { ...base, manifest: withPreset(base.manifest, args.preset) };
+    inputs = { ...base, manifest: withPreset(base.manifest, args.preset, args.experimental) };
   } catch (error) {
     if (!(error instanceof UsageError) && !(error instanceof Error && 'code' in error)) throw error;
     io.stderr(

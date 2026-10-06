@@ -1,0 +1,178 @@
+/**
+ * World architecture (PLAN.md#13.1): a world's looks appear only while its style is active, an
+ * experimental look only where a scope asks for it, and adding a world changes nothing for the
+ * built-in styles (catalog, markdown, ctx.kit).
+ */
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+import { kitCatalogMarkdown } from '../catalog-markdown.js';
+import { createKit, kitCatalog } from '../kit.js';
+import {
+  extraLookDefinitions,
+  getLook,
+  listLooks,
+  lookInScope,
+  lookMetaSchema,
+  LOOKS,
+  type Look,
+} from '../looks/index.js';
+import { CRISP_PALETTE } from '../testing/palettes.js';
+import { testRng } from '../testing/rng.js';
+import { TEST_WORLD, TEST_WORLD_ID, testWorldLook } from '../testing/test-world.js';
+import { defineWorld, WORLDS, worldLooks, type World } from './index.js';
+
+/** The built-in styles (engine presets); the kit has no engine dependency. */
+const BUILT_IN_STYLES = ['voxel-pixel-crisp640', 'noir-voxel', 'soft-480'] as const;
+const STYLES_OF_TODAY = [undefined, ...BUILT_IN_STYLES];
+const WITH_TEST_WORLD: readonly Look[] = [...LOOKS, ...worldLooks([TEST_WORLD])];
+const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..');
+
+function ids(looks: readonly Look[]): string[] {
+  return looks.map((look) => look.id);
+}
+
+function propNames(looks: readonly Look[], style: string | undefined): string[] {
+  const { api } = createKit({
+    three: THREE,
+    palette: CRISP_PALETTE,
+    rng: testRng(5),
+    looks,
+    style,
+  });
+  return Object.keys(api.props);
+}
+
+function world(overrides: Partial<World> = {}): World {
+  return defineWorld({ ...TEST_WORLD, ...overrides });
+}
+
+describe('look scope', () => {
+  it('offers unscoped looks everywhere and scoped ones only in their styles', () => {
+    const scoped = { ...testWorldLook, experimental: false };
+    expect(lookInScope(scoped)).toBe(false);
+    expect(lookInScope(scoped, { style: 'noir-voxel' })).toBe(false);
+    expect(lookInScope(scoped, { style: TEST_WORLD_ID })).toBe(true);
+    for (const look of listLooks()) {
+      for (const style of STYLES_OF_TODAY) expect(lookInScope(look, { style })).toBe(true);
+    }
+  });
+
+  it('hides experimental looks unless the scope asks for them', () => {
+    expect(lookInScope(testWorldLook, { style: TEST_WORLD_ID })).toBe(false);
+    expect(lookInScope(testWorldLook, { style: TEST_WORLD_ID, experimental: true })).toBe(true);
+    expect(lookInScope(testWorldLook, { experimental: true })).toBe(false);
+    expect(lookInScope({ ...testWorldLook, available: false }, { style: TEST_WORLD_ID })).toBe(
+      false,
+    );
+  });
+
+  it('validates styles and experimental in the look metadata', () => {
+    expect(lookMetaSchema.safeParse(testWorldLook).success).toBe(true);
+    expect(lookMetaSchema.safeParse({ ...testWorldLook, styles: [] }).success).toBe(false);
+    expect(lookMetaSchema.safeParse({ ...testWorldLook, styles: ['Test World'] }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('the test world', () => {
+  it('is visible only when its style is active (and experimental looks are asked for)', () => {
+    for (const style of STYLES_OF_TODAY) {
+      expect(ids(listLooks(WITH_TEST_WORLD, { style, experimental: true }))).toEqual(
+        ids(listLooks()),
+      );
+    }
+    expect(ids(listLooks(WITH_TEST_WORLD, { style: TEST_WORLD_ID }))).toEqual(ids(listLooks()));
+    expect(ids(listLooks(WITH_TEST_WORLD, { style: TEST_WORLD_ID, experimental: true }))).toEqual([
+      ...ids(listLooks()),
+      'test-world-page',
+    ]);
+  });
+
+  it('resolves by id, but not in a scope of another style', () => {
+    expect(getLook('test-world-page', WITH_TEST_WORLD)).toBe(testWorldLook);
+    expect(getLook('test-world-page', WITH_TEST_WORLD, { style: 'noir-voxel' })).toBeUndefined();
+    expect(getLook('test-world-page')).toBeUndefined();
+  });
+
+  it('binds its definitions into ctx.kit only in its style', () => {
+    const today = propNames(LOOKS, undefined);
+    for (const style of STYLES_OF_TODAY) expect(propNames(WITH_TEST_WORLD, style)).toEqual(today);
+    expect(propNames(WITH_TEST_WORLD, TEST_WORLD_ID)).toEqual([...today, 'testWorldPage']);
+  });
+
+  it('joins the catalog only in its style, as its own look section', () => {
+    const catalog = kitCatalog([], WITH_TEST_WORLD, { style: TEST_WORLD_ID, experimental: true });
+    expect(catalog.looks.at(-1)?.id).toBe('test-world-page');
+    expect(catalog.props.at(-1)).toMatchObject({ name: 'testWorldPage', look: 'test-world-page' });
+    expect(kitCatalogMarkdown(catalog)).toContain('## Look `test-world-page`: Test world page');
+    expect(kitCatalog([], WITH_TEST_WORLD, { style: TEST_WORLD_ID }).looks.at(-1)?.id).not.toBe(
+      'test-world-page',
+    );
+  });
+
+  it('lets looks of different styles share a definition name', () => {
+    const twin = { ...testWorldLook, id: 'twin-page', styles: ['other-world'] };
+    const looks = [...WITH_TEST_WORLD, twin];
+    expect(() =>
+      extraLookDefinitions(looks, { style: TEST_WORLD_ID, experimental: true }),
+    ).not.toThrow();
+    expect(() =>
+      extraLookDefinitions(looks, { style: 'other-world', experimental: true }),
+    ).not.toThrow();
+  });
+});
+
+describe('no harm to the built-in styles', () => {
+  const committed = readFileSync(path.join(REPO_ROOT, 'docs', 'kit-catalog.md'), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const thumbnails = Object.fromEntries(
+    readdirSync(path.join(REPO_ROOT, 'docs', 'kit-catalog'))
+      .filter((file) => file.endsWith('.png'))
+      .map((file) => [file.slice(0, -'.png'.length), `kit-catalog/${file}`]),
+  );
+
+  it.each(STYLES_OF_TODAY.map((style) => [style ?? '(no style)', style] as const))(
+    '%s: catalog and docs/kit-catalog.md are byte-identical with a world registered',
+    (_label, style) => {
+      for (const scope of [{ style }, { style, experimental: true }]) {
+        const catalog = kitCatalog([], WITH_TEST_WORLD, scope);
+        expect(catalog).toEqual(kitCatalog());
+        expect(kitCatalogMarkdown(catalog, { thumbnails })).toBe(committed);
+      }
+    },
+  );
+
+  it('ships no world yet, so LOOKS is exactly the built-in looks', () => {
+    expect(WORLDS).toEqual([]);
+    expect(LOOKS.every((look) => look.styles === undefined && look.experimental !== true)).toBe(
+      true,
+    );
+  });
+});
+
+describe('defineWorld', () => {
+  it('accepts the test world', () => {
+    expect(TEST_WORLD.looks).toEqual([testWorldLook]);
+    expect(Object.isFrozen(TEST_WORLD)).toBe(true);
+  });
+
+  it('rejects broken worlds', () => {
+    expect(() => world({ id: 'Test World' })).toThrow(/invalid world "Test World": id/);
+    expect(() => world({ looks: [] })).toThrow(/at least one look/);
+    expect(() => world({ looks: [{ ...testWorldLook, styles: ['other'] }] })).toThrow(
+      /must list "test-world" in styles/,
+    );
+    expect(() => world({ looks: [{ ...testWorldLook, experimental: false }] })).toThrow(
+      /experimental world must be experimental/,
+    );
+    expect(() => world({ style: { ...TEST_WORLD.style, id: 'other' } })).toThrow(
+      /style\.id is "other"/,
+    );
+    expect(() => world({ fonts: { display: '', mono: 'mono' } })).toThrow(/fonts\.display/);
+  });
+});

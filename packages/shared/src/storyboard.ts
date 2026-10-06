@@ -11,6 +11,7 @@ import {
   type MascotId,
   type ShotMascot,
 } from './characters.js';
+import { continuityLinkSchema } from './continuity.js';
 import { interruptSchema } from './interrupts.js';
 
 export const STORYBOARD_FILE_VERSION = 1;
@@ -218,6 +219,11 @@ export const storyboardShotSchema = z
      * / `dive-out` may chain over consecutive shots marked so. Optional.
      */
     scaleSequence: z.boolean().optional(),
+    /**
+     * Continuity link from the previous shot (PLAN.md#13.2, continuity.ts): a shared object the
+     * camera or the action carries across the cut. Optional; the first shot never has one.
+     */
+    continuity: continuityLinkSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

@@ -5,8 +5,27 @@
  * may run one longer), a new pattern (roll + look + treatment) at least every 6–8 s, a C-roll
  * at act changes (warning) and mostly hard cuts (one non-cut transition per ~20 s). Projects in `voxel-only` mode never reach these checks.
  */
-import { DEFAULT_LOOK_ID, shotLook, type Roll, type StoryboardShot } from '@reelforge/shared';
+import {
+  continuityKindOf,
+  DEFAULT_LOOK_ID,
+  shotLook,
+  type Roll,
+  type StoryboardShot,
+} from '@reelforge/shared';
 import { issue, type ValidationIssue } from './issues.js';
+
+/**
+ * A non-cut transition that opens an act; a continuity link (PLAN.md#13.2) carries the story on,
+ * so it is neither an act change nor counted in the transition density.
+ */
+function opensAct(shot: StoryboardShot): boolean {
+  const transition = shot.transitionIn;
+  return (
+    transition !== undefined &&
+    transition.type !== 'cut' &&
+    continuityKindOf(transition) === undefined
+  );
+}
 
 export interface LookRhythmRules {
   /** Same look allowed this many shots in a row. Default 3. */
@@ -160,18 +179,18 @@ function patternIssues(
 }
 
 function actChangeIssues(shots: readonly StoryboardShot[]): ValidationIssue[] {
-  return shots.flatMap((shot, index) =>
-    shot.transitionIn !== undefined && shot.transitionIn.type !== 'cut' && shot.roll !== 'C'
-      ? [
-          issue(
-            'warning',
-            'act-change-roll',
-            `${shot.id} opens an act (${shot.transitionIn.type}) but is not a C-roll`,
-            where(index, 'roll'),
-          ),
-        ]
-      : [],
-  );
+  return shots.flatMap((shot, index) => {
+    const transition = shot.transitionIn;
+    if (transition === undefined || !opensAct(shot) || shot.roll === 'C') return [];
+    return [
+      issue(
+        'warning',
+        'act-change-roll',
+        `${shot.id} opens an act (${transition.type}) but is not a C-roll`,
+        where(index, 'roll'),
+      ),
+    ];
+  });
 }
 
 /**
@@ -183,9 +202,7 @@ function transitionDensityIssues(
   everyS: number,
 ): ValidationIssue[] {
   const durationS = shots.at(-1)?.t1 ?? 0;
-  const nonCut = shots.filter(
-    (shot) => shot.transitionIn !== undefined && shot.transitionIn.type !== 'cut',
-  ).length;
+  const nonCut = shots.filter(opensAct).length;
   const max = maxNonCutTransitions(durationS, everyS);
   if (nonCut <= max) return [];
   return [

@@ -41,9 +41,10 @@ import {
   type WordsFile,
 } from '@reelforge/shared';
 import { loadCharacterSettings, storyboardCharacterOptions } from '../characters.js';
+import { applyStoryboardContinuity, storyboardContinuityVars } from '../continuity.js';
 import { finishStoryboardDramaturgy, prepareStoryboardDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
-import { storyboardLookOptions, storyboardLookVars } from '../looks.js';
+import { storyboardLookOptions, storyboardLookVars, styleLooks } from '../looks.js';
 import { runTensionProposal, storyboardTension, storyboardTensionVars } from '../tension.js';
 import { FILES, REPORTS } from '../paths.js';
 import {
@@ -107,7 +108,10 @@ async function validateFile(
   }
   const report = validateStoryboard(text.value, {
     words,
-    ...storyboardLookOptions(lookMode),
+    ...storyboardLookOptions(
+      lookMode,
+      styleLooks(project.status === 'ok' ? project.value.style : undefined),
+    ),
     assetNeeds: { research },
     ...withAssetIds(await currentAssetIds(ctx.projectDir)),
     ...(tension === undefined ? {} : { tension }),
@@ -213,7 +217,7 @@ async function run(
   const narrationEnd = words.value.words.at(-1)?.tEnd ?? 0;
   const prompt = render('storyboard', {
     styleId: project.value.style,
-    ...storyboardLookVars(lookMode, undefined, narrationEnd + 0.5),
+    ...storyboardLookVars(lookMode, styleLooks(project.value.style), narrationEnd + 0.5),
     ...storyboardTensionVars(
       curve,
       words.value,
@@ -225,6 +229,8 @@ async function run(
     ...drama.value.vars,
     ...storyboardCharacterVars(characters),
     ...storyboardShotRangeVars(range, narrationEnd),
+    // Continuity links (PLAN.md#13.2); switch off = nothing changes.
+    ...storyboardContinuityVars(project.value, narrationEnd),
     // The user's taste profile (PLAN.md#12.13); absent = the prompt is exactly as without it.
     tasteProfile: ctx.taste?.profile(),
   });
@@ -267,8 +273,13 @@ async function run(
       ),
     );
   }
+  // Linked shots get their continuity transition (PLAN.md#13.2); no links = no-op.
+  const linked = await applyStoryboardContinuity(ctx, validated);
+  if (!linked.ok) return linked;
   const styled =
-    lookMode === 'mixed' ? await assignStyles(ctx, validated, project.value.seed) : ok(validated);
+    lookMode === 'mixed'
+      ? await assignStyles(ctx, linked.value, project.value.seed)
+      : ok(linked.value);
   if (!styled.ok) return styled;
   // Beat sync (PLAN.md#12.21): snaps unlocked cuts to the beat grid, validated again; off = no-op.
   const synced = await storyboardBeatSync(

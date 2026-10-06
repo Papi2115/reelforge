@@ -17,6 +17,7 @@ import {
   sceneLookVars,
   storyboardLookOptions,
   storyboardLookVars,
+  styleLooks,
   transitionLine,
   wowTransitionLine,
 } from './looks.js';
@@ -202,5 +203,45 @@ describe('look mode plumbing', () => {
         expect(treatmentSchema.safeParse(treatment).success, `${look.id}: ${treatment}`).toBe(true);
       }
     }
+  });
+});
+
+describe('looks per style (PLAN.md#13.1)', () => {
+  const BUILT_IN_STYLES = ['voxel-pixel-crisp640', 'noir-voxel', 'soft-480'];
+  /** A world look (not experimental, so prompts may offer it in its style). */
+  const worldLook: Look = defineLook({
+    ...testLook,
+    id: 'test-world-page',
+    rolls: ['A', 'B'],
+    styles: ['test-world'],
+  });
+
+  it.each(BUILT_IN_STYLES)('%s: prompt variables and checks are exactly as before', (style) => {
+    expect(styleLooks(style)).toEqual(listLooks());
+    for (const mode of ['voxel-only', 'mixed'] as const) {
+      expect(storyboardLookVars(mode, styleLooks(style), 139)).toEqual(
+        storyboardLookVars(mode, undefined, 139),
+      );
+      expect(storyboardLookOptions(mode, styleLooks(style))).toEqual(storyboardLookOptions(mode));
+      const shot = { ...SHOT, look: 'retro-ui', roll: 'B' } satisfies StoryboardShot;
+      expect(sceneLookVars(mode, shot, styleLooks(style))).toEqual(sceneLookVars(mode, shot));
+      expect(criticLookVars(mode, shot, styleLooks(style))).toEqual(criticLookVars(mode, shot));
+    }
+  });
+
+  it('offers a world look for A/B/C roll choice only in its style', () => {
+    const looks = [...LOOKS, worldLook];
+    const inWorld = listLooks(looks, { style: 'test-world' });
+    expect(storyboardLookOptions('mixed', inWorld).looks).toContain('test-world-page');
+    expect(String(storyboardLookVars('mixed', inWorld)['looks'])).toContain(lookLine(worldLook));
+    for (const style of BUILT_IN_STYLES) {
+      const elsewhere = listLooks(looks, { style });
+      expect(storyboardLookOptions('mixed', elsewhere).looks).not.toContain('test-world-page');
+      const shot = { ...SHOT, look: 'test-world-page' };
+      expect(sceneLookVars('mixed', shot, elsewhere)).toMatchObject({ lookId: 'voxel' });
+    }
+    expect(sceneLookVars('mixed', { ...SHOT, look: 'test-world-page' }, inWorld)).toMatchObject({
+      lookId: 'test-world-page',
+    });
   });
 });

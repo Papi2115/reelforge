@@ -146,3 +146,4 @@ export {
   type VoxelModel,
 } from './voxel/model.js';
 export * from './voxel/ops.js';
+export * from './worlds/index.js';

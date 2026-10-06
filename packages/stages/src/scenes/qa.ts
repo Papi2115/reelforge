@@ -9,7 +9,7 @@ import { ok, type Result } from '@reelforge/claude-bridge';
 import { criticCharacterVars } from '@reelforge/prompts';
 import type { CriticVerdictRecord, QaFinding, StoryboardShot } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
-import { criticLookVars } from '../looks.js';
+import { criticLookVars, styleLooks } from '../looks.js';
 import { FILES } from '../paths.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
@@ -148,7 +148,7 @@ export async function qaRound(
       intent: shot.intent,
       styleId: job.styleId,
       lookVars: {
-        ...criticLookVars(job.lookMode, shot),
+        ...criticLookVars(job.lookMode, shot, styleLooks(job.styleId)),
         ...criticCharacterVars(job.characters, shot),
       },
       render,

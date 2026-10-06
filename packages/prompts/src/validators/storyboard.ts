@@ -7,12 +7,15 @@
  * the mascot and role checks (characters.ts, PLAN.md#12.20); with a shots-per-minute range
  * (ADR-027) shot lengths, the pattern window and the tempo targets follow the range, plus the
  * range and sentence-boundary checks (shot-range.ts); the wow-transition budget and order rules
- * (wow.ts, ADR-028) apply wherever a wow style is named.
+ * (wow.ts, ADR-028) apply wherever a wow style is named; continuity links (continuity.ts,
+ * PLAN.md#13.2) are checked with their transitions written from the links.
  */
 import {
+  applyContinuityTransitions,
   DEFAULT_LOOK_ID,
   describePairs,
   getTransitionStyle,
+  isContinuityStyle,
   shotLook,
   shotRangeRules,
   STANDARD_TEMPO,
@@ -29,6 +32,7 @@ import { z } from 'zod';
 import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
 import { checkAssetNeeds, checkShotAssets, type AssetNeedRules } from './asset-needs.js';
 import { checkCharacters, type CharacterCheckOptions } from './characters.js';
+import { checkContinuity } from './continuity.js';
 import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
 import {
   issue,
@@ -289,6 +293,8 @@ function transitionIssues(
     if (previous === undefined)
       return [issue('error', 'first-transition', 'the first shot has no transition', where)];
     const { duration, style } = transition;
+    // A continuity link's transition comes from the link (continuity.ts checks it).
+    if (isContinuityStyle(style)) return [];
     if (style !== undefined) return styleIssues(shot, previous, style, duration, where);
     return durationIssue(
       transition.type,
@@ -396,13 +402,14 @@ export function checkStoryboard(
     ...(range === undefined ? {} : shotRangeStoryboardRules(range)),
     ...options.rules,
   };
-  const { shots } = storyboard;
+  const { shots } = applyContinuityTransitions(storyboard.shots);
   return [
     ...timelineIssues(shots, rules),
     ...treatmentIssues(shots, rules, ranged),
     ...identityIssues(shots),
     ...transitionIssues(shots, rules),
     ...checkWowTransitions(shots),
+    ...checkContinuity(shots),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),
     ...checkAssetNeeds(shots, options.assetNeeds),

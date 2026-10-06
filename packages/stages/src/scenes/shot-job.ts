@@ -16,9 +16,10 @@ import {
   normalizePropName,
   type StoryboardShot,
 } from '@reelforge/shared';
+import { sceneContinuityVars } from '../continuity.js';
 import { sceneDramaturgyVars } from '../dramaturgy.js';
 import { readProjectText } from '../files.js';
-import { sceneLookVars } from '../looks.js';
+import { sceneLookVars, styleLooks } from '../looks.js';
 import { projectPropNames } from '../props/builder.js';
 import { provideSceneRoles } from '../roles/scene-roles.js';
 import { render } from '../stages/repair.js';
@@ -80,7 +81,11 @@ function neighbours(job: SceneJob, shot: StoryboardShot): object[] {
 function shotForPrompt(shot: StoryboardShot): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(shot).filter(
-      ([key]) => key !== 'annotations' && key !== 'assetNeeds' && key !== 'interrupt',
+      ([key]) =>
+        key !== 'annotations' &&
+        key !== 'assetNeeds' &&
+        key !== 'interrupt' &&
+        key !== 'continuity',
     ),
   );
 }
@@ -112,9 +117,10 @@ async function buildTurn(
     shotWords: shotWords(job, shot),
     neighbours: neighbours(job, shot),
     styleId: job.styleId,
-    ...sceneLookVars(job.lookMode, shot),
+    ...sceneLookVars(job.lookMode, shot, styleLooks(job.styleId)),
     annotationPlan: annotationPlanText(shot),
     ...sceneDramaturgyVars(job.dramaturgy, job.shots, shot),
+    ...sceneContinuityVars(job.shots, shot),
     ...sceneCharacterVars(job.characters, shot),
     ...shotAssetVars(shot, job.research, job.assets),
     ...(newProps.length === 0
