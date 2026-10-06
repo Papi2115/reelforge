@@ -1,6 +1,6 @@
 # Worlds — decisions and foundations (Papi, 2026-10-06)
 
-Status: **the approved foundations of the new Styles ("worlds") for ReelForge 2.5.** Everything here comes from standalone HTML showcases
+Status: **the approved foundations of the new Styles ("worlds") for ReelForge 3.0.** Everything here comes from standalone HTML showcases
 (`docs/worlds/<world>/showcase.html`, copied for viewing to `C:\Users\galar\Desktop\ReelForge-worlds\index.html`). Nothing is built in the
 app yet. A world = one **Style** (palette, post-fx/filter, resolution, fonts, music/sound palette) + its own **A/B/C looks** + rare
 **breakthrough scenes** that punch through every ~60–90 s without breaking the world's vibe (see `QUALITY.md`, `briefs/`).

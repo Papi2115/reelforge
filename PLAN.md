@@ -3,7 +3,7 @@
 Legenda ról przy taskach: **[S]** Sonnet 5.5 (manager) · **[O]** Opus 5.5 (coder) · **[H]** Haiku (scout/runner). Format taska: `- [ ] **id** [rola] opis — AC: kryterium`.
 Manager hakuje checkboxy dopiero po spełnieniu AC i zielonej weryfikacji (patrz `CLAUDE.md` §2).
 
-**Bieżąca faza: 13 (wersja 2.5 „Światy”) — wydane 2.0–2.3.7; fundamenty światów zatwierdzone 2026-10-06 (docs/worlds/DECISIONS.md); implementacja do startu po decyzjach Papiego**
+**Bieżąca faza: 13 (wersja 3.0 „Światy”) — wydane 2.0–2.3.7; fundamenty światów zatwierdzone 2026-10-06 (docs/worlds/DECISIONS.md); implementacja do startu po decyzjach Papiego**
 
 ---
 
@@ -333,7 +333,7 @@ Branch: `phase-12/v2.3.5-series`. Wydanie: tag, release notes, film testowy ocen
 - [ ] **13.10** [S] **Test długometrażowy**: po jednym filmie 3–5 min w każdym świecie na realnej subskrypcji (jakość/koszt/czas), raport + poprawki promptów.
 - [ ] **13.11** [O] **Publikacja (do decyzji)**: studio miniatur składane z klatek filmu w stylu (bez AI-obrazów) i/lub pomocnik wrzucania na YouTube (API = zwykle prywatny upload z nieweryfikowanego projektu; do zweryfikowania).
 - [ ] **13.12** [O] **Przebudowa UI/UX 2.4** wg `docs/ux/redesign-2.4.md` — czeka 5 decyzji Papiego (sześć kroków, szuflada Director, Biblioteka, szybkie poprawki jako 2.3.8, pikselowa czcionka).
-Kolejność proponowana: 13.1 → 13.2 → 13.6 (najtańszy) → 13.3 → 13.5 → 13.4 → 13.7 równolegle od 13.3 → 13.8 → 13.10; 13.9/13.11/13.12 wg decyzji Papiego.
+Kolejność światów (decyzja Papiego 2026-10-06): **Zeszyt → Komiks → Gra B2 → Gra B1** (B1 najmniej pilny); światy mają WŁASNYCH bohaterów (nie maskotki); kolejność zadań: 13.1 → 13.2 → 13.6 → 13.3 → 13.4 → 13.5, 13.7 równolegle od 13.3, 13.8, 13.10; 13.12 (UX) i 13.9 (taśma, głos przez API ElevenLabs — do omówienia) w ramach 3.0; poprawki UI „2.3.8” wstrzymane („czekaj”) i wejdą do 3.0. Shorts factory przesunięte na **3.5**.
 
 ## 7. Budżety i cele jakości
 - Podgląd ≥ 30 fps przy 640×360 na laptopie Papiego; scrub < 100 ms do klatki.
