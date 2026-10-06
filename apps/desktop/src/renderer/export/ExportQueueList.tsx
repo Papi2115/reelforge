@@ -1,7 +1,8 @@
 /**
  * The export queue (PLAN.md#9.1): every job of the open project with its progress bar, step, ETA
  * and render speed, the shots being rendered, Cancel / Resume / Open folder, the final report
- * (duration, size, average fps, encoder, cache hits) and failures with what to do about them.
+ * (duration, size, average fps, encoder, cache hits, warnings such as the switch to the CPU
+ * encoder, also shown under the status line while the job runs) and failures with what to do.
  */
 import { plural } from '../../shared/plural.js';
 import type { JSX } from 'react';
@@ -62,6 +63,11 @@ function JobItem({
         <p className="export-line" aria-live="polite">
           {progressLine(job)}
           {shots !== null && <span className="muted"> · {shots}</span>}
+        </p>
+      )}
+      {job.progress.warning !== null && job.report === null && (
+        <p className="export-line qa-warning" role="status">
+          {job.progress.warning}
         </p>
       )}
       {job.status === 'running' && rendering.length > 0 && (

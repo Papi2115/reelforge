@@ -6,7 +6,7 @@
  * After a successful export `finish` writes the extras (chapters, metadata). Electron-free; the
  * state is pushed to the renderer after every change (frame updates are throttled upstream).
  */
-import type { ExportProgress } from '@reelforge/pipeline';
+import type { ExportProgress, ExportWarning } from '@reelforge/pipeline';
 import type {
   ExportEnqueueResult,
   ExportJob,
@@ -16,7 +16,13 @@ import type {
   ExportStartRequest,
 } from '../../shared/export-contract.js';
 import type { Logger } from '../logger.js';
-import { applyProgress, EMPTY_PROGRESS, exportReport, failureHint } from './export-progress.js';
+import {
+  applyProgress,
+  applyWarning,
+  EMPTY_PROGRESS,
+  exportReport,
+  failureHint,
+} from './export-progress.js';
 
 const QUALITY_TO_PIPELINE: Readonly<
   Record<ExportJobRequest['quality'], 'draft' | 'final' | 'high'>
@@ -46,14 +52,18 @@ export interface ExportExtras {
   readonly warnings: readonly string[];
 }
 
+/** The app's export (ExportController.start): progress events, the output, warnings. */
+export type ExportStart = (
+  request: ExportStartRequest,
+  listener: (event: ExportProgress) => void,
+  output: string,
+  onWarning: (warning: ExportWarning) => void,
+) => Promise<ExportOutcome>;
+
 export interface ExportQueueOptions {
   readonly currentProject: () => string | undefined;
   /** Starts the app's export (ExportController.start). */
-  readonly start: (
-    request: ExportStartRequest,
-    listener: (event: ExportProgress) => void,
-    output: string,
-  ) => Promise<ExportOutcome>;
+  readonly start: ExportStart;
   readonly cancel: () => void;
   /** Extras after a successful export (chapters.txt, metadata). */
   readonly finish: (dir: string, job: ExportJob, outcome: ExportOutcome) => Promise<ExportExtras>;
@@ -255,6 +265,9 @@ export class ExportQueue {
           entry.waiter?.listener(event);
         },
         entry.job.output,
+        (warning) => {
+          this.update(entry, { progress: applyWarning(entry.job.progress, warning) });
+        },
       )
       .catch((error: unknown): ExportOutcome => ({
         status: 'failed',

@@ -80,6 +80,7 @@ describe('experimental worlds', () => {
     await dialog.getByRole('tab', { name: 'Projects' }).click();
     const worlds = dialog.getByRole('checkbox', { name: /^Experimental worlds \(preview\)/ });
     expect(await worlds.isChecked()).toBe(false);
+    await dialog.getByText('Preview worlds are unfinished and may change.').waitFor();
     await worlds.check();
     await expect
       .poll(async () => (await jsonFile(settingsFile(userDataDir)))['experimental'])

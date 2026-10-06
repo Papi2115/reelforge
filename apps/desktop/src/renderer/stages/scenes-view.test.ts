@@ -5,6 +5,8 @@ import {
   buildProgress,
   buildProgressView,
   builtShotIds,
+  findingLabel,
+  findingText,
   fixPrompt,
   joinBanners,
   missingBadgeLabel,
@@ -119,6 +121,23 @@ describe('scenes view', () => {
       unchecked: 1,
     });
     expect(scenesTotals(REPORT, new Set())).toMatchObject({ checked: 2, unchecked: 0 });
+  });
+
+  it('says anti-slop findings in plain words', () => {
+    const slop = {
+      source: 'slop',
+      severity: 'warning',
+      fatal: false,
+      message: 'invented text: "ZORP" (scenes/s01.js:4: zorp)',
+    } as const;
+    expect(findingText(slop)).toBe('Looks generic: invented text: "ZORP" (scenes/s01.js:4: zorp)');
+    expect(findingText({ ...slop, t: 2 })).toMatch(/^Looks generic @2.0 s: invented text/);
+    expect(findingLabel('lint')).toBe('lint');
+    const report: ScenesReport = {
+      ...REPORT,
+      shots: REPORT.shots.map((shot) => ({ ...shot, findings: [slop] })),
+    };
+    expect(shotBadges(report, null).get('s02')?.findings).toEqual([findingText(slop)]);
   });
 
   it('prefills the chat with the findings of a shot', () => {

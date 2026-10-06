@@ -86,6 +86,20 @@ describe('final review view', () => {
     expect(preflight.blocker).toBe('s04 cannot render: rebuild or fix it first.');
   });
 
+  it('says an anti-slop finding in plain words', () => {
+    const slop: FinalReview = {
+      ...review,
+      shots: review.shots.map((shot) =>
+        shot.shotId === 's02'
+          ? { ...shot, findings: [finding('slop', 'the same composition as s01')] }
+          : shot,
+      ),
+    };
+    expect(exportPreflight(slop, null, shots).items[0]?.text).toBe(
+      'Looks generic: the same composition as s01',
+    );
+  });
+
   it('prefers a newer scenes-report result and works without a review', () => {
     const scenes: ScenesReport = {
       version: 1,

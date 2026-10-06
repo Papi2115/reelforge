@@ -1,7 +1,7 @@
 /**
  * View model of the Shots panel's list (PLAN.md#11.2): the filter (id / intent / treatment / scene
- * text, "only ⚠/✗"), the counts in the heading, and whether rows are compact (one line) or
- * detailed. Pure.
+ * text, "only ⚠/✗"), the counts in the heading, whether rows are compact (one line) or
+ * detailed, and the page-moment tag of a world's shot. Pure.
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { z } from 'zod';
@@ -68,6 +68,20 @@ export function shotCounts(
     warning: tone('warning'),
     failed: tone('failed'),
     locked: shots.filter((shot) => locked.has(shot.id)).length,
+  };
+}
+
+export interface WorldMomentTag {
+  readonly text: string;
+  readonly title: string;
+}
+
+/** The world's planned page moment of a shot (`popup`, `strip`…); null for a plain shot. */
+export function worldMomentTag(shot: Pick<StoryboardShot, 'worldMoment'>): WorldMomentTag | null {
+  if (shot.worldMoment === undefined) return null;
+  return {
+    text: shot.worldMoment,
+    title: `Page moment planned for this shot: ${shot.worldMoment}`,
   };
 }
 

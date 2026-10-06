@@ -5,7 +5,7 @@
  * of each shot (PLAN.md#11.4, plus "Lock all ✓"), "Variants…" (PLAN.md#11.3; also in the
  * right-click menu and on V), the build progress and the missing-props banner. The heading counts
  * the badges; a filter (text, "only ⚠/✗") and compact one-line rows keep 16+ shots usable at
- * 1280x720. Clicking a shot selects it and moves the preview to its start.
+ * 1280x720. Detailed rows of a world's shots tag its planned page moment (`popup`, `strip`). Clicking a shot selects it and moves the preview to its start.
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useCallback, useEffect, useState, type JSX } from 'react';
@@ -26,6 +26,7 @@ import {
   SHOTS_PREFS_KEY,
   shotsPrefsSchema,
   type ShotFilter,
+  worldMomentTag,
 } from './shots-view.js';
 import { formatTime } from './timeline-scale.js';
 import { usePref } from './ui-prefs.js';
@@ -248,6 +249,7 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
             const locked = props.locked.has(shot.id);
             const offSync = props.outOfSync.has(shot.id);
             const range = `${formatTime(shot.t0)}–${formatTime(shot.t1)}`;
+            const moment = compact ? null : worldMomentTag(shot);
             return (
               <li key={shot.id} className="shot-entry">
                 <button
@@ -269,6 +271,11 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                     <span className="shot-id mono">{shot.id}</span>
                     {!compact && <span className="shot-time mono">{range}</span>}
                     <span className="chip">{shot.treatment}</span>
+                    {moment !== null && (
+                      <span className="chip mono" title={moment.title}>
+                        {moment.text}
+                      </span>
+                    )}
                     {props.withVariants.has(shot.id) && (
                       <span className="chip variants-chip" title="Variants wait for your pick">
                         variants

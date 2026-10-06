@@ -7,12 +7,13 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { momentsFileSchema } from '@reelforge/shared';
+import { momentsFileSchema, PAGE_CAMERA_HINTS } from '@reelforge/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   decidedMoments,
   describeDecision,
   DramaturgyService,
+  momentCameraHints,
   syncAnchors,
 } from './dramaturgy-service.js';
 import { createLogger } from './logger.js';
@@ -132,6 +133,22 @@ describe('DramaturgyService', () => {
     );
     expect(cleared.moments).toEqual([]);
     expect(commits.at(-1)).toBe('Moments: undid the decision on silence hit at 0:52 (s02)');
+  });
+
+  it('gives a world project page camera ideas (never an orbit)', async () => {
+    const voxel = await service.state();
+    expect(voxel.status === 'ok' && voxel.moments[0]?.moment.cameraHint).toMatch(/^rack focus/);
+    await write('project.json', { ...PROJECT, style: 'sketchbook' });
+    const world = await service.state();
+    if (world.status !== 'ok') throw new Error(world.message);
+    expect(world.moments[0]?.moment).toMatchObject({
+      kind: 'silence-hit',
+      cameraHint: PAGE_CAMERA_HINTS['silence-hit'],
+    });
+    for (const view of world.moments) expect(view.moment.cameraHint).not.toMatch(/orbit around/);
+    expect(momentCameraHints('sketchbook')).toBe(PAGE_CAMERA_HINTS);
+    expect(momentCameraHints('voxel-pixel-crisp640')).toBeUndefined();
+    expect(momentCameraHints(undefined)).toBeUndefined();
   });
 
   it('refuses to accept a moment of a locked shot', async () => {

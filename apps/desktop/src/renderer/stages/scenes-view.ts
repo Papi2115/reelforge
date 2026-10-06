@@ -9,6 +9,7 @@
 import {
   SHOT_STATUS_SYMBOLS,
   type PropsReport,
+  type QaFinding,
   type RolesReport,
   type ScenesReport,
   type ShotBuildRecord,
@@ -41,15 +42,28 @@ const TONE_LABELS: Readonly<Record<BadgeTone, string>> = {
   pending: 'Waiting to be built',
 };
 
+/** Finding sources in plain words (docs/ui-copy.md); the others keep their short id. */
+const FINDING_SOURCE_LABELS: Partial<Record<QaFinding['source'], string>> = {
+  slop: 'Looks generic',
+};
+
+/** The label a finding starts with: "Looks generic" for the anti-slop guards, else its source. */
+export function findingLabel(source: QaFinding['source']): string {
+  return FINDING_SOURCE_LABELS[source] ?? source;
+}
+
+/** One finding line: "lint @1.2 s: …", "Looks generic: invented text …". */
+export function findingText(finding: QaFinding): string {
+  const at = finding.t === undefined ? '' : ` @${finding.t.toFixed(1)} s`;
+  return `${findingLabel(finding.source)}${at}: ${finding.message}`;
+}
+
 function recordBadge(record: ShotBuildRecord): ShotBadge {
   return {
     tone: record.status,
     symbol: SHOT_STATUS_SYMBOLS[record.status],
     label: TONE_LABELS[record.status],
-    findings: record.findings.map(
-      (finding) =>
-        `${finding.source}${finding.t === undefined ? '' : ` @${finding.t.toFixed(1)} s`}: ${finding.message}`,
-    ),
+    findings: record.findings.map(findingText),
     critic: record.critic
       .filter((verdict) => verdict.verdict !== 'ok' || verdict.note !== '')
       .map((verdict) => `${verdict.verdict}: ${verdict.note}`),

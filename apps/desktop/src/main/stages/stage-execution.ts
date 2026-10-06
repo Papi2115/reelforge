@@ -78,7 +78,7 @@ async function executeExport(context: ExecutionContext): Promise<RunOutcome> {
     },
   );
   return outcome.status === 'done'
-    ? { status: 'done', message: outcome.message, warnings: [] }
+    ? { status: 'done', message: outcome.message, warnings: outcome.warnings }
     : outcome;
 }
 

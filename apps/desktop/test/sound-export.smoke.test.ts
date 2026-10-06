@@ -345,7 +345,24 @@ describe('export dialog', () => {
     await second.getByRole('button', { name: 'Cancel' }).click();
     await second.getByText('Cancelled', { exact: true }).waitFor({ timeout: 60_000 });
     await second.getByRole('button', { name: 'Resume' }).click();
+    // The switch to the CPU encoder (simulated: no GPU failure on demand) shows under the status
+    // line while the job runs, then in the report.
+    await expect
+      .poll(
+        () =>
+          app.evaluate(
+            (_electron, name) =>
+              (Reflect.get(globalThis, name) as { exportWarning(): boolean }).exportWarning(),
+            '__reelforgeRenderTest',
+          ),
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+    const fallback = 'GPU encoder unavailable, using CPU for this export';
+    await second.getByText(fallback).waitFor({ timeout: 30_000 });
+    await shot('export-warning');
     await second.getByTestId('export-report').waitFor({ timeout: 300_000 });
+    await second.getByTestId('export-report').getByText(fallback).waitFor();
     const info = ffprobe(path.join(dir, 'out', 'Doom high.mp4'));
     expect(info.durationS).toBeGreaterThan(VIDEO_SECONDS - 0.5);
     await expect.poll(() => second.textContent()).toMatch(/Re-rendered \d of 3 shots/);

@@ -11,6 +11,9 @@ export const EXPERIMENTAL_WORLDS_TITLE = 'Experimental worlds (preview)';
 export const EXPERIMENTAL_WORLDS_HINT =
   'Offers worlds that are still being built (today: Sketchbook, a hand-drawn notebook) as a style for new projects, and lets projects in them build. Their look may still change between versions.';
 
+/** One line under the switch, always shown. */
+export const EXPERIMENTAL_WORLDS_NOTE = 'Preview worlds are unfinished and may change.';
+
 export function ExperimentalWorlds({ state, update }: PageProps): JSX.Element {
   return (
     <>
@@ -28,6 +31,7 @@ export function ExperimentalWorlds({ state, update }: PageProps): JSX.Element {
           <span className="muted">{EXPERIMENTAL_WORLDS_HINT}</span>
         </span>
       </label>
+      <p className="muted settings-toggle-note">{EXPERIMENTAL_WORLDS_NOTE}</p>
     </>
   );
 }

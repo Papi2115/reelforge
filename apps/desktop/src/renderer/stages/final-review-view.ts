@@ -13,6 +13,7 @@ import {
   type StoryboardShot,
 } from '@reelforge/shared';
 import type { StageRunView } from '../../shared/stages-contract.js';
+import { findingLabel } from './scenes-view.js';
 
 /** Findings that mean the scene does not render at all (the export would fail). */
 const UNRENDERABLE = new Set<QaFinding['source']>(['scene', 'runtime']);
@@ -88,7 +89,7 @@ function shotResults(
 function itemText(result: ShotResult): string {
   const first = result.findings[0];
   const more = result.findings.length > 1 ? ` (+${String(result.findings.length - 1)} more)` : '';
-  if (first !== undefined) return `${first.source}: ${first.message}${more}`;
+  if (first !== undefined) return `${findingLabel(first.source)}: ${first.message}${more}`;
   return result.outOfSync ? 'locked, may be out of sync with the voice-over' : 'needs a look';
 }
 

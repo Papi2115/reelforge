@@ -348,6 +348,7 @@ describe('StageService', () => {
           gpu: null,
           resumed: false,
           wallMs: 10,
+          warnings: ['GPU encoder unavailable, using CPU for this export'],
         };
       },
       cancel: () => undefined,
@@ -374,7 +375,11 @@ describe('StageService', () => {
       message: 'out/Test.mp4 (1080p, 2.0 s, libx264)',
     });
     expect(outcomes).toEqual([
-      { status: 'done', message: 'out/Test.mp4 (1080p, 2.0 s, libx264)', warnings: [] },
+      {
+        status: 'done',
+        message: 'out/Test.mp4 (1080p, 2.0 s, libx264)',
+        warnings: ['GPU encoder unavailable, using CPU for this export'],
+      },
     ]);
   });
 
