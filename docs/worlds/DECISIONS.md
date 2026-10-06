@@ -30,13 +30,21 @@ app yet. A world = one **Style** (palette, post-fx/filter, resolution, fonts, mu
 3. **Rare breakthrough scenes** that keep the world's vibe; each shot has one focal point; real text only (every on-screen word from the narration or research).
 4. Interaction with the character/world (B2: inventory, dialogue boxes, the thrown cartridge) feels like a game, not a template.
 
-## Known weaknesses to fix in the real build (from the showcases' own NOTES + my review)
-- Comic: front-view Lunar Module reads like a face; the Bales figure is crude; shot 7 has two accent colours; 6.5 s silence on the spread may need trimming with real voice-over.
-- B1: high-score table is dark and sparse (Papi: "fairly OK, keep it"); room.js/shots-a.js too long; shot 4 menu centred.
-- B2: automap is sparse with an empty box at the bottom in the captured frame; dither grain in dark areas; clerk sprite crude; hand has one stiff pose; port cost ≈ 1 week for the
+## Deliberate roughness — DO NOT "fix" (Papi, 2026-10-06)
+Papi loves the slightly crude, hand-made drawing of figures and props (the comic's Steve Bales profile, the clerk and stick figures, simple sprites,
+uneven lines). It is what makes the worlds look made by a person and not generated; he first thought it was a deliberate effect. In the real build
+**keep the imperfection** and never replace it with slicker, symmetric, "polished" art. Only touch a drawing if it hurts readability (focal point,
+silhouette at thumbnail size), never because it looks simple.
+
+## Technical items to check in the real build (not about the art style)
+- Comic: shot 7 has two accent colours (should be one); the 6.5 s silence on the spread may need trimming once real voice-over exists; the front-view Lunar Module
+  can read like a face (judge it, keep it if Papi likes it).
+- B1: high-score table is dark and sparse in the captured frame (Papi: "fairly OK, keep it"); room.js/shots-a.js longer than 400 lines (code hygiene only).
+- B2: automap showed an empty box at the bottom in the captured frame (probably an animation state; verify); dither grain in dark areas; port cost ≈ 1 week for the
   raycaster as a kit look, 4–6 weeks for a native Three.js version with a level description format + validator for the runtime Claude.
-- Sketchbook: pop-up reads a little flat; marker digits slightly calligraphic; the writing hand sometimes covers the subject (needs a "hand rests here" rule); crumple transition slowest.
-- All worlds: facts marked `[verify]` in each NOTES.md MUST be checked against sources before anything goes on screen (e.g. E.T. 4,000,000 made / 1,500,000 sold "est.", DSKY P63/VERB 05 NOUN 09/01202, exact dates).
+- Sketchbook: the writing hand sometimes covers the subject (add a "hand rests here" rule); the crumple transition is the slowest frame; marker digits slightly calligraphic.
+- All worlds: facts marked `[verify]` in each NOTES.md MUST be checked against sources before anything goes on screen (e.g. E.T. 4,000,000 made / 1,500,000 sold "est.",
+  DSKY P63/VERB 05 NOUN 09/01202, exact dates).
 
 ## How these were produced (so it can be repeated)
 Briefs in `docs/worlds/briefs/*.md` (comic-v2, game-b1-v2, game-b2-v2, sketchbook-v2) were run as **cloud sessions** started by Papi at claude.ai/code on the

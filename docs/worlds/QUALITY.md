@@ -36,6 +36,9 @@ Humans leave traces. All of these are deterministic (seeded by shot id + element
 - **Line boil / frame hold** for hand-drawn worlds: shapes redrawn on a 8–12 fps cadence with seeded 1 px wobble, not smooth vectors.
 - **Craft sounds**: tiny foley that matches the world (pencil scratch, cartridge click, thumbtack press).
 
+**Deliberate roughness is a feature.** Simple, slightly crude hand-drawn figures and props are part of the charm (Papi loves them): never "polish"
+them into slick, symmetric art. Fix a drawing only when it hurts readability.
+
 ## 3. Composition rules
 - **One focal point per shot**, decided before building: what must the viewer read first? Give it the highest contrast, the largest
   size or the only accent colour. Everything else is lower value.
