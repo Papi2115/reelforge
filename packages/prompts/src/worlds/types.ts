@@ -41,6 +41,32 @@ export interface WorldPromptText {
   readonly vibe: string;
   /** Critic: the world's craft checklist (focal point, traces, slop tells). */
   readonly checklist: string;
+  /** Script (surprise beats on): what a surprise is in this world (replaces the voxel example). */
+  readonly surprise: string;
+  /**
+   * The world's moment catalog (worlds/variety.ts): a closed list the storyboard plans per shot
+   * (`worldMoment`), the scene builds with the exact API and the critic looks for. `plain` is
+   * the absence of a moment and is not listed.
+   */
+  readonly moments: readonly WorldMomentOption[];
+}
+
+/** One planned page moment of a world (storyboard `worldMoment`). */
+export interface WorldMomentOption {
+  /** Kebab-case id the storyboard writes, e.g. `popup`. */
+  readonly id: string;
+  /** A breakthrough showpiece (counted by the quota, spaced, at least two kinds). */
+  readonly breakthrough: boolean;
+  /** The looks that host it (the shot must be in one of them); empty = any look. */
+  readonly looks: readonly string[];
+  /** Storyboard: "use when the narration …" (plain words, no full stop). */
+  readonly useWhen: string;
+  /** Scene-build / scene-fix: the exact call and its caps. */
+  readonly build: string;
+  /** Critic: what must be visible in the frames once it has started. */
+  readonly visible: string;
+  /** The page-native transition style the shot must open with (e.g. a torn-out page). */
+  readonly transition?: string;
 }
 
 /** A page-native transition of a world, as the storyboard prompt and validator see it. */

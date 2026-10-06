@@ -25,7 +25,12 @@ import type { DirectorWord } from '../sound/cue-events.js';
 import { clusters } from './clusters.js';
 import { findRepeatedPhrases } from './phrases.js';
 import { repickSfx, repickTransition, transitionStyleOf, variantHint } from './proposals.js';
-import { isTemplateDefinition, kitDefinitions, visualSignature } from './signature.js';
+import {
+  isTemplateDefinition,
+  kitDefinitions,
+  visualSignature,
+  worldVisualSignature,
+} from './signature.js';
 
 export interface FilmCue {
   readonly id?: string | undefined;
@@ -44,6 +49,8 @@ export interface RepetitionFilm {
   readonly lookMode?: LookMode | undefined;
   /** Project seed (transition re-picks). */
   readonly seed?: number | undefined;
+  /** A world's film: the visual signature is the planned moment, look and paper (signature.ts). */
+  readonly world?: boolean | undefined;
 }
 
 interface Occurrence {
@@ -111,7 +118,10 @@ function visualItems(ctx: Context): RepetitionItem[] {
   const items: RepetitionItem[] = [];
   const bySignature = new Map<string, StoryboardShot[]>();
   for (const shot of shots) {
-    const signature = visualSignature({ shot, definitions: definitions.get(shot.id) });
+    const signature =
+      ctx.film.world === true
+        ? worldVisualSignature(shot, ctx.film.sources?.get(shot.id))
+        : visualSignature({ shot, definitions: definitions.get(shot.id) });
     if (signature !== undefined)
       bySignature.set(signature, [...(bySignature.get(signature) ?? []), shot]);
   }

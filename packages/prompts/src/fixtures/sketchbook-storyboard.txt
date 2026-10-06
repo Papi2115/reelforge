@@ -32,7 +32,7 @@ Available looks (use only these ids):
 - `sketch-story` (Sketch story): felt-tip story pages. Rolls: A. Treatments: metaphor-object.
 - `sketch-graph` (Sketch graph): ballpoint proofs. Rolls: B. Treatments: data-chart-3d.
 - `sketch-loud` (Sketch loud): loud notebook moments. Rolls: C. Treatments: kinetic-text.
-Rhythm: never more than 3 shots in a row in one look; change roll, look or treatment at least every 6–8 s; open each act with a C-roll page and a page-native transition. Transitions stay mostly hard cuts: at most 3 non-cut transitions in this film (about one per 20 s, for act changes and look-change interrupts; a look change alone is a cut). Pick the look that tells the shot best, not the most unusual one: every look draws in the same notebook (paper stocks, felt-tip, ballpoint, pencils, one red pen, hand lettering, line boil).
+Rhythm: never more than 2 shots in a row in one look; change roll, look or treatment at least every 6–8 s; open each act with a C-roll page and a page-native transition. Transitions stay mostly hard cuts: at most 3 non-cut transitions in this film (about one per 20 s, for act changes and look-change interrupts; a look change alone is a cut). Pick the look that tells the shot best, not the most unusual one: every look draws in the same notebook (paper stocks, felt-tip, ballpoint, pencils, one red pen, hand lettering, line boil).
 Transition styles of this world (the engine draws them; the only styles a non-cut `transitionIn` may name): give it the style's type and about its duration, e.g. `{ "type": "wipe", "duration": 0.62, "style": "sketchbook-page-flip" }`; mostly hard cuts, one at an act change or a look-change interrupt; never the same style twice in a row. Styles:
 - `sketchbook-page-flip` (wipe, about 0.62 s): the page turns over the spiral.
 - `sketchbook-riffle` (wipe, about 0.8 s): three quick flips.
@@ -40,6 +40,15 @@ Transition styles of this world (the engine draws them; the only styles a non-cu
 - `sketchbook-tape-peel` (wipe, about 0.7 s): peeled off.
 - `sketchbook-torn-strip` (wipe, about 0.8 s): torn out.
 
+Page moments (`"worldMoment"` per shot; the variety of this world, checked by the validator): read the script and give a shot the moment its words call for, e.g. `{ "id": "s07_popup", …, "look": "sketch-loud", "worldMoment": "popup" }`; every other shot is plain (leave the field out). Moments:
+- `popup` (breakthrough; look `sketch-loud`): use when the narration turns on a reveal, a twist, the answer to an open question or the one fact the film is about (a C-roll page).
+- `strip` (breakthrough; look `sketch-graph`): use when the narration runs through a sequence of dates or steps (a chronology, a campaign day by day, a before-and-after in stages; a B-roll page, treatment `node-graph/timeline`).
+- `flipbook` (moment; look `sketch-loud`): use when the narration counts or races through years, numbers or a change over time in one breath ("over the next decade…").
+- `envelope` (moment; look `sketch-graph`): use when the narration stacks several facts or a calculation into one result (a sum, a subtraction, a ratio worked out).
+- `sticky-slap` (moment; look `sketch-loud` or `sketch-story`): use when the narration lands a short verdict, a label or a scoreline the narration says outright ("REFUSED", "a draw").
+- `torn-page` (moment; any look): use when the narration breaks with what came before (a plan abandoned, "forget that", a fresh start); the shot opens with the `sketchbook-torn-strip` transition.
+- `ruler-graph` (moment; look `sketch-graph`): use when the narration compares amounts or shows a trend (bigger than, half of, rising, falling).
+Breakthroughs (`popup`, `strip`) are the showpieces of this world: about one per 50 s of film; this film (about 155 s) needs at least 2 and at most 5, of at least 2 different kinds; never in adjacent shots. The same moment kind at most once per 90 s; never 3 shots in a row with the same moment (or none) in the same roll; never more than 2 shots in a row in one look. Name the `style` of every non-cut transition and use at least 3 different page transitions in the film. Say in the intent what the moment shows and on which phrase (e.g. the strip runs from "2 November" to "10 December", red on the day it failed).
 Annotations (`annotations`, per shot, optional): the on-screen marks that make the narration easy to follow. First tag what the narration DOES at a phrase (`reason`), then choose the form (`kind`) from that meaning:
 - `name` (a person, product, place is named) → `pin` on the object, or `caption` (small lower-third text)
 - `number` (amount, size, date, count) → `counter` (ticking number), `big-text` (big title / 3D number) or `badge`

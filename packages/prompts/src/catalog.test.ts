@@ -67,7 +67,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 16, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 17, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -98,9 +98,21 @@ describe('renderPrompt', () => {
   it('lists the variables of each prompt', () => {
     expect(promptVariables('scene-fix')).toEqual({
       required: ['scope', 'shotIds', 'request'],
-      optional: ['selection', 'critic', 'craftBrief', 'world', 'lookId', 'continuityDirective'],
+      optional: [
+        'selection',
+        'critic',
+        'craftBrief',
+        'world',
+        'lookId',
+        'worldMomentDirective',
+        'worldMoment',
+        'continuityDirective',
+      ],
     });
-    expect(promptVariables('sound-cues')).toEqual({ required: ['styleId'], optional: ['acts'] });
+    expect(promptVariables('sound-cues')).toEqual({
+      required: ['styleId'],
+      optional: ['acts', 'world', 'worldMoods'],
+    });
   });
 
   it('names every built-in SFX recipe and music mood in the sound-cues prompt', () => {
@@ -110,7 +122,7 @@ describe('renderPrompt', () => {
     for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
       expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
     }
-    expect(loadPrompt('sound-cues').version).toBe(4);
+    expect(loadPrompt('sound-cues').version).toBe(5);
     expect(text).toContain("each shot's sound palette follows its `look`");
   });
 

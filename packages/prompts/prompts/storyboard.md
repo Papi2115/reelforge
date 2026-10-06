@@ -1,6 +1,6 @@
 ---
 id: storyboard
-version: 16
+version: 17
 model: sonnet
 tools: [Read, Write, Glob, Grep, Bash(reelforge *)]
 output: storyboard.json
@@ -53,7 +53,10 @@ When a shot is clearly stronger with one of these — mostly B-roll proof: the u
 {{wowTransitions}}
 {{/wowTransitions}}{{/multiLook}}{{#singleLook}}{{^world}}Only `voxel` is available for now: every shot is `"look": "voxel"`; still tag the rolls (B and C shots are voxel too) and keep an A-roll at least once in every 6 shots.
 {{/world}}{{#world}}Only `{{worldFirstLook}}` is available for now: every shot is `"look": "{{worldFirstLook}}"`; still tag the rolls and keep an A-roll at least once in every 6 shots.
-{{/world}}{{/singleLook}}{{/looks}}
+{{/world}}{{/singleLook}}{{/looks}}{{#worldMoments}}
+Page moments (`"worldMoment"` per shot; the variety of this world, checked by the validator): read the script and give a shot the moment its words call for, e.g. `{{worldMomentExample}}`; every other shot is plain (leave the field out). Moments:
+{{worldMoments}}
+{{worldMomentRules}} Say in the intent what the moment shows and on which phrase (e.g. the strip runs from "2 November" to "10 December", red on the day it failed).{{/worldMoments}}
 Annotations (`annotations`, per shot, optional): the on-screen marks that make the narration easy to follow. First tag what the narration DOES at a phrase (`reason`), then choose the form (`kind`) from that meaning:
 - `name` (a person, product, place is named) → `pin` on the object, or `caption` (small lower-third text)
 - `number` (amount, size, date, count) → `counter` (ticking number), `big-text` (big title / 3D number) or `badge`

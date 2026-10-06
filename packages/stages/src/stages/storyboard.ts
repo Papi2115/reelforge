@@ -117,7 +117,7 @@ async function validateFile(
     words,
     ...storyboardLookOptions(setup.lookMode, setup.looks),
     // A world names only its page-native transitions (PLAN.md#13.6); built-in styles: nothing.
-    ...storyboardWorldOptions(setup),
+    ...storyboardWorldOptions(setup, ctx.settings.worldQuotaOverride),
     assetNeeds: { research },
     ...withAssetIds(await currentAssetIds(ctx.projectDir)),
     ...(tension === undefined ? {} : { tension }),
@@ -233,7 +233,7 @@ async function run(
   const prompt = render('storyboard', {
     styleId: project.value.style,
     ...storyboardLookVars(lookMode, setup.looks, narrationEnd + 0.5, setup.world !== undefined),
-    ...storyboardWorldPromptVars(setup),
+    ...storyboardWorldPromptVars(setup, narrationEnd + 0.5, ctx.settings.worldQuotaOverride),
     ...storyboardTensionVars(
       curve,
       words.value,

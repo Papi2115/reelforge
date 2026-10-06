@@ -20,8 +20,10 @@ import {
   fixWorldPromptVars,
   lookSetup,
   sceneWorldPromptVars,
+  scriptWorldPromptVars,
   storyboardWorldOptions,
   storyboardWorldPromptVars,
+  worldMomentCameraHints,
   worldTransitionOptions,
 } from './worlds.js';
 
@@ -66,13 +68,15 @@ describe('world registry wiring', () => {
       for (const scope of [{}, ON]) {
         const setup = lookSetup({ style, lookMode: 'voxel-only' }, scope);
         expect(setup).toEqual({ lookMode: 'voxel-only', looks: listLooks(), world: undefined });
-        expect(storyboardWorldPromptVars(setup)).toEqual({});
-        expect(storyboardWorldOptions(setup)).toEqual({});
+        expect(storyboardWorldPromptVars(setup, 120)).toEqual({});
+        expect(storyboardWorldOptions(setup, { minBreakthroughs: 2 })).toEqual({});
       }
       expect(effectiveLookMode({ style, lookMode: 'mixed' })).toBe('mixed');
       expect(sceneWorldPromptVars(undefined)).toEqual({});
       expect(fixWorldPromptVars(undefined, shot('s01'), listLooks())).toEqual({});
       expect(criticWorldPromptVars(undefined)).toEqual({});
+      expect(scriptWorldPromptVars(undefined)).toEqual({});
+      expect(worldMomentCameraHints(undefined)).toBeUndefined();
       expect(paletteForShot(shot('s01'), { lookMode: 'mixed', style }).id).toBe('voxel');
       expect(kitNamesFromCatalog({ style })).toEqual(kitNamesFromCatalog());
     }
@@ -151,5 +155,27 @@ describe('sketchbook project', () => {
         { verdict: 'clipped', note: 'title cut' },
       ]).map((entry) => entry.verdict),
     ).toEqual(['ok', 'off-intent', 'clipped']);
+  });
+
+  it("plans moments: the catalog and quota for the storyboard, the shot's moment for its turns", () => {
+    expect(storyboardWorldPromptVars(setup)).not.toHaveProperty('worldMoments');
+    const vars = storyboardWorldPromptVars(setup, 156);
+    expect(vars['worldMoments']).toContain('- `popup` (breakthrough; look `sketch-loud`)');
+    expect(vars['worldMomentRules']).toContain('needs at least 2 and at most 5');
+    const override = storyboardWorldPromptVars(setup, 50, { minBreakthroughs: 2 });
+    expect(override['worldMomentRules']).toContain('needs at least 2 and at most 2');
+    const options = storyboardWorldOptions(setup, { minBreakthroughs: 2 });
+    expect(options.worldVariety?.moments.map((moment) => moment.id)).toContain('strip');
+    expect(options.worldVariety?.override).toEqual({ minBreakthroughs: 2 });
+    expect(storyboardWorldOptions(setup).worldVariety).not.toHaveProperty('override');
+    const strip = shot('s07', { look: 'sketch-graph', worldMoment: 'strip' });
+    expect(sceneWorldPromptVars(setup.world, strip)['worldMomentDirective']).toContain(
+      'page.strip(',
+    );
+    expect(fixWorldPromptVars(setup.world, strip, setup.looks)['worldMoment']).toBe('strip');
+    expect(criticWorldPromptVars(setup.world, strip)['worldMomentCheck']).toContain('accordion');
+    expect(sceneWorldPromptVars(setup.world, shot('s01'))).not.toHaveProperty('worldMoment');
+    expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('page moment');
+    expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
   });
 });

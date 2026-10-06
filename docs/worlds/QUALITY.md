@@ -119,6 +119,21 @@ Sketchbook template scenes (text, traces, timing) with the showcase narration + 
 ≥ 0.45 apart in layout. 26/26 seeded bad cases caught (`slop/detection.test.ts`). **Camera sanity** (moves that crop text or end
 without a hold, for all moves) is not in v1: it stays with the interrupt check (`source-checks-camera.ts`) — backlog.
 
+### 8.2 Variety (real run Sketchbook 1: "not a single pop-up, I got bored")
+A world film must not be one kind of page repeated. The storyboard plans a **page moment** per shot from the script content
+(`worldMoment`, a closed list per world) and the validator enforces the variety (errors → the storyboard's repair turn):
+- **Breakthroughs** (Sketchbook: pop-up, accordion strip) — on average one per ~50 s; at least 1 from 25 s, then
+  max(1, floor(duration / 60)); at most ceil(duration / 35) (never a gimmick); two different kinds once two are needed; never in
+  adjacent shots.
+- **Every moment kind at most once per 90 s**; never 3 shots in a row with the same moment (or plain) in one roll; never more than
+  2 shots in a row in one look; at least 3 different page transitions in a film of 25 s or more (budget unchanged: one per ~20 s).
+- **Composition** (craft brief): the hero figure or object ≥ 25 % of the page height, never < 3 elements on the page for > 0.6 s,
+  and the hand never ends a shot on the subject (always `sketchPage({ …, duration: ctx.shot.duration })`, last mark ≥ 0.4 s before
+  the cut); one hand: no marks > 80 px apart at the same time (they queue ≤ 0.6 s or lose the hand; `parallel: true` on purpose).
+- The critic checks that a planned moment is visible (else `off-intent`, `moment:`) and counts only authored marks as traces (never
+  the spiral, the paper, the page number or the hand).
+Numbers: `packages/prompts/src/worlds/variety.ts` (tunable); catalog per world: `packages/prompts/src/worlds/<world>-moments.ts`.
+
 ## 9. How this reaches the runtime Claude
 Each world has a short **craft brief** (≤ 1.5 KB) inside its look docs and `STYLE.md`: the §1 tells as a don't-list, the §2 traces as a
 do-list with the world's own marks, the focal-point-first process ("write the focal point and the three traces in a comment before the

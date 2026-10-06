@@ -140,21 +140,22 @@ const sameMoods = (a: readonly MusicMood[], b: readonly MusicMood[]): boolean =>
 /**
  * Claude's cues with the beds of `cues.moods` (when it changed a mood): generated music cues are
  * replaced by freshly rendered ones (same id), keeping Claude's gain and ducking. Returns null
- * when nothing had to change.
+ * when nothing had to change. With `styleId` a world's film keeps to the world's moods (acts.ts).
  */
 export async function applyMoodHint(
   cues: CuesFile,
   design: SoundDesign,
-  input: Pick<SoundDesignInput, 'projectDir' | 'seed'>,
+  input: Pick<SoundDesignInput, 'projectDir' | 'seed'> & { readonly styleId?: string },
 ): Promise<Result<CuesFile | null, StageError>> {
   const hint = cues.moods;
   if (design.moods.length === 0 || hint === undefined || hint.length !== design.acts.length) {
     return ok(null);
   }
-  if (sameMoods(hint, design.moods)) return ok(null);
+  const moods = actMoods(design.acts, input.styleId ?? '', hint);
+  if (sameMoods(moods, design.moods)) return ok(null);
   const rendered = await renderActMusic(input.projectDir, {
     acts: design.acts,
-    moods: actMoods(design.acts, '', hint),
+    moods,
     seed: input.seed,
     durationS: design.durationS,
     grid: design.beats,

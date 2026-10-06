@@ -1,6 +1,6 @@
 ---
 id: script
-version: 2
+version: 3
 model: sonnet
 tools: [Read, Write, WebSearch, WebFetch]
 output: [beats.md, script.txt]
@@ -14,7 +14,7 @@ Research: read `research.md` (if present). Use only facts from it or from source
 Do it in two steps and save both files:
 1. `beats.md` — a beat sheet: numbered beats, each with purpose, key fact(s) with source, and the emotional turn. A hook in the first 15 seconds, a clear escalation, a payoff at the end.
 2. `script.txt` — ONLY the spoken narration, plain text, paragraphs separated by blank lines. No stage directions, no [VISUAL] tags, no headings, no markdown, no emojis. Write for the ear: short sentences, concrete nouns, numbers said the way a person says them. Keep exact figures and proper names consistent with the research (the app aligns this text to the recording word by word).
-{{#surpriseBeats}}3. Surprise beats (pattern interrupts are on for this project): append a section `## Surprise beats` to `beats.md` — never to `script.txt`. Plan about {{interruptsPerMinute}} surprises per minute (more where the story escalates, fewer in calm stretches), none in the first 5 s, at least 15 s apart. For each: the beat number, the spoken phrase it lands on, and the surprise — a sudden change of look, of scale or of perspective (e.g. "the diorama zooms into the CRT and we enter the screen, now a map"). The storyboard turns them into shot markers.
+{{#surpriseBeats}}3. Surprise beats (pattern interrupts are on for this project): append a section `## Surprise beats` to `beats.md` — never to `script.txt`. Plan about {{interruptsPerMinute}} surprises per minute (more where the story escalates, fewer in calm stretches), none in the first 5 s, at least 15 s apart. For each: the beat number, the spoken phrase it lands on, and the surprise — {{^world}}a sudden change of look, of scale or of perspective (e.g. "the diorama zooms into the CRT and we enter the screen, now a map"){{/world}}{{#world}}{{worldSurprise}}{{/world}}. The storyboard turns them into shot markers.
 {{/surpriseBeats}}{{#openLoops}}{{openLoopsStep}}. Open loops (on for this project): deliberately open 1–3 questions the viewer carries ("I'll show you in a moment", "but that is not the strangest part") and close each one later, at a planned place, with its answer; announce every answer before it comes (the foreshadow). These lines are spoken, so they belong in `script.txt`. List the loops in a `## Open loops` section of `beats.md`: an id (kebab case), the question, the phrase that opens it, the foreshadow phrase and the phrase that closes it. Never leave a loop open at the end.
 {{/openLoops}}
 Never invent facts. If the research is thin, say so in your reply instead of padding. Reply with: word count, estimated duration, and any claims you could not source.

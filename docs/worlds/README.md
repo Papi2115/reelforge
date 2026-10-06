@@ -80,3 +80,46 @@ The two showpieces of the showcase (`docs/worlds/sketchbook-v2`, shots 5 and 8) 
   graphite thumbprint after the last drag. Template: `packages/kit/examples/sketchbook/b4_strip.js`.
 - The writing hand: `SketchPage.addHandScript` (scripted stretches: lifting the flap, pulling the tab) and `addBusy` (another hand works
   the page: the hand leaves, never glides across) keep one hand on the page; strip marks reach the hand track as page-space proxies.
+
+## Sketchbook: one writing hand (PLAN.md#13.6)
+Code: `page/hand-queue.ts` (queue), `draw/hand.ts` (track), `draw/hand-room.ts` (where the hand may be).
+- **Queue (build time):** every page call (write, figure, arrow, …) is one hand task. A task that starts while the hand is busy more
+  than 80 px away (another task, a strip, a pop-up's scripted hand) waits until the hand has finished and travelled there (lift, eased
+  glide, ~0.12 s + distance / 1600 px/s) when that slips it by **≤ 0.6 s**; it moves as a whole and the call returns the new `{ at, end }`,
+  so chained calls follow it. Otherwise, or with `parallel: true`, it keeps its time. Conflicts go to the task added first.
+- **One hand (first frame):** in time order the hand stays with its task until that task is done; marks of another task that started
+  meanwhile appear without the hand until it has travelled there. Never two nibs, never a jump between two places.
+- **Subject safety** (`keepClear` boxes; figures add theirs): the wrist turns away while drawing, glides bend around a subject that
+  is not the target when the speed limit allows, a pause ≥ 0.4 s that would leave the hand on a subject parks it on a clear margin
+  spot (or its rest spot), and with `duration: ctx.shot.duration` the hand leaves for its rest spot or off the page in the shot's
+  last 0.4 s (the ink finishes by itself). Pure in t, seek-order independent; tests: `page/hand-queue.test.ts`,
+  `packages/kit/test/render/sketch-hand.test.ts`.
+
+## Variety: page moments, quota and rhythm (real run Sketchbook 1)
+The first real world film used neither breakthrough: the storyboard prompt never mentioned them. Now a world's prompt text carries a
+**moment catalog** (`WorldPromptText.moments`, Sketchbook: `packages/prompts/src/worlds/sketchbook-moments.ts`) and the storyboard
+writes an optional `"worldMoment"` per shot (`@reelforge/shared` `storyboardShotSchema`, kebab case, absent = plain):
+
+| Moment | Kind | Look | Use when the narration… |
+| --- | --- | --- | --- |
+| `popup` | breakthrough | `sketch-loud` (C) | turns on a reveal, a twist, the answer to an open question |
+| `strip` | breakthrough | `sketch-graph` (B) | runs through dates or steps (a chronology) |
+| `flipbook` | moment | `sketch-loud` | races through years or numbers in one breath |
+| `envelope` | moment | `sketch-graph` | stacks facts or a calculation into one result |
+| `sticky-slap` | moment | `sketch-loud`, `sketch-story` | lands a short verdict or label |
+| `torn-page` | moment | any (opens with `sketchbook-torn-strip`) | breaks with what came before |
+| `ruler-graph` | moment | `sketch-graph` | compares amounts or shows a trend |
+
+- **Storyboard prompt**: the catalog with its "use when" lines and the film's quota (`storyboardWorldVars(…, { durationS })`).
+- **Validator** (`validators/world-variety.ts`, world projects only; legacy byte-identical): `moment-unknown`, `moment-look`,
+  `moment-transition`, `moment-quota` (breakthroughs: ≥ 1 from 25 s, ≥ max(1, floor(d/60)) from 45 s, ≤ ceil(d/35)),
+  `moment-variety` (≥ 2 kinds once 2 are needed), `moment-spacing` (never adjacent), `moment-repeat` (one kind once per 90 s),
+  `moment-run` (no 3 in a row with one moment + roll), `transition-variety` (≥ 3 named page transitions from 25 s) and the
+  world's look run (≤ 2 in a row). Numbers: `packages/prompts/src/worlds/variety.ts`.
+- **Scene-build / scene-fix** get the exact call of the planned moment (`page.popup`/`page.strip` spec shape and caps, templates
+  `c3_popup.js`, `b4_strip.js`, …); the **critic** must see it in the frames (else `off-intent`, note `moment:`).
+- **Test drivers only**: `StageSettings.worldQuotaOverride = { minBreakthroughs: 2 }` raises the floor for a short test film (e.g.
+  both a pop-up and a strip in 50 s). Never a project field or a default.
+- Also world-aware now: the script's surprise beats (page moments, no camera moves), the music moods (Sketchbook: `lofi-chill`,
+  `calm-tech` only), repetition control's visual signature (moment + look + paper; a plain page has none) and the reveal-moment
+  camera hints (`PAGE_CAMERA_HINTS` / `worldMomentCameraHints`: no orbit).

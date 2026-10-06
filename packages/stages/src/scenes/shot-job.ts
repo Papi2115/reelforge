@@ -120,7 +120,7 @@ async function buildTurn(
     styleId: job.styleId,
     ...sceneLookVars(job.lookMode, shot, job.looks),
     // A world's wording and craft brief (PLAN.md#13.6); built-in styles: nothing.
-    ...sceneWorldPromptVars(job.world),
+    ...sceneWorldPromptVars(job.world, shot),
     annotationPlan: annotationPlanText(shot),
     ...sceneDramaturgyVars(job.dramaturgy, job.shots, shot),
     ...sceneContinuityVars(job.shots, shot),

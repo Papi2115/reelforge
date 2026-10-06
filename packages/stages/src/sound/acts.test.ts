@@ -5,6 +5,7 @@ import {
   DEFAULT_STYLE_MOODS,
   MIN_ACT_S,
   STYLE_MOODS,
+  WORLD_MOODS,
   actMoods,
   bedEnergy,
   defaultMood,
@@ -108,6 +109,17 @@ describe('moods', () => {
     expect(actMoods(acts, 'noir-voxel', ['retro-wave'])).toEqual([
       'tense-investigation',
       'tense-investigation',
+    ]);
+  });
+
+  it('keeps a world film to its own moods (no synth bed in a paper notebook)', () => {
+    const acts = [act('intro', 0.5), { ...act('body', 0.95), tension: 0.9 }, act('outro', 0.5)];
+    const moods = actMoods(acts, 'sketchbook');
+    expect(moods.every((mood) => WORLD_MOODS['sketchbook']?.includes(mood))).toBe(true);
+    expect(actMoods(acts, 'sketchbook', ['retro-wave', 'calm-tech', 'lofi-chill'])).toEqual([
+      moods[0],
+      'calm-tech',
+      'lofi-chill',
     ]);
   });
 

@@ -1,6 +1,6 @@
 ---
 id: critic
-version: 7
+version: 8
 model: haiku
 tools: [Read]
 output: json
@@ -24,7 +24,8 @@ Look checks: text, a window title or a headline cut by the frame edge or by a ca
 {{/sourceChip}}
 {{/lookId}}{{#worldChecklist}}Craft check ({{world}}): {{worldChecklist}}
 Name what you see in every frame: the note of an `ok` frame is exactly `focal: <the one thing read first>; traces: <trace>, <trace>, <trace>` (the human traces you found, at least three). No clear focal point, fewer than three traces or a slop tell → `off-intent` with a note starting `craft:`.
-{{/worldChecklist}}{{#mascotCheck}}Mascot check: this shot shows the channel mascot ({{mascotCheck}}) as a small helper beside the content. Dressed or posed as a professional or a real person (lab coat, uniform, stethoscope, a doctor's, soldier's or speaker's role) → `off-intent` with a note starting `mascot:`; cut off, hidden or too small to recognise at 640x360 → `clipped` with a note starting `mascot:`.
+{{/worldChecklist}}{{#worldMomentCheck}}Planned page moment (`{{worldMoment}}`): {{worldMomentCheck}}. Frames before it starts may miss it; when no frame shows it → `off-intent` with a note starting `moment:`.
+{{/worldMomentCheck}}{{#mascotCheck}}Mascot check: this shot shows the channel mascot ({{mascotCheck}}) as a small helper beside the content. Dressed or posed as a professional or a real person (lab coat, uniform, stethoscope, a doctor's, soldier's or speaker's role) → `off-intent` with a note starting `mascot:`; cut off, hidden or too small to recognise at 640x360 → `clipped` with a note starting `mascot:`.
 {{#mascotReaction}}Reaction check: the mascot reacts here ({{mascotReaction}}), a short beat about the content (a head briefly turned aside in a double-take or a look into the camera is intended). Its face must read: eyes, brows and mouth visible, front or three-quarter, lit (not lost in darkness) → otherwise `clipped` with a note starting `mascot:`; a reaction staged as a person (at a desk or a podium, in a uniform, speaking to a crowd) → `off-intent` with a note starting `mascot:`.
 {{/mascotReaction}}
 {{/mascotCheck}}Return ONLY JSON, no prose: `{"frames":[{"path":"…","verdict":"ok","note":"≤{{^world}}15{{/world}}{{#world}}25{{/world}} words"}]}`

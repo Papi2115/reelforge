@@ -46,7 +46,9 @@ import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from
 import { checkShotRange } from './shot-range.js';
 import { checkTensionTempo } from './tension.js';
 import { checkWowTransitions } from './wow.js';
+import { checkWorldVariety, type WorldVarietyOptions } from './world-variety.js';
 import { worldTransitionIssues } from './world-transitions.js';
+import { WORLD_VARIETY_RULES } from '../worlds/variety.js';
 import type { WorldTransitionOption } from '../worlds/types.js';
 
 /** The storyboard file plus the prompt's optional top-level `missingProps` list. */
@@ -387,6 +389,11 @@ export interface StoryboardCheckOptions {
    * Absent = the transition kit's styles (every built-in style).
    */
   readonly worldTransitions?: readonly WorldTransitionOption[];
+  /**
+   * A world's moment catalog and quota (world-variety.ts, real run Sketchbook 1): the variety
+   * checks and the world's look run limit. Absent = neither (every other project).
+   */
+  readonly worldVariety?: WorldVarietyOptions;
 }
 
 /** Storyboard rules of a range (`StoryboardCheckOptions.rules` still win over them). */
@@ -411,6 +418,9 @@ export function checkStoryboard(
   const rules = {
     ...DEFAULT_STORYBOARD_RULES,
     ...(range === undefined ? {} : shotRangeStoryboardRules(range)),
+    ...(options.worldVariety === undefined
+      ? {}
+      : { maxLookRun: options.worldVariety.rules?.maxLookRun ?? WORLD_VARIETY_RULES.maxLookRun }),
     ...options.rules,
   };
   const { shots } = applyContinuityTransitions(storyboard.shots);
@@ -448,6 +458,7 @@ export function checkStoryboard(
           boundaryToleranceS: rules.boundaryToleranceS,
         })),
     ...(options.interrupts === undefined ? [] : checkInterrupts(shots, options.interrupts)),
+    ...(options.worldVariety === undefined ? [] : checkWorldVariety(shots, options.worldVariety)),
     ...(options.characters === undefined
       ? []
       : checkCharacters(storyboard, options.words, options.characters)),

@@ -1,12 +1,13 @@
 /**
  * Whole-video review replies (PLAN.md#7.6): the Haiku triage (`{"suspects":[{shot, reason}]}`)
  * and the Sonnet fix plan (`{"fixes":[{shot, change}]}`). Entries for unknown shots are dropped
- * with a warning; a shot named twice keeps its first entry.
+ * with a warning; a shot named twice keeps its first entry. A JSON object inside a chatty reply
+ * (fenced JSON followed by prose, real run Sketchbook 1) is taken with a warning.
  */
 import { z } from 'zod';
+import { parseEmbeddedJsonText } from './embedded-json.js';
 import {
   issue,
-  parseJsonText,
   report,
   schemaIssues,
   type ValidationIssue,
@@ -56,7 +57,7 @@ function validateReply<T>(
   text: string,
   schema: z.ZodType<T>,
 ): { value: T | undefined; issues: ValidationIssue[] } {
-  const json = parseJsonText(text);
+  const json = parseEmbeddedJsonText(text);
   if (!json.parsed) return { value: undefined, issues: json.issues };
   const parsed = schema.safeParse(json.value);
   if (!parsed.success)

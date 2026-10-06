@@ -5,14 +5,17 @@
  * brief of QUALITY.md §9: the slop tells as a don't-list, the world's traces as a do-list, the
  * focal-point-first process, text provenance and reference frames of the approved showcase.
  */
+import { SKETCHBOOK_MOMENTS } from './sketchbook-moments.js';
 import type { WorldPromptText } from './types.js';
 
 const CRAFT_BRIEF = `Craft brief (Sketchbook; binding, docs/worlds/QUALITY.md):
 - First, before any code, write a comment: \`// focal: <the one thing read first> | traces: <three human traces>\`; build toward it.
-- Do: ONE focal point, off-centre, with empty paper around it; red ink only for the correction on the point; a still beat (>= 0.4 s) before the red; crude figures (loop heads, stick limbs, faces that react); holds and staggers of different lengths; at least three traces: a crossed-out word with its correction, a two-stroke arrow, a pencil fill out of the lines, an uneven underline, a margin doubt in pencil, tape at an angle, a coffee ring, a smudge.
-- Don't: centred or symmetric layouts, decoration without meaning (sparkles, floating shapes, lines that point at nothing), rows of icons, uniform gaps or timings, constant motion, more than 6 elements, a second accent or a second loud word, slick polished drawings, the hand parked over the subject.
-- Text: every on-screen word comes from the narration or the research notes (real numbers with units, real names and dates); never invent labels, figures or gibberish. Write it with \`page.write\`, never \`ctx.text\` or \`ctx.annotate\`.
-- References (docs/worlds/sketchbook-v2/shots/): s2-t6.0.png one idea, open paper; s4-t7.4.png red +1 DAY on the point, a pencil doubt; s3-t7.9.png boxes fill, one red result; s1-t6.0.png one marker word, then the red correction.`;
+- Do: ONE focal point, off-centre; red only for the correction on the point, after a still beat (>= 0.4 s); crude figures (loop heads, stick limbs, reacting faces); holds of different lengths; >= 3 traces: a crossed-out word and its fix, a two-stroke arrow, a fill out of the lines, an uneven underline, a pencil margin doubt, angled tape, a coffee ring, a smudge.
+- Fill the page: hero >= 25% of the page height (figure \`h\` >= 135), purposeful marks around it; never < 3 elements on the page for > 0.6 s.
+- One hand: ALWAYS \`kit.fx.sketchPage({ …, duration: ctx.shot.duration })\` (the hand leaves the subject in the last 0.4 s); last mark done >= 0.4 s before the end. No marks > 80 px apart at the same time: they queue (<= 0.6 s) or lose the hand; \`parallel: true\` only on purpose.
+- Don't: centred or symmetric layouts, decoration without meaning, rows of icons, uniform gaps or timings, constant motion, > 6 elements, a second accent or loud word, slick drawings.
+- Text: every on-screen word comes from the narration or the research notes (real numbers, names, dates); never invent labels or figures; \`page.write\`, never \`ctx.text\` or \`ctx.annotate\`.
+- References (docs/worlds/sketchbook-v2/shots/): s2-t6.0.png one idea; s4-t7.4.png red +1 DAY, a pencil doubt; s3-t7.9.png boxes fill, one red result; s1-t6.0.png marker word, red fix.`;
 
 export const SKETCHBOOK_PROMPTS: WorldPromptText = {
   film: 'a hand-drawn sketchbook video (one spiral notebook, every page drawn live by a visible hand)',
@@ -25,7 +28,7 @@ export const SKETCHBOOK_PROMPTS: WorldPromptText = {
   tensionLooks:
     '- Rolls and looks by tension: high tension → loud C-roll pages and tight A-roll pages (one figure, one object, close); calm → A-roll story pages with room around the drawing; B-roll proofs on plateaus where the narration explains or proves.',
   rhythm:
-    'Rhythm: never more than 3 shots in a row in one look; change roll, look or treatment at least every 6–8 s; open each act with a C-roll page and a page-native transition.',
+    'Rhythm: never more than 2 shots in a row in one look; change roll, look or treatment at least every 6–8 s; open each act with a C-roll page and a page-native transition.',
   shared:
     'every look draws in the same notebook (paper stocks, felt-tip, ballpoint, pencils, one red pen, hand lettering, line boil)',
   transitionIn:
@@ -39,7 +42,7 @@ export const SKETCHBOOK_PROMPTS: WorldPromptText = {
   annotate:
     "draw each by hand on the page (`page.write`, `page.arrow`, `page.loop`, `page.underline`, `page.crossOut`), timed to its spoken phrase (`at: 'the phrase'`), on the named target, never with `ctx.annotate` or `ctx.text`",
   motion:
-    'Let each drawing land and hold (a still beat of at least 0.4 s), the hand clear of the subject; move the camera only to reveal or to push toward the focal point.',
+    'Let each drawing land and hold (a still beat of at least 0.4 s), the hand clear of the subject: always create the page with `duration: ctx.shot.duration` (the hand leaves the subject in the last 0.4 s) and never overlap in time two marks more than 80 px apart (the one hand queues them, up to 0.6 s, or they appear without it; `parallel: true` only on purpose); move the camera only to reveal or to push toward the focal point.',
   missing:
     'Draw everything the narration needs by hand on the page (strokes, figures, sheets, inserts): this world has no props to build, so never end your reply with a `MISSING:` line.',
   craftBrief: CRAFT_BRIEF,
@@ -48,5 +51,8 @@ export const SKETCHBOOK_PROMPTS: WorldPromptText = {
     'a hand-drawn notebook page: paper, felt-tip, ballpoint, pencils and one red pen, hand lettering, a visible hand, slight line wobble',
   vibe: 'Vibe check (every look of the film must feel like one notebook): paper, hand-drawn strokes with a slight wobble, hand lettering, the same few inks. Clean vector shapes, glossy gradients, rendered 3D, pixel-art fonts or software windows break the world: answer `off-intent` with a note starting `vibe:`.',
   checklist:
-    'one focal point, off-centre, with empty paper around it; red ink only on the point; crude, slightly wobbly figures and lettering (never slick or symmetric); at most 6 elements; human traces such as a crossed-out word with its correction, a two-stroke arrow, a pencil fill out of the lines, an uneven underline, a margin note, tape, a coffee ring, a smudge. Slop tells: a centred symmetric layout, decoration without meaning, rows of icons, invented labels or gibberish, everything evenly spaced, the hand covering the subject.',
+    'one focal point, off-centre, big enough to read (about a quarter of the page height or more); red ink only on the point; crude, slightly wobbly figures and lettering (never slick or symmetric); at most 6 elements; human traces such as a crossed-out word with its correction, a two-stroke arrow, a pencil fill out of the lines, an uneven underline, a margin note, tape, a coffee ring, a smudge. Only authored marks count as traces: the spiral binding, the paper (lines, grid, grain), the page number and the visible hand never do. Slop tells: a centred symmetric layout, decoration without meaning, rows of icons, invented labels or gibberish, everything evenly spaced, tiny figures on a mostly empty page, the hand covering the subject.',
+  surprise:
+    'a sudden page moment (e.g. "the page is torn out and a pop-up card stands up with the answer", "a flipbook riffles through the years"); never a camera move (no dolly zoom, orbit, rack focus or screen)',
+  moments: SKETCHBOOK_MOMENTS,
 };

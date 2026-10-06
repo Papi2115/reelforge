@@ -4,10 +4,20 @@
  * what comes from the kit and the engine (the world's label, its first look, its page-native
  * transitions); this package stays free of kit and engine imports.
  */
+import { criticMomentVars, sceneMomentVars, storyboardMomentVars } from './moment-vars.js';
 import { SKETCHBOOK_PROMPTS } from './sketchbook.js';
 import type { WorldPromptText, WorldTransitionOption } from './types.js';
+import type { WorldQuotaOverride } from './variety.js';
 
-export type { WorldPromptText, WorldTransitionOption } from './types.js';
+export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from './types.js';
+export { worldMomentOption } from './moment-vars.js';
+export {
+  breakthroughQuota,
+  WORLD_VARIETY_RULES,
+  type BreakthroughQuota,
+  type WorldQuotaOverride,
+  type WorldVarietyRules,
+} from './variety.js';
 
 /** Prompt texts per world id. */
 export const WORLD_PROMPTS: Readonly<Record<string, WorldPromptText>> = Object.freeze({
@@ -45,11 +55,21 @@ function transitionExample(option: WorldTransitionOption): string {
   return `{ "type": "${option.type}", "duration": ${String(option.duration)}, "style": "${option.id}" }`;
 }
 
-/** Storyboard variables of a world project (with the look variables of `mixed` mode). */
+/** The film the storyboard plans moments for: its length and a test driver's quota override. */
+export interface MomentFilm {
+  readonly durationS: number;
+  readonly override?: WorldQuotaOverride | undefined;
+}
+
+/**
+ * Storyboard variables of a world project (with the look variables of `mixed` mode); with
+ * `film` also its moment catalog and the film's quota (moment-vars.ts).
+ */
 export function storyboardWorldVars(
   world: PromptWorld,
   firstLook: string,
   transitions: readonly WorldTransitionOption[],
+  film?: MomentFilm,
 ): Record<string, string> {
   const { text } = world;
   const first = transitions[0];
@@ -72,13 +92,15 @@ export function storyboardWorldVars(
           worldTransitions: transitions.map(worldTransitionLine).join('\n'),
           worldTransitionExample: transitionExample(first),
         }),
+    ...(film === undefined ? {} : storyboardMomentVars(text, film.durationS, film.override)),
   };
 }
 
-/** Scene-build variables of a world project. */
-export function sceneWorldVars(world: PromptWorld): Record<string, string> {
+/** Scene-build variables of a world project (with the shot's planned moment, if any). */
+export function sceneWorldVars(world: PromptWorld, momentId?: string): Record<string, string> {
   const { text } = world;
   return {
+    ...sceneMomentVars(text, momentId),
     world: world.label,
     worldShared: text.shared,
     craftBrief: text.craftBrief,
@@ -88,19 +110,34 @@ export function sceneWorldVars(world: PromptWorld): Record<string, string> {
   };
 }
 
-/** Scene-fix variables of a world project: the craft brief and the shot's look. */
-export function fixWorldVars(world: PromptWorld, lookId: string): Record<string, string> {
-  return { world: world.label, craftBrief: world.text.craftBrief, lookId };
+/** Scene-fix variables of a world project: the craft brief, the shot's look and moment. */
+export function fixWorldVars(
+  world: PromptWorld,
+  lookId: string,
+  momentId?: string,
+): Record<string, string> {
+  return {
+    world: world.label,
+    craftBrief: world.text.craftBrief,
+    lookId,
+    ...sceneMomentVars(world.text, momentId),
+  };
 }
 
-/** Critic variables of a world project: medium, style, vibe and the craft checklist. */
-export function criticWorldVars(world: PromptWorld): Record<string, string> {
+/** Critic variables of a world project: medium, style, vibe, checklist, the planned moment. */
+export function criticWorldVars(world: PromptWorld, momentId?: string): Record<string, string> {
   const { text } = world;
   return {
+    ...criticMomentVars(text, momentId),
     world: world.label,
     worldMedium: text.criticMedium,
     worldCriticStyle: text.criticStyle,
     worldVibe: text.vibe,
     worldChecklist: text.checklist,
   };
+}
+
+/** Script variables of a world project: what a surprise beat is in this world. */
+export function scriptWorldVars(world: PromptWorld): Record<string, string> {
+  return { world: world.label, worldSurprise: world.text.surprise };
 }

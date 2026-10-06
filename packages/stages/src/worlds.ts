@@ -12,13 +12,18 @@ import {
   criticWorldVars,
   fixWorldVars,
   sceneWorldVars,
+  scriptWorldVars,
   storyboardWorldVars,
   worldPromptText,
   worldTransitionRange,
   type PromptWorld,
+  type WorldQuotaOverride,
+  type WorldVarietyOptions,
 } from '@reelforge/prompts';
 import {
   isContinuityStyle,
+  PAGE_CAMERA_HINTS,
+  type MomentKind,
   projectLookMode,
   shotLook,
   transitionHash,
@@ -92,25 +97,66 @@ export function worldTransitionOptions(world: World | undefined): WorldTransitio
     .map(({ id, type, duration, description }) => ({ id, type, duration, description }));
 }
 
-/** Storyboard prompt variables of the world (none outside a world). */
-export function storyboardWorldPromptVars(setup: LookSetup): Record<string, string> {
+/**
+ * Storyboard prompt variables of the world (none outside a world): with the film's length its
+ * moment catalog and quota (real run Sketchbook 1); `override` = a test driver's quota.
+ */
+export function storyboardWorldPromptVars(
+  setup: LookSetup,
+  durationS?: number,
+  override?: WorldQuotaOverride,
+): Record<string, string> {
   const world = promptWorld(setup.world);
   if (world === undefined) return {};
   const first = setup.looks[0]?.id ?? fallbackLook(setup.looks).id;
-  return storyboardWorldVars(world, first, worldTransitionOptions(setup.world));
+  const film = durationS === undefined ? undefined : { durationS, override };
+  return storyboardWorldVars(world, first, worldTransitionOptions(setup.world), film);
 }
 
-/** Storyboard validator options of the world: its transitions are the only named styles. */
-export function storyboardWorldOptions(setup: LookSetup): {
+/**
+ * Storyboard validator options of the world: its transitions are the only named styles, and its
+ * moment catalog brings the variety checks (quota, spacing, runs, distinct transitions).
+ */
+export function storyboardWorldOptions(
+  setup: LookSetup,
+  override?: WorldQuotaOverride,
+): {
   readonly worldTransitions?: readonly WorldTransitionChoice[];
+  readonly worldVariety?: WorldVarietyOptions;
 } {
-  return setup.world === undefined ? {} : { worldTransitions: worldTransitionOptions(setup.world) };
+  if (setup.world === undefined) return {};
+  const transitions = worldTransitionOptions(setup.world);
+  const moments = promptWorld(setup.world)?.text.moments ?? [];
+  return {
+    worldTransitions: transitions,
+    ...(moments.length === 0
+      ? {}
+      : {
+          worldVariety: { moments, transitions, ...(override === undefined ? {} : { override }) },
+        }),
+  };
 }
 
-/** Scene-build prompt variables of the world (none outside a world). */
-export function sceneWorldPromptVars(world: World | undefined): Record<string, string> {
+/** Scene-build prompt variables of the world and the shot's planned moment (none outside). */
+export function sceneWorldPromptVars(
+  world: World | undefined,
+  shot?: Pick<StoryboardShot, 'worldMoment'>,
+): Record<string, string> {
   const text = promptWorld(world);
-  return text === undefined ? {} : sceneWorldVars(text);
+  return text === undefined ? {} : sceneWorldVars(text, shot?.worldMoment);
+}
+
+/** Script prompt variables of the world: its surprise beats (none outside a world). */
+export function scriptWorldPromptVars(world: World | undefined): Record<string, string> {
+  const text = promptWorld(world);
+  return text === undefined ? {} : scriptWorldVars(text);
+}
+
+/** Reveal-moment camera hints of a world (its camera never orbits); undefined outside. */
+export function worldMomentCameraHints(
+  world: World | undefined,
+): Readonly<Record<MomentKind, string>> | undefined {
+  return world === undefined ? undefined : PAGE_CAMERA_HINTS;
 }
 
 /** Scene-fix prompt variables of the world: its craft brief and the shot's look. */
@@ -122,13 +168,16 @@ export function fixWorldPromptVars(
   const text = promptWorld(world);
   if (text === undefined) return {};
   const look = looks.find((entry) => entry.id === shotLook(shot)) ?? fallbackLook(looks);
-  return fixWorldVars(text, look.id);
+  return fixWorldVars(text, look.id, shot.worldMoment);
 }
 
-/** Critic prompt variables of the world (none outside a world). */
-export function criticWorldPromptVars(world: World | undefined): Record<string, string> {
+/** Critic prompt variables of the world and the shot's planned moment (none outside). */
+export function criticWorldPromptVars(
+  world: World | undefined,
+  shot?: Pick<StoryboardShot, 'worldMoment'>,
+): Record<string, string> {
   const text = promptWorld(world);
-  return text === undefined ? {} : criticWorldVars(text);
+  return text === undefined ? {} : criticWorldVars(text, shot?.worldMoment);
 }
 
 /**

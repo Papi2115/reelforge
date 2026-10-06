@@ -155,7 +155,7 @@ export async function qaRound(
         ...criticLookVars(job.lookMode, shot, job.looks),
         ...criticCharacterVars(job.characters, shot),
         // A world's checklist: the critic names the focal point and the traces (PLAN.md#13.6).
-        ...criticWorldPromptVars(job.world),
+        ...criticWorldPromptVars(job.world, shot),
       },
       craft: job.world !== undefined,
       render,

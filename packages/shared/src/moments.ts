@@ -101,6 +101,11 @@ export interface MomentInputs {
   readonly anchors: readonly MomentAnchor[];
   /** At most this many proposals (default: one per 3 minutes, 1..3). */
   readonly maxMoments?: number;
+  /**
+   * Camera hints per kind instead of the 3D ones (a world whose camera never orbits or dollies,
+   * e.g. `PAGE_CAMERA_HINTS`); absent = the 3D hints.
+   */
+  readonly cameraHints?: Readonly<Record<MomentKind, string>>;
 }
 
 const round3 = (value: number): number => Math.round(value * 1000) / 1000;
@@ -187,6 +192,16 @@ const CAMERA_HINTS: Readonly<Record<MomentKind, string>> = {
   'slow-motion': 'a slow orbit around the key object (rebuild the shot to add it)',
 };
 
+/**
+ * Camera hints of a page world (Sketchbook: the camera is the reader's eye over the page, never an
+ * orbit, spin or dolly zoom; real run Sketchbook 1).
+ */
+export const PAGE_CAMERA_HINTS: Readonly<Record<MomentKind, string>> = {
+  'silence-hit': 'a held frame on the key drawing (rebuild the shot to add it)',
+  'palette-shift': 'a slow push toward the key drawing (rebuild the shot to add it)',
+  'slow-motion': 'a slow push toward the key drawing, never an orbit (rebuild the shot to add it)',
+};
+
 /** Kinds in the order a peak tries them: rotated by the peak's rank so the film varies. */
 const KIND_PREFERENCE: readonly MomentKind[] = ['silence-hit', 'slow-motion', 'palette-shift'];
 
@@ -227,7 +242,7 @@ export function proposeMoments(inputs: MomentInputs): Moment[] {
             from: window.from,
             to: window.to,
             ...(window.rate === undefined ? {} : { rate: window.rate }),
-            cameraHint: CAMERA_HINTS[kind],
+            cameraHint: (inputs.cameraHints ?? CAMERA_HINTS)[kind],
             status: 'proposed',
           },
         ];

@@ -43,6 +43,7 @@ export const STYLE_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
   'voxel-pixel-crisp640': ['calm-tech', 'bright-explainer', 'retro-wave'],
   'noir-voxel': ['tense-investigation', 'lofi-chill'],
   'soft-480': ['lofi-chill', 'calm-tech'],
+  sketchbook: ['lofi-chill', 'calm-tech'],
 };
 export const DEFAULT_STYLE_MOODS: readonly MusicMood[] = ['calm-tech', 'bright-explainer'];
 
@@ -54,6 +55,7 @@ export const TENSION_STYLE_MOODS: Readonly<Record<string, readonly [MusicMood, M
   'voxel-pixel-crisp640': ['calm-tech', 'retro-wave'],
   'noir-voxel': ['lofi-chill', 'tense-investigation'],
   'soft-480': ['lofi-chill', 'calm-tech'],
+  sketchbook: ['lofi-chill', 'calm-tech'],
 };
 export const DEFAULT_TENSION_MOODS: readonly [MusicMood, MusicMood] = ['calm-tech', 'retro-wave'];
 /** A body act this tense (mean) gets the tense mood; intro and outro need TENSE_EDGE_ACT. */
@@ -168,6 +170,14 @@ export function defaultMood(act: FilmAct, styleId: string): MusicMood {
   return act.energy < 0.92 ? lively : liveliest;
 }
 
+/**
+ * The only moods of a world's films (real run Sketchbook 1: a synth `retro-wave` bed in a paper
+ * notebook film); a hint outside them falls back to the style default.
+ */
+export const WORLD_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
+  sketchbook: ['lofi-chill', 'calm-tech'],
+};
+
 /** Mood per act: Claude's hint where given (same length as the acts), else the style default. */
 export function actMoods(
   acts: readonly FilmAct[],
@@ -175,7 +185,12 @@ export function actMoods(
   hint?: readonly MusicMood[],
 ): MusicMood[] {
   const usable = hint !== undefined && hint.length === acts.length ? hint : undefined;
-  return acts.map((act, index) => usable?.[index] ?? defaultMood(act, styleId));
+  const allowed = Object.hasOwn(WORLD_MOODS, styleId) ? WORLD_MOODS[styleId] : undefined;
+  return acts.map((act, index) => {
+    const hinted = usable?.[index];
+    const fits = hinted !== undefined && (allowed === undefined || allowed.includes(hinted));
+    return fits ? hinted : defaultMood(act, styleId);
+  });
 }
 
 /** Energy a generated bed gets (capped: light music). */

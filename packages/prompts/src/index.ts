@@ -28,6 +28,8 @@ export * from './validators/shot-range.js';
 export * from './validators/wow.js';
 export * from './validators/continuity.js';
 export * from './validators/world-transitions.js';
+export * from './validators/world-variety.js';
+export * from './validators/embedded-json.js';
 export * from './worlds/index.js';
 export * from './shot-range-vars.js';
 export * from './validators/dramaturgy.js';

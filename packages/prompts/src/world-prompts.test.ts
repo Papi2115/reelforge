@@ -77,7 +77,7 @@ const STORYBOARD_VARS = {
   interruptRules: 'Plan 1–2 interrupts.',
   continuityLinks: true,
   continuityBudget: 2,
-  ...storyboardWorldVars(SKETCHBOOK, 'sketch-story', TRANSITIONS),
+  ...storyboardWorldVars(SKETCHBOOK, 'sketch-story', TRANSITIONS, { durationS: 155 }),
 };
 const SHOT = { id: 's02_sun', t0: 3, t1: 7, treatment: 'metaphor-object', look: 'sketch-story' };
 const SCENE_VARS = {
@@ -90,14 +90,14 @@ const SCENE_VARS = {
   lookId: 'sketch-story',
   lookDocs: 'Look `sketch-story` (world Sketchbook, A roll): one notebook page per shot.',
   annotationPlan: '- "the Sun" (name): pin on sun, text "SUN"',
-  ...sceneWorldVars(SKETCHBOOK),
+  ...sceneWorldVars(SKETCHBOOK, 'sticky-slap'),
 };
 const FIX_VARS = {
   scope: 'Shot',
   shotIds: SHOT.id,
   request: 'QA fix 1/2 for shot s02_sun.',
   critic: 'error critic: craft: no focal point',
-  ...fixWorldVars(SKETCHBOOK, 'sketch-story'),
+  ...fixWorldVars(SKETCHBOOK, 'sketch-story', 'sticky-slap'),
 };
 const CRITIC_VARS = {
   styleId: 'sketchbook',
@@ -106,7 +106,7 @@ const CRITIC_VARS = {
   lookId: 'sketch-story',
   roll: 'A',
   lookRules: 'Sketch story: a felt-tip notebook page.',
-  ...criticWorldVars(SKETCHBOOK),
+  ...criticWorldVars(SKETCHBOOK, 'sticky-slap'),
 };
 
 describe('world sections off', () => {
@@ -115,7 +115,7 @@ describe('world sections off', () => {
   });
 
   it('bumps the versions of the prompts with world wording', () => {
-    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([16, 15, 3, 7]);
+    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([17, 16, 4, 8]);
   });
 });
 

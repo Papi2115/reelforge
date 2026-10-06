@@ -1,6 +1,6 @@
 ---
 id: scene-fix
-version: 3
+version: 4
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 ---
@@ -12,6 +12,7 @@ Request: {{request}}
 {{#critic}}Critic findings to address: {{critic}}{{/critic}}
 {{#craftBrief}}World: {{world}}; this shot is in look `{{lookId}}` (`reelforge kit-docs {{lookId}}`). Keep the world's craft while fixing:
 {{craftBrief}}
-{{/craftBrief}}{{#continuityDirective}}Continuity link (keep it intact while fixing: the app draws the transition between the two shots; your scene makes the linked object match across the cut; positions are shares of the frame from the left and top): {{continuityDirective}}
+{{/craftBrief}}{{#worldMomentDirective}}Keep the planned page moment (`{{worldMoment}}`) in the shot: {{worldMomentDirective}}
+{{/worldMomentDirective}}{{#continuityDirective}}Continuity link (keep it intact while fixing: the app draws the transition between the two shots; your scene makes the linked object match across the cut; positions are shares of the frame from the left and top): {{continuityDirective}}
 {{/continuityDirective}}
 Make the smallest edit that satisfies the request in the given scope. Re-run lint, re-render the affected frames, Read them and confirm the problem is gone and nothing else broke. Max 2 iterations. Reply in ≤4 lines: what changed, what you verified.

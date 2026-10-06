@@ -7,6 +7,7 @@
  * shot-variant build to queue; phrases are report only.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
+import { isWorldStyle } from '@reelforge/kit';
 import { CuesFileSchema } from '@reelforge/pipeline';
 import {
   projectRepetitionControl,
@@ -77,6 +78,7 @@ export async function loadRepetitionFilm(
     locked: locked.value,
     lookMode: effectiveLookMode(project),
     seed: project.seed,
+    world: isWorldStyle(project.style),
   });
 }
 

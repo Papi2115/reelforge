@@ -1,6 +1,6 @@
 ---
 id: scene-build
-version: 15
+version: 16
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: {{shotScene}}
@@ -13,7 +13,8 @@ Narration during this shot (with word times): {{shotWords}}
 {{#lookDocs}}Look of this shot: `{{lookId}}`. {{^world}}Every look renders through the same style (palette, pixel fonts, dithering){{/world}}{{#world}}In this world {{worldShared}}{{/world}}: build in the look, never imitate other effects or bring outside colours. How to build in it:
 {{lookDocs}}
 {{/lookDocs}}{{#craftBrief}}{{craftBrief}}
-{{/craftBrief}}{{#annotationPlan}}
+{{/craftBrief}}{{#worldMomentDirective}}Page moment planned for this shot (`{{worldMoment}}`; the storyboard planned it from the narration and the critic checks that it shows): build it with {{worldMomentDirective}}
+{{/worldMomentDirective}}{{#annotationPlan}}
 Annotation plan from the storyboard (hints, not orders): {{^world}}implement them with `ctx.annotate.*` (`caption`/`big-text`: `ctx.text`; `counter`: `kit.fx.counter`), each timed with `phrase:` (the spoken phrase), on the named target{{/world}}{{#world}}{{worldAnnotate}}{{/world}}. Adapt the form, or drop a mark, when it does not fit the picture (it would cover the subject or clutter the frame).{{^world}} Options: `reelforge kit-docs annotate`.{{/world}}
 {{annotationPlan}}
 {{/annotationPlan}}
