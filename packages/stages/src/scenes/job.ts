@@ -23,6 +23,7 @@ import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
 import { RoleBuilder } from '../roles/builder.js';
+import { loadAntiSlop, type AntiSlopSetup } from '../slop/guards.js';
 import { sceneAssetCatalogue } from './shot-assets.js';
 import { fasterSceneSettings, type SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
@@ -67,6 +68,8 @@ export interface SceneJob {
   readonly dramaturgy?: SceneDramaturgy | undefined;
   /** Characters, mascot in effect and built roles (PLAN.md#12.20); classic + none = as before. */
   readonly characters: CharacterSettings;
+  /** Anti-slop guards (PLAN.md#13.7); undefined = off for this project (no ⚠ slop findings). */
+  readonly antiSlop?: AntiSlopSetup | undefined;
 }
 
 /** Installed kit names per style (and experimental scope); computed once each. */
@@ -115,6 +118,14 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     : ctx.settings.scenes;
   const styleId = project.value.style;
   const assets = await sceneAssetCatalogue(ctx.projectDir);
+  const antiSlop = await loadAntiSlop({
+    projectDir: ctx.projectDir,
+    project: project.value,
+    world: setup.world,
+    words: words.value,
+    assets,
+  });
+  if (!antiSlop.ok) return antiSlop;
   return ok({
     ctx,
     frames: tools.frames,
@@ -138,6 +149,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     assets,
     dramaturgy: await loadSceneDramaturgy(ctx.projectDir, project.value),
     characters: await loadCharacterSettings(ctx.projectDir, project.value),
+    antiSlop: antiSlop.value,
   });
 }
 

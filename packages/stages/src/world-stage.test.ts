@@ -85,6 +85,9 @@ export function build(ctx) {
   scene.add(page);
   const hit = anchor('${shot.phrase}');
   page.write('${shot.phrase}', { x: 330, y: 210, size: 30, hand: 'scrawl', at: hit.t });
+  page.crossOut(330, 260, 90, 30);
+  page.arrow([200, 320, 300, 240]);
+  page.tape(620, 120, 70, 22, -4);
   sfx.at(hit.t, 'hit');
   return { page };
 }

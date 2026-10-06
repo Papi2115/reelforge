@@ -8,6 +8,7 @@ import { lintScene } from '@reelforge/engine';
 import { ok, type Result } from '@reelforge/claude-bridge';
 import type { QaFinding, ShotSync, StoryboardShot } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
+import { slopShotFindings } from '../slop/guards.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
 import { consoleFindings, finding, lintFindings, renderTimeoutFinding } from './checks.js';
@@ -89,6 +90,8 @@ export async function checkShot(
       ...assetSizeFindings(source, shot.scene),
       ...cameraInterruptFindings(source, shot.scene, shot.interrupt),
       ...(sync === undefined ? [] : syncFindings(sync.events, shot)),
+      // Anti-slop guards (PLAN.md#13.7): ⚠ only, never a fix turn (needFinalFix sees errors).
+      ...slopShotFindings(job.antiSlop, { source, shot, frames: render.frames }),
     ],
     row,
   });

@@ -96,6 +96,29 @@ is rejected regardless of score.
 - **Camera sanity**: a move that crops text or ends without a hold → ⚠ (exists for interrupts; extend to all moves).
 - **Same-composition detector**: perceptual hash distance between consecutive shots below a threshold → ⚠.
 
+### 8.1 Implemented (v1, PLAN.md#13.7) — `packages/stages/src/slop/`
+Warn, never block: every guard reports a ⚠ finding with source `slop` (severity `warning`): no fix turn, no change to the gating
+or the critic sampling; shown in the scenes report, the final review and the app's ⚠ chips. Per project switch
+`antiSlopGuards` (absent = on for a world's style, off for the built-in styles; the template writes `false`, a world's project
+defaults write `true`). Source and frame guards run in every scene QA round and in the final review; the same-composition
+detector runs in the final review only (it needs the previous shot's frame). Frames are judged on a block grid (~80 blocks
+across, 8 px at 640 wide).
+
+| Guard | Input | ⚠ when | Notes |
+|---|---|---|---|
+| Text provenance | literal strings of text calls (`page.write`, `ctx.text.*`, local `write` helpers) and text options (`text`, `label`, `note`, `band`, `lines`, `caption`, `title`…; `const` strings resolved; `meta` ignored) | a string has an unknown capitalised/all-caps word (a name or label), ≥ 2 unknown words making ≥ half of it, or an unsourced number | vocabulary = script.txt + words.json + research.md + asset titles, with stems and abbreviations ("Feb"); world labels (Sketchbook: `p.7`, `fig.`, …) and months/weekdays/eras/units allowed. Numbers: in the sources (digits or English number words, "365 and a quarter"), a decade of a sourced number ("1500s"), or the visible result of a calculation with sourced on-screen numbers (sum/difference with any sourced number, product/quotient of two on-screen ones), at the shown precision; 0 and 1 free. One paraphrased word is not flagged. Polish number words are not parsed. |
+| Clutter | each checked frame | > 6 competing elements: groups of blocks ≥ 64 (max channel) from the background median, marks ≤ 2 blocks apart merged, ≥ 0.2 % of the frame | pencil texture and paper grain stay below the contrast threshold |
+| Accent share | each checked frame | > 12 % of pixels within 30 (RGB sum) of the style's `accent1` | Sketchbook accent = red (corrections) |
+| Symmetry/centering | each checked frame, outer 8 % of the width ignored (binding) | mirror similarity ≥ 0.8 (content blocks mirrored by content within 10 luma) **and** content centroid and biggest element both within 5 % of the centre; ≥ 2 % content | `title-card` shots exempt |
+| Stagger variance | literal `at`/`dur`/`until` of sibling calls in one block; `for` loops with literal bounds | ≥ 4 siblings of one method with identical start gaps or identical durations; a loop of ≥ 4 items with `at: … i × step` and no call (jitter) in the expression | steps < 0.05 s read as one gesture (a run of ticks) and are ignored; times given as phrases or computed are skipped |
+| Human traces | scene source (AST) | < 3 traces | Sketchbook: `tape`, `coffeeRing`, `clip`, `sticky`, `smudge`, `ruler`, `loop`, `underline`, `crossOut`, `arrow` = 1 each; `popup`, `strip` = 3 (they draw their own traces); options `rot` ≠ 0 (jittered lettering) and `tool: 'red'` (correction) = 1 each. Worlds without an entry are not checked. |
+| Same composition | last review frame of consecutive shots | layout-signature distance < 0.2 (16 × 9 cells, brightness steps between neighbours as −1/0/+1 with a 4-luma dead band; share of differing non-flat steps) | shots with a continuity link or `continues` are deliberate matches and skipped |
+
+Calibration (unit tests): 0 findings on all 30 Sketchbook goldens (looks A/B/C, pop-up, strip) and 4 voxel goldens, on the 10
+Sketchbook template scenes (text, traces, timing) with the showcase narration + research notes; different Sketchbook scenes are
+≥ 0.45 apart in layout. 26/26 seeded bad cases caught (`slop/detection.test.ts`). **Camera sanity** (moves that crop text or end
+without a hold, for all moves) is not in v1: it stays with the interrupt check (`source-checks-camera.ts`) — backlog.
+
 ## 9. How this reaches the runtime Claude
 Each world has a short **craft brief** (≤ 1.5 KB) inside its look docs and `STYLE.md`: the §1 tells as a don't-list, the §2 traces as a
 do-list with the world's own marks, the focal-point-first process ("write the focal point and the three traces in a comment before the

@@ -33,6 +33,7 @@ import { writeContactSheet, type SheetShot } from './sheet.js';
 import { refineShot } from './shot-job.js';
 import { syncReport } from './sync-report.js';
 import { reviewRepetitions } from '../repetition/stage.js';
+import { sameCompositionFindings } from '../slop/guards.js';
 
 /** Work items of the final review's fixes in pipeline.json. */
 export const FINAL_REVIEW_QUEUE = 'scenes-final-review';
@@ -73,7 +74,23 @@ async function checkAll(
     findings.set(shot.id, [...checked.value.findings]);
     if (checked.value.row !== undefined) rows.push(checked.value.row);
   }
+  if (job.antiSlop !== undefined) addSameComposition(job, findings, rows);
   return ok({ findings, rows });
+}
+
+/** Same-composition guard (PLAN.md#13.7): each shot's last review frame against its predecessor's. */
+function addSameComposition(
+  job: SceneJob,
+  findings: Map<string, QaFinding[]>,
+  rows: readonly SheetShot[],
+): void {
+  const keys = job.shots.map((shot) => {
+    const render = rows.find((row) => row.shotId === shot.id)?.render;
+    return { shot, frame: render?.ok === true ? render.frames.at(-1) : undefined };
+  });
+  for (const [shotId, found] of sameCompositionFindings(keys)) {
+    findings.get(shotId)?.push(...found);
+  }
 }
 
 async function writeSheets(

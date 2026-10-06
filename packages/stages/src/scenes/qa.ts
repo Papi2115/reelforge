@@ -12,6 +12,7 @@ import { readProjectText } from '../files.js';
 import { criticLookVars } from '../looks.js';
 import { criticWorldPromptVars } from '../worlds.js';
 import { FILES } from '../paths.js';
+import { slopShotFindings } from '../slop/guards.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
 import {
@@ -136,11 +137,13 @@ export async function qaRound(
     }),
     shot,
   );
+  // Anti-slop guards (PLAN.md#13.7): warnings only; they never decide a fix turn or the sampling.
+  const slop = slopShotFindings(job.antiSlop, { source, shot, frames: render.frames });
   const code = [...programmaticCritique(render), ...sync, ...extra];
   const critic: TurnRunner | undefined =
     job.settings.critic && ctx.hasClaude ? (turn) => ctx.claude(turn) : undefined;
   if (critic === undefined || fixableFindings(code).length > 0 || !criticSampled(job, shot, code)) {
-    return ok({ ...early(code, source), render });
+    return ok({ ...early([...code, ...slop], source), render });
   }
   const judged = await critiqueFrames(
     {
@@ -162,7 +165,7 @@ export async function qaRound(
   );
   if (!judged.ok) return judged;
   return ok({
-    findings: [...judged.value.findings, ...sync, ...extra],
+    findings: [...judged.value.findings, ...sync, ...extra, ...slop],
     verdicts: judged.value.verdicts,
     sheet: judged.value.sheet,
     notes: judged.value.notes,
