@@ -93,6 +93,8 @@ describe('createProject', () => {
   it('starts with the pack and no mascot, or the characters asked for (PLAN.md#12.20)', async () => {
     const created = await create(projectDir('characters template'));
     expect(created.project).toMatchObject({ characters: 'pack', mascot: 'none' });
+    // New projects plan continuity links (PLAN.md#13.2); absent (older projects) = off.
+    expect(created.project).toMatchObject({ continuityLinks: false });
     const chosen = await createProject({
       dir: projectDir('characters fox'),
       title: 'Fox',

@@ -13,10 +13,12 @@ import {
   availableTransitionStyles,
   CRITIC_LOOK_RULES,
   criticLookVars,
+  fallbackLook,
   lookLine,
   sceneLookVars,
   storyboardLookOptions,
   storyboardLookVars,
+  styleLookSummaries,
   styleLooks,
   transitionLine,
   wowTransitionLine,
@@ -243,5 +245,35 @@ describe('looks per style (PLAN.md#13.1)', () => {
     expect(sceneLookVars('mixed', { ...SHOT, look: 'test-world-page' }, inWorld)).toMatchObject({
       lookId: 'test-world-page',
     });
+  });
+
+  it('offers only the world looks in a world style: no voxel, retro-ui, ... (ADR-029)', () => {
+    const inWorld = listLooks([...LOOKS, worldLook], { style: 'test-world' });
+    expect(inWorld).toEqual([worldLook]);
+    expect(storyboardLookOptions('mixed', inWorld)).toEqual({
+      lookMode: 'mixed',
+      looks: ['test-world-page'],
+    });
+    expect(storyboardLookVars('mixed', inWorld)).toEqual({
+      looks: lookLine(worldLook),
+      singleLook: true,
+    });
+    // A shot naming no look or a look of another style builds and is judged in the world's look.
+    for (const shot of [SHOT, { ...SHOT, look: 'voxel' }, { ...SHOT, look: 'retro-ui' }]) {
+      expect(sceneLookVars('mixed', shot, inWorld)).toEqual({
+        lookId: 'test-world-page',
+        lookDocs: worldLook.docs,
+      });
+      expect(criticLookVars('mixed', shot, inWorld)).toMatchObject({ lookId: 'test-world-page' });
+    }
+    expect(fallbackLook(inWorld)).toBe(worldLook);
+    expect(fallbackLook(undefined)).toBe(voxelLook);
+    expect(fallbackLook(listLooks())).toBe(voxelLook);
+  });
+
+  it.each(BUILT_IN_STYLES)('%s: the app lists exactly the 2.x looks', (style) => {
+    expect(styleLookSummaries(style)).toEqual(
+      listLooks().map(({ id, label, description }) => ({ id, label, description })),
+    );
   });
 });

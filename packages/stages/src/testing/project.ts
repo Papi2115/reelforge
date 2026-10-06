@@ -56,12 +56,13 @@ export class TestProjects {
     cpSync(TEMPLATE_DIR, this.templateWithoutTension, { recursive: true });
     const projectJson = path.join(this.templateWithoutTension, 'project.json');
     const template = JSON.parse(readFileSync(projectJson, 'utf8')) as Record<string, unknown>;
-    // Dramaturgy switches (PLAN.md#12.25-12.27) off and the classic hero without a mascot
-    // (PLAN.md#12.20) too: tests opt in by editing project.json.
+    // Dramaturgy switches (PLAN.md#12.25-12.27), continuity links (PLAN.md#13.2) off and the
+    // classic hero without a mascot (PLAN.md#12.20) too: tests opt in by editing project.json.
     const off = {
       patternInterrupts: 'off',
       openLoops: 'off',
       revealMoments: 'off',
+      continuityLinks: false,
       characters: 'classic',
       mascot: 'none',
     };

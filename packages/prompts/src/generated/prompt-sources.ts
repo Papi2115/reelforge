@@ -79,8 +79,8 @@ export const PROMPT_SOURCES: Readonly<Record<PromptId, PromptSource>> = {
   },
   'scene-fix': {
     source:
-      '---\nid: scene-fix\nversion: 1\nmodel: opus\ntools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]\n---\nFix or change an existing scene according to the request. Follow `CLAUDE.md` (contract, determinism, self-QA).\n\nScope: {{scope}} (Selection | Shot | Whole video) · Shot(s): {{shotIds}}\n{{#selection}}Selected object in the preview: {{selection}}{{/selection}}\nRequest: {{request}}\n{{#critic}}Critic findings to address: {{critic}}{{/critic}}\n\nMake the smallest edit that satisfies the request in the given scope. Re-run lint, re-render the affected frames, Read them and confirm the problem is gone and nothing else broke. Max 2 iterations. Reply in ≤4 lines: what changed, what you verified.\n',
-    sha256: '2589aa5cd6e1a48a5bca3e8c06db0de1dfc0334661425dcf689bd30fe8342452',
+      '---\nid: scene-fix\nversion: 2\nmodel: opus\ntools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]\n---\nFix or change an existing scene according to the request. Follow `CLAUDE.md` (contract, determinism, self-QA).\n\nScope: {{scope}} (Selection | Shot | Whole video) · Shot(s): {{shotIds}}\n{{#selection}}Selected object in the preview: {{selection}}{{/selection}}\nRequest: {{request}}\n{{#critic}}Critic findings to address: {{critic}}{{/critic}}\n{{#continuityDirective}}Continuity link (keep it intact while fixing: the app draws the transition between the two shots; your scene makes the linked object match across the cut; positions are shares of the frame from the left and top): {{continuityDirective}}\n{{/continuityDirective}}\nMake the smallest edit that satisfies the request in the given scope. Re-run lint, re-render the affected frames, Read them and confirm the problem is gone and nothing else broke. Max 2 iterations. Reply in ≤4 lines: what changed, what you verified.\n',
+    sha256: '36371880ba5b63cca2e493573d7922e65fefd653db65a422c71b5c3e938aacd0',
   },
   script: {
     source:

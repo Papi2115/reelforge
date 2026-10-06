@@ -161,6 +161,8 @@ async function fixTurn(
     shotIds: shot.id,
     request,
     ...(findings.length === 0 ? {} : { critic: findings.map(formatFinding).join('\n') }),
+    // A fix keeps the shot's continuity link intact (PLAN.md#13.2); no link = the v1 text.
+    ...sceneContinuityVars(job.shots, shot),
   });
   if (!prompt.ok) return prompt;
   const turn = await job.ctx.claude({

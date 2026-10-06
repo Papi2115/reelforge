@@ -52,7 +52,25 @@ describe('kit-docs per style', () => {
       'kit.props.worldPage',
     );
     const elsewhere = kitCatalog([], WITH_WORLD, { style: 'noir-voxel' });
+    expect(formatCatalog(elsewhere, { lookMode: 'mixed' })).toContain('kit.voxel:');
     expect(formatCatalog(elsewhere, { lookMode: 'mixed' })).not.toContain('worldPage');
     expect(() => describeKitName(elsewhere, 'test-world-page')).toThrow(/no kit function/);
+  });
+
+  it('is exclusive in the world style: no voxel API, voxel entries, other looks or cast', () => {
+    const catalog = kitCatalog([], WITH_WORLD, { style: 'test-world' });
+    const index = formatCatalog(catalog, { lookMode: 'mixed' });
+    expect(index).toContain('worldPage');
+    expect(index).not.toContain('kit.voxel');
+    expect(index).not.toContain('kit.cast');
+    for (const name of ['calculator', 'room', 'retroWindow']) {
+      expect(index, name).not.toContain(name);
+    }
+    expect(index).toContain('kit.env: (none yet)');
+    for (const look of ['voxel', 'retro-ui', 'diorama']) {
+      expect(() => describeKitName(catalog, look), look).toThrow(/no kit function/);
+    }
+    expect(describeKitName(catalog, 'props', { lookMode: 'mixed' })).toContain('worldPage');
+    expect(describeKitName(catalog, 'props', { lookMode: 'mixed' })).not.toContain('calculator');
   });
 });

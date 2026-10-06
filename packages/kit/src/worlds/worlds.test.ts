@@ -1,7 +1,8 @@
 /**
- * World architecture (PLAN.md#13.1): a world's looks appear only while its style is active, an
- * experimental look only where a scope asks for it, and adding a world changes nothing for the
- * built-in styles (catalog, markdown, ctx.kit).
+ * World architecture (PLAN.md#13.1, ADR-029): a world's looks appear only while its style is
+ * active and are then the only ones offered (exclusive), an experimental look only where a scope
+ * asks for it, and adding a world changes nothing for the built-in styles (catalog, markdown,
+ * ctx.kit).
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -12,10 +13,12 @@ import { createKit, kitCatalog } from '../kit.js';
 import {
   extraLookDefinitions,
   getLook,
+  isWorldStyle,
   listLooks,
   lookInScope,
   lookMetaSchema,
   LOOKS,
+  voxelLook,
   type Look,
 } from '../looks/index.js';
 import { CRISP_PALETTE } from '../testing/palettes.js';
@@ -84,11 +87,34 @@ describe('the test world', () => {
         ids(listLooks()),
       );
     }
-    expect(ids(listLooks(WITH_TEST_WORLD, { style: TEST_WORLD_ID }))).toEqual(ids(listLooks()));
+    expect(ids(listLooks(WITH_TEST_WORLD, { style: TEST_WORLD_ID }))).toEqual([]);
     expect(ids(listLooks(WITH_TEST_WORLD, { style: TEST_WORLD_ID, experimental: true }))).toEqual([
-      ...ids(listLooks()),
       'test-world-page',
     ]);
+  });
+
+  it('is exclusive in its style: no voxel, retro-ui or any other look (ADR-029)', () => {
+    const scope = { style: TEST_WORLD_ID, experimental: true };
+    expect(isWorldStyle(TEST_WORLD_ID, WITH_TEST_WORLD)).toBe(true);
+    for (const style of STYLES_OF_TODAY) expect(isWorldStyle(style, WITH_TEST_WORLD)).toBe(false);
+    expect(isWorldStyle(TEST_WORLD_ID)).toBe(false);
+    for (const look of listLooks()) {
+      expect(lookInScope(look, scope, true), look.id).toBe(false);
+      expect(getLook(look.id, WITH_TEST_WORLD, scope), look.id).toBeUndefined();
+    }
+    expect(getLook('test-world-page', WITH_TEST_WORLD, scope)).toBe(testWorldLook);
+    const catalog = kitCatalog([], WITH_TEST_WORLD, scope);
+    expect(catalog.looks.map((look) => look.id)).toEqual(['test-world-page']);
+    expect(catalog.voxel).toEqual({});
+    expect(catalog.cast).toEqual([]);
+    expect(catalog.env).toEqual([]);
+    expect(catalog.fx).toEqual([]);
+    expect(catalog.props.map((entry) => [entry.name, entry.look])).toEqual([
+      ['testWorldPage', 'test-world-page'],
+    ]);
+    const extra = extraLookDefinitions(WITH_TEST_WORLD, scope);
+    expect(extra.prop.map((entry) => entry.look)).toEqual(['test-world-page']);
+    expect([...extra.env, ...extra.fx]).toEqual([]);
   });
 
   it('resolves by id, but not in a scope of another style', () => {
@@ -100,7 +126,11 @@ describe('the test world', () => {
   it('binds its definitions into ctx.kit only in its style', () => {
     const today = propNames(LOOKS, undefined);
     for (const style of STYLES_OF_TODAY) expect(propNames(WITH_TEST_WORLD, style)).toEqual(today);
-    expect(propNames(WITH_TEST_WORLD, TEST_WORLD_ID)).toEqual([...today, 'testWorldPage']);
+    // The voxel kit's own definitions stay bound (their names are reserved); no other look's.
+    expect(propNames(WITH_TEST_WORLD, TEST_WORLD_ID)).toEqual([
+      ...propNames([voxelLook], undefined),
+      'testWorldPage',
+    ]);
   });
 
   it('joins the catalog only in its style, as its own look section', () => {
@@ -108,9 +138,7 @@ describe('the test world', () => {
     expect(catalog.looks.at(-1)?.id).toBe('test-world-page');
     expect(catalog.props.at(-1)).toMatchObject({ name: 'testWorldPage', look: 'test-world-page' });
     expect(kitCatalogMarkdown(catalog)).toContain('## Look `test-world-page`: Test world page');
-    expect(kitCatalog([], WITH_TEST_WORLD, { style: TEST_WORLD_ID }).looks.at(-1)?.id).not.toBe(
-      'test-world-page',
-    );
+    expect(kitCatalog([], WITH_TEST_WORLD, { style: TEST_WORLD_ID }).looks).toEqual([]);
   });
 
   it('lets looks of different styles share a definition name', () => {

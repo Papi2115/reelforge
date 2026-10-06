@@ -1,9 +1,15 @@
-/** Continuity links in the storyboard stage on fake-claude (PLAN.md#13.2): switch, prompt, wiring. */
+/**
+ * Continuity links in the storyboard and scenes stages on fake-claude (PLAN.md#13.2): switch,
+ * prompt, wiring, and the directive in the fix turns of both linked shots.
+ */
+import { autocommit } from '@reelforge/project';
 import { storyboardFileSchema } from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { FakeClaudeHarness, writes, type Step } from './testing/fake-claude.js';
+import { eightShotScript, filmShots, writeFilm } from './testing/film.js';
 import { TestProjects, goldenFile, readProject, writeProject } from './testing/project.js';
+import { ScriptedFrameRenderer } from './testing/scripted-renderer.js';
 
 const projects = new TestProjects();
 const harnesses: FakeClaudeHarness[] = [];
@@ -74,5 +80,46 @@ describe('continuity links in the storyboard stage', { timeout: 60_000 }, () => 
       style: 'continuity-shared-object',
       focus: LINK.anchor,
     });
+  });
+});
+
+describe('continuity links in the scenes stage', { timeout: 120_000 }, () => {
+  it('hands both linked shots the directive in their fix turns', async () => {
+    const dir = await projects.create('continuity scenes');
+    const shots = filmShots(8);
+    writeFilm(dir, shots);
+    // s03 (fixed once for lint) hands over to s04 (fixed once for overlapping cards).
+    const storyboard = JSON.parse(readProject(dir, 'storyboard.json')) as {
+      shots: { id: string }[];
+    };
+    const linkedShots = storyboard.shots.map((shot) =>
+      shot.id === 's04' ? { ...shot, continuity: LINK } : shot,
+    );
+    writeProject(
+      dir,
+      'storyboard.json',
+      JSON.stringify({ ...storyboard, shots: linkedShots }, null, 2),
+    );
+    expect((await autocommit(dir, 'Storyboard', { kind: 'manual', git: projects.git })).ok).toBe(
+      true,
+    );
+    const harness = new FakeClaudeHarness(eightShotScript(shots), { concurrency: 2 });
+    harnesses.push(harness);
+    const runner = new StageRunner({
+      projectDir: dir,
+      claude: harness.runner,
+      guard: harness.guard,
+      git: projects.git,
+      scenes: { frames: new ScriptedFrameRenderer() },
+    });
+    const result = await runner.run({ stage: 'scenes' });
+    expect(result.ok).toBe(true);
+    const fixes = harness.specs.filter((spec) => spec.stage === 'scene-fix');
+    const fixOf = (id: string): string =>
+      fixes.find((spec) => spec.prompt.includes(`for shot ${id} `))?.prompt ?? '';
+    expect(fixOf('s03')).toContain('This shot hands over to s04 through a shared-object link');
+    expect(fixOf('s04')).toContain('This shot continues s03 through a shared-object link');
+    expect(fixOf('s05')).not.toContain('Continuity link');
+    expect(fixOf('s08')).not.toContain('Continuity link');
   });
 });

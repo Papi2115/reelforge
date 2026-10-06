@@ -1,11 +1,11 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { listLooks } from '@reelforge/kit';
+import { defineLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mainUsage } from '../cli.js';
 import { copyFixtureProject, runCli, type TempProject } from '../testing/fixture.js';
-import { formatLooks, ROLL_MEANINGS } from './looks.js';
+import { formatLooks, ROLL_MEANINGS, styleLookSummaries } from './looks.js';
 
 let project: TempProject;
 
@@ -82,6 +82,31 @@ describe('reelforge looks', () => {
     ]);
     expect(lines).toContain(
       'project look mode: mixed (build each shot in the look its storyboard entry names; absent = voxel)',
+    );
+  });
+
+  it("lists the built-in looks in every built-in style and only a world's own in its style", () => {
+    const world: Look = defineLook({
+      ...voxelLook,
+      id: 'test-world-page',
+      label: 'Test world page',
+      description: 'a page of the test world',
+      styles: ['test-world'],
+      kit: {},
+    });
+    const looks = [...LOOKS, world];
+    const builtIn = styleLookSummaries(undefined);
+    expect(builtIn.map((look) => look.id)).toEqual(listLooks().map((look) => look.id));
+    for (const style of ['voxel-pixel-crisp640', 'noir-voxel', 'soft-480']) {
+      expect(styleLookSummaries(style, looks)).toEqual(builtIn);
+    }
+    const inWorld = styleLookSummaries('test-world', looks);
+    expect(inWorld.map((look) => look.id)).toEqual(['test-world-page']);
+    expect(formatLooks(inWorld, 'mixed')).toContain(
+      'project look mode: mixed (build each shot in the look its storyboard entry names; absent = test-world-page)',
+    );
+    expect(formatLooks([], 'mixed')[0]).toBe(
+      'looks (0 available; every look shares the style: palette, pixel fonts, dithering):',
     );
   });
 });

@@ -99,12 +99,12 @@ export function formatCatalog(
 ): string {
   const { lookMode } = options;
   const budget = options.budget ?? INDEX_BUDGETS[lookMode];
+  // A world's catalog has no voxel API and no character pack (ADR-029): no lines for them.
+  const voxel = Object.values(catalog.voxel);
   const head = [
     `kit ${catalog.version} (ctx.kit; build() only; colours are palette names)`,
-    'kit.voxel:',
-    ...Object.values(catalog.voxel).map(
-      (doc) => `  kit.voxel.${doc.signature} — ${doc.description}`,
-    ),
+    ...(voxel.length === 0 ? [] : ['kit.voxel:']),
+    ...voxel.map((doc) => `  kit.voxel.${doc.signature} — ${doc.description}`),
   ];
   const sections = SECTIONS.map(([title, key]) => ({
     title,
@@ -114,7 +114,7 @@ export function formatCatalog(
   }));
   const tail = [
     'details + example: reelforge kit-docs <name>; a missing prop can be built: reelforge kit-docs prop-module',
-    CHARACTERS_INDEX_LINE,
+    ...(catalog.cast.length === 0 ? [] : [CHARACTERS_INDEX_LINE]),
     'camera rigs, ctx.text options, ctx.annotate (arrows, callouts, pins...), anchors, sfx, rng, easings: reelforge kit-docs ctx (or camera, text, annotate, ...)',
     ...(options.problems ?? []),
   ];

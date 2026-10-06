@@ -33,12 +33,21 @@ export const LOOKS: readonly Look[] = Object.freeze([
 ]);
 
 /**
+ * True when `style` is the style of a world: some look of `looks` (available, experimental or
+ * not) is scoped to it. World styles are exclusive (ADR-029): only their own looks are offered.
+ */
+export function isWorldStyle(style: string | undefined, looks: readonly Look[] = LOOKS): boolean {
+  return style !== undefined && looks.some((look) => look.styles?.includes(style) === true);
+}
+
+/**
  * The available looks offered in `scope`, voxel first. The default scope (no style) leaves out
  * every look scoped to a style and every experimental look, so callers that do not pass a style
- * see exactly the looks of the built-in styles.
+ * see exactly the looks of the built-in styles. In a world's style only that world's looks.
  */
 export function listLooks(looks: readonly Look[] = LOOKS, scope: LookScope = {}): Look[] {
-  return looks.filter((look) => lookInScope(look, scope));
+  const worldStyle = isWorldStyle(scope.style, looks);
+  return looks.filter((look) => lookInScope(look, scope, worldStyle));
 }
 
 /**
@@ -51,9 +60,8 @@ export function getLook(
   looks: readonly Look[] = LOOKS,
   scope?: LookScope,
 ): Look | undefined {
-  return looks.find(
-    (look) => look.id === id && (scope === undefined ? look.available : lookInScope(look, scope)),
-  );
+  if (scope === undefined) return looks.find((look) => look.id === id && look.available);
+  return listLooks(looks, scope).find((look) => look.id === id);
 }
 
 /** A kit definition with the look it comes from. */

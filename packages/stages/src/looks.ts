@@ -17,11 +17,32 @@ import {
 } from '@reelforge/shared';
 
 /**
- * The looks a project of this style offers (PLAN.md#13.1): the looks of every style plus those of
- * its world; for the built-in styles exactly `listLooks()`.
+ * The looks a project of this style offers (PLAN.md#13.1, ADR-029): for the built-in styles
+ * exactly `listLooks()`; a world's style is exclusive, only that world's looks.
  */
 export function styleLooks(style: string | undefined): Look[] {
   return listLooks(LOOKS, { style });
+}
+
+/** A look as the app's settings list it (`project-settings` dialog). */
+export interface StyleLookSummary {
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
+}
+
+/** The looks a project of this style offers, as the app lists them (voxel first; ADR-029). */
+export function styleLookSummaries(style: string | undefined): StyleLookSummary[] {
+  return styleLooks(style).map(({ id, label, description }) => ({ id, label, description }));
+}
+
+/**
+ * The look a shot builds and is judged in when its own is unknown or not offered: voxel wherever
+ * it is offered (every built-in style), otherwise the first offered look (a world's A-roll look).
+ */
+export function fallbackLook(looks: readonly Look[] | undefined): Look {
+  if (looks === undefined || looks.some((look) => look.id === voxelLook.id)) return voxelLook;
+  return looks[0] ?? voxelLook;
 }
 
 /** One line per look in the storyboard prompt. */
@@ -99,7 +120,8 @@ export function storyboardLookOptions(
 
 /**
  * Scene-build prompt variables: none in `voxel-only`; in `mixed` the shot's look and its docs (a
- * look that is unknown or not available, e.g. in a hand-edited storyboard, builds as voxel).
+ * look that is unknown or not offered, e.g. in a hand-edited storyboard, builds in `fallbackLook`:
+ * voxel, or a world's first look).
  */
 export function sceneLookVars(
   mode: LookMode,
@@ -107,7 +129,7 @@ export function sceneLookVars(
   looks?: readonly Look[],
 ): Readonly<Record<string, string>> {
   if (mode === 'voxel-only') return {};
-  const look = getLook(shotLook(shot), looks) ?? voxelLook;
+  const look = getLook(shotLook(shot), looks) ?? fallbackLook(looks);
   return { lookId: look.id, lookDocs: look.docs };
 }
 
@@ -135,8 +157,8 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
 
 /**
  * Critic prompt variables: none in `voxel-only` (the prompt stays as before looks); in `mixed`
- * the shot's look (unknown looks judge as voxel), its roll when the storyboard gives one, and the
- * look's visual rules.
+ * the shot's look (unknown looks judge as `fallbackLook`), its roll when the storyboard gives one,
+ * and the look's visual rules.
  */
 export function criticLookVars(
   mode: LookMode,
@@ -144,7 +166,7 @@ export function criticLookVars(
   looks?: readonly Look[],
 ): Readonly<Record<string, string>> {
   if (mode === 'voxel-only') return {};
-  const look = getLook(shotLook(shot), looks) ?? voxelLook;
+  const look = getLook(shotLook(shot), looks) ?? fallbackLook(looks);
   const rules = CRITIC_LOOK_RULES[look.id] ?? `${look.label}: ${look.description}.`;
   // A planned source chip (PLAN.md#12.18) is not a watermark (real run 2.3: flagged off-intent).
   const chip = shot.annotations?.find((entry) => entry.kind === 'source-chip');

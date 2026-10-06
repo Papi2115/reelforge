@@ -100,6 +100,45 @@ Metadata (`TRANSITION_STYLES` in `packages/shared/src/transitions.ts`): id, labe
 any look, optional rolls), `lookChange`, vibe tags. The engine registry `TRANSITIONS` adds the
 compositor to every entry.
 
+## Continuity links (ReelForge 3.0, ADR-030)
+
+Not a wipe but a match-cut: the narration carries the viewer from a thing to its context (into a
+detail, out to its place, the same object in a new situation) and the two shots are linked through
+that object. The signature of the worlds (PLAN.md#13.2, `docs/worlds/DECISIONS.md`). The storyboard
+puts the link on the **second** shot:
+
+```json
+"continuity": { "kind": "zoom-through", "object": "wall calendar", "anchor": { "x": 0.72, "y": 0.34 } }
+```
+
+| Kind | Style (duration) | When to use | What the compositor does |
+| --- | --- | --- | --- |
+| `zoom-through` | `continuity-zoom-through` (1.0 s) | going *into* a detail that becomes the next scene: the wall calendar becomes the year it shows, a screen becomes the site on it | A zooms 4x into the anchor (which drifts to the centre), an ordered-dither swap at the deepest point, B — which opens on the object, centred — settles from 1.6x to 1x |
+| `shared-object` | `continuity-shared-object` (0.6 s) | the same object in a new situation: the map moves from the desk to the war room, the cartridge flies into the console | B replaces A from the frame edges inward behind a dithered front; the object at the anchor changes last, so it holds while the world changes |
+| `carry-environment` | `continuity-carry-environment` (0.6 s) | the place continues and only the object in it changes: one cartridge pulled out, another pushed in | a dithered disc grows from the anchor (the object turns into B first), then the rest of the continuing place follows |
+
+**Anchor**: where the object sits on screen at the cut, as shares of the frame (0..1 from the left
+and top; absent = the centre). It is the same in both shots for `shared-object` and
+`carry-environment`; for `zoom-through` it is the object's place in the **first** shot (the second
+opens on it centred). It becomes the transition's `focus`.
+
+**When not to**: never on the first shot, never as decoration — only where the narration itself
+carries across; about one per 45 s (`continuityBudget`: film length / 45 s, at least one). Name the
+object the same way in both intents so both scenes build it.
+
+How it flows: project switch `continuityLinks` (`project.json`; absent = off and every prompt is as
+before; new projects get `true` from the template) → the storyboard prompt section with the film's
+budget → validator (`continuity-first` and `continuity-style` errors; `continuity-object`,
+`continuity-spacing`, `continuity-budget` warnings) → the storyboard stage writes the linked shot's
+`transitionIn` from the link (`continuity-<kind>`, the link's duration capped at half the shot, the
+anchor as `focus`; the link wins over what the storyboard wrote there) → the scene-build and
+scene-fix prompts of both shots get the directive (the outgoing shot ends with the object whole at
+the anchor, pushes in for `zoom-through` and keeps `update(t)` valid while the link plays past its
+end; the incoming shot opens on it) → the engine composites it like any style (preview = export) →
+the final review reports "continuity: N links planned, M rendered". Compositors:
+`packages/engine/src/transitions/continuity.ts` (pure, copies of A / B pixels only, seed unused);
+goldens `transition-continuity-<kind>-p25|p50|p75`.
+
 ## Choosing a style
 
 - **Storyboard prompt** (`mixed` look mode with 2+ looks only; `voxel-only` text is byte-identical):

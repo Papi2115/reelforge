@@ -98,7 +98,7 @@ describe('renderPrompt', () => {
   it('lists the variables of each prompt', () => {
     expect(promptVariables('scene-fix')).toEqual({
       required: ['scope', 'shotIds', 'request'],
-      optional: ['selection', 'critic'],
+      optional: ['selection', 'critic', 'continuityDirective'],
     });
     expect(promptVariables('sound-cues')).toEqual({ required: ['styleId'], optional: ['acts'] });
   });

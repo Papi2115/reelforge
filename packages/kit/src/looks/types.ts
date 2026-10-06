@@ -59,11 +59,15 @@ export interface LookScope {
   readonly experimental?: boolean | undefined;
 }
 
-/** True when an available look is offered in this scope (style membership, experimental flag). */
-export function lookInScope(look: Look, scope: LookScope = {}): boolean {
+/**
+ * True when an available look is offered in this scope (style membership, experimental flag).
+ * `worldStyle` = the scope's style is a world's (`isWorldStyle`): world styles are exclusive, so
+ * the looks without `styles` (voxel, retro-ui, ...) are not offered there (ADR-029).
+ */
+export function lookInScope(look: Look, scope: LookScope = {}, worldStyle = false): boolean {
   if (!look.available) return false;
   if (look.experimental === true && scope.experimental !== true) return false;
-  if (look.styles === undefined) return true;
+  if (look.styles === undefined) return !worldStyle;
   return scope.style !== undefined && look.styles.includes(scope.style);
 }
 
