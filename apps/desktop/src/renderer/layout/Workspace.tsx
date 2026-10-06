@@ -340,7 +340,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             <PreviewPanel
               source={variants.source(previewRevision)}
               player={player}
-              emptyHint={emptyStageHint(stages.state)}
+              emptyStage={{ hint: emptyStageHint(stages.state), audioS: timeline.audioDuration }}
               footer={
                 <CommandBar
                   controls={direction}
@@ -423,7 +423,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
                 setTensionPrefs((current) => ({ open: !current.open }));
               }}
             />
-            {tensionPrefs.open && (
+            {tensionPrefs.open && words.length > 0 && (
               <TensionPanel
                 tension={tension}
                 shots={shots}

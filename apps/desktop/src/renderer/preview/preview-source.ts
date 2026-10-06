@@ -40,6 +40,26 @@ export function previewNote(result: ProjectManifestResult): string | undefined {
   return placeholders > 0 ? placeholderNote(placeholders, result.manifest.shots.length) : undefined;
 }
 
+/** What the empty stage of a project shows and plays. */
+export interface EmptyStageInfo {
+  /** The next action ("Record or import your voiceover."). */
+  readonly hint: string | undefined;
+  /** Length of the project's audio (s; 0 = none yet). */
+  readonly audioS: number;
+}
+
+/**
+ * Player length while the empty stage shows: the voiceover's, so an imported recording plays
+ * before the storyboard exists (0 without audio). Null when the player already has it.
+ */
+export function emptyStagePlayback(
+  audioS: number,
+  player: { readonly duration: number },
+): { readonly duration: number } | null {
+  const duration = Number.isFinite(audioS) && audioS > 0 ? audioS : 0;
+  return player.duration === duration ? null : { duration };
+}
+
 /** The empty stage's title line: "Nothing to show yet — <next action>". */
 export function emptyStageTitle(hint: string | undefined): string {
   const next = hint ?? 'Your video plays here once its shots are planned.';

@@ -234,4 +234,39 @@ describe('Brief -> Script and the pipeline sidebar', () => {
       1280,
     );
   });
+
+  it('plays an imported voiceover on the empty stage before the storyboard exists', async () => {
+    await mkdir(path.join(projectDir, 'audio'), { recursive: true });
+    await writeFile(path.join(projectDir, 'audio', 'vo.original.wav'), silentWav(2));
+    const preview = page.getByRole('region', { name: 'Preview' });
+    await page.getByTestId('preview-empty').waitFor();
+    const play = preview.getByRole('button', { name: 'Play', exact: true });
+    await expect.poll(() => play.isEnabled(), { timeout: 30_000 }).toBe(true);
+    await play.click();
+    await expect
+      .poll(() => preview.getByLabel('Current time').textContent(), { timeout: 10_000 })
+      .not.toMatch(/^0:00\.00/);
+    await shot('empty-stage-voiceover');
+    await preview.getByRole('button', { name: 'Pause', exact: true }).click();
+  });
 });
+
+/** A silent 16-bit mono 16 kHz WAV of `seconds` (a voiceover stand-in). */
+function silentWav(seconds: number): Buffer {
+  const rate = 16_000;
+  const data = rate * seconds * 2;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + data, 4);
+  header.write('WAVEfmt ', 8, 'ascii');
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(data, 40);
+  return Buffer.concat([header, Buffer.alloc(data)]);
+}

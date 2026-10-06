@@ -20,7 +20,12 @@ import {
   StatsOverlay,
   type ReloadStatus,
 } from './PreviewOverlays.js';
-import { resolvePreview, type PreviewSource } from './preview-source.js';
+import {
+  emptyStagePlayback,
+  resolvePreview,
+  type EmptyStageInfo,
+  type PreviewSource,
+} from './preview-source.js';
 import type { SnapshotScale } from './snapshot.js';
 import { TransportBar } from './TransportBar.js';
 import { usePlayerState, useTransportKeys } from './use-player.js';
@@ -90,8 +95,8 @@ export interface PreviewPanelProps {
   readonly marker?: PreviewMarker | null;
   /** Docked under the transport (the live co-direction command bar, PLAN.md#12.14). */
   readonly footer?: ReactNode;
-  /** The next action the empty stage suggests (a project without a video yet). */
-  readonly emptyHint?: string | undefined;
+  /** A project without a video yet: the next action, and the voiceover that still plays. */
+  readonly emptyStage?: EmptyStageInfo;
 }
 
 export function PreviewPanel({
@@ -101,7 +106,7 @@ export function PreviewPanel({
   onPick,
   marker,
   footer,
-  emptyHint,
+  emptyStage,
 }: PreviewPanelProps): JSX.Element {
   const frameHostRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -181,10 +186,12 @@ export function PreviewPanel({
         // A video was on screen: keep its last frame and say why it cannot update.
         if (readyRef.current && resolved.problem !== undefined) {
           setReload({ kind: 'failed', message: resolved.problem });
-        } else {
-          player.pause();
-          setState({ status: 'empty', problem: resolved.problem });
+          return;
         }
+        // The voiceover keeps playing on the empty stage; a video that went away stops.
+        if (readyRef.current) player.pause();
+        readyRef.current = false;
+        setState({ status: 'empty', problem: resolved.problem });
         return;
       }
       const { manifest, note } = resolved;
@@ -222,6 +229,14 @@ export function PreviewPanel({
     };
     // `source` is identified by its key: a new object with the same key is the same video.
   }, [controller, key, player]);
+
+  // The empty stage plays the project's audio: the player takes the voiceover's length.
+  const audioS = emptyStage?.audioS ?? 0;
+  useEffect(() => {
+    if (state.status !== 'empty') return;
+    const next = emptyStagePlayback(audioS, player.getState());
+    if (next !== null) player.setVideo(next.duration, player.getState().fps);
+  }, [state.status, audioS, player]);
 
   useEffect(() => {
     if (reload?.kind !== 'reloaded') return;
@@ -289,7 +304,7 @@ export function PreviewPanel({
           )}
         </div>
         {state.status === 'loading' && <p className="preview-status">Loading engine…</p>}
-        {state.status === 'empty' && <EmptyStage hint={emptyHint} problem={state.problem} />}
+        {state.status === 'empty' && <EmptyStage hint={emptyStage?.hint} problem={state.problem} />}
         {state.status === 'error' && (
           <p className="preview-status preview-error" role="alert">
             {state.message}
@@ -328,7 +343,7 @@ export function PreviewPanel({
       <TransportBar
         player={player}
         state={playerState}
-        ready={state.status === 'ready'}
+        ready={state.status === 'ready' || (state.status === 'empty' && audioS > 0)}
         snapshots={snapshots}
         snapshotScale={snapshotScale}
         onSnapshotScale={setSnapshotScale}

@@ -1,7 +1,12 @@
 import type { RenderManifest } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import type { ProjectManifestResult } from '../../shared/snapshot-contract.js';
-import { affectsPreview, emptyStageTitle, resolvePreview } from './preview-source.js';
+import {
+  affectsPreview,
+  emptyStagePlayback,
+  emptyStageTitle,
+  resolvePreview,
+} from './preview-source.js';
 
 const manifest = (id: string): RenderManifest => ({
   version: 1,
@@ -88,6 +93,19 @@ describe('resolvePreview', () => {
     expect(emptyStageTitle(undefined)).toBe(
       'Nothing to show yet — Your video plays here once its shots are planned.',
     );
+  });
+});
+
+describe('emptyStagePlayback', () => {
+  it('gives the player the voiceover length, so it plays before the storyboard exists', () => {
+    expect(emptyStagePlayback(31.25, { duration: 0 })).toEqual({ duration: 31.25 });
+    expect(emptyStagePlayback(31.25, { duration: 31.25 })).toBeNull();
+  });
+
+  it('has nothing to play without audio and stops a video that went away', () => {
+    expect(emptyStagePlayback(0, { duration: 0 })).toBeNull();
+    expect(emptyStagePlayback(0, { duration: 12 })).toEqual({ duration: 0 });
+    expect(emptyStagePlayback(Number.NaN, { duration: 0 })).toBeNull();
   });
 });
 
