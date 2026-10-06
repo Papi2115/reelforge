@@ -136,3 +136,71 @@ export function createRawMedia(outputKey = 'raw-test-media'): {
   };
   return { media, stats };
 }
+
+/** ffmpeg's stderr when NVENC cannot open a session on a busy 6 GB GPU (real run 2026-10-06). */
+export const NVENC_OPEN_FAILURE_STDERR = [
+  '[h264_nvenc @ 000001] OpenEncodeSessionEx failed: out of memory (10): (no details)',
+  '[h264_nvenc @ 000001] InitializeEncoder failed: out of memory (10)',
+  '[vost#0:0/h264_nvenc @ 000002] Error while opening encoder - maybe incorrect parameters such as bit_rate, rate, width or height.',
+].join('\n');
+
+/** The ExportError an ffmpeg segment writer returns when its encoder dies on open. */
+export function encoderOpenError(file: string): ExportError {
+  const message = 'ffmpeg.exe exited with 4294967283: Error while opening encoder';
+  return {
+    kind: 'encoder',
+    message: `encoding ${file}: ${message}`,
+    ffmpeg: {
+      kind: 'exit-code',
+      message,
+      code: 4294967283,
+      signal: null,
+      stderrTail: NVENC_OPEN_FAILURE_STDERR,
+    },
+  };
+}
+
+export interface FlakyMediaStats {
+  /** Segment files opened by this media, in order (failed opens included). */
+  readonly opened: string[];
+  failedOpens: number;
+}
+
+/**
+ * A "hardware" media over raw bytes whose first `failOpens` segments die like ffmpeg does when the
+ * encoder cannot open (on the first frame); its fallback (unless `fallback: false`) is a plain raw
+ * media with another key.
+ */
+export function createFlakyHardwareMedia(
+  failOpens: number,
+  options: { readonly fallback?: boolean } = {},
+): {
+  readonly media: ExportMedia;
+  readonly stats: FlakyMediaStats;
+  readonly cpu: { readonly media: ExportMedia; readonly stats: RawMediaStats };
+} {
+  const raw = createRawMedia('raw-hardware-media');
+  const cpu = createRawMedia('raw-cpu-media');
+  const stats: FlakyMediaStats = { opened: [], failedOpens: 0 };
+  const fallback =
+    options.fallback === false
+      ? {}
+      : { fallback: (): ExportMedia => ({ ...cpu.media, encoderLabel: 'raw-cpu (test)' }) };
+  const media: ExportMedia = {
+    ...raw.media,
+    ...fallback,
+    encoderLabel: 'raw-gpu (test)',
+    openSegment(spec, signal) {
+      stats.opened.push(spec.file);
+      if (stats.failedOpens >= failOpens) return raw.media.openSegment(spec, signal);
+      stats.failedOpens += 1;
+      const failure = err(encoderOpenError(spec.file));
+      return {
+        write: () => Promise.resolve(failure),
+        finish: () => Promise.resolve(failure),
+        abort: () => Promise.resolve(),
+      };
+    },
+  };
+  return { media, stats, cpu };
+}

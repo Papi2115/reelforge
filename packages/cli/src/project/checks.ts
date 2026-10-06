@@ -1,11 +1,13 @@
 /**
  * Cross-file checks the per-file schemas cannot see: shots contiguous from 0 (the engine renders
- * them back to back), scene files present inside the project, a known style, and words/cues
- * that fit the storyboard's time range.
+ * them back to back), scene files present inside the project, a known style (a world's style when
+ * its world is registered and, if experimental, experimental worlds are on), and words/cues that
+ * fit the storyboard's time range.
  */
 import { existsSync } from 'node:fs';
-import { STYLE_PRESET_IDS } from '@reelforge/engine';
+import { STYLE_REGISTRY, type StyleRegistry } from '@reelforge/engine';
 import type { StoryboardFile } from '@reelforge/shared';
+import { experimentalWorldsEnabled } from '../commands/kit-docs-world.js';
 import { UsageError } from '../errors.js';
 import type { Problem, ProjectFiles } from './files.js';
 import { PROJECT_PATHS, resolveInProject } from './paths.js';
@@ -109,24 +111,48 @@ function extentProblems(files: ProjectFiles, storyboard: StoryboardFile): Proble
   return problems;
 }
 
-function styleProblems(files: ProjectFiles): Problem[] {
-  if (files.project.status !== 'ok') return [];
-  const { style } = files.project.data;
-  if (STYLE_PRESET_IDS.includes(style)) return [];
-  return [
-    {
-      severity: 'error',
-      file: PROJECT_PATHS.project,
-      at: 'style',
-      message: `unknown style preset "${style}"`,
-      fix: `use one of: ${STYLE_PRESET_IDS.join(', ')}`,
-    },
+export interface CrossFileOptions {
+  /** Experimental worlds on (the app's setting, passed as REELFORGE_EXPERIMENTAL_WORLDS). */
+  readonly experimentalWorlds?: boolean;
+  /** Default: the engine's built-in and world styles. */
+  readonly styles?: StyleRegistry;
+}
+
+/**
+ * A built-in style or a registered world's style is valid; an experimental world's style only
+ * with experimental worlds on. Otherwise the fix tells Claude not to edit the style itself.
+ */
+export function styleProblems(
+  style: string,
+  styles: StyleRegistry,
+  experimentalWorlds: boolean,
+): Problem[] {
+  const problem = (message: string, fix: string): Problem[] => [
+    { severity: 'error', file: PROJECT_PATHS.project, at: 'style', message, fix },
   ];
+  if (styles.entry(style) === undefined) {
+    const known = experimentalWorlds ? styles.allIds : styles.ids;
+    return problem(`unknown style preset "${style}"`, `use one of: ${known.join(', ')}`);
+  }
+  if (styles.isExperimental(style) && !experimentalWorlds) {
+    return problem(
+      `style "${style}" is an experimental world; turn on Experimental worlds in Settings`,
+      'do not change the style yourself: ask the user to turn on Experimental worlds in Settings',
+    );
+  }
+  return [];
 }
 
 /** Problems across files; per-file schema problems are reported separately (fileProblems). */
-export function crossFileProblems(files: ProjectFiles): Problem[] {
-  const problems = styleProblems(files);
+export function crossFileProblems(files: ProjectFiles, options: CrossFileOptions = {}): Problem[] {
+  const problems =
+    files.project.status === 'ok'
+      ? styleProblems(
+          files.project.data.style,
+          options.styles ?? STYLE_REGISTRY,
+          options.experimentalWorlds ?? experimentalWorldsEnabled(),
+        )
+      : [];
   if (files.storyboard.status !== 'ok') return problems;
   const storyboard = files.storyboard.data;
   return [

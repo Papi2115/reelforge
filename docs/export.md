@@ -140,6 +140,36 @@ same frames before encoding (ffmpeg 8.1.1, RTX 4050 Laptop, Radeon 740M):
 | **AMF final** `-quality quality -rc cqp -qp_i 16 -qp_p 18 -qp_b 20` | 46.5 dB | 12 Mbps | chosen |
 | QSV `-preset medium -global_quality 18` | — | — | unverified (no Intel GPU) |
 
+### Encoder fallback (`encoder-fallback.ts`)
+
+A passing probe does not guarantee the real session: with the GPU busy (first Sketchbook run,
+RTX 4050 6 GB with 5.6 GB used) NVENC failed with `InitializeEncoder failed: out of memory (10)`
+on the first segment and the export ended. Now, for media with a `fallback` (`createFfmpegMedia`
+gives every hardware choice a libx264 one of the same quality):
+
+1. An encoder **open** failure of a segment (stderr: `InitializeEncoder failed`,
+   `OpenEncodeSessionEx failed`, `Error while opening encoder`, `No capable devices found`,
+   `out of memory`) re-renders that segment once after 1.5 s (`encoderRetryDelayMs`) on a
+   reopened frame source; the frames of the failed attempt are subtracted from the progress.
+2. A second failure ends the pass and the **whole export restarts with libx264**: a new `plan`
+   event (encoder `libx264 (…)`), segments keyed by the libx264 output key (so earlier libx264
+   segments are reused and the NVENC segments of this run are pruned at the end).
+3. Workers open their first hardware segment staggered by 400 ms × worker index
+   (`encoderStaggerMs`), so two NVENC sessions do not open in the same instant.
+
+Why restart instead of switching only the remaining shots: the video is a stream-copy concat of
+the segments, which assumes identical stream parameters. Checked with ffmpeg 8.1.1: a 1 s NVENC
+segment and a 1 s libx264 segment (both High, level 4.0) carry different SPS/PPS (avcC 60 vs
+48 bytes); ffmpeg itself decodes the concat, but the MP4 then depends on every player and
+YouTube's ingest handling a parameter change mid-stream. Re-encoding the finished NVENC segments
+would be a second lossy generation whose bytes no longer match their cache key. The cost of the
+restart is re-rendering what the GPU pass finished, which is small because open failures happen
+on the first segments.
+
+The retry / switch is reported through `onWarning` (`ExportWarning`: `encoder-retry`,
+`encoder-fallback` with `message` = "GPU encoder unavailable, using CPU for this export") and
+in `ExportResult.warnings`; `ExportResult.encoder` names the encoder of the final video.
+
 Audio: AAC 192 kbps, `apad` + `-t <frames/fps>` so the audio matches the video length exactly.
 Container: MP4 with `+faststart`.
 
@@ -160,7 +190,8 @@ Container: MP4 with `+faststart`.
 
 `plan` (shots, cached, frames to render, workers, encoder, resumed) · `source` (per worker: GPU,
 software flag) · `shot-start` · `frame` (per frame: shot, counts, fps, ETA seconds) · `shot-done`
-(`cached` true for skipped shots) · `mux` · `thumbnail` · `done`.
+(`cached` true for skipped shots) · `mux` · `thumbnail` · `done`. After an encoder fallback a
+second `plan` follows (render restarts on the CPU encoder). Warnings go to `onWarning`, not here.
 
 ## Measured (this machine: 6 cores / 12 threads, RTX 4050 Laptop)
 
@@ -180,6 +211,9 @@ base64-over-CDP path is the bottleneck here; the Electron GPU source is expected
   FrameSource and raw-bytes ExportMedia (`testing/fakes.ts`): cache hits, single-shot re-render,
   transitions, anchor moves, resume after abort, partial-segment cleanup, failures, workers.
   Plus presets, chapters, cache keys, encoder detection (fake runner), ffmpeg args, stdin process.
+  `export-fallback.test.ts`: a fake hardware media whose first segments die with the real NVENC
+  stderr → retry, CPU fallback (whole video from the CPU media, cache reuse), workers, cancel
+  during the retry pause, stagger.
 - Integration (`export.integration.test.ts`, real ffmpeg + Playwright Chromium; skipped with a
   reason when either is missing): 3 shots / 6 s with a crossfade + generated `mix.wav` → ffprobe
   (h264 1920×1080, 30/1, 180 frames, yuv420p, bt709, AAC, 6.0 s), thumbnail = engine frame,

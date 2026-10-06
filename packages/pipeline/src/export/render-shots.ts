@@ -2,10 +2,13 @@
  * Shot-parallel rendering: N workers, each owning one FrameSource, pull shots from a queue and
  * encode each into its own segment (`<key>.partial-<n>.mp4` -> renamed to `<key>.mp4` only after
  * the encoder exits cleanly, so a killed export never leaves a half segment in the cache).
+ * Hardware encoders (encoder-fallback.ts): a segment whose encoder fails to open is re-rendered
+ * once after a pause, and workers open their first segment one after another (stagger).
  */
 import { rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { RenderManifest } from '@reelforge/shared';
+import { abortableDelay, isEncoderOpenFailure } from './encoder-fallback.js';
 import { describeUnknown, type ExportError } from './errors.js';
 import type { FrameSource, FrameSourceFactory, FrameSourceInfo } from './frame-source.js';
 import type { ExportMedia } from './media.js';
@@ -26,6 +29,8 @@ export interface ShotRenderEvents {
   onFrame?(job: ShotJob, frameInShot: number): void;
   /** Called after the segment is in place; awaited (state persistence). */
   onShotDone?(job: ShotJob, worker: number): Promise<Result<void, ExportError>>;
+  /** The segment's encoder failed to open; `discardedFrames` onFrame calls are rendered again. */
+  onEncoderRetry?(job: ShotJob, worker: number, error: ExportError, discardedFrames: number): void;
 }
 
 export interface RenderShotsOptions {
@@ -37,6 +42,10 @@ export interface RenderShotsOptions {
   readonly createFrameSource: FrameSourceFactory;
   readonly signal: AbortSignal;
   readonly events: ShotRenderEvents;
+  /** Set for hardware encoders: retry a segment once after this pause when it fails to open. */
+  readonly openRetryDelayMs?: number | undefined;
+  /** Worker n waits n x this before opening its first segment (0 / unset: no stagger). */
+  readonly staggerMs?: number | undefined;
 }
 
 const cancelled = (): ExportError => ({ kind: 'cancelled', message: 'export cancelled' });
@@ -66,6 +75,7 @@ async function encodeFrames(
   options: RenderShotsOptions,
   job: ShotJob,
   partial: string,
+  onFrame: (frameInShot: number) => void,
 ): Promise<Result<void, ExportError>> {
   const { planned } = job;
   const { scale, manifest, signal } = options;
@@ -98,9 +108,52 @@ async function encodeFrames(
       await writer.abort();
       return written;
     }
-    options.events.onFrame?.(job, frame - planned.startFrame + 1);
+    onFrame(frame - planned.startFrame + 1);
   }
   return writer.finish();
+}
+
+interface EncodeAttempt {
+  readonly result: Result<void, ExportError>;
+  /** Frames reported through `onFrame` (also on failure). */
+  readonly frames: number;
+}
+
+/** One encode of the shot into `partial`; the partial file is removed on failure. */
+async function encodeAttempt(
+  source: FrameSource,
+  options: RenderShotsOptions,
+  job: ShotJob,
+  partial: string,
+): Promise<EncodeAttempt> {
+  let frames = 0;
+  const result = await encodeFrames(source, options, job, partial, (frameInShot) => {
+    frames += 1;
+    options.events.onFrame?.(job, frameInShot);
+  });
+  if (!result.ok) await rm(partial, { force: true });
+  return { result, frames };
+}
+
+/** Encodes the shot; a hardware encoder that fails to open gets one retry on a reopened source. */
+async function encodeWithRetry(
+  source: FrameSource,
+  options: RenderShotsOptions,
+  job: ShotJob,
+  worker: number,
+  partial: string,
+): Promise<Result<void, ExportError>> {
+  const first = await encodeAttempt(source, options, job, partial);
+  const retryDelayMs = options.openRetryDelayMs;
+  if (first.result.ok || retryDelayMs === undefined || !isEncoderOpenFailure(first.result.error)) {
+    return first.result;
+  }
+  options.events.onEncoderRetry?.(job, worker, first.result.error, first.frames);
+  if (!(await abortableDelay(retryDelayMs, options.signal))) return err(cancelled());
+  // Reopened so the source starts the shot afresh, whatever it keeps between frames.
+  const reopened = await openSource(source, options, job);
+  if (!reopened.ok) return reopened;
+  return (await encodeAttempt(source, options, job, partial)).result;
 }
 
 async function renderShot(
@@ -108,20 +161,19 @@ async function renderShot(
   options: RenderShotsOptions,
   job: ShotJob,
   worker: number,
+  openDelayMs: number,
 ): Promise<Result<void, ExportError>> {
   const opened = await openSource(source, options, job);
   if (!opened.ok) return opened;
   options.events.onSourceOpened?.(worker, opened.value);
   options.events.onShotStart?.(job, worker);
+  if (!(await abortableDelay(openDelayMs, options.signal))) return err(cancelled());
   const partial = path.join(
     path.dirname(job.segment),
     `${job.key}.partial-${String(worker)}${options.media.segmentExtension}`,
   );
-  const encoded = await encodeFrames(source, options, job, partial);
-  if (!encoded.ok) {
-    await rm(partial, { force: true });
-    return encoded;
-  }
+  const encoded = await encodeWithRetry(source, options, job, worker, partial);
+  if (!encoded.ok) return encoded;
   try {
     await rename(partial, job.segment);
   } catch (error) {
@@ -162,9 +214,11 @@ export async function renderShots(options: RenderShotsOptions): Promise<Result<v
     let source: FrameSource | undefined;
     try {
       source = options.createFrameSource(worker);
+      let openDelayMs = worker * (options.staggerMs ?? 0);
       for (let job = queue.shift(); job !== undefined; job = queue.shift()) {
         if (internal.signal.aborted) break;
-        const result = await renderShot(source, inner, job, worker);
+        const result = await renderShot(source, inner, job, worker, openDelayMs);
+        openDelayMs = 0;
         if (!result.ok) {
           fail(result.error);
           break;

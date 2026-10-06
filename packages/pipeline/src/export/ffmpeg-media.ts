@@ -173,8 +173,9 @@ async function writeThumbnail(
   return finished.ok ? ok(undefined) : err(fromFfmpegError('thumbnail', finished.error));
 }
 
+/** Hardware choices get a libx264 fallback of the same quality (docs/export.md). */
 export function createFfmpegMedia(ffmpeg: ExportFfmpeg, choice: EncoderChoice): ExportMedia {
-  return {
+  const media: ExportMedia = {
     outputKey: JSON.stringify({
       container: SEGMENT_EXTENSION,
       codec: videoCodecArgs(choice.encoder, choice.quality),
@@ -185,4 +186,7 @@ export function createFfmpegMedia(ffmpeg: ExportFfmpeg, choice: EncoderChoice): 
     concatAndMux: (spec, signal) => concatAndMux(ffmpeg, spec, signal),
     writeThumbnail: (spec, rgba, signal) => writeThumbnail(ffmpeg, spec, rgba, signal),
   };
+  if (choice.encoder === 'libx264') return media;
+  const cpu: EncoderChoice = { ...choice, encoder: 'libx264', hardware: false };
+  return { ...media, fallback: () => createFfmpegMedia(ffmpeg, cpu) };
 }
