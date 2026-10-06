@@ -274,8 +274,11 @@ export function HookLabDialog(props: { readonly onClose: () => void }): JSX.Elem
   );
 }
 
-/** The Script tab's entry point. */
-export function HookLabButton(props: { readonly disabled: boolean }): JSX.Element {
+/** The entry point (Script, Storyboard, the Director's Opening); `onClosed` after the dialog. */
+export function HookLabButton(props: {
+  readonly disabled: boolean;
+  readonly onClosed?: () => void;
+}): JSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -294,6 +297,7 @@ export function HookLabButton(props: { readonly disabled: boolean }): JSX.Elemen
         <HookLabDialog
           onClose={() => {
             setOpen(false);
+            props.onClosed?.();
           }}
         />
       )}

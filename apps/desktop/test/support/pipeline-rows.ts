@@ -60,3 +60,19 @@ export async function showChat(page: Page): Promise<Locator> {
   if ((await show.count()) > 0) await show.click();
   return chat;
 }
+
+/**
+ * Opens the side column's Director tab (docs/ux/redesign-2.4.md U9): the rail's "Show Director"
+ * when the column is the slim rail, else the "Director" tab. Returns the tab's region.
+ */
+export async function showDirector(page: Page): Promise<Locator> {
+  const side = page.getByRole('region', { name: 'Claude' });
+  const rail = side.getByRole('button', { name: 'Show Director' });
+  const tab = side.getByRole('tab', { name: 'Director' });
+  await rail.or(tab).first().waitFor({ timeout: 30_000 });
+  if (await rail.isVisible()) await rail.click();
+  else await tab.click();
+  const director = page.getByRole('region', { name: 'Director', exact: true });
+  await director.waitFor();
+  return director;
+}

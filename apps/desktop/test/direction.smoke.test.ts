@@ -2,8 +2,10 @@
  * Live co-direction in the built app (`pnpm test:app`, PLAN.md#12.14) on the CLI fixture project:
  * `/` focuses the command bar under the preview; "darker" and "arrow on the word doom" change shot
  * s01 at once (directions.json written, each command committed with step `direction`, the frame
- * on screen changes without a shot reload), the Shots panel shows the "directions" chip, undo
- * reverts the last command, and a locked shot is refused with "Unlock this shot". No Claude.
+ * on screen changes without a shot reload), the Shots panel shows the "directions" chip, the
+ * bar's "History (2)" opens the Director tab on its Directions section (the session list, Undo /
+ * Redo there), typed undo reverts the last command, and a locked shot is refused with "Unlock this
+ * shot". No Claude.
  * Screenshot at 1280x720: out/test-app/direction-1280.png.
  */
 import { spawnSync } from 'node:child_process';
@@ -20,6 +22,7 @@ import {
   stubFolderPicker,
   waitForProjectPreview,
 } from './support/electron-app.js';
+import { showChat } from './support/pipeline-rows.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -121,6 +124,29 @@ describe('live co-direction', () => {
       .or(shotsPanel.getByRole('img', { name: 'directions', exact: true }))
       .waitFor();
     await page.screenshot({ path: path.join(screenshotDir, 'direction-1280.png') });
+
+    // The session history lives in the Director: Undo / Redo there, typed undo in the bar.
+    await bar().getByRole('button', { name: 'History (2)' }).click();
+    await page.getByRole('tab', { name: 'Director', selected: true }).waitFor();
+    const history = page.getByRole('region', { name: 'Directions', exact: true });
+    const rows = history
+      .getByRole('list', { name: 'Directions this session' })
+      .getByRole('listitem');
+    await expect.poll(() => rows.count()).toBe(2);
+    expect(await rows.first().textContent()).toContain('arrow on the word doom');
+    await history.getByRole('button', { name: 'Undo' }).click();
+    await bar()
+      .getByText(/^Undid "arrow on the word doom"/)
+      .waitFor({ timeout: 15_000 });
+    expect((await directions()).shots['s01']?.overlays).toBeUndefined();
+    await history.getByRole('button', { name: 'Redo' }).click();
+    await bar()
+      .getByText(/^Arrow on "Doom"/)
+      .waitFor({ timeout: 15_000 });
+    expect((await directions()).shots['s01']?.overlays).toHaveLength(1);
+    await page.screenshot({ path: path.join(screenshotDir, 'direction-1280-director.png') });
+    // Back to Chat: the column stays open, the bar keeps working.
+    await (await showChat(page)).getByRole('tab', { name: 'Chat' }).click();
 
     await command('cofnij');
     await bar()

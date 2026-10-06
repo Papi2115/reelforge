@@ -1,11 +1,11 @@
 /**
- * The collapsed chat (PLAN.md#11.2): a slim rail with the "Show chat" button, whether Claude is
- * working, the queue and the turns that finished while the chat was hidden.
+ * The collapsed side column (PLAN.md#11.2): a slim rail with the "Show chat" and "Show Director"
+ * buttons, whether Claude is working, the queue and the turns that finished while it was hidden.
  */
 import type { JSX } from 'react';
 import { plural } from '../../shared/plural.js';
 import { TOGGLE_CHAT_KEYS } from './app-keys.js';
-import { ChatIcon } from './icons.js';
+import { ChatIcon, DirectorIcon } from './icons.js';
 
 export interface ChatRailProps {
   readonly working: boolean;
@@ -13,6 +13,7 @@ export interface ChatRailProps {
   readonly unread: number;
   readonly paused: boolean;
   readonly onShow: () => void;
+  readonly onShowDirector: () => void;
 }
 
 function railStatus({ working, queued, unread, paused }: ChatRailProps): string {
@@ -42,6 +43,15 @@ export function ChatRail(props: ChatRailProps): JSX.Element {
             {props.unread}
           </span>
         )}
+      </button>
+      <button
+        type="button"
+        className="chat-rail-button"
+        aria-label="Show Director"
+        title="Show Director: tension curve, story beats, editing, opening, directions"
+        onClick={props.onShowDirector}
+      >
+        <DirectorIcon />
       </button>
       <span
         className={`chat-rail-state${props.paused ? ' paused' : props.working ? ' working' : ''}`}

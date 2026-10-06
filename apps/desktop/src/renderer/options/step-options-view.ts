@@ -13,7 +13,8 @@
  *   (interrupts, open loops, reveal moments), continuity links, tension map
  * - Assets: asset package review, your files, downloaded assets, library · none here (research
  *   mode stays in Project settings → Research)
- * - Scenes built: build progress, final review, dramaturgy and editing reports, sync report ·
+ * - Scenes built: build progress, final review, a pointer to the Director (story beats and
+ *   editing moved there), sync report ·
  *   look mode, ambient variation, continuity links, people and mascot, editing (beat sync,
  *   repetition control), scenes per minute + faster checks
  * - Sound design mixed: actions, monitor (full mix / voice only), mix report, cue summary, levels,

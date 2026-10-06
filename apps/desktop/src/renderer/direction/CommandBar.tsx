@@ -2,12 +2,14 @@
  * Live co-direction command bar (PLAN.md#12.14) docked under the preview: type "slower",
  * "ciemniej", "arrow on the word light"… while the film plays (focus with `/`). Shows what was
  * done, offers "Unlock this shot" for a locked shot and "Rebuild with Claude" for commands only
- * Claude can do, hint chips and the session history with undo. One line of fixed height (the
- * status replaces the chips, the history opens above the bar) so the preview keeps its scale.
- * Hidden until there is a shot to direct (docs/ux/redesign-2.4.md §5).
+ * Claude can do and hint chips. One line of fixed height (the status replaces the chips) so the
+ * preview keeps its scale. "History (N)" opens the Director tab on its Directions section (the
+ * session history with Undo / Redo moved there, U9). Hidden until there is a shot to direct
+ * (docs/ux/redesign-2.4.md §5).
  */
 import type { DirectionWord } from '@reelforge/shared';
 import { useEffect, useRef, useState, type JSX } from 'react';
+import { useOpenDirector } from '../director/use-director-tab.js';
 import { HINT_CHIPS, hintCommand, isCommandBarKey, statusText } from './direction-view.js';
 import type { DirectionControls } from './use-direction.js';
 
@@ -31,7 +33,7 @@ function ShotCommandBar({
 }: CommandBarProps & { readonly shotId: string }): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [command, setCommand] = useState('');
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const openDirector = useOpenDirector();
   const { status, session, busy } = controls;
 
   useEffect(() => {
@@ -107,16 +109,18 @@ function ShotCommandBar({
         <button type="submit" className="small-button" disabled={busy || command.trim() === ''}>
           Apply
         </button>
-        <button
-          type="button"
-          className="small-button"
-          aria-expanded={historyOpen}
-          onClick={() => {
-            setHistoryOpen((open) => !open);
-          }}
-        >
-          History ({String(session.entries.length)})
-        </button>
+        {openDirector !== null && (
+          <button
+            type="button"
+            className="link-button command-history-link"
+            title="This session's directions with Undo / Redo: now in the Director"
+            onClick={() => {
+              openDirector('directions');
+            }}
+          >
+            History ({String(session.entries.length)})
+          </button>
+        )}
         {directedHere && (
           <button
             type="button"
@@ -191,39 +195,6 @@ function ShotCommandBar({
             </>
           )}
         </p>
-      )}
-      {historyOpen && (
-        <ol className="command-history" aria-label="Commands this session">
-          {session.entries.length === 0 && <li className="muted">No commands yet.</li>}
-          {[...session.entries].reverse().map((entry) => (
-            <li key={entry.id} className={entry.undone ? 'undone' : undefined}>
-              <span className="command-history-shot">{entry.shotId}</span> {entry.command}
-              <span className="muted"> · {entry.confirmation}</span>
-            </li>
-          ))}
-          <li className="command-history-actions">
-            <button
-              type="button"
-              className="small-button"
-              disabled={busy}
-              onClick={() => {
-                void controls.undo();
-              }}
-            >
-              Undo
-            </button>
-            <button
-              type="button"
-              className="small-button"
-              disabled={busy}
-              onClick={() => {
-                void controls.redo();
-              }}
-            >
-              Redo
-            </button>
-          </li>
-        </ol>
       )}
     </section>
   );

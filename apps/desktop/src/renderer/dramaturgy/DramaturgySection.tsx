@@ -1,7 +1,8 @@
 /**
- * Dramaturgy (PLAN.md#12.25–12.27) under the final review in Scenes built: pattern interrupts
- * planned vs realised (click a row to go to the shot), the open-loop ⚠ warnings, and the reveal
- * moments to Accept / Reject / Preview. Hidden while every dramaturgy switch is off.
+ * Story beats (PLAN.md#12.25–12.27) in the Director tab, under its switches: surprise moments
+ * (pattern interrupts) planned vs realised (click a row to go to the shot), the questions &
+ * answers (open loops) ⚠ warnings, and the wow moments (reveal moments) to Accept / Reject /
+ * Preview. Hidden while every dramaturgy switch is off; the Director section gives the title.
  */
 import type { JSX } from 'react';
 import {
@@ -24,14 +25,13 @@ export function DramaturgySection(props: {
   const { switches, report } = state;
   const rows = momentRows(state.moments);
   return (
-    <section className="dramaturgy" aria-label="Dramaturgy" data-testid="dramaturgy">
-      <h3 className="section-title">Dramaturgy</h3>
+    <div className="dramaturgy" data-testid="dramaturgy">
       {switches.patternInterrupts === 'auto' && (
         <>
           <p className="dramaturgy-line">
-            <strong>Pattern interrupts:</strong> {interruptLine(report)}
+            <strong>Surprise moments:</strong> {interruptLine(report)}
           </p>
-          <ul className="preflight-list" aria-label="Pattern interrupts">
+          <ul className="preflight-list" aria-label="Surprise moments">
             {interruptRows(report).map((row) => (
               <li key={`${row.shotId}-${String(row.t)}`}>
                 <button
@@ -53,7 +53,7 @@ export function DramaturgySection(props: {
       )}
       {switches.openLoops === 'auto' && (
         <div className="dramaturgy-loops" data-testid="dramaturgy-loops">
-          <strong>Open loops:</strong>
+          <strong>Questions &amp; answers:</strong>
           <ul>
             {loopLines(report).map((line) => (
               <li key={line} className={line.startsWith('⚠') ? 'qa-warning' : 'muted'}>
@@ -65,7 +65,7 @@ export function DramaturgySection(props: {
       )}
       {switches.revealMoments === 'auto' && (
         <div className="dramaturgy-moments" data-testid="dramaturgy-moments">
-          <strong>Reveal moments</strong>
+          <strong>Wow moments</strong>
           {state.momentsNote !== null && <p className="muted">{state.momentsNote}</p>}
           <ul className="moment-list">
             {rows.map((row) => (
@@ -117,6 +117,6 @@ export function DramaturgySection(props: {
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }

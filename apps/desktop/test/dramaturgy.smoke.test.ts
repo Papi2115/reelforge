@@ -1,10 +1,13 @@
 /**
- * Dramaturgy in the built app (`pnpm test:app`, PLAN.md#12.25–12.27) on the CLI fixture project
- * with the tension map and the dramaturgy switches turned on in project.json and a curve with a
- * peak: Scenes built shows the Dramaturgy section with a proposed reveal moment; Accept writes
- * moments.json and commits it (`Moments: accepted …`, step `moments`); Reject undoes it; Project
- * settings → Direction lists the three dramaturgy switches. No Claude involved.
- * Screenshot at 1280x720: out/test-app/dramaturgy-1280.png.
+ * Story beats (dramaturgy) in the Director tab of the built app (`pnpm test:app`, PLAN.md#12.25–
+ * 12.27, docs/ux/redesign-2.4.md U9) on the CLI fixture project with the tension map and the
+ * dramaturgy switches turned on in project.json and a curve with a peak: Scenes built points to
+ * the Director ("Open the Director"), whose Story beats section shows a proposed wow moment; Accept
+ * writes moments.json and commits it (`Moments: accepted …`, step `moments`); Reject undoes it;
+ * the Director's Editing switch "Cut on the beat" commits like Project settings (`Project
+ * settings: beat sync on`) and shows its line; Project settings → Direction lists the three
+ * dramaturgy switches. No Claude involved.
+ * Screenshots at 1280x720: out/test-app/dramaturgy-1280.png, out/test-app/director-1280.png.
  */
 import { spawnSync } from 'node:child_process';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -41,7 +44,7 @@ async function moments(): Promise<MomentsOnDisk> {
 }
 
 function section(): Locator {
-  return page.getByRole('region', { name: 'Dramaturgy' });
+  return page.getByRole('region', { name: 'Story beats', exact: true });
 }
 
 beforeAll(async () => {
@@ -88,17 +91,22 @@ afterAll(async () => {
   await rm(userDataDir, { recursive: true, force: true, maxRetries: 5 });
 });
 
-describe('dramaturgy section', () => {
-  it('proposes a reveal moment; Accept and Reject are saved and committed', async () => {
+describe('story beats in the Director', () => {
+  it('proposes a wow moment; Accept and Reject are saved and committed', async () => {
     if (app === undefined) throw new Error('the app is not running');
     await stubFolderPicker(app, dir);
     await page.getByRole('button', { name: 'Open project…' }).click();
-    // One click on the row docks the Scenes built panel.
+    // One click on the row docks the Scenes built panel; it points to the Director.
     await openStage(page, 'Scenes built');
+    const pointer = page.getByTestId('director-pointer');
+    await pointer.waitFor({ timeout: 30_000 });
+    expect(await page.getByTestId('dramaturgy').count()).toBe(0);
+    await pointer.getByRole('button', { name: 'Open the Director' }).click();
+    await page.getByRole('tab', { name: 'Director', selected: true }).waitFor();
     await section().waitFor({ timeout: 30_000 });
-    await section().getByText('Reveal moments').waitFor();
-    await section().getByText('Open loops:').waitFor();
-    await section().getByText('Reveal moments').scrollIntoViewIfNeeded();
+    await section().getByText('Wow moments').waitFor();
+    await section().getByText('Questions & answers:').waitFor();
+    await section().getByText('Wow moments').scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(screenshotDir, 'dramaturgy-1280.png') });
 
     await section().getByRole('button', { name: 'Accept' }).first().click();
@@ -113,6 +121,18 @@ describe('dramaturgy section', () => {
       .poll(() => git(['log', '-1', '--format=%s']), { timeout: 15_000 })
       .toMatch(/^Moments: rejected /);
     expect((await moments()).moments.map((moment) => moment.status)).toEqual(['rejected']);
+
+    // The Director's switches are the Project settings rows: same file, same commit.
+    const editing = page.getByRole('region', { name: 'Editing', exact: true });
+    await editing.getByRole('checkbox', { name: /^Cut on the beat/ }).check();
+    await expect
+      .poll(() => git(['log', '-1', '--format=%s']), { timeout: 15_000 })
+      .toBe('Project settings: beat sync on');
+    await editing.getByTestId('beat-sync-line').waitFor({ timeout: 15_000 });
+    await page.getByRole('region', { name: 'Director', exact: true }).evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await page.screenshot({ path: path.join(screenshotDir, 'director-1280.png') });
 
     await projectMenu(page, 'Project settings');
     const dialog = page.getByRole('dialog', { name: 'Project settings' });

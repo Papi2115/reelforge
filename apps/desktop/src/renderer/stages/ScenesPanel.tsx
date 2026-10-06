@@ -4,17 +4,17 @@
  * ("Check every visual lands on its spoken word": every event of every shot against its spoken
  * word, ±150 ms). Clicking a row seeks the preview there and selects the shot; "Fix sync issues"
  * runs the sync-check review on the shots that are off. The final review (PLAN.md#11.5) shows its
- * summary and the ⚠/✗ shots left; "Run final review" starts it by hand. "All options" in a column
- * on the right at full height: the project.json switches that steer the scenes (OptionsSection.tsx).
+ * summary and the ⚠/✗ shots left; "Run final review" starts it by hand. Story beats and Editing
+ * moved to the Director tab (a pointer line links there). "All options" in a column on the right at
+ * full height: the project.json switches that steer the scenes (OptionsSection.tsx).
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useState, type JSX } from 'react';
 import type { SceneActionKey, StageReports } from '../../shared/voiceover-contract.js';
 import { plural } from '../../shared/plural.js';
-import { DramaturgySection } from '../dramaturgy/DramaturgySection.js';
-import { EditingSection } from '../editing/EditingSection.js';
+import { DirectorPointer } from '../director/DirectorPointer.js';
+import { SCENES_POINTER } from '../director/director-view.js';
 import { OptionsSection } from '../options/OptionsSection.js';
-import { dramaturgyKey } from '../dramaturgy/dramaturgy-view.js';
 import { FinalReviewSection } from './FinalReview.js';
 import { exportPreflight, finalReviewProgress } from './final-review-view.js';
 import { StageProgress } from './StageProgress.js';
@@ -214,21 +214,7 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
             }
             onSeekShot={props.onSeekShot}
           />
-          <DramaturgySection
-            refreshKey={dramaturgyKey([
-              props.reports?.finalReview?.finishedAt,
-              props.reports?.sync?.createdAt,
-              props.shots.map((shot) => shot.id).join(','),
-            ])}
-            onSeekShot={props.onSeekShot}
-          />
-          <EditingSection
-            refreshKey={[
-              props.reports?.finalReview?.finishedAt ?? '',
-              ...props.shots.map((shot) => `${shot.id}@${String(shot.t0)}`),
-            ].join('|')}
-            onSeekShot={props.onSeekShot}
-          />
+          <DirectorPointer text={SCENES_POINTER} section="beats" />
           <h3 className="section-title">Sync report</h3>
           <SyncTable reports={props.reports} onSeekShot={props.onSeekShot} />
         </div>

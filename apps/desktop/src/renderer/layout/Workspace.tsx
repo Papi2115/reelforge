@@ -13,7 +13,6 @@ import { selectionText, toSelection } from '../chat/step-view.js';
 import { playbackAudioUrl } from '../preview/audio-source.js';
 import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
-import type { OpenTarget } from '../stages/pipeline-view.js';
 import { exportPreflight } from '../stages/final-review-view.js';
 import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
 import {
@@ -32,6 +31,9 @@ import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { useVariantsDock } from '../stages/use-variants-dock.js';
 import { CommandBar } from '../direction/CommandBar.js';
+import { DirectorTab } from '../director/DirectorTab.js';
+import { OpenDirectorContext, useSideTabs } from '../director/use-director-tab.js';
+import { directorRefreshKey } from '../director/director-view.js';
 import { directionSummary } from '../direction/direction-view.js';
 import { useDirection } from '../direction/use-direction.js';
 import { MAX_VARIANT_NOTE } from '../../shared/variants-contract.js';
@@ -54,6 +56,7 @@ import { PipelineSidebar } from './PipelineSidebar.js';
 import { ShotsPanel } from './ShotsPanel.js';
 import { TimelinePanel } from './TimelinePanel.js';
 import { FileProblemsBanner } from './FileProblemsBanner.js';
+import { openStageTarget } from './open-stage.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
 import { usePref } from './ui-prefs.js';
 
@@ -63,16 +66,8 @@ export interface WorkspaceProps {
   readonly onOpenToolsSettings?: () => void;
 }
 
-/** Brings the Shots panel into view (Open of the Storyboard stage). */
 const TENSION_PREFS_KEY = 'reelforge.layout.tension.v1';
 const tensionPrefsSchema = z.object({ open: z.boolean() });
-
-function focusShots(): void {
-  const panel = document.querySelector<HTMLElement>('[aria-label="Shots"]');
-  const target = panel?.querySelector<HTMLElement>('button') ?? panel;
-  target?.scrollIntoView({ block: 'nearest' });
-  target?.focus();
-}
 
 export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX.Element {
   const { snapshot, error, previewRevision, audioRevision, reload } = useProjectSnapshot(
@@ -111,34 +106,15 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
     }
   }, [snapshot]);
 
-  const openStage = (target: Exclude<OpenTarget, { kind: 'artifact' }>): void => {
-    switch (target.kind) {
-      case 'script':
-        setCenterDocument({ kind: 'script', tab: 'script' });
-        return;
-      case 'words':
-        setCenterDocument({ kind: 'words' });
-        return;
-      case 'voiceover':
-        setCenterDocument({ kind: 'voiceover' });
-        return;
-      case 'scenes':
-        setCenterDocument({ kind: 'scenes' });
-        return;
-      case 'sound':
-        setCenterDocument({ kind: 'sound' });
-        return;
-      case 'export':
-        setExportOpen(true);
-        return;
-      case 'assets':
-        setAssetsOpen(true);
-        return;
-      case 'shots':
-        setCenterDocument({ kind: 'storyboard' });
-        focusShots();
-        return;
-    }
+  const sideTabs = useSideTabs(chatDock.show);
+  const openStageOpeners = {
+    document: setCenterDocument,
+    exportDialog: () => {
+      setExportOpen(true);
+    },
+    assetsDialog: () => {
+      setAssetsOpen(true);
+    },
   };
 
   const [selection, setSelection] = useState<ChatSelection | null>(null);
@@ -226,7 +202,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   };
 
   return (
-    <>
+    <OpenDirectorContext value={sideTabs.openDirector}>
       {assetsOpen && (
         <AssetsDialog
           assets={assets}
@@ -273,7 +249,9 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             <PipelineSidebar
               stages={stages}
               facts={stationFacts(reports?.scenes ?? null, shots, built)}
-              onOpen={openStage}
+              onOpen={(target) => {
+                openStageTarget(target, openStageOpeners);
+              }}
               {...(onOpenToolsSettings === undefined
                 ? {}
                 : { onOpenSettings: onOpenToolsSettings })}
@@ -397,6 +375,28 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             prefill={prefill}
             collapsed={!chatDock.open}
             onToggleCollapsed={chatDock.toggle}
+            tab={sideTabs.tab}
+            onTab={sideTabs.setTab}
+            onShowDirector={() => {
+              sideTabs.openDirector();
+            }}
+            director={
+              <DirectorTab
+                hasShots={shots.length > 0}
+                nextStep={emptyStageHint(stages.state)}
+                hasScript={files.includes('script.txt')}
+                refreshKey={directorRefreshKey(previewRevision, reports)}
+                tension={tension}
+                durationS={timeline.duration}
+                canEditCurve={words.length > 0}
+                onEditCurve={() => {
+                  setTensionPrefs({ open: true });
+                }}
+                direction={direction}
+                onSeekShot={seekShot}
+                focus={sideTabs.focus}
+              />
+            }
           />
         }
         bottom={
@@ -443,6 +443,6 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
           </div>
         }
       />
-    </>
+    </OpenDirectorContext>
   );
 }

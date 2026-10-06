@@ -1,21 +1,22 @@
 /**
- * Claude chat panel (PLAN.md#6.6): Chat/History tabs, the queue and Stop in the header, usage-limit
- * and connection banners, the transcript with Claude's step log, and the composer (scope, chips,
- * "Think harder"). Talks to main's ClaudeService through `window.reelforge` (use-chat.ts).
- * Collapsed, it is a slim rail (ChatRail.tsx); the transcript and the draft stay mounted.
+ * The side column (PLAN.md#6.6, docs/ux/redesign-2.4.md U9): Chat / History / Director tabs (the
+ * tab is the workspace's, remembered), the queue and Stop in the header, usage-limit and connection
+ * banners, the transcript with Claude's step log, and the composer (scope, chips, "Think harder").
+ * Talks to main's ClaudeService through `window.reelforge` (use-chat.ts). The Director tab shows
+ * the workspace's `director` node. Collapsed, it is a slim rail (ChatRail.tsx); the transcript and
+ * the draft stay mounted.
  */
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useState, type JSX, type ReactNode } from 'react';
 import type { ChatPause, ChatScope, ChatSelection } from '../../shared/chat-contract.js';
 import { ChatComposer } from '../chat/ChatComposer.js';
 import { ChatHistory } from '../chat/ChatHistory.js';
 import { ChatTranscript } from '../chat/ChatTranscript.js';
 import { useChat } from '../chat/use-chat.js';
+import { SIDE_TAB_LABELS, SIDE_TABS, type SideTab } from '../director/director-view.js';
 import { TOGGLE_CHAT_KEYS } from './app-keys.js';
 import { unreadTurns } from './chat-dock.js';
 import { ChatRail } from './ChatRail.js';
 import { ChevronIcon, StopIcon } from './icons.js';
-
-type Tab = 'chat' | 'history';
 
 export interface ChatPanelProps {
   /** Shot targeted by the Shot scope (selected, else under the playhead). */
@@ -28,6 +29,13 @@ export interface ChatPanelProps {
   /** Shown as the slim rail (chat-dock.ts). */
   readonly collapsed: boolean;
   readonly onToggleCollapsed: () => void;
+  /** The open tab (use-director-tab.ts). */
+  readonly tab: SideTab;
+  readonly onTab: (tab: SideTab) => void;
+  /** Content of the Director tab (DirectorTab.tsx), mounted only while it is open. */
+  readonly director: ReactNode;
+  /** Opens the column on the Director tab (the rail's Director button). */
+  readonly onShowDirector: () => void;
 }
 
 const MINUTE_MS = 60_000;
@@ -76,8 +84,11 @@ export function ChatPanel({
   prefill,
   collapsed,
   onToggleCollapsed,
+  tab,
+  onTab,
+  director,
+  onShowDirector,
 }: ChatPanelProps): JSX.Element {
-  const [tab, setTab] = useState<Tab>('chat');
   const [scope, setScope] = useState<ChatScope>(selection === null ? 'video' : 'selection');
   const chat = useChat();
   const state = chat.state;
@@ -102,8 +113,8 @@ export function ChatPanel({
   useEffect(() => {
     if (prefillNonce === undefined) return;
     setScope('shot');
-    setTab('chat');
-  }, [prefillNonce]);
+    onTab('chat');
+  }, [prefillNonce, onTab]);
 
   return (
     <section className={`panel chat${collapsed ? ' collapsed' : ''}`} aria-label="Claude">
@@ -114,6 +125,7 @@ export function ChatPanel({
           unread={unreadTurns(finished, seen)}
           paused={pause !== null}
           onShow={onToggleCollapsed}
+          onShowDirector={onShowDirector}
         />
       )}
       <div className="chat-body" hidden={collapsed}>
@@ -128,8 +140,8 @@ export function ChatPanel({
           >
             <ChevronIcon direction="right" />
           </button>
-          <div className="tabs" role="tablist" aria-label="Claude views">
-            {(['chat', 'history'] as const).map((id) => (
+          <div className="tabs" role="tablist" aria-label="Side views">
+            {SIDE_TABS.map((id) => (
               <button
                 key={id}
                 type="button"
@@ -139,10 +151,10 @@ export function ChatPanel({
                 aria-controls={`chat-view-${id}`}
                 className="tab"
                 onClick={() => {
-                  setTab(id);
+                  onTab(id);
                 }}
               >
-                {id === 'chat' ? 'Chat' : 'History'}
+                {SIDE_TAB_LABELS[id]}
               </button>
             ))}
           </div>
@@ -178,7 +190,7 @@ export function ChatPanel({
           </p>
         )}
 
-        {tab === 'chat' ? (
+        {tab === 'chat' && (
           <div
             className="chat-view"
             role="tabpanel"
@@ -213,7 +225,8 @@ export function ChatPanel({
               prefill={prefill}
             />
           </div>
-        ) : (
+        )}
+        {tab === 'history' && (
           <div
             className="chat-view"
             role="tabpanel"
@@ -221,6 +234,16 @@ export function ChatPanel({
             aria-labelledby="chat-tab-history"
           >
             <ChatHistory refreshKey={`${state?.projectDir ?? ''}:${String(finished)}`} />
+          </div>
+        )}
+        {tab === 'director' && (
+          <div
+            className="chat-view director-view"
+            role="tabpanel"
+            id="chat-view-director"
+            aria-labelledby="chat-tab-director"
+          >
+            {director}
           </div>
         )}
       </div>
