@@ -55,3 +55,11 @@ indexed canvas, pure function of t, seeded PRNG, palette ≤ 24–32 colours.
 
 ## Sketchbook resolution (Papi, 2026-10-06)
 960×540 indexed page scaled ×2 (nearest) to 1080p is approved ("git, nie kombinuj"): the stair-stepped hard edges read as hand-made. Do NOT build the native 1920×1080 variant.
+
+## Sketchbook rules from test film 2 (Papi, 2026-10-07)
+- **Pop-ups are never a template.** Every pop-up must be original. Pulling the side ribbon/tab must trigger a motion that MEANS something in the narration
+  (the mockup's sun slid so the calendar drifted), ideally always a different motion; Claude is expected to play with it and understand it. No invented decorative
+  elements (the grey disc in film 2). A required `intent` string states the claim the motion shows; the critic checks it; never the same mechanism twice in one film.
+- **Hand policy.** If the hand cannot keep up with the narration it draws only the KEY elements (figures, the hero object); labels, numbers and small words may simply
+  APPEAR on their own while the hand draws something else. Never cut narration content because writing is slow; never stroke-draw text without the hand.
+- **Variety is mandatory** (≈ 1 pop-up or accordion per 50 s on average in real films, ≥ 2 kinds, never adjacent) — see QUALITY.md §8.2.
