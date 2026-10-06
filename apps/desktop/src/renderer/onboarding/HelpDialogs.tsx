@@ -1,5 +1,6 @@
 /**
- * Dialogs of the Help menu (PLAN.md#10.3): keyboard shortcuts, About ReelForge (version, licences,
+ * Dialogs of the Help menu (PLAN.md#10.3): keyboard shortcuts, About ReelForge (version and the
+ * Electron / Chrome versions — the header no longer shows them, licences,
  * the personal-use / subscription note) and Report a problem (opens the logs folder; nothing is
  * sent anywhere).
  */
@@ -167,7 +168,7 @@ export function HelpDialogs(props: {
             <span className="muted">
               {props.info === undefined
                 ? ''
-                : ` · Electron ${props.info.electron} · Chrome ${props.info.chrome}`}
+                : ` · Electron ${props.info.electron} · Chrome ${props.info.chrome}${props.info.dev ? ' · dev' : ''}`}
             </span>
           </p>
           <p>

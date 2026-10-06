@@ -31,6 +31,7 @@ import {
 import { fixtureProject, launchApp, screenshotDir } from './support/electron-app.js';
 import { ffprobe, golden, GOLDEN, synthesizeVoiceover } from './support/pipeline-film.js';
 import { showStage } from './support/pipeline-rows.js';
+import { projectMenu } from './support/project-menu.js';
 
 const profiles: string[] = [];
 const apps: ElectronApplication[] = [];
@@ -139,7 +140,7 @@ describe('damaged files', () => {
     expect(kept).toHaveLength(1);
     await expect.poll(() => banner.locator('.file-problem').count(), { timeout: 15_000 }).toBe(0);
 
-    await page.getByRole('button', { name: 'Close project' }).click();
+    await projectMenu(page, 'Close project');
     const projectJson = path.join(dir, 'project.json');
     const project = await readFile(projectJson, 'utf8');
     await writeFile(projectJson, project.slice(0, 30));

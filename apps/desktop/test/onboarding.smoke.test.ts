@@ -100,6 +100,14 @@ async function runRow(label: string): Promise<void> {
   await run.click();
 }
 
+async function openRow(label: string): Promise<void> {
+  await (await showStage(page, label)).click();
+  await pipeline()
+    .getByRole('group', { name: `${label} actions` })
+    .getByRole('button', { name: 'Open' })
+    .click();
+}
+
 async function openedPaths(): Promise<string[]> {
   return app.evaluate(() => (globalThis as unknown as { __opened?: string[] }).__opened ?? []);
 }
@@ -167,6 +175,29 @@ describe('first run', () => {
     expect((await frameStats(page)).distinctColours).toBeGreaterThan(16);
     await shot('example-opened');
   }, 180_000);
+
+  it('reads the example’s files for its empty states (scenes, voiceover, words)', async () => {
+    await openRow('Scenes built');
+    const scenes = page.getByRole('region', { name: 'Scenes built' });
+    await expect
+      .poll(() => scenes.getByTestId('scenes-totals').textContent())
+      .toBe('7 scenes built · not checked yet');
+    await page.getByRole('button', { name: 'QA of s01: Not checked' }).waitFor();
+    await shot('scenes-not-checked');
+    await scenes.getByRole('button', { name: 'Back to preview' }).click();
+
+    await openRow('Voiceover added');
+    const voiceover = page.getByRole('region', { name: 'Voiceover' });
+    await voiceover.getByText('Not compared with the script yet.').waitFor();
+    expect(await voiceover.textContent()).not.toContain('No voice-over yet');
+    await voiceover.getByRole('button', { name: 'Back to preview' }).click();
+
+    await openRow('Words timed');
+    const words = page.getByRole('region', { name: 'Words timed' });
+    await words.locator('.words-list li').first().waitFor();
+    expect(await words.textContent()).not.toContain('Run Words timed');
+    await words.getByRole('button', { name: 'Back to preview' }).click();
+  }, 60_000);
 
   it('Help: shortcuts, About with the licences, Report a problem opens the logs folder', async () => {
     await app.evaluate(({ shell }) => {

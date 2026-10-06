@@ -66,11 +66,13 @@ export function MismatchList(props: {
 
 function Quality(props: {
   readonly report: WordsReport | null;
+  /** timing/words.json has words (the report may still be missing). */
+  readonly timed: boolean;
   readonly busy: boolean;
   readonly onSeek: (t: number) => void;
 }): JSX.Element {
   const [notice, setNotice] = useState<string | null>(null);
-  const view = alignmentView(props.report);
+  const view = alignmentView(props.report, props.timed);
   const chosen = props.report?.attempts[props.report.chosen]?.model ?? null;
   const bigger = biggerWhisperModel(chosen);
   const cpuHint = cpuTranscriptionHint(props.report);
@@ -171,7 +173,12 @@ export function WordsPanel(props: WordsPanelProps): JSX.Element {
         </button>
       </div>
       <div className="doc-body">
-        <Quality report={props.report} busy={props.busy} onSeek={props.onSeek} />
+        <Quality
+          report={props.report}
+          timed={props.words?.status === 'ok' && props.words.data.words.length > 0}
+          busy={props.busy}
+          onSeek={props.onSeek}
+        />
         <Body words={props.words} onSeek={props.onSeek} />
       </div>
     </section>

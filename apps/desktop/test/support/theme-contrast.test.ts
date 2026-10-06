@@ -1,6 +1,7 @@
 /**
  * Readability (PLAN.md#11.2): every text colour of the theme (styles.css :root) reaches WCAG AA
- * (4.5:1) on every surface it is used on, including the tinted chips (alpha over the panel).
+ * (4.5:1) on every surface it is used on, including the tinted chips (alpha over the panel); the
+ * control border reaches 3:1 (non-text) and disabled text 4.5:1 (docs/ux/redesign-2.4.md U2).
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -83,5 +84,29 @@ describe('theme contrast', () => {
       expect(ratio, `--${text} on --${tint}: ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
     }
     expect(contrast(colour('on-accent'), colour('accent'))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('passes 3:1 for the control border (non-text) on every surface', () => {
+    for (const surface of SURFACES) {
+      const ratio = contrast(colour('border-control'), colour(surface));
+      expect(ratio, `--border-control on --${surface}: ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(
+        3,
+      );
+    }
+  });
+
+  it('keeps disabled text readable (4.5:1) on every surface, without opacity', () => {
+    for (const surface of SURFACES) {
+      const ratio = contrast(colour('text-disabled'), colour(surface));
+      expect(ratio, `--text-disabled on --${surface}: ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
+    // Disabled controls are dimmed by colour, never by opacity (opacity drags text below 4.5:1).
+    const disabledRules = [...css.matchAll(/([^{}]*disabled[^{}]*)\{([^}]*)\}/g)];
+    expect(disabledRules.length).toBeGreaterThan(0);
+    for (const [, selector, body] of disabledRules) {
+      expect(body, `${selector?.trim() ?? ''} uses opacity`).not.toMatch(/opacity/);
+    }
   });
 });

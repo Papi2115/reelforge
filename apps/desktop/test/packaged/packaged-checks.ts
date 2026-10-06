@@ -39,7 +39,7 @@ const SERVICE_WAIT_MS = 20_000;
 function expectedClaudeChip(state: ConnectionState): string {
   switch (state.state) {
     case 'ok':
-      return `Claude: connected · ${state.version}`;
+      return 'Claude: connected';
     case 'not-installed':
       return 'Claude: not installed';
     case 'not-logged-in':
@@ -186,7 +186,7 @@ export function definePackagedSmokeTests(label: string, exe: () => string): void
       await stubFolderPicker(app, parent);
       await page.getByLabel('Video title').fill(PROJECT_TITLE);
       await page.getByRole('button', { name: 'New project…' }).click();
-      await page.getByRole('button', { name: 'Saved locally · git history' }).waitFor();
+      await page.getByRole('button', { name: 'History', exact: true }).waitFor();
       projectDir = path.join(parent, PROJECT_TITLE);
       const template = path.join(resources(), 'template');
       expect(await readFile(path.join(projectDir, 'CLAUDE.md'))).toEqual(

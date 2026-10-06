@@ -2,7 +2,9 @@
  * View model of the Voiceover and Words timed panels (PLAN.md#7.2): how well the recording fits
  * the script — its length against the word-count estimate (150 wpm) right after the import, then
  * the alignment coverage and the mismatch regions (script text vs what was heard, with times to
- * seek to) once Words timed ran — and the "Retry with a bigger model" choice. Pure.
+ * seek to) once Words timed ran — and the "Retry with a bigger model" choice. Empty states come
+ * from the files too: a recording or timed words without their report read "not compared with the
+ * script yet", never "no voice-over" / "run Words timed". Pure.
  */
 import type { SettingsWhisperModel, VoReport, WordsReport } from '@reelforge/shared';
 
@@ -20,12 +22,24 @@ export function clock(seconds: number): string {
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-/** Duration vs the script's word-count estimate (the import-time report). */
-export function voFit(report: VoReport | null): FitView {
+const ORIGINAL_RECORDING = /^audio\/vo\.original\.[a-z0-9]+$/i;
+
+/** The recording in the project listing (`audio/vo.original.<ext>`, not the kept previous take). */
+export function voiceoverFile(files: readonly string[]): string | null {
+  return files.find((file) => ORIGINAL_RECORDING.test(file)) ?? null;
+}
+
+/**
+ * Duration vs the script's word-count estimate (the import-time report). `hasRecording`: a
+ * recording is in the project (file or import record) even when the report is missing.
+ */
+export function voFit(report: VoReport | null, hasRecording = false): FitView {
   if (report === null) {
     return {
       tone: 'none',
-      headline: 'No voice-over yet: import a file or record one.',
+      headline: hasRecording
+        ? 'Not compared with the script yet.'
+        : 'No voice-over yet: import a file or record one.',
       details: [],
     };
   }
@@ -76,12 +90,17 @@ export interface AlignmentView {
   readonly mismatches: readonly MismatchRow[];
 }
 
-/** Good ≥ 95 % of the script found, fair ≥ 85 % (the words stage's retry bar). */
-export function alignmentView(words: WordsReport | null): AlignmentView {
+/**
+ * Good ≥ 95 % of the script found, fair ≥ 85 % (the words stage's retry bar). `timed`: the
+ * project has timed words (timing/words.json) even when the alignment report is missing.
+ */
+export function alignmentView(words: WordsReport | null, timed = false): AlignmentView {
   if (words === null) {
     return {
       tone: 'none',
-      headline: 'Run Words timed to check the recording against the script word by word.',
+      headline: timed
+        ? 'Words are timed · not compared with the script word by word yet.'
+        : 'Run Words timed to check the recording against the script word by word.',
       model: null,
       mismatches: [],
     };

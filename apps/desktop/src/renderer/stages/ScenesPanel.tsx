@@ -20,6 +20,7 @@ import {
   buildProgressView,
   propsBanner,
   propsSummary,
+  scenesTotals,
   syncProblemShots,
   syncRows,
 } from './scenes-view.js';
@@ -29,22 +30,36 @@ export interface ScenesPanelProps {
   readonly stages: StagesControls;
   readonly reports: StageReports | undefined;
   readonly shots: readonly StoryboardShot[];
+  /** Shots whose scene file is on disk (scenes-view.ts builtShotIds). */
+  readonly built: ReadonlySet<string>;
   readonly onSeekShot: (shotId: string, t: number) => void;
   readonly onClose: () => void;
 }
 
-function Totals({ reports }: { readonly reports: StageReports | undefined }): JSX.Element {
-  const shots = reports?.scenes?.shots ?? [];
-  if (shots.length === 0) {
+function Totals(props: {
+  readonly reports: StageReports | undefined;
+  readonly built: ReadonlySet<string>;
+}): JSX.Element {
+  const totals = scenesTotals(props.reports?.scenes ?? null, props.built);
+  if (totals.kind === 'none') {
     return <p className="muted">No shot is built yet. Run Scenes built in the pipeline.</p>;
   }
-  const count = (status: string): number => shots.filter((shot) => shot.status === status).length;
+  if (totals.kind === 'unchecked') {
+    return (
+      <p className="scenes-totals" data-testid="scenes-totals">
+        {totals.text}
+      </p>
+    );
+  }
   return (
     <p className="scenes-totals" data-testid="scenes-totals">
-      <span className="qa-ok">✓ {count('ok')}</span>
-      <span className="qa-warning">⚠ {count('warning')}</span>
-      <span className="qa-failed">✗ {count('failed')}</span>
-      <span className="muted"> of {plural(shots.length, 'shot')} built</span>
+      <span className="qa-ok">✓ {totals.ok}</span>
+      <span className="qa-warning">⚠ {totals.warning}</span>
+      <span className="qa-failed">✗ {totals.failed}</span>
+      <span className="muted"> of {plural(totals.checked, 'shot')} built</span>
+      {totals.unchecked > 0 && (
+        <span className="muted"> · {plural(totals.unchecked, 'scene')} not checked yet</span>
+      )}
     </p>
   );
 }
@@ -183,12 +198,13 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
             }}
           />
         )}
-        <Totals reports={props.reports} />
+        <Totals reports={props.reports} built={props.built} />
         <FinalReviewSection
           preflight={exportPreflight(
             props.reports?.finalReview ?? null,
             props.reports?.scenes ?? null,
             props.shots,
+            props.built,
           )}
           progress={finalReviewProgress(running) === null ? null : 'Reviewing now: progress above.'}
           onSeekShot={props.onSeekShot}

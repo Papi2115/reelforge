@@ -26,6 +26,7 @@ import {
   recordedTranscript,
   synthesizeVoiceover,
 } from './support/pipeline-film.js';
+import { projectMenu } from './support/project-menu.js';
 
 let app: ElectronApplication;
 let page: Page;
@@ -65,7 +66,7 @@ async function runRow(label: string): Promise<void> {
  * predates looks (no roll/look per shot): the film is made in `voxel-only`, set in the dialog.
  */
 async function useVoxelOnlyLooks(): Promise<void> {
-  await page.getByRole('button', { name: 'Project settings' }).click();
+  await projectMenu(page, 'Project settings');
   const dialog = page.getByRole('dialog', { name: 'Project settings' });
   await dialog.getByRole('radio', { name: /^Voxel only — the classic look/ }).click();
   await expect

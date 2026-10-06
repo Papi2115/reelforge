@@ -2,6 +2,8 @@ import { useEffect, useState, type JSX } from 'react';
 import type { ShotsPerMinute } from '@reelforge/shared';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
+import { projectMeta } from './layout/header-view.js';
+import { ProjectMenu } from './layout/ProjectMenu.js';
 import { StatusBar } from './layout/StatusBar.js';
 import { useAppShortcut } from './layout/use-app-shortcut.js';
 import { Workspace } from './layout/Workspace.js';
@@ -117,32 +119,18 @@ export function App(): JSX.Element {
         </span>
         {project && (
           <>
-            <span className="project-title" title={project.dir}>
-              {project.title}
-            </span>
-            <span className="project-meta">
-              {project.language.toUpperCase()} · {project.style} · {project.fps} fps
-            </span>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => {
+            <ProjectMenu
+              title={project.title}
+              dir={project.dir}
+              onSettings={() => {
                 setProjectSettingsOpen(true);
               }}
-            >
-              Project settings
-            </button>
-            <button type="button" className="link-button" onClick={closeProject}>
-              Close project
-            </button>
+              onClose={closeProject}
+            />
+            <span className="project-meta">{projectMeta(project)}</span>
           </>
         )}
-        {info && (
-          <span className="app-meta">
-            Electron {info.electron} · Chrome {info.chrome}
-            {info.dev ? ' · dev' : ''}
-          </span>
-        )}
+        <span className="header-spacer" />
         <HelpMenu
           onTour={
             project === null

@@ -18,6 +18,7 @@ import { exportPreflight } from '../stages/final-review-view.js';
 import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
 import {
   buildProgress,
+  builtShotIds,
   fixPrompt,
   joinBanners,
   propsBanner,
@@ -168,6 +169,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
 
   const running = stages.state?.running ?? null;
   const badges = shotBadges(reports?.scenes ?? null, running);
+  const built = builtShotIds(shots, files);
   const scenesBusy = running?.stage === 'scenes' || stages.state?.queue.includes('scenes') === true;
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
   const [shotNotice, setShotNotice] = useState<string | undefined>(undefined);
@@ -236,7 +238,12 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         <ExportDialog
           dir={project.dir}
           playhead={time}
-          preflight={exportPreflight(reports?.finalReview ?? null, reports?.scenes ?? null, shots)}
+          preflight={exportPreflight(
+            reports?.finalReview ?? null,
+            reports?.scenes ?? null,
+            shots,
+            built,
+          )}
           onSeekShot={(shotId, t) => {
             setExportOpen(false);
             seekShot(shotId, t);
@@ -283,6 +290,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               time={time}
               onSelect={selectShot}
               badges={badges}
+              built={built}
               progress={buildProgress(running, shots.length)}
               propsBanner={joinBanners(
                 propsBanner(propsSummary(reports?.scenes ?? null, reports?.props ?? null)),
@@ -358,6 +366,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
                 reports={reports}
                 shots={shots}
                 words={snapshot?.words}
+                files={files}
                 sound={sound}
                 mixPreview={mixPreview}
                 onTab={(tab) => {

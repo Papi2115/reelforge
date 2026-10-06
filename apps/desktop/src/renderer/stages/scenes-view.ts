@@ -1,6 +1,7 @@
 /**
  * View model of Scenes built in the UI (PLAN.md#7.4-7.7): the ✓/⚠/✗ badge of every shot (the
- * scenes report, overlaid with the live run: building / left for later), its findings for the
+ * scenes report, overlaid with the live run: building / left for later; scenes on disk without a
+ * report read "Not checked", never "Not built"), the panel's totals, its findings for the
  * popover and the "Fix with Claude…" prefill, the build progress line (shot n/m, current step),
  * the project-props and project-roles banner (built / could not build) and the sync report rows (deltas in ms
  * against ±150 ms). Pure.
@@ -11,8 +12,10 @@ import {
   type RolesReport,
   type ScenesReport,
   type ShotBuildRecord,
+  type StoryboardShot,
   type SyncReport,
 } from '@reelforge/shared';
+import { plural } from '../../shared/plural.js';
 import type { StageRunView } from '../../shared/stages-contract.js';
 
 export type BadgeTone = 'ok' | 'warning' | 'failed' | 'running' | 'pending';
@@ -83,6 +86,65 @@ export function shotBadges(
     else if (state === 'requeued') badges.set(id, liveBadge('pending'));
   }
   return badges;
+}
+
+/**
+ * Shots whose scene file is in the project listing (forward slashes), whatever the reports say:
+ * a project can carry built scenes without a scenes report (the example, a copied folder).
+ */
+export function builtShotIds(
+  shots: readonly StoryboardShot[],
+  files: readonly string[],
+): ReadonlySet<string> {
+  const listed = new Set(files);
+  return new Set(
+    shots.filter((shot) => listed.has(shot.scene.replaceAll('\\', '/'))).map((shot) => shot.id),
+  );
+}
+
+/** Status of a shot without a badge: its scene exists but nothing checked it, or it is not built. */
+export function missingBadgeLabel(shotId: string, built: ReadonlySet<string>): string {
+  return built.has(shotId) ? 'Not checked' : 'Not built yet';
+}
+
+export type ScenesTotals =
+  | { readonly kind: 'none' }
+  /** Scenes on disk, no check result for any of them: "7 scenes built · not checked yet". */
+  | { readonly kind: 'unchecked'; readonly text: string }
+  | {
+      readonly kind: 'checked';
+      readonly ok: number;
+      readonly warning: number;
+      readonly failed: number;
+      /** Shots with a check result. */
+      readonly checked: number;
+      /** Built shots (scene file on disk) without a check result. */
+      readonly unchecked: number;
+    };
+
+/** The Scenes panel's totals from the scenes report and the scene files on disk. */
+export function scenesTotals(
+  report: ScenesReport | null,
+  built: ReadonlySet<string>,
+): ScenesTotals {
+  const records = report?.shots ?? [];
+  const checkedIds = new Set(records.map((record) => record.shotId));
+  const unchecked = [...built].filter((id) => !checkedIds.has(id)).length;
+  if (records.length === 0) {
+    return unchecked === 0
+      ? { kind: 'none' }
+      : { kind: 'unchecked', text: `${plural(unchecked, 'scene')} built · not checked yet` };
+  }
+  const count = (status: ShotBuildRecord['status']): number =>
+    records.filter((record) => record.status === status).length;
+  return {
+    kind: 'checked',
+    ok: count('ok'),
+    warning: count('warning'),
+    failed: count('failed'),
+    checked: records.length,
+    unchecked,
+  };
 }
 
 /** "Fix with Claude…" text for the chat (scope Shot). */
@@ -169,7 +231,7 @@ export function propsSummary(report: ScenesReport | null, props: PropsReport | n
   return { built: [...built].sort(), failed: [...failed].sort() };
 }
 
-function plural(count: number, noun: string): string {
+function newCount(count: number, noun: string): string {
   return `${String(count)} new ${noun}${count === 1 ? '' : 's'}`;
 }
 
@@ -177,7 +239,7 @@ function plural(count: number, noun: string): string {
 export function propsBanner(summary: PropsSummary): string | null {
   const parts: string[] = [];
   if (summary.built.length > 0) {
-    parts.push(`Built ${plural(summary.built.length, 'prop')}: ${summary.built.join(', ')}`);
+    parts.push(`Built ${newCount(summary.built.length, 'prop')}: ${summary.built.join(', ')}`);
   }
   if (summary.failed.length > 0) {
     parts.push(
@@ -199,7 +261,7 @@ export function rolesBanner(report: RolesReport | null): string | null {
   const parts: string[] = [];
   if (built.length > 0) {
     const warning = warned.length === 0 ? '' : ` (⚠ ${warned.join(', ')})`;
-    parts.push(`Built ${plural(built.length, 'role')}: ${built.join(', ')}${warning}`);
+    parts.push(`Built ${newCount(built.length, 'role')}: ${built.join(', ')}${warning}`);
   }
   if (failed.length > 0) {
     parts.push(

@@ -9,6 +9,8 @@ import type { FileState } from '../../shared/snapshot-contract.js';
 import type { StageReports } from '../../shared/voiceover-contract.js';
 import type { ProjectSummary } from '../../shared/project-contract.js';
 import { ScenesPanel } from '../stages/ScenesPanel.js';
+import { builtShotIds } from '../stages/scenes-view.js';
+import { voiceoverFile } from '../stages/vo-view.js';
 import { ScriptPanel, type ScriptTab } from '../stages/ScriptPanel.js';
 import type { StagesControls } from '../stages/use-stages.js';
 import { VoiceoverPanel } from '../stages/VoiceoverPanel.js';
@@ -32,6 +34,8 @@ export interface CenterDocumentProps {
   readonly reports: StageReports | undefined;
   readonly shots: readonly StoryboardShot[];
   readonly words: FileState<WordsFile> | undefined;
+  /** The project listing (snapshot): empty states read the files, not only the reports. */
+  readonly files: readonly string[];
   readonly sound: SoundControls;
   readonly mixPreview: MixPreviewControls;
   readonly onTab: (tab: ScriptTab) => void;
@@ -60,6 +64,7 @@ export function CenterDocument(props: CenterDocumentProps): JSX.Element {
           stages={stages}
           reports={reports}
           shots={props.shots}
+          built={builtShotIds(props.shots, props.files)}
           onSeekShot={props.onSeekShot}
           onClose={onClose}
         />
@@ -79,7 +84,14 @@ export function CenterDocument(props: CenterDocumentProps): JSX.Element {
       );
     case 'voiceover':
       return (
-        <VoiceoverPanel stages={stages} reports={reports} onSeek={props.onSeek} onClose={onClose} />
+        <VoiceoverPanel
+          stages={stages}
+          reports={reports}
+          recordingFile={voiceoverFile(props.files)}
+          timed={props.words?.status === 'ok' && props.words.data.words.length > 0}
+          onSeek={props.onSeek}
+          onClose={onClose}
+        />
       );
     case 'words':
       return (

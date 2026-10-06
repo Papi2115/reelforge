@@ -22,6 +22,7 @@ import {
 } from './support/electron-app.js';
 import { perfBar } from './support/ci-mode.js';
 import { createLongProject, LONG_PROJECT } from './support/timeline-project.js';
+import { projectMenu, projectMenuButton } from './support/project-menu.js';
 
 /** Vertical centres of the lanes (CSS px from the canvas top; TRACK_ROWS in timeline-model.ts). */
 const ROW_Y = { ruler: 10, shots: 34, narration: 60, cues: 83, audio: 109, ambience: 147 };
@@ -74,9 +75,8 @@ async function waitForLanes(key: string, value: string): Promise<void> {
 }
 
 async function openProject(dir: string): Promise<void> {
-  const close = page.getByRole('button', { name: 'Close project' });
-  if (await close.isVisible()) {
-    await close.click();
+  if (await projectMenuButton(page).isVisible()) {
+    await projectMenu(page, 'Close project');
     await page.getByRole('region', { name: 'Start' }).waitFor();
   }
   await stubFolderPicker(app, dir);

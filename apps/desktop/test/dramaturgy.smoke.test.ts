@@ -20,6 +20,7 @@ import {
   stubFolderPicker,
 } from './support/electron-app.js';
 import { showStage } from './support/pipeline-rows.js';
+import { projectMenu } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -118,7 +119,7 @@ describe('dramaturgy section', () => {
       .toMatch(/^Moments: rejected /);
     expect((await moments()).moments.map((moment) => moment.status)).toEqual(['rejected']);
 
-    await page.getByRole('button', { name: 'Project settings' }).click();
+    await projectMenu(page, 'Project settings');
     const dialog = page.getByRole('dialog', { name: 'Project settings' });
     for (const label of [
       'Plan pattern interrupts',
