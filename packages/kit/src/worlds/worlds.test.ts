@@ -175,11 +175,16 @@ describe('no harm to the built-in styles', () => {
     },
   );
 
-  it('ships no world yet, so LOOKS is exactly the built-in looks', () => {
-    expect(WORLDS).toEqual([]);
-    expect(LOOKS.every((look) => look.styles === undefined && look.experimental !== true)).toBe(
-      true,
-    );
+  it('ships only experimental worlds so far: LOOKS adds nothing outside their styles', () => {
+    expect(WORLDS.map((entry) => entry.id)).toEqual(['sketchbook']);
+    expect(WORLDS.every((entry) => entry.experimental)).toBe(true);
+    const builtIn = LOOKS.filter((look) => look.styles === undefined);
+    expect(builtIn.every((look) => look.experimental !== true)).toBe(true);
+    expect(LOOKS.slice(0, builtIn.length)).toEqual(builtIn);
+    for (const look of LOOKS.slice(builtIn.length)) {
+      expect(look.experimental, look.id).toBe(true);
+      expect(look.styles, look.id).toEqual(['sketchbook']);
+    }
   });
 });
 

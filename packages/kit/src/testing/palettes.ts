@@ -1,5 +1,6 @@
 /** Test fixtures: scene palettes as the engine builds them (swatches + semantic tokens). */
 import type { KitPalette } from '../types.js';
+import { SKETCHBOOK_STYLE } from '../worlds/sketchbook/style.js';
 
 const TOKENS = {
   sky: '#0b0f2a',
@@ -48,3 +49,15 @@ export const CRISP_PALETTE: KitPalette = {
 
 /** Only the semantic tokens: every colour chain of the kit must still resolve. */
 export const TOKENS_ONLY_PALETTE: KitPalette = TOKENS;
+
+/** Sketchbook (world style `sketchbook`): its swatches plus its tokens, as the engine builds it. */
+export const SKETCHBOOK_PALETTE: KitPalette = (() => {
+  const swatches: Readonly<Record<string, string>> = SKETCHBOOK_STYLE.palette;
+  const tokens = Object.fromEntries(
+    Object.entries(SKETCHBOOK_STYLE.tokens).map(([token, swatch]) => [
+      token,
+      swatches[swatch] ?? '',
+    ]),
+  );
+  return { ...swatches, ...tokens };
+})();

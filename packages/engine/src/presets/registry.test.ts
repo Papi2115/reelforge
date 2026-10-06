@@ -8,6 +8,7 @@ import {
   TEST_WORLD_ID,
   TEST_WORLD_STYLE,
 } from '../../../kit/src/testing/test-world.js';
+import { buildPaletteLut, hexToRgb, lutLookup } from '../palette.js';
 import { resolveStyle } from '../style.js';
 import {
   BUILT_IN_STYLE_PRESETS,
@@ -21,13 +22,27 @@ const BUILT_IN_IDS = ['voxel-pixel-crisp640', 'noir-voxel', 'soft-480'];
 const WITH_TEST_WORLD = createStyleRegistry(BUILT_IN_STYLE_PRESETS, [TEST_WORLD]);
 
 describe('style registry', () => {
-  it('lists exactly the built-in styles while no world ships', () => {
+  it('lists exactly the built-in styles while only experimental worlds ship', () => {
     expect(STYLE_PRESET_IDS).toEqual(BUILT_IN_IDS);
-    expect(STYLE_REGISTRY.allIds).toEqual(BUILT_IN_IDS);
+    expect(STYLE_REGISTRY.allIds).toEqual([...BUILT_IN_IDS, 'sketchbook']);
     for (const id of BUILT_IN_IDS) {
       expect(STYLE_REGISTRY.entry(id)?.world).toBeUndefined();
       expect(STYLE_REGISTRY.isExperimental(id)).toBe(false);
     }
+    expect(STYLE_REGISTRY.isExperimental('sketchbook')).toBe(true);
+  });
+
+  it('resolves the sketchbook style palette-pure: every swatch maps to itself through the LUT', () => {
+    const style = resolveStyle({ style: 'sketchbook' });
+    expect([style.width, style.height]).toEqual([960, 540]);
+    const swatches = Object.values(STYLE_REGISTRY.find('sketchbook')?.palette ?? {});
+    expect(swatches).toHaveLength(24);
+    const lut = buildPaletteLut(swatches.map(hexToRgb));
+    swatches.forEach((hex, index) => {
+      expect(lutLookup(lut, hexToRgb(hex)), hex).toBe(index);
+    });
+    expect(renderStyleProblem(STYLE_REGISTRY, 'sketchbook', false)).toMatch(/--experimental/);
+    expect(renderStyleProblem(STYLE_REGISTRY, 'sketchbook', true)).toBeUndefined();
   });
 
   it('registers a world style with its fonts, sound palette and looks', () => {
