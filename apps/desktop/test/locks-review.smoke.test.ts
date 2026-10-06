@@ -4,7 +4,8 @@
  * selected shot, the lock button locks s02 (locks.json + commit); Scenes built then builds only
  * s01 and the quiet final review follows by itself ("Review done: 1 ✓, 1 ⚠; 1 locked" — the
  * locked s02 has a phone-legibility finding it may only report); the Scenes panel and the export
- * dialog list s02 ("Export anyway"); after a relaunch the lock is still there. fake-claude only.
+ * dialog list s02 ("Export anyway"), so does the header's "Needs you" inbox (Ctrl+Shift+N, its count
+ * = its items, Esc, "Show s02"); after a relaunch the lock is still there. fake-claude only.
  * Screenshots at 1280×720 in out/test-app/locks-*.png.
  */
 import { spawnSync } from 'node:child_process';
@@ -238,6 +239,35 @@ describe('shot locks and the final review', () => {
     await shot('export-preflight');
     await preflight.getByRole('button', { name: /s02/ }).click();
     await dialog.waitFor({ state: 'detached' });
+    await expect
+      .poll(() =>
+        shots()
+          .getByRole('button', { name: /^Shot s02,/ })
+          .getAttribute('aria-pressed'),
+      )
+      .toBe('true');
+  }, 60_000);
+
+  it('lists the ⚠ shot in Needs you and goes to it', async () => {
+    await shots()
+      .getByRole('button', { name: /^Shot s01,/ })
+      .click();
+    const button = page.getByRole('button', { name: /^Needs you: / });
+    await page.keyboard.press('Control+Shift+N');
+    const inbox = page.getByRole('dialog', { name: 'Needs you' });
+    await inbox.getByText(/s02 \(locked\) needs a look/).waitFor();
+    // The count on the button is the number of items in the list.
+    const count = await inbox.getByRole('listitem').count();
+    expect(await button.getAttribute('aria-label')).toBe(
+      `Needs you: ${String(count)} item${count === 1 ? '' : 's'}`,
+    );
+    await shot('needs-you');
+    await page.keyboard.press('Escape');
+    await inbox.waitFor({ state: 'detached' });
+    expect(await button.evaluate((element) => element === document.activeElement)).toBe(true);
+    await button.click();
+    await inbox.getByRole('button', { name: 'Show s02' }).click();
+    await inbox.waitFor({ state: 'detached' });
     await expect
       .poll(() =>
         shots()

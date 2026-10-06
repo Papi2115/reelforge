@@ -11,6 +11,7 @@ import './layout/shots.css';
 import './layout/timeline.css';
 import './layout/chat.css';
 import './layout/chat-rail.css';
+import './layout/needs-you.css';
 import './preview/preview.css';
 import './direction/direction.css';
 import './settings/settings.css';

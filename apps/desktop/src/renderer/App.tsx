@@ -62,6 +62,8 @@ export function App(): JSX.Element {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
+  /** The header slot of the workspace's "Needs you" button (layout/NeedsYou.tsx). */
+  const [needsYouSlot, setNeedsYouSlot] = useState<HTMLElement | null>(null);
   const settings = useSettings();
   const claude = useClaudeStatus();
   const appSettings = settings.state?.settings;
@@ -131,6 +133,7 @@ export function App(): JSX.Element {
           </>
         )}
         <span className="header-spacer" />
+        {project && <div className="needs-you-slot" ref={setNeedsYouSlot} />}
         <HelpMenu
           onTour={
             project === null
@@ -177,6 +180,7 @@ export function App(): JSX.Element {
           <Workspace
             key={project.dir}
             project={project}
+            headerSlot={needsYouSlot}
             onOpenToolsSettings={() => {
               setSettingsTab('tools');
             }}

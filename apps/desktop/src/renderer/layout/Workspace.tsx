@@ -13,7 +13,6 @@ import { selectionText, toSelection } from '../chat/step-view.js';
 import { playbackAudioUrl } from '../preview/audio-source.js';
 import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
-import { exportPreflight } from '../stages/final-review-view.js';
 import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
 import {
   buildProgress,
@@ -38,9 +37,7 @@ import { directionSummary } from '../direction/direction-view.js';
 import { useDirection } from '../direction/use-direction.js';
 import { MAX_VARIANT_NOTE } from '../../shared/variants-contract.js';
 import { VariantsDockPanel } from '../stages/VariantsPanel.js';
-import { AssetsDialog } from '../assets/AssetsDialog.js';
 import { useAssets } from '../assets/use-assets.js';
-import { ExportDialog } from '../export/ExportDialog.js';
 import { useMixPreview } from '../sound/use-mix-preview.js';
 import { useSound } from '../sound/use-sound.js';
 import { useTimeline } from '../timeline/use-timeline.js';
@@ -56,20 +53,25 @@ import { PipelineSidebar } from './PipelineSidebar.js';
 import { ShotsPanel } from './ShotsPanel.js';
 import { TimelinePanel } from './TimelinePanel.js';
 import { FileProblemsBanner } from './FileProblemsBanner.js';
+import { NeedsYou } from './NeedsYou.js';
 import { openStageTarget } from './open-stage.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
+import { WorkspaceDialogs } from './WorkspaceDialogs.js';
 import { usePref } from './ui-prefs.js';
 
 export interface WorkspaceProps {
   readonly project: ProjectSummary;
   /** Settings → Tools (e.g. a whisper.cpp install problem in the pipeline sidebar). */
   readonly onOpenToolsSettings?: () => void;
+  /** Where the header's "Needs you" button renders (App.tsx). */
+  readonly headerSlot: HTMLElement | null;
 }
 
 const TENSION_PREFS_KEY = 'reelforge.layout.tension.v1';
 const tensionPrefsSchema = z.object({ open: z.boolean() });
 
-export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX.Element {
+export function Workspace(props: WorkspaceProps): JSX.Element {
+  const { project, onOpenToolsSettings, headerSlot } = props;
   const { snapshot, error, previewRevision, audioRevision, reload } = useProjectSnapshot(
     project.dir,
   );
@@ -203,33 +205,22 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
 
   return (
     <OpenDirectorContext value={sideTabs.openDirector}>
-      {assetsOpen && (
-        <AssetsDialog
-          assets={assets}
-          onClose={() => {
-            setAssetsOpen(false);
-          }}
-        />
-      )}
-      {exportOpen && (
-        <ExportDialog
-          dir={project.dir}
-          playhead={time}
-          preflight={exportPreflight(
-            reports?.finalReview ?? null,
-            reports?.scenes ?? null,
-            shots,
-            built,
-          )}
-          onSeekShot={(shotId, t) => {
-            setExportOpen(false);
-            seekShot(shotId, t);
-          }}
-          onClose={() => {
-            setExportOpen(false);
-          }}
-        />
-      )}
+      <WorkspaceDialogs
+        dir={project.dir}
+        playhead={time}
+        assets={assetsOpen ? assets : null}
+        onCloseAssets={setAssetsOpen}
+        exportOpen={exportOpen}
+        onCloseExport={setExportOpen}
+        project={{ reports, shots, built }}
+        onSeekShot={seekShot}
+      />
+      <NeedsYou
+        slot={headerSlot}
+        dir={project.dir}
+        project={{ snapshot, state: stages.state, reports, shots, built, assets: assets.state }}
+        open={{ ...openStageOpeners, shot: seekShot, director: sideTabs.openDirector }}
+      />
       <AppShell
         collapsedRight={chatDock.open ? undefined : CHAT_RAIL_WIDTH}
         left={

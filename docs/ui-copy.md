@@ -54,6 +54,29 @@ written", "you stopped it". Shot causes: "the scene does not run", "blank frames
 overlap", "it does not show what the shot plans", "missing <props>". The next-step card for a failed step reads
 "<Step> stopped with a problem." with "See what went wrong".
 
+## Needs you inbox
+
+The header's "Needs you" button (docs/ux/redesign-2.4.md §2.3, U7; `stages/attention-view.ts`, `layout/NeedsYou.tsx`)
+carries the count as a square chip, orange only when something waits; its name reads "Needs you: 2 items" / "Needs you:
+nothing", tooltip "What waits for your decision (Ctrl+Shift+N)". The popover (dialog "Needs you", list "What waits for
+you") shows one item per thing: a small subject (the step's label, "Assets", "Sources", "Story beats", "Editing",
+"Scenes built") + one sentence + one button that goes there. Empty: "Nothing needs you right now." A count change is
+announced politely ("2 things need you."). Ctrl+Shift+N opens / closes it, Esc closes it (focus back on the button).
+Order: decisions, problems, checks, out-of-date steps.
+
+| Item | Sentence | Button → where |
+|---|---|---|
+| Brief / script / voiceover | the step's Needs you sentence ("The script is written. Read it and approve it.") | "Open the brief" / "Open the script" / "Add your voiceover" |
+| Asset packages | "Asset package 2: 3 photos and clips to approve or reject." · "2 asset packages: …" | "Review photos" → Assets dialog |
+| Failed / stopped step | the step's status sentence | "Show <step>" → the step selected in the pipeline (its Retry / Resume) |
+| Word timing without whisper.cpp | "Word timing needs the transcription engine (whisper.cpp): a one-time download." | "Set up word timing" → Words timed selected |
+| Flagged shot (✗ / ⚠, final review or build) | "✗ s02 failed: scene." · "⚠ s05 (locked) needs a look: legibility (+1 more)." (the finding's kind; the whole finding is the tooltip) | "Show s02" → the shot selected at its start |
+| Poor alignment (< 85 %) | "Only 78 % of the script was heard in the recording: check the word timing." | "Open the words" |
+| Claims without a source | "2 claims in the script have no source." | "Open sources" → Script → Sources |
+| Wow moments / open questions | "2 wow moments to accept or reject." · "1 question in the film is never answered." | "Open in Director" → Story beats |
+| Repetition | "Too much of the same: whoosh 4× in 30 s (12.0–38.5 s) (+1 more)." | "Open in Director" → Editing |
+| Out-of-date step | "Made before a change (script changed). Run it again." | "Show <step>" |
+
 ## Empty stage and hide until usable
 
 - A project without a video (no storyboard yet) shows the empty stage in the preview, never the demo scene:

@@ -1,0 +1,113 @@
+/* The header's "Needs you" inbox (layout/NeedsYou.tsx, docs/ux/redesign-2.4.md §2.3). */
+.needs-you-slot {
+  display: contents;
+}
+
+.needs-you {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.needs-you-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.needs-you-button[aria-expanded='true'] {
+  color: var(--text);
+}
+
+/* The count: a square pixel chip, orange only when something waits. */
+.needs-you-count {
+  min-width: 18px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-1);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--panel-raised);
+}
+
+.needs-you-count.has-items {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.needs-you-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 25;
+  width: 380px;
+  max-height: min(480px, calc(100vh - 120px));
+  overflow-y: auto;
+  padding: var(--space-3);
+  background: var(--panel-raised);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-3);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.needs-you-popover:focus {
+  outline: none;
+}
+
+.needs-you-empty {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.needs-you-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.needs-you-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'subject button'
+    'text button';
+  column-gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3);
+  border-left: 2px solid var(--border);
+  background: var(--panel);
+}
+
+.needs-you-item.group-decision {
+  border-left-color: var(--accent);
+}
+
+.needs-you-item.group-problem,
+.needs-you-item.group-out-of-date {
+  border-left-color: var(--warn);
+}
+
+.needs-you-subject {
+  grid-area: subject;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.needs-you-text {
+  grid-area: text;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.needs-you-item button {
+  grid-area: button;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
