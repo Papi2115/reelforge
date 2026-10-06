@@ -69,7 +69,7 @@ export function stepOptionRows(stepId: string): readonly OptionRowId[] {
 export const OPTIONS_TITLE = 'All options';
 
 /** The section's one-line summary: where the changes go. */
-export const OPTIONS_SUMMARY = 'saved to project.json, same as Project settings';
+export const OPTIONS_SUMMARY = 'same as Project settings';
 
 /** Footer line of the section: saving now, or where the last change went. */
 export function optionsStatus(pending: number): string {

@@ -1,10 +1,12 @@
 /**
  * The pipeline steps (PLAN.md#6.8, #11.2): one button per step with its status dot and words
  * (status-view.ts), the finished steps at the top folded into one "N steps done" line (expandable,
- * remembered by the sidebar), and the status legend. A double-click opens the step like its Open.
+ * remembered by the sidebar), and the status legend. One click selects a step and opens it (its
+ * panel with all its options, like its Open button; pipeline-view.ts opensOnClick); moving the
+ * keyboard focus onto a step only selects it.
  */
 import type { JSX } from 'react';
-import type { RowView } from '../stages/pipeline-view.js';
+import { opensOnClick, type RowView } from '../stages/pipeline-view.js';
 import { foldDoneRows, foldText, statusLabel, STATUS_LEGEND } from '../stages/status-view.js';
 import { ChevronIcon } from './icons.js';
 
@@ -12,7 +14,7 @@ export interface StageListProps {
   readonly rows: readonly RowView[];
   readonly selectedId: string | undefined;
   readonly onSelect: (rowId: string) => void;
-  /** Double-click: opens the step (its panel with all its options), like its Open button. */
+  /** A click also opens the step (its panel with all its options), like its Open button. */
   readonly onOpen: (row: RowView) => void;
   readonly doneOpen: boolean;
   readonly onDoneOpen: (open: boolean) => void;
@@ -34,11 +36,12 @@ function StageRow(props: {
         className={`stage-item status-${row.status}`}
         aria-pressed={props.selected}
         title={row.detail === null ? status : `${status}: ${row.detail}`}
-        onClick={() => {
+        onFocus={() => {
           props.onSelect(row.spec.id);
         }}
-        onDoubleClick={() => {
-          if (row.open.enabled) props.onOpen(row);
+        onClick={() => {
+          props.onSelect(row.spec.id);
+          if (opensOnClick(row)) props.onOpen(row);
         }}
       >
         <span className="stage-dot" aria-hidden="true" />

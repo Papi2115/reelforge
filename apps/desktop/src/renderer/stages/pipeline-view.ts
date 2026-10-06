@@ -326,6 +326,14 @@ function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionV
     : { enabled: false, hint: 'Nothing to open yet.' };
 }
 
+/**
+ * A click on a step opens it like its Open button (the inspector idea, docs/ux/redesign-2.4.md
+ * "Answers" 1), except a file output: that opens in another program, only on Open.
+ */
+export function opensOnClick(row: RowView): boolean {
+  return row.open.enabled && row.spec.open.kind !== 'artifact';
+}
+
 const LOADING_ACTION: ActionView = { enabled: false, hint: 'Reading the project…' };
 
 /** Optional rows show only once main reports their stage. */

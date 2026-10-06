@@ -28,6 +28,22 @@ export async function showStage(page: Page, label: string): Promise<Locator> {
   return row;
 }
 
+/**
+ * Selects a step WITHOUT opening it (its Run / Redo / Open buttons show under the list): the
+ * keyboard focus selects a row, a click selects and opens it.
+ */
+export async function selectStage(page: Page, label: string): Promise<Locator> {
+  const row = await showStage(page, label);
+  await row.focus();
+  await row.and(page.locator('[aria-pressed="true"]')).waitFor();
+  return row;
+}
+
+/** One click on a step: selects it and opens its panel (like its Open button). */
+export async function openStage(page: Page, label: string): Promise<void> {
+  await (await showStage(page, label)).click({ timeout: 30_000 });
+}
+
 /** The row's text plus its tooltip (the detail line), for polling a step's status. */
 export async function stageText(page: Page, label: string): Promise<string> {
   const row = await showStage(page, label);

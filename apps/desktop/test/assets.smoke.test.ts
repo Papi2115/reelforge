@@ -33,7 +33,7 @@ import {
   stubFolderPicker,
 } from './support/electron-app.js';
 import { waitTimeout } from './support/ci-mode.js';
-import { showStage, stageText } from './support/pipeline-rows.js';
+import { openStage, selectStage, stageText } from './support/pipeline-rows.js';
 
 const STAMP = '2026-10-04T10:00:00.000Z';
 const PROPOSED = ['wikimedia:105654713', 'nasa:jsc2007e034221'];
@@ -52,7 +52,7 @@ function pipeline(): ReturnType<Page['getByRole']> {
 }
 
 async function rowAction(label: string, action: RegExp): Promise<void> {
-  await (await showStage(page, label)).click();
+  await selectStage(page, label);
   const button = pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: action });
@@ -62,7 +62,7 @@ async function rowAction(label: string, action: RegExp): Promise<void> {
 
 /** Why Redo of Scenes built is (not) available: the gating reasons are its tooltip. */
 async function scenesRedoHint(): Promise<string> {
-  await (await showStage(page, 'Scenes built')).click();
+  await selectStage(page, 'Scenes built');
   const redo = pipeline()
     .getByRole('group', { name: 'Scenes built actions' })
     .getByRole('button', { name: 'Redo' });
@@ -212,11 +212,7 @@ describe('asset research', () => {
       .toMatch(/^AssetsReview/);
     expect(await scenesRedoHint()).toContain('An asset package is waiting for your review');
 
-    await (await showStage(page, 'Assets')).click();
-    await pipeline()
-      .getByRole('group', { name: 'Assets actions' })
-      .getByRole('button', { name: 'Open' })
-      .click();
+    await openStage(page, 'Assets');
     const dialog = page.getByRole('dialog', { name: 'Assets' });
     const grid = dialog.getByRole('list', { name: 'Asset package 1' });
     await grid.waitFor();
@@ -304,11 +300,7 @@ describe('asset research', () => {
       }),
     );
     await start(dir, { version: 1, default: { scenario: 'tools-write', reply: 'Done.' } });
-    await (await showStage(page, 'Video exported')).click();
-    await pipeline()
-      .getByRole('group', { name: 'Video exported actions' })
-      .getByRole('button', { name: 'Open' })
-      .click();
+    await openStage(page, 'Video exported');
     const dialog = page.getByRole('dialog', { name: 'Export video' });
     const section = dialog.getByRole('region', { name: 'Assets and credits' });
     await section.waitFor({ timeout: 30_000 });

@@ -4,8 +4,48 @@
   margin-top: var(--space-3);
 }
 
+/* A docked panel's own column for All options, at the panel's full height (Sound, Scenes). */
+.dock-options {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dock-options > .options-section {
+  margin-top: 0;
+}
+
+.dock-columns {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.dock-columns > .doc-body {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.dock-side-options {
+  flex: 0 0 min(42%, 440px);
+  padding: var(--space-3) var(--space-4);
+  border-left: 1px solid var(--border-soft);
+}
+
 .options-section > .disclosure-toggle {
   color: var(--accent-text);
+}
+
+/* Narrow dock columns: section titles stay on one line, their summaries shorten. */
+.doc-panel.docked .disclosure-toggle {
+  white-space: nowrap;
+}
+
+.doc-panel.docked .disclosure-toggle .muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .options-section .disclosure-body {

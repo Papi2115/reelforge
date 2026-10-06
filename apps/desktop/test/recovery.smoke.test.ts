@@ -30,7 +30,7 @@ import {
 } from './support/crash-recovery.js';
 import { fixtureProject, launchApp, screenshotDir } from './support/electron-app.js';
 import { ffprobe, golden, GOLDEN, synthesizeVoiceover } from './support/pipeline-film.js';
-import { showStage } from './support/pipeline-rows.js';
+import { selectStage, showStage } from './support/pipeline-rows.js';
 import { projectMenu } from './support/project-menu.js';
 
 const profiles: string[] = [];
@@ -77,7 +77,7 @@ async function rowText(page: Page, label: string): Promise<string> {
 }
 
 async function rowAction(page: Page, label: string, action: RegExp): Promise<void> {
-  await (await showStage(page, label)).click();
+  await selectStage(page, label);
   const button = pipeline(page)
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: action });

@@ -24,7 +24,7 @@ import {
   stubFolderPicker,
   waitForProjectPreview,
 } from './support/electron-app.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage } from './support/pipeline-rows.js';
 
 const RESEARCH = [
   '# Research: Doom on a calculator',
@@ -142,12 +142,7 @@ afterAll(async () => {
 
 describe('Hook lab', () => {
   it('writes three openings, compares them and replaces the opening on confirm', async () => {
-    await (await showStage(page, 'Script written')).click();
-    await page
-      .getByRole('region', { name: 'Pipeline' })
-      .getByRole('group', { name: 'Script written actions' })
-      .getByRole('button', { name: 'Open' })
-      .click();
+    await openStage(page, 'Script written');
     const view = page.getByRole('region', { name: 'Script' });
     await view.getByRole('button', { name: 'Hook lab…' }).click();
     const lab = page.getByRole('dialog', { name: 'Hook lab' });

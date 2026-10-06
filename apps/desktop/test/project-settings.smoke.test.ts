@@ -21,7 +21,7 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage, selectStage } from './support/pipeline-rows.js';
 import { projectMenu, projectMenuButton } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
@@ -62,14 +62,9 @@ async function openDialog(): Promise<Locator> {
   return dialog;
 }
 
-/** Selects a pipeline step and presses its Open (the step's panel with all its options). */
+/** One click on a pipeline step opens its panel with all its options. */
 async function openStep(label: string): Promise<void> {
-  await (await showStage(page, label)).click({ timeout: 30_000 });
-  await page
-    .getByRole('region', { name: 'Pipeline' })
-    .getByRole('group', { name: `${label} actions` })
-    .getByRole('button', { name: 'Open' })
-    .click();
+  await openStage(page, label);
 }
 
 function voxelOnly(dialog: Locator): Locator {
@@ -277,6 +272,22 @@ describe('project settings', () => {
     await page.screenshot({
       path: path.join(screenshotDir, 'project-settings-storyboard-options-1280.png'),
     });
+    // The keyboard focus only selects a step: its panel does not replace the open one.
+    await selectStage(page, 'Sound design mixed');
+    expect(await page.getByRole('region', { name: 'Sound design' }).count()).toBe(0);
+    await storyboard.waitFor();
     await storyboard.getByRole('button', { name: 'Back to preview' }).click();
+
+    // Scenes built keeps its reports on the left and All options in a column on the right.
+    await openStep('Scenes built');
+    const scenes = page.getByRole('region', { name: 'Scenes built' });
+    await scenes
+      .getByRole('region', { name: 'All options' })
+      .getByRole('checkbox', { name: /^Continuity links between shots/ })
+      .waitFor();
+    await page.screenshot({
+      path: path.join(screenshotDir, 'project-settings-scenes-options-1280.png'),
+    });
+    await scenes.getByRole('button', { name: 'Back to preview' }).click();
   });
 });

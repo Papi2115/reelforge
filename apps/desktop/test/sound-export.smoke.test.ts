@@ -28,7 +28,7 @@ import {
   waitForProjectPreview,
 } from './support/electron-app.js';
 import { ffprobe, synthesizeVoiceover } from './support/pipeline-film.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage } from './support/pipeline-rows.js';
 
 const VIDEO_SECONDS = 33;
 const SUGGESTION = {
@@ -78,16 +78,9 @@ async function poll<T>(
   }
 }
 
-function pipeline() {
-  return page.getByRole('region', { name: 'Pipeline' });
-}
-
+/** One click on a step opens its panel (or the export dialog). */
 async function openRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
-  await pipeline()
-    .getByRole('group', { name: `${label} actions` })
-    .getByRole('button', { name: 'Open' })
-    .click();
+  await openStage(page, label);
 }
 
 /** The CLI fixture as three 11 s shots (YouTube chapters need ≥ 3 × 10 s), script approved. */

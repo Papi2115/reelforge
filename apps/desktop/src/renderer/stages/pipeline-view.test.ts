@@ -8,6 +8,7 @@ import {
 import {
   defaultRow,
   elapsedText,
+  opensOnClick,
   PIPELINE_ROWS,
   pipelineRows,
   type RowView,
@@ -265,6 +266,15 @@ describe('pipelineRows', () => {
       open: { enabled: true },
       spec: { open: { kind: 'sound' } },
     });
+    // One click opens a step's panel; a file output (Audio cleaned) opens only on Open.
+    expect(rows.filter(opensOnClick).map((view) => view.spec.id)).toEqual([
+      'script',
+      'voiceover',
+      'storyboard',
+      'scenes',
+      'sound',
+      'export',
+    ]);
     // Storyboard opens its options (and the Shots panel) before there is a storyboard.
     expect(row(rows, 'storyboard')).toMatchObject({
       open: { enabled: true, hint: 'Storyboard options, the Hook lab and the shots' },

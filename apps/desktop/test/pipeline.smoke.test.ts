@@ -18,7 +18,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
-import { showChat, showStage, stageText } from './support/pipeline-rows.js';
+import { openStage, selectStage, showChat, stageText } from './support/pipeline-rows.js';
 import {
   ffprobe,
   golden,
@@ -53,7 +53,7 @@ async function waitDone(label: string, timeout: number): Promise<void> {
 
 /** Selects a sidebar row and presses its Run (Retry / Resume) button. */
 async function runRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
+  await selectStage(page, label);
   const run = pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: /^(Run|Retry|Resume)$/ });
@@ -84,11 +84,7 @@ async function useVoxelOnlyLooks(): Promise<void> {
 }
 
 async function openRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
-  await pipeline()
-    .getByRole('group', { name: `${label} actions` })
-    .getByRole('button', { name: 'Open' })
-    .click();
+  await openStage(page, label);
 }
 
 beforeAll(async () => {

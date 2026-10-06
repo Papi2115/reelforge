@@ -4,8 +4,8 @@
  * ("Check every visual lands on its spoken word": every event of every shot against its spoken
  * word, ±150 ms). Clicking a row seeks the preview there and selects the shot; "Fix sync issues"
  * runs the sync-check review on the shots that are off. The final review (PLAN.md#11.5) shows its
- * summary and the ⚠/✗ shots left; "Run final review" starts it by hand. "All options" at the end:
- * the project.json switches that steer the scenes (OptionsSection.tsx).
+ * summary and the ⚠/✗ shots left; "Run final review" starts it by hand. "All options" in a column
+ * on the right at full height: the project.json switches that steer the scenes (OptionsSection.tsx).
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useState, type JSX } from 'react';
@@ -177,58 +177,64 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
           Back to preview
         </button>
       </div>
-      <div className="doc-body">
-        {banner !== null && (
-          <p className="shots-banner" role="status">
-            {banner}
-          </p>
-        )}
-        {notice !== null && (
-          <p className="panel-error" role="alert">
-            {notice}
-          </p>
-        )}
-        {busy && (
-          <StageProgress
-            title={progress?.title ?? 'Scenes built (queued)'}
-            step={progress === null ? undefined : `${progress.what}: ${progress.step}`}
-            percent={progress?.percent ?? null}
-            stopLabel={progress?.what === 'Building' ? 'Stop building' : 'Stop'}
-            run={running}
-            onStop={() => {
-              props.stages.stop('scenes');
-            }}
-          />
-        )}
-        <Totals reports={props.reports} built={props.built} />
-        <FinalReviewSection
-          preflight={exportPreflight(
-            props.reports?.finalReview ?? null,
-            props.reports?.scenes ?? null,
-            props.shots,
-            props.built,
+      <div className="dock-columns">
+        <div className="doc-body">
+          {banner !== null && (
+            <p className="shots-banner" role="status">
+              {banner}
+            </p>
           )}
-          progress={finalReviewProgress(running) === null ? null : 'Reviewing now: progress above.'}
-          onSeekShot={props.onSeekShot}
-        />
-        <DramaturgySection
-          refreshKey={dramaturgyKey([
-            props.reports?.finalReview?.finishedAt,
-            props.reports?.sync?.createdAt,
-            props.shots.map((shot) => shot.id).join(','),
-          ])}
-          onSeekShot={props.onSeekShot}
-        />
-        <EditingSection
-          refreshKey={[
-            props.reports?.finalReview?.finishedAt ?? '',
-            ...props.shots.map((shot) => `${shot.id}@${String(shot.t0)}`),
-          ].join('|')}
-          onSeekShot={props.onSeekShot}
-        />
-        <h3 className="section-title">Sync report</h3>
-        <SyncTable reports={props.reports} onSeekShot={props.onSeekShot} />
-        <OptionsSection step="scenes" />
+          {notice !== null && (
+            <p className="panel-error" role="alert">
+              {notice}
+            </p>
+          )}
+          {busy && (
+            <StageProgress
+              title={progress?.title ?? 'Scenes built (queued)'}
+              step={progress === null ? undefined : `${progress.what}: ${progress.step}`}
+              percent={progress?.percent ?? null}
+              stopLabel={progress?.what === 'Building' ? 'Stop building' : 'Stop'}
+              run={running}
+              onStop={() => {
+                props.stages.stop('scenes');
+              }}
+            />
+          )}
+          <Totals reports={props.reports} built={props.built} />
+          <FinalReviewSection
+            preflight={exportPreflight(
+              props.reports?.finalReview ?? null,
+              props.reports?.scenes ?? null,
+              props.shots,
+              props.built,
+            )}
+            progress={
+              finalReviewProgress(running) === null ? null : 'Reviewing now: progress above.'
+            }
+            onSeekShot={props.onSeekShot}
+          />
+          <DramaturgySection
+            refreshKey={dramaturgyKey([
+              props.reports?.finalReview?.finishedAt,
+              props.reports?.sync?.createdAt,
+              props.shots.map((shot) => shot.id).join(','),
+            ])}
+            onSeekShot={props.onSeekShot}
+          />
+          <EditingSection
+            refreshKey={[
+              props.reports?.finalReview?.finishedAt ?? '',
+              ...props.shots.map((shot) => `${shot.id}@${String(shot.t0)}`),
+            ].join('|')}
+            onSeekShot={props.onSeekShot}
+          />
+          <h3 className="section-title">Sync report</h3>
+          <SyncTable reports={props.reports} onSeekShot={props.onSeekShot} />
+        </div>
+        <div className="dock-options dock-side-options">
+          <OptionsSection step="scenes" />
+        </div>
       </div>
     </section>
   );

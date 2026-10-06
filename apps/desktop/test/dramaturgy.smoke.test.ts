@@ -19,7 +19,7 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage } from './support/pipeline-rows.js';
 import { projectMenu } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
@@ -93,13 +93,8 @@ describe('dramaturgy section', () => {
     if (app === undefined) throw new Error('the app is not running');
     await stubFolderPicker(app, dir);
     await page.getByRole('button', { name: 'Open project…' }).click();
-    await (await showStage(page, 'Scenes built')).click({ timeout: 30_000 });
-    // Selecting the row shows its actions; Open docks the Scenes built panel.
-    await page
-      .getByRole('region', { name: 'Pipeline' })
-      .getByRole('group', { name: 'Scenes built actions' })
-      .getByRole('button', { name: 'Open' })
-      .click();
+    // One click on the row docks the Scenes built panel.
+    await openStage(page, 'Scenes built');
     await section().waitFor({ timeout: 30_000 });
     await section().getByText('Reveal moments').waitFor();
     await section().getByText('Open loops:').waitFor();

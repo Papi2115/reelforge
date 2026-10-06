@@ -29,7 +29,7 @@ import {
   screenshotDir,
 } from './support/electron-app.js';
 import { ffprobe } from './support/pipeline-film.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage, selectStage, showStage } from './support/pipeline-rows.js';
 
 const DONE_ROWS = [
   'Script written',
@@ -92,7 +92,7 @@ async function waitDone(label: string, timeout: number): Promise<void> {
 }
 
 async function runRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
+  await selectStage(page, label);
   const run = pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: /^(Run|Retry|Resume)$/ });
@@ -101,11 +101,7 @@ async function runRow(label: string): Promise<void> {
 }
 
 async function openRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
-  await pipeline()
-    .getByRole('group', { name: `${label} actions` })
-    .getByRole('button', { name: 'Open' })
-    .click();
+  await openStage(page, label);
 }
 
 async function openedPaths(): Promise<string[]> {

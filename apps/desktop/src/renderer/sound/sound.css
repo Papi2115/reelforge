@@ -19,7 +19,8 @@
 
 .sound-body {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr);
+  /* Actions + report | levels, library, ducking | All options (full height). */
+  grid-template-columns: minmax(190px, 0.8fr) minmax(230px, 1fr) minmax(260px, 1.25fr);
   gap: 12px;
   padding: 8px 12px;
   overflow: hidden;

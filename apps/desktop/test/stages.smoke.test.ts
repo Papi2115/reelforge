@@ -18,7 +18,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
-import { stageRow } from './support/pipeline-rows.js';
+import { selectStage, stageRow } from './support/pipeline-rows.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const GOLDEN = path.join(
@@ -194,7 +194,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
   it('explains a blocked stage and asks before Redo', async () => {
     const pipeline = page.getByRole('region', { name: 'Pipeline' });
     await page.getByRole('button', { name: 'Back to preview' }).click();
-    await stageRow(page, 'Storyboard').click();
+    await selectStage(page, 'Storyboard');
     const actions = pipeline.getByRole('group', { name: 'Storyboard actions' });
     const run = actions.getByRole('button', { name: 'Run' });
     expect(await run.getAttribute('aria-disabled')).toBe('true');
@@ -203,7 +203,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     await run.hover();
     await shot('gating');
 
-    await stageRow(page, 'Script written').click();
+    await selectStage(page, 'Script written');
     await pipeline
       .getByRole('group', { name: 'Script written actions' })
       .getByRole('button', { name: 'Redo' })
