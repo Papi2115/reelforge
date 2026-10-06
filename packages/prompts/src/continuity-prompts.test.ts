@@ -75,7 +75,7 @@ describe('continuity link sections', () => {
       selection: 'glass (mesh at 0.42, 0.55)',
       critic: 'error clipped: title cut at the right edge',
     };
-    expect(loadPrompt('scene-fix').version).toBe(2);
+    expect(loadPrompt('scene-fix').version).toBe(3);
     expect(rendered('scene-fix', fix)).toBe(fixture('scene-fix-legacy.txt'));
     expect(rendered('scene-fix', { ...fix, continuityDirective: undefined })).toBe(
       fixture('scene-fix-legacy.txt'),

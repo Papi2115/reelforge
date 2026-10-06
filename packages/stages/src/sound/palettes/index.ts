@@ -1,9 +1,11 @@
 /**
  * Sound palette registry and lookup (PLAN.md#12.24): a shot's palette is its look's `soundPalette`
  * (kit look registry). `voxel-only` projects, shots without a look, unknown or not-yet-available
- * looks and unknown palette ids all get `voxel`, whose rules are the 1.x sound design exactly.
+ * looks and unknown palette ids all get `voxel`, whose rules are the 1.x sound design exactly. In
+ * a world's style (PLAN.md#13.6) every shot sounds in a palette of that world: its look's, else the
+ * world's own (`World.soundPalette`), never voxel.
  */
-import { getLook, type Look } from '@reelforge/kit';
+import { getLook, WORLDS, type Look } from '@reelforge/kit';
 import { SFX_CATEGORY, type SfxRecipe } from '@reelforge/pipeline';
 import {
   shotLook,
@@ -57,6 +59,14 @@ export interface PaletteOptions {
   readonly lookMode?: LookMode | undefined;
   /** The kit's looks (tests pass their own). */
   readonly looks?: readonly Look[] | undefined;
+  /** The project's style: a world's style falls back to the world's palette. */
+  readonly style?: string | undefined;
+}
+
+/** The sound palette of a world's style (undefined for the built-in styles). */
+export function worldPalette(style: string | undefined): SoundPalette | undefined {
+  const world = WORLDS.find((entry) => entry.id === style);
+  return world === undefined ? undefined : getSoundPalette(world.soundPalette);
 }
 
 /** The palette a shot sounds in (see the module comment). */
@@ -64,9 +74,14 @@ export function paletteForShot(
   shot: Pick<StoryboardShot, 'look'>,
   options: PaletteOptions = {},
 ): SoundPalette {
-  if ((options.lookMode ?? 'voxel-only') === 'voxel-only') return VOXEL_PALETTE;
+  const world = worldPalette(options.style);
+  if (world === undefined && (options.lookMode ?? 'voxel-only') === 'voxel-only') {
+    return VOXEL_PALETTE;
+  }
   const look = getLook(shotLook(shot), options.looks);
-  return getSoundPalette(look?.soundPalette) ?? VOXEL_PALETTE;
+  const own = getSoundPalette(look?.soundPalette);
+  if (world === undefined) return own ?? VOXEL_PALETTE;
+  return own !== undefined && own.world === world.world ? own : world;
 }
 
 /** Palette per shot id. */

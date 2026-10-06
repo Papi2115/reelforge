@@ -63,6 +63,12 @@ export interface StageSettings {
   readonly scenes: SceneSettings;
   /** Generated background music per act in the sound-cues stage (default on). */
   readonly music: { readonly enabled: boolean };
+  /**
+   * Treat experimental worlds as shipped (PLAN.md#13.6, worlds.ts): a project in such a world's
+   * style gets the world's looks, prompts and checks. Absent = only shipped worlds. Shipping a
+   * world (`experimental: false` on it and its looks) needs no setting.
+   */
+  readonly experimentalWorlds?: boolean;
 }
 
 export const DEFAULT_SCENE_SETTINGS: SceneSettings = {

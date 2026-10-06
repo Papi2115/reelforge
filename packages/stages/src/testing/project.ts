@@ -33,6 +33,8 @@ export interface CreateTestProjectOptions {
    * 2.2 script their Claude turns without the tension turn; `auto` = the real template.
    */
   readonly tensionMap?: 'auto' | 'off';
+  /** Style of the new project (default: the template's); a world's brings its defaults. */
+  readonly style?: string;
 }
 
 export class TestProjects {
@@ -88,6 +90,7 @@ export class TestProjects {
       title: 'A rainbow in a glass of water',
       language: 'en',
       seed: 1672,
+      ...(options.style === undefined ? {} : { style: options.style }),
       git: this.git,
       templateDir: options.tensionMap === 'auto' ? TEMPLATE_DIR : this.templateWithoutTension,
     });

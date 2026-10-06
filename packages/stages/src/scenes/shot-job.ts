@@ -19,7 +19,8 @@ import {
 import { sceneContinuityVars } from '../continuity.js';
 import { sceneDramaturgyVars } from '../dramaturgy.js';
 import { readProjectText } from '../files.js';
-import { sceneLookVars, styleLooks } from '../looks.js';
+import { sceneLookVars } from '../looks.js';
+import { fixWorldPromptVars, sceneWorldPromptVars } from '../worlds.js';
 import { projectPropNames } from '../props/builder.js';
 import { provideSceneRoles } from '../roles/scene-roles.js';
 import { render } from '../stages/repair.js';
@@ -117,7 +118,9 @@ async function buildTurn(
     shotWords: shotWords(job, shot),
     neighbours: neighbours(job, shot),
     styleId: job.styleId,
-    ...sceneLookVars(job.lookMode, shot, styleLooks(job.styleId)),
+    ...sceneLookVars(job.lookMode, shot, job.looks),
+    // A world's wording and craft brief (PLAN.md#13.6); built-in styles: nothing.
+    ...sceneWorldPromptVars(job.world),
     annotationPlan: annotationPlanText(shot),
     ...sceneDramaturgyVars(job.dramaturgy, job.shots, shot),
     ...sceneContinuityVars(job.shots, shot),
@@ -163,6 +166,8 @@ async function fixTurn(
     ...(findings.length === 0 ? {} : { critic: findings.map(formatFinding).join('\n') }),
     // A fix keeps the shot's continuity link intact (PLAN.md#13.2); no link = the v1 text.
     ...sceneContinuityVars(job.shots, shot),
+    // ...and its world's craft (PLAN.md#13.6); built-in styles: nothing.
+    ...fixWorldPromptVars(job.world, shot, job.looks),
   });
   if (!prompt.ok) return prompt;
   const turn = await job.ctx.claude({

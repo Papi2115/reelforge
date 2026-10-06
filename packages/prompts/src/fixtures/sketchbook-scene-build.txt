@@ -1,0 +1,27 @@
+Build the scene module for ONE shot. Follow `CLAUDE.md` in this project exactly (scene contract, determinism, kit, self-QA).
+
+Shot: {"id":"s02_sun","t0":3,"t1":7,"treatment":"metaphor-object","look":"sketch-story"}
+Narration during this shot (with word times): [{"text":"sun","t":3.2,"tEnd":3.6}]
+World: Sketchbook (style `sketchbook`; its craft brief is below). Neighbouring shots (for continuity, do not edit): []
+Look of this shot: `sketch-story`. In this world every look draws in the same notebook (paper stocks, felt-tip, ballpoint, pencils, one red pen, hand lettering, line boil): build in the look, never imitate other effects or bring outside colours. How to build in it:
+Look `sketch-story` (world Sketchbook, A roll): one notebook page per shot.
+Craft brief (Sketchbook; binding, docs/worlds/QUALITY.md):
+- First, before any code, write a comment: `// focal: <the one thing read first> | traces: <three human traces>`; build toward it.
+- Do: ONE focal point, off-centre, with empty paper around it; red ink only for the correction on the point; a still beat (>= 0.4 s) before the red; crude figures (loop heads, stick limbs, faces that react); holds and staggers of different lengths; at least three traces: a crossed-out word with its correction, a two-stroke arrow, a pencil fill out of the lines, an uneven underline, a margin doubt in pencil, tape at an angle, a coffee ring, a smudge.
+- Don't: centred or symmetric layouts, decoration without meaning (sparkles, floating shapes, lines that point at nothing), rows of icons, uniform gaps or timings, constant motion, more than 6 elements, a second accent or a second loud word, slick polished drawings, the hand parked over the subject.
+- Text: every on-screen word comes from the narration or the research notes (real numbers with units, real names and dates); never invent labels, figures or gibberish. Write it with `page.write`, never `ctx.text` or `ctx.annotate`.
+- References (docs/worlds/sketchbook-v2/shots/): s2-t6.0.png one idea, open paper; s4-t7.4.png red +1 DAY on the point, a pencil doubt; s3-t7.9.png boxes fill, one red result; s1-t6.0.png one marker word, then the red correction.
+
+Annotation plan from the storyboard (hints, not orders): draw each by hand on the page (`page.write`, `page.arrow`, `page.loop`, `page.underline`, `page.crossOut`), timed to its spoken phrase (`at: 'the phrase'`), on the named target, never with `ctx.annotate` or `ctx.text`. Adapt the form, or drop a mark, when it does not fit the picture (it would cover the subject or clutter the frame).
+- "the Sun" (name): pin on sun, text "SUN"
+
+
+
+
+Steps:
+1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.
+2. Write `scenes/s02_sun.js`: `meta`, `build`, `update`. Sync key moments to words with `ctx.anchor("phrase")`; register matching `sfx.at(...)`. Let each drawing land and hold (a still beat of at least 0.4 s), the hand clear of the subject; move the camera only to reveal or to push toward the focal point. Text inside the safe area.
+3. Self-QA loop: `reelforge lint` → `reelforge frames --at` (start, key anchor moments, end−0.1) → Read the PNGs → fix → `reelforge anchors --shot s02_sun`. Max 2 fix iterations.
+4. Draw everything the narration needs by hand on the page (strokes, figures, sheets, inserts): this world has no props to build, so never end your reply with a `MISSING:` line.
+
+Reply in ≤5 lines: what the shot shows, QA result (lint/frames/anchors).

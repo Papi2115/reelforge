@@ -25,7 +25,6 @@ import {
 import {
   assignTransitionStyles,
   DEFAULT_MAX_ASSET_NEEDS,
-  projectLookMode,
   projectResearchMode,
   projectShotsPerMinute,
   projectTensionMap,
@@ -36,7 +35,6 @@ import {
   STORYBOARD_REPORT_VERSION,
   storyboardReportSchema,
   wordsFileSchema,
-  type LookMode,
   type TensionFile,
   type WordsFile,
 } from '@reelforge/shared';
@@ -44,7 +42,16 @@ import { loadCharacterSettings, storyboardCharacterOptions } from '../characters
 import { applyStoryboardContinuity, storyboardContinuityVars } from '../continuity.js';
 import { finishStoryboardDramaturgy, prepareStoryboardDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
-import { storyboardLookOptions, storyboardLookVars, styleLooks } from '../looks.js';
+import { storyboardLookOptions, storyboardLookVars } from '../looks.js';
+import {
+  assignWorldTransitions,
+  lookSetup,
+  storyboardWorldOptions,
+  storyboardWorldPromptVars,
+  worldScope,
+  worldTransitionOptions,
+  type LookSetup,
+} from '../worlds.js';
 import { runTensionProposal, storyboardTension, storyboardTensionVars } from '../tension.js';
 import { FILES, REPORTS } from '../paths.js';
 import {
@@ -90,7 +97,7 @@ function fileCheck(
 async function validateFile(
   ctx: StageContext,
   words: WordsFile,
-  lookMode: LookMode,
+  setup: LookSetup,
   research: boolean,
   tension: TensionFile | undefined,
   characters: CharacterCheckOptions,
@@ -108,10 +115,9 @@ async function validateFile(
   }
   const report = validateStoryboard(text.value, {
     words,
-    ...storyboardLookOptions(
-      lookMode,
-      styleLooks(project.status === 'ok' ? project.value.style : undefined),
-    ),
+    ...storyboardLookOptions(setup.lookMode, setup.looks),
+    // A world names only its page-native transitions (PLAN.md#13.6); built-in styles: nothing.
+    ...storyboardWorldOptions(setup),
     assetNeeds: { research },
     ...withAssetIds(await currentAssetIds(ctx.projectDir)),
     ...(tension === undefined ? {} : { tension }),
@@ -131,14 +137,14 @@ async function validateFile(
 async function checkStoryboard(
   ctx: StageContext,
   words: WordsFile,
-  lookMode: LookMode,
+  setup: LookSetup,
   research: boolean,
   tension: TensionFile | undefined,
   characters: CharacterCheckOptions,
   interrupts?: InterruptCheckOptions,
 ): Promise<OutputCheck<StoryboardOutput>> {
   const validate = (): Promise<FileCheck> =>
-    validateFile(ctx, words, lookMode, research, tension, characters, interrupts);
+    validateFile(ctx, words, setup, research, tension, characters, interrupts);
   const first = await validate();
   if (first.value === undefined || !onlyAnnotationCountErrors(first.issues)) return first;
   const locked = await readLockedShots(ctx.projectDir);
@@ -164,13 +170,20 @@ function withAssetIds(ids: string[] | undefined): { assetIds?: string[] } {
   return ids === undefined ? {} : { assetIds: ids };
 }
 
-/** `mixed` projects: fills the transition-kit styles the storyboard left out (ADR-011). */
+/**
+ * `mixed` projects: fills the transition-kit styles the storyboard left out (ADR-011); a world's
+ * project gets the world's page-native styles instead (PLAN.md#13.6).
+ */
 async function assignStyles(
   ctx: StageContext,
   storyboard: StoryboardOutput,
   seed: number,
+  setup: LookSetup,
 ): Promise<Result<StoryboardOutput, StageError>> {
-  const assigned = assignTransitionStyles(storyboard.shots, seed);
+  const assigned =
+    setup.world === undefined
+      ? assignTransitionStyles(storyboard.shots, seed)
+      : assignWorldTransitions(storyboard.shots, worldTransitionOptions(setup.world), seed);
   if (assigned.changed.length === 0) return ok(storyboard);
   return writeProjectJson(ctx.projectDir, FILES.storyboard, storyboardOutputSchema, {
     ...storyboard,
@@ -199,7 +212,9 @@ async function run(
       : ok({ file: undefined, warnings: [], repairs: 0 });
   if (!tension.ok) return tension;
   const curve = tension.value.file;
-  const lookMode = projectLookMode(project.value);
+  // Look mode, looks and world (PLAN.md#13.6): a world's project always mixes its own looks.
+  const setup = lookSetup(project.value, worldScope(ctx.settings));
+  const lookMode = setup.lookMode;
   const research = projectResearchMode(project.value) !== 'off';
   // Pattern interrupts and open loops (PLAN.md#12.25-12.26); both off = nothing changes.
   const drama = await prepareStoryboardDramaturgy(
@@ -217,7 +232,8 @@ async function run(
   const narrationEnd = words.value.words.at(-1)?.tEnd ?? 0;
   const prompt = render('storyboard', {
     styleId: project.value.style,
-    ...storyboardLookVars(lookMode, styleLooks(project.value.style), narrationEnd + 0.5),
+    ...storyboardLookVars(lookMode, setup.looks, narrationEnd + 0.5, setup.world !== undefined),
+    ...storyboardWorldPromptVars(setup),
     ...storyboardTensionVars(
       curve,
       words.value,
@@ -255,7 +271,7 @@ async function run(
       checkStoryboard(
         ctx,
         words.value,
-        lookMode,
+        setup,
         research,
         curve,
         characterChecks,
@@ -278,7 +294,7 @@ async function run(
   if (!linked.ok) return linked;
   const styled =
     lookMode === 'mixed'
-      ? await assignStyles(ctx, linked.value, project.value.seed)
+      ? await assignStyles(ctx, linked.value, project.value.seed, setup)
       : ok(linked.value);
   if (!styled.ok) return styled;
   // Beat sync (PLAN.md#12.21): snaps unlocked cuts to the beat grid, validated again; off = no-op.
@@ -292,7 +308,7 @@ async function run(
       checkStoryboard(
         ctx,
         words.value,
-        lookMode,
+        setup,
         research,
         curve,
         characterChecks,

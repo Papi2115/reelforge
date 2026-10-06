@@ -67,7 +67,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 15, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 16, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -98,7 +98,7 @@ describe('renderPrompt', () => {
   it('lists the variables of each prompt', () => {
     expect(promptVariables('scene-fix')).toEqual({
       required: ['scope', 'shotIds', 'request'],
-      optional: ['selection', 'critic', 'continuityDirective'],
+      optional: ['selection', 'critic', 'craftBrief', 'world', 'lookId', 'continuityDirective'],
     });
     expect(promptVariables('sound-cues')).toEqual({ required: ['styleId'], optional: ['acts'] });
   });

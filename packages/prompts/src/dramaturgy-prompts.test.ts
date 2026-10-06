@@ -106,6 +106,6 @@ describe('storyboard and scene-build prompts', () => {
     expect(text).toContain('`ctx.camera.dollyZoom\nA camera interrupt must stay readable');
     expect(text).toContain('about unlabelled or stronger moves.\nOpen loop: reveal on "violet".\n');
     expect(text).not.toMatch(TAG);
-    expect(loadPrompt('scene-build').version).toBe(14);
+    expect(loadPrompt('scene-build').version).toBe(15);
   });
 });

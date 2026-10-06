@@ -9,7 +9,8 @@ import { ok, type Result } from '@reelforge/claude-bridge';
 import { criticCharacterVars } from '@reelforge/prompts';
 import type { CriticVerdictRecord, QaFinding, StoryboardShot } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
-import { criticLookVars, styleLooks } from '../looks.js';
+import { criticLookVars } from '../looks.js';
+import { criticWorldPromptVars } from '../worlds.js';
 import { FILES } from '../paths.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
@@ -148,9 +149,12 @@ export async function qaRound(
       intent: shot.intent,
       styleId: job.styleId,
       lookVars: {
-        ...criticLookVars(job.lookMode, shot, styleLooks(job.styleId)),
+        ...criticLookVars(job.lookMode, shot, job.looks),
         ...criticCharacterVars(job.characters, shot),
+        // A world's checklist: the critic names the focal point and the traces (PLAN.md#13.6).
+        ...criticWorldPromptVars(job.world),
       },
+      craft: job.world !== undefined,
       render,
       sheetFile: qaSheetFile(shot.id, label),
     },

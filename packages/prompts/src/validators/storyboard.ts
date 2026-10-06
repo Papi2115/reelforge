@@ -46,6 +46,8 @@ import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from
 import { checkShotRange } from './shot-range.js';
 import { checkTensionTempo } from './tension.js';
 import { checkWowTransitions } from './wow.js';
+import { worldTransitionIssues } from './world-transitions.js';
+import type { WorldTransitionOption } from '../worlds/types.js';
 
 /** The storyboard file plus the prompt's optional top-level `missingProps` list. */
 export const storyboardOutputSchema = storyboardFileSchema.extend({
@@ -284,6 +286,7 @@ function styleIssues(
 function transitionIssues(
   shots: readonly StoryboardShot[],
   rules: StoryboardRules,
+  world: readonly WorldTransitionOption[] | undefined,
 ): ValidationIssue[] {
   return shots.flatMap((shot, index) => {
     const transition = shot.transitionIn;
@@ -295,6 +298,9 @@ function transitionIssues(
     const { duration, style } = transition;
     // A continuity link's transition comes from the link (continuity.ts checks it).
     if (isContinuityStyle(style)) return [];
+    // A world names only its own page-native styles (world-transitions.ts, PLAN.md#13.6).
+    if (style !== undefined && world !== undefined)
+      return worldTransitionIssues(style, duration, world, where);
     if (style !== undefined) return styleIssues(shot, previous, style, duration, where);
     return durationIssue(
       transition.type,
@@ -376,6 +382,11 @@ export interface StoryboardCheckOptions {
    * exactly as before.
    */
   readonly shotsPerMinute?: ShotsPerMinute;
+  /**
+   * A world's page-native transitions (PLAN.md#13.6): the only styles its storyboard may name.
+   * Absent = the transition kit's styles (every built-in style).
+   */
+  readonly worldTransitions?: readonly WorldTransitionOption[];
 }
 
 /** Storyboard rules of a range (`StoryboardCheckOptions.rules` still win over them). */
@@ -407,7 +418,7 @@ export function checkStoryboard(
     ...timelineIssues(shots, rules),
     ...treatmentIssues(shots, rules, ranged),
     ...identityIssues(shots),
-    ...transitionIssues(shots, rules),
+    ...transitionIssues(shots, rules, options.worldTransitions),
     ...checkWowTransitions(shots),
     ...checkContinuity(shots),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),

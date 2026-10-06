@@ -18,10 +18,14 @@ import {
 
 /**
  * The looks a project of this style offers (PLAN.md#13.1, ADR-029): for the built-in styles
- * exactly `listLooks()`; a world's style is exclusive, only that world's looks.
+ * exactly `listLooks()`; a world's style is exclusive, only that world's looks (an experimental
+ * world's only with `scope.experimental`, worlds.ts).
  */
-export function styleLooks(style: string | undefined): Look[] {
-  return listLooks(LOOKS, { style });
+export function styleLooks(
+  style: string | undefined,
+  scope: { readonly experimental?: boolean | undefined } = {},
+): Look[] {
+  return listLooks(LOOKS, scope.experimental === true ? { style, experimental: true } : { style });
 }
 
 /** A look as the app's settings list it (`project-settings` dialog). */
@@ -80,12 +84,14 @@ export function availableTransitionStyles(looks: readonly Look[]): TransitionSty
 /**
  * Storyboard prompt variables: none in `voxel-only`; transition styles and the wow transitions
  * (ADR-028) once 2+ looks exist, with the film's budget of non-cut and wow transitions when its
- * length (`durationS`) is known.
+ * length (`durationS`) is known. A world (`world`, PLAN.md#13.6) brings its own transitions
+ * (worlds.ts), so the transition kit's styles and the wow transitions are left out.
  */
 export function storyboardLookVars(
   mode: LookMode,
   looks: readonly Look[] = listLooks(),
   durationS?: number,
+  world = false,
 ): Readonly<Record<string, string | boolean>> {
   if (mode === 'voxel-only') return {};
   const budget =
@@ -102,8 +108,12 @@ export function storyboardLookVars(
     ...(looks.length >= 2
       ? {
           multiLook: true,
-          transitions: availableTransitionStyles(looks).map(transitionLine).join('\n'),
-          wowTransitions: WOW_STYLE_LIST.map(wowTransitionLine).join('\n'),
+          ...(world
+            ? {}
+            : {
+                transitions: availableTransitionStyles(looks).map(transitionLine).join('\n'),
+                wowTransitions: WOW_STYLE_LIST.map(wowTransitionLine).join('\n'),
+              }),
           ...budget,
         }
       : { singleLook: true }),
@@ -151,6 +161,13 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
     'Flat 2D: clean flat motion graphics on a solid or patterned field (shapes, pixel icons on badges, cards, bars, gauges, bold pixel-caps words); at most ~6 elements, all inside the safe margin, nothing overlapping or cut off.',
   whiteboard:
     'Whiteboard: hand-drawn marker lines, doodles and handwritten pixel caps on a framed off-white whiteboard (a hand may be drawing); drawings stay inside the board clear of the tray, labels whole and not crossing each other.',
+  // Sketchbook (PLAN.md#13.6); the world's craft checklist comes with criticWorldVars.
+  'sketch-story':
+    'Sketch story: one notebook page drawn by a visible hand with a felt-tip: crude stick people with props and reacting faces, the named thing, coloured-pencil fills out of the lines, hand-lettered words, one red correction on the point; the hand never covers the subject.',
+  'sketch-graph':
+    'Sketch graph: blue ballpoint maths and evidence on graph paper, a kraft envelope back or a clipped index card: sums worked line by line, ruled charts with labelled axes, boxes that fill, one red result; numbers whole and readable.',
+  'sketch-loud':
+    'Sketch loud: one huge hand-lettered marker word or number on a lined page, crooked and off-centre with empty paper around it, the red pen correcting it, a flipbook riffled in the corner or a sticky note slapped on; never two loud words.',
   'paper-cutout':
     'Paper cut-out: flat paper pieces with torn or cut edges on layered depth strips (sky bands, hills, city, a toy-theatre room) with soft dithered drop shadows, a jointed paper puppet, pixel-caps signs and title strips; seen straight on, no perspective close-ups; text whole and not over the puppet.',
 };

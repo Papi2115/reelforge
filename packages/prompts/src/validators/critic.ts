@@ -27,10 +27,44 @@ export type CriticReply = z.infer<typeof criticReplySchema>;
 
 /** The prompt asks for notes of at most this many words. */
 export const CRITIC_NOTE_MAX_WORDS = 15;
+/** ...or this many in a world, where an `ok` note names the focal point and the traces. */
+export const CRITIC_CRAFT_NOTE_MAX_WORDS = 25;
+/** Human traces a world frame needs (QUALITY.md §2). */
+export const MIN_CRAFT_TRACES = 3;
 
 export interface CriticCheckOptions {
   /** Image paths the critic was shown; each needs exactly one verdict. */
   readonly expectedPaths?: readonly string[];
+  /**
+   * A world's craft check (PLAN.md#13.6): an `ok` note must name the focal point and at least
+   * three human traces (`craft-note` warning otherwise; the scene stage fails such a frame).
+   */
+  readonly craft?: boolean;
+}
+
+/** What a world critic found in an `ok` frame: `focal: <thing>; traces: <a>, <b>, <c>`. */
+export interface CraftNote {
+  readonly focal: string;
+  readonly traces: readonly string[];
+}
+
+const CRAFT_NOTE = /focal\s*:\s*(.+?)\s*[;|]\s*traces?\s*:\s*(.+)$/i;
+
+/** The focal point and traces of a craft note; undefined when the note names no focal point. */
+export function parseCraftNote(note: string): CraftNote | undefined {
+  const match = CRAFT_NOTE.exec(note.trim());
+  if (match === null) return undefined;
+  const [, focal = '', list = ''] = match;
+  const traces = list
+    .split(/,|;|\band\b/)
+    .map((trace) => trace.trim().replace(/\.$/, ''))
+    .filter((trace) => trace !== '');
+  return { focal, traces };
+}
+
+/** True when a note names a focal point and at least `MIN_CRAFT_TRACES` traces. */
+export function isCraftNote(note: string): boolean {
+  return (parseCraftNote(note)?.traces.length ?? 0) >= MIN_CRAFT_TRACES;
 }
 
 const normalize = (value: string): string => value.replaceAll('\\', '/').toLowerCase();
@@ -66,9 +100,20 @@ export function validateCriticReply(
   if (!parsed.success)
     return report<CriticReply>(undefined, [...json.issues, ...schemaIssues(parsed.error)]);
   const issues = [...json.issues];
+  const maxWords = options.craft === true ? CRITIC_CRAFT_NOTE_MAX_WORDS : CRITIC_NOTE_MAX_WORDS;
   parsed.data.frames.forEach((frame, index) => {
+    if (options.craft === true && frame.verdict === 'ok' && !isCraftNote(frame.note)) {
+      issues.push(
+        issue(
+          'warning',
+          'craft-note',
+          `an ok frame must name its focal point and ${String(MIN_CRAFT_TRACES)} human traces ("focal: …; traces: …")`,
+          `frames[${String(index)}].note`,
+        ),
+      );
+    }
     const words = frame.note.split(/\s+/).filter((word) => word !== '').length;
-    if (words > CRITIC_NOTE_MAX_WORDS) {
+    if (words > maxWords) {
       issues.push(
         issue(
           'warning',

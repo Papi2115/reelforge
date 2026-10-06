@@ -106,7 +106,7 @@ export async function designSound(
     musicFiles: userMusic,
     music,
     durationS,
-    palettes: { lookMode: input.lookMode },
+    palettes: { lookMode: input.lookMode, style: input.styleId },
     tension: input.tension,
     ...(input.beats === undefined ? {} : { beats: input.beats }),
   });

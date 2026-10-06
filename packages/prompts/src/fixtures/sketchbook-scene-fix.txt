@@ -1,0 +1,15 @@
+Fix or change an existing scene according to the request. Follow `CLAUDE.md` (contract, determinism, self-QA).
+
+Scope: Shot (Selection | Shot | Whole video) · Shot(s): s02_sun
+
+Request: QA fix 1/2 for shot s02_sun.
+Critic findings to address: error critic: craft: no focal point
+World: Sketchbook; this shot is in look `sketch-story` (`reelforge kit-docs sketch-story`). Keep the world's craft while fixing:
+Craft brief (Sketchbook; binding, docs/worlds/QUALITY.md):
+- First, before any code, write a comment: `// focal: <the one thing read first> | traces: <three human traces>`; build toward it.
+- Do: ONE focal point, off-centre, with empty paper around it; red ink only for the correction on the point; a still beat (>= 0.4 s) before the red; crude figures (loop heads, stick limbs, faces that react); holds and staggers of different lengths; at least three traces: a crossed-out word with its correction, a two-stroke arrow, a pencil fill out of the lines, an uneven underline, a margin doubt in pencil, tape at an angle, a coffee ring, a smudge.
+- Don't: centred or symmetric layouts, decoration without meaning (sparkles, floating shapes, lines that point at nothing), rows of icons, uniform gaps or timings, constant motion, more than 6 elements, a second accent or a second loud word, slick polished drawings, the hand parked over the subject.
+- Text: every on-screen word comes from the narration or the research notes (real numbers with units, real names and dates); never invent labels, figures or gibberish. Write it with `page.write`, never `ctx.text` or `ctx.annotate`.
+- References (docs/worlds/sketchbook-v2/shots/): s2-t6.0.png one idea, open paper; s4-t7.4.png red +1 DAY on the point, a pencil doubt; s3-t7.9.png boxes fill, one red result; s1-t6.0.png one marker word, then the red correction.
+
+Make the smallest edit that satisfies the request in the given scope. Re-run lint, re-render the affected frames, Read them and confirm the problem is gone and nothing else broke. Max 2 iterations. Reply in ≤4 lines: what changed, what you verified.

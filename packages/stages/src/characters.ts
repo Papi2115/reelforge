@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { isWorldStyle } from '@reelforge/kit';
 import type { CharacterCheckOptions, CharacterSettings } from '@reelforge/prompts';
 import {
   CAST_FILE_ID_PATTERN,
@@ -28,11 +29,15 @@ export async function builtRoleIds(projectDir: string): Promise<string[]> {
     .sort();
 }
 
-/** The project's characters, mascot in effect and built roles (read once per run). */
+/**
+ * The project's characters, mascot in effect and built roles (read once per run). A world's style
+ * (PLAN.md#13.6) draws its own heroes: no character pack and no mascot, whatever project.json says.
+ */
 export async function loadCharacterSettings(
   projectDir: string,
-  project: Pick<ProjectFile, 'characters' | 'mascot'>,
+  project: Pick<ProjectFile, 'characters' | 'mascot'> & { readonly style?: string | undefined },
 ): Promise<CharacterSettings> {
+  if (isWorldStyle(project.style)) return { characters: 'classic', mascot: 'none', builtRoles: [] };
   const characters = projectCharacters(project);
   return {
     characters,

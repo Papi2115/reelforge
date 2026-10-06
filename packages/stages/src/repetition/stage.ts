@@ -9,7 +9,6 @@
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { CuesFileSchema } from '@reelforge/pipeline';
 import {
-  projectLookMode,
   projectRepetitionControl,
   REPETITIONS_FILE,
   REPETITIONS_REPORT_FILE,
@@ -32,6 +31,7 @@ import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
 import type { Loaded } from '../snapshot.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
+import { effectiveLookMode } from '../worlds.js';
 import { stageError, type StageError, type StageRequest } from '../types.js';
 import { countItems, findRepetitions, type RepetitionFilm } from './analyse.js';
 import { applySfxChanges, applyTransitionChanges, type Applied } from './apply.js';
@@ -75,7 +75,7 @@ export async function loadRepetitionFilm(
     cues: cues?.sfx ?? [],
     words: words?.words ?? [],
     locked: locked.value,
-    lookMode: projectLookMode(project),
+    lookMode: effectiveLookMode(project),
     seed: project.seed,
   });
 }
