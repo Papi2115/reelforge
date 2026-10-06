@@ -1,4 +1,8 @@
-/** Settings of the open project in the renderer: loaded on open, changed through main. */
+/**
+ * Settings of the open project in the renderer: loaded on open, changed through main. Several
+ * controllers may be mounted at once (Project settings and a step's "All options" section): a
+ * change one of them saved is passed to the others, so every switch shows the file's state.
+ */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   LookSummary,
@@ -9,6 +13,10 @@ import { errorMessage, rendererLog } from '../log.js';
 import { withProjectSettingsPatch } from './project-settings-view.js';
 
 const log = rendererLog('project-settings');
+
+type SavedListener = (settings: ProjectSettings) => void;
+/** The mounted controllers, told about each other's saved changes. */
+const savedListeners = new Set<SavedListener>();
 
 export interface ProjectSettingsController {
   /** Undefined while loading. */
@@ -48,6 +56,18 @@ export function useProjectSettings(): ProjectSettingsController {
 
   useEffect(reload, [reload]);
 
+  /** This controller's listener (it does not hear its own changes). */
+  const listener = useRef<SavedListener>((next) => {
+    setSettings(next);
+  });
+  useEffect(() => {
+    const own = listener.current;
+    savedListeners.add(own);
+    return () => {
+      savedListeners.delete(own);
+    };
+  }, []);
+
   const update = useCallback(
     (patch: ProjectSettingsPatch): void => {
       // Optimistic: the control follows the click at once; main's answer settles it.
@@ -68,6 +88,9 @@ export function useProjectSettings(): ProjectSettingsController {
             }
             setError(undefined);
             if (change === latest.current) setSettings(result.settings);
+            for (const other of savedListeners) {
+              if (other !== listener.current) other(result.settings);
+            }
           },
           (reason: unknown) => {
             log.error(`updateProjectSettings failed: ${errorMessage(reason)}`);

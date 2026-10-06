@@ -68,6 +68,7 @@ describe('withProjectSettingsPatch', () => {
       mascot: 'none',
       shotsPerMinute: null,
       fasterChecks: false,
+      continuityLinks: false,
     };
     expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
       ...settings,
@@ -101,6 +102,10 @@ describe('withProjectSettingsPatch', () => {
     expect(withProjectSettingsPatch(calm, { fasterChecks: false }).shotsPerMinute).toEqual({
       min: 3,
       max: 5,
+    });
+    expect(withProjectSettingsPatch(settings, { continuityLinks: true })).toEqual({
+      ...settings,
+      continuityLinks: true,
     });
   });
 });

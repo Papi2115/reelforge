@@ -1,6 +1,6 @@
 /**
  * The document shown over (or docked under) the preview (PLAN.md#6.3): the brief and script, the
- * voiceover, the words, Scenes built and Sound design. Split out of Workspace.tsx.
+ * voiceover, the words, Storyboard, Scenes built and Sound design. Split out of Workspace.tsx.
  */
 import type { StoryboardShot, WordsFile } from '@reelforge/shared';
 import type { JSX } from 'react';
@@ -9,6 +9,7 @@ import type { FileState } from '../../shared/snapshot-contract.js';
 import type { StageReports } from '../../shared/voiceover-contract.js';
 import type { ProjectSummary } from '../../shared/project-contract.js';
 import { ScenesPanel } from '../stages/ScenesPanel.js';
+import { StoryboardPanel } from '../stages/StoryboardPanel.js';
 import { builtShotIds } from '../stages/scenes-view.js';
 import { voiceoverFile } from '../stages/vo-view.js';
 import { ScriptPanel, type ScriptTab } from '../stages/ScriptPanel.js';
@@ -24,8 +25,16 @@ export type CenterDocumentKind =
   | { readonly kind: 'script'; readonly tab: ScriptTab }
   | { readonly kind: 'words' }
   | { readonly kind: 'voiceover' }
+  | { readonly kind: 'storyboard' }
   | { readonly kind: 'scenes' }
   | { readonly kind: 'sound' };
+
+/** Documents docked under the preview (the preview stays visible above them). */
+export function isDockedDocument(document: CenterDocumentKind | null): boolean {
+  return (
+    document?.kind === 'storyboard' || document?.kind === 'scenes' || document?.kind === 'sound'
+  );
+}
 
 export interface CenterDocumentProps {
   readonly document: CenterDocumentKind;
@@ -58,6 +67,8 @@ export function CenterDocument(props: CenterDocumentProps): JSX.Element {
           onClose={onClose}
         />
       );
+    case 'storyboard':
+      return <StoryboardPanel shots={props.shots} files={props.files} onClose={onClose} />;
     case 'scenes':
       return (
         <ScenesPanel

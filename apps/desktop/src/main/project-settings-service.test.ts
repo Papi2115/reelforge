@@ -75,6 +75,7 @@ describe('effectiveProjectSettings', () => {
       mascot: 'none',
       shotsPerMinute: null,
       fasterChecks: false,
+      continuityLinks: false,
     });
     expect(
       effectiveProjectSettings({
@@ -97,6 +98,7 @@ describe('effectiveProjectSettings', () => {
       mascot: 'none',
       shotsPerMinute: null,
       fasterChecks: false,
+      continuityLinks: false,
     });
   });
 });
@@ -136,6 +138,7 @@ describe('describeSettingsChange', () => {
       mascot: 'none',
       shotsPerMinute: null,
       fasterChecks: false,
+      continuityLinks: false,
     };
     expect(
       describeSettingsChange(before, { ...before, lookMode: 'mixed', ambientVariation: true }),
@@ -170,6 +173,7 @@ describe('describeSettingsChange', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       }),
     ).toBe('Project settings: pattern interrupts on, reveal moments on');
     expect(
@@ -208,6 +212,20 @@ describe('describeSettingsChange', () => {
       'Project settings: scenes per minute no limit',
     );
   });
+
+  it('sets and removes the continuity links switch (PLAN.md#13.2)', () => {
+    const on = applyProjectSettingsPatch({ version: 1 }, { continuityLinks: true });
+    expect(on).toEqual({ version: 1, continuityLinks: true });
+    expect(applyProjectSettingsPatch(on, { continuityLinks: false })).toEqual({ version: 1 });
+    const before = effectiveProjectSettings(BASE_PROJECT);
+    expect(before.continuityLinks).toBe(false);
+    expect(
+      effectiveProjectSettings({ ...BASE_PROJECT, continuityLinks: true }).continuityLinks,
+    ).toBe(true);
+    expect(describeSettingsChange(before, { ...before, continuityLinks: true })).toBe(
+      'Project settings: continuity links on',
+    );
+  });
 });
 
 describe('ProjectSettingsService', () => {
@@ -230,6 +248,7 @@ describe('ProjectSettingsService', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       },
       looks: LOOKS,
     });
@@ -254,6 +273,7 @@ describe('ProjectSettingsService', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       },
       committed: true,
     });
@@ -290,6 +310,7 @@ describe('ProjectSettingsService', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       },
       committed: false,
     });

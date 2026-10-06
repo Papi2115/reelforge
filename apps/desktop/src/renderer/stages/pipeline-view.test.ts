@@ -265,6 +265,11 @@ describe('pipelineRows', () => {
       open: { enabled: true },
       spec: { open: { kind: 'sound' } },
     });
+    // Storyboard opens its options (and the Shots panel) before there is a storyboard.
+    expect(row(rows, 'storyboard')).toMatchObject({
+      open: { enabled: true, hint: 'Storyboard options, the Hook lab and the shots' },
+      spec: { open: { kind: 'shots' } },
+    });
     expect(row(rows, 'voiceover')).toMatchObject({
       status: 'waiting',
       run: { enabled: false, hint: 'Use Replace or Open → Record to add a recording.' },

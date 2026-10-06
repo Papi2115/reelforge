@@ -29,6 +29,7 @@ import './editing/editing.css';
 import './publish/publish.css';
 import './hook-lab/hook-lab.css';
 import './settings/taste.css';
+import './options/options.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

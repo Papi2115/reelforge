@@ -1,0 +1,63 @@
+/* "All options" of a pipeline step (OptionsSection.tsx): the Project settings rows, compact. */
+.options-section {
+  flex: none;
+  margin-top: var(--space-3);
+}
+
+.options-section > .disclosure-toggle {
+  color: var(--accent-text);
+}
+
+.options-section .disclosure-body {
+  gap: var(--space-4);
+}
+
+.options-section p {
+  margin: 0;
+}
+
+.options-section .project-setting-row {
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-soft);
+}
+
+.options-section .project-setting-row:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.options-section .settings-toggle {
+  gap: var(--space-3);
+  padding: 6px 8px;
+  font-size: var(--text-sm);
+}
+
+.options-section .settings-toggle .muted,
+.options-section .project-setting-row > p,
+.options-section .project-setting-note,
+.options-section .project-setting-looks {
+  font-size: var(--text-xs);
+}
+
+.options-section .settings-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.options-section .project-setting-row > .option-readonly {
+  font-size: var(--text-sm);
+}
+
+.options-status {
+  font-size: var(--text-xs);
+}
+
+/* Storyboard step (StoryboardPanel.tsx), docked under the preview like Scenes built. */
+.storyboard-panel .doc-body {
+  gap: var(--space-3);
+}
+
+.storyboard-panel .doc-body > p {
+  margin: 0;
+}

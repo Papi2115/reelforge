@@ -3,7 +3,8 @@
  * ("Generate cues", "Render mix"; the deterministic default cues and the stems as secondary ones),
  * what the player monitors (full mix with the latest edits, or the voice only), the mix report as
  * a ✓/⚠ checklist and the cue summary. In sections that open and close (remembered): the levels,
- * the library (drag onto the timeline) and the music ducking.
+ * the library (drag onto the timeline) and the music ducking. "All options" (open) under them: beat
+ * sync, repetition control, the tension map and the sound palette per look (OptionsSection.tsx).
  */
 import { type JSX } from 'react';
 import { z } from 'zod';
@@ -11,6 +12,7 @@ import type { LibrarySound, SoundAction } from '../../shared/sound-contract.js';
 import type { StagesState } from '../../shared/stages-contract.js';
 import { Disclosure } from '../layout/Disclosure.js';
 import { usePref } from '../layout/ui-prefs.js';
+import { OptionsSection } from '../options/OptionsSection.js';
 import { plural } from '../../shared/plural.js';
 import { STAGE_LABELS } from '../stages/pipeline-view.js';
 import { DuckingField, MonitorToggle } from './SoundControls.js';
@@ -294,6 +296,7 @@ export function SoundPanel(props: SoundPanelProps): JSX.Element {
               }}
             />
           </Disclosure>
+          <OptionsSection step="sound" />
         </div>
       </div>
     </section>

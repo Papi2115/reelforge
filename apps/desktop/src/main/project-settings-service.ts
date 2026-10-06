@@ -9,7 +9,8 @@
  * build / sound cues; ambient variation: the render manifest, so the preview and the next export;
  * tension map: the next storyboard and sound cues, and the manifest's per-shot tension;
  * characters and mascot: the next storyboard and scene build; scenes per minute: the next
- * storyboard; faster checks: the next scene build and final review, ADR-027).
+ * storyboard; faster checks: the next scene build and final review, ADR-027; continuity links: the
+ * next storyboard, PLAN.md#13.2).
  * No pipeline step is marked out of date.
  */
 import path from 'node:path';
@@ -21,6 +22,7 @@ import {
   projectAmbientVariation,
   projectCharacters,
   projectBeatSync,
+  projectContinuityLinks,
   projectFasterChecks,
   projectShotsPerMinute,
   projectRepetitionControl,
@@ -87,6 +89,7 @@ export function effectiveProjectSettings(project: ProjectFile): ProjectSettings 
     mascot: project.mascot ?? DEFAULT_MASCOT_CHOICE,
     shotsPerMinute: projectShotsPerMinute(project) ?? null,
     fasterChecks: projectFasterChecks(project),
+    continuityLinks: projectContinuityLinks(project),
   };
 }
 
@@ -112,6 +115,9 @@ export function applyProjectSettingsPatch(
   else if (patch.shotsPerMinute !== undefined) next['shotsPerMinute'] = { ...patch.shotsPerMinute };
   if (patch.fasterChecks === false) delete next['fasterChecks'];
   else if (patch.fasterChecks === true) next['fasterChecks'] = true;
+  // Off = the field is removed: the storyboard prompt is exactly as before (PLAN.md#13.2).
+  if (patch.continuityLinks === false) delete next['continuityLinks'];
+  else if (patch.continuityLinks === true) next['continuityLinks'] = true;
   return next;
 }
 
@@ -192,6 +198,9 @@ export function describeSettingsChange(before: ProjectSettings, after: ProjectSe
   if (before.fasterChecks !== after.fasterChecks) {
     parts.push(`faster checks ${after.fasterChecks ? 'on' : 'off'}`);
   }
+  if (before.continuityLinks !== after.continuityLinks) {
+    parts.push(`continuity links ${after.continuityLinks ? 'on' : 'off'}`);
+  }
   return `Project settings: ${parts.length === 0 ? 'no change' : parts.join(', ')}`;
 }
 
@@ -214,7 +223,8 @@ function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
     left.characters === right.characters &&
     left.mascot === right.mascot &&
     sameRange(left.shotsPerMinute, right.shotsPerMinute) &&
-    left.fasterChecks === right.fasterChecks
+    left.fasterChecks === right.fasterChecks &&
+    left.continuityLinks === right.continuityLinks
   );
 }
 

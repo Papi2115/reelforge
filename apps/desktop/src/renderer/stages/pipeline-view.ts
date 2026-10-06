@@ -305,6 +305,9 @@ function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionV
   if (spec.open.kind === 'voiceover') {
     return { enabled: true, hint: 'Import, record or replace the voice-over; fit to the script' };
   }
+  if (spec.open.kind === 'shots') {
+    return { enabled: true, hint: 'Storyboard options, the Hook lab and the shots' };
+  }
   if (spec.open.kind === 'scenes') {
     return { enabled: true, hint: 'Build progress, missing props and the sync report' };
   }

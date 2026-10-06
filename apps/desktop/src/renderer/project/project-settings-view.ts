@@ -32,10 +32,48 @@ export const SECTION_TITLES: Readonly<Record<ProjectSettingsSectionId, string>> 
   taste: 'Taste',
 };
 
+/**
+ * Every option row: rendered by the Project settings dialog and by the "All options" section of
+ * a step's panel (step-options-view.ts), always through the same component (option-registry.ts).
+ */
+export const OPTION_ROW_IDS = [
+  'look-mode',
+  'ambient-variation',
+  'continuity-links',
+  'characters',
+  'mascot',
+  'research-assets',
+  'tension-map',
+  'dramaturgy',
+  'editing',
+  'scene-count',
+  'sound-palette',
+] as const;
+export type OptionRowId = (typeof OPTION_ROW_IDS)[number];
+
 export interface SectionRow {
   readonly id: string;
   readonly section: ProjectSettingsSectionId;
 }
+
+/** A row of the Project settings dialog: one of the option rows. */
+export interface OptionSectionRow extends SectionRow {
+  readonly id: OptionRowId;
+}
+
+/** Every row of the Project settings dialog, by section (the sound palette is a step note only). */
+export const PROJECT_SETTINGS_ROWS: readonly OptionSectionRow[] = [
+  { id: 'look-mode', section: 'visuals' },
+  { id: 'ambient-variation', section: 'visuals' },
+  { id: 'continuity-links', section: 'visuals' },
+  { id: 'characters', section: 'characters' },
+  { id: 'mascot', section: 'mascot' },
+  { id: 'research-assets', section: 'research' },
+  { id: 'tension-map', section: 'direction' },
+  { id: 'dramaturgy', section: 'direction' },
+  { id: 'editing', section: 'direction' },
+  { id: 'scene-count', section: 'build' },
+];
 
 export interface SettingsSectionView<Row extends SectionRow> {
   readonly id: ProjectSettingsSectionId;
@@ -75,6 +113,7 @@ export function withProjectSettingsPatch(
     shotsPerMinute:
       patch.shotsPerMinute === undefined ? settings.shotsPerMinute : patch.shotsPerMinute,
     fasterChecks: patch.fasterChecks ?? settings.fasterChecks,
+    continuityLinks: patch.continuityLinks ?? settings.continuityLinks,
   };
 }
 
@@ -158,3 +197,22 @@ export const EDITING_CHOICES = [
 
 export const AMBIENT_NOTE =
   'Shows in the preview right away and in the next export. No scene is rebuilt.';
+
+export const CONTINUITY_NOTE =
+  'Applies from the next Storyboard. Shots already planned keep their transitions; no step is marked out of date. Off: the project behaves as before.';
+
+export const CONTINUITY_HINT =
+  'Now and then the storyboard carries one object across a cut instead of a wipe: the camera dives into it, it stays in place while the world changes, or the place stays while the object changes. Rare (about one link per 45 s), never on the first shot.';
+
+export const SOUND_PALETTE_NOTE =
+  'Follows the look mode (Visuals); applies from the next sound design. Nothing to switch here.';
+
+/** Read-only line: which sound palettes the film uses under its look mode. */
+export function soundPaletteText(lookMode: LookMode, looks: readonly LookSummary[]): string {
+  if (lookMode === 'voxel-only') {
+    return 'Voxel only: every shot uses the voxel sound palette (the classic effects and ambience).';
+  }
+  const labels = looks.map((look) => shortLookLabel(look.label));
+  const list = labels.length === 0 ? '' : ` (${labels.join(', ')})`;
+  return `Mixed looks: every shot takes its effects and ambience from the palette of its look${list}; a shared bit-crush and levels keep the film consistent.`;
+}

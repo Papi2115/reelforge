@@ -1,7 +1,7 @@
 /**
  * The pipeline steps (PLAN.md#6.8, #11.2): one button per step with its status dot and words
  * (status-view.ts), the finished steps at the top folded into one "N steps done" line (expandable,
- * remembered by the sidebar), and the status legend.
+ * remembered by the sidebar), and the status legend. A double-click opens the step like its Open.
  */
 import type { JSX } from 'react';
 import type { RowView } from '../stages/pipeline-view.js';
@@ -12,6 +12,8 @@ export interface StageListProps {
   readonly rows: readonly RowView[];
   readonly selectedId: string | undefined;
   readonly onSelect: (rowId: string) => void;
+  /** Double-click: opens the step (its panel with all its options), like its Open button. */
+  readonly onOpen: (row: RowView) => void;
   readonly doneOpen: boolean;
   readonly onDoneOpen: (open: boolean) => void;
 }
@@ -21,6 +23,7 @@ function StageRow(props: {
   readonly rows: readonly RowView[];
   readonly selected: boolean;
   readonly onSelect: (rowId: string) => void;
+  readonly onOpen: (row: RowView) => void;
 }): JSX.Element {
   const { row } = props;
   const status = statusLabel(row, props.rows);
@@ -33,6 +36,9 @@ function StageRow(props: {
         title={row.detail === null ? status : `${status}: ${row.detail}`}
         onClick={() => {
           props.onSelect(row.spec.id);
+        }}
+        onDoubleClick={() => {
+          if (row.open.enabled) props.onOpen(row);
         }}
       >
         <span className="stage-dot" aria-hidden="true" />
@@ -78,6 +84,7 @@ export function StageList(props: StageListProps): JSX.Element {
           rows={rows}
           selected={row.spec.id === props.selectedId}
           onSelect={props.onSelect}
+          onOpen={props.onOpen}
         />
       ))}
     </ol>

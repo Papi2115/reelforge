@@ -138,6 +138,13 @@ export function PipelineSidebar({
     );
   };
 
+  /** Open of a step: its document or panel (artifacts through main). */
+  const openRow = (row: RowView): void => {
+    const target = row.spec.open;
+    if (target.kind === 'artifact') report(stages.open(target.artifact));
+    else onOpen(target);
+  };
+
   const runNext = (step: NextStep): void => {
     select(step.rowId);
     switch (step.action.kind) {
@@ -229,6 +236,7 @@ export function PipelineSidebar({
           rows={rows}
           selectedId={selected?.spec.id}
           onSelect={select}
+          onOpen={openRow}
           doneOpen={prefs.doneOpen}
           onDoneOpen={(doneOpen) => {
             setPrefs({ ...prefs, doneOpen });
@@ -258,9 +266,7 @@ export function PipelineSidebar({
               label="Open"
               action={selected.open}
               onClick={() => {
-                const target = selected.spec.open;
-                if (target.kind === 'artifact') report(stages.open(target.artifact));
-                else onOpen(target);
+                openRow(selected);
               }}
             />
             {selected.replace !== null && (

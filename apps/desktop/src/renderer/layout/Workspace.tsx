@@ -45,7 +45,7 @@ import { TensionPanel } from '../tension/TensionPanel.js';
 import { useTensionMapOn } from '../tension/use-tension-map.js';
 import { useTension } from '../tension/use-tension.js';
 import { AppShell } from './AppShell.js';
-import { CenterDocument, type CenterDocumentKind } from './CenterDocument.js';
+import { CenterDocument, isDockedDocument, type CenterDocumentKind } from './CenterDocument.js';
 import { CHAT_RAIL_WIDTH } from './chat-dock.js';
 import { useChatDock } from './use-chat-dock.js';
 import { ChatPanel } from './ChatPanel.js';
@@ -134,7 +134,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         setAssetsOpen(true);
         return;
       case 'shots':
-        setCenterDocument(null);
+        setCenterDocument({ kind: 'storyboard' });
         focusShots();
         return;
     }
@@ -333,7 +333,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         }
         center={
           <div
-            className={`center-stack${variantsOpen || centerDocument?.kind === 'scenes' || centerDocument?.kind === 'sound' ? ' has-dock' : ''}`}
+            className={`center-stack${variantsOpen || isDockedDocument(centerDocument) ? ' has-dock' : ''}`}
           >
             <PreviewPanel
               source={variants.source(previewRevision)}

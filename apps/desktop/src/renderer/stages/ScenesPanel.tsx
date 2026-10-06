@@ -4,7 +4,8 @@
  * ("Check every visual lands on its spoken word": every event of every shot against its spoken
  * word, ±150 ms). Clicking a row seeks the preview there and selects the shot; "Fix sync issues"
  * runs the sync-check review on the shots that are off. The final review (PLAN.md#11.5) shows its
- * summary and the ⚠/✗ shots left; "Run final review" starts it by hand.
+ * summary and the ⚠/✗ shots left; "Run final review" starts it by hand. "All options" at the end:
+ * the project.json switches that steer the scenes (OptionsSection.tsx).
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useState, type JSX } from 'react';
@@ -12,6 +13,7 @@ import type { SceneActionKey, StageReports } from '../../shared/voiceover-contra
 import { plural } from '../../shared/plural.js';
 import { DramaturgySection } from '../dramaturgy/DramaturgySection.js';
 import { EditingSection } from '../editing/EditingSection.js';
+import { OptionsSection } from '../options/OptionsSection.js';
 import { dramaturgyKey } from '../dramaturgy/dramaturgy-view.js';
 import { FinalReviewSection } from './FinalReview.js';
 import { exportPreflight, finalReviewProgress } from './final-review-view.js';
@@ -226,6 +228,7 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
         />
         <h3 className="section-title">Sync report</h3>
         <SyncTable reports={props.reports} onSeekShot={props.onSeekShot} />
+        <OptionsSection step="scenes" />
       </div>
     </section>
   );
