@@ -105,6 +105,8 @@ describe('text provenance', () => {
     expect(shown(['1 year = 365.2422 days', '0.2422 × 4 = 0.9688'])).toEqual([]);
     expect(shown(['0.2422 × 4 = 0.9688'])).toEqual(['0.2422 × 4 = 0.9688']);
     expect(shown(['1500s', '1300s'])).toEqual(['1300s']);
+    expect(shown(['yr 1 yr 2 yr 3 yr 4'])).toEqual([]);
+    expect(shown(['yr 1 yr 5000'])).toEqual(['yr 1 yr 5000']);
   });
 
   it('flags a timeline that ends "now" when the sources never reach the modern era', () => {

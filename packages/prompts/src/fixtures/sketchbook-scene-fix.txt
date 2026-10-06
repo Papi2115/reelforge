@@ -13,6 +13,6 @@ Craft brief (Sketchbook; binding):
 - Don't: centred or symmetric layouts, decoration without meaning, rows of icons, uniform gaps or timings, constant motion, > 6 elements, a second accent or loud word, slick drawings.
 - Text: only words of the narration or research notes (real numbers, names, dates), no invented labels/figures; always `page.write`; no `ctx.text`, `ctx.annotate` or stroke-drawn letters.
 - References (docs/worlds/sketchbook-v2/shots/): s2-t6.0.png one idea; s4-t7.4.png red +1 DAY, a pencil doubt; s3-t7.9.png boxes fill, one red result; s1-t6.0.png marker word, red fix.
-Keep the planned page moment (`sticky-slap`) in the shot: `const note = page.sheet({ x, y, w: 180, h: 160, deg, paper: 'sticky', at })` slapped on at the spoken word (falls, squashes, then tape), marker text with `page.write(word, { attach: note.frame(), hand: 'marker' })`; one or two notes, words only from the narration.
+Keep the planned page moment (`sticky-slap`) in the shot: `const note = page.sheet({ x: 560, y: 120, w: 180, h: 160, deg: -4, paper: 'sticky', at: 1.5 })` slapped on at the spoken word (`at`; it falls, squashes, then tape), marker text with `page.write(word, { attach: note.frame(), hand: 'marker' })`; one or two notes, words only from the narration.
 
 Make the smallest edit that satisfies the request in the given scope. Re-run lint, re-render the affected frames, Read them and confirm the problem is gone and nothing else broke. Max 2 iterations. Reply in ≤4 lines: what changed, what you verified.

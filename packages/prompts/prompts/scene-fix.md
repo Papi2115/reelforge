@@ -1,6 +1,6 @@
 ---
 id: scene-fix
-version: 5
+version: 6
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 ---

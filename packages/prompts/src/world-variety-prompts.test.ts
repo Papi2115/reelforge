@@ -61,7 +61,7 @@ describe('world sections off (script, sound-cues)', () => {
 
   it('bumps the versions of the prompts with world variety wording', () => {
     const ids = ['storyboard', 'scene-build', 'scene-fix', 'critic', 'script', 'sound-cues'];
-    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([18, 17, 5, 9, 3, 5]);
+    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([18, 18, 6, 9, 3, 5]);
   });
 });
 
@@ -141,7 +141,7 @@ describe('sketchbook moment wording', () => {
       ...sceneWorldVars(SKETCHBOOK, 'strip'),
     });
     expect(build).toContain('Page moment planned for this shot (`strip`;');
-    expect(build).toContain("build it with `page.strip({ y: 156, events: [{ label: '2 NOV'");
+    expect(build).toContain("build it with `page.strip({ y: 156, events: [{ label: '14 JULY'");
     expect(build).toContain('2-8 events in order');
     const popup = rendered('scene-build', {
       shotId: 's07',
@@ -152,10 +152,10 @@ describe('sketchbook moment wording', () => {
       styleId: 'sketchbook',
       ...sceneWorldVars(SKETCHBOOK, 'popup'),
     });
-    expect(popup).toContain(
-      "`page.popup({ x, y, w, depth, at, intent: '<the claim the motion shows>'",
-    );
-    expect(popup).toContain('Every pop-up is original: no template');
+    expect(popup).toContain('`page.popup({ intent, x, y, w, depth, at, elements, pull })`');
+    expect(popup).toContain("`page.popup({ intent: 'the dancers grow from 1 to 400");
+    expect(popup).toContain('`focus` = the id the red pen loops');
+    expect(popup).toContain('Every pop-up is original: invent the paper mechanism');
     expect(popup).toContain('Never the same mechanism twice in one film');
     expect(popup).toContain('every element that moves, is something the narration names');
     const fix = rendered('scene-fix', {
@@ -212,7 +212,11 @@ describe('sketchbook moment wording', () => {
     expect(text.craftBrief).toContain('labels and numbers `appear` on their own');
     expect(text.craftBrief).toContain('never cut a narration word');
     expect(text.motion).toContain('`parallel: true` only on purpose');
-    expect(text.motion).toContain('never cut content words from the narration');
+    expect(text.motion).toContain('Never cut content words from the narration');
+    expect(text.motion).toContain("appear: 'bloom'");
+    expect(text.motion).toContain('quick: true');
+    expect(text.motion).toContain('hero: true');
+    expect(text.motion).toContain("layout: 'facing'");
     expect(text.motion).toContain('always create the page with `duration: ctx.shot.duration`');
   });
 });

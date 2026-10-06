@@ -124,13 +124,13 @@ function textFindings(
   ];
 }
 
-/** A scene-local glyph table: its letters bypass `page.write` and the text checks. */
-function strokeLetteringFindings(strokes: StrokeLettering, file: string): QaFinding[] {
-  if (strokes.table === undefined) return [];
-  const { name, line } = strokes.table;
+/** Home-made stroke lettering (kit lint): its letters bypass `page.write` and the text checks. */
+function strokeLetteringSlop(strokes: StrokeLettering, file: string): QaFinding[] {
+  const [first] = strokes.findings;
+  if (first === undefined) return [];
   return [
     slop(
-      `letters drawn from strokes (${name}, ${file}:${String(line)}): text drawn outside page.write cannot be provenance-checked. Always use page.write for words and numbers; never draw letters from strokes.`,
+      `letters drawn from strokes (${file}:${String(first.line)}): text drawn outside page.write cannot be provenance-checked (${first.message.replace(/^line \d+: /, '')}).`,
     ),
   ];
 }
@@ -163,10 +163,10 @@ export function slopSourceFindings(
       `stagger variance: ${entry.what} (${file}:${String(entry.line)}). Vary the gaps and durations (±30 %), hold the key beat.`,
     ),
   );
-  const strokes = strokeLettering(program);
+  const strokes = strokeLettering(source, program);
   return [
     ...textFindings(setup, program, strokes, file),
-    ...strokeLetteringFindings(strokes, file),
+    ...strokeLetteringSlop(strokes, file),
     ...popupIntentFindings(program, file),
     ...(setup.spec === undefined ? [] : traceFindings(setup.spec, program, file)),
     ...uniform,

@@ -1,68 +1,20 @@
 /**
- * Letters drawn from strokes (real film 2, s09): a scene-local glyph table (`{ D: [[…]], A: […],
- * Y: […] }`) and a helper that walks a string and draws each character's strokes. Such text never
- * goes through `page.write`, so it is read here instead: the string arguments of the scene's own
- * functions are treated as on-screen text, and the table itself is reported (stroke lettering
- * cannot be checked reliably; the scene should use `page.write`).
+ * Letters drawn from strokes (real film 2, s09): the kit's Sketchbook lint
+ * (`strokeLetteringFindings`: a scene-local glyph table or a loop that strokes each character)
+ * finds the home-made lettering; its text never goes through `page.write`, so it is read here: the
+ * string arguments of the scene's own functions (the helper that walks a string) are treated as
+ * on-screen text, and the guard reports the lettering itself.
  */
 import type { AnyNode } from 'acorn';
+import { strokeLetteringFindings, type StrokeLetteringFinding } from '@reelforge/kit';
 import { visit } from '../scenes/source-checks.js';
 import { constantStrings, strings, type OnScreenText } from './source-text.js';
 
-/** Single-character keys with array values from which an object is a glyph table. */
-const MIN_GLYPHS = 3;
-const GLYPH_KEY = /^[A-Z0-9]$/;
-
-export interface GlyphTable {
-  /** The variable holding the table (`GLYPHS`), or `glyph table` when it is anonymous. */
-  readonly name: string;
-  readonly line: number;
-}
-
 export interface StrokeLettering {
-  /** The first glyph table of the scene; undefined when it has none. */
-  readonly table: GlyphTable | undefined;
-  /** String arguments of calls to the scene's own functions (only when it has a glyph table). */
+  /** The kit lint's findings (empty: the scene letters with `page.write` only). */
+  readonly findings: readonly StrokeLetteringFinding[];
+  /** String arguments of calls to the scene's own functions (only with findings). */
   readonly texts: readonly OnScreenText[];
-}
-
-function singleCharKey(node: AnyNode): string | undefined {
-  if (node.type !== 'Property' || node.computed) return undefined;
-  const key =
-    node.key.type === 'Identifier'
-      ? node.key.name
-      : node.key.type === 'Literal' && typeof node.key.value === 'string'
-        ? node.key.value
-        : undefined;
-  return key !== undefined && key.length === 1 ? key : undefined;
-}
-
-function isGlyphTable(node: AnyNode): boolean {
-  if (node.type !== 'ObjectExpression') return false;
-  const glyphs = node.properties.filter((property) => {
-    const key = singleCharKey(property);
-    return (
-      key !== undefined &&
-      GLYPH_KEY.test(key) &&
-      property.type === 'Property' &&
-      property.value.type === 'ArrayExpression'
-    );
-  });
-  return glyphs.length >= MIN_GLYPHS;
-}
-
-function findTable(program: AnyNode): GlyphTable | undefined {
-  let table: GlyphTable | undefined;
-  visit(program, (node) => {
-    if (table !== undefined) return;
-    if (node.type === 'VariableDeclarator' && node.init && isGlyphTable(node.init)) {
-      const name = node.id.type === 'Identifier' ? node.id.name : 'glyph table';
-      table = { name, line: node.loc?.start.line ?? 1 };
-    } else if (node.type === 'ObjectExpression' && isGlyphTable(node)) {
-      table = { name: 'glyph table', line: node.loc?.start.line ?? 1 };
-    }
-  });
-  return table;
 }
 
 /** Names of the functions the scene declares itself (`function f`, `const f = () => …`). */
@@ -81,9 +33,8 @@ function localFunctions(program: AnyNode): Set<string> {
   return names;
 }
 
-export function strokeLettering(program: AnyNode): StrokeLettering {
-  const table = findTable(program);
-  if (table === undefined) return { table, texts: [] };
+/** String arguments of the scene's calls to its own functions. */
+function helperTexts(program: AnyNode): OnScreenText[] {
   const helpers = localFunctions(program);
   const constants = constantStrings(program);
   const texts: OnScreenText[] = [];
@@ -97,5 +48,10 @@ export function strokeLettering(program: AnyNode): StrokeLettering {
       }
     }
   });
-  return { table, texts };
+  return texts;
+}
+
+export function strokeLettering(source: string, program: AnyNode): StrokeLettering {
+  const findings = strokeLetteringFindings(source);
+  return { findings, texts: findings.length === 0 ? [] : helperTexts(program) };
 }

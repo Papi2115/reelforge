@@ -2,7 +2,8 @@
  * What a scene's source puts on screen as text, read from its literals (no execution): the first
  * argument of text calls (`ctx.text.title/kinetic/lowerThird`, a world page's `write`, a sheet's
  * `print`, any local `write` helper) and the string values of text options (`text`, `label`,
- * `note`, `band`, `lines`, `caption`, `title`, `subtitle`, `labels`, a strip's `end`), also
+ * `note`, `band`, `lines`, `caption`, `title`, `subtitle`, `labels`, a strip's `end`, a pop-up's
+ * `items`, `marks`, `ends`, `prefix`, `suffix`), also
  * through a `const` holding a literal. Letters drawn from strokes: `stroke-text.ts`. The scene's
  * `meta` object is not on screen. Strings built at run time (`String(year)`, templates with
  * expressions) are not judged.
@@ -29,6 +30,12 @@ const TEXT_KEYS = new Set([
   'title',
   'subtitle',
   'end',
+  // Pop-up pieces (kit popup-schema.ts): window items, gauge marks, scale ends, counter affixes.
+  'items',
+  'marks',
+  'ends',
+  'prefix',
+  'suffix',
 ]);
 
 /** The scene's AST; undefined when it does not parse (the determinism lint reports that). */

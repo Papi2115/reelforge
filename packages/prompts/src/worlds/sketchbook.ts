@@ -6,6 +6,7 @@
  * focal-point-first process, text provenance and reference frames of the approved showcase.
  */
 import { SKETCHBOOK_MOMENTS } from './sketchbook-moments.js';
+import { snippet } from './sketchbook-snippets.js';
 import type { WorldPromptText } from './types.js';
 
 const CRAFT_BRIEF = `Craft brief (Sketchbook; binding):
@@ -41,8 +42,7 @@ export const SKETCHBOOK_PROMPTS: WorldPromptText = {
     "In this world every mark is drawn by the hand on the page in the look's own pen: a pin is a hand-written label with a two-stroke arrow, a ring is a pencil loop, an underline is uneven, a stamp is the red pen, a counter is a number written and corrected; every label comes from the narration.",
   annotate:
     "draw each by hand on the page (`page.write`, `page.arrow`, `page.loop`, `page.underline`, `page.crossOut`), timed to its spoken phrase (`at: 'the phrase'`), on the named target, never with `ctx.annotate` or `ctx.text`",
-  motion:
-    'Let each drawing land and hold (a still beat of at least 0.4 s), the hand clear of the subject: always create the page with `duration: ctx.shot.duration` (the hand leaves the subject in the last 0.4 s) and never overlap in time two marks more than 80 px apart (the one hand queues them, up to 0.6 s, or they appear without it; `parallel: true` only on purpose). When the hand cannot keep up with the narration it draws only the key elements (the figure, the hero object or mark) and a label, word or number simply appears on its own (`appear` mode of `page.write`) while the hand draws something else; never cut content words from the narration because writing is slow, and never draw text from strokes without the hand. Move the camera only to reveal or to push toward the focal point.',
+  motion: `Let each drawing land and hold (a still beat of at least 0.4 s), the hand clear of the subject: always create the page with \`duration: ctx.shot.duration\` (the hand leaves the subject in the last 0.4 s); a story page (look A) also takes a \`layout\` ('hero-left', 'facing', 'tall-diagram', 'wide-strip'; place with \`page.slots()\`; vary it page to page): ${snippet('storyPage')}. Never overlap in time two marks more than 80 px apart (the one hand queues them, up to 0.6 s, or they appear without it; \`parallel: true\` only on purpose). The hand draws the key elements: the hero mark keeps its time and gets the hand (${snippet('heroWrite')}; default the largest text). When the hand cannot keep up with the narration, a label, word or number simply appears on its own while the hand draws something else (${snippet('appearWrite')}; \`appear: 'bloom' | 'pop' | 'type'\`, \`parallel: true\` = bloom); a secondary write the hand cannot reach in time blooms in by itself. Writing is brisk (12 letters ~1.1 s): ${snippet('quickWrite')} for labels, ${snippet('speedWrite')} (speed up to 2) for a phrase. Never cut content words from the narration because writing is slow, and never letter text with \`page.stroke\`. Move the camera only to reveal or to push toward the focal point.`,
   missing:
     'Draw everything the narration needs by hand on the page (strokes, figures, sheets, inserts): this world has no props to build, so never end your reply with a `MISSING:` line.',
   craftBrief: CRAFT_BRIEF,

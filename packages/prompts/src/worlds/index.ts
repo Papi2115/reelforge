@@ -16,6 +16,7 @@ import type { WorldQuotaOverride } from './variety.js';
 
 export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from './types.js';
 export { worldMomentOption } from './moment-vars.js';
+export { SKETCHBOOK_SNIPPETS, type SketchbookSnippet } from './sketchbook-snippets.js';
 export {
   breakthroughQuota,
   continuityQuota,

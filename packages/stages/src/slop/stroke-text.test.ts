@@ -34,13 +34,16 @@ export function build(ctx) {
 function lettering(source: string) {
   const program = parseScene(source);
   if (program === undefined) throw new Error('does not parse');
-  return strokeLettering(program);
+  return strokeLettering(source, program);
 }
 
 describe('stroke lettering', () => {
   it('finds a glyph table and reads the strings passed to the scene helpers', () => {
     const found = lettering(strokeScene('NO RECORD'));
-    expect(found.table).toEqual({ name: 'GLYPHS', line: 3 });
+    expect(found.findings.map((entry) => [entry.rule, entry.line])).toEqual([
+      ['glyph-table', 4],
+      ['char-strokes', 13],
+    ]);
     expect(found.texts.map((entry) => entry.text)).toEqual(['/ DAY', 'NO RECORD']);
   });
 
@@ -62,9 +65,9 @@ describe('stroke lettering', () => {
     const plain = `const P = { x: [1, 2], y: [3, 4], w: [5, 6], h: [7, 8] };
 function mark(page, tool) { page.stroke([0, 0, 9, 9], { tool }); }
 export function build(ctx) { mark(ctx.page, 'QUANTUM'); return {}; }`;
-    expect(lettering(plain)).toEqual({ table: undefined, texts: [] });
+    expect(lettering(plain)).toEqual({ findings: [], texts: [] });
     const flagged = [...sketchbookExamples()].filter(
-      ([, source]) => lettering(source).table !== undefined,
+      ([, source]) => lettering(source).findings.length > 0,
     );
     expect(flagged.map(([name]) => name)).toEqual([]);
   });

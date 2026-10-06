@@ -2,20 +2,21 @@
  * Pop-up originality (Papi's rule after real run Sketchbook 2): every `page.popup` names the claim
  * its pulled motion shows (`intent`, required by the kit), never a generic "reveal", and no two
  * pop-ups of a film share their intent or mechanism. Read from the scene source (no execution):
- * the `intent` of the call's options and an optional `mechanism`/`motion` word on them or on
- * their `pull`. Warnings only, like every anti-slop guard.
+ * the literal `intent`, and the mechanism = what the pull moves (`pull.motions`: the kind of each
+ * target piece and the properties it moves, e.g. `flap.open + counter.value`; a `drive` callback
+ * counts as its own mechanism). Warnings only, like every anti-slop guard.
  */
 import type { AnyNode } from 'acorn';
 import type { QaFinding } from '@reelforge/shared';
 import { visit } from '../scenes/source-checks.js';
 import { finding } from '../scenes/checks.js';
-import { calleeName, constantStrings, propertyKey, strings } from './source-text.js';
+import { calleeName, constantStrings, literalString, propertyKey, strings } from './source-text.js';
 import { isFunctionWord, stem } from './vocabulary.js';
 
 export interface PopupSpec {
   /** The literal `intent`; undefined when missing or built at run time. */
   readonly intent: string | undefined;
-  /** A literal `mechanism` / `motion` of the options or of their `pull`. */
+  /** What the pull moves (`flap.open + counter.value`); undefined without a readable pull. */
   readonly mechanism: string | undefined;
   readonly line: number;
 }
@@ -30,7 +31,6 @@ const VAGUE_WORDS = new Set(
 );
 /** Word overlap (Jaccard) from which two intents count as the same. */
 const SAME_INTENT = 0.6;
-const MECHANISM_KEYS = new Set(['mechanism', 'motion']);
 
 const slop = (message: string): QaFinding => finding('slop', 'warning', message);
 
@@ -40,25 +40,44 @@ function words(text: string): string[] {
     .map(stem);
 }
 
-function objectStrings(
-  node: AnyNode | undefined,
-  keys: ReadonlySet<string>,
-  constants: ReadonlyMap<string, string>,
-): Map<string, string> {
-  const found = new Map<string, string>();
-  if (node?.type !== 'ObjectExpression') return found;
-  for (const property of node.properties) {
-    const key = propertyKey(property);
-    if (key === undefined || property.type !== 'Property') continue;
-    if (key === 'pull') {
-      for (const [inner, value] of objectStrings(property.value, keys, constants)) {
-        if (!found.has(inner)) found.set(inner, value);
-      }
-    }
-    const [value] = strings(property.value, constants);
-    if (keys.has(key) && value !== undefined) found.set(key, value);
+/** The value of a non-computed property of an object literal. */
+function property(node: AnyNode | undefined, key: string): AnyNode | undefined {
+  if (node?.type !== 'ObjectExpression') return undefined;
+  for (const entry of node.properties) {
+    if (entry.type === 'Property' && propertyKey(entry) === key) return entry.value;
   }
-  return found;
+  return undefined;
+}
+
+function objects(node: AnyNode | undefined): AnyNode[] {
+  if (node?.type !== 'ArrayExpression') return [];
+  return node.elements.flatMap((element) =>
+    element?.type === 'ObjectExpression' ? [element] : [],
+  );
+}
+
+function keys(node: AnyNode | undefined): string[] {
+  if (node?.type !== 'ObjectExpression') return [];
+  return node.properties.flatMap((entry) => propertyKey(entry) ?? []);
+}
+
+/** `kind.prop` of every motion of the pull (the target's kind from its element's `id`). */
+function mechanismOf(options: AnyNode | undefined): string | undefined {
+  const kinds = new Map<string, string>();
+  for (const element of objects(property(options, 'elements'))) {
+    const id = literalString(property(element, 'id'));
+    const kind = literalString(property(element, 'kind'));
+    if (id !== undefined && kind !== undefined) kinds.set(id, kind);
+  }
+  const pull = property(options, 'pull');
+  const moved = new Set<string>();
+  for (const motion of objects(property(pull, 'motions'))) {
+    const target = literalString(property(motion, 'target')) ?? '?';
+    const kind = kinds.get(target) ?? target;
+    for (const prop of keys(property(motion, 'to'))) moved.add(`${kind}.${prop}`);
+  }
+  if (property(pull, 'drive') !== undefined) moved.add('drive');
+  return moved.size === 0 ? undefined : [...moved].sort().join(' + ');
 }
 
 /** The pop-ups of a scene source. */
@@ -67,12 +86,12 @@ export function popupSpecs(program: AnyNode): PopupSpec[] {
   const specs: PopupSpec[] = [];
   visit(program, (node) => {
     if (node.type !== 'CallExpression' || calleeName(node) !== 'popup') return;
-    const [options] = node.arguments;
-    const own = options?.type === 'SpreadElement' ? undefined : options;
-    const values = objectStrings(own, new Set(['intent', ...MECHANISM_KEYS]), constants);
+    const [first] = node.arguments;
+    const options = first?.type === 'SpreadElement' ? undefined : first;
+    const intent = property(options, 'intent');
     specs.push({
-      intent: values.get('intent'),
-      mechanism: values.get('mechanism') ?? values.get('motion'),
+      intent: intent === undefined ? undefined : strings(intent, constants)[0],
+      mechanism: mechanismOf(options),
       line: node.loc?.start.line ?? 1,
     });
   });
@@ -114,10 +133,8 @@ function overlap(first: string, second: string): number {
 }
 
 function same(first: PopupSpec, second: PopupSpec): string | undefined {
-  if (first.mechanism !== undefined && second.mechanism !== undefined) {
-    if (first.mechanism.trim().toLowerCase() === second.mechanism.trim().toLowerCase()) {
-      return `mechanism "${second.mechanism}"`;
-    }
+  if (first.mechanism !== undefined && first.mechanism === second.mechanism) {
+    return `mechanism "${second.mechanism}"`;
   }
   if (first.intent === undefined || second.intent === undefined) return undefined;
   return overlap(first.intent, second.intent) >= SAME_INTENT

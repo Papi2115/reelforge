@@ -29,7 +29,7 @@ export const GENERAL_LABELS: ReadonlySet<string> = new Set(
     'january february march april may june july august september october november december ' +
     'jan feb mar apr jun jul aug sep sept oct nov dec monday tuesday wednesday thursday friday ' +
     'saturday sunday mon tue wed thu fri sat sun ad bc bce ce am pm min max sec ms hr hrs km cm mm ' +
-    'kg mb kb gb tb vs approx yes ok'
+    'kg mb kb gb tb vs approx yes ok yr yrs wk wks mo'
   ).split(' '),
 );
 

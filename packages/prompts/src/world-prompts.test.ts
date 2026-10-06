@@ -115,7 +115,7 @@ describe('world sections off', () => {
   });
 
   it('bumps the versions of the prompts with world wording', () => {
-    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([18, 17, 5, 9]);
+    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([18, 18, 6, 9]);
   });
 });
 

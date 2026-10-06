@@ -1,6 +1,6 @@
 ---
 id: scene-build
-version: 17
+version: 18
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: {{shotScene}}
