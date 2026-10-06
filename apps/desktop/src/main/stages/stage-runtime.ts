@@ -91,7 +91,10 @@ export function settingsAudioTools(
 /** Shots built at once (PLAN.md#7.4: 2, capped by the LimitGuard after a limit). */
 export const SCENE_CONCURRENCY = DEFAULT_SCENE_SETTINGS.concurrency;
 
-/** Stage settings of the app settings, scene QA included (Economy: one fix turn per shot). */
+/**
+ * Stage settings of the app settings, scene QA included (Economy: one fix turn per shot);
+ * Settings → "Experimental worlds (preview)" lets a world project build in its world (PLAN.md#13.6).
+ */
 export function appStageSettings(app: AppSettings): StageSettings {
   const base = stageSettingsFromApp(app);
   return {
@@ -101,6 +104,7 @@ export function appStageSettings(app: AppSettings): StageSettings {
       concurrency: SCENE_CONCURRENCY,
       maxFixIterations: qaIterations(app),
     },
+    ...(app.experimental.worlds ? { experimentalWorlds: true } : {}),
   };
 }
 

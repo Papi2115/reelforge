@@ -91,12 +91,30 @@ export const lookSummarySchema = z.object({
 });
 export type LookSummary = z.infer<typeof lookSummarySchema>;
 
+/**
+ * The project's style (PLAN.md#13.6), read-only: a project keeps the style it was created with
+ * (nothing in the app changes `project.json` `style`). A world's style brings its own looks and
+ * heroes, so the look mode, characters and mascot rows do not apply there.
+ */
+export const projectStyleSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+  world: z.boolean(),
+  /** An experimental world (shown as "preview"). */
+  preview: z.boolean(),
+  /** False for a preview world while Settings → "Experimental worlds (preview)" is off. */
+  enabled: z.boolean(),
+});
+export type ProjectStyle = z.infer<typeof projectStyleSchema>;
+
 export const projectSettingsStateSchema = z.discriminatedUnion('status', [
   z.object({
     status: z.literal('ok'),
     settings: projectSettingsSchema,
-    /** Available looks, voxel first. */
+    /** Looks the project's style offers (voxel first; a world: its own A/B/C looks). */
     looks: z.array(lookSummarySchema),
+    style: projectStyleSchema,
   }),
   z.object({ status: z.literal('error'), message: z.string() }),
 ]);

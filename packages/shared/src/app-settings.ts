@@ -162,6 +162,12 @@ export const appSettingsSchema = z.object({
       outputDir: toolPathSchema.default(null),
     })
     .prefault({}),
+  /**
+   * Experimental features (PLAN.md#13.6): `worlds` offers the worlds not shipped yet (Sketchbook
+   * preview) to new projects, the stages (`StageSettings.experimentalWorlds`) and the `reelforge`
+   * CLI of Claude's turns (`REELFORGE_EXPERIMENTAL_WORLDS`). Off by default.
+   */
+  experimental: z.object({ worlds: z.boolean().default(false) }).prefault({}),
   onboarding: z
     .object({
       /** The first-run "Connect Claude" gate was completed or skipped. */
@@ -248,6 +254,7 @@ export const appSettingsPatchSchema = z.strictObject({
     })
     .partial()
     .optional(),
+  experimental: z.strictObject({ worlds: z.boolean() }).partial().optional(),
   onboarding: z
     .strictObject({
       connectClaudeDone: z.boolean(),
@@ -277,6 +284,7 @@ export function applyAppSettingsPatch(settings: AppSettings, patch: AppSettingsP
     assetLibrary: { ...settings.assetLibrary, ...patch.assetLibrary },
     taste: { ...settings.taste, ...patch.taste },
     export: { ...settings.export, ...patch.export },
+    experimental: { ...settings.experimental, ...patch.experimental },
     onboarding: { ...settings.onboarding, ...patch.onboarding },
   });
 }

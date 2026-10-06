@@ -32,11 +32,15 @@ function StartLayout({
   defaultLanguage,
   defaultShotsPerMinute,
   defaultFasterChecks,
+  defaultStyle,
+  experimentalWorlds,
 }: {
   readonly onOpened: (project: ProjectSummary) => void;
   readonly defaultLanguage: ProjectSummary['language'] | undefined;
   readonly defaultShotsPerMinute: ShotsPerMinute | null | undefined;
   readonly defaultFasterChecks: boolean | undefined;
+  readonly defaultStyle: string | undefined;
+  readonly experimentalWorlds: boolean | undefined;
 }): JSX.Element {
   // The demo has no audio: the player runs on the system clock.
   const player = usePlayer(undefined);
@@ -49,6 +53,8 @@ function StartLayout({
           defaultLanguage={defaultLanguage}
           defaultShotsPerMinute={defaultShotsPerMinute}
           defaultFasterChecks={defaultFasterChecks}
+          defaultStyle={defaultStyle}
+          experimentalWorlds={experimentalWorlds}
         />
       </div>
       <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
@@ -171,6 +177,8 @@ export function App(): JSX.Element {
             defaultLanguage={appSettings?.language}
             defaultShotsPerMinute={appSettings?.newProjectDefaults.shotsPerMinute}
             defaultFasterChecks={appSettings?.newProjectDefaults.fasterChecks}
+            defaultStyle={appSettings?.defaultStyle}
+            experimentalWorlds={appSettings?.experimental.worlds}
             onOpened={(opened) => {
               setProject(opened);
               setHistoryOpen(false);

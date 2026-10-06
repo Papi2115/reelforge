@@ -1,12 +1,11 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { listLooks } from '@reelforge/kit';
 import type { ProjectFile } from '@reelforge/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ProjectSettings } from '../shared/project-settings-contract.js';
 import { createLogger } from './logger.js';
-import { lookSummaries } from './project-settings-ipc.js';
+import { projectStyle } from './project-settings-ipc.js';
 import {
   applyProjectSettingsPatch,
   describeSettingsChange,
@@ -42,6 +41,7 @@ beforeEach(async () => {
       return Promise.resolve(commitResult);
     },
     looks: () => LOOKS,
+    style: (style) => projectStyle(style, false),
     log: createLogger(() => undefined),
   });
 });
@@ -251,6 +251,14 @@ describe('ProjectSettingsService', () => {
         continuityLinks: false,
       },
       looks: LOOKS,
+      style: {
+        id: 'voxel-pixel-crisp640',
+        label: 'Voxel Pixel · Crisp 640',
+        description: expect.stringContaining('voxel 3D') as unknown,
+        world: false,
+        preview: false,
+        enabled: true,
+      },
     });
   });
 
@@ -415,14 +423,5 @@ describe('ProjectSettingsService', () => {
       status: 'error',
       message: 'no project is open',
     });
-  });
-});
-
-describe('lookSummaries', () => {
-  it('lists the available looks of the kit registry, voxel first', () => {
-    const summaries = lookSummaries();
-    expect(summaries.map((look) => look.id)).toEqual(listLooks().map((look) => look.id));
-    expect(summaries[0]?.id).toBe('voxel');
-    for (const look of summaries) expect(Object.keys(look)).toEqual(['id', 'label', 'description']);
   });
 });

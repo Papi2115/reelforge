@@ -47,6 +47,7 @@ import type {
   ProjectSettingsPatch,
   ProjectSettingsState,
   ProjectSettingsUpdateResult,
+  ProjectStyle,
 } from '../shared/project-settings-contract.js';
 import { describeError, type Logger } from './logger.js';
 import { describeIssues, readProjectText } from './project-files.js';
@@ -63,8 +64,10 @@ export interface ProjectSettingsServiceOptions {
   readonly projectDir: () => string | undefined;
   /** Commits the open project; resolves true when a commit was made. */
   readonly commit: (message: string) => Promise<boolean>;
-  /** Available looks of the kit registry. */
-  readonly looks: () => readonly LookSummary[];
+  /** Looks a project of this style offers (kit registry, ADR-029). */
+  readonly looks: (style: string) => readonly LookSummary[];
+  /** How the dialog shows the project's style (read-only). */
+  readonly style: (style: string) => ProjectStyle;
   readonly log: Logger;
 }
 
@@ -238,10 +241,12 @@ export class ProjectSettingsService {
     if (dir === undefined) return { status: 'error', message: 'no project is open' };
     const loaded = await this.load(dir);
     if (!loaded.ok) return { status: 'error', message: loaded.message };
+    const { style } = loaded.project;
     return {
       status: 'ok',
       settings: effectiveProjectSettings(loaded.project),
-      looks: [...this.options.looks()],
+      looks: [...this.options.looks(style)],
+      style: this.options.style(style),
     };
   }
 

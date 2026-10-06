@@ -9,6 +9,7 @@ import {
   discoverWhisperInstalls,
   type WhisperManagerOptions,
 } from '@reelforge/pipeline';
+import type { AppSettings } from '@reelforge/shared';
 import type { ToolId } from '../shared/settings-contract.js';
 import type { WhisperProgress } from '../shared/whisper-contract.js';
 import { CLAUDE_SEARCH_DIR_ENV } from './app-paths.js';
@@ -58,6 +59,8 @@ export interface SettingsBackendOptions {
   readonly whisperBase?: WhisperManagerOptions;
   /** Test hook: Words timed counts as ready (recorded transcriptions without a whisper root). */
   readonly whisperAssumeReady?: boolean;
+  /** After a renderer change was saved (e.g. the experimental switch rewrites the CLI launchers). */
+  readonly onUpdated?: (before: AppSettings, after: AppSettings) => void;
 }
 
 export interface SettingsBackend {
@@ -136,7 +139,12 @@ export function createSettingsBackend(options: SettingsBackendOptions): Settings
         cores: options.cores,
         file: options.settingsFile,
       }),
-    settingsUpdate: (patch) => settings.update(patch),
+    settingsUpdate: async (patch) => {
+      const before = settings.get();
+      const result = await settings.update(patch);
+      if (result.status === 'ok') options.onUpdated?.(before, result.settings);
+      return result;
+    },
     claudeStatus: (request) => claude.status(request.refresh),
     claudeOpenLogin: () => claude.openLogin(),
     toolsStatus: (request) => tools.status(request.refresh),

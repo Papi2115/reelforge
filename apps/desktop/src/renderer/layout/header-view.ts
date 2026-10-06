@@ -1,14 +1,14 @@
 /**
  * Words of the header and the status bar (docs/ux/redesign-2.4.md U4): the project line
- * ("EN · Voxel Pixel · Crisp 640 · 30 fps", the style by its display name, not its id) and the
- * model mode next to the Claude chip. Pure.
+ * ("EN · Voxel Pixel · Crisp 640 · 30 fps", the style by its display name, a world by its own
+ * name, never the id) and the model mode next to the Claude chip. Pure.
  */
-import { findStylePreset } from '@reelforge/engine';
 import type { ProjectSummary } from '../../shared/project-contract.js';
+import { styleLabel } from '../../shared/style-choices.js';
 
 /** The style's display name; an unknown id (a style this build does not ship) shows as is. */
 export function styleDisplayName(styleId: string): string {
-  return findStylePreset(styleId)?.name ?? styleId;
+  return styleLabel(styleId);
 }
 
 export function projectMeta(project: Pick<ProjectSummary, 'language' | 'style' | 'fps'>): string {

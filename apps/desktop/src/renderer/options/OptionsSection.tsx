@@ -6,8 +6,8 @@
  */
 import { useState, type JSX } from 'react';
 import { Disclosure } from '../layout/Disclosure.js';
-import { OPTION_ROWS } from '../project/option-registry.js';
 import { useProjectSettings } from '../project/use-project-settings.js';
+import { OptionRow } from '../project/WorldRows.js';
 import {
   OPTIONS_SUMMARY,
   OPTIONS_TITLE,
@@ -37,12 +37,16 @@ function OptionsBody({ rows }: { readonly rows: ReturnType<typeof stepOptionRows
         <p className="muted">Loading…</p>
       )}
       {settings !== undefined &&
-        rows.map((id) => {
-          const Row = OPTION_ROWS[id];
-          return (
-            <Row key={id} settings={settings} looks={controller.looks} update={controller.update} />
-          );
-        })}
+        rows.map((id) => (
+          <OptionRow
+            key={id}
+            id={id}
+            settings={settings}
+            looks={controller.looks}
+            style={controller.style}
+            update={controller.update}
+          />
+        ))}
       {controller.error !== undefined && (
         <p className="connect-error" role="alert">
           {controller.error}

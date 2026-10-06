@@ -43,7 +43,7 @@ import { tasteHandlers } from './taste/taste-ipc.js';
 import { TasteService } from './taste/taste-service.js';
 import { createChildProcessRegistry } from './child-processes.js';
 import { chatHandlers } from './claude/chat-ipc.js';
-import { claudeSetup } from './claude/claude-runtime.js';
+import { claudeSetup, prepareShims, type ClaudeRuntimeOptions } from './claude/claude-runtime.js';
 import { ClaudeService } from './claude/claude-service.js';
 import { loadDemoManifest } from './demo-manifest.js';
 import { registerIpc } from './ipc-router.js';
@@ -222,6 +222,7 @@ function main(): void {
     stylesDir: layout.stylesDir,
     pickFolder,
     defaultStyle: () => settings.get().defaultStyle,
+    experimentalWorlds: () => settings.get().experimental.worlds,
     newProjectDefaults: () => settings.get().newProjectDefaults,
     log: log.child('project'),
     onCurrentChanged: (dir) => {
@@ -246,6 +247,18 @@ function main(): void {
   const whisperHooksOn = !app.isPackaged && process.env[TEST_HOOKS_ENV] === '1';
   const whisperBase = whisperTestHooks(process.env, whisperHooksOn);
   if (whisperBase.root !== undefined) log.warn(`test hook: whisper root ${whisperBase.root}`);
+  const claudeRuntime: ClaudeRuntimeOptions = {
+    layout,
+    shimDir: cliShimDir(userDataDir),
+    env: process.env,
+    execPath: process.execPath,
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    connection: () => settingsBackend.claude.state(false),
+    writeShims: writeCliShims,
+    experimentalWorlds: () => settings.get().experimental.worlds,
+    log: log.child('claude'),
+  };
   const settingsBackend = createSettingsBackend({
     settings,
     settingsFile: settingsFile(userDataDir),
@@ -266,20 +279,15 @@ function main(): void {
       whisperHooksOn &&
       (process.env[TEST_TRANSCRIPT_ENV] ?? '') !== '' &&
       whisperBase.root === undefined,
+    // The CLI launchers carry the experimental worlds switch (PLAN.md#13.6): rewrite them.
+    onUpdated: (before, after) => {
+      if (before.experimental.worlds !== after.experimental.worlds)
+        void prepareShims(claudeRuntime);
+    },
   });
 
   const claude: ClaudeService = new ClaudeService({
-    setup: claudeSetup({
-      layout,
-      shimDir: cliShimDir(userDataDir),
-      env: process.env,
-      execPath: process.execPath,
-      isPackaged: app.isPackaged,
-      platform: process.platform,
-      connection: () => settingsBackend.claude.state(false),
-      writeShims: writeCliShims,
-      log: log.child('claude'),
-    }),
+    setup: claudeSetup(claudeRuntime),
     settings: () => settings.get(),
     currentProject: () => projects.currentProject()?.dir,
     renderEnv: (dir) => ({

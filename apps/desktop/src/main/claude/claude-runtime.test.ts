@@ -6,7 +6,14 @@ import type { CliShimOptions } from '@reelforge/cli/shims';
 import { afterAll, describe, expect, it } from 'vitest';
 import { appLayout, TEST_CLAUDE_LAUNCHER_ENV } from '../app-paths.js';
 import { createLogger } from '../logger.js';
-import { claudeChildEnv, claudeSetup, launcherOf, testLauncher } from './claude-runtime.js';
+import {
+  claudeChildEnv,
+  claudeSetup,
+  cliShimEnv,
+  launcherOf,
+  prepareShims,
+  testLauncher,
+} from './claude-runtime.js';
 
 const root = mkdtempSync(path.join(os.tmpdir(), 'rf runtime ż '));
 afterAll(() => {
@@ -111,5 +118,36 @@ describe('claudeSetup', () => {
     });
     const offline = await setup({ state: 'error', reason: 'spawn', message: 'boom' })();
     expect(offline).toMatchObject({ ok: false, error: { kind: 'not-connected' } });
+  });
+
+  it('adds only the experimental worlds var to the launchers, and only when on (PLAN.md#13.6)', async () => {
+    expect(cliShimEnv(false)).toEqual({ ELECTRON_RUN_AS_NODE: '1' });
+    expect(cliShimEnv(true)).toEqual({
+      ELECTRON_RUN_AS_NODE: '1',
+      REELFORGE_EXPERIMENTAL_WORLDS: '1',
+    });
+    mkdirSync(path.dirname(layout.cliBundle), { recursive: true });
+    writeFileSync(layout.cliBundle, '// cli');
+    let experimental = true;
+    const options = {
+      layout,
+      shimDir: path.join(root, 'bin'),
+      env: { PATH: 'base' },
+      execPath: path.join(root, 'ReelForge.exe'),
+      isPackaged: true,
+      platform: 'win32' as const,
+      connection: () => Promise.resolve(CONNECTED),
+      writeShims: (shim: CliShimOptions) => {
+        written.push(shim);
+        return Promise.resolve([]);
+      },
+      experimentalWorlds: () => experimental,
+      log: createLogger(() => undefined),
+    };
+    expect(await prepareShims(options)).toBe(path.join(root, 'bin'));
+    expect(written.at(-1)?.env).toEqual(cliShimEnv(true));
+    experimental = false;
+    await prepareShims(options);
+    expect(written.at(-1)?.env).toEqual({ ELECTRON_RUN_AS_NODE: '1' });
   });
 });

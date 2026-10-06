@@ -37,6 +37,7 @@ export const SECTION_TITLES: Readonly<Record<ProjectSettingsSectionId, string>> 
  * a step's panel (step-options-view.ts), always through the same component (option-registry.ts).
  */
 export const OPTION_ROW_IDS = [
+  'style',
   'look-mode',
   'ambient-variation',
   'continuity-links',
@@ -63,6 +64,7 @@ export interface OptionSectionRow extends SectionRow {
 
 /** Every row of the Project settings dialog, by section (the sound palette is a step note only). */
 export const PROJECT_SETTINGS_ROWS: readonly OptionSectionRow[] = [
+  { id: 'style', section: 'visuals' },
   { id: 'look-mode', section: 'visuals' },
   { id: 'ambient-variation', section: 'visuals' },
   { id: 'continuity-links', section: 'visuals' },

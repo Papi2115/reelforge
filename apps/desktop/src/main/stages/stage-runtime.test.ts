@@ -54,4 +54,11 @@ describe('stage runtime', () => {
     expect(appStageSettings(app).scenes).toMatchObject({ concurrency: 2, maxFixIterations: 2 });
     expect(appStageSettings({ ...app, economy: true }).scenes.maxFixIterations).toBe(1);
   });
+
+  it('lets experimental worlds count only with the Settings switch (PLAN.md#13.6)', () => {
+    const app = defaultAppSettings();
+    expect(appStageSettings(app)).not.toHaveProperty('experimentalWorlds');
+    const on = appStageSettings({ ...app, experimental: { worlds: true } });
+    expect(on.experimentalWorlds).toBe(true);
+  });
 });

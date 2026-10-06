@@ -95,6 +95,50 @@ describe('ProjectService', () => {
     expect(written).toMatchObject({ characters: 'pack', mascot: 'fox' });
   });
 
+  it('starts a project in the chosen style; a preview world only with the switch (PLAN.md#13.6)', async () => {
+    let experimental = false;
+    const projects = new ProjectService({
+      recentFile: path.join(root, 'user data', 'recent-projects.json'),
+      templateDir: DEFAULT_TEMPLATE_DIR,
+      stylesDir: DEFAULT_STYLES_DIR,
+      pickFolder: (purpose) => {
+        purposes.push(purpose);
+        return Promise.resolve(root);
+      },
+      defaultStyle: () => 'noir-voxel',
+      experimentalWorlds: () => experimental,
+      newProjectDefaults: () => ({ characters: 'pack', mascot: 'fox' }),
+      log: createLogger((line) => lines.push(line)),
+      git,
+    });
+    const soft = await projects.newProject({ title: 'Soft', language: 'en', style: 'soft-480' });
+    expect(soft).toMatchObject({ status: 'opened', project: { style: 'soft-480' } });
+    // Refused before the folder picker while the switch is off.
+    purposes = [];
+    const refused = await projects.newProject({
+      title: 'Book',
+      language: 'en',
+      style: 'sketchbook',
+    });
+    expect(refused).toMatchObject({ status: 'error', error: { kind: 'invalid-argument' } });
+    expect(purposes).toEqual([]);
+    experimental = true;
+    const book = await projects.newProject({ title: 'Book', language: 'en', style: 'sketchbook' });
+    expect(book).toMatchObject({ status: 'opened', project: { style: 'sketchbook' } });
+    if (book.status !== 'opened') throw new Error('not created');
+    // The world's defaults win over the channel's pack and mascot.
+    const written: unknown = JSON.parse(
+      await readFile(path.join(book.project.dir, 'project.json'), 'utf8'),
+    );
+    expect(written).toMatchObject({
+      style: 'sketchbook',
+      lookMode: 'mixed',
+      continuityLinks: true,
+      characters: 'classic',
+      mascot: 'none',
+    });
+  });
+
   it('takes the scenes per minute and faster checks of the form over the defaults (ADR-027)', async () => {
     const projects = new ProjectService({
       recentFile: path.join(root, 'user data', 'recent-projects.json'),

@@ -8,6 +8,10 @@ describe('header view', () => {
     expect(projectMeta({ language: 'en', style: 'voxel-pixel-crisp640', fps: 30 })).toBe(
       'EN · Voxel Pixel · Crisp 640 · 30 fps',
     );
+    // A world shows its own name (PLAN.md#13.6), experimental or not.
+    expect(projectMeta({ language: 'pl', style: 'sketchbook', fps: 30 })).toBe(
+      'PL · Sketchbook · 30 fps',
+    );
   });
 
   it('says the model mode in plain words, nothing until the settings load', () => {

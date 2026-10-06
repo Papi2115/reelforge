@@ -1,7 +1,8 @@
 /**
- * "Project settings": options stored in the open project's project.json (look mode, ambient
- * variation, continuity links, characters and mascot, research assets, tension map, dramaturgy,
- * editing, scenes per minute and faster checks). Sections and rows are data
+ * "Project settings": options stored in the open project's project.json (the style, read-only;
+ * look mode, ambient variation, continuity links, characters and mascot, research assets, tension
+ * map, dramaturgy, editing, scenes per minute and faster checks). In a world's project the rows
+ * that do not apply say why instead (WorldRows.tsx). Sections and rows are data
  * (PROJECT_SETTINGS_ROWS in project-settings-view.ts): a later option adds a row with its section,
  * and the section appears. The row components are shared with the steps' "All options" sections
  * (option-registry.ts). Every change is saved and committed by main right away; it applies to
@@ -9,9 +10,9 @@
  */
 import { useEffect, useId, useRef, type JSX } from 'react';
 import { optionsStatus } from '../options/step-options-view.js';
-import { OPTION_ROWS } from './option-registry.js';
 import { groupBySection, PROJECT_SETTINGS_ROWS } from './project-settings-view.js';
 import { useProjectSettings } from './use-project-settings.js';
+import { OptionRow } from './WorldRows.js';
 
 export interface ProjectSettingsDialogProps {
   readonly projectTitle: string;
@@ -71,17 +72,16 @@ export function ProjectSettingsDialog({
                 <h3 className="settings-heading" id={`${headingId}-${section.id}`}>
                   {section.title}
                 </h3>
-                {section.rows.map(({ id }) => {
-                  const Row = OPTION_ROWS[id];
-                  return (
-                    <Row
-                      key={id}
-                      settings={settings}
-                      looks={controller.looks}
-                      update={controller.update}
-                    />
-                  );
-                })}
+                {section.rows.map(({ id }) => (
+                  <OptionRow
+                    key={id}
+                    id={id}
+                    settings={settings}
+                    looks={controller.looks}
+                    style={controller.style}
+                    update={controller.update}
+                  />
+                ))}
               </section>
             ))}
           {controller.error !== undefined && (

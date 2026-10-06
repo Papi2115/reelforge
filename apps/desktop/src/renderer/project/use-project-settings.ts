@@ -8,6 +8,7 @@ import type {
   LookSummary,
   ProjectSettings,
   ProjectSettingsPatch,
+  ProjectStyle,
 } from '../../shared/project-settings-contract.js';
 import { errorMessage, rendererLog } from '../log.js';
 import { withProjectSettingsPatch } from './project-settings-view.js';
@@ -22,6 +23,8 @@ export interface ProjectSettingsController {
   /** Undefined while loading. */
   readonly settings: ProjectSettings | undefined;
   readonly looks: readonly LookSummary[];
+  /** The project's style (PLAN.md#13.6); undefined while loading. */
+  readonly style: ProjectStyle | undefined;
   /** Load failure or the last failed change (shown in the dialog). */
   readonly error: string | undefined;
   /** Number of changes main has not answered yet. */
@@ -32,6 +35,7 @@ export interface ProjectSettingsController {
 export function useProjectSettings(): ProjectSettingsController {
   const [settings, setSettings] = useState<ProjectSettings | undefined>(undefined);
   const [looks, setLooks] = useState<readonly LookSummary[]>([]);
+  const [style, setStyle] = useState<ProjectStyle | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [pending, setPending] = useState(0);
   /** Number of the newest change: an older answer must not undo a newer optimistic change. */
@@ -46,6 +50,7 @@ export function useProjectSettings(): ProjectSettingsController {
         }
         setSettings(state.settings);
         setLooks(state.looks);
+        setStyle(state.style);
       },
       (reason: unknown) => {
         log.error(`getProjectSettings failed: ${errorMessage(reason)}`);
@@ -105,5 +110,5 @@ export function useProjectSettings(): ProjectSettingsController {
     [reload],
   );
 
-  return { settings, looks, error, pending, update };
+  return { settings, looks, style, error, pending, update };
 }

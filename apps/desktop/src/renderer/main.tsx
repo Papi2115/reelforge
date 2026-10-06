@@ -23,6 +23,7 @@ import './sound/sound.css';
 import './export/export.css';
 import './onboarding/onboarding.css';
 import './project/project-settings.css';
+import './project/style-choice.css';
 import './assets/assets.css';
 import './tension/tension.css';
 import './dramaturgy/dramaturgy.css';

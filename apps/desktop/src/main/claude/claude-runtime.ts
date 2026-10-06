@@ -96,10 +96,31 @@ export interface ClaudeRuntimeOptions {
   /** Fresh "Connect Claude" check (cached briefly by the connection service). */
   readonly connection: () => Promise<ConnectionState>;
   readonly writeShims: (options: CliShimOptions) => Promise<string[]>;
+  /** Settings → "Experimental worlds (preview)" (PLAN.md#13.6); off when omitted. */
+  readonly experimentalWorlds?: () => boolean;
   readonly log: Logger;
 }
 
-async function prepareShims(options: ClaudeRuntimeOptions): Promise<string | undefined> {
+/** = `EXPERIMENTAL_WORLDS_ENV` of @reelforge/cli (its root module is not bundled into main). */
+export const EXPERIMENTAL_WORLDS_VAR = 'REELFORGE_EXPERIMENTAL_WORLDS';
+
+/**
+ * Env the `reelforge` launchers set for the CLI: the app binary runs as Node, and with
+ * experimental worlds on the CLI offers their looks (kit-docs, looks) like the stages do. Only
+ * this one app var is added; Claude's own env is sanitized by the bridge as always.
+ */
+export function cliShimEnv(experimentalWorlds: boolean): Record<string, string> {
+  return {
+    ELECTRON_RUN_AS_NODE: '1',
+    ...(experimentalWorlds ? { [EXPERIMENTAL_WORLDS_VAR]: '1' } : {}),
+  };
+}
+
+/**
+ * Writes the `reelforge` launchers into the shim folder; undefined when they cannot be written.
+ * Called on every Claude setup and again when the experimental switch changes.
+ */
+export async function prepareShims(options: ClaudeRuntimeOptions): Promise<string | undefined> {
   if (!existsSync(options.layout.cliBundle)) {
     options.log.warn(
       `reelforge CLI bundle missing (${options.layout.cliBundle}); Claude cannot run it`,
@@ -111,7 +132,7 @@ async function prepareShims(options: ClaudeRuntimeOptions): Promise<string | und
       dir: options.shimDir,
       runtime: options.execPath,
       script: options.layout.cliBundle,
-      env: { ELECTRON_RUN_AS_NODE: '1' },
+      env: cliShimEnv(options.experimentalWorlds?.() === true),
       platform: options.platform,
     });
     return options.shimDir;

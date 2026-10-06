@@ -1,18 +1,22 @@
 /**
- * Start screen (PLAN.md#6.2): new project (title + language, scenes per minute and faster checks
- * (ADR-027), then a folder picker in main), open an existing project folder, or reopen a recent
+ * Start screen (PLAN.md#6.2): new project (title + language, style (PLAN.md#13.6: a preview world
+ * only with Settings → Experimental worlds), scenes per minute and faster checks (ADR-027), then a
+ * folder picker in main), open an existing project folder, or reopen a recent
  * one. Plain on purpose; 6.3 does the real layout.
  */
 import type { ShotsPerMinute } from '@reelforge/shared';
-import { useEffect, useState, type JSX, type SyntheticEvent } from 'react';
+import { useEffect, useMemo, useState, type JSX, type SyntheticEvent } from 'react';
 import type {
   ProjectOpenResult,
   ProjectSummary,
   RecentProjectEntry,
 } from '../../shared/project-contract.js';
+import { styleChoices } from '../../shared/style-choices.js';
 import { errorMessage, rendererLog } from '../log.js';
 import { SceneCountFields } from './SceneCountFields.js';
 import { SCENE_COUNT_HINT } from './scene-count-view.js';
+import { StyleField } from './StyleField.js';
+import { chosenStyle } from './world-settings-view.js';
 
 const log = rendererLog('start');
 
@@ -23,6 +27,10 @@ export interface StartScreenProps {
   /** Settings → Projects defaults (ADR-027); undefined until loaded. */
   readonly defaultShotsPerMinute?: ShotsPerMinute | null | undefined;
   readonly defaultFasterChecks?: boolean | undefined;
+  /** Settings → Projects → style of new projects; undefined until loaded. */
+  readonly defaultStyle?: string | undefined;
+  /** Settings → Projects → "Experimental worlds (preview)" (PLAN.md#13.6). */
+  readonly experimentalWorlds?: boolean | undefined;
 }
 
 type Language = ProjectSummary['language'];
@@ -32,6 +40,8 @@ export function StartScreen({
   defaultLanguage,
   defaultShotsPerMinute,
   defaultFasterChecks,
+  defaultStyle,
+  experimentalWorlds,
 }: StartScreenProps): JSX.Element {
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState<Language>(defaultLanguage ?? 'en');
@@ -39,6 +49,9 @@ export function StartScreen({
     defaultShotsPerMinute ?? null,
   );
   const [fasterChecks, setFasterChecks] = useState(defaultFasterChecks ?? false);
+  const [pickedStyle, setPickedStyle] = useState<string | undefined>(undefined);
+  const styles = useMemo(() => styleChoices(experimentalWorlds === true), [experimentalWorlds]);
+  const style = chosenStyle(pickedStyle, defaultStyle, styles);
   const [recent, setRecent] = useState<RecentProjectEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -82,7 +95,13 @@ export function StartScreen({
     event.preventDefault();
     if (title.trim() === '') return;
     run(() =>
-      window.reelforge.newProject({ title: title.trim(), language, shotsPerMinute, fasterChecks }),
+      window.reelforge.newProject({
+        title: title.trim(),
+        language,
+        shotsPerMinute,
+        fasterChecks,
+        ...(style === undefined ? {} : { style }),
+      }),
     );
   };
 
@@ -113,6 +132,7 @@ export function StartScreen({
             <option value="pl">Polski</option>
           </select>
         </label>
+        <StyleField choices={styles} value={style} onChange={setPickedStyle} disabled={busy} />
         <fieldset className="start-scene-count">
           <legend>Scenes and checks</legend>
           <p className="muted">{SCENE_COUNT_HINT}</p>

@@ -46,6 +46,7 @@ describe('app settings', () => {
         includeThumbnail: true,
         outputDir: null,
       },
+      experimental: { worlds: false },
       onboarding: { connectClaudeDone: false, welcomeDone: false, tourDone: false },
     });
   });
@@ -206,6 +207,17 @@ describe('app settings', () => {
     expect(appSettingsPatchSchema.safeParse(invalid).success).toBe(false);
     const tooMany = { newProjectDefaults: { shotsPerMinute: { min: 5, max: 25 } } };
     expect(appSettingsPatchSchema.safeParse(tooMany).success).toBe(false);
+  });
+
+  it('keeps experimental worlds off unless switched on (PLAN.md#13.6)', () => {
+    expect(appSettingsSchema.parse({ version: 1 }).experimental).toEqual({ worlds: false });
+    expect(defaultAppSettings().experimental.worlds).toBe(false);
+    const on = applyAppSettingsPatch(defaultAppSettings(), { experimental: { worlds: true } });
+    expect(on.experimental.worlds).toBe(true);
+    expect(applyAppSettingsPatch(on, { economy: true }).experimental.worlds).toBe(true);
+    expect(appSettingsPatchSchema.safeParse({ experimental: { comics: true } }).success).toBe(
+      false,
+    );
   });
 
   it('keeps tool paths and unknown keys out of renderer patches', () => {
