@@ -20,11 +20,13 @@ import {
 import { INK, inkOfSwatch, SOFT } from '../inks.js';
 import { paintTape } from '../traces.js';
 import { PopCamera, type Plane, type Vec3 } from './camera.js';
+import { flatOutline, isFlat, paintFlat } from './popup-flats.js';
+import type { PieceState } from './popup-motion.js';
+import { paintTab } from './popup-tab.js';
 import {
   cardGeo,
   eyeAt,
   foldAt,
-  tabY,
   type ArmGeo,
   type Card,
   type CardGeo,
@@ -64,10 +66,16 @@ export interface PopupArt {
   readonly smear: Pts | null;
   /** Cut-paper rays of each sun (polar [angle, radius] triples), by element index. */
   readonly rays: ReadonlyMap<number, Pts[]>;
-  /** Arm angles at t (deg, in arm order). */
-  angles(t: number): number[];
-  /** The tab's left end at t (page px), or null without a pull. */
-  tabEnd(t: number): number | null;
+  /** Every piece's state at t (by element index). */
+  states(t: number): PieceState[];
+  /** The fold angle of standing piece `index` at t, for a card fold `phi` (deg). */
+  phiOf(t: number, phi: number): (index: number) => number;
+  /** How far the tab is pulled at t (card px), or null without a pull. */
+  travel(t: number): number | null;
+  /** Words and drawings of the flat pieces (by element index). */
+  readonly flats: ReadonlyMap<number, Mark[][]>;
+  /** A counter's number as marks (cached by text). */
+  counter(index: number, text: string): Mark[];
 }
 
 type ScreenXf = (plane: Plane) => Xform;
@@ -133,16 +141,9 @@ function paintBase(
     [cam.page([x0 + 3, yc + 4, x1 + 3, yc + 4, x1 + 3, yc + depth + 4, x0 + 3, yc + depth + 4])],
     SOFT,
   );
-  const tabEnd = art.tabEnd(t);
-  if (tabEnd !== null) {
-    const ty = tabY(art.card);
-    const tab = cam.page(capsule(tabEnd + 10, ty, x0 + 40, ty, 10));
-    canvas.fillPoly(tab, INK.KRAFT);
-    canvas.outline(tab, INK.KRAFT_D);
-    // Printed arrow: pull this way.
-    cam.line(base, tabEnd + 9, ty, tabEnd + 27, ty, INK.KRAFT_D);
-    cam.line(base, tabEnd + 9, ty, tabEnd + 14, ty - 4, INK.KRAFT_D);
-    cam.line(base, tabEnd + 9, ty, tabEnd + 14, ty + 4, INK.KRAFT_D);
+  const travel = art.travel(t);
+  if (travel !== null && art.o.pull) {
+    paintTab(canvas, (pts) => cam.page(pts), art.card, art.o.pull, travel);
   }
   cam.face(base, [x0, yc, x1, yc, x1, yc + depth, x0, yc + depth], {
     ...CARD,
@@ -280,6 +281,40 @@ function paintThread(canvas: InkCanvas, cam: PopCamera, art: PopupArt, g: CardGe
   canvas.fillPoly(cam.page(ellipsePts(a[0], a[1], 1.6, 1.6, 6)), INK.GRAPHITE);
 }
 
+function flatShadows(art: PopupArt, g: CardGeo, states: readonly PieceState[]): Pts[] {
+  if (g.phi < 30) return [];
+  return art.o.elements.flatMap((e, index) => {
+    const st = states[index];
+    const outline = st && isFlat(e) ? flatOutline(e, st, art.card.x0) : null;
+    return outline ? [outline] : [];
+  });
+}
+
+function paintFlats(
+  canvas: InkCanvas,
+  cam: PopCamera,
+  art: PopupArt,
+  g: CardGeo,
+  states: readonly PieceState[],
+  t: number,
+): void {
+  art.o.elements.forEach((e, index) => {
+    const st = states[index];
+    if (!st || !isFlat(e)) return;
+    const paint = {
+      canvas,
+      cam,
+      plane: g.piecePlane,
+      back: g.back,
+      x0: art.card.x0,
+      seed: art.seed + index * 31,
+      t,
+      counter: (text: string) => art.counter(index, text),
+    };
+    paintFlat(paint, e, st, art.flats.get(index) ?? []);
+  });
+}
+
 /** The whole card at t into `canvas` (`mask` = scratch canvas of the same size). */
 export function paintPopup(
   canvas: InkCanvas,
@@ -293,7 +328,9 @@ export function paintPopup(
     const [x, y] = plane.xf(u, v);
     return [x * cam.s, y * cam.s];
   };
-  const g = cardGeo(cam, art.card, art.o.elements, foldAt(art.times, t), art.angles(t));
+  const phi = foldAt(art.times, t);
+  const states = art.states(t);
+  const g = cardGeo(cam, art.card, art.o.elements, phi, states, art.phiOf(t, phi));
   const { x0, x1, yc, depth } = art.card;
   paintBase(canvas, cam, art, t, toScreen);
   const base = pagePlane(cam);
@@ -321,6 +358,9 @@ export function paintPopup(
     cam.shade(
       [
         ...g.pieces.map((piece) => cam.shadowOn(g.back, piece.box, clip)),
+        ...flatShadows(art, g, states).map((uv) =>
+          cam.shadowOn(g.back, to3(g.piecePlane, uv), clip),
+        ),
         ...g.arms.flatMap((arm) => [
           cam.shadowOn(g.back, to3(g.armPlane, armUV(arm)), clip),
           cam.shadowOn(
@@ -333,6 +373,7 @@ export function paintPopup(
       SOFT,
     );
     for (const arm of g.arms) paintArm(canvas, cam, art, g, arm, t);
+    paintFlats(canvas, cam, art, g, states, t);
     for (const piece of g.pieces) paintPiece(canvas, cam, art, piece, sx, t);
     paintThread(canvas, cam, art, g);
     return;

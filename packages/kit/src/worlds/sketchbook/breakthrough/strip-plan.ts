@@ -8,6 +8,7 @@
  */
 import { loopRecipe, sunRecipe } from '../draw/doodles.js';
 import { DEFAULT_EXPRESSION, DEFAULT_POSE, figureMarks } from '../draw/figures.js';
+import { HAND_SPEED } from '../draw/hand-room.js';
 import { textWidth } from '../draw/lettering.js';
 import { fitMarks, strokeMark, writeMarks, type Mark, type ToolName } from '../draw/marks.js';
 import { ease, rnd, seg } from '../draw/math.js';
@@ -120,10 +121,16 @@ function writeEvent(
 ): number {
   const { hero, size, lines, event } = entry;
   const from = marks.length;
-  const labelEnd = t + (0.1 + 0.06 * event.label.length + (hero ? 0.12 : 0)) * pace;
+  const len = hero ? 15 : rnd(9, 12, seed, 2);
+  // The hand needs time to get from the label's end down to the axis tick: the label is written
+  // that much faster, so the event keeps its length (never a hop).
+  const labelY = hero ? 76 : 70;
+  const travel = Math.hypot(textWidth(event.label, size, 'print') + 8, AXIS - len - labelY);
+  const extra = Math.max(0, travel / HAND_SPEED - 0.04 * pace);
+  const labelEnd = t + (0.1 + 0.06 * event.label.length + (hero ? 0.12 : 0)) * pace - extra;
   writeMarks(marks, event.label, {
     x: u + 8,
-    y: hero ? 76 : 70,
+    y: labelY,
     size,
     hand: 'print',
     tool: pen.label,
@@ -134,8 +141,7 @@ function writeEvent(
     t1: labelEnd,
     fps: 10,
   });
-  let at = labelEnd + 0.04 * pace;
-  const len = hero ? 15 : rnd(9, 12, seed, 2);
+  let at = labelEnd + 0.04 * pace + extra;
   marks.push(
     strokeMark([u + 0.6, AXIS - len, u - 0.4, AXIS + len], {
       tool: hero ? 'felt' : pen.label,
@@ -313,7 +319,8 @@ export function planStrip(
         );
       }
       S += D;
-      t = (pulls.at(-1)?.d1 ?? t) + 0.3 * pace;
+      // The left hand lifts off (0.22 s) before the writing hand comes in: one hand at a time.
+      t = (pulls.at(-1)?.d1 ?? t) + 0.22 + 0.3 * pace;
     }
     if (entry.hero) t += 0.5 * pace;
     const end = writeEvent(marks, entry, u, t, pace, pen, seed + 811 + i * 10);

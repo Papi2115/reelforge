@@ -1,6 +1,7 @@
 /**
  * The breakthrough page methods (PLAN.md#13.6 part c) without a browser: `page.popup(...)` (opens,
- * the red pen pulls the tab, the hand is scripted, readable errors) and `page.strip(...)` (the
+ * the red pen pulls the tab, the pull moves what the scene bound to it (motions or a pure drive,
+ * pieces rising on their words), the hand is scripted, readable errors) and `page.strip(...)` (the
  * strip moves under a dragging hand, red only on the highlight, pace fitted to `until`, readable
  * errors), both pure functions of t in any seek order; plus the hand track's busy stretches.
  */
@@ -63,14 +64,19 @@ function expectPure(make: () => Page, times: readonly number[]): void {
 }
 
 const POPUP = {
+  intent: 'the date stays while the sun slides off its notch: the season drifts',
   at: 0.36,
   elements: [
-    { kind: 'arm', u: 220, length: 160, angle: 22.7, swing: -19 },
+    { kind: 'arm', id: 'sun', u: 220, length: 160, angle: 22.7 },
     { kind: 'block', u: 236, band: 'MARCH', text: '21' },
     { kind: 'tag', lines: ['spring', 'equinox'] },
     { kind: 'note', text: 'same date, same season' },
   ],
-  pull: { at: 4.4 },
+  pull: {
+    at: 4.4,
+    motions: [{ target: 'sun', to: { angle: -19 }, ease: 'lin' }],
+    callout: 'notch',
+  },
 };
 
 function popupPage(params: Record<string, unknown> = {}): { target: Page; handle: unknown } {
@@ -78,10 +84,25 @@ function popupPage(params: Record<string, unknown> = {}): { target: Page; handle
   return { target, handle: target.popup(POPUP) };
 }
 
+/** A gauge card whose pull is bound to `motions` (the same card, different mechanisms). */
+function gaugePage(motions: readonly Record<string, unknown>[]): Page {
+  const target = page();
+  target.popup({
+    intent: 'the spare hours fill up until they make a whole day',
+    elements: [
+      { kind: 'gauge', id: 'spare', u: 90, v: 30, level: 0.5, label: 'SPARE' },
+      { kind: 'counter', id: 'hours', u: 250, v: 120, from: 12, suffix: ' h' },
+      { kind: 'flap', id: 'door', u: 300, v: 40, w: 90, h: 60, text: 'WHY?' },
+    ],
+    pull: { at: 2.4, motions },
+  });
+  return target;
+}
+
 describe('page.popup', () => {
   it('opens from a shut kraft card, then the red pen pulls the tab and marks the gap', () => {
     const { target, handle } = popupPage();
-    expect(handle).toMatchObject({ at: 0.36, open: 0.36 + 1.48 });
+    expect(handle).toMatchObject({ at: 0.36, open: 0.36 + 1.48, intent: POPUP.intent });
     const { end, notch } = handle as { end: number; notch: readonly number[] };
     expect(end).toBeCloseTo(4.4 + 1.72 + 0.2 + 0.06 + 0.09, 1);
     expect(notch).toHaveLength(2);
@@ -108,13 +129,63 @@ describe('page.popup', () => {
     expect(same(pixelsAt(withHand, 3.2), pixelsAt(without, 3.2))).toBe(true);
   });
 
+  it('moves what the pull is bound to: other motions, other pictures, each pure in t', () => {
+    const fill = [{ target: 'spare', to: { level: 1 } }];
+    const drain = [{ target: 'spare', to: { level: 0 } }];
+    const door = [
+      { target: 'door', to: { open: 0.9 }, ease: 'back' },
+      { target: 'hours', to: { value: 24 }, span: [0.3, 1], ease: 'lin' },
+    ];
+    const before = [fill, drain, door].map((motions) => pixelsAt(gaugePage(motions), 2));
+    const after = [fill, drain, door].map((motions) => pixelsAt(gaugePage(motions), 4.4));
+    expect(same(before[0] ?? new Uint32Array(), before[1] ?? new Uint32Array())).toBe(true);
+    expect(same(before[0] ?? new Uint32Array(), before[2] ?? new Uint32Array())).toBe(true);
+    for (const [a, b] of [
+      [0, 1],
+      [0, 2],
+      [1, 2],
+    ] as const) {
+      expect(
+        same(after[a] ?? new Uint32Array(), after[b] ?? new Uint32Array()),
+        `${String(a)}/${String(b)}`,
+      ).toBe(false);
+    }
+    expect(count(after[0] ?? new Uint32Array(), 'red')).toBeGreaterThan(
+      count(after[1] ?? new Uint32Array(), 'red'),
+    );
+    for (const motions of [fill, drain, door]) {
+      expectPure(() => gaugePage(motions), [1, 2.5, 3.1, 3.6, 4.4]);
+    }
+  });
+
+  it('lets a pure drive(p, t) move pieces, and raises pieces on their own words', () => {
+    const target = page();
+    const handle = target.popup({
+      intent: 'the counter runs as the pull goes, and the block rises on its word',
+      elements: [
+        { kind: 'counter', id: 'n', u: 200, v: 100, from: 0 },
+        { kind: 'block', u: 40, text: '29', at: 2.6 },
+      ],
+      pull: {
+        at: 3,
+        drive: (p: number) => ({ n: { value: Math.round(100 * p) } }),
+        callout: 'none',
+      },
+    });
+    expect(handle).toMatchObject({ pulled: 3 + 0.12 + 0.98 });
+    const [early, risen, counted] = [2.2, 3.05, 4.6].map((t) => pixelsAt(target, t));
+    expect(same(early ?? new Uint32Array(), risen ?? new Uint32Array())).toBe(false);
+    expect(same(risen ?? new Uint32Array(), counted ?? new Uint32Array())).toBe(false);
+  });
+
   it('explains what is wrong with a spec', () => {
     const bad =
       (spec: Record<string, unknown>): (() => unknown) =>
       () =>
-        page().popup(spec);
+        page().popup({ intent: POPUP.intent, ...spec });
     const elements = POPUP.elements;
-    expect(bad({ elements: Array.from({ length: 7 }, () => elements[1]) })).toThrow(
+    expect(() => page().popup({ elements })).toThrow(/intent/);
+    expect(bad({ elements: Array.from({ length: 9 }, () => elements[1]) })).toThrow(
       /elements: Too big/i,
     );
     expect(bad({ elements: [{ kind: 'block', u: 0, w: 60, text: '2024' }] })).toThrow(
@@ -123,13 +194,23 @@ describe('page.popup', () => {
     expect(bad({ elements: [{ kind: 'block', u: 380, text: '21' }] })).toThrow(
       /past the card width/,
     );
-    expect(bad({ elements: [{ kind: 'arm', u: 100, swing: 0 }] })).toThrow(/swing needs pull/);
-    expect(bad({ elements: [{ kind: 'arm', u: 100 }], pull: { at: 4 } })).toThrow(
-      /give one arm a swing angle/,
+    expect(bad({ elements, pull: { at: 4 } })).toThrow(/pull moves nothing/);
+    expect(
+      bad({ elements, pull: { at: 4, motions: [{ target: 'disc', to: { angle: 3 } }] } }),
+    ).toThrow(/"disc" is not a piece of this card/);
+    expect(
+      bad({ elements, pull: { at: 4, motions: [{ target: 'sun', to: { level: 1 } }] } }),
+    ).toThrow(/the arm cannot move "level"/);
+    expect(bad({ elements: [{ kind: 'arm', u: 100, piece: 'disc' }], pull: undefined })).toThrow(
+      /disc must say what it stands for/,
     );
-    expect(bad({ ...POPUP, pull: { at: 1 } })).toThrow(/after the card has settled/);
+    expect(bad({ elements: [{ kind: 'card', u: 100, v: 40 }] })).toThrow(/needs text or a drawing/);
+    expect(bad({ elements, pull: { at: 4, drive: () => ({ ghost: { angle: 1 } }) } })).toThrow(
+      /drive moves "ghost"/,
+    );
+    expect(bad({ ...POPUP, pull: { ...POPUP.pull, at: 1 } })).toThrow(/after the card has settled/);
     expect(bad({ elements: [{ kind: 'note', text: 'tab\there' }] })).toThrow(/cannot letter/);
-    expect(bad({ elements: [{ kind: 'wheel', u: 3 }] })).toThrow(/kind/);
+    expect(bad({ elements: [{ kind: 'robot', u: 3 }] })).toThrow(/kind/);
   });
 });
 

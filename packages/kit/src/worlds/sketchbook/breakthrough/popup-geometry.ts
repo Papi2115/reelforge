@@ -5,6 +5,7 @@
  * off the page. Ported from docs/worlds/sketchbook-v2/js/popup.js (shot 5).
  */
 import { ease, seg } from '../draw/math.js';
+import type { PieceState } from './popup-motion.js';
 import type { Point } from '../draw/paths.js';
 import type { Lens, Plane, Vec3 } from './camera.js';
 import { ARM_PIVOT, type PopupElement, type PopupOptions } from './popup-schema.js';
@@ -13,9 +14,8 @@ const rad = (deg: number): number => (deg * Math.PI) / 180;
 const X3: Vec3 = [1, 0, 0];
 /** Lens of the 2.5D camera (page px): left of centre, far below the frame, high up. */
 export const LENS: Vec3 = [470, 1470, 1400];
-/** Pull tab: how far it sticks out left of the card, and its travel when pulled. */
+/** Pull tab: how far it sticks out of the card. */
 export const TAB_OUT = 30;
-export const TAB_TRAVEL = 52;
 
 export const sunRadius = (piece: 'sun' | 'disc'): number => (piece === 'sun' ? 24 : 21);
 
@@ -40,19 +40,21 @@ export interface PopupTimes {
   };
 }
 
-export function popupTimes(open: number, press: number | undefined): PopupTimes {
+/** The opening from `open`; the pull (its drag lasting `dur` s) from `press`. */
+export function popupTimes(open: number, press: number | undefined, dur = 0.98): PopupTimes {
   const base = { open, dip: open + 0.36, lift: open + 0.5, letGo: open + 0.88, land: open + 1.48 };
   if (press === undefined) return base;
+  const done = press + 0.12 + dur;
   return {
     ...base,
     pull: {
       enter: press - 0.42,
       press,
       drag: press + 0.12,
-      done: press + 1.1,
-      hover: press + 1.2,
-      loop: press + 1.34,
-      arrow: press + 1.72,
+      done,
+      hover: done + 0.1,
+      loop: done + 0.24,
+      arrow: done + 0.62,
     },
   };
 }
@@ -62,16 +64,6 @@ export function foldAt(times: PopupTimes, t: number): number {
   if (t <= times.lift) return 0;
   if (t <= times.letGo) return 55 * ease('in', seg(t, times.lift, times.letGo));
   return 55 + 35 * ease('back', seg(t, times.letGo, times.land), 3);
-}
-
-/** How far the tab has been pulled (card px; a small press-in first). */
-export function tabAt(times: PopupTimes, t: number): number {
-  const pull = times.pull;
-  if (!pull) return 0;
-  return (
-    -3 * ease('out', seg(t, pull.press, pull.drag)) +
-    (TAB_TRAVEL + 3) * ease('inOut', seg(t, pull.drag, pull.done))
-  );
 }
 
 /** The card in page px. */
@@ -140,10 +132,17 @@ export interface CardGeo {
   readonly arms: ArmGeo[];
 }
 
-function pieceGeo(cam: Lens, card: Card, e: Standing, index: number, phi: number): PieceGeo {
+function pieceGeo(
+  cam: Lens,
+  card: Card,
+  e: Standing,
+  index: number,
+  phi: number,
+  slide: number,
+): PieceGeo {
   const c = Math.cos(rad(phi));
   const s = Math.sin(rad(phi));
-  const x0 = card.x0 + e.u;
+  const x0 = card.x0 + e.u + slide;
   const x1 = x0 + e.w;
   const yc = card.yc;
   const yB = yc + e.depth + e.h * c;
@@ -171,13 +170,17 @@ function pieceGeo(cam: Lens, card: Card, e: Standing, index: number, phi: number
   };
 }
 
-/** Everything for a fold angle `phi` and the arms at `angles` (deg, one per arm in order). */
+/**
+ * Everything for a fold angle `phi` and the pieces' `states` (by element index): arms at their
+ * angle, standing pieces slid and folded to `phiOf(index)` (default: with the card).
+ */
 export function cardGeo(
   cam: Lens,
   card: Card,
   elements: readonly PopupElement[],
   phi: number,
-  angles: readonly number[],
+  states: readonly PieceState[],
+  phiOf: (index: number) => number = () => phi,
 ): CardGeo {
   const c = Math.cos(rad(phi));
   const s = Math.sin(rad(phi));
@@ -187,10 +190,11 @@ export function cardGeo(
   const pieces: PieceGeo[] = [];
   const arms: ArmGeo[] = [];
   elements.forEach((element, index) => {
+    const state = states[index];
     if (element.kind === 'block' || element.kind === 'cutout') {
-      pieces.push(pieceGeo(cam, card, element, index, phi));
+      pieces.push(pieceGeo(cam, card, element, index, phiOf(index), state?.slide ?? 0));
     } else if (element.kind === 'arm') {
-      const angle = angles[arms.length] ?? element.angle;
+      const angle = state?.angle ?? element.angle;
       const pivot: Point = [card.x0 + element.u, ARM_PIVOT];
       arms.push({
         element,

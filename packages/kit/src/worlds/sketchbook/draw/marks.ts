@@ -6,7 +6,7 @@
  */
 import { INK } from '../inks.js';
 import { layoutText, type TextLayout } from './lettering.js';
-import { rnd, type EaseName } from './math.js';
+import { at, rnd, type EaseName } from './math.js';
 import { polyLen, type Pts } from './paths.js';
 
 export const TOOL_NAMES = [
@@ -23,6 +23,11 @@ export type ToolName = (typeof TOOL_NAMES)[number];
 
 export const PEN_NAMES = ['felt', 'red', 'bic', 'pencil', 'cpencil', 'marker', 'hi'] as const;
 export type PenName = (typeof PEN_NAMES)[number];
+
+export const APPEAR_KINDS = ['bloom', 'pop', 'type'] as const;
+/** How a mark appears without the hand: ink bloom, pop-in, or letters popping in one by one. */
+export type AppearKind = (typeof APPEAR_KINDS)[number];
+export type RevealKind = 'bloom' | 'pop';
 
 export type NibKind = 'round' | 'bic' | 'chisel' | 'pencil' | 'cpencil';
 
@@ -86,6 +91,11 @@ interface MarkBase {
   readonly seed: number;
   /** The visible hand holds the pen while this mark is drawn. */
   readonly held: boolean;
+  /**
+   * Appears by itself instead of being drawn stroke by stroke (no hand): `bloom` = the ink
+   * soaks in pixel by pixel over its dur, `pop` = all at once at t0.
+   */
+  readonly reveal?: RevealKind | undefined;
   readonly pen: PenName;
   readonly color: number;
 }
@@ -227,6 +237,10 @@ export interface WriteOptions extends TextLayout {
   readonly speed?: number | undefined;
   /** Scales the pauses between letters and words. */
   readonly gapScale?: number | undefined;
+  /** Shortest stroke (s, default 0.035). */
+  readonly minStroke?: number | undefined;
+  /** Fastest move between strokes (page px/s; default: no limit). */
+  readonly reach?: number | undefined;
   readonly boil?: number | undefined;
   readonly fps?: number | undefined;
   /** The visible hand writes it (default true). */
@@ -236,6 +250,27 @@ export interface WriteOptions extends TextLayout {
   readonly thick?: number | undefined;
   /** Maps the laid-out page points (text written on a sheet that moves). */
   readonly source?: ((pts: Pts, corners: readonly boolean[]) => ShapeSource) | undefined;
+}
+
+/**
+ * The pace of `page.write` without `until`: brisk enough for a 4-5 s shot (a 12-letter word in
+ * about 1-1.2 s at cap heights up to 40, bigger letters a little slower), the uneven seeded
+ * gaps kept. `speed` multiplies it (0.5-2); `quick` is the label pace (~1.7x faster).
+ */
+export function writePace(
+  size: number,
+  hand: TextLayout['hand'],
+  speed = 1,
+  quick = false,
+): { speed: number; gapScale: number; minStroke: number; reach: number } {
+  const base = 1150 * Math.sqrt(Math.max(8, size) / 24) * (hand === 'marker' ? 1.25 : 1);
+  const k = speed * (quick ? 1.6 : 1);
+  return {
+    speed: base * k,
+    gapScale: (0.32 / speed) * (quick ? 0.6 : 1),
+    minStroke: 0.02 / k,
+    reach: 2600 * k,
+  };
 }
 
 /** Writes text as timed strokes into `marks`; returns the end time. */
@@ -248,12 +283,26 @@ export function writeMarks(marks: Mark[], text: string, options: WriteOptions): 
   const gapScale = options.gapScale ?? 1;
   let t = options.t0 ?? 0;
   let lastChar = -1;
+  let last: Pts | null = null;
   laid.strokes.forEach((stroke, i) => {
+    const from = t;
     if (lastChar >= 0 && stroke.char !== lastChar) {
       const wordGap = text.slice(lastChar + 1, stroke.char).includes(' ');
       t += (wordGap ? rnd(0.09, 0.22, seed, i, 1) : rnd(0.015, 0.07, seed, i, 2)) * gapScale;
     } else if (lastChar >= 0) t += rnd(0.01, 0.045, seed, i, 3) * gapScale;
-    const dur = Math.max(0.035, (polyLen(stroke.pts) / speed) * rnd(0.85, 1.2, seed, i, 4));
+    // The hand lifts and moves to the next stroke no faster than `reach` page px/s.
+    if (last && options.reach !== undefined) {
+      const jump = Math.hypot(
+        at(stroke.pts, 0) - at(last, last.length - 2),
+        at(stroke.pts, 1) - at(last, last.length - 1),
+      );
+      t = Math.max(t, from + jump / options.reach);
+    }
+    last = stroke.pts;
+    const dur = Math.max(
+      options.minStroke ?? 0.035,
+      (polyLen(stroke.pts) / speed) * rnd(0.85, 1.2, seed, i, 4),
+    );
     marks.push(
       strokeMark(stroke.pts, {
         tool: name,

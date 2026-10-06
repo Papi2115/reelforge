@@ -1,6 +1,7 @@
 /**
- * One writing hand per page (hand-queue.ts, hand.ts, hand-room.ts): overlapping far-apart tasks
- * are serialised (the later one waits <= MAX_SLIP s, or goes without the hand), the hand never
+ * One writing hand per page (hand-queue.ts, hand-plan.ts, hand.ts, hand-room.ts): overlapping
+ * far-apart tasks are serialised (the later one waits; the hero keeps its time; secondary text
+ * that would wait too long appears by itself, never written without the hand), the hand never
  * jumps or shows two nibs, glides bend around a subject, pauses and the shot's end never leave
  * the hand resting on the subject; all pure in t.
  */
@@ -15,7 +16,8 @@ import { cover, naturalAngle } from '../draw/hand-room.js';
 import { strokeMark, type Mark } from '../draw/marks.js';
 import { identity, type Point } from '../draw/paths.js';
 import type { PageApi } from './api.js';
-import { handDrawn, HandQueue, MAX_SLIP } from './hand-queue.js';
+import { HandQueue, MAX_SLIP } from './hand-queue.js';
+import { heroTask, planHand, type HandTask } from './hand-plan.js';
 
 type Page = THREE.Group & PageApi & { update(t: number): void };
 
@@ -95,6 +97,13 @@ function topAndBottom(target: Page, bottom: Record<string, unknown> = {}) {
   return { top, low };
 }
 
+const task = (marks: readonly Mark[], text = 0): HandTask => ({
+  marks,
+  timing: 'queue',
+  hero: false,
+  text,
+});
+
 describe('one hand per page: the queue', () => {
   it('serialises top and bottom writes that start together: the later waits, the hand travels', () => {
     const target = page();
@@ -110,9 +119,16 @@ describe('one hand per page: the queue', () => {
     expect(first && last && last.y - first.y).toBeGreaterThan(120);
   });
 
-  it('keeps the time of a task that would wait too long: it appears without the hand', () => {
+  it('keeps the time of secondary text that would wait too long: it appears by itself', () => {
     const target = page();
-    const top = target.write('A LONG TITLE', { x: 200, y: 90, size: 30, at: 1, until: 2.4 });
+    const top = target.write('A LONG TITLE', {
+      x: 200,
+      y: 90,
+      size: 30,
+      at: 1,
+      until: 2.4,
+      hero: true,
+    });
     const low = target.write('BOTTOM', { x: 300, y: 470, size: 30, at: 1.2, until: 1.8 });
     expect(low.at).toBe(1.2);
     const frames = film(target, top.at + 0.05, top.end - 0.05);
@@ -137,17 +153,54 @@ describe('one hand per page: the queue', () => {
     expect((far[1]?.t0 ?? 0) - 1.1).toBeCloseTo(shift, 9);
   });
 
-  it('draws with the hand only what it can reach: never two tasks at once', () => {
+  it('plans every held mark with the hand: the later far task waits (never ink by itself)', () => {
     const word = [0, 1, 2, 3].map((i) =>
       strokeMark([100 + i * 20, 100, 110 + i * 20, 80], { t0: 1 + i * 0.25, dur: 0.2, seed: i }),
     );
     const other = [0, 1, 2, 3].map((i) =>
       strokeMark([100 + i * 20, 480, 110 + i * 20, 460], { t0: 1.5 + i * 0.25, dur: 0.2, seed: i }),
     );
-    const drawn = handDrawn([word, other], identity, 1);
-    expect(word.every((mark) => drawn.has(mark))).toBe(true);
-    // The word ends at 1.95; the hand then needs ~0.24 s to get down: 2.0 and 2.25 go without it.
-    expect(other.map((mark) => drawn.has(mark))).toEqual([false, false, false, true]);
+    const plan = planHand([task(word), task(other)], []);
+    expect(word.every((mark) => plan.drawn.has(mark))).toBe(true);
+    const moved = other.map((mark) => plan.moved.get(mark) ?? mark);
+    expect(moved.every((mark) => plan.drawn.has(mark))).toBe(true);
+    // The word ends at 1.95; the hand needs ~0.24 s to get down there.
+    expect(moved[0]?.t0).toBeGreaterThan(1.95 + 0.2);
+  });
+
+  it('gives the hand to the hero: an earlier task pauses for it and resumes after', () => {
+    const note = [0, 1, 2, 3, 4].map((i) =>
+      strokeMark([600 + i * 20, 100, 610 + i * 20, 80], { t0: 1 + i * 0.2, dur: 0.15, seed: i }),
+    );
+    const hero = [0, 1].map((i) =>
+      strokeMark([100 + i * 60, 450, 140 + i * 60, 350], { t0: 2 + i * 0.3, dur: 0.25, seed: i }),
+    );
+    const plan = planHand([task(note), { ...task(hero), hero: true }], []);
+    expect(hero.every((mark) => plan.drawn.has(mark) && !plan.moved.has(mark))).toBe(true);
+    const times = note.map((mark) => (plan.moved.get(mark) ?? mark).t0);
+    // The hand needs ~0.38 s to get from the note down to the hero.
+    expect(times.slice(0, 3)).toEqual([1, 1.2, 1.4]);
+    expect(times[3]).toBeGreaterThan(2.55);
+  });
+
+  it('defaults the hero to the largest in-shot text (the later one on a tie)', () => {
+    const at = (t0: number) => [strokeMark([0, 0, 10, 10], { t0, dur: 0.1, seed: 1 })];
+    expect(heroTask([task(at(1), 20), task(at(2), 90), task(at(3)), task(at(-1), 200)])).toBe(1);
+    expect(heroTask([task(at(1), 40), task(at(2), 40)])).toBe(1);
+  });
+
+  it('lets secondary text the hand cannot reach in time appear by itself, on time', () => {
+    const hero = [0, 1, 2, 3, 4, 5].map((i) =>
+      strokeMark([100 + i * 30, 450, 120 + i * 30, 350], { t0: 1 + i * 0.25, dur: 0.22, seed: i }),
+    );
+    const label = [0, 1].map((i) =>
+      strokeMark([700 + i * 15, 80, 710 + i * 15, 60], { t0: 1.3 + i * 0.1, dur: 0.08, seed: i }),
+    );
+    const plan = planHand([{ ...task(hero), hero: true }, task(label, 14)], []);
+    const shown = label.map((mark) => plan.moved.get(mark));
+    expect(shown.map((mark) => mark?.reveal)).toEqual(['bloom', 'bloom']);
+    expect(shown.map((mark) => mark?.held)).toEqual([false, false]);
+    expect(shown[0]?.t0).toBe(1.3);
   });
 });
 

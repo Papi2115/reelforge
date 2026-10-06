@@ -43,7 +43,11 @@ export interface FigureDeps {
   readonly seed: number;
   readonly fps: number;
   readonly name: string;
-  commit(marks: Mark[], until?: number): Timed;
+  commit(
+    marks: Mark[],
+    until?: number,
+    how?: { readonly parallel?: boolean; readonly hero?: boolean },
+  ): Timed;
 }
 
 /** Times the hand-rest box samples the motion at (s). */
@@ -85,7 +89,7 @@ export function addFigure(o: z.output<typeof figureOptions>, deps: FigureDeps): 
     expression: expressionTrack(o.expression, resolve),
   });
   const until = o.until === undefined ? undefined : resolve(o.until, deps.start);
-  const timed = deps.commit(figure.marks, until);
+  const timed = deps.commit(figure.marks, until, { parallel: o.parallel, hero: o.hero });
   if (o.subject) deps.page.keepClear(figureBox([timed.end, ...BOX_SAMPLES].map(sk)));
   const jointName = (joint: unknown, method: string): JointName => {
     if (typeof joint === 'string' && (JOINT_NAMES as readonly string[]).includes(joint)) {

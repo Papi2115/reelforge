@@ -7,7 +7,7 @@ import { KitError } from '../../../errors.js';
 import { whenParam } from '../../../looks/blueprint/timing.js';
 import { CROSS_STYLES } from '../draw/doodles.js';
 import { HAND_NAMES } from '../draw/lettering.js';
-import { TOOL_NAMES } from '../draw/marks.js';
+import { APPEAR_KINDS, TOOL_NAMES } from '../draw/marks.js';
 import { EASE_NAMES } from '../draw/math.js';
 import { SWATCH_NAMES, type SwatchName } from '../inks.js';
 import { attachParam, expressionParam, poseParam } from './motion.js';
@@ -32,7 +32,15 @@ export const penOptions = z.object({
   parallel: z
     .boolean()
     .default(false)
-    .describe('If the hand is busy elsewhere then, appear without it instead of waiting'),
+    .describe('Never take the hand: the ink appears by itself, on time (background marks)'),
+  hero: z
+    .boolean()
+    .default(false)
+    .describe('The hero mark of the shot: it keeps its time and gets the hand; others wait for it'),
+  appear: z
+    .enum(APPEAR_KINDS)
+    .optional()
+    .describe('No hand: bloom (ink soaks in), pop (all at once), type (letter by letter)'),
   boil: z.number().min(0).max(2).optional().describe('Line boil amplitude (0 = printed)'),
   fps: z.number().min(4).max(24).optional().describe('Boil cadence (default the page boilFps)'),
   nib: z
@@ -59,6 +67,13 @@ export const writeOptions = penOptions.extend({
   rot: z.number().min(-45).max(45).default(0).describe('Line rotation (degrees)'),
   track: z.number().min(-1).max(6).default(0),
   until: whenParam.optional().describe('Squeeze/stretch the writing to end here'),
+  speed: z
+    .number()
+    .min(0.5)
+    .max(2)
+    .default(1)
+    .describe('Pace multiplier (a 12-letter word takes ~1.1 s at 1; 2 = twice as fast)'),
+  quick: z.boolean().default(false).describe('Quick label pace (~1.7x faster, same roughness)'),
 });
 
 export const strokeOptions = penOptions.extend({
@@ -83,7 +98,9 @@ export const fillOptions = z.object({
   dense: z.boolean().default(false).describe('Crayon tooth between the hatch lines'),
   seed: z.int().min(0).optional(),
   held: z.boolean().default(true),
-  parallel: z.boolean().default(false).describe('Appear without the hand if it is busy then'),
+  parallel: z.boolean().default(false).describe('Never take the hand: appears by itself'),
+  hero: z.boolean().default(false).describe('The hero mark: keeps its time, others wait'),
+  appear: z.enum(APPEAR_KINDS).optional().describe('No hand: bloom, pop or type'),
   attach: attachParam,
 });
 
@@ -139,6 +156,8 @@ export const figureOptions = z.object({
   fps: z.number().min(4).max(24).optional(),
   seed: z.int().min(0).optional(),
   subject: z.boolean().default(true).describe('The hand keeps off it when it can (rest rule)'),
+  parallel: z.boolean().default(false).describe('Drawn without the hand, on time'),
+  hero: z.boolean().default(false).describe('The hero mark: keeps its time, others wait'),
 });
 
 export const sheetOptions = z.object({

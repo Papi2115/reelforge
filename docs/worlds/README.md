@@ -63,13 +63,29 @@ Register the world by adding it to `WORLDS` in `packages/kit/src/worlds/index.ts
 The two showpieces of the showcase (`docs/worlds/sketchbook-v2`, shots 5 and 8) are parameterized methods of the shared
 `kit.fx.sketchPage`, so the runtime Claude builds them from a short validated spec instead of hand-coding them per topic. Both are
 **rare**: at most one per ~60–90 s of film, each the one showpiece of its shot. Code: `packages/kit/src/worlds/sketchbook/breakthrough/`.
-- **`page.popup(spec)`** — hosted by look C (`sketch-loud`). A kraft card taped into the page; the pencil hand lifts its cover (anticipation
-  dip, overshoot past upright, settle) and up to **6 elements** stand up from the fold through a small 2.5D camera: `block` (printed band +
-  big word, V-fold box), `arm` (a cut-paper sun or disc on a hinged arm on the backdrop), `cutout` (a scissor-cut card with a felt stick figure
-  or sun), `tag` (crooked, on a thread), `note` (the maker's pencil note on the floor). `pull: { at }` = the red pen pulls the tab, the arm
-  with `swing` leaves its pencilled notch, then a red loop on the empty notch + an arrow along the drift. `camera: { dx, dy }` = how far the
-  standing top shifts in parallax while the card opens (the page itself never moves). Built-in traces: compass arc + ring on the backdrop,
-  pencil guide the block missed by 3 px, glue tabs and a glue smear, two torn tapes. Template: `packages/kit/examples/sketchbook/c3_popup.js`.
+- **`page.popup(spec)`** — hosted by look C (`sketch-loud`). A **creative toolkit, not a template**: every pop-up is original and the
+  pull must cause a **meaningful** motion (in film 2 nobody knew what the pull did). A kraft card taped into the page; the pencil hand
+  lifts its cover (anticipation dip, overshoot past upright, settle). Up to **8 pieces** with optional `id`s: standing on the fold
+  `block` (band + big word) and `cutout` (felt figure or sun + word), each may stand up on its own word (`at`, staggered rise with
+  seeded variance); on the backdrop `arm` (sun or labelled disc on a brad), `card` (paper/kraft/sticky with a word or drawing),
+  `flap` (a door on a hinge left/right/top/bottom over the pieces listed before it), `gauge` (thermometer/tank with tick labels),
+  `wheel` (dial or gear; the label under the fixed top pointer is read), `counter` (a number), `window` (a strip of items sliding
+  behind an opening), `scale` (two ends, ticks, a pointer); static `tag` and `note`. **`intent`** (required) = the claim the motion
+  shows. **`pull`** = `{ at, tab: tab|ribbon|knob|lever, side: left|right|bottom, dur, ease (back = overshoot), motions, drive,
+  focus, callout }`: the red pen pulls and the pull's progress p in [0, 1] drives the pieces. `motions: [{ target: id, to: { prop },
+  from?, span: [p0, p1], ease, arc, vary }]` (chain and stagger with spans; a motion over the whole pull follows the tab's press-in
+  and overshoot) on the props of the target's kind: block/cutout `rise` (0 = flat on the base) and `slide`; arm and wheel `angle`;
+  card `x`, `y` (card px, y up), `rotate`, `scale`, `show` (dissolve in/out); flap `open`; gauge `level`; counter `value`; window
+  `index`; scale `value`. `drive: (p, t) => ({ id: { prop: n } })` is a pure callback for what spans cannot say. The red pen then
+  marks what moved: `callout: 'loop'` (default, round `focus` or the first target), `'trail'` (arrow along the move + loop),
+  `'notch'` (an arm: loop on the notch it left + arrow along the drift), `'none'`. The schema rejects a pull that moves nothing, a
+  motion on a piece that is not on the card or on a property its kind does not have, a drive returning unknown ids/props, a disc
+  without a label, a card without a word or drawing. Inspiration (never the same mechanism twice in a film; invent the one that
+  shows your claim): `c3_popup.js` (the reference: the sun swings off its notch), `c4_popup_gauge.js` (a quarter day a year fills a tube, a
+  counter runs yr 1 → yr 4, FEB 29 springs up), `c5_popup_flap.js` (a door after THU 4 opens on FRI 15), `c6_popup_window.js` (a
+  lever runs a pointer 325 → 1582 while the date slides 21 → 11 MAR behind a window), `c7_popup_wheel.js` (a gear turns
+  1582 → 1752, a drive callback runs the year counter with it, BRITAIN dissolves in). Built-in traces: compass arc + ring for a swung arm, pencil
+  guides, glue tabs and smear, two torn tapes. Tests: `breakthrough/breakthrough.test.ts`, `test/render/sketch-popups.test.ts`.
 - **`page.strip(spec)`** — hosted by look B (`sketch-graph`, treatment `node-graph/timeline`; a chronology is evidence). A taped paper
   strip of uneven panels under a fixed view; **2–8 events** (`label`, a one- or two-line `note`, optional `year` that spaces them by a
   square-root squeeze, optional `doodle`) are written in order while the left hand drags the strip whenever the next one is out of view
@@ -81,19 +97,44 @@ The two showpieces of the showcase (`docs/worlds/sketchbook-v2`, shots 5 and 8) 
 - The writing hand: `SketchPage.addHandScript` (scripted stretches: lifting the flap, pulling the tab) and `addBusy` (another hand works
   the page: the hand leaves, never glides across) keep one hand on the page; strip marks reach the hand track as page-space proxies.
 
-## Sketchbook: one writing hand (PLAN.md#13.6)
-Code: `page/hand-queue.ts` (queue), `draw/hand.ts` (track), `draw/hand-room.ts` (where the hand may be).
-- **Queue (build time):** every page call (write, figure, arrow, …) is one hand task. A task that starts while the hand is busy more
-  than 80 px away (another task, a strip, a pop-up's scripted hand) waits until the hand has finished and travelled there (lift, eased
-  glide, ~0.12 s + distance / 1600 px/s) when that slips it by **≤ 0.6 s**; it moves as a whole and the call returns the new `{ at, end }`,
-  so chained calls follow it. Otherwise, or with `parallel: true`, it keeps its time. Conflicts go to the task added first.
-- **One hand (first frame):** in time order the hand stays with its task until that task is done; marks of another task that started
-  meanwhile appear without the hand until it has travelled there. Never two nibs, never a jump between two places.
+## Sketchbook: one writing hand (PLAN.md#13.6, real run 2)
+Code: `page/hand-queue.ts` (call-time queue), `page/hand-plan.ts` (first-frame plan), `draw/hand.ts` (track),
+`draw/hand-room.ts` (where the hand may be), `draw/appear.ts` (ink without a hand), `page/hand-check.ts` (the invariants).
+- **Ownership:** every stroke-drawn mark has the hand's nib on it; nothing writes itself stroke by stroke. The hand draws the key
+  things (figures, the hero mark); small labels, numbers and words may **appear by themselves** while it works elsewhere:
+  `appear: 'bloom'` (the ink soaks in pixel by pixel, a small wave across the word), `'pop'` (all at once), `'type'` (letter by
+  letter). `parallel: true` = appear `bloom`. A mark the scene sets `held: false` on a page with the hand appears too.
+- **Hero:** `hero: true` on a mark or figure (default: the largest in-shot `page.write`, the later one on a tie) keeps its time; a
+  task under way pauses for it (its remaining marks wait until the hand has finished and travelled back).
+- **Queue (build time):** every page call is one hand task. A task that starts while the hand is busy more than 80 px away waits
+  until the hand has finished and travelled there (~0.12 s + distance / 1600 px/s) when that slips it by **≤ 0.6 s**; the call
+  returns the new `{ at, end }`. **Plan (first frame):** what is still in conflict waits too (the hero and the breakthrough
+  choreography keep their time), except secondary text that would wait more than 0.6 s: it appears (bloom) on time. A task that
+  starts before the shot (`at < 0`) is already on the page: done by t = 0, no hand. A task running into the shot's last 0.4 s is
+  written faster to end before it when that keeps ≥ 40 % of its pace; else the hand finishes it, then leaves.
+- **Motion:** glides at hand speed; a pen swap goes out and back only when there is time, else the hand glides over; the wrist
+  turns at most 200°/s (no flips); one hand on the page at a time (while a strip's left hand works, the writing hand is off).
 - **Subject safety** (`keepClear` boxes; figures add theirs): the wrist turns away while drawing, glides bend around a subject that
   is not the target when the speed limit allows, a pause ≥ 0.4 s that would leave the hand on a subject parks it on a clear margin
   spot (or its rest spot), and with `duration: ctx.shot.duration` the hand leaves for its rest spot or off the page in the shot's
-  last 0.4 s (the ink finishes by itself). Pure in t, seek-order independent; tests: `page/hand-queue.test.ts`,
-  `packages/kit/test/render/sketch-hand.test.ts`.
+  last 0.4 s. Pure in t, seek-order independent.
+- **Invariants** (`checkHand`; tests `page/hand-check.test.ts` over every example, the film-2 scenes in
+  `packages/kit/test/fixtures/sketchbook-run2` and seeded worst cases): ≤ 1 hand; every non-appearing mark being drawn has the nib
+  within 90 px of its tip; a glide moves ≤ 180 px per 1/60 s; the wrist turns ≤ 12° per 1/60 s.
+
+## Sketchbook: lettering pace (real run 2)
+`page.write` without `until` is brisk (a 12-letter word in ~1–1.2 s at cap heights ≤ 40, bigger letters a little slower, the
+uneven seeded gaps kept); `speed` multiplies it (0.5–2), `quick: true` is the label pace (~1.7× faster); `until` keeps the old pace
+inside its budget. Never letter text with `page.stroke` (a home-made glyph table also dodges the text-provenance guard):
+`strokeLetteringFindings(source)` (exported by the kit) flags glyph tables and per-character stroke loops for the stages guards.
+
+## Sketchbook: look A layouts (real run 2)
+The story pages of film 2 all shared one grammar (small figures bottom-left, a label on top). `kit.fx.sketchPage({ layout })` +
+`page.slots()` give four composition presets (seeded nudges, never a grid): `hero-left` (figure large centre-left, big label beside
+its head, the thing at its hand), `facing` (two figures facing across the page, the label above the gap), `tall-diagram` (a tall
+figure left, a diagram filling the right, its label under it), `wide-strip` (three figures along one ground, title and caption).
+Slots: `hero`, `figures`, `label`, `note`, `thing` box, `ground`. **Rule: the hero figure is ≥ 25 % of the page height** (≥ 135 of
+540 px). Template `packages/kit/examples/sketchbook/a4_layouts.js`; render test `packages/kit/test/render/sketch-layouts.test.ts`.
 
 ## Variety: page moments, quota and rhythm (real run Sketchbook 1)
 The first real world film used neither breakthrough: the storyboard prompt never mentioned them. Now a world's prompt text carries a

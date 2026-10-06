@@ -180,9 +180,27 @@ function strokeAt(mark: StrokeMark, t: number, xf: Xform): { p: number; pts: Pts
   return { p, ...prefix(path, mark.ease === 'lin' ? p : ease(mark.ease, p)) };
 }
 
+/** A mark that appears by itself (no hand): whole, blooming in pixel by pixel or popping in. */
+function drawRevealed(canvas: InkCanvas, mark: Mark, t: number, xf: Xform): null {
+  const whole = { ...mark, dur: 0 };
+  const draw = (): void => {
+    if (whole.type === 'fill') drawFill(canvas, whole, t, xf);
+    else rasterStroke(canvas, strokeAt(whole, t, xf).pts, whole, true);
+  };
+  const p = mark.reveal === 'bloom' && mark.dur > 0 ? clamp01((t - mark.t0) / mark.dur) : 1;
+  if (p >= 1) draw();
+  else {
+    // Ink soaking in: seeded pixels first, a few heavier blots early, the rest following.
+    const k = ease('out', p) * 1.08 - 0.04;
+    canvas.sieve((x, y) => hash(x, y, mark.seed & 1023, 31) < k, draw);
+  }
+  return null;
+}
+
 /** Draws one mark at t; returns its tip while the hand is drawing it. */
 export function drawMark(canvas: InkCanvas, mark: Mark, t: number, xf: Xform): Point | null {
   if (t < mark.t0) return null;
+  if (mark.reveal) return drawRevealed(canvas, mark, t, xf);
   if (mark.type === 'fill') return drawFill(canvas, mark, t, xf);
   const { p, pts, tip } = strokeAt(mark, t, xf);
   rasterStroke(canvas, pts, mark, p >= 1);
@@ -191,7 +209,7 @@ export function drawMark(canvas: InkCanvas, mark: Mark, t: number, xf: Xform): P
 
 /** Where the tip of a mark is at t while it is being drawn (what drawMark returns), no pixels. */
 export function markTip(mark: Mark, t: number, xf: Xform): Point | null {
-  if (t < mark.t0) return null;
+  if (t < mark.t0 || mark.reveal) return null;
   if (mark.type === 'fill') {
     const { p, poly, front } = fillAt(mark, t, xf);
     return p >= 1 ? null : hatchTip(poly, front, mark.dir, t);

@@ -75,6 +75,43 @@ const EXIT = 0.4;
 export const HOLD = 0.4;
 /** Wrist turns tried, in order of preference (degrees from the natural angle). */
 const TURNS = [0, -16, 16, -30, 30, -44] as const;
+/** The fastest the wrist turns (degrees per second): never a flip between two frames. */
+export const TURN_RATE = 200;
+
+function approach(from: number, to: number, by: number): number {
+  return from < to ? Math.min(to, from + by) : Math.max(to, from - by);
+}
+
+/**
+ * The wrist turn at t, slew-limited: from each mark's end the hand turns toward the next mark's
+ * turn at TURN_RATE at most (precomputed breakpoints, so it is a pure function of t).
+ */
+function slewedTurns(entries: readonly TrackEntry[]): (t: number) => number {
+  const times: number[] = [];
+  const values: number[] = [];
+  const targets: number[] = [];
+  let value = entries[0]?.turn ?? 0;
+  let time = -Infinity;
+  entries.forEach((entry, index) => {
+    const previous = entries[index - 1];
+    let at = previous ? previous.mark.t0 + previous.mark.dur : -Infinity;
+    if (index > 0) {
+      at = Math.max(at, time);
+      value = approach(value, targets.at(-1) ?? value, (at - time) * TURN_RATE);
+    }
+    times.push(at);
+    values.push(value);
+    targets.push(entry.turn);
+    time = at;
+  });
+  return (t) => {
+    let k = 0;
+    while (k + 1 < times.length && (times[k + 1] ?? Infinity) <= t) k += 1;
+    const from = values[k] ?? 0;
+    const since = t - (times[k] ?? t);
+    return Number.isFinite(since) ? approach(from, targets[k] ?? from, since * TURN_RATE) : from;
+  };
+}
 
 /** The wrist turn for a mark drawn from `start` to `end`: the least cover of the keep-clear boxes. */
 export function wristTurn(start: Point, end: Point, rules: HandRules): number {
@@ -173,6 +210,7 @@ export function createHandTrack(marks: readonly Mark[], rules: HandRules, xf: Xf
       return { mark, start, end, turn: wristTurn(start, end, rules) };
     });
   const room: Room = { boxes: rules.keepClear, scale: rules.scale, width: rules.width };
+  const turnAt = slewedTurns(entries);
   // The scene's rest spot when the hand there keeps off the subject, else a clear margin spot.
   const rest = rules.rest ? restSpot(rules.rest, rules.rest, room) : null;
   const away = (p: Point): Point => rest ?? [p[0] + 330 * rules.scale, p[1] + 400 * rules.scale];
@@ -186,19 +224,25 @@ export function createHandTrack(marks: readonly Mark[], rules: HandRules, xf: Xf
   });
   const covers = (p: Point, turn: number): boolean =>
     cover(p, naturalAngle(p[0], rules.width) + turn, rules.keepClear, rules.scale) > 0;
-  const enter = (t: number, next: TrackEntry): PenState | null => {
-    if (t < next.mark.t0 - ENTER) return rest ? make(rest, next, 1, 0) : null;
-    const k = ease('out', (t - (next.mark.t0 - ENTER)) / ENTER);
+  /** In from off the page (or the rest spot), starting no earlier than `after` (another hand). */
+  const enter = (t: number, next: TrackEntry, after = -Infinity): PenState | null => {
+    const from0 = Math.min(next.mark.t0 - 0.04, Math.max(next.mark.t0 - ENTER, after));
+    if (t < from0) return rest ? make(rest, next, 1, 0) : null;
+    const k = ease('out', (t - from0) / (next.mark.t0 - from0));
     const from = away(next.start);
     return make(lerpPoint(from, next.start, k), next, 1 - k, next.turn * k);
   };
-  const leave = (t: number, entry: TrackEntry, endT: number): PenState | null => {
-    const k = (t - endT - 0.15) / EXIT;
-    if (k < 0) return make(entry.end, entry, ease('out', clamp01((t - endT) / 0.15)) * 0.6);
+  /** Off the page (or to the rest spot), gone by `by` (another hand comes in). */
+  const leave = (t: number, entry: TrackEntry, endT: number, by = Infinity): PenState | null => {
+    const room = Math.max(0.08, by - endT);
+    const linger = Math.min(0.15, room * 0.3);
+    const k = (t - endT - linger) / Math.min(EXIT, room - linger);
+    const turn = turnAt(Math.min(t, endT + linger));
+    if (k < 0) return make(entry.end, entry, ease('out', clamp01((t - endT) / linger)) * 0.6, turn);
     const target = away(entry.end);
     if (k >= 1) return rest ? make(target, entry, 1, 0) : null;
     const along = ease('in', k);
-    return make(lerpPoint(entry.end, target, along), entry, 0.6 + k, entry.turn * (1 - along));
+    return make(lerpPoint(entry.end, target, along), entry, 0.6 + k, turn * (1 - along));
   };
   /** The hold rule: out to a clear spot and back within the pause (undefined = no room). */
   const hold = (t: number, from: TrackEntry, to: TrackEntry, endT: number, gap: number) => {
@@ -210,7 +254,7 @@ export function createHandTrack(marks: readonly Mark[], rules: HandRules, xf: Xf
     const k = (t - endT) / gap;
     if (k < 0.4) {
       const e = ease('sine', k / 0.4);
-      return make(lerpPoint(from.end, spot, e), from, 0.6 * e, from.turn * (1 - e));
+      return make(lerpPoint(from.end, spot, e), from, 0.6 * e, turnAt(endT) * (1 - e));
     }
     if (k < 0.6) return make(spot, k < 0.5 ? from : to, 0.6, 0);
     const e = ease('sine', (k - 0.6) / 0.4);
@@ -232,22 +276,29 @@ export function createHandTrack(marks: readonly Mark[], rules: HandRules, xf: Xf
       if (!first) return null;
       if (active) {
         const entry = entries.find((candidate) => candidate.mark === active.mark) ?? first;
-        return make(active.tip, entry, 0);
+        return make(active.tip, entry, 0, turnAt(t));
       }
       let index = -1;
       for (let k = 0; k < entries.length; k += 1)
         if ((entries[k]?.mark.t0 ?? Infinity) <= t) index = k;
-      if (index < 0) return enter(t, first);
+      if (index < 0) {
+        const before = (rules.busy ?? []).filter(([, to]) => to <= first.mark.t0);
+        return enter(t, first, Math.max(-Infinity, ...before.map(([, to]) => to)));
+      }
       const current = entries[index] ?? first;
       const endT = current.mark.t0 + current.mark.dur;
-      if (t < endT) return make(current.end, current, 0);
+      if (t < endT) return make(current.end, current, 0, turnAt(t));
       const next = entries[index + 1];
       if (!next) return leave(t, current, endT);
       const gap = next.mark.t0 - endT;
       // The rest rule: long pauses, or hovering that would cover the subject, send the hand away.
       const hoverCovers = covers(current.end, current.turn);
-      const busy = (rules.busy ?? []).some(([from, to]) => from < next.mark.t0 && to > endT);
+      const stretches = (rules.busy ?? []).filter(([from, to]) => from < next.mark.t0 && to > endT);
+      const busy = stretches.length > 0;
+      const busyFrom = Math.min(...stretches.map(([from]) => from));
+      const busyTo = Math.max(...stretches.map(([, to]) => to));
       if (busy || gap > rules.restGap || (hoverCovers && gap > 2 * (ENTER + 0.15))) {
+        if (busy) return t >= busyTo ? enter(t, next, busyTo) : leave(t, current, endT, busyFrom);
         if (t >= next.mark.t0 - ENTER) return enter(t, next);
         return leave(t, current, endT);
       }
@@ -258,23 +309,24 @@ export function createHandTrack(marks: readonly Mark[], rules: HandRules, xf: Xf
       const k = (t - endT) / gap;
       const swap = current.mark.pen !== next.mark.pen;
       const queued = rules.queued?.has(next.mark) === true;
-      if (swap && !queued) {
+      // A pen swap goes out to one spot and back when there is time at hand speed, else the
+      // hand glides straight over and swaps on the way.
+      const spot = away(lerpPoint(current.end, next.start, 0.5));
+      const round = distance(current.end, spot) + distance(spot, next.start);
+      if (swap && !queued && round <= gap * HAND_SPEED * rules.scale * 1.5) {
         if (k < 0.5) {
-          return make(
-            lerpPoint(current.end, away(current.end), ease('in', k * 2)),
-            current,
-            0.5 + k,
-          );
+          const out = ease('in', k * 2);
+          return make(lerpPoint(current.end, spot, out), current, 0.5 + k, turnAt(t) * (1 - out));
         }
         const back = ease('out', (k - 0.5) * 2);
-        return make(lerpPoint(away(next.start), next.start, back), next, 1 - (k - 0.5) * 2);
+        return make(lerpPoint(spot, next.start, back), next, 1 - (k - 0.5) * 2, turnAt(t) * back);
       }
       const glide = ease(queued ? 'sine' : 'inOut', k);
       return make(
         bentPoint(current.end, next.start, bendOf(index, current, next, gap), glide),
         swap && k < 0.5 ? current : next,
         Math.sin(Math.PI * k) * (swap ? 1 : Math.min(1, gap * 2.5)),
-        lerp(current.turn, next.turn, glide),
+        turnAt(t),
       );
     },
   };

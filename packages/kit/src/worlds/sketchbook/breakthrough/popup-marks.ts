@@ -58,9 +58,19 @@ export function baseMarks(o: PopupOptions, card: Card, seed: number): Mark[] {
   return marks;
 }
 
+/** The angle a pull swings an arm to (deg), or its own angle. */
+export function armSwing(o: PopupOptions, element: PopupElement): number | undefined {
+  if (element.kind !== 'arm' || element.id === undefined) return undefined;
+  const motion = o.pull?.motions.find((m) => m.target === element.id && 'angle' in m.to);
+  return motion?.to['angle'];
+}
+
 /** The angles an arm's arc covers (deg). */
-function arcSpan(element: Extract<PopupElement, { kind: 'arm' }>): readonly [number, number] {
-  const swing = element.swing ?? element.angle;
+function arcSpan(
+  element: Extract<PopupElement, { kind: 'arm' }>,
+  to: number | undefined,
+): readonly [number, number] {
+  const swing = to ?? element.angle;
   return [Math.min(element.angle, swing) - 15, Math.max(element.angle, swing) + 15];
 }
 
@@ -70,7 +80,7 @@ export function backMarks(o: PopupOptions, card: Card, seed: number): Mark[] {
     if (element.kind !== 'arm') return;
     const px = card.x0 + element.u;
     const r = element.length;
-    const [lo, hi] = arcSpan(element);
+    const [lo, hi] = arcSpan(element, armSwing(o, element));
     const arc: Pts = [];
     for (let i = 0; i <= 24; i += 1) {
       const a = rad(lo + (i / 24) * (hi - lo));

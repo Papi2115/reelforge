@@ -8,7 +8,12 @@ import { SKETCHBOOK } from './sketchbook/index.js';
 import type { World } from './types.js';
 
 export * from './types.js';
-export { SKETCHBOOK_ID, SKETCHBOOK_INKS } from './sketchbook/index.js';
+export {
+  SKETCHBOOK_ID,
+  SKETCHBOOK_INKS,
+  strokeLetteringFindings,
+  type StrokeLetteringFinding,
+} from './sketchbook/index.js';
 
 /** Every world module, in delivery order. */
 export const WORLDS: readonly World[] = Object.freeze([SKETCHBOOK]);

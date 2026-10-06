@@ -23,6 +23,8 @@ import {
   fitMarks,
   strokeMark,
   writeMarks,
+  writePace,
+  type AppearKind,
   type Mark,
   type Shape,
 } from '../draw/marks.js';
@@ -49,6 +51,16 @@ export interface PageContext {
 }
 
 /** Chisel nib options of a mark (undefined = the tool's own nib). */
+/** How a page call's marks reach the hand. */
+interface Commit {
+  readonly parallel?: boolean | undefined;
+  readonly hero?: boolean | undefined;
+  /** Cap height of a write. */
+  readonly text?: number | undefined;
+  /** Appear without the hand (bloom / pop / type). */
+  readonly appear?: AppearKind | undefined;
+}
+
 function nibOf(nib: S.PenOptions['nib']): { len?: number; deg?: number; thick?: number } {
   return nib === undefined ? {} : { len: nib[0], deg: nib[1], thick: nib[2] };
 }
@@ -74,11 +86,12 @@ export function createPageApi(context: PageContext) {
     resolve(at, calls <= 1 && cursor === 0 ? 0.3 : cursor + 0.12);
   const colorOf = (name: string | undefined): number | undefined =>
     name === undefined ? undefined : inkOfSwatch(name);
-  const commit = (marks: Mark[], until?: number, parallel = false): Timed => {
+  const commit = (marks: Mark[], until?: number, how: Commit = {}): Timed => {
     const first = marks[0];
     if (!first) return { at: cursor, end: cursor };
     if (until !== undefined) fitMarks(marks, 0, first.t0, until);
-    const placed = page.addMarks(marks, parallel ? 'parallel' : 'queue');
+    const free = how.parallel === true || how.appear !== undefined;
+    const placed = page.addMarks(marks, free ? 'parallel' : 'queue', how);
     const at = Math.min(...placed.map((mark) => mark.t0));
     const end = Math.max(...placed.map((mark) => mark.t0 + mark.dur));
     cursor = Math.max(cursor, end);
@@ -127,11 +140,7 @@ export function createPageApi(context: PageContext) {
   ): Timed => {
     const name = begin(method);
     const parsed = S.parse(schema, options, name);
-    return commit(
-      strokes(recipes(parsed, seedOf(parsed.seed)), parsed),
-      undefined,
-      parsed.parallel,
-    );
+    return commit(strokes(recipes(parsed, seedOf(parsed.seed)), parsed), undefined, parsed);
   };
   const num = (value: unknown, name: string, method: string): number =>
     S.finite(value, name, `${call}.${method}()`);
@@ -173,7 +182,8 @@ export function createPageApi(context: PageContext) {
         width: o.width,
         t0,
         t1: o.until === undefined ? undefined : resolve(o.until, t0),
-        speed: o.speed,
+        // With `until` the budget sets the pace (and keeps the old one inside it).
+        ...(o.until === undefined ? writePace(o.size, o.hand, o.speed, o.quick) : {}),
         boil: o.boil ?? (o.hand === 'type' ? 0 : undefined),
         fps: o.fps ?? context.fps,
         held: o.held,
@@ -184,7 +194,7 @@ export function createPageApi(context: PageContext) {
       });
       const [x0, y0, x1, y1] = textSpan(layoutText(text, layout));
       return {
-        ...commit(marks, undefined, o.parallel),
+        ...commit(marks, undefined, { ...o, text: o.size }),
         width: x1 - x0,
         box: [x0, y0, x1 - x0, y1 - y0] as const,
       };
@@ -197,7 +207,7 @@ export function createPageApi(context: PageContext) {
       return commit(
         strokes([{ pts, corners, gap: 0, seed: 0, smooth: o.smooth, ease: o.ease }], o),
         undefined,
-        o.parallel,
+        o,
       );
     },
     fill(points: unknown, options?: unknown) {
@@ -216,7 +226,7 @@ export function createPageApi(context: PageContext) {
         dense: o.dense,
         source: frame ? (t) => xformPts(pts, frame.at(t)) : undefined,
       });
-      return commit([mark], undefined, o.parallel);
+      return commit([mark], undefined, o);
     },
     arrow: (points: unknown, options?: unknown) =>
       pen('arrow', S.arrowOptions, options, (o) =>
@@ -284,7 +294,7 @@ export function createPageApi(context: PageContext) {
         );
       }
       const start = marks[0]?.t0 ?? 0;
-      return commit(marks, o.until === undefined ? undefined : resolve(o.until, start), o.parallel);
+      return commit(marks, o.until === undefined ? undefined : resolve(o.until, start), o);
     },
     figure(options: unknown): FigureHandle {
       const name = begin('figure');

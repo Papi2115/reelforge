@@ -63,6 +63,7 @@ export class InkCanvas {
   readonly data: Uint8Array;
   private mode: 0 | 1 | 2 = 0;
   private map: Remap | undefined;
+  private keep: ((x: number, y: number) => boolean) | undefined;
   private readonly crossings: number[] = [];
 
   constructor(width: number, height: number) {
@@ -81,6 +82,17 @@ export class InkCanvas {
     this.withMode(2, table, draw);
   }
 
+  /** Writes inside `draw` land only where `keep(x, y)` (ink blooming in, pixel by pixel). */
+  sieve(keep: (x: number, y: number) => boolean, draw: () => void): void {
+    const previous = this.keep;
+    this.keep = keep;
+    try {
+      draw();
+    } finally {
+      this.keep = previous;
+    }
+  }
+
   private withMode(mode: 0 | 1 | 2, map: Remap | undefined, draw: () => void): void {
     const previous = [this.mode, this.map] as const;
     this.mode = mode;
@@ -94,6 +106,7 @@ export class InkCanvas {
 
   put(x: number, y: number, color: number): void {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return;
+    if (this.keep && !this.keep(x, y)) return;
     const index = y * this.width + x;
     const current = this.data[index] ?? 0;
     if (this.mode === 0) this.data[index] = color;

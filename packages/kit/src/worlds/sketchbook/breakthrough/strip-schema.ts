@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { KitError } from '../../../errors.js';
 import { whenParam } from '../../../looks/blueprint/timing.js';
-import { checkLettering } from './popup-schema.js';
+import { checkLettering } from './popup-check.js';
 
 export const STRIP_LIMITS = { events: 8, noteLines: 2 } as const;
 

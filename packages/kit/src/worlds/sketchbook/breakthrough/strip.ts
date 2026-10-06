@@ -53,7 +53,16 @@ function plan(o: StripOptions, deps: StripDeps): StripPlan {
       `${deps.call}: ${String(o.events.length)} events take ~${(natural.end - start).toFixed(1)} s from ${start.toFixed(1)} s; until must be ${lo ?? ''}-${hi ?? ''} s (got ${until.toFixed(1)}), or use fewer events`,
     );
   }
-  return planStrip(o, start, pace, deps.seed, creases);
+  // The plan is close to affine in the pace (fixed hand changes are not paced): a few secant
+  // steps land its end on `until`.
+  let [a, endA] = [1, natural.end];
+  let [b, planB] = [pace, planStrip(o, start, pace, deps.seed, creases)];
+  for (let step = 0; step < 4 && Math.abs(planB.end - until) > 1e-6; step += 1) {
+    const next = b + ((until - planB.end) * (b - a)) / (planB.end - endA || 1);
+    [a, endA] = [b, planB.end];
+    [b, planB] = [next, planStrip(o, start, next, deps.seed, creases)];
+  }
+  return planB;
 }
 
 /** Tapes over the strip (u, v, w, h, deg, seed): a pair on the first join, then every other one. */
@@ -110,6 +119,8 @@ export function addStrip(o: StripOptions, deps: StripDeps): StripHandle {
   });
   const tapes = tapesOf(shape, p, seed);
   const grip = (pull: { u: number; v: number }, t: number): Point => mapAt(t)(pull.u, pull.v);
+  // One hand on the page at a time: the writing hand is off while the left hand drags.
+  page.addOtherHand((t) => dragHandAt(p.pulls, t, grip) !== null);
   const press = p.pulls.at(-1);
   page.addLayer({
     key: Number.NEGATIVE_INFINITY,

@@ -1,6 +1,7 @@
-// Sketchbook look C (sketch-loud), template 3: "pop-up page" (showcase sketchbook-v2 shot 5). A
-// kraft card taped into the book: the pencil hand lifts its cover and a MARCH 21 block and a paper
-// sun on a hinged arm rise from the fold. Hold. The red pen pulls the tab: the sun slides off its
+// Sketchbook look C (sketch-loud), template 3: "pop-up page" (showcase sketchbook-v2 shot 5), the
+// reference pop-up: ONE way to use the toolkit, never a layout to copy (invent the mechanism that
+// shows your claim; see c4-c7 for others). A kraft card taped into the book: the pencil hand
+// lifts its cover and a MARCH 21 block and a paper sun on a hinged arm rise from the fold. Hold. The red pen pulls the tab: the sun slides off its
 // pencilled notch; red loop on the empty notch, arrow along the drift ("the date stayed, the
 // season moved"). The only 2.5D page of a film; at most one per ~60-90 s.
 // Focal: the sun leaving its notch above the MARCH 21 block.
@@ -23,18 +24,25 @@ export function build(ctx) {
   });
   ctx.scene.add(page);
   page.popup({
+    intent: 'the date stays on 21 March while the sun slides off its notch: the season drifts',
     x: 380,
     y: 272,
     w: 412,
     depth: 196,
     at: 0.36,
     elements: [
-      { kind: 'arm', u: 220, length: 160, piece: 'sun', angle: 22.7, swing: -19 },
+      { kind: 'arm', id: 'sun', u: 220, length: 160, piece: 'sun', angle: 22.7 },
       { kind: 'block', u: 236, w: 102, h: 72, depth: 30, band: 'MARCH', text: '21' },
       { kind: 'tag', lines: ['spring', 'equinox'] },
       { kind: 'note', text: 'same date, same season', u: 34, depth: 114 },
     ],
-    pull: { at: 4.4 },
+    // The tab swings the sun's arm (it follows the tab's press-in), then the red pen rings the
+    // empty notch and arrows the drift.
+    pull: {
+      at: 4.4,
+      motions: [{ target: 'sun', to: { angle: -19 }, ease: 'lin' }],
+      callout: 'notch',
+    },
     seed: 4500,
   });
   return { page };

@@ -4,15 +4,15 @@
  * - `HandQueue.place` (in build, call by call): a task that would start while the hand is busy
  *   far away (another task, a strip, a scripted stretch) waits until the hand has finished and
  *   travelled there, if that slips it by <= MAX_SLIP s; its marks move as a whole and the page
- *   call returns the new times. Otherwise (or with `parallel`) it keeps its time.
- * - `handDrawn` (at the first frame, over all tasks in time order): the hand stays with the task
- *   it is on until that task is done, then travels to the next one; marks it cannot reach in time
- *   are drawn without the hand (the ink appears by itself). Never two nibs, never a jump.
+ *   call returns the new times. Otherwise it keeps its time here. A `parallel` task never takes
+ *   the hand: it keeps its time and does not hold up anyone.
+ * - `planHand` (hand-plan.ts, at the first frame, over every task): settles what is left; nothing
+ *   but a `parallel` task is drawn without the hand.
  */
 import { distance, HAND_SPEED } from '../draw/hand-room.js';
 import { markEnds } from '../draw/hand.js';
 import type { Mark } from '../draw/marks.js';
-import { identity, type Point, type Xform } from '../draw/paths.js';
+import { identity, type Point } from '../draw/paths.js';
 
 /** The longest a task waits for the hand (s). */
 export const MAX_SLIP = 0.6;
@@ -85,12 +85,12 @@ export class HandQueue {
 
   /**
    * Queues a task: returns its marks, moved later as a whole when the hand is busy far away
-   * then (by at most MAX_SLIP s), else unchanged (`parallel`: never moved).
+   * then (by at most MAX_SLIP s), else unchanged (`parallel`: never moved, never in the way).
    */
   place(marks: readonly Mark[], parallel: boolean): Mark[] {
     const task = claimOf(marks);
-    if (!task) return [...marks];
-    const slip = parallel ? 0 : this.slipOf(task);
+    if (!task || parallel) return [...marks];
+    const slip = this.slipOf(task);
     const placed = shifted(marks, slip <= MAX_SLIP ? slip : 0);
     const claim = claimOf(placed);
     if (claim) this.claims.push(claim);
@@ -118,47 +118,4 @@ export class HandQueue {
       if (from - task.from > MAX_SLIP) return Infinity;
     }
   }
-}
-
-/**
- * The marks the hand draws, given every task's marks (screen px through `xf`, `scale` screen px
- * per page px): in time order the hand stays with its task until the task's last held mark ends;
- * a mark of another task that started meanwhile is drawn without the hand, unless it starts after
- * the hand is free and has travelled to it.
- */
-export function handDrawn(
-  tasks: readonly (readonly Mark[])[],
-  xf: Xform,
-  scale: number,
-): Set<Mark> {
-  const items = tasks
-    .flatMap((marks, task) =>
-      marks.filter((mark) => mark.held).map((mark, order) => ({ mark, task, order })),
-    )
-    .sort((a, b) => a.mark.t0 - b.mark.t0 || a.task - b.task || a.order - b.order);
-  const taskEnd = new Map<number, number>();
-  for (const { mark, task } of items) {
-    taskEnd.set(task, Math.max(taskEnd.get(task) ?? -Infinity, mark.t0 + mark.dur));
-  }
-  const drawn = new Set<Mark>();
-  const skipped = new Set<number>();
-  let owner = -1;
-  let free = -Infinity;
-  let at: Point | null = null;
-  for (const { mark, task } of items) {
-    const [start, end] = markEnds(mark, xf);
-    if (task !== owner) {
-      // A task already under way (its first marks went without the hand) waits for the travel.
-      const reach = skipped.has(task) && at ? distance(at, start) / (HAND_SPEED * scale) : 0;
-      if (mark.t0 < free + reach) {
-        skipped.add(task);
-        continue;
-      }
-      owner = task;
-      free = taskEnd.get(task) ?? mark.t0 + mark.dur;
-    }
-    drawn.add(mark);
-    at = end;
-  }
-  return drawn;
 }

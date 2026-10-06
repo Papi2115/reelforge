@@ -21,6 +21,7 @@ import { SKETCHBOOK_ID, SKETCHBOOK_STYLE } from './style.js';
 
 export { SKETCHBOOK_ID, SKETCHBOOK_STYLE } from './style.js';
 export { SKETCHBOOK_INKS } from './inks.js';
+export { strokeLetteringFindings, type StrokeLetteringFinding } from './lint.js';
 export { sketchGraphLook } from './looks/sketch-graph/index.js';
 export { sketchLoudLook } from './looks/sketch-loud/index.js';
 export { sketchStoryLook } from './looks/sketch-story/index.js';
