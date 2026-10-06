@@ -34,6 +34,7 @@ import type { PageFrame } from './motion.js';
 import * as S from './schemas.js';
 import { addSheet, addTrace, type SheetHandle, type TraceKind } from './api-inserts.js';
 import { pageExtras } from './api-extra.js';
+import { breakthroughs } from './api-breakthrough.js';
 import { addFigure, type FigureHandle, type Timed } from './api-figure.js';
 
 export type { FigureHandle, Timed };
@@ -349,6 +350,7 @@ export function createPageApi(context: PageContext) {
         return made.api;
       },
     }),
+    ...breakthroughs({ page, resolve, begin, seedOf }),
   };
   return {
     api,

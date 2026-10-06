@@ -83,6 +83,10 @@ const PAGE_METHODS = {
     'A clear plastic ruler slid in under a line (in place at `at`, slides out at `until`)',
   'flipbook({ count, at, until })':
     'A thumb riffles the page corner through `count` pages between at and until; .page(k) = the page API of page k (write, stroke, sun, ...), drawn once, no hand',
+  'popup({ x, y, w, depth, at, elements, pull: { at }, camera: { dx, dy } })':
+    "Breakthrough, rare (<= 1 per ~60-90 s, look C): a pop-up card the pencil hand opens; elements (<= 6): { kind: 'block', u, w, h, depth, band, text } | { kind: 'arm', u, length, piece: 'sun'|'disc', angle, swing } | { kind: 'cutout', u, w, h, depth, draw: 'figure'|'sun', pose, text } | { kind: 'tag', lines } | { kind: 'note', text }; pull = the red pen pulls the tab, the arm with swing moves, red loop + arrow follow; returns { at, open, end, notch }",
+  'strip({ events, highlight, y, at, until, pen, end })':
+    "Breakthrough, rare (<= 1 per ~60-90 s, look B): an accordion timeline strip dragged through the view by a left hand, read panels fold into a pleat stack; events (2-8, in order): { label, note: line | [line, line], year, doodle: 'sun'|'figure'|'loop' }; highlight = red note after a held beat; returns { at, end, events: [{ at, end }] }",
   'tape / coffeeRing / clip / sticky / smudge (..., { at })':
     'Physical traces, static once they appear',
   'keepClear(x, y, w, h)':

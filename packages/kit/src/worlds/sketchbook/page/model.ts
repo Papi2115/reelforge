@@ -4,7 +4,7 @@
  * landing), then the hand. `render(canvas, t)` repaints everything for t, so the page is a pure
  * function of time; nothing is remembered between frames.
  */
-import { createHandTrack, type Box, type HandTrack } from '../draw/hand.js';
+import { createHandTrack, type Box, type HandTrack, type PenState } from '../draw/hand.js';
 import { drawMark, type ActiveMark } from '../draw/ink.js';
 import type { InkCanvas } from '../draw/canvas.js';
 import type { Mark } from '../draw/marks.js';
@@ -33,6 +33,16 @@ export interface Layer {
   draw(canvas: InkCanvas, t: number): ActiveMark | null;
 }
 
+/**
+ * A stretch where the writing hand follows a script instead of the marks (it lifts a pop-up flap,
+ * pulls a tab); `state` null = no writing hand then (another hand works the page).
+ */
+export interface HandScript {
+  readonly from: number;
+  readonly to: number;
+  state(t: number): PenState | null;
+}
+
 interface Ordered {
   readonly layer: Layer;
   readonly order: number;
@@ -46,6 +56,8 @@ export class SketchPage {
   private readonly layers: Ordered[] = [];
   private readonly held: Mark[] = [];
   private readonly clear: Box[] = [];
+  private readonly scripts: HandScript[] = [];
+  private readonly busy: (readonly [number, number])[] = [];
   private sorted: readonly Layer[] | undefined;
   private track: HandTrack | undefined;
 
@@ -76,6 +88,27 @@ export class SketchPage {
         },
       });
     }
+    this.track = undefined;
+  }
+
+  /**
+   * Held marks a layer draws itself (on a moving strip): the hand writes them like page marks.
+   * Their shape (or `source`) must give page px, the layer returns them as its active mark.
+   */
+  addHandMarks(marks: readonly Mark[]): void {
+    this.held.push(...marks.filter((mark) => mark.held));
+    this.track = undefined;
+  }
+
+  /** The writing hand follows `script` between its from and to (and leaves the marks for it). */
+  addHandScript(script: HandScript): void {
+    this.scripts.push(script);
+    this.addBusy(script.from, script.to);
+  }
+
+  /** The writing hand stays off the page from `from` to `to` (another hand works it). */
+  addBusy(from: number, to: number): void {
+    this.busy.push([from, to]);
     this.track = undefined;
   }
 
@@ -110,6 +143,7 @@ export class SketchPage {
           restGap: this.settings.restGap,
           scale: s,
           width: this.settings.width,
+          busy: this.busy,
         },
         this.toScreen,
       );
@@ -126,7 +160,8 @@ export class SketchPage {
       if (drawn && (!active || drawn.mark.t0 >= active.mark.t0)) active = drawn;
     }
     if (!this.settings.pen) return;
-    const state = this.handTrack().state(t, active);
+    const script = this.scripts.find((candidate) => t >= candidate.from && t < candidate.to);
+    const state = script ? script.state(t) : this.handTrack().state(t, active);
     if (state) drawPen(canvas, state, this.scale);
   }
 }

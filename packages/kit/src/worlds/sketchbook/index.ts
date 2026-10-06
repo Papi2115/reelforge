@@ -3,8 +3,8 @@
  * A = felt-tip story pages (`sketch-story`), B = ballpoint proofs (`sketch-graph`), C = loud page
  * moments (`sketch-loud`); all three draw on the world-level `kit.fx.sketchPage`. The page-native
  * transitions are engine compositors (`sketchbook-*` styles), the sounds the `sketchbook` palette.
- * The pop-up / accordion breakthrough scenes follow. Experimental until they land: it renders with
- * `render:frames --experimental` but is not offered anywhere.
+ * The breakthrough scenes are page methods too: `page.popup` (look C) and `page.strip` (look B).
+ * Experimental: it renders with `render:frames --experimental` but is not offered anywhere.
  *
  * Text: the hand lettering is stroke data drawn into the page raster over time by the visible
  * hand (with line boil), so it lives in `page.write`. `ctx.text` / `ctx.annotate` stay the engine

@@ -26,6 +26,11 @@ export interface HandRules {
   readonly scale: number;
   /** Frame width (the wrist angle drifts a little across the page). */
   readonly width: number;
+  /**
+   * Stretches [from, to] (s) when the writing hand is busy elsewhere (it lifts a pop-up flap,
+   * the other hand drags a strip): a pause that touches one sends the hand off, never across.
+   */
+  readonly busy?: readonly (readonly [number, number])[];
 }
 
 export interface PenState {
@@ -60,7 +65,8 @@ const SILHOUETTE: readonly Point[] = (() => {
   return points;
 })();
 
-function naturalAngle(x: number, width: number): number {
+/** The pen's resting angle at screen x (degrees from the tip, drifting across the frame). */
+export function naturalAngle(x: number, width: number): number {
   return 50 + (x / width) * 14;
 }
 
@@ -187,7 +193,8 @@ export function createHandTrack(marks: readonly Mark[], rules: HandRules, xf: Xf
       // The rest rule: long pauses, or hovering that would cover the subject, send the hand away.
       const hoverAngle = naturalAngle(current.end[0], rules.width) + current.turn;
       const hoverCovers = overlap(current.end, hoverAngle, rules) > 0;
-      if (gap > rules.restGap || (hoverCovers && gap > 2 * (ENTER + 0.15))) {
+      const busy = (rules.busy ?? []).some(([from, to]) => from < next.mark.t0 && to > endT);
+      if (busy || gap > rules.restGap || (hoverCovers && gap > 2 * (ENTER + 0.15))) {
         if (t >= next.mark.t0 - ENTER) return enter(t, next);
         return leave(t, current, endT);
       }

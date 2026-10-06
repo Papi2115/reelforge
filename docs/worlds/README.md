@@ -58,3 +58,25 @@ Register the world by adding it to `WORLDS` in `packages/kit/src/worlds/index.ts
    it for every built-in style with the world registered.
 7. **Ship**: flip `experimental` off on the world and its looks, add `styles/<world-id>/`, a sound palette, the world's row in Project
    settings, a decision-log line in CLAUDE.md §8.
+
+## Sketchbook: breakthrough scenes (PLAN.md#13.6)
+The two showpieces of the showcase (`docs/worlds/sketchbook-v2`, shots 5 and 8) are parameterized methods of the shared
+`kit.fx.sketchPage`, so the runtime Claude builds them from a short validated spec instead of hand-coding them per topic. Both are
+**rare**: at most one per ~60–90 s of film, each the one showpiece of its shot. Code: `packages/kit/src/worlds/sketchbook/breakthrough/`.
+- **`page.popup(spec)`** — hosted by look C (`sketch-loud`). A kraft card taped into the page; the pencil hand lifts its cover (anticipation
+  dip, overshoot past upright, settle) and up to **6 elements** stand up from the fold through a small 2.5D camera: `block` (printed band +
+  big word, V-fold box), `arm` (a cut-paper sun or disc on a hinged arm on the backdrop), `cutout` (a scissor-cut card with a felt stick figure
+  or sun), `tag` (crooked, on a thread), `note` (the maker's pencil note on the floor). `pull: { at }` = the red pen pulls the tab, the arm
+  with `swing` leaves its pencilled notch, then a red loop on the empty notch + an arrow along the drift. `camera: { dx, dy }` = how far the
+  standing top shifts in parallax while the card opens (the page itself never moves). Built-in traces: compass arc + ring on the backdrop,
+  pencil guide the block missed by 3 px, glue tabs and a glue smear, two torn tapes. Template: `packages/kit/examples/sketchbook/c3_popup.js`.
+- **`page.strip(spec)`** — hosted by look B (`sketch-graph`, treatment `node-graph/timeline`; a chronology is evidence). A taped paper
+  strip of uneven panels under a fixed view; **2–8 events** (`label`, a one- or two-line `note`, optional `year` that spaces them by a
+  square-root squeeze, optional `doodle`) are written in order while the left hand drags the strip whenever the next one is out of view
+  (two fast back-to-back pulls for a long way, one with an overshoot for a short one); read panels fold into a zigzag pleat stack.
+  `highlight` = the event that is the point (written after a ≥ 0.5 s held beat, its note in red — the only red); `until` stretches the
+  pace (0.7–1.8× of natural, else a readable error); `pen: 'bic'` for B films; `end: 'now'` = pencil word + paper clip at the strip end.
+  Built-in traces: wandering creases, tapes at angles over joins, pencil axis ruled panel by panel with hand-ruled year ticks, a
+  graphite thumbprint after the last drag. Template: `packages/kit/examples/sketchbook/b4_strip.js`.
+- The writing hand: `SketchPage.addHandScript` (scripted stretches: lifting the flap, pulling the tab) and `addBusy` (another hand works
+  the page: the hand leaves, never glides across) keep one hand on the page; strip marks reach the hand track as page-space proxies.
