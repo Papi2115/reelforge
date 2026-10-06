@@ -115,11 +115,13 @@ export function storyboardWorldPromptVars(
 
 /**
  * Storyboard validator options of the world: its transitions are the only named styles, and its
- * moment catalog brings the variety checks (quota, spacing, runs, distinct transitions).
+ * moment catalog brings the variety checks (quota, spacing, runs, distinct transitions; with
+ * `continuityLinks` on also the film's link quota).
  */
 export function storyboardWorldOptions(
   setup: LookSetup,
   override?: WorldQuotaOverride,
+  continuityLinks = false,
 ): {
   readonly worldTransitions?: readonly WorldTransitionChoice[];
   readonly worldVariety?: WorldVarietyOptions;
@@ -132,7 +134,12 @@ export function storyboardWorldOptions(
     ...(moments.length === 0
       ? {}
       : {
-          worldVariety: { moments, transitions, ...(override === undefined ? {} : { override }) },
+          worldVariety: {
+            moments,
+            transitions,
+            ...(override === undefined ? {} : { override }),
+            ...(continuityLinks ? { continuityLinks } : {}),
+          },
         }),
   };
 }

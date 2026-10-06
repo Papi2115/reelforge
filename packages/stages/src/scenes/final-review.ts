@@ -20,7 +20,7 @@ import {
 } from '@reelforge/shared';
 import { continuityReviewNotes } from '../continuity.js';
 import { finalReviewDramaturgy } from '../dramaturgy.js';
-import { writeProjectJson } from '../files.js';
+import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
 import type { StageError } from '../types.js';
 import { finding, fixableFindings, formatFinding } from './checks.js';
@@ -34,6 +34,8 @@ import { refineShot } from './shot-job.js';
 import { syncReport } from './sync-report.js';
 import { reviewRepetitions } from '../repetition/stage.js';
 import { sameCompositionFindings } from '../slop/guards.js';
+import { popupSpecs, repeatedPopupFindings, type ShotPopups } from '../slop/popup-intent.js';
+import { parseScene } from '../slop/source-text.js';
 
 /** Work items of the final review's fixes in pipeline.json. */
 export const FINAL_REVIEW_QUEUE = 'scenes-final-review';
@@ -74,8 +76,30 @@ async function checkAll(
     findings.set(shot.id, [...checked.value.findings]);
     if (checked.value.row !== undefined) rows.push(checked.value.row);
   }
-  if (job.antiSlop !== undefined) addSameComposition(job, findings, rows);
+  if (job.antiSlop !== undefined) {
+    addSameComposition(job, findings, rows);
+    const repeated = await addRepeatedPopups(job, findings);
+    if (!repeated.ok) return repeated;
+  }
   return ok({ findings, rows });
+}
+
+/** Pop-up originality guard: a pop-up repeating an earlier one's intent or mechanism (⚠). */
+async function addRepeatedPopups(
+  job: SceneJob,
+  findings: Map<string, QaFinding[]>,
+): Promise<Result<void, StageError>> {
+  const shots: ShotPopups[] = [];
+  for (const shot of job.shots) {
+    const text = await readProjectText(job.ctx.projectDir, shot.scene);
+    if (!text.ok) return text;
+    const program = text.value === undefined ? undefined : parseScene(text.value);
+    if (program !== undefined) shots.push({ shotId: shot.id, popups: popupSpecs(program) });
+  }
+  for (const [shotId, found] of repeatedPopupFindings(shots)) {
+    findings.get(shotId)?.push(...found);
+  }
+  return ok(undefined);
 }
 
 /** Same-composition guard (PLAN.md#13.7): each shot's last review frame against its predecessor's. */

@@ -4,7 +4,8 @@
  * too: a number is sourced when the vocabulary has it, when it names the decade/century of a
  * sourced number ("1500s"), or when it is the visible result of a calculation with sourced
  * on-screen numbers ("365.2422 − 365 = 0.2422", "0.2422 × 4 = 0.9688"), at the precision shown.
- * 0 and 1 never need one.
+ * 0 and 1 never need one. A timeline that ends in "now" needs the sources to reach the modern era
+ * (a "now" at the end of a 1518 strip is invented).
  */
 import {
   isFunctionWord,
@@ -26,6 +27,10 @@ export interface InventedText {
 
 /** Numbers never judged (a count of one is not a claim). */
 const TRIVIAL_NUMBERS = new Set([0, 1]);
+/** Words that put the end of a timeline in the present. */
+const PRESENT_WORDS = new Set(['now', 'today', 'present', 'nowadays']);
+/** Years from which the sources reach the present (a timeline may then end in "now"). */
+const MODERN_YEARS = { from: 1900, to: 2100 } as const;
 /** Derivation passes over the shot's own numbers (chains like 365.25 − 365.2422 = 0.0078). */
 const DERIVATION_PASSES = 3;
 
@@ -108,6 +113,19 @@ function invented(tokens: readonly Token[], words: readonly Token[], unknown: re
   return label || (unknown.length >= 2 && unknown.length * 2 >= words.length);
 }
 
+/** Present-time words of a timeline's end when no source year is modern. */
+function staleTimelineEnd(
+  entry: OnScreenText,
+  tokens: readonly Token[],
+  vocabulary: Vocabulary,
+): Token[] {
+  if (entry.role !== 'timeline-end') return [];
+  const modern = vocabulary.numbers.some(
+    (known) => known >= MODERN_YEARS.from && known <= MODERN_YEARS.to,
+  );
+  return modern ? [] : tokens.filter((token) => PRESENT_WORDS.has(token.text));
+}
+
 /** On-screen strings with unknown names, mostly unknown words or unsourced numbers. */
 export function inventedTexts(
   texts: readonly OnScreenText[],
@@ -135,8 +153,12 @@ export function inventedTexts(
       return value === undefined || !vocabulary.numbers.includes(value);
     });
     const unsourced = tokens.filter((token) => token.number !== undefined && !sourced.has(token));
-    if (unsourced.length === 0 && !invented(tokens, words, unknownWords)) return [];
-    const unknown = [...unknownWords, ...unsourced].map((token) => token.text);
+    const stale = staleTimelineEnd(entry, tokens, vocabulary);
+    // A timeline's end word is a label: any unknown word makes it invented.
+    const label = entry.role === 'timeline-end' && unknownWords.length > 0;
+    const clean = unsourced.length === 0 && stale.length === 0 && !label;
+    if (clean && !invented(tokens, words, unknownWords)) return [];
+    const unknown = [...unknownWords, ...unsourced, ...stale].map((token) => token.text);
     return [{ text: entry.text, line: entry.line, unknown }];
   });
 }

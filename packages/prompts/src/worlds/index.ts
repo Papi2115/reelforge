@@ -4,7 +4,12 @@
  * what comes from the kit and the engine (the world's label, its first look, its page-native
  * transitions); this package stays free of kit and engine imports.
  */
-import { criticMomentVars, sceneMomentVars, storyboardMomentVars } from './moment-vars.js';
+import {
+  criticMomentVars,
+  sceneMomentVars,
+  storyboardContinuityVars,
+  storyboardMomentVars,
+} from './moment-vars.js';
 import { SKETCHBOOK_PROMPTS } from './sketchbook.js';
 import type { WorldPromptText, WorldTransitionOption } from './types.js';
 import type { WorldQuotaOverride } from './variety.js';
@@ -13,6 +18,7 @@ export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from '
 export { worldMomentOption } from './moment-vars.js';
 export {
   breakthroughQuota,
+  continuityQuota,
   WORLD_VARIETY_RULES,
   type BreakthroughQuota,
   type WorldQuotaOverride,
@@ -93,6 +99,7 @@ export function storyboardWorldVars(
           worldTransitionExample: transitionExample(first),
         }),
     ...(film === undefined ? {} : storyboardMomentVars(text, film.durationS, film.override)),
+    ...(film === undefined ? {} : storyboardContinuityVars(text, film.durationS)),
   };
 }
 

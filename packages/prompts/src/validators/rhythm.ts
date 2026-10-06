@@ -62,6 +62,11 @@ export interface LookRhythmOptions {
    * reports a `pattern-run`. Absent = every shot counts (standard).
    */
   readonly continuesExempt?: boolean;
+  /**
+   * A world's page-native transition styles (real run Sketchbook 2): they also open look-switch
+   * interrupts and page moments, so a shot they open needs no C-roll (`act-change-roll`).
+   */
+  readonly pageNativeStyles?: readonly string[];
 }
 
 const where = (index: number, field: string): string => `shots[${String(index)}].${field}`;
@@ -178,10 +183,14 @@ function patternIssues(
   return issues;
 }
 
-function actChangeIssues(shots: readonly StoryboardShot[]): ValidationIssue[] {
+function actChangeIssues(
+  shots: readonly StoryboardShot[],
+  pageNative: readonly string[],
+): ValidationIssue[] {
   return shots.flatMap((shot, index) => {
     const transition = shot.transitionIn;
     if (transition === undefined || !opensAct(shot) || shot.roll === 'C') return [];
+    if (transition.type !== 'cut' && pageNative.includes(transition.style ?? '')) return [];
     return [
       issue(
         'warning',
@@ -228,7 +237,7 @@ export function checkLookRhythm(
     ...rollAGapIssues(shots, rules.rollAEvery),
     ...(multiLook ? lookRunIssues(shots, rules) : []),
     ...(multiLook ? patternIssues(shots, rules.maxPatternS, options.continuesExempt === true) : []),
-    ...(multiLook ? actChangeIssues(shots) : []),
+    ...(multiLook ? actChangeIssues(shots, options.pageNativeStyles ?? []) : []),
     ...(multiLook ? transitionDensityIssues(shots, rules.transitionEveryS) : []),
   ];
 }

@@ -115,7 +115,7 @@ describe('world sections off', () => {
   });
 
   it('bumps the versions of the prompts with world wording', () => {
-    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([17, 16, 4, 8]);
+    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([18, 17, 5, 9]);
   });
 });
 
@@ -159,7 +159,7 @@ describe('sketchbook prompts', () => {
       'ONE focal point, off-centre',
       'Do: ',
       "Don't: centred or symmetric layouts, decoration without meaning",
-      'every on-screen word comes from the narration or the research notes',
+      'only words of the narration or research notes',
       'docs/worlds/sketchbook-v2/shots/',
     ]) {
       expect(brief).toContain(part);

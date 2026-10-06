@@ -62,6 +62,31 @@ describe('world transition styles', () => {
   });
 });
 
+describe('act changes in a world', () => {
+  it('need no C-roll when a page-native transition opens a B page', () => {
+    const board = storyboardWith(FLIP.id);
+    const shots = board.shots.map((shot, index) => ({
+      ...shot,
+      roll: index === 0 ? ('A' as const) : ('B' as const),
+      look: index === 0 ? 'sketch-story' : 'sketch-graph',
+    }));
+    const options = { lookMode: 'mixed' as const, looks: ['sketch-story', 'sketch-graph'] };
+    const inWorld = checkStoryboard({ ...board, shots }, { ...options, worldTransitions: [FLIP] });
+    expect(codes(inWorld)).not.toContain('act-change-roll');
+    const plain = storyboardWith('iris', 0.5);
+    const plainShots = plain.shots.map((shot, index) => ({
+      ...shot,
+      roll: index === 0 ? ('A' as const) : ('B' as const),
+      look: 'voxel',
+    }));
+    expect(
+      codes(
+        checkStoryboard({ ...plain, shots: plainShots }, { ...options, looks: ['voxel', 'x'] }),
+      ),
+    ).toContain('act-change-roll');
+  });
+});
+
 describe('craft notes', () => {
   it('parse the focal point and the traces', () => {
     expect(
@@ -70,6 +95,23 @@ describe('craft notes', () => {
     expect(isCraftNote('Focal: the sun | traces: smudge, arrow and coffee ring.')).toBe(true);
     expect(isCraftNote('focal: the sun; traces: smudge')).toBe(false);
     expect(parseCraftNote('looks fine')).toBeUndefined();
+  });
+
+  it('accept a full stop, comma or line break between focal and traces', () => {
+    const expected = { focal: 'shrine procession', traces: ['visible hand', 'tape', 'smudge'] };
+    expect(parseCraftNote('Focal: shrine procession. Traces: visible hand, tape, smudge')).toEqual(
+      expected,
+    );
+    expect(parseCraftNote('focal: shrine procession, traces: visible hand, tape, smudge')).toEqual(
+      expected,
+    );
+    expect(parseCraftNote('focal: shrine procession\ntraces: visible hand, tape, smudge')).toEqual(
+      expected,
+    );
+    expect(parseCraftNote('focal: St. Vitus shrine. traces: a, b, c')?.focal).toBe(
+      'St. Vitus shrine',
+    );
+    expect(parseCraftNote('focal: shrine procession traces: a, b, c')).toBeUndefined();
   });
 
   it('warn about an ok frame without a craft note only in craft mode', () => {

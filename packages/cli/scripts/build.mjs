@@ -19,7 +19,19 @@ const WORKSPACE_ENTRIES = {
   '@reelforge/engine/cli': path.join(packagesRoot, 'engine', 'src', 'cli', 'index.ts'),
   '@reelforge/engine/raster': path.join(packagesRoot, 'engine', 'src', 'raster', 'index.ts'),
   '@reelforge/pipeline': path.join(packagesRoot, 'pipeline', 'src', 'index.ts'),
+  '@reelforge/prompts': path.join(packagesRoot, 'prompts', 'src', 'index.ts'),
+  '@reelforge/claude-bridge': path.join(packagesRoot, 'claude-bridge', 'src', 'index.ts'),
 };
+
+/** Source folders the bundle is built from (scripts/check-bundle.mjs compares their times). */
+export const BUNDLE_SOURCE_DIRS = [
+  path.join(cliRoot, 'src'),
+  ...new Set(
+    Object.values(WORKSPACE_ENTRIES).map((entry) =>
+      path.join(packagesRoot, path.relative(packagesRoot, entry).split(path.sep)[0] ?? '', 'src'),
+    ),
+  ),
+];
 
 /** @type {import('esbuild').Plugin} */
 const workspaceSources = {

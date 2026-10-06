@@ -5,7 +5,7 @@
  */
 import type { StoryboardShot, Treatment } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { worldPromptText } from '../worlds/index.js';
+import { continuityQuota, worldPromptText } from '../worlds/index.js';
 import type { WorldTransitionOption } from '../worlds/types.js';
 import { checkStoryboard } from './storyboard.js';
 import { checkWorldVariety, type WorldVarietyOptions } from './world-variety.js';
@@ -155,6 +155,34 @@ describe('checkWorldVariety', () => {
     expect(codes(film(replaced(7, ['C', 'popup'], plans), 5), override)).toEqual(
       expect.arrayContaining(['moment-variety']),
     );
+  });
+});
+
+describe('continuity link quota of a world film', () => {
+  const LINKS = { ...OPTIONS, continuityLinks: true };
+  const linked = (shots: StoryboardShot[], indexes: readonly number[]): StoryboardShot[] =>
+    shots.map((shot, index) =>
+      indexes.includes(index)
+        ? { ...shot, continuity: { kind: 'shared-object', object: 'scrap' } }
+        : shot,
+    );
+
+  it('asks a film of 45 s or more for links only when the project has them on', () => {
+    expect(continuityQuota(44)).toBe(0);
+    expect(continuityQuota(50)).toBe(1);
+    expect(continuityQuota(156)).toBe(2);
+    expect(codes(film(VARIED))).toEqual([]);
+    expect(codes(film(VARIED), LINKS)).toEqual(['continuity-quota']);
+    expect(checkWorldVariety(film(VARIED), LINKS)[0]?.message).toContain('at least 2');
+    expect(codes(linked(film(VARIED), [6]), LINKS)).toEqual(['continuity-quota']);
+    expect(codes(linked(film(VARIED), [6, 16]), LINKS)).toEqual([]);
+  });
+
+  it('never counts a link on the first shot and never asks a short film', () => {
+    expect(codes(film([['A'], ['B'], ['C'], ['A']]), LINKS)).toEqual([]);
+    const short = film([['A'], ['B'], ['C'], ['A'], ['B'], ['C'], ['A'], ['B']], 6);
+    expect(codes(linked(short, [0]), LINKS)).toContain('continuity-quota');
+    expect(codes(linked(short, [3]), LINKS)).not.toContain('continuity-quota');
   });
 });
 

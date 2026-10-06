@@ -51,7 +51,14 @@ commands do not load it, so they work wherever the bundle lives.
 ```sh
 pnpm --filter @reelforge/cli build      # -> packages/cli/dist/reelforge.mjs (one Node script)
 pnpm --filter @reelforge/cli test       # unit + render tests (SwiftShader)
+pnpm build:cli                          # the same bundle from the repo root
+pnpm check:cli-bundle                   # fails when a bundled source is newer than the bundle
 ```
+
+`tsc -b` does not rebuild the bundle (`pnpm build` and the app's build do). Dev drivers and real
+runs that spawn the real `claude` must run `pnpm build:cli` after a source change, or at least
+`pnpm check:cli-bundle` before the first stage: a stale bundle gives the runtime Claude an old
+`reelforge` (real run Sketchbook 2: `unknown style preset "sketchbook"`).
 
 The app writes launchers and prepends their folder to the PATH of the spawned Claude:
 
@@ -77,5 +84,6 @@ src/project/*.ts        project paths + confinement, JSON loading/validation, cr
 src/render/*.ts         harness session, shared render flow + QA issues, PNG output, contact-sheet raster
 src/shims.ts            PATH launchers
 scripts/build.mjs       esbuild bundle (playwright/esbuild required lazily)
+scripts/check-bundle.mjs  stale-bundle guard (`pnpm check:cli-bundle`)
 test/fixtures/project   2-shot fixture project; test/render/*: harness + bundle integration tests
 ```

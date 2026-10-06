@@ -10,6 +10,7 @@
     { "path": "../shared" },
     { "path": "../engine" },
     { "path": "../kit" },
-    { "path": "../pipeline" }
+    { "path": "../pipeline" },
+    { "path": "../prompts" }
   ]
 }

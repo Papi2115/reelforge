@@ -41,6 +41,11 @@ export interface WorldPromptText {
   readonly vibe: string;
   /** Critic: the world's craft checklist (focal point, traces, slop tells). */
   readonly checklist: string;
+  /**
+   * Storyboard (continuity links on, films of 45 s+): which pairs of shots this world links and
+   * with which kind (after the film's link quota).
+   */
+  readonly continuity: string;
   /** Script (surprise beats on): what a surprise is in this world (replaces the voxel example). */
   readonly surprise: string;
   /**

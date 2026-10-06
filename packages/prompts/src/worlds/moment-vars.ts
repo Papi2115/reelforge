@@ -7,6 +7,7 @@
 import type { WorldMomentOption, WorldPromptText } from './types.js';
 import {
   breakthroughQuota,
+  continuityQuota,
   WORLD_VARIETY_RULES,
   type WorldQuotaOverride,
   type WorldVarietyRules,
@@ -70,6 +71,23 @@ export function storyboardMomentVars(
       : {
           worldMomentExample: `{ "id": "s07_${example.id}", …, "look": "${example.looks[0] ?? ''}", "worldMoment": "${example.id}" }`,
         }),
+  };
+}
+
+/**
+ * Storyboard variable of the world's continuity quota (rendered only inside the prompt's
+ * continuity-links section, so a project with links off never sees it); none for short films.
+ */
+export function storyboardContinuityVars(
+  text: Pick<WorldPromptText, 'continuity'>,
+  durationS: number,
+  rules: WorldVarietyRules = WORLD_VARIETY_RULES,
+): Record<string, string> {
+  const min = continuityQuota(durationS, rules);
+  if (min === 0) return {};
+  const links = min === 1 ? 'at least 1 link' : `at least ${String(min)} links`;
+  return {
+    worldContinuity: `In this world the link is the signature cut: this film (about ${String(Math.round(durationS))} s) needs ${links} (the validator counts them). ${text.continuity}`,
   };
 }
 

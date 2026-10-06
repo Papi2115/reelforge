@@ -30,8 +30,10 @@ import {
   signatureDistance,
   type FrameMetrics,
 } from './frame-guards.js';
+import { popupIntentFindings } from './popup-intent.js';
 import { countTraces, MIN_HUMAN_TRACES, uniformTimings } from './source-guards.js';
 import { onScreenTexts, parseScene } from './source-text.js';
+import { strokeLettering, type StrokeLettering } from './stroke-text.js';
 import { inventedTexts } from './text-provenance.js';
 import { buildVocabulary, type Vocabulary } from './vocabulary.js';
 import { worldSlopSpec, type WorldSlopSpec } from './world-labels.js';
@@ -100,8 +102,14 @@ export async function loadAntiSlop(
 
 const slop = (message: string, t?: number): QaFinding => finding('slop', 'warning', message, { t });
 
-function textFindings(setup: AntiSlopSetup, program: AnyNode, file: string): QaFinding[] {
-  const invented = inventedTexts(onScreenTexts(program), setup.vocabulary, setup.spec);
+function textFindings(
+  setup: AntiSlopSetup,
+  program: AnyNode,
+  strokes: StrokeLettering,
+  file: string,
+): QaFinding[] {
+  const texts = [...onScreenTexts(program), ...strokes.texts];
+  const invented = inventedTexts(texts, setup.vocabulary, setup.spec);
   if (invented.length === 0) return [];
   const named = invented
     .slice(0, MAX_NAMED)
@@ -112,6 +120,17 @@ function textFindings(setup: AntiSlopSetup, program: AnyNode, file: string): QaF
   return [
     slop(
       `invented text: ${named}${more} - not in the narration, research notes or asset titles. Show the narrator's words or a research fact, or drop it.`,
+    ),
+  ];
+}
+
+/** A scene-local glyph table: its letters bypass `page.write` and the text checks. */
+function strokeLetteringFindings(strokes: StrokeLettering, file: string): QaFinding[] {
+  if (strokes.table === undefined) return [];
+  const { name, line } = strokes.table;
+  return [
+    slop(
+      `letters drawn from strokes (${name}, ${file}:${String(line)}): text drawn outside page.write cannot be provenance-checked. Always use page.write for words and numbers; never draw letters from strokes.`,
     ),
   ];
 }
@@ -128,7 +147,10 @@ function traceFindings(spec: WorldSlopSpec, program: AnyNode, file: string): QaF
   ];
 }
 
-/** Text provenance, human traces (world scenes) and stagger variance of a scene's source. */
+/**
+ * Text provenance (with stroke-drawn letters), pop-up intents, human traces (world scenes) and
+ * stagger variance of a scene's source.
+ */
 export function slopSourceFindings(
   setup: AntiSlopSetup,
   source: string,
@@ -141,8 +163,11 @@ export function slopSourceFindings(
       `stagger variance: ${entry.what} (${file}:${String(entry.line)}). Vary the gaps and durations (±30 %), hold the key beat.`,
     ),
   );
+  const strokes = strokeLettering(program);
   return [
-    ...textFindings(setup, program, file),
+    ...textFindings(setup, program, strokes, file),
+    ...strokeLetteringFindings(strokes, file),
+    ...popupIntentFindings(program, file),
     ...(setup.spec === undefined ? [] : traceFindings(setup.spec, program, file)),
     ...uniform,
   ];

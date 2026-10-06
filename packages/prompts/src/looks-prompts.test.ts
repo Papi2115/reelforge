@@ -134,7 +134,7 @@ describe('mixed prompts', () => {
     const noRoll = rendered('critic', { ...CRITIC_VARS, lookId: 'voxel', lookRules: rules });
     expect(noRoll).toContain('Look of this shot: `voxel`. The film mixes looks');
     expect(noRoll).not.toMatch(TAG);
-    expect(loadPrompt('critic').version).toBe(8);
+    expect(loadPrompt('critic').version).toBe(9);
   });
 
   it('resolve the list-badge rule and the look camera rules for mixed storyboards', () => {

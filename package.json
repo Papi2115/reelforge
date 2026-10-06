@@ -21,6 +21,8 @@
     "render:frames": "node packages/engine/scripts/run-cli.mjs render-frames",
     "lint:scene": "node packages/engine/scripts/run-cli.mjs lint",
     "build": "tsc -b && pnpm --filter @reelforge/desktop build",
+    "build:cli": "node packages/cli/scripts/build.mjs",
+    "check:cli-bundle": "node packages/cli/scripts/check-bundle.mjs",
     "package": "pnpm --filter @reelforge/desktop package",
     "dist": "pnpm --filter @reelforge/desktop dist",
     "test:packaged": "vitest run --project packaged"

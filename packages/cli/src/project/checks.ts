@@ -1,8 +1,8 @@
 /**
  * Cross-file checks the per-file schemas cannot see: shots contiguous from 0 (the engine renders
  * them back to back), scene files present inside the project, a known style (a world's style when
- * its world is registered and, if experimental, experimental worlds are on), and words/cues that
- * fit the storyboard's time range.
+ * its world is registered and, if experimental, experimental worlds are on), words/cues that
+ * fit the storyboard's time range and a world film's variety (world-checks.ts).
  */
 import { existsSync } from 'node:fs';
 import { STYLE_REGISTRY, type StyleRegistry } from '@reelforge/engine';
@@ -11,6 +11,7 @@ import { experimentalWorldsEnabled } from '../commands/kit-docs-world.js';
 import { UsageError } from '../errors.js';
 import type { Problem, ProjectFiles } from './files.js';
 import { PROJECT_PATHS, resolveInProject } from './paths.js';
+import { worldVarietyProblems } from './world-checks.js';
 
 /** Shot boundaries closer than this count as touching. */
 const CONTIGUITY_EPSILON = 1e-6;
@@ -145,14 +146,12 @@ export function styleProblems(
 
 /** Problems across files; per-file schema problems are reported separately (fileProblems). */
 export function crossFileProblems(files: ProjectFiles, options: CrossFileOptions = {}): Problem[] {
+  const experimentalWorlds = options.experimentalWorlds ?? experimentalWorldsEnabled();
+  const project = files.project.status === 'ok' ? files.project.data : undefined;
   const problems =
-    files.project.status === 'ok'
-      ? styleProblems(
-          files.project.data.style,
-          options.styles ?? STYLE_REGISTRY,
-          options.experimentalWorlds ?? experimentalWorldsEnabled(),
-        )
-      : [];
+    project === undefined
+      ? []
+      : styleProblems(project.style, options.styles ?? STYLE_REGISTRY, experimentalWorlds);
   if (files.storyboard.status !== 'ok') return problems;
   const storyboard = files.storyboard.data;
   return [
@@ -160,5 +159,6 @@ export function crossFileProblems(files: ProjectFiles, options: CrossFileOptions
     ...timelineProblems(storyboard),
     ...sceneFileProblems(files.root, storyboard),
     ...extentProblems(files, storyboard),
+    ...(project === undefined ? [] : worldVarietyProblems(project, storyboard, experimentalWorlds)),
   ];
 }

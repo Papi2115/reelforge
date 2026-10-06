@@ -1,8 +1,9 @@
 /**
  * What a scene's source puts on screen as text, read from its literals (no execution): the first
- * argument of text calls (`ctx.text.title/kinetic/lowerThird`, a world page's `write`, any local
- * `write` helper) and the string values of text options (`text`, `label`, `note`, `band`, `lines`,
- * `caption`, `title`, `subtitle`, `labels`), also through a `const` holding a literal. The scene's
+ * argument of text calls (`ctx.text.title/kinetic/lowerThird`, a world page's `write`, a sheet's
+ * `print`, any local `write` helper) and the string values of text options (`text`, `label`,
+ * `note`, `band`, `lines`, `caption`, `title`, `subtitle`, `labels`, a strip's `end`), also
+ * through a `const` holding a literal. Letters drawn from strokes: `stroke-text.ts`. The scene's
  * `meta` object is not on screen. Strings built at run time (`String(year)`, templates with
  * expressions) are not judged.
  */
@@ -12,9 +13,11 @@ import { visit } from '../scenes/source-checks.js';
 export interface OnScreenText {
   readonly text: string;
   readonly line: number;
+  /** `timeline-end`: a strip's `end` word (judged against the timeline's era too). */
+  readonly role?: 'timeline-end' | undefined;
 }
 
-const TEXT_METHODS = new Set(['write', 'title', 'kinetic', 'lowerThird', 'typewriter']);
+const TEXT_METHODS = new Set(['write', 'print', 'title', 'kinetic', 'lowerThird', 'typewriter']);
 const TEXT_KEYS = new Set([
   'text',
   'label',
@@ -25,6 +28,7 @@ const TEXT_KEYS = new Set([
   'caption',
   'title',
   'subtitle',
+  'end',
 ]);
 
 /** The scene's AST; undefined when it does not parse (the determinism lint reports that). */
@@ -77,7 +81,7 @@ function metaRanges(program: AnyNode): (readonly [number, number])[] {
 }
 
 /** `const name = 'literal'` declarations (a text written through a variable). */
-function constantStrings(program: AnyNode): Map<string, string> {
+export function constantStrings(program: AnyNode): Map<string, string> {
   const constants = new Map<string, string>();
   visit(program, (node) => {
     if (node.type !== 'VariableDeclaration' || node.kind !== 'const') return;
@@ -91,7 +95,7 @@ function constantStrings(program: AnyNode): Map<string, string> {
   return constants;
 }
 
-function strings(node: AnyNode, constants: ReadonlyMap<string, string>): string[] {
+export function strings(node: AnyNode, constants: ReadonlyMap<string, string>): string[] {
   const single = literalString(node);
   if (single !== undefined) return [single];
   const constant = node.type === 'Identifier' ? constants.get(node.name) : undefined;
@@ -108,9 +112,11 @@ export function onScreenTexts(program: AnyNode): OnScreenText[] {
   const inMeta = (node: AnyNode): boolean =>
     meta.some(([start, end]) => node.start >= start && node.end <= end);
   const found: OnScreenText[] = [];
-  const add = (node: AnyNode, texts: readonly string[]): void => {
+  const add = (node: AnyNode, texts: readonly string[], role?: OnScreenText['role']): void => {
     for (const text of texts) {
-      if (text.trim().length > 0) found.push({ text, line: node.loc?.start.line ?? 1 });
+      const line = node.loc?.start.line ?? 1;
+      if (text.trim().length > 0)
+        found.push(role === undefined ? { text, line } : { text, line, role });
     }
   };
   visit(program, (node) => {
@@ -129,7 +135,8 @@ export function onScreenTexts(program: AnyNode): OnScreenText[] {
     if (node.type === 'Property' && key !== undefined && TEXT_KEYS.has(key)) {
       // An array option is one label written on several lines: judged as one string.
       const lines = strings(node.value, constants);
-      add(node, node.value.type === 'ArrayExpression' ? [lines.join(' ')] : lines);
+      const role = key === 'end' ? 'timeline-end' : undefined;
+      add(node, node.value.type === 'ArrayExpression' ? [lines.join(' ')] : lines, role);
     }
   });
   return found;

@@ -22,6 +22,7 @@ import {
   type Rgb,
 } from '../testing/slop-fixtures.js';
 import { parseHex } from './frame-guards.js';
+import { repeatedPopupFindings } from './popup-intent.js';
 import {
   sameCompositionFindings,
   slopFrameFindings,
@@ -106,6 +107,19 @@ const CASES: readonly (readonly [string, () => boolean])[] = [
   ['buzzwords', () => sourceFlags(scene(`  page.write('synergy matrix unlocked', { x: 99, y: 99 });`), 'invented text')],
   ['fake year', () => sourceFlags(scene(`  page.write('Founded 2031', { x: 99, y: 99 });`), 'invented text')],
   ['fake money', () => sourceFlags(scene(`  ctx.text.title('$4.2B market');`), 'invented text')],
+  ['invented label printed on a sheet', () => sourceFlags(scene(`  page.sheet({ x: 9, y: 9, w: 200, h: 120 }).print('ZORBLAX FILES', { u: 9, v: 9 });`), 'invented text')],
+  ['invented strip end', () => sourceFlags(scene(`  page.strip({ events: [{ label: '1582' }, { label: '1752' }], end: 'Zorblax' });`), 'invented text')],
+  ['fake drawn from strokes', () => sourceFlags(scene(`  const G = { Z: [[0, 0]], O: [[1, 1]], R: [[2, 2]], B: [[3, 3]] };
+  const letters = (p, s) => { for (const c of s) p.stroke(G[c] ?? [[0, 0]], {}); };
+  letters(page, 'ZORBLAX 4,321');`), 'invented text')],
+  ['letters drawn from strokes', () => sourceFlags(scene(`  const G = { L: [[0, 0]], E: [[1, 1]], A: [[2, 2]], P: [[3, 3]] };
+  for (const c of 'LEAP') page.stroke(G[c], {});`), 'letters drawn from strokes')],
+  ['pop-up without an intent', () => sourceFlags(scene(`  page.popup({ elements: [{ kind: 'note', text: 'leap day' }] });`), 'pop-up without an intent')],
+  ['generic pop-up intent', () => sourceFlags(scene(`  page.popup({ intent: 'reveal', elements: [{ kind: 'note', text: 'leap day' }] });`), 'generic pop-up intent')],
+  ['the same pop-up twice in a film', () => repeatedPopupFindings([
+    { shotId: 's03', popups: [{ intent: 'the calendar drifts off the seasons', mechanism: undefined, line: 1 }] },
+    { shotId: 's09', popups: [{ intent: 'calendar drifts from the seasons', mechanism: undefined, line: 1 }] },
+  ]).has('s09')],
   ['invented name in a pop-up', () => sourceFlags(scene(`  page.popup({ elements: [{ kind: 'tag', lines: ['Neural', 'Pathways'] }] });`), 'invented text')],
   // Human traces.
   ['no traces', () => sourceFlags(`export function build(ctx) { const page = ctx.kit.fx.sketchPage({}); page.write('leap day', { x: 1, y: 1 }); return { page }; }`, 'too few human traces')],

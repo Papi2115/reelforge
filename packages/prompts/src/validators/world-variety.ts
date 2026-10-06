@@ -4,13 +4,15 @@
  * sits in a look that hosts it (and opens with its transition when it needs one); the film has
  * its breakthrough quota (worlds/variety.ts) with at least two kinds once it needs two; no two
  * breakthroughs in adjacent shots; one moment kind at most once per 90 s; never three shots in a
- * row with the same moment (or plain) in the same roll; at least three distinct page transitions.
- * The look run (at most two in a row) is the rhythm check with the world's limit (storyboard.ts).
+ * row with the same moment (or plain) in the same roll; at least three distinct page transitions;
+ * with continuity links on, at least one link in films of 45 s+ (the world's signature cut, real
+ * run Sketchbook 2 planned none). The look run (at most two in a row) is the rhythm check with the world's limit (storyboard.ts).
  * Every finding is an error, so the storyboard's repair turn fixes it.
  */
 import { continuityKindOf, shotLook, type StoryboardShot } from '@reelforge/shared';
 import {
   breakthroughQuota,
+  continuityQuota,
   WORLD_VARIETY_RULES,
   type WorldQuotaOverride,
   type WorldVarietyRules,
@@ -23,6 +25,8 @@ export interface WorldVarietyOptions {
   readonly moments: readonly WorldMomentOption[];
   /** The world's page-native transitions (for the distinct-transitions rule). */
   readonly transitions?: readonly WorldTransitionOption[];
+  /** The project has continuity links on (`continuityLinks`): the film's link quota applies. */
+  readonly continuityLinks?: boolean;
   /** Test drivers only: a higher breakthrough floor (StageSettings.worldQuotaOverride). */
   readonly override?: WorldQuotaOverride | undefined;
   readonly rules?: Partial<WorldVarietyRules>;
@@ -216,6 +220,24 @@ function transitionVarietyIssues(
   ];
 }
 
+function continuityQuotaIssues(
+  shots: readonly StoryboardShot[],
+  durationS: number,
+  rules: WorldVarietyRules,
+): ValidationIssue[] {
+  const min = continuityQuota(durationS, rules);
+  const planned = shots.filter((shot, index) => index > 0 && shot.continuity !== undefined);
+  if (planned.length >= min) return [];
+  return [
+    issue(
+      'error',
+      'continuity-quota',
+      `${String(planned.length)} continuity link(s) in ${durationS.toFixed(0)} s; this world film needs at least ${String(min)} (the world's signature cut): add "continuity" to the second shot of a pair the narration carries across — zoom-through into a drawn object, shared-object (the same drawing stays while the page changes) or carry-environment (the same page, one drawing changes) — and name the object in both intents`,
+      'shots',
+    ),
+  ];
+}
+
 /** The variety checks of a world's storyboard (see the module comment). */
 export function checkWorldVariety(
   shots: readonly StoryboardShot[],
@@ -235,5 +257,6 @@ export function checkWorldVariety(
     ...spacingIssues(shots, breakthroughs, rules),
     ...runIssues(shots, rules),
     ...transitionVarietyIssues(shots, durationS, options, rules),
+    ...(options.continuityLinks === true ? continuityQuotaIssues(shots, durationS, rules) : []),
   ];
 }

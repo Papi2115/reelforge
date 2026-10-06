@@ -29,6 +29,13 @@ export interface WorldVarietyRules {
   readonly minDistinctTransitions: number;
   /** ...in films at least this long, s. */
   readonly distinctTransitionsFromS: number;
+  /**
+   * Continuity links (the world's signature cut; real run Sketchbook 2 planned none): films at
+   * least this long need one when the project has links on, s.
+   */
+  readonly continuityFromS: number;
+  /** ...and at least max(1, floor(duration / this)), s (the prompt asks for ~1 per 45 s). */
+  readonly continuityFloorEveryS: number;
 }
 
 export const WORLD_VARIETY_RULES: WorldVarietyRules = {
@@ -44,6 +51,8 @@ export const WORLD_VARIETY_RULES: WorldVarietyRules = {
   maxMomentRun: 2,
   minDistinctTransitions: 3,
   distinctTransitionsFromS: 25,
+  continuityFromS: 45,
+  continuityFloorEveryS: 60,
 };
 
 /**
@@ -78,4 +87,13 @@ export function breakthroughQuota(
   const min = Math.max(natural, override?.minBreakthroughs ?? 0);
   const max = Math.max(min, Math.ceil(durationS / rules.breakthroughCeilingEveryS));
   return { min, max, kinds: min >= 2 ? rules.distinctBreakthroughKinds : Math.min(min, 1) };
+}
+
+/** Continuity links a world film of `durationS` needs at least (links on). */
+export function continuityQuota(
+  durationS: number,
+  rules: WorldVarietyRules = WORLD_VARIETY_RULES,
+): number {
+  if (durationS < rules.continuityFromS) return 0;
+  return Math.max(1, Math.floor(durationS / rules.continuityFloorEveryS));
 }

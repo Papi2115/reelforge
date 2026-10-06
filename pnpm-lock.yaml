@@ -281,6 +281,9 @@ importers:
       '@reelforge/pipeline':
         specifier: workspace:*
         version: link:../pipeline
+      '@reelforge/prompts':
+        specifier: workspace:*
+        version: link:../prompts
       '@reelforge/shared':
         specifier: workspace:*
         version: link:../shared

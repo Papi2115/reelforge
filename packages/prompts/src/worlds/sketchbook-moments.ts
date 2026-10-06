@@ -17,10 +17,11 @@ export const SKETCHBOOK_MOMENTS: readonly WorldMomentOption[] = [
     breakthrough: true,
     looks: [LOUD],
     useWhen:
-      'turns on a reveal, a twist, the answer to an open question or the one fact the film is about (a C-roll page)',
+      'turns on a reveal, a twist, the answer to an open question or the one fact the film is about (a C-roll page); say in the intent which mechanism the pulled ribbon drives and the claim its motion shows, never the same mechanism twice in a film',
     build:
-      "`page.popup({ x: 380, y: 272, w: 412, depth: 196, at, elements: [{ kind: 'block', u: 236, w: 102, h: 72, depth: 30, band: 'MARCH', text: '21' }, { kind: 'arm', u: 220, length: 160, piece: 'sun', angle: 23, swing: -19 }, { kind: 'cutout', u: 40, draw: 'figure', pose: 'cheer', text: 'WORD' }, { kind: 'tag', lines: ['two', 'words'] }, { kind: 'note', text: 'pencil note' }], pull: { at } })` (look `sketch-loud`; template `c3_popup.js`): the pencil hand lifts the card, at most 6 elements (block: `text` <= 6 characters, `band` <= 12; cutout `text` <= 12; tag lines <= 10; note <= 28; at most 2 arms, `swing` needs `pull`), every word from the narration; nothing else is written on the card while it opens. Make the card the shot: open it within the first second, hold it standing for at least 1.5 s.",
-    visible: 'a pop-up card standing up from the page (paper pieces rising from a fold)',
+      "`page.popup({ x, y, w, depth, at, intent: '<the claim the motion shows>', elements: [ … ], pull: { at } })` (look `sketch-loud`; element kinds, motions, `appear` labels and caps in `reelforge kit-docs`). Every pop-up is original: no template, never copy the showcase or a catalog example. Invent a paper mechanism that visualises this shot's claim and play with it: the ribbon pulled at the side must trigger a motion that MEANS something in the narration (the sun slides, so the calendar drifts). Inspiration, each a different mechanism: a thermometer or water level rising, a door or flap opening on the answer, a slider moving along a timeline, a wheel or gear turning a counter, a curtain drawn aside, a pointer moving along a scale. Never the same mechanism twice in one film. `intent` (required) names the claim the motion shows (`the dancers multiply day by day`), never a generic `reveal`. Every element, and above all every element that moves, is something the narration names (no decorative disc, sun or arm); every word from the narration; nothing else is written on the card while it opens. Make the card the shot: open it within the first second, hold it standing for at least 1.5 s, pull on the spoken claim.",
+    visible:
+      "a pop-up card standing up from the page (paper pieces rising from a fold); once the side ribbon is pulled, its motion must express the shot intent's claim: name that claim as the focal point; a pull whose motion shows nothing the narration says (a decorative disc, a swinging arm) is `off-intent` with a note starting `pull:`",
   },
   {
     id: 'strip',
@@ -29,7 +30,7 @@ export const SKETCHBOOK_MOMENTS: readonly WorldMomentOption[] = [
     useWhen:
       'runs through a sequence of dates or steps (a chronology, a campaign day by day, a before-and-after in stages; a B-roll page, treatment `node-graph/timeline`)',
     build:
-      "`page.strip({ y: 156, events: [{ label: '2 NOV', note: 'first try' }, { label: '4 NOV', note: ['ambush', 'gun jams'], doodle: 'figure' }, …], highlight: 1, at, until, pen: 'bic', end: 'now' })` (look `sketch-graph`; template `b4_strip.js`): 2-8 events in order (`label` <= 10 characters, `note` one or two lines <= 22 each, `year` on every event or none, increasing), `highlight` = the event that is the point (its note in red after a held beat; no other red), `until` = when the last note is written (its pace may stretch 0.7-1.8x). Time the events to their spoken dates.",
+      "`page.strip({ y: 156, events: [{ label: '2 NOV', note: 'first try' }, { label: '4 NOV', note: ['ambush', 'gun jams'], doodle: 'figure' }, …], highlight: 1, at, until, pen: 'bic' })` (look `sketch-graph`; template `b4_strip.js`): 2-8 events in order (`label` <= 10 characters, `note` one or two lines <= 22 each, `year` on every event or none, increasing), `highlight` = the event that is the point (its note in red after a held beat; no other red), `until` = when the last note is written (its pace may stretch 0.7-1.8x), `end: 'now'` only when the timeline really runs on to today. Time the events to their spoken dates.",
     visible:
       'an accordion paper strip dragged through the view with dated panels written on it (folded panels at the left)',
   },

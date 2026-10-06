@@ -61,7 +61,7 @@ describe('world sections off (script, sound-cues)', () => {
 
   it('bumps the versions of the prompts with world variety wording', () => {
     const ids = ['storyboard', 'scene-build', 'scene-fix', 'critic', 'script', 'sound-cues'];
-    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([17, 16, 4, 8, 3, 5]);
+    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([18, 17, 5, 9, 3, 5]);
   });
 });
 
@@ -106,6 +106,21 @@ describe('sketchbook moment wording', () => {
     expect(storyboard).toContain('Rhythm: never more than 2 shots in a row in one look');
   });
 
+  it('asks a world film of 45 s+ for continuity links only inside the links section', () => {
+    const vars = (durationS: number) =>
+      storyboardWorldVars(SKETCHBOOK, 'sketch-story', TRANSITIONS, { durationS });
+    expect(vars(30)['worldContinuity']).toBeUndefined();
+    expect(vars(50)['worldContinuity']).toContain('this film (about 50 s) needs at least 1 link');
+    expect(vars(155)['worldContinuity']).toContain('needs at least 2 links');
+    expect(vars(50)['worldContinuity']).toContain('`zoom-through` into a drawn object');
+    const base = { styleId: 'sketchbook', looks: '- x', multiLook: true, ...vars(50) };
+    const on = rendered('storyboard', { ...base, continuityLinks: true, continuityBudget: 1 });
+    expect(on).toContain(
+      '"opens on the wall calendar page"). In this world the link is the signature cut',
+    );
+    expect(rendered('storyboard', base)).not.toContain('signature cut');
+  });
+
   it('a short test film with an override asks for two breakthroughs of two kinds', () => {
     const vars = storyboardWorldVars(SKETCHBOOK, 'sketch-story', TRANSITIONS, {
       durationS: 50,
@@ -137,8 +152,12 @@ describe('sketchbook moment wording', () => {
       styleId: 'sketchbook',
       ...sceneWorldVars(SKETCHBOOK, 'popup'),
     });
-    expect(popup).toContain('`page.popup({ x: 380, y: 272, w: 412, depth: 196, at, elements:');
-    expect(popup).toContain('at most 6 elements');
+    expect(popup).toContain(
+      "`page.popup({ x, y, w, depth, at, intent: '<the claim the motion shows>'",
+    );
+    expect(popup).toContain('Every pop-up is original: no template');
+    expect(popup).toContain('Never the same mechanism twice in one film');
+    expect(popup).toContain('every element that moves, is something the narration names');
     const fix = rendered('scene-fix', {
       scope: 'Shot',
       shotIds: 's07',
@@ -189,8 +208,11 @@ describe('sketchbook moment wording', () => {
     expect(text.craftBrief).toContain(
       'ALWAYS `kit.fx.sketchPage({ …, duration: ctx.shot.duration })`',
     );
-    expect(text.craftBrief).toContain('No marks > 80 px apart at the same time');
-    expect(text.craftBrief).toContain('`parallel: true` only on purpose');
+    expect(text.craftBrief).toContain('marks > 80 px apart never overlap in time');
+    expect(text.craftBrief).toContain('labels and numbers `appear` on their own');
+    expect(text.craftBrief).toContain('never cut a narration word');
+    expect(text.motion).toContain('`parallel: true` only on purpose');
+    expect(text.motion).toContain('never cut content words from the narration');
     expect(text.motion).toContain('always create the page with `duration: ctx.shot.duration`');
   });
 });

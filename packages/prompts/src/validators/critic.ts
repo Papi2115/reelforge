@@ -48,7 +48,8 @@ export interface CraftNote {
   readonly traces: readonly string[];
 }
 
-const CRAFT_NOTE = /focal\s*:\s*(.+?)\s*[;|]\s*traces?\s*:\s*(.+)$/i;
+/** `focal: …` and `traces: …` may be separated by `;`, `|`, `.`, `,` or a line break. */
+const CRAFT_NOTE = /focal\s*:\s*(.+?)(?:\s*[;|.,]\s*|[^\S\n]*\n\s*)traces?\s*:\s*([\s\S]+)$/i;
 
 /** The focal point and traces of a craft note; undefined when the note names no focal point. */
 export function parseCraftNote(note: string): CraftNote | undefined {

@@ -3,12 +3,13 @@
  * pop-up or strip): the Sketchbook storyboard prompt carries the moment catalog and the film's
  * quota; a storyboard without breakthroughs gets a repair turn with the `moment-quota` error and
  * passes once it plans a pop-up and a strip. A short test film reaches the same with the test-only
- * `worldQuotaOverride`. No real Claude call.
+ * `worldQuotaOverride`. A world film without a continuity link (real run Sketchbook 2) gets a
+ * repair turn with `continuity-quota`. No real Claude call.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { WordsFile } from '@reelforge/pipeline';
-import { storyboardFileSchema, type Roll } from '@reelforge/shared';
+import { storyboardFileSchema, type ContinuityKind, type Roll } from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { DEFAULT_STAGE_SETTINGS, type StageSettings } from './settings.js';
@@ -37,8 +38,13 @@ const TREATMENTS: Readonly<Record<Roll, readonly [string, string]>> = {
 const WORDS_PER_SHOT = 10;
 const WORD_STEP_S = 0.45;
 
-/** A shot plan: roll, then optional moment and page transition (`-` = none). */
-type Plan = readonly [Roll, (string | undefined)?, (string | undefined)?];
+/** A shot plan: roll, then optional moment, page transition (`-` = none) and continuity link. */
+type Plan = readonly [
+  Roll,
+  (string | undefined)?,
+  (string | undefined)?,
+  (ContinuityKind | undefined)?,
+];
 
 /** Words for shots of `lengthS` seconds: ten per shot from 0.2 s in, the last ends ~4.6 s in. */
 function words(count: number, lengthS: number): WordsFile {
@@ -83,14 +89,14 @@ function words(count: number, lengthS: number): WordsFile {
 /** A Sketchbook storyboard for `plans`, cut on each shot's first word. */
 function storyboard(plans: readonly Plan[], lengthS: number, file: WordsFile): string {
   const lastEnd = file.words.at(-1)?.tEnd ?? 0;
-  const shots = plans.map(([roll, moment, style], index) => {
+  const shots = plans.map(([roll, moment, style, link], index) => {
     const id = `s${String(index + 1).padStart(2, '0')}`;
     return {
       id,
       t0: index === 0 ? 0 : index * lengthS + 0.2,
       t1: index + 1 < plans.length ? (index + 1) * lengthS + 0.2 : lastEnd + 0.3,
       treatment: TREATMENTS[roll][index % 2],
-      intent: `Shot ${id} draws what the narration names.`,
+      intent: `Shot ${id} draws what the narration names on a taped scrap.`,
       scene: `scenes/${id}.js`,
       roll,
       look: LOOK[roll],
@@ -98,6 +104,7 @@ function storyboard(plans: readonly Plan[], lengthS: number, file: WordsFile): s
         ? {}
         : { transitionIn: { type: 'wipe', duration: 0.8, style: `sketchbook-${style}` } }),
       ...(moment === undefined || moment === '-' ? {} : { worldMoment: moment }),
+      ...(link === undefined ? {} : { continuity: { kind: link, object: 'taped scrap' } }),
     };
   });
   return JSON.stringify({ version: 1, shots }, null, 2);
@@ -129,7 +136,7 @@ const BREAKTHROUGHS = new Set(['popup', 'strip']);
 const LONG: readonly Plan[] = [
   ['A'],
   ['B'],
-  ['A'],
+  ['A', '-', undefined, 'zoom-through'],
   ['C', 'popup', 'page-flip'],
   ['A'],
   ['B', 'envelope'],
@@ -143,7 +150,7 @@ const LONG: readonly Plan[] = [
   ['B', 'strip'],
   ['A'],
   ['B', 'ruler-graph'],
-  ['A'],
+  ['A', '-', undefined, 'shared-object'],
   ['C'],
   ['A'],
   ['B'],
@@ -156,7 +163,9 @@ const LONG: readonly Plan[] = [
 ];
 
 const plainOf = (plans: readonly Plan[]): Plan[] =>
-  plans.map(([roll, , style]): Plan => [roll, '-', style]);
+  plans.map(([roll, , style, link]): Plan => [roll, '-', style, link]);
+const unlinked = (plans: readonly Plan[]): Plan[] =>
+  plans.map(([roll, moment, style]): Plan => [roll, moment, style]);
 
 describe('world variety on fake-claude', { timeout: 120_000 }, () => {
   it('repairs a storyboard without breakthroughs into a varied film plan', async () => {
@@ -184,11 +193,33 @@ describe('world variety on fake-claude', { timeout: 120_000 }, () => {
     expect(new Set(written.shots.map((shot) => shot.worldMoment ?? 'plain')).size).toBe(7);
   });
 
+  it('repairs a world film without continuity links (the signature cut)', async () => {
+    const { dir, file } = await worldProject('variety links', LONG.length, 6);
+    const harness = new FakeClaudeHarness([
+      writes({ 'storyboard.json': storyboard(unlinked(LONG), 6, file) }),
+      writes({ 'storyboard.json': storyboard(LONG, 6, file) }),
+    ]);
+    harnesses.push(harness);
+    const result = await runner(dir, harness, SETTINGS).run({ stage: 'storyboard' });
+    if (!result.ok) throw new Error(JSON.stringify(result.error));
+    expect(result.value.metrics['repairs']).toBe(1);
+    const [first, repair] = harness.specs.filter((spec) => spec.stage === 'storyboard');
+    expect(first?.prompt).toContain('In this world the link is the signature cut');
+    expect(first?.prompt).toContain('needs at least 2 links');
+    expect(repair?.prompt).toContain('continuity-quota');
+    expect(repair?.prompt).not.toContain('moment-quota');
+    const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
+    expect(written.shots.flatMap((shot) => shot.continuity?.kind ?? [])).toEqual([
+      'zoom-through',
+      'shared-object',
+    ]);
+  });
+
   it('asks a 50 s test film for both kinds with the test-only quota override', async () => {
     const plans: Plan[] = [
       ['A'],
       ['C', 'popup', 'page-flip'],
-      ['A'],
+      ['A', '-', undefined, 'shared-object'],
       ['B', '-', 'riffle'],
       ['A'],
       ['C', '-', 'tape-peel'],

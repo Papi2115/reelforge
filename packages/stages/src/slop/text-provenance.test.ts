@@ -70,6 +70,21 @@ export function build(ctx) {
       '21',
     ]);
   });
+
+  it("reads a sheet's printed text and a strip's end word", () => {
+    const source = `export function build(ctx) {
+  const page = ctx.kit.fx.sketchPage({ size: [960, 540] });
+  page.sheet({ x: 1, y: 2, w: 300, h: 200 }).print('FILE 12', { u: 1, v: 2 });
+  page.strip({ events: [{ label: '1518' }, { label: 'SEPTEMBER' }], end: 'now', at: 'By September' });
+  return { page };
+}`;
+    expect(texts(source)).toEqual([
+      { text: 'FILE 12', line: 3 },
+      { text: '1518', line: 4 },
+      { text: 'SEPTEMBER', line: 4 },
+      { text: 'now', line: 4, role: 'timeline-end' },
+    ]);
+  });
 });
 
 describe('text provenance', () => {
@@ -90,6 +105,18 @@ describe('text provenance', () => {
     expect(shown(['1 year = 365.2422 days', '0.2422 × 4 = 0.9688'])).toEqual([]);
     expect(shown(['0.2422 × 4 = 0.9688'])).toEqual(['0.2422 × 4 = 0.9688']);
     expect(shown(['1500s', '1300s'])).toEqual(['1300s']);
+  });
+
+  it('flags a timeline that ends "now" when the sources never reach the modern era', () => {
+    const end = [{ text: 'now', line: 7, role: 'timeline-end' as const }];
+    const medieval = buildVocabulary([
+      'In July 1518 a woman began to dance. By September it ended.',
+    ]);
+    expect(inventedTexts(end, medieval, SKETCHBOOK).map((entry) => entry.unknown)).toEqual([
+      ['now'],
+    ]);
+    expect(inventedTexts(end, VOCABULARY, SKETCHBOOK)).toEqual([]);
+    expect(inventedTexts([{ text: 'now', line: 7 }], medieval, SKETCHBOOK)).toEqual([]);
   });
 
   it('flags invented names, mostly unknown strings and fake numbers, not one paraphrased word', () => {

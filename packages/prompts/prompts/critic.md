@@ -1,6 +1,6 @@
 ---
 id: critic
-version: 8
+version: 9
 model: haiku
 tools: [Read]
 output: json

@@ -440,6 +440,9 @@ export function checkStoryboard(
           looks: options.looks ?? [DEFAULT_LOOK_ID],
           rules,
           ...(ranged ? { continuesExempt: true } : {}),
+          ...(options.worldTransitions === undefined
+            ? {}
+            : { pageNativeStyles: options.worldTransitions.map((option) => option.id) }),
         })
       : []),
     ...(options.tension === undefined

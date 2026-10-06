@@ -25,6 +25,7 @@ import {
 import {
   assignTransitionStyles,
   DEFAULT_MAX_ASSET_NEEDS,
+  projectContinuityLinks,
   projectResearchMode,
   projectShotsPerMinute,
   projectTensionMap,
@@ -117,7 +118,11 @@ async function validateFile(
     words,
     ...storyboardLookOptions(setup.lookMode, setup.looks),
     // A world names only its page-native transitions (PLAN.md#13.6); built-in styles: nothing.
-    ...storyboardWorldOptions(setup, ctx.settings.worldQuotaOverride),
+    ...storyboardWorldOptions(
+      setup,
+      ctx.settings.worldQuotaOverride,
+      project.status === 'ok' && projectContinuityLinks(project.value),
+    ),
     assetNeeds: { research },
     ...withAssetIds(await currentAssetIds(ctx.projectDir)),
     ...(tension === undefined ? {} : { tension }),
