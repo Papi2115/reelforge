@@ -63,3 +63,13 @@ indexed canvas, pure function of t, seeded PRNG, palette ≤ 24–32 colours.
 - **Hand policy.** If the hand cannot keep up with the narration it draws only the KEY elements (figures, the hero object); labels, numbers and small words may simply
   APPEAR on their own while the hand draws something else. Never cut narration content because writing is slow; never stroke-draw text without the hand.
 - **Variety is mandatory** (≈ 1 pop-up or accordion per 50 s on average in real films, ≥ 2 kinds, never adjacent) — see QUALITY.md §8.2.
+
+## PRINCIPLE: a world is a style GRAMMAR, not an asset catalogue (Papi, 2026-10-07)
+Seen on test film B2: the new worlds only REPLAY the mockup's vocabulary (the clerk sprite, brick walls, cartridges, the Thames as a corridor). The mockups are
+**references for the style and the vibe** (palette, line/pixel rules, shading, proportions, animation feel, HUD grammar), NOT the set of things a film may contain.
+"The world serves the narration, not the narration the world": a film about a forest in the B2 style must get trees, animals, undergrowth, sky and a forest level,
+generated for THAT film, the same way the base voxel model builds props/characters per film. Applies to all four worlds (Sketchbook, Comic, Game B2, Game B1).
+Consequences: (1) every world needs an OPEN VOCABULARY: authoring DSLs and parametric generators (sprites/textures/props/characters/icons/environments) in the world's
+style, not only built-in ids; (2) prompts teach the STYLE GRAMMAR and a design process (nouns of the narration → what each looks like in this style → build/define it),
+and must not bias towards the showcase topics; (3) project-local asset files built per film (like the voxel prop builder) with a critic that checks recognisability
+at thumbnail size; (4) validation = real films on topics far from the showcases (forest, ocean, space station, medieval village, desert, city…).
