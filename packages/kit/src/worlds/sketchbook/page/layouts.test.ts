@@ -44,7 +44,7 @@ describe('look A layouts', () => {
     }
   });
 
-  it('gives four different grammars, nudged by the seed, the same for the same seed', () => {
+  it('gives a different grammar per preset, nudged by the seed, the same for the same seed', () => {
     const heroes = LAYOUT_NAMES.map((name) => layoutSlots(name, 5).hero);
     expect(
       new Set(
@@ -52,7 +52,10 @@ describe('look A layouts', () => {
           (hero) => `${String(Math.round(hero.x / 50))}:${String(Math.round(hero.h / 50))}`,
         ),
       ).size,
-    ).toBe(4);
+    ).toBe(LAYOUT_NAMES.length);
+    expect(layoutSlots('two-column', 5).columns).toHaveLength(2);
+    expect(layoutSlots('landscape', 5).sky).toBeDefined();
+    expect(layoutSlots('big-number', 5).label.size).toBeGreaterThanOrEqual(150);
     expect(layoutSlots('facing', 5)).toEqual(layoutSlots('facing', 5));
     expect(layoutSlots('facing', 5)).not.toEqual(layoutSlots('facing', 6));
     expect(layoutSlots('facing', 5).figures).toHaveLength(1);

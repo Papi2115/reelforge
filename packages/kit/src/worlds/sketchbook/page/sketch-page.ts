@@ -23,6 +23,8 @@ import { createPageApi, type PageApi } from './api.js';
 import { LAYOUT_NAMES, layoutSlots, type LayoutSlots } from './layouts.js';
 import { SketchPage } from './model.js';
 import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import { VOCAB_METHODS } from '../vocab/docs.js';
+import { parseSketchAsset, SketchLibrary } from '../vocab/library.js';
 
 const point = z.tuple([z.number(), z.number()]);
 
@@ -74,6 +76,13 @@ export const sketchPageParams = z.object({
       'Look A composition preset; page.slots() gives its hero/figures/label/note/thing/ground',
     ),
   seed: z.int().min(0).optional().describe('Seed of every wobble (default: from the shot)'),
+  library: z
+    .array(z.unknown())
+    .max(64)
+    .default([])
+    .describe(
+      "The project's own figures and props (assets/sketchbook/<id>.json contents) for person({ like }) and use(id)",
+    ),
   layer: z.int().min(0).max(9).default(0),
   anchor: anchorParam,
 });
@@ -117,8 +126,9 @@ const PAGE_METHODS = {
   '{ hero, appear, parallel } (options of every pen mark and figure)':
     "One hand draws the key things: every stroke-drawn mark has the nib on it. The hand takes marks in time order; the hero (hero: true, default the largest text) goes first among marks timed together and waits <= 0.6 s for earlier ones; others wait for the hand (returned at/end = real times); a secondary write that would wait > 0.6 s appears by itself, whole, on time. appear: 'bloom' (ink soaks in) | 'pop' | 'type' (letter by letter) = no hand, on purpose; parallel: true = appear 'bloom'",
   'textWidth(text, size, hand) / doneAt()': 'Layout width of a text; time the last mark ends',
+  ...VOCAB_METHODS,
   'slots()':
-    "With layout (look A: 'hero-left' big figure + big label, 'facing' two figures, 'tall-diagram' tall figure + diagram right, 'wide-strip' three figures on one ground): { hero, figures, label, note, thing: [x, y, w, h], ground: [x0, y, x1] }, seeded nudges; hero figure >= 25 % page height",
+    "With layout (look A: 'hero-left' big figure + big label, 'facing' two figures, 'tall-diagram' tall figure + diagram right, 'wide-strip' three figures on one ground, 'top-down-map' a map fills the page, 'close-up' one object huge, 'landscape' sky band + ground with two things, 'two-column' two drawings with facts under each, 'big-number' a huge number + a drawing): { hero, figures, label, note, thing: [x, y, w, h], ground: [x0, y, x1], columns?, sky? }, seeded nudges; the hero (figure, map, object) >= 25 % page height",
 } as const;
 
 function pixelTable(tools: KitTools): Uint32Array {
@@ -187,12 +197,17 @@ function buildPage(params: z.output<typeof sketchPageParams>, tools: KitTools): 
       },
     });
   }
+  const library = new SketchLibrary();
+  params.library.forEach((asset, index) => {
+    library.define(parseSketchAsset(asset), `${call} library[${String(index)}]`);
+  });
   const { api, seal } = createPageApi({
     page,
     seed,
     resolve: createResolver(params.anchor, call),
     fps: params.boilFps,
     call,
+    library,
   });
   const canvas = new InkCanvas(width, height);
   const raster = new Raster(width, height);

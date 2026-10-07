@@ -152,6 +152,38 @@ figure left, a diagram filling the right, its label under it), `wide-strip` (thr
 Slots: `hero`, `figures`, `label`, `note`, `thing` box, `ground`. **Rule: the hero figure is ≥ 25 % of the page height** (≥ 135 of
 540 px). Template `packages/kit/examples/sketchbook/a4_layouts.js`; render test `packages/kit/test/render/sketch-layouts.test.ts`.
 
+## Sketchbook: open vocabulary (PLAN.md#13.15a, phase 1: kit)
+The showcase is the style grammar, not the content: a forest film draws trees, a ranger, a deer, a map - drawn per film in the notebook
+hand (DECISIONS.md "PRINCIPLE"). Code: `packages/kit/src/worlds/sketchbook/vocab/` + `page/api-vocab.ts`. Everything is one hand task like
+`page.figure` (drawn by the hand, or `appear`), seeded, palette-pure, rough on purpose (loops overlap, lines bow, corners are missed, crayon
+lands out of the lines); errors name the part and the field.
+- **`page.doodle({ box, parts }, place)`** - the drawing DSL in local units: `blob`, `circle`, `rect`, `poly`, `line` (`sharp`, `arrow`),
+  `arc`, `dots`, `rays`, `hatch`, `scribble`, `zigzag`, `wave`; each with `nib` (felt, fine, crayon, ballpoint, marker, pencil, red),
+  `color`, `width`, `fill` + `shade` (hatch, dense, light, scribble). Place: `x, y, h | w` (both = stretch), `anchor` (bottom, centre,
+  top-left), `flip`, `rot`, `at`, `until` (never squeezed below half its pace: the hand must travel), `attach` (a joint / head frame).
+- **`page.spot({ rows, legend, px }, place)`** - tiny icons as rows of characters, legend -> notebook inks; one hand dab per run.
+- **`page.draw(kind, { type, color, action, count, shade, plain, bold, ...place })`** - parametric generators (`vocab/gen/`): beast (14
+  species, stand/walk/run/sit), bird, fish, sealife, insect, reptile; tree, bush, grass, flower, cactus, seaweed, mushroom, leaf;
+  backdrops hills, mountains, sea, dunes, forest, skyline, room, sky, space, ground, road, river (page px `w x h`, pale, 1.8x pace);
+  building (18 types), vehicle (15), object (31), tool (16), instrument (17), icon (33, never letters), effect (16). Non-backdrop drawings
+  are fitted, so `h` is the drawing's own height; per-type default heights; `hero` = bold outline. Red crayon is never a default fill
+  (red is the correction ink).
+- **`page.person({ action, face, mood, body, clothes, hat, hair, skin, holds, ... })`** - the stick figure with 11 poses, 8 moods, stick or
+  blob body, 9 clothes, 12 hats, 9 hair styles, 4 skins, a held tool/object/instrument type or prop (at its grip). **`page.crowd`**.
+- **`page.diagram(kind, spec)`** - callout, timeline, map (route, red X, places, compass), bars, line, pie, venn, flow, stack, cutaway; built
+  from the page's own methods on the diagram's own clock; structure by the hand, small labels bloom in, `highlight` = the one red mark.
+- **Composition**: five more `layout` presets with another vertical structure - `top-down-map`, `close-up`, `landscape` (`sky` slot),
+  `two-column` (`columns` slots), `big-number` - the hero (figure, map, object) is still ≥ 25 % of the page height.
+- **The film's own things**: `page.defineFigure(id, look)` -> `person({ like: id })`; `page.defineProp(id, { doodle } | { spot } |
+  { draw: kind, ... }, + h)` -> `use(id, place)`; seeded by the id, so the same ranger in every shot. Project files
+  `assets/sketchbook/<id>.json` (or `.js` exporting the same object) `{ version: 1, id, kind: figure|prop, description, spec }` reach the
+  page as `sketchPage({ library })`; `parseSketchAsset` / `checkSketchAssets` validate them, `sketchAssetFindings(source, ids)` flags ids
+  a scene uses that nobody defined (exported by the sketchbook module; loading the files and the validator wiring are phase 2).
+- **Examples / tests**: `packages/kit/examples/sketchbook/open/o1_forest.js` … `o6_city.js` (forest, ocean, space station, medieval village,
+  desert, city; built only from the open layer), render test `packages/kit/test/render/sketch-open.test.ts` (goldens
+  `look-sketchbook-open-*`, contact `out/contact/look-sketchbook-open.png`, 64 px strip `out/contact/sketch-open-thumbs.png`), unit tests
+  `vocab/vocab.test.ts` (DSL, generators, silhouette coverage), `page/page-vocab.test.ts`, the hand invariants over every example.
+
 ## Variety: page moments, quota and rhythm (real run Sketchbook 1)
 The first real world film used neither breakthrough: the storyboard prompt never mentioned them. Now a world's prompt text carries a
 **moment catalog** (`WorldPromptText.moments`, Sketchbook: `packages/prompts/src/worlds/sketchbook-moments.ts`, Comic:
@@ -276,6 +308,67 @@ Comic is **wired** (`wired: true`): offered with Settings → Experimental world
   mascot (640x360 comes with the style preset, 30 fps with the template). Music moods `calm-tech`, `tense-investigation`,
   `lofi-chill` (`WORLD_MOODS`); critic look rules `CRITIC_LOOK_RULES['comic-*']`; `reelforge kit-docs` lists `comicPage` and the
   three looks with the experimental switch on.
+
+## Comic: open vocabulary (PLAN.md#13.15a, phase 1: kit)
+The showcase is a style reference, not a catalogue (DECISIONS.md "a world is a style GRAMMAR"). Code:
+`packages/kit/src/worlds/comic/art/`; examples `packages/kit/examples/comic/open/o1-o6` (a subfolder on purpose: the
+stages' comic slop calibration reads `examples/comic/*.js` with the Apollo narration).
+- **Audit (before)**: the kit itself drew only topic-neutral grammar (lettering, stamps, flashback/spread toolkits) plus
+  three showcase leftovers: `g.ground` (Moon craters, shots 1/2/8), `g.digits` (the DSKY display), `g.standing` (the spread
+  title). Every figure and prop was free-form painter code inside a template: Eagle LM (a1-a3, s1), the crew from behind
+  (a1/a2), the DSKY (a1/a2/b1), Bales (a2), boulders and gloves (a3, c2, s1), the LM shadow (c1), the 1961 hall and desk
+  (f1), the Mark II relay and logbook (f2), the Everest massif (s2). Nothing for a forest (trees, plants, animals, a sky
+  other than space), an ocean (water, waves, sea life), a space station (modules, Earth, suits), a medieval village
+  (buildings, period clothes, horses, carts), a desert (dunes, cacti, reptiles) or a city (skyline, traffic, crowds, signs).
+- **`page.art.<generator>(g, options)`** (zod, readable errors listing the valid values, seeded, animated on the panel
+  clock, palette-pure): person (9 poses, 6 expressions, 5 builds, skin, 7 hairs, 11 hats, 7 outfits, 18 tools), crowd
+  (flat back rows), animal (13 species presets, 7 poses), bird (11), fish (fish, tropical, shark, eel, whale, ray,
+  anglerfish, jellyfish, crab, octopus), insect (8), reptile (5), tree (6 kinds x 4 seasons), bush, grass, flowers,
+  cactus, seaweed/coral, sky (8 kinds; sun, moon, stars, clouds), land (10 grounds), hills/peaks, sea, dunes, forest rows,
+  skyline, interior (room, station module, stone hall, cabin), space (Earth, Moon, Mars, ringed), backdrop (12 presets),
+  building (13), vehicle (15), object (43, each drawn as its defining features: the skull has sockets, nose hole, teeth),
+  icon (22), chart (bar/line/pie, values from the narration), map, sign (lettered), effect (16). Every part is drawn by
+  `Sketch` in the grammar: colour plate off register, boiled ink outline heavier on the silhouette, halftone shade from
+  the left light, hatching; three value steps (fill, shade, ink). `size: 0` draws nothing (grow from nothing safely).
+- **Authoring DSL**: `art.shape(g, parts, { x, y, scale, flip })` - JSON parts (`ellipse | rect | poly | capsule | line |
+  dots | sprite | use | gen`, fill, shade, hatch, outline, wobble; model units, 0,0 = where it stands); `art.sprite(g, {
+  rows, legend, px })` - ASCII spot art onto the 22 inks, grown ink outline. Caps: 80 parts, 128 points, `use` depth 4,
+  sprites 64x64 with 16 legend entries.
+- **Registry**: `art.defineProp/defineCharacter/defineBackdrop(id, spec)` + `art.draw(g, id, options)`; a spec is exactly
+  one of `parts`, `sprite`, `gen` (a generator preset, per-call knobs merged: `art.draw(g, 'ranger', { pose: 'walk' })`),
+  `layers` (backdrops) or `draw` (JS asset files only). Ids kebab case, never a generator name, <= 64 per page; a
+  character must be a creature generator, layers only for backdrops.
+- **Asset files**: `assets/comic/*.json` (or `.js` exporting `comicAssets`) `{ version: 1, world: 'comic', props,
+  characters, backdrops }`; `art.load(file)`; `parseComicAssets(value, file)` returns every problem at once;
+  `unknownComicArtIds(sceneSource, knownIds)` lists drawn ids that neither the files nor the scene define. Example:
+  `examples/comic/open/assets/comic/forest.json` (exactly what o1 loads, unit-tested). Loading the project's files into
+  a shot is phase 2 (stages/CLI); until then a scene passes the file's content to `art.load`.
+- **Layout by beats**: `art.suggestLayout(weights)` (1 splash; 2 `2-up`, or `splash-inset` when one is 2.5x; 3 `strip`,
+  or `3-up-l` with a dominant first/last beat, mirrored when last; 4 `4-grid`, or `4-l` with a dominant first/last; 5+ =
+  a second page) with a `why`; `page.layout(beats, { backdrop, reveal })` builds the panels in beat order. `reveal: 'page'`
+  (default): every panel shows its establishing backdrop from frame 0 (overscanned so a panel camera never uncovers
+  paper) and its subject - beat `draw` and any later `panel.draw` - arrives on the beat. `reveal: 'beats'`: panels enter
+  on their beats (beat `enter`) over pencil roughs. A beat with nothing to draw is an error on the first frame;
+  backdrops are validated at build time. `page.audit({ until })` lists panels that show (almost) one flat ink for > 0.6 s.
+- **Examples** (each only `page.art` + `page.layout` + lettering; goldens `look-open-comic-<topic>-t<t>`, render test
+  `test/render/comic-open.test.ts`, contact sheet `packages/kit/out/contact/look-open-comic.png`; QUALITY.md §7 by the
+  author, one honest pass):
+
+| Example | Look | Layout | Built from | §7 | Weakest |
+| --- | --- | --- | --- | --- | --- |
+| o1 forest | A | 3-up-l | asset file: ranger, red deer, woodpecker, fern + bark (parts), pine-dawn (layers) | 16 | sun and sfx both yellow; the deer panel is short |
+| o2 ocean | B | strip | water column + the deep (backdrops), anglerfish/jellyfish presets, a lettered depth sign | 15 | the deep panels are dark and bare until the fish arrive; W reads as N in the caption |
+| o3 station | A | 3-up-l mirrored | astronaut preset, station + Earth, module interior | 16 | the close-up astronaut is a white blob; the face barely reads |
+| o4 village | A | 4-l | goose (recoloured duck preset), baker preset, market square, crowd, cart + horse, bell | 18 | three accents (red roofs, orange dusk, yellow DONG) |
+| o5 desert | C | strip, reveal beats | hiker preset, saguaros, vulture, canteen held upside down, rattlesnake | 17 | dunes are magenta-heavy; the red tongue is lost in them |
+| o6 city | B | 4-grid | traffic light (two sprites), zebra (parts), crowds, bus, skyline | 15 | four equal panels: weak hierarchy |
+
+  **Thumbnail (64 px wide, QUALITY.md §7)**, subjects drawn ~58 px in 64 px cells: reads at a glance - skull (sockets,
+  nose, teeth), key, clock, campfire, book, chest, bell, person, astronaut, deer (antlers), horse, cow (spots), camel
+  (hump), sheep (wool), anglerfish (lure + teeth), shark (fin), jellyfish, rattlesnake (rearing, banded), turtle,
+  woodpecker, pine, palm, saguaro, castle, lighthouse, station, rocket. Weak: whale (reads as a big fish: the side-view
+  flukes look like a fish tail), cart without its horse (a table on wheels), flask (needs its strap to read). Whole pages
+  at 64 px are only colour blocks, as any comic page.
 
 ## Game B2: raycaster, level format, HUD (PLAN.md#13.4 part a)
 World `game-b2` (experimental), code `packages/kit/src/worlds/game-b2/`, showcase `docs/worlds/game-hud-b2-rpg-v2/`.
@@ -542,6 +635,74 @@ Game B2 is **wired** (`wired: true`): offered with Settings → Experimental wor
   `tense-investigation`, `retro-wave` (`WORLD_MOODS`); critic look rules `CRITIC_LOOK_RULES['rpg-*']`; `reelforge kit-docs`
   lists `b2View`, `b2Hud` and the three looks with the experimental switch on.
 
+## Game B2: open vocabulary (PLAN.md#13.15 phase 1, kit only)
+The world is a style GRAMMAR (docs/worlds/DECISIONS.md), not the showcase's asset catalogue. Code:
+`packages/kit/src/worlds/game-b2/assets/` (pack, DSL, generators), `level/sky.ts` + `ray/sky.ts` + `ray/outdoor.ts` (outdoor mode).
+Prompts / stages / CLI are phase 2 (not touched).
+- **Audit of the built-in vocabulary** (all from the 1983 E.T. showcase): walls `concrete` (shot 1 corridor), `wood-panel`
+  (shot 2 office), `cubicle` (office), `shelf` / `shelf-end` (shot 3 warehouse, E.T. cartons), `corrugated`, `cinderblock`,
+  `counter` (shot 7 returns desk), `store-shelf` (shot 6 clone aisle); floors `concrete(-sand)`, `carpet`, `warehouse(-line)`,
+  `tile(-big)` (toy store / returns), `sand` (shot 9 landfill); ceilings `dark`, `office(-light)`, `warehouse(-tube)`,
+  `grey(-tube)`; moods dark / tungsten / fluorescent / shop / backroom (indoors only); sprites `clerk` (the one person, a
+  returns clerk), `desk` (office worker from behind), `item` (the cartridge shell), `sand-pile` (cartridge in sand), `carton`,
+  `pallet`, `boxes` (boxed games), `bin` (bargain bin), `card` (SALE), `sign`, `exit`; held items cartridge / note / key; HUD
+  icons cartridge / calendar / carton / note / key. No sky, no outdoors, no water, no plants, no animals, no second person.
+  What a film could not express before: **forest** (trees, animals, undergrowth, sky: nothing), **ocean** (water, fish,
+  coral: nothing; a "sea" = a brown corridor, like the Thames in real run 1), **space station** (hull, windows, a planet,
+  stars: nothing), **medieval village** (houses, villagers, a well, torches: only the clerk), **desert** (only `sand` floor and
+  the cartridge `sand-pile`; no dunes, palms, camels), **city** (no streets, facades, cars, skyline). Every person was the
+  clerk, every object the cartridge shell.
+- **Asset pack** (`kit.fx.b2View({ assets })`, one pack or a list of up to 4; the same JSON as a project file
+  `assets/b2/<name>.json`: `{ version: 1, world: 'game-b2', sprites, textures, icons }`). Ids are kebab case, unique across
+  packs, never a built-in name; caps 48 sprites / 24 textures / 24 icons per view. Each entry is **pixel art** or a
+  **generator call**; errors name the asset, frame, row and column (`sprites.fern.rows[1]: "X" at x=1 is not in the legend`).
+  Delivering project files to scenes (inline or injected) is phase 2; `checkAssets(pack)` is exported for the CLI.
+- **Pixel-art DSL**: sprites `{ rows | frames (2-4), legend, mirror, size: [w, h], z, fps, glow, outline, person }`, textures
+  `{ size: 16 | 32 | 64, rows | frames, legend, fps, glow }` (tiled to 64), icons `{ rows (<= 16x16), legend }`. Legend values
+  are the world's swatches (`sage`) or **ramp steps** (`leaf.2`; ramps warm 0-5, leaf 0-5, sky 0-4, earth 0-4, stone 0-5,
+  rust 0-4, plum 0-3, accent 0-1), `clear` = transparent; never hex. A `person: true` sprite has 4 frames (rest, talk, shake,
+  shake) and `view.act()` drives it.
+- **Generators** (seeded, crude on purpose, shaded by ramp steps with the light from the upper left, Bayer dither, 1 px
+  outline): `plant` (deciduous, conifer, palm, bush, grass, flowers, mushrooms, cactus, seaweed, reeds; height, width, leaf /
+  trunk ramp, bloom, lean; grass / reeds / seaweed sway); `creature` (bird perch|fly, quadruped grazer|dog|cat|bear|horse with
+  neck / legs / horns / hump / ears / pattern, fish slim|round|eel, insect bee|butterfly|beetle|ant, reptile
+  lizard|snake|croc|turtle; 2 frames); `person` (build, skin 0-3, hair, beard, glasses, 13 hats, 10 outfits, clothes ramp,
+  trim, 13 tools; 4 frames like the clerk); `structure` (hut, house, tower, castle-wall, ship, bridge, tent, ruins, pipe,
+  well, windmill, lighthouse, skyscraper, dome, antenna, planet; `lit` windows glow); `vehicle` (car, truck, bus, cart,
+  bicycle, rowboat, sailboat, rocket, satellite, train); `object` (27 kinds: furniture, barrel, crate, chest, sack, pot, lamp,
+  torch and campfire (animated, glowing), rock, signpost, fence, console, bookshelf, anvil, cauldron, statue, column,
+  tombstone, bench, streetlamp, hydrant, pile, flag, log); `texture` (grass, sand, mud, snow, rock, ice, foliage, water and
+  lava (3 frames), tile, planks, brick, stone, cobble, metal, hull, fabric, logs, thatch, adobe, facade, glass; `ramp`,
+  `wear`, `lit`, `window` = a see-through hole); `icon` (36 kinds, 12x12 + outline: document, letter, book, map, scroll, key,
+  coin(s), bag, gem, bottle, potion, flask, bread, apple, fish, bone, wrench, hammer, brick, ticket, chip, phone, clock,
+  compass, feather, leaf, star, heart, drop, medal, battery, shell, rope, ring, pill). Any generator call may add `fps` (0 =
+  still) and `z`.
+- **Level format extensions** (`checkLevel(level, ids)`; the built-in lists in error messages are unchanged, a hint names the
+  film's ids or says "define it in assets.*"): walls / floors / ceilings / sprites take project ids; `sky: { preset: day |
+  dawn | dusk | night | overcast | space | underwater, clouds, sun: { az, el, moon } | 'none', stars, skyline: none | hills |
+  mountains | trees | dunes | city | sea | mesa | towers, skylineHeight, ground, drift }` makes an OUTDOOR level: no ceiling
+  (a cell keeps a roof only with its own `ceiling`), the border may stay open (the ground runs to the horizon haze), walls up
+  to 4 tall (tiled per unit), floor / ceiling `'none'` = the void (space), the level's own room lit by the sky preset;
+  sprites `scale`, `flip`, `z` up to 4 and `w` / `h` up to 6; lights `flicker: 'fire'`; animated textures cycle per frame;
+  label / chalk / pinned only on built-in walls; indoor levels keep every old rule (closed border, height <= 1).
+- **The film's things in the hand and the HUD**: `take / hold / throw({ icon: 'ledger' })` draws the project icon (scaled by
+  whole factors), `hud.inventory` and `hud.menu` accept icon ids of the view's assets; `view.defineSprite(id, spec)` /
+  `view.defineIcon(id, spec)` add entries after build (for `place`, the hand, the HUD). Textures come only through `assets`
+  (the level compiles when the view is built).
+- **Examples** (`packages/kit/examples/game-b2/open/o1_forest … o6_city.js`, built only through the open layer; kept out of
+  `examples/game-b2/*.js` because the showcase-text guards and `validate level` read that folder), goldens
+  `look-b2-open-*` (`packages/kit/test/render/look-b2-open.test.ts`), contact sheet `packages/kit/out/contact/look-b2-open.png`.
+  QUALITY §7 self-scores (/20, honest) and the 64 px thumbnail read: forest **15** (trees, trail, sky and deer read at 64 px;
+  the mushroom focal is a few pixels; foliage-wall hedges look flat), ocean **13** (reads as underwater by colour and the
+  surface shimmer, but coral and fish lose their colour under the blue light and become grey lozenges at 64 px; below the
+  bar as a showpiece), space station **16** (the planet in the porthole is the strongest thumbnail of the six; the hull is
+  noisy dither up close; the astronaut is small), medieval village **15** (dusk sky, well, timber walls and the baker read;
+  the dusk clouds are blocky), desert **15** (palms, pool and camels read; the pool's edge steps with the grid; the rock is a
+  blob), city **14** (bus and lit windows read; near facades turn into checker dither, the lower left is dark).
+- **Measured** (plain Node, best batch of 30, view + HUD incl. the quad upload, 640x360): forest 2.7, ocean 3.4, station 3.4,
+  village 3.4, desert 4.4, city 5.3 ms/frame (built-in warehouse template 3.4 on the same run). The built-in templates paint
+  the same pixels as before (all existing B2 goldens pass unchanged).
+
 ## Game B1: wiring (PLAN.md#13.5 part c)
 Game B1 is **wired** (`wired: true`): offered with Settings → Experimental worlds on, like the other three worlds.
 - **Prompts** (`packages/prompts/src/worlds/game-b1.ts`): film, brief (two worlds in one frame: 2600 rules inside the TV,
@@ -598,3 +759,78 @@ Game B1 is **wired** (`wired: true`): offered with Settings → Experimental wor
   or mascot (640x360 comes with the style preset, 30 fps with the template). Music moods `lofi-chill`, `retro-wave`,
   `tense-investigation` (`WORLD_MOODS`); critic look rules `CRITIC_LOOK_RULES['atari-*']`; `reelforge kit-docs` lists
   `b1Screen` and the three looks with the experimental switch on.
+
+## Game B1: open vocabulary (PLAN.md#13.15 phase 1, kit only)
+The showcase is the **style grammar** (2600 rules inside the TV, square pixels in the room, HUD/boss/note grammar, the 23
+inks), not the set of things a film may contain (DECISIONS.md "PRINCIPLE"). Code `packages/kit/src/worlds/game-b1/vocab/`
+(DSLs, generators, assets, drawing, logic) and `room/` (room DSL); prompts and stages are phase 2.
+- **Audit (before)**: the built-in vocabulary was the 1983 crash: `g.cart()` (the E.T. cartridge, shots 1/6/9), attract and
+  garbage frames (3→4, 5), `room()` = Christmas 1982 only (panelling, shag, tree, presents, missing-gift tag, lamp, loose carts,
+  a calendar without a year; shot 2), boss = a text card (3/6/9), the manual's FIG. shapes cartridge/box/person/house (8),
+  level-select icons home/store/pit/office/factory/lock (8→9), the console close-up with Dad's knit sleeve (5/7), CONTINUE?
+  (10). Everything else (the kid, the truck, the shelves) was hand-written rows inside one template. A forest, ocean, space
+  station, village, desert or city film had no trees, animals, people, vehicles, buildings, water or sky, no scenery
+  playfield, no room but the 1982 living room, no year on the calendar, and no rule check beyond "<= 16 bits": the runtime
+  Claude replayed cartridges (the London film's buried E.T.).
+- **Sprite DSL** `screen.defineSprite(id, { rows | frames, colours, size: 1|2|4, copies: 1-3, gap: close|medium|wide, rowH,
+  fps, faces, describe })`: a player is <= 8 bits ('#'/'.'), ONE colour per row (an ink, one per row, or row stops
+  `{ "0": "tan", "3": "teal" }`), NUSIZ stretch OR copies (never both, no wide triple), frames of one height, <= 48 rows.
+  Every broken rule comes back as a sentence with the fix ("9 bits wide: a 2600 player is 8 bits. Draw it narrower and
+  stretch it…"); everyday colour words get the inks that play them ("green" → avocado, oliveDark, teal).
+- **Playfield DSL** `screen.definePlayfield(id, { rows, rowH, colours, mode: mirror|repeat })`: 20-bit halves mirrored or
+  repeated, or 40-bit asymmetric rows, 4-unit blocks, one colour per row. **Ball / missile**: `g.ball` / `g.missile`
+  (1/2/4/8 units wide, outside the player limit: rain, a net line).
+- **Generators** `screen.generate(id, { kind, ...traits, seed })` (seed defaults to the id): trees (pine, round, palm, birch,
+  dead), bush, cactus, seaweed (swaying), rock; bird, fish, `animal` from traits (neck, legs, horns/antlers/ears, hump, tail,
+  bulk; presets deer, horse, camel, dog, cow, bear, goat), insects (bee, locust, beetle, butterfly), reptiles (lizard, snake,
+  turtle); `person` = one humanoid base + hat + tool + uniform (roles ranger, miner, sailor, knight, astronaut, clerk,
+  farmer, kid; everything overridable); vehicles (car, truck, boat, rocket, cart, plane), buildings (hut, house, castle,
+  tower, factory, office, `lit`), items (key, gem, coin, potion, document, flag, heart); `boss` from traits (body blob /
+  cloud / wave / clock / swarm / tower / beast, eyes, mouth, arms, crown; size 4; the swarm = a copied locust); effects
+  (explosion, splash, smoke, sparkle, dust: one-shots); `scenery` playfields (canopy, waves, dunes, hills, skyline, wall,
+  reef, clouds, ground). Each result goes through the same validator (tested over 12 seeds per variant); a seed nudges a
+  few bits so two trees are never twins (deliberate roughness kept).
+- **Drawing** inside `tv()`: `g.draw(id, x, y, { frame, at (one-shot), phase, face, squash, flicker, playfield, colour,
+  size })` (NUSIZ copies are one player: they count once on a scanline), `g.field(id, y, { shift (whole-block scroll),
+  colour, rows: [a, b] })`, `g.box(id, x, y)`; **game logic** `g.util.path(keys, t, { ease, fps })` (whole units, held
+  steps, `dir` to face the sprite), `g.util.scroll(t, speed)` (coarse blocks), `g.util.hit(a, b)` (a collision is shown,
+  never simulated), `g.counter({ means, keys, x, y, colour })` (Score Block digits; `means` must name the real number,
+  "score" / "points" are refused).
+- **Room DSL** `screen.interior({ shell, wall, floor, light: day|evening|night, calendar: { month, year, mark, markAt },
+  props, defaults, carts } | roomId)`: shells living-room, bedroom, arcade, office, classroom, garage, workshop (walls
+  panelling, wallpaper, paint + chair rail, brick, concrete, tiles; floors shag, carpet, boards, checker, concrete); props
+  window (sky day/dusk/night, view trees/city/sea/hills/desert/snow/stars), poster (prints one of the film's sprites), shelf
+  (cartridges, books, boxes, papers, tools, jars, trophies, records), clock (time), blackboard (chalk lines in Dad's hand),
+  pegboard, plant, lamp, rug, desk (papers, typewriter, computer, phone), bed, sofa, cabinet (filing, arcade, locker),
+  workbench, boxes, instrument (guitar, drum). The TV cabinet, console and joystick are drawn exactly as in the living room
+  (the identity; the TV glass is pixel-identical in every shell, tested) and the calendar stays where the calendar zoom
+  lands. `room()` is unchanged (all part a/b goldens pass as committed).
+- **Asset files** `assets/b1/<name>.json` = `{ version: 1, world: "game-b1", describe, sprites, playfields, generated, rooms }`,
+  loaded with `screen.assets(file)`. `checkB1Assets(files, { used, known })` (exported from the world) validates a whole
+  project at once without throwing: every message names the file and the id, ids are unique across files and kinds, room
+  posters must name a defined sprite, ids a scene uses that nobody defines get a did-you-mean; `b1SceneRefs(source)`
+  reads the defined / used ids from a scene's string literals. Phase 2 wires the files into the scene turn and
+  `reelforge validate`.
+- **Examples** (`packages/kit/examples/game-b1/open/`, a subfolder so the showcase guard calibration keeps its 14
+  templates): `o1_forest` (ranger, deer, crows as copies, canopy, a hand-drawn stump, the oak count 4000 → 900), `o2_ocean`
+  (a hand-drawn rowing boat, fish schools as copies, kelp, the reef bleaching row by row), `o3_station` (a 1986 bedroom, a
+  push into the TV: module + mirrored solar-wing playfield, capsule docking, cosmonaut, the Earth's limb and its sunrise),
+  `o4_village` (storm-cloud boss THE RAIN with a six-week bar, castle, huts, a wheat playfield rotting, rain missiles, a
+  cart), `o5_desert` (a camel caravan as one copied player, two dune playfields scrolling at two speeds, the oasis pool
+  shrinking on a visual collision, the day count 1 → 40), `o6_city` (a 1987 office, push in: skyline, towers, traffic as
+  copies, traders, falling papers, the Dow 2246 → 1738). Each is built ONLY from the open layer (tested: no `cart`,
+  `sprite`, `room`, `rectPx`, `raw`); every number comes from its narration (written in the header). Goldens
+  `look-game-b1-open-<scene>-t<t>` (`packages/kit/test/render/vocab-game-b1.test.ts`).
+- **Measured** (plain Node, best batch of 30 frames incl. output, `vocab/examples.test.ts`): forest 3.3, ocean 2.9, station
+  2.6, village 2.8, desert 1.9, city 1.9 ms/frame.
+- **QUALITY §7 self-scores** (/20, PNGs viewed; honest, not a designer's review): station 17 (the bedroom reads at once, the
+  station between its wings, the dome and its gold line; the sunrise line is thin), ocean 16 (the white reef is a clear
+  focal; the reef before bleaching is too dark, the boat small), desert 16 (caravan, dunes and palm read; the camels are 8
+  units wide), city 16 (office and the crimson 1738 read; cars read as orange domes, traders are tiny), forest 15 (trees,
+  stumps, the count; the ranger is small, the canopy reads as a hedge band), village 14 (wheat and its rot, the boss card;
+  the cloud boss reads as a grey blimp, the castle is striped grey on dusk, the cart reads as a sled).
+- **Recognisability at 64 px wide** (goldens box-downscaled and viewed): what survives is the playfields, the bands and the
+  room: the bleached reef, the Earth's dome, the dunes and palm, the skyline, the bedroom and the office (TV, window,
+  calendar) are identifiable; single 8-unit sprites (ranger, fish, camels, traders, cars) become 2-3 px dots and the
+  village is just bands. Rule for phase 2 (prompts, critic): one hero per shot at size 2-4 or rowH 3, the place carried by
+  a scenery playfield or the room shell, never a shot that relies on small sprites to say what it is.

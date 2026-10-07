@@ -38,6 +38,9 @@ import { addSheet, addTrace, type SheetHandle, type TraceKind } from './api-inse
 import { pageExtras } from './api-extra.js';
 import { breakthroughs } from './api-breakthrough.js';
 import { addFigure, type FigureHandle, type Timed } from './api-figure.js';
+import { vocabulary } from './api-vocab.js';
+import type { DiagramHost } from '../vocab/diagrams.js';
+import { SketchLibrary } from '../vocab/library.js';
 
 export type { FigureHandle, Timed };
 
@@ -48,6 +51,8 @@ export interface PageContext {
   /** Default boil cadence of the page. */
   readonly fps: number;
   readonly call: string;
+  /** The film's own figures and props (shared by the flipbook pages). */
+  readonly library?: SketchLibrary;
 }
 
 /** Chisel nib options of a mark (undefined = the tool's own nib). */
@@ -67,6 +72,7 @@ function nibOf(nib: S.PenOptions['nib']): { len?: number; deg?: number; thick?: 
 
 export function createPageApi(context: PageContext) {
   const { page, resolve, call } = context;
+  const library = context.library ?? new SketchLibrary();
   let calls = 0;
   let cursor = 0;
   let sealed = false;
@@ -157,6 +163,7 @@ export function createPageApi(context: PageContext) {
     addTrace(page, kind, [...args, ...extra(o)], o, resolve, seedOf);
   };
 
+  const vocab = { page, resolve, begin, seedOf, startOf, commit, fps: context.fps, library };
   const api = {
     write(text: unknown, options?: unknown) {
       const name = begin('write');
@@ -365,12 +372,19 @@ export function createPageApi(context: PageContext) {
       begin,
       seedOf,
       subApi: (sub: SketchPage, seed: number): object => {
-        const made = createPageApi({ ...context, page: sub, seed, call: `${call}.flipbook()` });
+        const made = createPageApi({
+          ...context,
+          library,
+          page: sub,
+          seed,
+          call: `${call}.flipbook()`,
+        });
         seals.push(made.seal);
         return made.api;
       },
     }),
     ...breakthroughs({ page, resolve, begin, seedOf }),
+    ...vocabulary({ ...vocab, host: (): DiagramHost => api }),
   };
   return {
     api,

@@ -72,7 +72,20 @@ function figureBox(poses: readonly Skeleton[]): readonly [number, number, number
   return [x0, y0, Math.max(...xs) + pad - x0, Math.max(...ys) + pad - y0];
 }
 
-export function addFigure(o: z.output<typeof figureOptions>, deps: FigureDeps): FigureHandle {
+/**
+ * Adds marks to a figure before the hand gets it (a person's clothes, hat, hair, held thing): it
+ * gets the skeleton at t and the figure's own marks, and returns the marks to draw, in order.
+ */
+export type FigureCompose = (
+  skeletonAt: (t: number) => Skeleton,
+  figure: { readonly marks: readonly Mark[]; readonly end: number },
+) => Mark[];
+
+export function addFigure(
+  o: z.output<typeof figureOptions>,
+  deps: FigureDeps,
+  compose?: FigureCompose,
+): FigureHandle {
   const { name, resolve } = deps;
   const pose = poseTrack(o.pose, resolve);
   const placeAt = { x: o.x, y: o.y, h: o.h };
@@ -89,7 +102,8 @@ export function addFigure(o: z.output<typeof figureOptions>, deps: FigureDeps): 
     expression: expressionTrack(o.expression, resolve),
   });
   const until = o.until === undefined ? undefined : resolve(o.until, deps.start);
-  const timed = deps.commit(figure.marks, until, { parallel: o.parallel, hero: o.hero });
+  const marks = compose ? compose(sk, figure) : figure.marks;
+  const timed = deps.commit(marks, until, { parallel: o.parallel, hero: o.hero });
   if (o.subject) deps.page.keepClear(figureBox([timed.end, ...BOX_SAMPLES].map(sk)));
   const jointName = (joint: unknown, method: string): JointName => {
     if (typeof joint === 'string' && (JOINT_NAMES as readonly string[]).includes(joint)) {

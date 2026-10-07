@@ -4,11 +4,24 @@
  * scene strip go (page px), so four story pages in a film do not share one grammar (real test
  * film 2: every A page had small figures bottom-left and a label on top). Each slot is nudged by
  * the page seed (deliberate roughness, never a grid). Rule: the hero figure is >= 25 % of the page
- * height (>= 135 px of 540); every preset's figures are taller.
+ * height (>= 135 px of 540); every preset's figures are taller. The open-vocabulary presets
+ * (PLAN.md#13.15a) change the vertical structure, not only where the figure stands: a map seen
+ * from above, one object in close-up, a landscape with a sky band, two columns of facts, a big
+ * number (their hero is the map, the object, the drawing: >= 25 % of the page height too).
  */
 import { rnd } from '../draw/math.js';
 
-export const LAYOUT_NAMES = ['hero-left', 'facing', 'tall-diagram', 'wide-strip'] as const;
+export const LAYOUT_NAMES = [
+  'hero-left',
+  'facing',
+  'tall-diagram',
+  'wide-strip',
+  'top-down-map',
+  'close-up',
+  'landscape',
+  'two-column',
+  'big-number',
+] as const;
 export type LayoutName = (typeof LAYOUT_NAMES)[number];
 
 /** A figure slot: feet at (x, y), height h; `face` = which way it should turn (pose turn). */
@@ -42,6 +55,10 @@ export interface LayoutSlots {
   readonly thing: BoxSlot;
   /** The ground line [x0, y, x1] the figures stand on. */
   readonly ground: readonly [number, number, number];
+  /** Two-column pages: the fact boxes under the two drawings. */
+  readonly columns?: readonly BoxSlot[];
+  /** Landscape pages: the sky band for clouds, sun, birds. */
+  readonly sky?: BoxSlot;
 }
 
 /** Hero figures are at least this tall (25 % of the 540 px page). */
@@ -88,6 +105,56 @@ const PRESETS: Readonly<Record<LayoutName, (n: Nudge) => Omit<LayoutSlots, 'name
     note: { x: n(560, 30, 74), y: n(488, 8, 75), size: 22, rot: n(-1, 2, 76) },
     thing: [n(70, 10, 77), n(150, 10, 78), n(820, 14, 79), n(290, 12, 80)],
     ground: [n(70, 14, 81), n(422, 6, 82), n(890, 14, 83)],
+  }),
+  // Seen from above: a map fills most of the page (the hero), the label in the free corner.
+  'top-down-map': (n) => ({
+    hero: { x: n(440, 20, 91), y: n(505, 4, 92), h: n(430, 10, 93), face: 0 },
+    figures: [],
+    label: { x: n(712, 14, 94), y: n(96, 10, 95), size: n(40, 4, 96), rot: n(-4, 2, 97) },
+    note: { x: n(716, 14, 98), y: n(470, 10, 99), size: 20, rot: n(2, 2, 100) },
+    thing: [n(120, 12, 101), n(80, 10, 102), n(570, 14, 103), n(410, 8, 104)],
+    ground: [n(120, 12, 105), n(492, 4, 106), n(690, 14, 107)],
+  }),
+  // One object drawn huge (a close-up), the label and a detail callout beside it.
+  'close-up': (n) => ({
+    hero: { x: n(320, 18, 111), y: n(500, 6, 112), h: n(400, 14, 113), face: 0 },
+    figures: [],
+    label: { x: n(590, 16, 114), y: n(150, 12, 115), size: n(58, 5, 116), rot: n(-3, 2, 117) },
+    note: { x: n(600, 16, 118), y: n(214, 10, 119), size: 22, rot: n(-1, 2, 120) },
+    thing: [n(570, 14, 121), n(280, 12, 122), 320, 190],
+    ground: [n(110, 16, 123), n(500, 4, 124), n(540, 20, 125)],
+  }),
+  // A wide landscape: sky band on top, a far middle band, a ground with two figures or trees.
+  landscape: (n) => ({
+    hero: { x: n(650, 20, 131), y: n(440, 6, 132), h: n(230, 14, 133), face: -1 },
+    figures: [{ x: n(250, 20, 134), y: n(444, 6, 135), h: n(150, 10, 136), face: 1 }],
+    label: { x: n(90, 16, 137), y: n(104, 10, 138), size: n(44, 4, 139), rot: n(-2, 2, 140) },
+    note: { x: n(560, 24, 141), y: n(496, 6, 142), size: 20, rot: n(-1, 2, 143) },
+    thing: [n(80, 12, 144), n(250, 10, 145), n(560, 20, 146), n(190, 10, 147)],
+    ground: [n(60, 10, 148), n(442, 6, 149), n(900, 10, 150)],
+    sky: [n(360, 20, 151), n(48, 6, 152), n(520, 16, 153), n(150, 10, 154)],
+  }),
+  // Two columns of facts, each under its own drawing (compare two things).
+  'two-column': (n) => ({
+    hero: { x: n(250, 14, 161), y: n(300, 6, 162), h: n(190, 10, 163), face: 1 },
+    figures: [{ x: n(700, 14, 164), y: n(302, 6, 165), h: n(185, 10, 166), face: -1 }],
+    label: { x: n(80, 12, 167), y: n(78, 8, 168), size: n(36, 4, 169), rot: n(-1, 1.5, 170) },
+    note: { x: n(400, 30, 171), y: n(506, 4, 172), size: 18, rot: n(1, 2, 173) },
+    thing: [n(470, 6, 174), n(110, 8, 175), 20, 360],
+    ground: [n(90, 12, 176), n(302, 4, 177), n(880, 12, 178)],
+    columns: [
+      [n(80, 10, 179), n(334, 8, 180), 360, 150],
+      [n(520, 10, 181), n(336, 8, 182), 360, 150],
+    ],
+  }),
+  // One huge number is the hero of the text, a drawing beside it says what it counts.
+  'big-number': (n) => ({
+    hero: { x: n(730, 20, 191), y: n(470, 8, 192), h: n(250, 14, 193), face: -1 },
+    figures: [],
+    label: { x: n(90, 14, 194), y: n(330, 14, 195), size: n(170, 10, 196), rot: n(-3, 2, 197) },
+    note: { x: n(100, 14, 198), y: n(400, 10, 199), size: 30, rot: n(-1, 2, 200) },
+    thing: [n(560, 14, 201), n(60, 8, 202), 330, 140],
+    ground: [n(560, 14, 203), n(472, 4, 204), n(890, 8, 205)],
   }),
 };
 
