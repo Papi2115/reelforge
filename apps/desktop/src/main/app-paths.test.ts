@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   appLayout,
   assetLibraryDir,
+  channelSecretsFile,
+  channelsFile,
   defaultProjectsDir,
   logFile,
   recentProjectsFile,
@@ -95,6 +97,14 @@ describe('tasteFile', () => {
   it('lives in the app data folder, outside every project (PLAN.md#12.13)', () => {
     const userData = path.join(appData, 'ReelForge');
     expect(tasteFile(userData)).toBe(path.join(appData, 'ReelForge', 'taste.json'));
+  });
+});
+
+describe('channel files', () => {
+  it('live in the app data folder, outside every project (PLAN.md#13.13)', () => {
+    const userData = path.join(appData, 'ReelForge');
+    expect(channelsFile(userData)).toBe(path.join(userData, 'channels.json'));
+    expect(channelSecretsFile(userData)).toBe(path.join(userData, 'channel-secrets.bin.json'));
   });
 });
 

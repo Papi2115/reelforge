@@ -12,6 +12,8 @@ import type { SoundHandlers } from './sound/sound-ipc.js';
 import type { VariantsHandlers } from './stages/variants-ipc.js';
 import type { ExportHandlers } from './export/export-ipc.js';
 import type { AssetsHandlers } from './assets/assets-ipc.js';
+import type { ChannelsHandlers } from './channels/channels-ipc.js';
+import type { ChannelsResult } from '../shared/channels-contract.js';
 
 type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
 
@@ -191,6 +193,27 @@ function soundStubs(record: <T>(request: unknown, response: T) => Promise<T>): S
   };
 }
 
+/** Channels and channel secrets (PLAN.md#13.13). */
+function channelStubs(record: <T>(request: unknown, response: T) => Promise<T>): ChannelsHandlers {
+  const list: ChannelsResult = {
+    status: 'ok',
+    defaultChannelId: 'default',
+    channels: [],
+    changedId: null,
+  };
+  const secret = { status: 'ok', present: true } as const;
+  return {
+    channelsList: (request) => record(request, list),
+    channelsCreate: (request) => record(request, list),
+    channelsUpdate: (request) => record(request, list),
+    channelsDelete: (request) => record(request, list),
+    channelsReorder: (request) => record(request, list),
+    channelSecretsSet: (request) => record(request, secret),
+    channelSecretsHas: (request) => record(request, secret),
+    channelSecretsDelete: (request) => record(request, secret),
+  };
+}
+
 /** Shot variant channels (PLAN.md#11.3). */
 function variantStubs(record: <T>(request: unknown, response: T) => Promise<T>): VariantsHandlers {
   return {
@@ -337,6 +360,7 @@ function setup(): {
       shotsLock: (request) => record(request, { status: 'ok', message: null } as const),
       ...soundStubs(record),
       ...variantStubs(record),
+      ...channelStubs(record),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),
@@ -513,6 +537,39 @@ describe('registerIpc', () => {
       );
     }
     expect(calls).toEqual([{ stages: ['sound-cues', 'mix'] }, { artifact: 'video' }]);
+  });
+
+  it('validates channel requests; a refused secret request never logs the value', async () => {
+    const { ipc, calls, lines } = setup();
+    const canary = 'sk-CANARY-ipc-7f3a9c';
+    const set = { channelId: 'crime', name: 'elevenlabs-api-key', value: canary };
+    await expect(ipc.invoke(IPC.channelSecretsSet.name, APP_URL, set)).resolves.toEqual({
+      status: 'ok',
+      present: true,
+    });
+    const refused = [
+      { ...set, channelId: '../evil' },
+      { ...set, name: 'claude-oauth-token' },
+      { ...set, extra: canary },
+      { ...set, value: `${canary}${'x'.repeat(5_000)}` },
+    ];
+    for (const payload of refused) {
+      await expect(ipc.invoke(IPC.channelSecretsSet.name, APP_URL, payload)).rejects.toThrow(
+        'invalid request',
+      );
+    }
+    await expect(
+      ipc.invoke(IPC.channelsCreate.name, APP_URL, { name: 'Crime', apiKey: canary }),
+    ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.channelsUpdate.name, APP_URL, { id: 'crime', patch: { apiKey: canary } }),
+    ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.channelsReorder.name, APP_URL, { ids: ['a', 'B'] }),
+    ).rejects.toThrow('invalid request');
+    expect(calls).toEqual([set]);
+    expect(lines.join('')).not.toContain(canary);
+    expect(lines.join('')).toContain('invalid channel-secrets:set request');
   });
 
   it('forwards valid renderer log entries only', () => {

@@ -7,6 +7,7 @@ export * from './asset-library.js';
 export * from './assets.js';
 export * from './beat-sync.js';
 export * from './cast-roles.js';
+export * from './channels.js';
 export * from './characters.js';
 export * from './claims.js';
 export * from './claims-ops.js';

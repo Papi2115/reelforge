@@ -15,6 +15,7 @@ import { paletteSchema } from './palette.js';
 import { shotsPerMinuteSchema } from './scene-count.js';
 import { stylePresetIdSchema } from './style-preset.js';
 import { beatSyncModeSchema } from './beat-sync.js';
+import { channelIdSchema } from './channels.js';
 import { characterModeSchema, mascotChoiceSchema } from './characters.js';
 import { repetitionControlModeSchema } from './repetition.js';
 import { dramaturgyModeSchema } from './dramaturgy.js';
@@ -118,6 +119,11 @@ export const projectFileSchema = z.object({
    * unchanged); the template writes `false`, a world's project defaults `true`.
    */
   antiSlopGuards: z.boolean().optional(),
+  /**
+   * Channel of the project (PLAN.md#13.13, channels.ts). Absent = the default channel (projects
+   * made before 3.1 are unchanged; no rewrite needed).
+   */
+  channelId: channelIdSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

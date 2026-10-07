@@ -36,8 +36,13 @@ export interface CreateProjectOptions {
   readonly dir: string;
   readonly title: string;
   readonly language?: VideoLanguage;
-  /** Style preset id (default: the template's). */
+  /** Style preset id (default: the channel's default style, else the template's). */
   readonly style?: string;
+  /**
+   * Channel of the project (PLAN.md#13.13): its id goes to project.json#channelId and its default
+   * style applies when `style` is omitted. Omitted = no `channelId` (the default channel).
+   */
+  readonly channel?: { readonly id: string; readonly defaultStyle: string | null };
   readonly fps?: number;
   /** Characters and mascot (PLAN.md#12.20, the app's new-project defaults); template's if omitted. */
   readonly characters?: CharacterMode;
@@ -101,11 +106,12 @@ async function templateProject(
       projectError('invalid', `project template ${file} is not an object`, { path: file }),
     );
   }
+  const style = options.style ?? options.channel?.defaultStyle ?? undefined;
   const choices = {
     title: options.title.trim(),
     seed: options.seed ?? randomInt(0, 0x1_0000_0000),
     ...(options.language === undefined ? {} : { language: options.language }),
-    ...(options.style === undefined ? {} : { style: options.style }),
+    ...(style === undefined ? {} : { style }),
     ...(options.fps === undefined ? {} : { fps: options.fps }),
     ...(options.characters === undefined ? {} : { characters: options.characters }),
     ...(options.mascot === undefined ? {} : { mascot: options.mascot }),
@@ -113,11 +119,12 @@ async function templateProject(
       ? {}
       : { shotsPerMinute: options.shotsPerMinute }),
     ...(options.fasterChecks === true ? { fasterChecks: true } : {}),
+    ...(options.channel === undefined ? {} : { channelId: options.channel.id }),
   };
   // A world's style brings its film language (world-defaults.ts); built-in styles: nothing.
   const merged: Record<string, unknown> = { ...base, ...choices };
-  const style = merged['style'];
-  const world = typeof style === 'string' ? worldProjectDefaults(style) : undefined;
+  const mergedStyle = merged['style'];
+  const world = typeof mergedStyle === 'string' ? worldProjectDefaults(mergedStyle) : undefined;
   const project = parseProjectFile({ ...merged, ...world });
   if (!project.ok) {
     return err({ ...project.error, kind: 'invalid-argument' });

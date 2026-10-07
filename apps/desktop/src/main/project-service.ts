@@ -44,6 +44,7 @@ import type {
   RepairFileResult,
 } from '../shared/snapshot-contract.js';
 import { isOfferedStyle } from '../shared/style-choices.js';
+import { newProjectChannel } from './channels/new-project-channel.js';
 import { checkFileText, repairFile } from './file-repair.js';
 import { describeError, type Logger } from './logger.js';
 import { buildProjectManifest } from './project-manifest.js';
@@ -54,6 +55,11 @@ export type FolderPurpose = 'new-project-parent' | 'open-project';
 export interface ProjectServiceOptions {
   /** `<userData>/recent-projects.json` */
   readonly recentFile: string;
+  /**
+   * `<userData>/channels.json` (PLAN.md#13.13): new projects get a channel (the form's or the
+   * default) and its default style. Omitted = no channels (project.json gets no `channelId`).
+   */
+  readonly channelsFile?: string;
   readonly templateDir: string;
   /** Style presets whose `<id>/STYLE.md` bibles new projects get. */
   readonly stylesDir: string;
@@ -99,8 +105,15 @@ function errorInfo(error: ProjectError): ProjectErrorInfo {
 }
 
 function summary(opened: OpenedProject): ProjectSummary {
-  const { title, language, style, fps } = opened.project;
-  return { dir: opened.dir, title, language, style, fps };
+  const { title, language, style, fps, channelId } = opened.project;
+  return {
+    dir: opened.dir,
+    title,
+    language,
+    style,
+    fps,
+    ...(channelId === undefined ? {} : { channelId }),
+  };
 }
 
 /** `<parent>/<title>`, or `<title> 2`, `<title> 3`, … when that folder already exists. */
@@ -136,7 +149,15 @@ export class ProjectService {
         },
       };
     }
-    const style = request.style ?? this.options.defaultStyle?.();
+    const channel = await newProjectChannel(
+      this.options.channelsFile,
+      request.channelId,
+      this.experimentalWorlds(),
+      this.options.log,
+    );
+    if (!channel.ok) return { status: 'error', error: channel.error };
+    // The form's style, else the channel's, else the app's default.
+    const style = request.style ?? channel.value?.style ?? this.options.defaultStyle?.();
     const parent = await this.options.pickFolder('new-project-parent');
     if (parent === undefined) return { status: 'cancelled' };
     // A world's style gets its own defaults over these (createProject, world-defaults.ts).
@@ -145,6 +166,9 @@ export class ProjectService {
       title: request.title,
       language: request.language,
       ...(style === undefined ? {} : { style }),
+      ...(channel.value === undefined
+        ? {}
+        : { channel: { id: channel.value.channel.id, defaultStyle: channel.value.style ?? null } }),
       ...this.options.newProjectDefaults?.(),
       ...(request.shotsPerMinute === undefined ? {} : { shotsPerMinute: request.shotsPerMinute }),
       ...(request.fasterChecks === undefined ? {} : { fasterChecks: request.fasterChecks }),
@@ -351,9 +375,11 @@ export class ProjectService {
     this.current = project;
     this.options.onCurrentChanged?.(project.dir);
     this.options.log.info(`${action === 'create' ? 'created' : 'opened'} project ${project.dir}`);
+    const { channelId } = project.project;
     const remembered = await rememberRecentProject(this.options.recentFile, {
       dir: project.dir,
       title: project.project.title,
+      ...(channelId === undefined ? {} : { channelId }),
     });
     if (!remembered.ok)
       this.options.log.warn(`recent projects not saved: ${remembered.error.message}`);

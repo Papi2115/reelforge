@@ -79,13 +79,14 @@ const sameDir = (first: string, second: string): boolean => lockKey(first) === l
 /** Moves (or adds) the project to the top of the list. */
 export function rememberRecentProject(
   storeFile: string,
-  project: { readonly dir: string; readonly title: string },
+  project: { readonly dir: string; readonly title: string; readonly channelId?: string },
   now: Date = new Date(),
 ): Promise<Result<RecentProject[]>> {
   const entry: RecentProjectRecord = {
     dir: path.resolve(project.dir),
     title: project.title,
     openedAt: now.toISOString(),
+    ...(project.channelId === undefined ? {} : { channelId: project.channelId }),
   };
   return updateRecords(storeFile, (records) => [
     entry,

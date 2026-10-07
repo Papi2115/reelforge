@@ -87,6 +87,7 @@ Jeden silnik (`packages/engine`) dla podglądu i renderu. Żadnych "specjalnych"
 
 ### 3.4 Local-first
 Projekt = folder na dysku + repo git (autocommit po każdym kroku pipeline'u i turze Claude). Zero telemetrii, zero chmury poza samym Claude CLI. Wyjątek (od fazy 12): jawne pobieranie assetów przez `reelforge fetch-asset`, sterowane trybem researchu projektu (tryb „wyłączone" = zero sieci); nigdy yt-dlp/YouTube.
+Wyjątek 2 (od 3.1): aplikacja może wysyłać żądania bezpośrednio do API ElevenLabs, wyłącznie z kluczem wpisanym przez użytkownika dla kanału. Klucze są szyfrowane Electron `safeStorage` w `<userData>/channel-secrets.bin.json`, nigdy w projekcie, gicie, logach ani rendererze; żądania wysyła tylko proces main. Niezwiązane z §3.1 (Anthropic) — tam nadal zero kluczy API.
 
 ### 3.5 Dane na dysku
 Każdy plik JSON ma wersję + schemat **zod** w `packages/shared`. Zapis atomowy (tmp + rename). Brak "ręcznego" parsowania.

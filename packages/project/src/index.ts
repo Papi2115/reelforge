@@ -16,6 +16,20 @@ export {
   type CommitKind,
   type HistoryKind,
 } from './commit-message.js';
+export { projectsInChannel } from './channel-projects.js';
+export {
+  createChannel,
+  deleteChannel,
+  getChannelForProject,
+  loadChannels,
+  reorderChannels,
+  updateChannel,
+  type ChannelError,
+  type ChannelErrorKind,
+  type ChannelResult,
+  type ChannelStoreOptions,
+  type DeleteChannelOptions,
+} from './channels.js';
 export { createProject, type CreateProjectOptions } from './create.js';
 export {
   WORLD_PROJECT_DEFAULTS,

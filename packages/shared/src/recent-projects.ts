@@ -3,6 +3,7 @@
  * screen "Recent"). Written atomically by `packages/project`.
  */
 import { z } from 'zod';
+import { channelIdSchema } from './channels.js';
 
 export const RECENT_PROJECTS_FILE_VERSION = 1;
 
@@ -11,6 +12,8 @@ export const recentProjectSchema = z.object({
   dir: z.string().min(1),
   title: z.string().min(1),
   openedAt: z.iso.datetime(),
+  /** The project's channel when it was last opened (absent = the default channel). */
+  channelId: channelIdSchema.optional(),
 });
 export type RecentProjectRecord = z.infer<typeof recentProjectSchema>;
 

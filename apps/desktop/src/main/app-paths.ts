@@ -1,6 +1,6 @@
 /** Filesystem locations of the app (pure; Electron supplies the base directories). */
 import path from 'node:path';
-import { TASTE_PROFILE_FILE } from '@reelforge/shared';
+import { CHANNEL_SECRETS_FILE, CHANNELS_FILE, TASTE_PROFILE_FILE } from '@reelforge/shared';
 
 export const APP_NAME = 'ReelForge';
 /**
@@ -104,6 +104,16 @@ export function assetLibraryDir(userDataDir: string): string {
  */
 export function tasteFile(userDataDir: string): string {
   return path.join(userDataDir, TASTE_PROFILE_FILE);
+}
+
+/** The channel list (PLAN.md#13.13); app data, never in a project or in git. */
+export function channelsFile(userDataDir: string): string {
+  return path.join(userDataDir, CHANNELS_FILE);
+}
+
+/** Encrypted channel secrets (PLAN.md#13.13): app data only, never in a project or in git. */
+export function channelSecretsFile(userDataDir: string): string {
+  return path.join(userDataDir, CHANNEL_SECRETS_FILE);
 }
 
 /** App settings (PLAN.md#6.7). */

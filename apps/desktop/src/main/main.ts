@@ -15,6 +15,7 @@ import {
   dialog,
   ipcMain,
   Menu,
+  safeStorage,
   session,
   shell,
   type OpenDialogOptions,
@@ -26,6 +27,8 @@ import {
   APP_USER_MODEL_ID,
   appLayout,
   assetLibraryDir,
+  channelSecretsFile,
+  channelsFile,
   cliShimDir,
   defaultProjectsDir,
   logFile,
@@ -39,6 +42,8 @@ import { registerAppSchemePrivileged, serveAppProtocol } from './app-protocol.js
 import { assetsHandlers, assetTestRuntime, OWN_ASSET_FILTERS } from './assets/assets-ipc.js';
 import { publishHandlers } from './publish/publish-ipc.js';
 import { hookLabHandlers } from './hook-lab/hook-lab-ipc.js';
+import { ChannelSecretStore } from './channels/channel-secrets.js';
+import { channelsHandlers } from './channels/channels-ipc.js';
 import { tasteHandlers } from './taste/taste-ipc.js';
 import { TasteService } from './taste/taste-service.js';
 import { createChildProcessRegistry } from './child-processes.js';
@@ -140,6 +145,13 @@ function main(): void {
     settings: () => settings.get(),
     log: log.child('taste'),
   });
+  /** Channel API keys (PLAN.md#13.13): safeStorage ciphertext in app data, never in a project. */
+  const channelSecrets = new ChannelSecretStore({
+    file: channelSecretsFile(userDataDir),
+    safeStorage,
+    platform: process.platform,
+    log: log.child('channel-secrets'),
+  });
   // Chromium switches only work before `ready`: a changed GPU preference applies after a restart.
   for (const name of gpuSwitches(settings.get().performance.gpu))
     app.commandLine.appendSwitch(name);
@@ -218,6 +230,7 @@ function main(): void {
   }
   const projects = new ProjectService({
     recentFile: recentProjectsFile(userDataDir),
+    channelsFile: channelsFile(userDataDir),
     templateDir: layout.projectTemplateDir,
     stylesDir: layout.stylesDir,
     pickFolder,
@@ -562,6 +575,13 @@ function main(): void {
         },
         log: log.child('taste'),
       }),
+      ...channelsHandlers({
+        channelsFile: channelsFile(userDataDir),
+        recentFile: recentProjectsFile(userDataDir),
+        currentProject: () => projects.currentProject()?.dir,
+        secrets: channelSecrets,
+        log: log.child('channels'),
+      }),
       ...variantsHandlers({
         service: stages,
         currentProject: () => projects.currentProject()?.dir,
@@ -600,6 +620,7 @@ function main(): void {
       scriptDocuments.flush(),
       settings.whenSaved(),
       taste.whenSaved(),
+      channelSecrets.whenSaved(),
     ]).finally(() => {
       app.quit();
     });

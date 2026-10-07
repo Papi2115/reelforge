@@ -3,7 +3,12 @@
  * Failures are values (`status: 'error'`), so the renderer can show the typed error kind and
  * message instead of a rejected promise.
  */
-import { shotsPerMinuteSchema, stylePresetIdSchema, videoLanguageSchema } from '@reelforge/shared';
+import {
+  channelIdSchema,
+  shotsPerMinuteSchema,
+  stylePresetIdSchema,
+  videoLanguageSchema,
+} from '@reelforge/shared';
 import { z } from 'zod';
 
 export const projectSummarySchema = z.object({
@@ -12,6 +17,8 @@ export const projectSummarySchema = z.object({
   language: videoLanguageSchema,
   style: z.string(),
   fps: z.number(),
+  /** project.json#channelId (PLAN.md#13.13); absent = the default channel. */
+  channelId: z.string().optional(),
 });
 export type ProjectSummary = z.infer<typeof projectSummarySchema>;
 
@@ -57,6 +64,11 @@ export const newProjectRequestSchema = z.strictObject({
    * only with Settings → Experimental worlds); omitted = the app's default style.
    */
   style: stylePresetIdSchema.optional(),
+  /**
+   * Channel of the new project (PLAN.md#13.13); its default style applies when `style` is
+   * omitted. Omitted = the default channel.
+   */
+  channelId: channelIdSchema.optional(),
 });
 export type NewProjectRequest = z.infer<typeof newProjectRequestSchema>;
 
@@ -67,6 +79,8 @@ export const recentProjectEntrySchema = z.object({
   title: z.string(),
   openedAt: z.string(),
   exists: z.boolean(),
+  /** The project's channel when it was last opened; absent = the default channel. */
+  channelId: z.string().optional(),
 });
 export type RecentProjectEntry = z.infer<typeof recentProjectEntrySchema>;
 

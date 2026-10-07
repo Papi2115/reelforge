@@ -178,6 +178,14 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.tasteState, handlers.tasteState);
   registerInvoke(IPC.tasteReset, handlers.tasteReset);
   registerInvoke(IPC.tasteExport, handlers.tasteExport);
+  registerInvoke(IPC.channelsList, handlers.channelsList);
+  registerInvoke(IPC.channelsCreate, handlers.channelsCreate);
+  registerInvoke(IPC.channelsUpdate, handlers.channelsUpdate);
+  registerInvoke(IPC.channelsDelete, handlers.channelsDelete);
+  registerInvoke(IPC.channelsReorder, handlers.channelsReorder);
+  registerInvoke(IPC.channelSecretsSet, handlers.channelSecretsSet);
+  registerInvoke(IPC.channelSecretsHas, handlers.channelSecretsHas);
+  registerInvoke(IPC.channelSecretsDelete, handlers.channelSecretsDelete);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {
