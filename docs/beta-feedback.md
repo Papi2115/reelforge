@@ -72,3 +72,4 @@ From [real run Game B1 1](real-run-game-b1-1.md) (Y2K bug, 56 s, mean 15.0/20; n
 - **Game B2 (forest): not bad, needs polish.** Script must be written differently for this world: B2 films will be "How <science/psychology/finance topic> works, explained as a game" — narration is written for the game framing (quests, levels, stats, bosses). => B2 needs a script/genre mode ("explained as a game"), not just visuals.
 - **Comic (ocean): quite good**, somewhat oddly built in places; drawing is okay. General polish later.
 - Sketchbook village (film 4): see docs/real-run-sketchbook-4.md.
+- **Comic, more detail (Papi):** often does not FEEL like a comic and transitions are dry. The mockup's strength was CONTINUITY lasting longer than 2-3 panels, the comic unfolding in different directions (down, sideways), narrower/longer strips, a stronger comic vibe. => comic-native flow + multi-panel continuity + link transitions (assigned 2026-10-07).
