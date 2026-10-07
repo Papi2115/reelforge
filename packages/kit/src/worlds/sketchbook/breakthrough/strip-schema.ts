@@ -43,7 +43,9 @@ export const stripOptions = z.object({
     .min(1)
     .max(10)
     .optional()
-    .describe('Pencil word at the strip end (now), with a clip'),
+    .describe(
+      "Pencil word at the strip end, with a clip ('now' only when the narration reaches today)",
+    ),
   seed: z.int().min(0).optional(),
 });
 export type StripOptions = z.output<typeof stripOptions>;

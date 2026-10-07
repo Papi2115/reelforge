@@ -39,6 +39,8 @@ export interface WorldText {
   readonly keyedNumbers?: Readonly<Record<string, string>> | undefined;
   /** Text options that are a correction (Game B1 manual `strike` / `write`). */
   readonly correctionKeys?: readonly string[] | undefined;
+  /** More on-screen strings the world's calls write from data (Sketchbook bar values). */
+  readonly extraTexts?: ((program: AnyNode) => readonly OnScreenText[]) | undefined;
 }
 
 const TEXT_METHODS = new Set(['write', 'print', 'title', 'kinetic', 'lowerThird', 'typewriter']);
@@ -137,7 +139,8 @@ export function strings(node: AnyNode, constants: ReadonlyMap<string, string>): 
 }
 
 /** A number literal (with a sign) as it is shown; undefined for anything else. */
-function shownNumber(node: AnyNode): string | undefined {
+/** A number literal (or its negation) as written on screen. */
+export function shownNumber(node: AnyNode): string | undefined {
   if (node.type === 'Literal' && typeof node.value === 'number') return String(node.value);
   if (node.type === 'UnaryExpression' && node.operator === '-') {
     const inner = shownNumber(node.argument);
@@ -251,5 +254,6 @@ export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreen
       if (shown !== undefined) add(node, [shown]);
     }
   });
+  found.push(...(world.extraTexts?.(program) ?? []));
   return found;
 }

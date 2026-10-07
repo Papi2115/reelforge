@@ -60,6 +60,11 @@ export interface ShotRenderFailed {
    * scene's fault, so QA reports a warning for the shot instead of asking for a fix.
    */
   readonly timedOut?: boolean;
+  /**
+   * With `timedOut`: the render never started (the renderer's page did not come up), so no frame
+   * of the scene ran at all; the contact sheet says so instead of "timed out".
+   */
+  readonly notStarted?: boolean;
 }
 
 export type ShotRender = ShotRenderOk | ShotRenderFailed;

@@ -5,13 +5,18 @@
  * entry gets no trace check (its helpers are unknown) and only the general labels.
  */
 import type { AnyNode } from 'acorn';
-import type { QaFinding } from '@reelforge/shared';
+import type { QaFinding, Transition } from '@reelforge/shared';
 import type { BreakthroughKinds } from './breakthrough-intent.js';
 import { comicShowcaseFindings, panelBreakMechanism } from './comic-breakthroughs.js';
 import { comicFlowFilmFindings, comicFlowSourceFindings } from './comic-flow.js';
 import { GAME_B1_SLOP } from './game-b1-labels.js';
 import { GAME_B2_SLOP } from './game-b2-labels.js';
-import { sketchbookSourceChecks } from '../slop-sketchbook/index.js';
+import {
+  diagramNumberTexts,
+  sketchbookShotChecks,
+  sketchbookSourceChecks,
+} from '../slop-sketchbook/index.js';
+import type { OnScreenText } from './source-text.js';
 import type { Vocabulary } from './vocabulary.js';
 
 /** A source option that is a human trace when present on a call (jittered lettering, red pen). */
@@ -44,6 +49,8 @@ export interface WorldSlopSpec {
   readonly numberKeys?: readonly string[] | undefined;
   /** Call -> option of `[t, value]` keys whose values are on screen (Game B1 `counter: 'keys'`). */
   readonly keyedNumbers?: Readonly<Record<string, string>> | undefined;
+  /** More on-screen strings the world's calls write from data (Sketchbook bar values). */
+  readonly extraTexts?: ((program: AnyNode) => readonly OnScreenText[]) | undefined;
   /** Text options that are a correction (a red pen's struck and written word): labels. */
   readonly correctionKeys?: readonly string[] | undefined;
   /** Two-digit years ("XMAS 82") are sourced by the full year of the sources (1982). */
@@ -60,8 +67,16 @@ export interface WorldSlopSpec {
   /** The world's own checks of one scene's source (Game B1: an unrequested showcase object). */
   readonly sourceChecks?:
     ((program: AnyNode, file: string, vocabulary: Vocabulary) => QaFinding[]) | undefined;
+  /** The world's own checks of one scene against its storyboard shot (Sketchbook: the entry). */
+  readonly shotChecks?:
+    ((program: AnyNode, file: string, shot: ShotChecked) => QaFinding[]) | undefined;
   /** The world's own checks over the film's scenes at the final review (Game B1: monotony). */
   readonly filmChecks?: ((shots: readonly ShotProgram[]) => Map<string, QaFinding[]>) | undefined;
+}
+
+/** What `shotChecks` reads of the storyboard shot. */
+export interface ShotChecked {
+  readonly transitionIn?: Transition | undefined;
 }
 
 /** How a shot enters: a plain cut, a continuity link or a page-native transition. */
@@ -117,7 +132,9 @@ const SKETCHBOOK: WorldSlopSpec = {
   labels: ['p', 'pp', 'fig', 'nb', 'ps', 'eg', 'ie', 'etc', 'note', 'notes', 'now', 'today'],
   labelPatterns: [/\bp{1,2}\.\s?\d+(?:\s?[-–]\s?\d+)?/giu, /\bfig\.\s?\d+/giu],
   textCallKeys: { diagram: ['from', 'to', 'both'] },
+  extraTexts: diagramNumberTexts,
   sourceChecks: sketchbookSourceChecks,
+  shotChecks: sketchbookShotChecks,
 };
 
 /**

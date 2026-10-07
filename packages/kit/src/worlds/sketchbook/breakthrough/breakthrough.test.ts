@@ -150,8 +150,9 @@ describe('page.popup', () => {
         `${String(a)}/${String(b)}`,
       ).toBe(false);
     }
-    expect(count(after[0] ?? new Uint32Array(), 'red')).toBeGreaterThan(
-      count(after[1] ?? new Uint32Array(), 'red'),
+    // The tube fills in blue ballpoint by default: red stays the page's one correction.
+    expect(count(after[0] ?? new Uint32Array(), 'bic')).toBeGreaterThan(
+      count(after[1] ?? new Uint32Array(), 'bic') + 200,
     );
     for (const motions of [fill, drain, door]) {
       expectPure(() => gaugePage(motions), [1, 2.5, 3.1, 3.6, 4.4]);

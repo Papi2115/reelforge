@@ -64,6 +64,7 @@ function harnessNotStarted(error: HarnessNotStartedError, attempts: number): Sho
   return {
     ok: false,
     timedOut: true,
+    notStarted: true,
     error: `the render harness page did not start (${error.detail}) on ${String(attempts)} fresh pages: a renderer problem (its files were probably being rebuilt by another render process), not a scene error`,
     errors: [...error.pageErrors],
   };

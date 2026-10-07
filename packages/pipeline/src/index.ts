@@ -363,6 +363,7 @@ export {
   ENCODER_FALLBACK_MESSAGE,
   isEncoderOpenFailure,
 } from './export/encoder-fallback.js';
+export { EncoderSessionMemory } from './export/encoder-memory.js';
 export {
   MIN_CHAPTERS,
   MIN_CHAPTER_SECONDS,

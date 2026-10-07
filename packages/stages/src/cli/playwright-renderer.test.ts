@@ -132,6 +132,7 @@ describe('PlaywrightFrameRenderer harness start', () => {
     expect(result).toMatchObject({
       ok: false,
       timedOut: true,
+      notStarted: true,
       errors: ['Uncaught SyntaxError: Unexpected end of input'],
     });
     expect(!result.ok && result.error).toMatch(

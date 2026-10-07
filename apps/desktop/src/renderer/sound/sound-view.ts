@@ -1,8 +1,9 @@
 /**
  * View model of the Sound panel (PLAN.md#8.2): level rows and their ranges, dB / loudness
- * formatting with the −14 LUFS ±1 / ≤ −1 dBTP checks, the cue summary and mix QA marks, the library grouped per kind, and the
- * drag payload of a library sound (validated on drop). Pure.
+ * formatting with the −14 LUFS ±1 / ≤ −1 dBTP checks, the cue summary and mix QA marks, the library grouped per kind, the
+ * drag payload of a library sound (validated on drop) and the dock height toggle. Pure.
  */
+import { z } from 'zod';
 import {
   librarySoundSchema,
   MIX_GAIN_KEYS,
@@ -19,6 +20,24 @@ import {
 import { soundLabel } from '../../shared/sound-library.js';
 
 export const GAIN_RANGE = { min: -24, max: 12, step: 0.5 } as const;
+
+/**
+ * Height of the docked panel: `normal` shares the centre column with the preview, `tall` gives it
+ * most of the column (short windows, e.g. 720p, where the normal dock is too low to work in).
+ */
+export const soundDockSizeSchema = z.enum(['normal', 'tall']);
+export type SoundDockSize = z.infer<typeof soundDockSizeSchema>;
+
+/** The header button that switches the dock height: what it switches to and how it says so. */
+export function soundDockToggle(size: SoundDockSize): {
+  readonly next: SoundDockSize;
+  readonly label: string;
+  readonly hint: string;
+} {
+  return size === 'tall'
+    ? { next: 'normal', label: 'Shorter', hint: 'Give the preview its space back' }
+    : { next: 'tall', label: 'Taller', hint: 'Make the sound panel taller (the preview shrinks)' };
+}
 
 export const GAIN_ROWS: readonly { readonly key: MixGainKey; readonly label: string }[] = [
   { key: 'voGainDb', label: 'Voice-over' },

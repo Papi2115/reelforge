@@ -99,6 +99,10 @@ export const BUILTIN_SFX_NAMES = [
   'page-flip',
   // wow transitions (ADR-028)
   'glass-crack',
+  // sketchbook world
+  'pen-click',
+  'marker-thump',
+  'paper-tear',
 ] as const;
 
 export const CUE_TRACKS = ['sfx', 'ambience', 'music'] as const;

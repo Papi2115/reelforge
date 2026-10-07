@@ -26,6 +26,8 @@ import {
   gainPatch,
   loudnessReadout,
   QA_MARKS,
+  soundDockSizeSchema,
+  soundDockToggle,
   topSoundsText,
 } from './sound-view.js';
 import type { MixPreviewControls } from './use-mix-preview.js';
@@ -47,6 +49,7 @@ const sectionsSchema = z.object({
   ducking: z.boolean(),
 });
 const DEFAULT_SECTIONS = { levels: true, library: false, ducking: false };
+const SIZE_KEY = 'reelforge.layout.sound-size.v1';
 
 const ACTIONS: readonly {
   readonly action: SoundAction;
@@ -206,15 +209,31 @@ export function SoundPanel(props: SoundPanelProps): JSX.Element {
   const busy = busyText(props.stages);
   const status = previewText(preview);
   const [open, setOpen] = usePref(SECTIONS_KEY, sectionsSchema, DEFAULT_SECTIONS);
+  const [size, setSize] = usePref(SIZE_KEY, soundDockSizeSchema, 'normal');
+  const toggle = soundDockToggle(size);
   const library = state?.library ?? [];
   return (
-    <section className="doc-panel docked sound-panel" aria-label="Sound design">
+    <section
+      className={`doc-panel docked sound-panel${size === 'tall' ? ' tall' : ''}`}
+      aria-label="Sound design"
+    >
       <div className="doc-header">
         <h2 className="doc-title">Sound design</h2>
         <MonitorToggle preview={preview} />
         <span className="sound-status muted" role="status">
           {status}
         </span>
+        <button
+          type="button"
+          className="small-button"
+          aria-pressed={size === 'tall'}
+          title={toggle.hint}
+          onClick={() => {
+            setSize(toggle.next);
+          }}
+        >
+          {toggle.label}
+        </button>
         <button type="button" className="small-button" onClick={props.onClose}>
           Back to preview
         </button>

@@ -8,6 +8,7 @@ import { createExactAnchorResolver } from '@reelforge/engine';
 import {
   createFfmpegMedia,
   detectEncoder,
+  EncoderSessionMemory,
   exportVideo,
   FfmpegManager,
   type ExportProgress,
@@ -45,7 +46,15 @@ export interface ExportProjectOptions {
   readonly log: Logger;
   /** Test seam; default `FfmpegManager.create` with the settings' ffmpeg path. */
   readonly createFfmpeg?: () => Promise<Result<FfmpegManager, FfmpegError>>;
+  /** Test seam; default the app session's memory of encoders that failed to open. */
+  readonly encoderMemory?: EncoderSessionMemory;
 }
+
+/**
+ * Hardware encoders that could not open a session in this app session: later exports skip them
+ * and go straight to the next encoder (libx264) instead of repeating the doomed GPU pass.
+ */
+const SESSION_ENCODERS = new EncoderSessionMemory();
 
 function failed(kind: string, message: string): ExportOutcome {
   return { status: 'failed', kind, message };
@@ -76,10 +85,12 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
   )();
   if (!ffmpeg.ok) return failed('no-ffmpeg', ffmpeg.error.message);
   const performance = exportSettings(settings, options.cores);
+  const memory = options.encoderMemory ?? SESSION_ENCODERS;
   const encoder = await detectEncoder(ffmpeg.value, {
     prefer: performance.encoder,
     quality: request.quality ?? 'final',
     signal: options.signal,
+    skip: memory.skipped(),
   });
   if (!encoder.ok) return failed(encoder.error.kind, encoder.error.message);
   for (const probe of encoder.value.probes) {
@@ -117,6 +128,9 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
         options.onProgress(event);
       },
       onWarning: (warning) => {
+        if (warning.type === 'encoder-fallback') {
+          memory.rememberOpenFailure(encoder.value.encoder, warning.detail);
+        }
         log.warn(warningLogLine(warning));
         options.onWarning?.(warning);
       },

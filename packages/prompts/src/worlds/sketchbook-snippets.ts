@@ -72,6 +72,8 @@ export const SKETCHBOOK_SNIPPETS = {
   /** The back of a kraft envelope. */
   envelope:
     "page.sheet({ x: 120, y: 90, w: 520, h: 330, deg: -3, paper: 'kraft', envelope: true })",
+  /** The page camera: a slow push in on the focal drawing (ctx.camera does nothing on a page). */
+  push: 'page.push({ focus: [640, 300], at: 1.5, until: 4, scale: 1.15 })',
   /** A hand-ruled axis, the ruler slid under it and a hatched box. */
   ruled: "page.ruled(120, 420, 760, 420, { tool: 'bic' })",
   ruler: 'page.ruler(140, 432, { at: 0.6, until: 1.8 })',

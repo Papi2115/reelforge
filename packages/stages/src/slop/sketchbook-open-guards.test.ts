@@ -140,16 +140,15 @@ const CASES: readonly (readonly [string, () => boolean])[] = [
   ['generic pop-up intent', () => flags('o2_ocean.js', `  page.popup({ intent: 'the reveal', x: 330, y: 260, w: 420, depth: 200, at: 0.4, elements: [{ kind: 'flap', id: 'door', u: 200, v: 40, text: 'DEEP' }], pull: { at: 2, motions: [{ target: 'door', to: { open: 1 } }] } });`, 'generic pop-up intent')],
   ['generator art and no traces', () => slopSourceFindings(setupFor('o1_forest.js'), `export function build(ctx) { const page = ctx.kit.fx.sketchPage({}); page.draw('tree', { type: 'oak', x: 300, y: 470, h: 270 }); page.draw('beast', { type: 'deer', x: 500, y: 470, h: 90 }); page.write('OLD OAKS', { x: 1, y: 2 }); return { page }; }`, 's.js').some((entry) => entry.message.startsWith('too few human traces'))],
   ['trees on the same gap', () => flags('o1_forest.js', `  page.draw('tree', { type: 'pine', x: 500, y: 470, h: 140, at: 1 });\n  page.draw('tree', { type: 'pine', x: 560, y: 470, h: 140, at: 1.5 });\n  page.draw('tree', { type: 'pine', x: 620, y: 470, h: 140, at: 2 });\n  page.draw('tree', { type: 'pine', x: 680, y: 470, h: 140, at: 2.5 });`, 'stagger variance')],
-  ['an invented quantity drawn as bar heights', () => flags('o6_city.js', `  page.diagram('bars', { x: 140, y: 450, w: 420, h: 260, bars: [{ value: 30, label: '1950' }, { value: 87, label: 'today' }], values: true, at: 0.6 });`, 'invented text')],
+  ['an invented quantity lettered on a bar chart', () => flags('o6_city.js', `  page.diagram('bars', { x: 140, y: 450, w: 420, h: 260, bars: [{ value: 30, label: '1950' }, { value: 87, label: 'today' }], values: true, at: 0.6 });`, 'invented text')],
 ]; // prettier-ignore
 
 /**
- * Known blind spot: a chart's `value`s are numbers, read only as bar heights (with `values: true`
- * the kit letters them too), so a quantity nobody said is not caught; a `value` key cannot be read
- * as text in this world (a pop-up scale's pointer `value: 0.6` is no claim). The prompts ask for
- * the narration's real values and the critic judges facts against the research notes.
+ * Known blind spots: none. A bar chart with `values: true` letters its data, so those values are
+ * judged as text (slop-sketchbook/diagram-numbers.ts); data only drawn as heights is not a claim
+ * on screen and stays with the critic and the research notes.
  */
-const KNOWN_MISSES = ['an invented quantity drawn as bar heights'];
+const KNOWN_MISSES: readonly string[] = [];
 
 const missed = CASES.filter(([, caught]) => !caught()).map(([name]) => name);
 

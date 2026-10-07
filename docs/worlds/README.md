@@ -98,7 +98,7 @@ The two showpieces of the showcase (`docs/worlds/sketchbook-v2`, shots 5 and 8) 
   square-root squeeze, optional `doodle`) are written in order while the left hand drags the strip whenever the next one is out of view
   (two fast back-to-back pulls for a long way, one with an overshoot for a short one); read panels fold into a zigzag pleat stack.
   `highlight` = the event that is the point (written after a ≥ 0.5 s held beat, its note in red — the only red); `until` stretches the
-  pace (0.7–1.8× of natural, else a readable error); `pen: 'bic'` for B films; `end: 'now'` = pencil word + paper clip at the strip end.
+  pace (0.7–1.8× of natural, else a readable error); `pen: 'bic'` for B films; `end: 'now'` = pencil word + paper clip at the strip end (only when the narration reaches today; the text guard flags a "now" on an old timeline).
   Built-in traces: wandering creases, tapes at angles over joins, pencil axis ruled panel by panel with hand-ruled year ticks, a
   graphite thumbprint after the last drag. Template: `packages/kit/examples/sketchbook/b4_strip.js`.
 - The writing hand: `SketchPage.addHandScript` (scripted stretches: lifting the flap, pulling the tab) and `addBusy` (another hand works

@@ -61,6 +61,7 @@ import {
   woodTick,
 } from './sfx/paper-cutout.js';
 import { glassCrack } from './sfx/glass.js';
+import { markerThump, paperTear, penClick } from './sfx/sketchbook.js';
 import { writeWavAtomic } from './wav.js';
 
 export type { SfxCategory } from './sfx/layers.js';
@@ -155,6 +156,10 @@ export const SFX_RECIPES = [
   'page-flip',
   // wow transitions (ADR-028)
   'glass-crack',
+  // sketchbook world
+  'pen-click',
+  'marker-thump',
+  'paper-tear',
 ] as const;
 export type SfxRecipe = (typeof SFX_RECIPES)[number];
 
@@ -237,6 +242,9 @@ const DEFINITIONS: Readonly<Record<SfxRecipe, SfxDefinition>> = {
   'wood-tick': woodTick,
   'page-flip': pageFlip,
   'glass-crack': glassCrack,
+  'pen-click': penClick,
+  'marker-thump': markerThump,
+  'paper-tear': paperTear,
 };
 
 const mapRecipes = <T>(pick: (definition: SfxDefinition) => T): Readonly<Record<SfxRecipe, T>> =>

@@ -154,6 +154,14 @@ Wow transitions (ADR-028, any palette): the `shatter` and `cube-smash` transitio
 | --- | --- | --- | --- | --- |
 | `glass-crack` | texture | 0.7 | 0·crack, 1·shatter, 2·tinkle | Glass cracks or shatters (the shatter / cube-smash transitions, a break-in, a crash); tinkle = only shards falling. |
 
+Sketchbook world (PLAN.md#13.6): the notebook's own sounds (the rest of its palette reuses the paper and pen recipes).
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `pen-click` | ui | 0.12 | 0·on, 1·off, 2·double | Sketchbook: a ballpoint clicked on (the hand starts writing) or off (done); double = a nervous click-click. |
+| `marker-thump` | impact | 0.2 | 0·thump, 1·slam, 2·tap | Sketchbook: a marker slammed onto the page for the one loud word or number (C page); tap = lighter, slam = harder with a felt squeak. |
+| `paper-tear` | texture | 0.6 | 0·tear, 1·rip, 2·out | Sketchbook: paper torn (the torn-strip page transition, a plan ripped up); rip = one fast tear, out = a page ripped out of the spiral in tugs. |
+
 ## How cues are chosen (the sound director)
 
 The **Sound design mixed** stage writes a deterministic `cues.json` first (no Claude; same inputs ->
@@ -251,15 +259,15 @@ density, transition handling); the shot's palette only decides **which recipe** 
 **paper-cutout** (look 12.6, light craft-table foley, no bass): cut `paper-slide` in / short, `tape-tear` stick (into UI-like) / `page-flip` flip, `paper-rustle` soft (into 3D); crossfade `paper-rustle` soft, glitch `scissor-snip` cut, wipe `paper-slide` long; into the look `page-flip` turn + `paper-rustle` soft; appear `paper-pop` / `paper-rustle` crinkle / `wood-tick` tick; list items `paper-pop` (low -> mid -> high); counter step `wood-tick` tick / tock, landing `paper-pop` high, `tape-tear` stick; number `wood-tick` double, big number `scissor-snip` double; text in `paper-slide` short / in, typed `scissor-snip` cut; emphasis riser `tape-tear` peel / hit `paper-pop` low; end card `page-flip` turn; ambience `room-tone` -32 / -36.
 
 **sketchbook** (world Sketchbook, PLAN.md#13.6, experimental; one notebook heard up close, no bass): a world palette
-(`world: 'sketchbook'`): the world's style is exclusive (ADR-029), so it reuses the built-in paper and pen recipes. Cut `cap-pop`
-click, `paper-rustle` soft (into UI-like) / `page-flip` flip (into 3D); crossfade `paper-rustle` soft, glitch `paper-rustle` crinkle,
-wipe `page-flip`; appear `pencil-scratch` line / `paper-pop` low (a marker thump) / `marker-stroke` short; list items `board-tick`
-(low -> mid -> high); counter step `ruler-tick` plastic / double, landing `paper-pop` mid, `tape-tear` stick; number `cap-pop`
-click (the ballpoint), big number `paper-pop` low + `marker-stroke` long; text in / typed `pencil-scratch`; emphasis riser
-`marker-stroke` long / hit `paper-pop` low; end card `page-flip` turn; ambience `room-tone` -33 / -36. The page-native
-transitions sound like themselves within the look too (`WORLD_TRANSITION_SFX`): page flip `page-flip` flip/turn, riffle
-`page-flip` riffle, crumple and toss `paper-rustle` crinkle/busy, tape peel `tape-tear` peel, torn strip `tape-tear` tear (no
-paper-tear recipe yet).
+(`world: 'sketchbook'`): three recipes of its own (`pen-click`, `marker-thump`, `paper-tear`); the world's style is exclusive
+(ADR-029), so the rest reuses the built-in paper and pen recipes. Cut `pen-click` off, `paper-rustle` soft (into UI-like) /
+`page-flip` flip (into 3D); crossfade `paper-rustle` soft, glitch `paper-rustle` crinkle / `paper-tear` rip, wipe `page-flip`;
+appear `pencil-scratch` line / `marker-thump` tap / `marker-stroke` short; list items `board-tick` (low -> mid -> high); counter step
+`ruler-tick` plastic / double, landing `paper-pop` mid, `tape-tear` stick; number `pen-click` on / double (the ballpoint), big
+number `marker-thump` thump + `marker-stroke` long; text in / typed `pencil-scratch`; emphasis riser `marker-stroke` long / hit
+`marker-thump` slam; end card `page-flip` turn + `pen-click` off; ambience `room-tone` -33 / -36. The page-native transitions
+sound like themselves within the look too (`WORLD_TRANSITION_SFX`): page flip `page-flip` flip/turn, riffle `page-flip` riffle,
+crumple and toss `paper-rustle` crinkle/busy, tape peel `tape-tear` peel, torn strip `paper-tear` tear.
 
 **comic** (world Comic, PLAN.md#13.3, experimental; a printed comic book heard up close, no bass): a world palette
 (`world: 'comic'`, `packages/stages/src/sound/palettes/comic.ts`) reusing the paper, pen and board recipes (no stamp or slam

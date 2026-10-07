@@ -9,6 +9,8 @@ import { createKit } from '../../../kit.js';
 import { hexPixel } from '../../../looks/blueprint/raster.js';
 import { SKETCHBOOK_PALETTE } from '../../../testing/palettes.js';
 import { testRng } from '../../../testing/rng.js';
+import { appearMarks, BLOOM_WAVE_MAX_HEIGHT } from '../draw/appear.js';
+import { strokeMark } from '../draw/marks.js';
 import type { PageApi } from './api.js';
 import { sketchPageModel } from './sketch-page.js';
 
@@ -64,6 +66,21 @@ describe('appear: no hand, never stroke by stroke', () => {
     expect(ink(popped, 1)).toBe(ink(popped, 1.05));
     const parallel = label({ parallel: true });
     expect(ink(parallel, 1.12)).toBe(ink(label({ appear: 'bloom' }), 1.12));
+  });
+
+  it('blooms a big word in all at once, never as a sweep from the first letter to the last', () => {
+    const letters = (height: number) =>
+      [0, 1, 2, 3].map((index) =>
+        strokeMark([index * 40, 0, index * 40 + 20, height], { seed: index, t0: index }),
+      );
+    const starts = (height: number) =>
+      appearMarks(letters(height), 'bloom', 1).map((mark) => mark.t0);
+    const small = starts(BLOOM_WAVE_MAX_HEIGHT - 10);
+    expect(new Set(small).size).toBe(4);
+    expect(starts(BLOOM_WAVE_MAX_HEIGHT + 60)).toEqual([1, 1, 1, 1]);
+    // Typing stays letter by letter at any size.
+    const typed = appearMarks(letters(200), 'type', 1).map((mark) => mark.t0);
+    expect(new Set(typed).size).toBe(4);
   });
 
   it('is a pure function of t in any seek order', () => {

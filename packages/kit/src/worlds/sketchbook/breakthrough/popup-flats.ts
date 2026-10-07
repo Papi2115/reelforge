@@ -235,7 +235,7 @@ export function paintFlat(f: FlatPaint, e: FlatElement, st: PieceState, marks: M
     }
     case 'gauge': {
       const level = Math.min(1, Math.max(0, st.level));
-      const color = inkOfSwatch(e.color) ?? INK.RED;
+      const color = inkOfSwatch(e.color) ?? INK.BIC;
       if (e.bulb) shape(ellipsePts(0, e.w * 0.3, e.w * 0.85, e.w * 0.85, 16), color, INK.GRAPHITE);
       shape(rect(e.w, e.h, 0, -e.h / 2), INK.PAPER, INK.GRAPHITE);
       if (level > 0)

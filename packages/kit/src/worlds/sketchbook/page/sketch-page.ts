@@ -22,6 +22,7 @@ import { KitError } from '../../../errors.js';
 import { createPageApi, type PageApi } from './api.js';
 import { LAYOUT_NAMES, layoutSlots, type LayoutSlots } from './layouts.js';
 import { SketchPage } from './model.js';
+import { parsePush, pushView, quadCorners, type PagePush } from './push.js';
 import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
 import { VOCAB_METHODS } from '../vocab/docs.js';
 import { parseSketchAsset, SketchLibrary } from '../vocab/library.js';
@@ -87,7 +88,8 @@ export const sketchPageParams = z.object({
   anchor: anchorParam,
 });
 
-export type SketchPageObject = FxObject & PageApi & { slots(): LayoutSlots };
+export type SketchPageObject = FxObject &
+  PageApi & { slots(): LayoutSlots; push(options: unknown): void };
 
 /** The page model behind each built page object (tests probe the hand through it). */
 const MODELS = new WeakMap<object, SketchPage>();
@@ -126,6 +128,8 @@ const PAGE_METHODS = {
   '{ hero, appear, parallel } (options of every pen mark and figure)':
     "One hand draws the key things: every stroke-drawn mark has the nib on it. The hand takes marks in time order; the hero (hero: true, default the largest text) goes first among marks timed together and waits <= 0.6 s for earlier ones; others wait for the hand (returned at/end = real times); a secondary write that would wait > 0.6 s appears by itself, whole, on time. appear: 'bloom' (ink soaks in) | 'pop' | 'type' (letter by letter) = no hand, on purpose; parallel: true = appear 'bloom'",
   'textWidth(text, size, hand) / doneAt()': 'Layout width of a text; time the last mark ends',
+  'push({ focus: [x, y], at, until, scale, ease })':
+    'The page camera (ctx.camera does nothing on a page): the view moves in on focus (page px) from at to until (default the page duration), scale 1.02-1.4 (default 1.15); never off the page; one per page, slow, never cropping the lettering',
   ...VOCAB_METHODS,
   'slots()':
     "With layout (look A: 'hero-left' big figure + big label, 'facing' two figures, 'tall-diagram' tall figure + diagram right, 'wide-strip' three figures on one ground, 'top-down-map' a map fills the page, 'close-up' one object huge, 'landscape' sky band + ground with two things, 'two-column' two drawings with facts under each, 'big-number' a huge number + a drawing): { hero, figures, label, note, thing: [x, y, w, h], ground: [x0, y, x1], columns?, sky? }, seeded nudges; the hero (figure, map, object) >= 25 % page height",
@@ -201,10 +205,11 @@ function buildPage(params: z.output<typeof sketchPageParams>, tools: KitTools): 
   params.library.forEach((asset, index) => {
     library.define(parseSketchAsset(asset), `${call} library[${String(index)}]`);
   });
+  const resolve = createResolver(params.anchor, call);
   const { api, seal } = createPageApi({
     page,
     seed,
-    resolve: createResolver(params.anchor, call),
+    resolve,
     fps: params.boilFps,
     call,
     library,
@@ -223,14 +228,33 @@ function buildPage(params: z.output<typeof sketchPageParams>, tools: KitTools): 
     bounds: emptyBounds(tools),
   });
   object.add(mesh);
+  // asFx paints t = 0 once while building; the first update after that seals the page.
   let building = true;
+  let sealed = false;
+  let push: PagePush | undefined;
+  const position = mesh.geometry.getAttribute('position');
   const fx = asFx(object, (t) => {
-    if (!building) seal();
+    if (!building && !sealed) {
+      seal();
+      sealed = true;
+    }
     page.render(canvas, t);
     const { data } = canvas;
     for (let i = 0; i < data.length; i += 1) pixels[i] = colors[data[i] ?? 0] ?? 0;
     texture.needsUpdate = true;
+    if (push !== undefined) {
+      quadCorners(pushView(push, t)).forEach(([x, y], index) => {
+        position.setXYZ(index, x, y, 0);
+      });
+      position.needsUpdate = true;
+    }
   });
+  const pushPage = (options: unknown): void => {
+    const name = `${call}.push()`;
+    if (sealed) throw new KitError('invalid-params', `${name}: call it in build(), before update`);
+    if (push !== undefined) throw new KitError('invalid-params', `${name}: one push per page`);
+    push = parsePush(options, { resolve, duration: params.duration, call: name });
+  };
   building = false;
   const slots = (): LayoutSlots => {
     if (params.layout === undefined) {
@@ -241,7 +265,7 @@ function buildPage(params: z.output<typeof sketchPageParams>, tools: KitTools): 
     }
     return layoutSlots(params.layout, seed);
   };
-  const built = Object.assign(fx, api, { slots });
+  const built = Object.assign(fx, api, { slots, push: pushPage });
   MODELS.set(built, page);
   return built;
 }

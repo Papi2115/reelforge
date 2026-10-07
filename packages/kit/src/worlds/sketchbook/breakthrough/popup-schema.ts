@@ -111,7 +111,9 @@ const gauge = z.object({
   bulb: z.boolean().default(true).describe('Thermometer bulb at the bottom'),
   label: text(10).optional(),
   marks: z.array(text(8)).max(4).default([]).describe('Tick labels, bottom to top'),
-  color: swatch.default('red'),
+  color: swatch
+    .default('bic')
+    .describe("Fill ink (blue ballpoint; red is the page's one correction, never a default)"),
 });
 
 const wheel = z.object({

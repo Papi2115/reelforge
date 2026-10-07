@@ -13,6 +13,8 @@ import {
   formatDb,
   libraryByKind,
   loudnessReadout,
+  soundDockSizeSchema,
+  soundDockToggle,
   topSoundsText,
 } from './sound-view.js';
 
@@ -142,5 +144,14 @@ describe('cue summary', () => {
     expect(cueSummaryText({ ...summary, music: 0, ambience: 0, moods: [] })).toBe(
       '14 SFX · 0 ambience beds · 0 music beds',
     );
+  });
+});
+
+describe('sound dock size', () => {
+  it('toggles between the normal and the tall dock, stored values validated', () => {
+    expect(soundDockToggle('normal')).toMatchObject({ next: 'tall', label: 'Taller' });
+    expect(soundDockToggle('tall')).toMatchObject({ next: 'normal', label: 'Shorter' });
+    expect(soundDockSizeSchema.safeParse('tall').success).toBe(true);
+    expect(soundDockSizeSchema.safeParse('huge').success).toBe(false);
   });
 });

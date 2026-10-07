@@ -119,7 +119,7 @@ export async function qaRound(
   if (!rendered.ok) return rendered;
   const render = rendered.value;
   if (!render.ok && render.timedOut === true) {
-    return ok({ ...early([renderTimeoutFinding(render.error)], source), render });
+    return ok({ ...early([renderTimeoutFinding(render)], source), render });
   }
   if (!render.ok) {
     const runtime = finding('runtime', 'error', `the scene fails: ${render.error}`, {

@@ -109,6 +109,20 @@ describe('text provenance', () => {
     expect(shown(['yr 1 yr 5000'])).toEqual(['yr 1 yr 5000']);
   });
 
+  it('never sources a bare number as a sourced one plus or minus a small spoken number', () => {
+    const narration = buildVocabulary([
+      'The card says 21; later two players drop out, then four more.',
+    ]);
+    const shown = (strings: string[]) =>
+      inventedTexts(
+        strings.map((text, line) => ({ text, line })),
+        narration,
+        SKETCHBOOK,
+      ).map((entry) => entry.text);
+    expect(shown(['21', '19', '17', '23'])).toEqual(['19', '17', '23']);
+    expect(shown(['21', '21 − 2 = 19', '19 - 4 = 15'])).toEqual([]);
+  });
+
   it('flags a timeline that ends "now" when the sources never reach the modern era', () => {
     const end = [{ text: 'now', line: 7, role: 'timeline-end' as const }];
     const medieval = buildVocabulary([

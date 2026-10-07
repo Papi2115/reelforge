@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { EncoderSessionMemory } from './encoder-memory.js';
 import { detectEncoder, upscaleFilter, videoCodecArgs, type VideoEncoderId } from './encoders.js';
 import { concatList, muxArgs, segmentArgs, thumbnailArgs } from './ffmpeg-media.js';
 import { resolveOutputScale } from './presets.js';
@@ -61,6 +62,26 @@ describe('detectEncoder', () => {
     expect(forced.probed).toEqual(['h264_qsv']);
     const broken = await detectEncoder(fakeRunner(['libx264']).runner, { prefer: 'h264_nvenc' });
     expect(broken.ok && broken.value.encoder).toBe('libx264');
+  });
+
+  it('skips encoders that failed to open earlier this session, never libx264', async () => {
+    const memory = new EncoderSessionMemory();
+    memory.rememberOpenFailure('h264_nvenc', 'InitializeEncoder failed: out of memory (10)');
+    memory.rememberOpenFailure('libx264', 'ignored');
+    const { runner, probed } = fakeRunner(['h264_nvenc', 'libx264']);
+    const auto = await detectEncoder(runner, { skip: memory.skipped(), prefer: 'h264_nvenc' });
+    expect(auto.ok && auto.value.encoder).toBe('libx264');
+    expect(probed).toEqual(['libx264']);
+    expect(auto.ok && auto.value.probes[0]).toEqual({
+      encoder: 'h264_nvenc',
+      ok: false,
+      detail:
+        'skipped: could not open earlier this session (InitializeEncoder failed: out of memory (10))',
+    });
+    const fresh = await detectEncoder(fakeRunner(['h264_nvenc']).runner, {
+      skip: new EncoderSessionMemory().skipped(),
+    });
+    expect(fresh.ok && fresh.value.encoder).toBe('h264_nvenc');
   });
 
   it('reports when nothing works, and cancellation', async () => {

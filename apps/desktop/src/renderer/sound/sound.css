@@ -3,6 +3,22 @@
   flex-basis: 55%;
 }
 
+/* "Taller": most of the centre column; the preview keeps a strip above it. */
+.doc-panel.docked.sound-panel.tall {
+  flex-basis: 80%;
+}
+
+/* Short windows (720p): the normal dock was too low to work in; the columns still scroll. */
+@media (max-height: 820px) {
+  .doc-panel.docked.sound-panel {
+    flex-basis: 66%;
+  }
+
+  .doc-panel.docked.sound-panel.tall {
+    flex-basis: 86%;
+  }
+}
+
 .sound-panel .doc-header {
   flex-wrap: nowrap;
   min-width: 0;

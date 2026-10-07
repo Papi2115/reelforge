@@ -87,7 +87,7 @@ async function lookAtShots(
     rows.push({ shotId: shot.id, times, render: shotRender });
     if (!shotRender.ok && shotRender.timedOut === true) {
       // Not a suspect: a fix turn cannot repair a stuck renderer (warning only).
-      findings.push(`${shot.id}: ${formatFinding(renderTimeoutFinding(shotRender.error))}`);
+      findings.push(`${shot.id}: ${formatFinding(renderTimeoutFinding(shotRender))}`);
       continue;
     }
     const code: QaFinding[] = shotRender.ok ? [...lint, ...programmaticCritique(shotRender)] : lint;

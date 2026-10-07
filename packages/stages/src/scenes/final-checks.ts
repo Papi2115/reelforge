@@ -109,7 +109,7 @@ export async function checkShot(
   const render = rendered.value;
   const row: SheetShot = { shotId: shot.id, times, render };
   if (!render.ok && render.timedOut === true) {
-    return ok({ findings: [...lint, renderTimeoutFinding(render.error)], row });
+    return ok({ findings: [...lint, renderTimeoutFinding(render)], row });
   }
   if (!render.ok) {
     const failure = finding('runtime', 'error', `the scene fails: ${render.error}`, {

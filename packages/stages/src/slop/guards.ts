@@ -37,7 +37,7 @@ import { onScreenTexts, parseScene } from './source-text.js';
 import { strokeLettering, type StrokeLettering } from './stroke-text.js';
 import { inventedTexts } from './text-provenance.js';
 import { buildVocabulary, type Vocabulary } from './vocabulary.js';
-import { worldSlopSpec, type WorldSlopSpec } from './world-labels.js';
+import { worldSlopSpec, type ShotChecked, type WorldSlopSpec } from './world-labels.js';
 
 /** Competing elements per frame (QUALITY.md §3: 6 competing items). */
 export const ELEMENT_BUDGET = 6;
@@ -150,12 +150,14 @@ function traceFindings(spec: WorldSlopSpec, program: AnyNode, file: string): QaF
 
 /**
  * Text provenance (with stroke-drawn letters), pop-up and breakthrough intents, human traces
- * (world scenes) and stagger variance of a scene's source.
+ * (world scenes) and stagger variance of a scene's source; with its storyboard `shot`, also the
+ * world's checks of how the shot enters.
  */
 export function slopSourceFindings(
   setup: AntiSlopSetup,
   source: string,
   file: string,
+  shot?: ShotChecked,
 ): QaFinding[] {
   const program = parseScene(source);
   if (program === undefined) return [];
@@ -175,6 +177,7 @@ export function slopSourceFindings(
       : breakthroughIntentFindings(program, file, breakthroughs, setup.vocabulary)),
     ...(setup.spec === undefined ? [] : traceFindings(setup.spec, program, file)),
     ...(setup.spec?.sourceChecks?.(program, file, setup.vocabulary) ?? []),
+    ...(shot === undefined ? [] : (setup.spec?.shotChecks?.(program, file, shot) ?? [])),
     ...uniform,
   ];
 }
@@ -280,13 +283,13 @@ export function slopShotFindings(
   setup: AntiSlopSetup | undefined,
   input: {
     readonly source: string;
-    readonly shot: Pick<StoryboardShot, 'scene' | 'treatment'>;
+    readonly shot: Pick<StoryboardShot, 'scene' | 'treatment' | 'transitionIn'>;
     readonly frames: readonly TimedImage[];
   },
 ): QaFinding[] {
   if (setup === undefined) return [];
   return [
-    ...slopSourceFindings(setup, input.source, input.shot.scene),
+    ...slopSourceFindings(setup, input.source, input.shot.scene, input.shot),
     ...slopFrameFindings(setup, input.frames, input.shot),
   ];
 }

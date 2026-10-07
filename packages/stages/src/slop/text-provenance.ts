@@ -3,7 +3,8 @@
  * the narration, the research notes, the asset titles or the world's labels. Numbers need a source
  * too: a number is sourced when the vocabulary has it, when it names the decade/century of a
  * sourced number ("1500s"), or when it is the visible result of a calculation with sourced
- * on-screen numbers ("365.2422 − 365 = 0.2422", "0.2422 × 4 = 0.9688"), at the precision shown.
+ * on-screen numbers ("365.2422 − 365 = 0.2422", "0.2422 × 4 = 0.9688"), at the precision shown
+ * (a known number off screen takes part only in a string that shows the calculation).
  * 0 and 1 never need one; in a world with `shortYears` (Game B1) "82" is sourced by 1982. A number
  * that counts a thing the sources count with other numbers only is changed ("TWO DEGREES" when the
  * narration says "four degrees"), even when the value is elsewhere in the sources. A timeline that
@@ -53,14 +54,29 @@ function matches(candidate: number, token: Token): boolean {
   return Math.abs(shownAs(candidate, token.decimals ?? 0) - shown) < 1e-9;
 }
 
+/** A string that shows a calculation: an operator or an equals sign between its numbers. */
+const CALCULATION = /[=+×÷−]|\d\s*[x*/]\s*\d|\d\s+-\s+\d/u;
+
 /**
  * A sum or difference of a sourced on-screen number and a known number, or a product or quotient
  * of two sourced on-screen numbers (a visible calculation; products with any known number would
- * source almost anything: 29 × 3 = 87).
+ * source almost anything: 29 × 3 = 87). Outside a string that shows the calculation, a known
+ * number off screen only counts as the larger side of a gap (".24" written onto a "365" for the
+ * sourced 365.24): a bare "19" next to a sourced "21" is not 21 − 2 because the narration says
+ * "two" somewhere (real run Sketchbook 3: 19/17/23 on a 21 card).
  */
-function derived(token: Token, onScreen: readonly number[], known: readonly number[]): boolean {
+function derived(
+  token: Token,
+  onScreen: readonly number[],
+  known: readonly number[],
+  calculation: boolean,
+): boolean {
+  const shown = Math.abs(token.number ?? 0);
+  const usable = calculation
+    ? known
+    : known.filter((value) => onScreen.includes(value) || Math.abs(value) > shown);
   for (const first of onScreen) {
-    for (const second of known) {
+    for (const second of usable) {
       if ([first + second, first - second, second - first].some((sum) => matches(sum, token))) {
         return true;
       }
@@ -92,6 +108,7 @@ function sourcedNumbers(
   numbers: readonly Token[],
   vocabulary: Vocabulary,
   changed: ReadonlySet<Token>,
+  calculations: ReadonlySet<Token>,
   shortYears = false,
 ): Set<Token> {
   const sourced = new Set<Token>();
@@ -112,7 +129,8 @@ function sourcedNumbers(
     const known = [...vocabulary.numbers, ...onScreen];
     let added = false;
     for (const token of numbers) {
-      if (sourced.has(token) || !derived(token, onScreen, known)) continue;
+      if (sourced.has(token)) continue;
+      if (!derived(token, onScreen, known, calculations.has(token))) continue;
       sourced.add(token);
       added = true;
     }
@@ -191,7 +209,20 @@ export function inventedTexts(
     tokens.filter((token) => token.number !== undefined),
   );
   const changed = new Set(tokenized.flatMap((tokens) => [...changedNumbers(tokens, vocabulary)]));
-  const sourced = sourcedNumbers(numbers, vocabulary, changed, spec?.shortYears === true);
+  const calculations = new Set(
+    tokenized.flatMap((tokens, index) =>
+      CALCULATION.test(texts[index]?.text ?? '')
+        ? tokens.filter((token) => token.number !== undefined)
+        : [],
+    ),
+  );
+  const sourced = sourcedNumbers(
+    numbers,
+    vocabulary,
+    changed,
+    calculations,
+    spec?.shortYears === true,
+  );
   return texts.flatMap((entry, index) => {
     const tokens = tokenized[index] ?? [];
     const words = tokens.filter(
