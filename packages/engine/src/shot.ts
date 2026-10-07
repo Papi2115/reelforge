@@ -36,6 +36,7 @@ import { createRng, hashString, shotSeed } from './rng.js';
 import type { ScenePalette } from './style.js';
 import { createTextLayer, type TextOverlay } from './text/text-layer.js';
 import type { PixelRect, TextCard } from './text/types.js';
+import type { WorldAssetsValue } from './world-assets/build.js';
 
 /** Default camera: 50° vertical FOV, looking at the origin from slightly above. */
 export const DEFAULT_CAMERA_POSE: CameraPose = { position: [0, 2, 8], target: [0, 0, 0], fov: 50 };
@@ -58,6 +59,8 @@ export interface ShotInput {
   readonly assets?: AssetLibrary | undefined;
   /** Active style id: binds the looks of that world into ctx.kit (PLAN.md#13.1). */
   readonly styleId?: string | undefined;
+  /** The video's world assets (frozen, PLAN.md#13.15); undefined outside a world. */
+  readonly worldAssets?: WorldAssetsValue | undefined;
 }
 
 export interface BuiltShot {
@@ -210,6 +213,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     anchor: createAnchor(input),
     shot: info,
     ambient: createAmbientApi(input.ambient),
+    worldAssets: input.worldAssets,
   };
   const buildContext: SceneContext = {
     ...base,

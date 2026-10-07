@@ -76,19 +76,22 @@ function storyboard(plans: readonly Plan[], edges: (index: number) => [number, n
   return JSON.stringify({ version: 1, shots }, null, 2);
 }
 
-/** A clean comic page: panels, the shot's phrase lettered, three traces. */
+/** A clean comic page from the open vocabulary: beats, a figure, the phrase lettered, three traces. */
 function pageScene(shot: FilmShot): string {
-  return `// focal: the caption on the big panel | traces: thumbprint, smudge, pencil note
+  return `// focal: the figure on the big panel | nouns: ${shot.phrase} | traces: thumbprint, smudge, pencil note
 export const meta = { id: '${shot.id}', title: '${shot.phrase}', treatment: '${shot.treatment}' };
 
 export function build(ctx) {
   const { kit, scene, anchor, sfx } = ctx;
   const page = kit.fx.comicPage({ seed: ${String(shot.index + 11)}, anchor, duration: ctx.shot.duration });
   scene.add(page);
-  const [big, small] = page.panels('2-up', { weights: [0.64] });
-  big.draw((g) => g.plate.rect(0, 0, 640, 360, 'paper'));
-  small.draw((g) => g.rect(420, 40, 160, 120, 'greyLight'));
   const hit = anchor('${shot.phrase}');
+  const [big, small] = page.layout([
+    { at: 0, weight: 2, backdrop: 'meadow' },
+    { at: hit.t, weight: 1, backdrop: 'village' },
+  ]);
+  big.draw((g) => page.art.person(g, { x: 160, y: 320, size: 150, pose: 'point' }));
+  small.draw((g) => page.art.animal(g, { x: 500, y: 300, size: 90, species: 'dog' }));
   page.caption('${shot.phrase}', { x: 24, y: 20, at: hit.t });
   page.thumbprint(610, 340);
   page.smudge(300, 210, { length: 8 });
@@ -158,7 +161,9 @@ describe('a comic film on fake-claude', { timeout: 180_000 }, () => {
     expect(prompt).toContain('storyboard artist for a printed comic-book video');
     expect(prompt).toContain('- `comic-info` (Comic info)');
     expect(prompt).toContain('- `comic-panel-zoom` (wipe');
-    expect(prompt).not.toMatch(/voxel|sketch/i);
+    expect(prompt).toContain('The world is a style, not a catalogue');
+    // (The shared asset-research example of storyboard.md names a launch photo: not world text.)
+    expect(prompt).not.toMatch(/voxel|sketch|eagle|1202|moon/i);
     const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
     const styles = written.shots.map((shot) =>
       shot.transitionIn?.type === 'cut' ? undefined : shot.transitionIn?.style,
@@ -177,11 +182,20 @@ describe('a comic film on fake-claude', { timeout: 180_000 }, () => {
 
     const scenes = await stages.run({ stage: 'scenes' });
     expect(scenes.ok).toBe(true);
-    const builds = harness.specs.filter((spec) => spec.stage === 'scene-build');
+    // The world-assets turn (PLAN.md#13.15) runs on the scene builder's permissions too.
+    const builds = harness.specs.filter(
+      (spec) =>
+        spec.stage === 'scene-build' && !spec.prompt.startsWith('You are the production designer'),
+    );
     expect(builds).toHaveLength(shots.length);
     for (const build of builds) {
       expect(build.prompt).toContain('Craft brief (Comic; binding');
+      expect(build.prompt).toContain('(i) list the nouns, places and actions');
+      expect(build.prompt).toContain('page.art.load(ctx.worldAssets)');
       expect(build.prompt).not.toMatch(/voxel/i);
+      // The world's own wording (from the craft brief on; the kit's look docs come before it).
+      const world = build.prompt.slice(build.prompt.indexOf('Craft brief (Comic'));
+      expect(world).not.toMatch(/apollo|eagle|1202|moon/i);
     }
     const critics = harness.specs.filter((spec) => spec.stage === 'critic');
     expect(critics[0]?.prompt).toContain('Craft check (Comic)');

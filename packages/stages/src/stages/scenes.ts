@@ -30,6 +30,8 @@ import { runShotJobs } from '../scenes/run-shots.js';
 import { buildShot } from '../scenes/shot-job.js';
 import { dismissVariants, pickVariant } from '../variants/decide.js';
 import { generateVariants } from '../variants/generate.js';
+import { ensureWorldAssets } from '../world-assets/builder.js';
+import { worldAssetsAction } from '../world-assets/stage.js';
 import {
   stageError,
   type RequestOf,
@@ -134,6 +136,9 @@ async function build(
       metrics: { shots: 0, built: 0, locked: locked.length },
     });
   }
+  // World films (PLAN.md#13.15): the film's own assets exist before the first scene.
+  const worldAssets = await ensureWorldAssets(job, { force: false });
+  if (!worldAssets.ok) return worldAssets;
   ctx.step('roles the storyboard needs');
   const roles = await buildStoryboardRoles(job.roles, ctx.projectDir, unlocked);
   if (!roles.ok) return roles;
@@ -175,10 +180,11 @@ async function build(
       ...new Set(unlocked.map((shot) => shot.scene)),
       ...newProps.map((name) => `kit-ext/props/${name}.js`),
       ...roleNote.outputs,
+      ...worldAssets.value.outputs,
       FILES.scenesReport,
     ],
     changed: ran.value.ran.length > 0,
-    warnings: [...lockWarnings, ...shotWarnings(records.value)],
+    warnings: [...lockWarnings, ...worldAssets.value.warnings, ...shotWarnings(records.value)],
     metrics: {
       ...(locked.length === 0 ? {} : { locked: locked.length }),
       shots: records.value.length,
@@ -335,6 +341,8 @@ async function run(
       return final(job.value, request.trigger ?? 'manual');
     case 'variants':
       return variants(job.value, request);
+    case 'world-assets':
+      return worldAssetsAction(job.value);
     default:
       return review(job.value, action, request.shots);
   }
@@ -355,6 +363,8 @@ export const scenesStage: StageDefinition<'scenes'> = {
     `${FILES.qaFramesDir}/…`,
     '.reelforge/variants/<shot>/…',
     '.reelforge/taste.json',
+    'assets/<world>/*.json',
+    'assets/cast.json',
   ],
   run,
 };

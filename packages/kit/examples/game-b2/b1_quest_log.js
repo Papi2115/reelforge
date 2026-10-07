@@ -22,7 +22,7 @@ export function build(ctx) {
     seed: 1982,
     path: [{ at: 0, x: 9.6, y: 8.7, yaw: -4, ease: 'lin' }],
   });
-  view.hold({ label: 'E.T.', band: 'pink' }, { at: -1 });
+  view.hold({ kind: 'cartridge', label: 'E.T.', band: 'pink' }, { at: -1 });
   ctx.scene.add(view);
 
   const hud = ctx.kit.fx.b2Hud({ size, view, duration: ctx.shot.duration, seed: 1982 });

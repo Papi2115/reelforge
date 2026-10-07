@@ -4,8 +4,11 @@
  * real labels of the world's objects (not "invented text"). Keyed by world id; a world without an
  * entry gets no trace check (its helpers are unknown) and only the general labels.
  */
+import type { AnyNode } from 'acorn';
+import type { QaFinding } from '@reelforge/shared';
 import { GAME_B1_SLOP } from './game-b1-labels.js';
 import { GAME_B2_SLOP } from './game-b2-labels.js';
+import type { Vocabulary } from './vocabulary.js';
 
 /** A source option that is a human trace when present on a call (jittered lettering, red pen). */
 export interface TraceOption {
@@ -33,6 +36,8 @@ export interface WorldSlopSpec {
   readonly textCallKeys?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Option keys whose number literals are on screen (a tally row's `value`). */
   readonly numberKeys?: readonly string[] | undefined;
+  /** Call -> option of `[t, value]` keys whose values are on screen (Game B1 `counter: 'keys'`). */
+  readonly keyedNumbers?: Readonly<Record<string, string>> | undefined;
   /** Two-digit years ("XMAS 82") are sourced by the full year of the sources (1982). */
   readonly shortYears?: boolean | undefined;
   /** Lettering calls of sounds (onomatopoeia): `soundWords` are not invented there. */
@@ -43,6 +48,17 @@ export interface WorldSlopSpec {
    * mechanism, with the kit's defaults: never the same mechanism twice in a film.
    */
   readonly breakthroughs?: Readonly<Record<string, Readonly<Record<string, string>>>> | undefined;
+  /** The world's own checks of one scene's source (Game B1: an unrequested showcase object). */
+  readonly sourceChecks?:
+    ((program: AnyNode, file: string, vocabulary: Vocabulary) => QaFinding[]) | undefined;
+  /** The world's own checks over the film's scenes at the final review (Game B1: monotony). */
+  readonly filmChecks?: ((shots: readonly ShotProgram[]) => Map<string, QaFinding[]>) | undefined;
+}
+
+/** One shot's parsed scene, in film order (the final review's film checks). */
+export interface ShotProgram {
+  readonly shotId: string;
+  readonly program: AnyNode;
 }
 
 /** Labels of real things in every film: months, weekdays, eras, units and short marks. */
@@ -60,7 +76,10 @@ export const GENERAL_LABELS: ReadonlySet<string> = new Set(
  * clip, sticky note, smudge, ruler), hand marks (loop, underline, crossOut, two-stroke arrow), the
  * red correcting pen (`tool: 'red'`) and jittered lettering (`rot`). `popup` and `strip` draw
  * their own traces (compass arc, glue, torn tape, crooked tag; creases, tape over the joins) and
- * count for three.
+ * count for three. Text of the open vocabulary (PLAN.md#13.15): a diagram's labels are `label`
+ * options (callout, timeline events, map places, bars, pie slices, venn sets, flow steps, stack
+ * items, cutaway layers); a line chart's `from`/`to` and a venn's `both` are read inside
+ * `diagram` only. Single letters (a map compass `N`) are never judged.
  */
 const SKETCHBOOK: WorldSlopSpec = {
   traceMethods: {
@@ -83,14 +102,23 @@ const SKETCHBOOK: WorldSlopSpec = {
   ],
   labels: ['p', 'pp', 'fig', 'nb', 'ps', 'eg', 'ie', 'etc', 'note', 'notes', 'now', 'today'],
   labelPatterns: [/\bp{1,2}\.\s?\d+(?:\s?[-–]\s?\d+)?/giu, /\bfig\.\s?\d+/giu],
+  textCallKeys: { diagram: ['from', 'to', 'both'] },
 };
 
-/** Comic sound words (onomatopoeia are drawn, never narrated). */
+/**
+ * Comic sound words (onomatopoeia are drawn, never narrated). Held letters fold ("HSSSS" = hss);
+ * the open-vocabulary row covers animals, nature and the words the prompts suggest (CLINK, TINK)
+ * and those of the open examples and real run Comic 1 (TOK, RATTLE, LA LA LA, SKRRT). Slurs are
+ * errors of the offensive-word check, never sound words.
+ */
 const COMIC_SOUNDS =
   'bam bang beep blam bonk boom bump buzz clack clang clank click clunk crack crash creak crunch ' +
   'ding dong drip fizz hiss honk kaboom klunk knock krak plop pop pow ring rumble screech shh ' +
   'slam smash snap splash splat swish swoosh tap thud thump thwack tick tock vroom wham whack ' +
-  'whir whirr whoosh woosh zap zip zoom';
+  'whir whirr whoosh woosh zap zip zoom ' +
+  'achoo baa blub bloop brr caw chirp clink crackle fwoosh glug grr gulp hoot howl hss la meow ' +
+  'moo neigh oink ping plink psst quack rattle roar skrt sizzle splosh thunk tik tak tink tok ' +
+  'tweet whump woof zz';
 
 /**
  * Comic (packages/kit/src/worlds/comic, page API): physical traces (thumbprint, smudge, coffee

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "world": "sketchbook",
+  "entries": [
+    {
+      "id": "calculator",
+      "kind": "prop",
+      "name": "the graphing calculator",
+      "file": "assets/sketchbook/calculator.json",
+      "shots": ["s01_hook"],
+      "notes": "the same outline in every shot"
+    }
+  ]
+}

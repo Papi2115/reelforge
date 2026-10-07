@@ -1,10 +1,11 @@
 /**
  * The Comic moment catalog (docs/worlds/README.md "Variety", QUALITY.md §6/§8.2): the closed list
  * of page moments the storyboard plans per shot from the narration (`worldMoment`), with the host
- * looks, the exact kit call the scene turn makes (packages/kit/src/worlds/comic, templates in
- * packages/kit/examples/comic) and what the critic must see. `flashback` and `spread` are the
- * breakthroughs (docs/worlds/comic-panels-v2 shots 3 and 9): creative toolkits with a required
- * `intent`, never a template, never the same mechanism twice in a film.
+ * looks, the page grammar and the exact kit call the scene turn makes
+ * (packages/kit/src/worlds/comic) and what the critic must see. Every moment is grammar, never
+ * content: what is drawn comes from the film's narration (`page.art`, the project's assets).
+ * `flashback` and `spread` are the breakthroughs: creative toolkits with a required `intent`,
+ * never a template, never the same mechanism twice in a film.
  */
 import { comicSnippet as snippet } from './comic-snippets.js';
 import type { WorldMomentOption } from './types.js';
@@ -13,9 +14,9 @@ const STORY = 'comic-story';
 const INFO = 'comic-info';
 const LOUD = 'comic-loud';
 
-const FLASHBACK_BUILD = `\`page.flashback({ intent, when, at, until, cover, arrange, beats, stamp })\` (look \`comic-info\`), a toolkit, never a template. The shape of a call (one arrangement of many; never copy it or the inspirations): ${snippet('flashback')}. Every flashback is original: decide what the look back must SHOW (the claim) and invent how the past sits on the page: \`cover: 'page'\` (the whole page re-inked as an old sepia print) or \`'strip'\` (a torn strip pasted over the present page, which stays in colour; give it \`until\` to leave), \`arrange: 'rows' | 'row' | 'stair' | 'pile'\`, \`box\`, \`tilt\`, \`enter\`. Never the same cover and arrangement twice in one film. \`intent\` (required, 12-240 characters) names the claim (\`the deadline was set eight years before the landing\`), never a generic "flashback"; \`when\` = the time-stamp caption in the narration's words. 1-5 \`beats\`, one per narrated moment, each \`{ at: 'its phrase', draw: (g, t, [w, h]) => …, weight, caption }\` in narration order, >= 0.15 s apart (beat-local px, 0,0 = its top-left; the beat that is the point gets the biggest \`weight\`); an optional \`stamp\` (a date from the narration, the only red of the past). Draw only what the narration names (no decorative scenery); every word from the narration. Inspiration, each a different mechanism: \`f1_flashback_1961.js\` (page + rows + stamp), \`f2_flashback_bug.js\` (a torn strip of the past over today's screen). It may open with \`comic-page-back\`; the next shot may leave it with \`comic-ink-bleed\`.`;
+const FLASHBACK_BUILD = `\`page.flashback({ intent, when, at, until, cover, arrange, beats, stamp })\` (look \`comic-info\`), a toolkit, never a template. The shape of a call (one arrangement of many, on a made-up topic; never copy it): ${snippet('flashback')}. Every flashback is original: decide what the look back must SHOW (the claim of THIS narration) and invent how the past sits on the page: \`cover: 'page'\` (the whole page re-inked as an old sepia print) or \`'strip'\` (a torn strip pasted over the present page, which stays in colour; give it \`until\` to leave), \`arrange: 'rows' | 'row' | 'stair' | 'pile'\`, \`box\`, \`tilt\`, \`enter\`. Never the same cover and arrangement twice in one film. \`intent\` (required, 12-240 characters) names the claim in the narration's words, never a generic "flashback"; \`when\` = the time-stamp caption in the narration's words. 1-5 \`beats\`, one per narrated moment, each \`{ at: 'its phrase', draw: (g, t, [w, h]) => …, weight, caption }\` in narration order, >= 0.15 s apart (beat-local px, 0,0 = its top-left; the beat that is the point gets the biggest \`weight\`); draw each with \`page.art\` (generators, the project's cast by id) so the past is as readable as the present; an optional \`stamp\` (a date from the narration, the only red of the past). Draw only what the narration names (no decorative scenery); every word from the narration. It may open with \`comic-page-back\`; the next shot may leave it with \`comic-ink-bleed\`.`;
 
-const SPREAD_BUILD = `\`page.spread({ intent, art, assemble, pieces, delay, dur, focus, insets, beats })\` (look \`comic-loud\`; build the page with \`duration: ctx.shot.duration\`), a toolkit, never a template. The shape of a call (one assembly of many; never copy it or the inspirations): ${snippet('spread')}. Every spread is original: ONE picture \`art: (g, t) => …\` across both pages and the fold (page px 640x360, bleed past the edges) of the specific place, crowd or machine the narration names, its title (a word from the narration) built into the picture with \`g.standing('TITLE', { x, y0, y1, h0, h1 })\` or none; choose how it arrives: \`assemble: 'merge'\` (panels that turn out to be one picture; \`pieces: 'grid' | 'columns' | 'halves'\`), \`'unfold'\` (the book opens from the spine) or \`'pull-back'\` (a small panel on \`focus\` pulls back to the whole spread). Never the same assembly twice in one film. \`intent\` (required, 12-240 characters) names what the big picture shows, never a generic "big reveal". It may hold still, but never > 4 s without a new beat: \`beats\` (the narration's phrases landing), a \`page.note\`, a caption or up to 3 \`insets\` \`{ box: [x, y, w, h], at, draw }\` once it is whole. Inspiration, each a different mechanism: \`s1_spread_tranquility.js\` (merge, grid, a pencilled note by the spine), \`s2_spread_summit.js\` (unfold + an inset).`;
+const SPREAD_BUILD = `\`page.spread({ intent, art, assemble, pieces, delay, dur, focus, insets, beats })\` (look \`comic-loud\`; build the page with \`duration: ctx.shot.duration\`), a toolkit, never a template. The shape of a call (one assembly of many, on a made-up topic; never copy it): ${snippet('spread')}. Every spread is original: ONE picture \`art: (g, t) => …\` across both pages and the fold (page px 640x360, bleed past the edges) of the specific place, crowd, landscape or machine THIS narration names, built with \`page.art\` (a backdrop, a crowd, the film's cast), its title (a word from the narration) built into the picture with \`g.standing('TITLE', { x, y0, y1, h0, h1 })\` or none; choose how it arrives: \`assemble: 'merge'\` (panels that turn out to be one picture; \`pieces: 'grid' | 'columns' | 'halves'\`), \`'unfold'\` (the book opens from the spine) or \`'pull-back'\` (a small panel on \`focus\` pulls back to the whole spread). Never the same assembly twice in one film. \`intent\` (required, 12-240 characters) names what the big picture shows, never a generic "big reveal". It may hold still, but never > 4 s without a new beat: \`beats\` (the narration's phrases landing), a \`page.note\`, a caption or up to 3 \`insets\` \`{ box: [x, y, w, h], at, draw }\` once it is whole.`;
 
 export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
   {
@@ -35,7 +36,7 @@ export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
     looks: [LOUD],
     cue: 'the big picture',
     useWhen:
-      'lands the big picture the film has been building to (an arrival, the scale of a place or a crowd, the machine as a whole, the moment everything changes; a C-roll page); say in the intent what the one picture shows and how it assembles, never the same assembly twice in a film',
+      'lands the big picture the film has been building to (an arrival, the scale of a place or a crowd, the thing as a whole, the moment everything changes; a C-roll page); say in the intent what the one picture shows and how it assembles, never the same assembly twice in a film',
     build: SPREAD_BUILD,
     visible:
       'one picture running across both pages and the fold (a spine crease in the middle, the margins gone); name what it shows as the focal point; a spread whose picture shows nothing the narration says, or that holds still for more than 4 s with nothing new, is `off-intent` with a note starting `spread:`',
@@ -46,7 +47,7 @@ export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
     looks: [LOUD],
     useWhen:
       'falls silent or holds its breath right before a twist, a verdict or an arrival ("and then…", a long beat of silence)',
-    build: `one almost empty panel, a wide flat field with ONE small detail that changes in held steps, no lettering, held >= 1.5 s: ${snippet('pause')} (look \`comic-loud\`; template \`c1_pause.js\`). It is the only panel on the page; the next shot breaks the silence.`,
+    build: `one almost empty panel, a wide flat field with ONE small detail of the narration's world that changes in held steps, no lettering, held >= 1.5 s: ${snippet('pause')} (look \`comic-loud\`). It is the only panel on the page; the next shot breaks the silence.`,
     visible: 'one almost empty panel (a flat field with one small detail) and no lettering',
   },
   {
@@ -54,8 +55,8 @@ export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
     breakthrough: false,
     looks: [LOUD, STORY],
     useWhen:
-      'lands a hit, a touchdown, an alarm or another sudden event ("contact", "the engine cut out")',
-    build: `a panel slams in past the margin (${snippet('slam')}) with ${snippet('shake')} on the impact and ONE onomatopoeia of the event breaking out of the panel (${snippet('sfx')}: big imperfect letters on uneven beats); speed lines stop before the subject (\`g.speedLines({ x, y, dx, dy, gap })\`); then the page holds (template \`c3_contact.js\`). One loud word only.`,
+      'lands a hit, a crash, an alarm or another sudden event ("the dam broke", "a shot rang out")',
+    build: `a panel slams in past the margin (${snippet('slam')}) with ${snippet('shake')} on the impact and ONE onomatopoeia of the event breaking out of the panel (${snippet('sfx')}: big imperfect letters on uneven beats; a sound word that fits the event, never a slur or close to one); speed lines stop before the subject (\`g.speedLines({ x, y, dx, dy, gap })\`), a \`page.art.effect\` (impact, motion) on the hit; then the page holds. One loud word only, never cropped by the camera.`,
     visible: 'a panel slammed onto the page and one big onomatopoeia breaking the panel frame',
   },
   {
@@ -63,7 +64,7 @@ export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
     breakthrough: false,
     looks: [INFO],
     useWhen: 'explains how a machine, a body or a place works inside, or what happened inside it',
-    build: `the real object drawn with its front torn open along ${snippet('torn')} (ink the torn edge, the inside on a darker plate), its parts named by hand with kinked leaders (\`g.text\` + \`g.ink(pts, { closed: false })\`), the thing that matters moving inside, a caption with the definition (look \`comic-info\`; template \`b1_cutaway.js\`); real names and numbers only.`,
+    build: `the real thing the narration names, drawn whole first (a generator or the project's prop), then its front torn open along ${snippet('torn')} (ink the torn edge, the inside on a darker plate), its parts named by hand with kinked leaders (\`g.text\` + \`g.ink(pts, { closed: false })\`), the thing that matters moving inside, a caption with the definition (look \`comic-info\`); real names, numbers and directions only, as the research notes give them.`,
     visible:
       'a drawn object with its front torn open showing the inside, its parts named with leaders',
   },
@@ -72,8 +73,8 @@ export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
     breakthrough: false,
     looks: [INFO],
     useWhen:
-      'weighs conditions, steps or options toward a verdict (a go or no-go, what was kept and what was dropped)',
-    build: `a clipboard or card in its own panel: 3-5 items lettered from the narration, ticked one by one with ${snippet('tick')} (each tick on its own beat), the wrong option struck with ${snippet('strike')} and the right one written beside it, ${snippet('highlight')} on the answer (look \`comic-info\`; template \`b2_checklist.js\`); never a tidy spreadsheet.`,
+      'weighs conditions, steps or options toward a verdict (which option won, what was kept and what was dropped)',
+    build: `a clipboard, card or slate that fits the narration's world, in its own panel: 3-5 items lettered from the narration, ticked one by one with ${snippet('tick')} (each tick on its own beat), the wrong option struck with ${snippet('strike')} and the right one written beside it, ${snippet('highlight')} on the answer (look \`comic-info\`); never a tidy spreadsheet.`,
     visible: 'a hand-ticked checklist with one item struck out and the answer highlighted',
   },
   {
@@ -81,8 +82,8 @@ export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
     breakthrough: false,
     looks: [LOUD, STORY],
     useWhen:
-      'speaks the one line the film turns on (a famous quote, a radio call, a verdict said aloud)',
-    build: `a smaller balloon first, then the line lettered large: ${snippet('bigLine')} (\`size: 2\`, the tail at the speaker), lots of empty paper around it, a pencilled note or time in the margin (${snippet('note')}; template \`c2_landed.js\`). The words exactly as the narration says them.`,
+      'speaks the one line the film turns on (a famous quote, a shouted warning, a verdict said aloud)',
+    build: `a smaller balloon first, then the line lettered large: ${snippet('bigLine')} (\`size: 2\`, the tail at the speaker, who is drawn), lots of empty paper around it, a pencilled note or time in the margin (${snippet('note')}). The words exactly as the narration says them.`,
     visible: 'one big speech balloon lettered large with empty paper around it',
   },
   {
@@ -90,8 +91,8 @@ export const COMIC_MOMENTS: readonly WorldMomentOption[] = [
     breakthrough: false,
     looks: [STORY],
     useWhen:
-      'tightens: time runs out, pressure builds, the walls close in ("sixty seconds", a countdown)',
-    build: `the gutters close in at different speeds: panels \`morph\` to tighter quads on uneven timings (${snippet('squeeze')}), a new panel shoves its way in (\`enter({ at, kind: 'slide' })\`), then the page freezes for a beat (template \`a3_squeeze.js\`).`,
+      'tightens: time runs out, pressure builds, the walls close in ("ten minutes left", a countdown)',
+    build: `the gutters close in at different speeds: panels \`morph\` to tighter quads on uneven timings (${snippet('squeeze')}), a new panel shoves its way in (\`enter({ at, kind: 'slide' })\`), then the page freezes for a beat.`,
     visible: 'panels whose gutters close in, squeezing the page',
   },
 ];

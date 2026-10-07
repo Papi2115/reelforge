@@ -37,7 +37,7 @@ export function checkJoy(what: string, text: string, lines = 1): string {
 export function checkHand(what: string, text: string): string {
   const upper = text.toUpperCase();
   const missing = missingHandGlyphs(upper);
-  if (missing.length > 0) fail(`${what} "${text}": Dad's hand cannot write ${missing.join(' ')}`);
+  if (missing.length > 0) fail(`${what} "${text}": the hand cannot write ${missing.join(' ')}`);
   return upper;
 }
 
@@ -65,17 +65,22 @@ export const screenParams = z.object({
 
 const range = z.tuple([whenParam, whenParam]);
 
+/**
+ * The living room around the TV: neutral by default (no calendar, tree, presents, gift or loose
+ * carts); the showcase's decorations only when a parameter asks (showcase.ts).
+ */
 export const roomSchema = z.strictObject({
   calendar: z
     .union([
       z.literal(false),
       z.strictObject({
-        month: z.string().min(1).max(9).default('DEC'),
-        mark: z.int().min(0).max(28).default(25).describe('Day ringed by hand (0 = none)'),
+        month: z.string().min(1).max(9).describe("The story's month, e.g. MAY"),
+        mark: z.int().min(0).max(28).default(0).describe('Day ringed by hand (0 = none)'),
         markAt: range.optional().describe('[from, to] the pen draws the ring (default: drawn)'),
       }),
     ])
-    .default({ month: 'DEC', mark: 25 }),
+    .default(false)
+    .describe('A wall calendar (default none)'),
   tree: z.boolean().default(false).describe('The Christmas tree (right edge) with blinking bulbs'),
   presents: z.boolean().optional().describe('Two wrapped presents (default: with the tree)'),
   gift: z
@@ -114,7 +119,7 @@ export const scoreSchema = z.strictObject({
 export const progressSchema = z.strictObject({
   from: z.number().min(0).max(1).describe('Share of the film done when the shot starts'),
   to: z.number().min(0).max(1).describe('Share done when it ends'),
-  slots: z.int().min(2).max(16).default(10).describe('Cartridge slots (one per shot reads best)'),
+  slots: z.int().min(2).max(16).default(10).describe('Slots (one per shot reads best)'),
   at: whenParam.default(0),
 });
 

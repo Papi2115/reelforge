@@ -1,10 +1,11 @@
 /**
  * The Game B2 kit calls quoted by the prompts (prompts `GAME_B2_SNIPPETS`) run through the real kit:
- * the level format (`checkLevel` inside `b2View`), the automap, tally and throw specs, the HUD text
- * checks throw on a call that drifted from the API, and view + HUD repaint at a few times without
- * an error. The worked level of the prompt is the kit's built-in `office`: it paints the same pixels.
+ * the film's asset pack (`ctx.worldAssets`) and a shot's one-off pack (loaded by the view), the indoor
+ * and the outdoor worked levels (`checkLevel` inside `b2View`), the automap, tally and throw specs
+ * and the HUD text checks throw on a call that drifted from the API, and view + HUD repaint at a few
+ * times without an error. The level format of the prompt names every mood, sky and generator kind
+ * the kit knows (read from the kit's own error messages).
  */
-import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { runInNewContext } from 'node:vm';
@@ -24,7 +25,6 @@ const TIMES = [0, 1.5, 3, 4.2, 5.9];
 
 interface Repaint {
   update(t: number): void;
-  traverse(visit: (object: unknown) => void): void;
 }
 
 /** A fixed stream (the snippets are checked, not looked at). */
@@ -50,27 +50,42 @@ function kitApi(): unknown {
   }).api;
 }
 
-const LEVEL = (): Record<string, unknown> =>
-  runInNewContext(`(${GAME_B2_SNIPPETS.level})`) as Record<string, unknown>;
+const literal = (code: string): Record<string, unknown> =>
+  runInNewContext(`(${code})`) as Record<string, unknown>;
+const FILM = (): Record<string, unknown> => literal(GAME_B2_SNIPPETS.assets);
 
-/** The worked level with a clerk standing in the office (for `act`). */
-function withClerk(): Record<string, unknown> {
-  const level = LEVEL();
-  const sprites = level['sprites'] as unknown[];
-  return { ...level, sprites: [...sprites, { id: 'clerk', sprite: 'clerk', pos: [18.5, 4.5] }] };
-}
-
-/** Calls a snippet needs before it (damage pops off the meter). */
+/** Calls a snippet needs before it (damage pops off the meter, a placed sprite is defined). */
 const BEFORE: Partial<Record<GameB2Snippet, readonly GameB2Snippet[]>> = {
   damage: ['meter'],
+  place: ['defineSprite'],
 };
-const SETUP: readonly GameB2Snippet[] = ['level', 'view', 'hud'];
+const SETUP: readonly GameB2Snippet[] = [
+  'assets',
+  'level',
+  'shotAssets',
+  'outdoor',
+  'view',
+  'viewOutdoor',
+  'hud',
+];
 
-/** Builds view + HUD on the worked level, runs `code` and repaints both. */
-function run(code: string, level = LEVEL()): { view: Repaint; hud: Repaint } {
-  const scope: Record<string, unknown> = { kit: kitApi(), ctx: { shot: SHOT, anchor } };
-  scope['LEVEL'] = level;
-  const view = runInNewContext(GAME_B2_SNIPPETS.view, scope) as Repaint;
+interface RunOptions {
+  readonly level?: Record<string, unknown>;
+  readonly worldAssets?: unknown;
+  readonly viewCode?: string;
+}
+
+/** Builds view + HUD (the indoor level by default), runs `code` and repaints both. */
+function run(code: string, options: RunOptions = {}): void {
+  const worldAssets = 'worldAssets' in options ? options.worldAssets : FILM();
+  const scope: Record<string, unknown> = {
+    kit: kitApi(),
+    ctx: { shot: SHOT, anchor, worldAssets },
+    LEVEL: options.level ?? literal(GAME_B2_SNIPPETS.level),
+    OUTDOOR: literal(GAME_B2_SNIPPETS.outdoor),
+    SHOT_ASSETS: literal(GAME_B2_SNIPPETS.shotAssets),
+  };
+  const view = runInNewContext(options.viewCode ?? GAME_B2_SNIPPETS.view, scope) as Repaint;
   scope['view'] = view;
   const hud = runInNewContext(GAME_B2_SNIPPETS.hud, scope) as Repaint;
   scope['hud'] = hud;
@@ -79,26 +94,42 @@ function run(code: string, level = LEVEL()): { view: Repaint; hud: Repaint } {
     view.update(t);
     hud.update(t);
   }
-  return { view, hud };
 }
 
 function runSnippet(name: GameB2Snippet): void {
-  const code = [...(BEFORE[name] ?? []), name].map((part) => GAME_B2_SNIPPETS[part]).join(';\n');
-  run(code, name === 'act' ? withClerk() : LEVEL());
+  run([...(BEFORE[name] ?? []), name].map((part) => GAME_B2_SNIPPETS[part]).join(';\n'));
 }
 
-/** Hash of the view's raster at t (the quad's data texture). */
-function frame(view: Repaint, t: number): string {
-  view.update(t);
-  const hash = createHash('sha256');
-  view.traverse((object) => {
-    const data = (object as { material?: { uniforms?: { map?: { value?: { image?: unknown } } } } })
-      .material?.uniforms?.map?.value?.image;
-    if (typeof data === 'object' && data !== null && 'data' in data) {
-      hash.update(data.data as Uint8Array);
-    }
-  });
-  return hash.digest('hex');
+/** The values a kit error lists: `(known: a, b)` or zod's `expected one of "a"|"b"`. */
+function listed(message: string): string[] {
+  const known = /\((?:known|ramps): ([^)]*)\)/.exec(message)?.[1];
+  if (known !== undefined) return known.split(', ');
+  const options = /expected one of (\S+)/.exec(message)?.[1] ?? '';
+  return options.split('|').map((option) => option.replace(/"/g, ''));
+}
+
+/** The view's error for a pack with one entry (the asset checks run when the view is built). */
+function assetError(section: string, entry: Record<string, unknown>): string {
+  try {
+    run('0', { worldAssets: { [section]: { probe: entry } } });
+  } catch (error) {
+    if (error instanceof Error) return error.message;
+    throw error;
+  }
+  return '';
+}
+
+/** The ids of both worked packs, as the view hands them to `checkLevel`. */
+function packIds(): { sprites: Set<string>; textures: Set<string> } {
+  const packs = [FILM(), literal(GAME_B2_SNIPPETS.shotAssets)];
+  const ids = (section: string): Set<string> =>
+    new Set(packs.flatMap((pack) => Object.keys(pack[section] ?? {})));
+  return { sprites: ids('sprites'), textures: ids('textures') };
+}
+
+function levelError(level: GameB2Snippet, patch: Record<string, unknown>): string {
+  const checked = checkLevel({ ...literal(GAME_B2_SNIPPETS[level]), ...patch }, packIds());
+  return checked.ok ? '' : checked.errors.join('\n');
 }
 
 describe('Game B2 snippets of the prompts', () => {
@@ -112,56 +143,92 @@ describe('Game B2 snippets of the prompts', () => {
     }).not.toThrow();
   });
 
-  it('writes out the built-in office level: the same pixels', () => {
-    const scope = { kit: kitApi(), ctx: { shot: SHOT, anchor } };
-    const builtIn = runInNewContext(
-      GAME_B2_SNIPPETS.view.replace('level: LEVEL', "level: 'office', stencil: 'E.T.'"),
-      scope,
-    ) as Repaint;
-    const { view } = run('0');
-    for (const t of [0, 2.3]) expect(frame(view, t)).toBe(frame(builtIn, t));
+  it('builds the outdoor shot next to the film pack, one pack or a list of them', () => {
+    const outdoor = { viewCode: GAME_B2_SNIPPETS.viewOutdoor };
+    expect(() => {
+      run('0', outdoor);
+    }).not.toThrow();
+    expect(() => {
+      run('0', { ...outdoor, worldAssets: [FILM()] });
+    }).not.toThrow();
+    expect(() => {
+      run('0', { ...outdoor, worldAssets: undefined });
+    }).toThrow(/unknown sprite "pupil"/);
   });
 
   it('would fail on a call that drifted from the API', () => {
-    const { automap, tally, throw: toss, level } = GAME_B2_SNIPPETS;
-    const broken = (from: string, to: string): Record<string, unknown> =>
-      runInNewContext(`(${level.replace(from, to)})`) as Record<string, unknown>;
-    expect(() => run('0', broken("'#####", "'####."))).toThrow(/border/);
-    expect(() => run('0', broken("u: { wall: 'cubicle' }", "u: { wall: 'glass' }"))).toThrow(
-      /wall texture/,
-    );
-    expect(() => run(automap.replace(/intent: '[^']*', /, ''))).toThrow(/intent/);
-    expect(() => run(automap.replace('cell: [17, 5]', 'cell: [0, 0]'))).toThrow(
-      /not inside a room/,
-    );
-    expect(() => run(tally.replace(/intent: '[^']*', /, ''))).toThrow(/intent/);
-    expect(() => run(tally.replace("format: 'unit'", "format: 'roman'"))).toThrow(/format/);
-    expect(() => run(toss.replace(/intent: '[^']*', /, ''))).toThrow(/intent/);
-    expect(() => run(toss.replace("target: 'worker'", "target: 'nobody'"))).toThrow(/nobody/);
-    expect(() => run(GAME_B2_SNIPPETS.act)).toThrow(/clerk/);
+    const { automap, tally, throw: toss, level, act } = GAME_B2_SNIPPETS;
+    const broken = (from: string, to: string): RunOptions => ({
+      level: literal(level.replace(from, to)),
+    });
+    expect(() => {
+      run('0', broken("'SSSSSSSSSSSSSSSSSSSSSS'", "'SSSSSSSSSSSSSSSSSSSSS.'"));
+    }).toThrow(/border/);
+    expect(() => {
+      run('0', broken("W: { wall: 'panelling' }", "W: { wall: 'marble' }"));
+    }).toThrow(/the film's assets\.textures: plaster/);
+    expect(() => {
+      run('0', { worldAssets: { sprites: { desk: { gen: 'object', kind: 'table' } } } });
+    }).toThrow(/built-in sprite name/);
+    expect(() => {
+      run('0', { worldAssets: { icons: { chalk: { rows: ['pp'], legend: { p: '#ffffff' } } } } });
+    }).toThrow(/not a game-b2 colour/);
+    expect(() => {
+      run(automap.replace(/intent: '[^']*', /, ''));
+    }).toThrow(/intent/);
+    expect(() => {
+      run(automap.replace('cell: [15, 5]', 'cell: [0, 0]'));
+    }).toThrow(/not inside a room/);
+    expect(() => {
+      run(tally.replace(/intent: '[^']*', /, ''));
+    }).toThrow(/intent/);
+    expect(() => {
+      run(tally.replace("format: 'unit'", "format: 'roman'"));
+    }).toThrow(/format/);
+    expect(() => {
+      run(toss.replace(/intent: '[^']*', /, ''));
+    }).toThrow(/intent/);
+    expect(() => {
+      run(toss.replace("target: 'teacher'", "target: 'nobody'"));
+    }).toThrow(/nobody/);
+    expect(() => {
+      run(toss.replace("icon: 'chalk'", "icon: 'quill'"));
+    }).toThrow(/not an icon of the assets/);
+    expect(() => {
+      run(act.replace("'teacher'", "'cat'"));
+    }).toThrow(/no clerk or person sprite/);
   });
 
-  it('lists every wall, floor, ceiling, mood and sprite the level format knows', () => {
-    const level = LEVEL();
-    const known = (patch: Record<string, unknown>): string[] => {
-      const checked = checkLevel({ ...level, ...patch });
-      const message = checked.ok ? '' : checked.errors.join('\n');
-      return /\(known: ([^)]*)\)/.exec(message)?.[1]?.split(', ') ?? [];
-    };
-    const legend = (entry: Record<string, unknown>): Record<string, unknown> => ({
-      legend: { ...(level['legend'] as object), u: entry },
-    });
-    const lists = [
-      known(legend({ wall: 'glass' })),
-      known({ floor: 'marble' }),
-      known({ ceiling: 'sky' }),
-      known({ mood: 'neon' }),
-      known({ sprites: [{ sprite: 'robot', pos: [2.5, 6.5] }] }),
-    ];
+  it('names every mood, sky, skyline, ramp and generator kind the kit knows in the format', () => {
     const format = worldPromptText('game-b2')?.missing ?? '';
-    for (const list of lists) {
-      expect(list.length).toBeGreaterThan(3);
-      for (const value of list) expect(format).toContain(`'${value}'`);
+    expect(levelError('level', {})).toBe('');
+    expect(levelError('outdoor', {})).toBe('');
+    const lists = {
+      moods: listed(levelError('level', { mood: 'neon' })),
+      skies: listed(levelError('outdoor', { sky: { preset: 'fog' } })),
+      skylines: listed(levelError('outdoor', { sky: { skyline: 'reef' } })),
+      ramps: listed(assetError('sprites', { gen: 'plant', kind: 'bush', leaf: 'teal' })),
+      plants: listed(assetError('sprites', { gen: 'plant', kind: 'vine' })),
+      creatures: listed(assetError('sprites', { gen: 'creature', kind: 'whale' })),
+      hats: listed(assetError('sprites', { gen: 'person', hat: 'beret' })),
+      outfits: listed(assetError('sprites', { gen: 'person', outfit: 'kilt' })),
+      tools: listed(assetError('sprites', { gen: 'person', tool: 'flute' })),
+      structures: listed(assetError('sprites', { gen: 'structure', kind: 'igloo' })),
+      vehicles: listed(assetError('sprites', { gen: 'vehicle', kind: 'tram' })),
+      objects: listed(assetError('sprites', { gen: 'object', kind: 'vase' })),
+      textures: listed(assetError('textures', { gen: 'texture', kind: 'marble' })),
+      icons: listed(assetError('icons', { gen: 'icon', kind: 'harp' })),
+      ...Object.fromEntries(
+        ['bird', 'quadruped', 'fish', 'insect', 'reptile'].map((kind) => [
+          kind,
+          listed(assetError('sprites', { gen: 'creature', kind, form: 'blob' })),
+        ]),
+      ),
+    };
+    for (const [name, list] of Object.entries(lists)) {
+      expect(list.length, name).toBeGreaterThan(1);
+      for (const value of list)
+        expect(format, `${name}: ${value}`).toMatch(new RegExp(`\\b${value}\\b`));
     }
   });
 

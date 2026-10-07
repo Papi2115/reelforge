@@ -236,7 +236,7 @@ function buildScreen(params: z.output<typeof screenParams>, tools: KitTools): B1
 export const b1Screen = defineFx({
   name: 'b1Screen',
   description:
-    'Game B1 world (Atari-era boss montage): one frame of two worlds. Inside the TV the scene paints with Atari 2600 rules (wide pixels, one colour per sprite row, flicker on crowded lines, playfield, CRT); around it a wood-panelled 1982 living room in square pixels with a camera that pushes into the TV and back. Sticky notes on the glass, boss cards, a film HUD (year, score, cartridge progress, checkpoint, lives, dialogue), the high-score table and manual page toolkits, the calendar zoom, the cartridge insert / pull, the level-select map and the game-over screen. Build once, call update(t) every frame.',
+    'Game B1 world (Atari-era boss montage): one frame of two worlds. Inside the TV the scene paints with Atari 2600 rules (wide pixels, one colour per sprite row, flicker on crowded lines, playfield, CRT); around it the room in square pixels (a plain living room or the film`s own interior) with a camera that pushes into the TV and back. Sticky notes on the glass, boss cards, a film HUD (year, score, progress slots, checkpoint, lives, dialogue), the high-score table and manual page toolkits, the calendar zoom, the cartridge insert / pull, the level-select map and the game-over screen. Build once, call update(t) every frame.',
   params: screenParams,
   methods: SCREEN_METHODS,
   build: buildScreen,

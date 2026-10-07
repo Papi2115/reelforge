@@ -41,6 +41,7 @@ import {
 import { sameCompositionFindings } from '../slop/guards.js';
 import { popupSpecs, repeatedPopupFindings, type ShotPopups } from '../slop/popup-intent.js';
 import { parseScene } from '../slop/source-text.js';
+import type { ShotProgram } from '../slop/world-labels.js';
 
 /** Work items of the final review's fixes in pipeline.json. */
 export const FINAL_REVIEW_QUEUE = 'scenes-final-review';
@@ -91,7 +92,8 @@ async function checkAll(
 
 /**
  * Pop-up originality guard: a pop-up, or a world breakthrough with an intent (Comic: flashback,
- * spread), repeating an earlier one's intent or mechanism (⚠).
+ * spread), repeating an earlier one's intent or mechanism (⚠); and the world's film checks (Game B1:
+ * number-only monotony).
  */
 async function addRepeatedPopups(
   job: SceneJob,
@@ -99,6 +101,7 @@ async function addRepeatedPopups(
 ): Promise<Result<void, StageError>> {
   const shots: ShotPopups[] = [];
   const breakthroughs: ShotBreakthroughs[] = [];
+  const programs: ShotProgram[] = [];
   const kinds = job.antiSlop?.spec?.breakthroughs ?? {};
   for (const shot of job.shots) {
     const text = await readProjectText(job.ctx.projectDir, shot.scene);
@@ -107,8 +110,14 @@ async function addRepeatedPopups(
     if (program === undefined) continue;
     shots.push({ shotId: shot.id, popups: popupSpecs(program) });
     breakthroughs.push({ shotId: shot.id, specs: breakthroughSpecs(program, kinds) });
+    programs.push({ shotId: shot.id, program });
   }
-  for (const found of [repeatedPopupFindings(shots), repeatedBreakthroughFindings(breakthroughs)]) {
+  const film = job.antiSlop?.spec?.filmChecks?.(programs) ?? new Map<string, QaFinding[]>();
+  for (const found of [
+    repeatedPopupFindings(shots),
+    repeatedBreakthroughFindings(breakthroughs),
+    film,
+  ]) {
     for (const [shotId, entries] of found) findings.get(shotId)?.push(...entries);
   }
   return ok(undefined);

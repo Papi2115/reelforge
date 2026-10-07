@@ -3,9 +3,9 @@
  * created in the world's style (continuity links and anti-slop guards on), the storyboard turn
  * with the game prompt and validators (its looks, game-native transitions, continuity links drawn
  * by the world's own link transitions), the scene builds with the game craft brief and the critic
- * check, no slop finding on clean game shots; then a long game storyboard without breakthroughs
- * gets the quota repair turn and passes once it plans a high-score table and a manual page. No
- * real Claude call.
+ * check, no slop finding on clean game shots built from the open vocabulary; then a long game
+ * storyboard without breakthroughs gets the quota repair turn and passes once it plans a
+ * high-score table and a manual page. No real Claude call.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -67,7 +67,7 @@ function storyboard(plans: readonly Plan[], edges: (index: number) => [number, n
       t0,
       t1,
       treatment: TREATMENT[roll],
-      intent: `Shot ${id} plays what the narration names; the cartridge stays in the console.`,
+      intent: `Shot ${id} plays what the narration names; the lantern stays on the ridge.`,
       scene: `scenes/${id}.js`,
       roll,
       look: LOOK[roll],
@@ -81,15 +81,18 @@ function storyboard(plans: readonly Plan[], edges: (index: number) => [number, n
             },
           }),
       ...(moment === undefined ? {} : { worldMoment: moment }),
-      ...(link === undefined ? {} : { continuity: { kind: link, object: 'cartridge' } }),
+      ...(link === undefined ? {} : { continuity: { kind: link, object: 'lantern' } }),
     };
   });
   return JSON.stringify({ version: 1, shots }, null, 2);
 }
 
-/** A clean game shot: a cartridge in the TV, the phrase in the narration box, three traces. */
+/**
+ * A clean game shot built from the open vocabulary: a generated lantern on a ridge playfield in the
+ * TV, the phrase in the narration box, three traces (no showcase object).
+ */
 function tvScene(shot: FilmShot): string {
-  return `// focal: the lit cartridge | traces: a decaying shake, Dad's note on the glass, its tick
+  return `// focal: the lit lantern | traces: a decaying shake, a note on the glass, its tick
 export const meta = { id: '${shot.id}', title: '${shot.phrase}', treatment: '${shot.treatment}' };
 
 export function build(ctx) {
@@ -101,11 +104,14 @@ export function build(ctx) {
     seed: ${String(shot.index + 11)},
   });
   const hit = anchor('${shot.phrase}');
+  screen.generate('lantern', { kind: 'item', type: 'potion', size: 2 });
+  screen.generate('ridge', { kind: 'scenery', type: 'hills', rows: 4, rowH: 4 });
   screen.tv((g, t) => {
     const sh = g.util.shake(t, hit.t, 3, 8, ${String(shot.index + 5)});
     g.offset(sh.x * 2, sh.y * 2);
     g.bands(0, 160, [[0, 'void'], [14, 'tube'], [66, 'dusk'], [80, 'teak']]);
-    g.cart(112, 111, 'orange', { scale: 2, body: 'grey', flicker: false });
+    g.field('ridge', 120);
+    g.draw('lantern', 112, 96, { flicker: false });
     g.offset(0, 0);
   });
   screen.narrate('${shot.phrase}', { at: hit.t });
@@ -126,7 +132,7 @@ const CRAFT_OK = JSON.stringify({
     {
       path: 'sheet.png',
       verdict: 'ok',
-      note: "focal: the lit cartridge; traces: a decaying shake, Dad's note, its tick",
+      note: 'focal: the lit lantern; traces: a decaying shake, a note on the glass, its tick',
     },
   ],
 });
@@ -177,7 +183,8 @@ describe('a game-b1 film on fake-claude', { timeout: 180_000 }, () => {
     if (!storyboarded.ok) throw new Error(JSON.stringify(storyboarded.error));
     expect(storyboarded.value.warnings.join('\n')).not.toMatch(/transition-(style|duration)/);
     const prompt = harness.specs[0]?.prompt ?? '';
-    expect(prompt).toContain('storyboard artist for an Atari-era boss-fight montage video');
+    expect(prompt).toContain('storyboard artist for an Atari 2600 game video');
+    expect(prompt).toContain('list its nouns, places and actions');
     expect(prompt).toContain('- `atari-menu` (Atari menu)');
     expect(prompt).toContain(
       '- `game-b1-calendar-zoom` (wipe, about 1.2 s; the `zoom-through` link)',
@@ -201,11 +208,16 @@ describe('a game-b1 film on fake-claude', { timeout: 180_000 }, () => {
 
     const scenes = await stages.run({ stage: 'scenes' });
     expect(scenes.ok).toBe(true);
-    const builds = harness.specs.filter((spec) => spec.stage === 'scene-build');
+    // The world-assets turn (PLAN.md#13.15) runs on the scene builder's permissions too.
+    const builds = harness.specs.filter(
+      (spec) =>
+        spec.stage === 'scene-build' && !spec.prompt.startsWith('You are the production designer'),
+    );
     expect(builds).toHaveLength(shots.length);
     for (const build of builds) {
       expect(build.prompt).toContain('Craft brief (Game B1; binding');
       expect(build.prompt).toContain('never end your reply with a `MISSING:` line');
+      expect(build.prompt).toContain('screen.defineSprite(');
       expect(build.prompt).not.toMatch(/voxel/i);
     }
     expect(builds[2]?.prompt).toContain('This shot hands over to s04 through a zoom-through link');

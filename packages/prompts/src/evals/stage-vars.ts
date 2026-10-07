@@ -188,6 +188,17 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
       });
       return vars === undefined ? err(`${file.id}: script.txt is empty`) : ok(vars);
     }
+    case 'world-assets':
+      // World films only (PLAN.md#13.15); an eval case is a built-in style: the Sketchbook wording.
+      return ok({
+        world: 'sketchbook',
+        worldLabel: 'Sketchbook',
+        grammar:
+          'A hand-drawn spiral notebook: crude stick people, hand lettering, felt-tip and pencil.',
+        vocabulary: 'figures: page.person looks, props: doodle, spot or draw kind.',
+        naming: 'one file per thing, <id>.json',
+        budget: '24 things',
+      });
     case 'brief':
       return ok({
         topic: brief.topic,

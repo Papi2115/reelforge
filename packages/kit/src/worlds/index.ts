@@ -26,6 +26,36 @@ export {
   strokeLetteringFindings,
   type StrokeLetteringFinding,
 } from './sketchbook/index.js';
+// Project asset files of the open vocabularies (PLAN.md#13.15 phase 2): format checks and the
+// ids a scene refers to, for the loader, `reelforge validate` and the scene QA.
+export {
+  comicAssetFileSchema,
+  parseComicAssets,
+  unknownComicArtIds,
+  type ComicAssets,
+  type ComicAssetsResult,
+  type UnknownArtId,
+} from './comic/art/assets.js';
+export {
+  b1AssetFileSchema,
+  b1SceneRefs,
+  checkB1Assets,
+  type B1AssetFile,
+  type B1AssetIds,
+  type B1AssetReport,
+} from './game-b1/index.js';
+export { checkAssets, type AssetPackInput, type AssetsResult } from './game-b2/index.js';
+export type { KnownAssets } from './game-b2/index.js';
+export { packSchema as b2AssetPackSchema } from './game-b2/assets/pack.js';
+export { ICONS as GAME_B2_ICONS } from './game-b2/hud/inventory.js';
+export {
+  checkSketchAssets,
+  parseSketchAsset,
+  sketchAssetFindings,
+  sketchAssetSchema,
+  type SketchAsset,
+  type SketchAssetFinding,
+} from './sketchbook/index.js';
 
 /** Every world module, in delivery order. */
 export const WORLDS: readonly World[] = Object.freeze([SKETCHBOOK, COMIC, GAME_B2, GAME_B1]);

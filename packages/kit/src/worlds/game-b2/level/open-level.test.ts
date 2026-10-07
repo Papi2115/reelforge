@@ -68,8 +68,15 @@ describe('levels with the film assets', () => {
 
   it('list the film assets next to the built-ins when a name is unknown', () => {
     const wrong = { ...GLADE, sprites: [{ sprite: 'owl', pos: [2.5, 2.5] }] };
-    expect(errors(wrong, KNOWN)[0]).toMatch(
-      /unknown sprite "owl" \(known: sand-pile, [^)]*\); the film's assets\.sprites: pine, jay, ranger/,
+    const message = errors(wrong, KNOWN)[0] ?? '';
+    expect(message).toMatch(
+      /unknown sprite "owl" \(known: pallet, [^)]*\); the film's assets\.sprites: pine, jay, ranger/,
+    );
+    // The showcase pieces stay valid names but are never offered in a hint.
+    for (const piece of ['item', 'sand-pile', 'clerk', 'carton'])
+      expect(message).not.toMatch(new RegExp(`known: [^)]*\\b${piece}\\b`));
+    expect(errors({ ...GLADE, sprites: [{ sprite: 'clerk', pos: [2.5, 2.5] }] }, KNOWN)).toEqual(
+      [],
     );
   });
 

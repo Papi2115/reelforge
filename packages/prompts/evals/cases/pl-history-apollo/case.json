@@ -158,6 +158,7 @@
         }
       ]
     },
-    "roles": "Zbudowany pilot: czapka z daszkiem, granatowa marynarka z krawatem, plakietka, podkładka; 3 kolory stroju.\ncast preview: wszystkie testy ok; od frontu i z boku czytelny jako pilot."
+    "roles": "Zbudowany pilot: czapka z daszkiem, granatowa marynarka z krawatem, plakietka, podkładka; 3 kolory stroju.\ncast preview: wszystkie testy ok; od frontu i z boku czytelny jako pilot.",
+    "world-assets": "Zbudowany 1 rekwizyt (lunar-module); nowe miejsca: brak.\nworld-assets check: 0 błędów; arkusz czytelny w miniaturze."
   }
 }

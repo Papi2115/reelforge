@@ -231,9 +231,9 @@ export const b2Hud = defineFx({
       'Year (rolls when the story jumps in time), heading tape, objective marker, place typed under it',
     'minimap({ at })': 'The level around the player with the footprints of the walk (needs view)',
     'meter({ label, segments, keys: [[t, value]], at })':
-      'HP-style meter: ONLY for the thing really in danger in the story (e.g. MARKET); losing segments blink clay',
+      'HP-style meter: ONLY for the thing really in danger in the story (e.g. HARVEST); losing segments blink clay',
     "status({ label, icon: 'hourglass' | 'waves' | 'alarm', at, until })":
-      'A status effect under the compass (RUSHED, FLOODED)',
+      'A status effect under the compass (RUSHED, LOST)',
     'boss({ name, label, keys: [[t, share]], at, until })':
       'Boss bar: ONLY for the central problem; each step lands with an overshoot',
     'progress({ from, to, chapters })':
@@ -247,7 +247,7 @@ export const b2Hud = defineFx({
     'narrate(text, { at, until })': 'The narration box (no speaker)',
     'choose({ speaker, options, at, until, steps: [{ at, cursor | strike | pick }] })':
       'A choice box: the cursor moves with an overshoot, struck options are crossed by hand, the pick lights up',
-    "inventory({ items: [{ icon: 'cartridge' | 'calendar' | 'carton' | 'note' | 'key' | an assets icon id, label, at, itemLabel, band, out }], at, until })":
+    "inventory({ items: [{ icon: an assets icon id | 'note' | 'key' | 'calendar', label, at, itemLabel, band, out }], at, until })":
       'Inventory bar: facts picked up so far; a new one drops in and its name types above; `out` = it leaves (thrown)',
     'tally({ intent, at, until, title, sub, rows: [{ label, value, format, unit, approx, est, role, underline }], stamp: { text }, backdrop, enter, exit })':
       'Breakthrough: the intermission screen (chapter recap). Counters tick up row by row, then a still beat and a stamp; melts in, dissolves out; holds <= 4 s. Returns { at, end, cues }',

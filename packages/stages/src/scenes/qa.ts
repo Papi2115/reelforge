@@ -31,6 +31,7 @@ import { cameraInterruptFindings } from './source-checks-camera.js';
 import { characterSourceFindings } from './source-checks-characters.js';
 import { offensiveSourceFindings } from './source-checks-offensive.js';
 import { shotSyncEvents, syncFindings } from './sync.js';
+import { worldAssetRefFindings } from '../world-assets/refs.js';
 import type { ShotRender } from './tools.js';
 
 export interface QaResult {
@@ -96,6 +97,10 @@ export async function qaRound(
   }
   const lint = lintFindings(lintScene(source, { filename: shot.scene }), shot.scene);
   if (lint.length > 0) return ok(early(lint, source));
+  // World films (PLAN.md#13.15): an asset id nobody defines fails before any render.
+  const unknownAssets = await worldAssetRefFindings(job, source, shot.scene);
+  if (!unknownAssets.ok) return unknownAssets;
+  if (unknownAssets.value.length > 0) return ok(early(unknownAssets.value, source));
   const times = smokeTimes(shot.t1 - shot.t0);
   // A variant (PLAN.md#11.3) is checked from its own file at the storyboard shot's place.
   const own = job.shots.find((candidate) => candidate.id === shot.id)?.scene;

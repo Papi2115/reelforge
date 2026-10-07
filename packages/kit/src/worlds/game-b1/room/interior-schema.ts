@@ -52,7 +52,7 @@ export const propSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('poster'), x, y: y.default(22), w: z.number().min(14).max(70).default(26), h: z.number().min(16).max(80).default(34), sprite: z.string().min(1).max(32).optional().describe('A sprite id of the film, printed big'), colour: ink.default('teal'), frame: z.enum(['poster', 'frame']).default('poster') }),
   z.strictObject({ kind: z.literal('shelf'), x, y: y.default(40), w: z.number().min(16).max(90).default(40), rows: z.int().min(1).max(3).default(2), items: z.enum(SHELF_ITEMS).default('books') }),
   z.strictObject({ kind: z.literal('clock'), x, y: y.default(14), time: z.string().regex(/^\d{1,2}:\d{2}$/).default('10:10') }),
-  z.strictObject({ kind: z.literal('blackboard'), x, y: y.default(14), w: z.number().min(30).max(140).default(90), h: z.number().min(20).max(70).default(46), lines: z.array(z.string().min(1).max(14)).max(3).default([]).describe("Chalk words in Dad's hand, from the narration") }),
+  z.strictObject({ kind: z.literal('blackboard'), x, y: y.default(14), w: z.number().min(30).max(140).default(90), h: z.number().min(20).max(70).default(46), lines: z.array(z.string().min(1).max(14)).max(3).default([]).describe('Chalk words from the narration') }),
   z.strictObject({ kind: z.literal('pegboard'), x, y: y.default(30), w: z.number().min(20).max(100).default(50), h: z.number().min(16).max(60).default(36) }),
   z.strictObject({ kind: z.literal('plant'), x, size: z.enum(['small', 'tall']).default('tall'), pot: ink.default('rust') }),
   z.strictObject({ kind: z.literal('lamp'), x, type: z.enum(['floor', 'desk']).default('floor'), on: z.boolean().default(true) }),

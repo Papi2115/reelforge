@@ -16,7 +16,7 @@ import {
 import { defineFx, type KitTools } from '../../../registry.js';
 import { EASE_IDS } from '../core/rand.js';
 import { compileExtraSprite, compileLevel, type CompiledLevel } from '../level/compile.js';
-import { BUILT_IN_LEVELS, builtInLevel } from '../level/examples.js';
+import { BUILT_IN_LEVELS, builtInLevel, isBuiltInLevel } from '../level/examples.js';
 import { checkLevel, isDoor, isWall, legendOf, levelSchemas, type Level } from '../level/schema.js';
 import { createPath, type Camera, type PathKey } from '../ray/camera.js';
 import { colorOfSwatch } from '../palette.js';
@@ -24,6 +24,7 @@ import { ITEM_KINDS, type ItemLook } from '../ray/sprites-props.js';
 import { createOutput, SCREEN_H, SCREEN_W } from './output.js';
 import { viewExtras, type Timed } from './view-extra.js';
 import { artOf, defineAsset, isPerson, loadViewAssets, type ViewAssets } from './view-assets.js';
+import { GAME_B2_SHOWCASE_LINE } from '../showcase.js';
 import { B2World } from './world.js';
 
 const CALL = 'kit.fx.b2View()';
@@ -60,9 +61,14 @@ export const b2ViewParams = z.object({
     .default([SCREEN_W, SCREEN_H])
     .describe('Pass [ctx.shot.width, ctx.shot.height]'),
   level: z
-    .union([z.enum(BUILT_IN_LEVELS), z.record(z.string(), z.unknown())])
+    .union([
+      z.record(z.string(), z.unknown()),
+      z.string().refine(isBuiltInLevel, {
+        message: `write the film's own level object; the only level names are the showcase pieces ${BUILT_IN_LEVELS.join(', ')}`,
+      }),
+    ])
     .describe(
-      "'office' | 'warehouse' (built-in) or a level object { name, mood, floor, ceiling, sky, grid, legend, lights, sprites }",
+      `The film's own level object { name, mood, floor, ceiling, sky, grid, legend, lights, sprites }. ${GAME_B2_SHOWCASE_LINE}`,
     ),
   assets: z
     .union([z.record(z.string(), z.unknown()), z.array(z.record(z.string(), z.unknown())).max(4)])
@@ -75,7 +81,7 @@ export const b2ViewParams = z.object({
     .min(1)
     .max(5)
     .optional()
-    .describe('Built-in levels: the word stencilled on cartons / signs (a real word of the film)'),
+    .describe('Showcase levels only: the word stencilled on their signs (a real word of the film)'),
   path: z
     .array(keySchema)
     .min(1)
@@ -94,8 +100,16 @@ export const b2ViewParams = z.object({
 });
 
 const itemSchema = z.strictObject({
-  kind: z.enum(ITEM_KINDS).optional().describe('cartridge (default), note or key'),
-  icon: z.string().optional().describe("An icon id of the film's assets (a ledger, a brick)"),
+  icon: z
+    .string()
+    .optional()
+    .describe(
+      "An icon id of the film's assets (a ledger, a brick): the usual way to give an item its look",
+    ),
+  kind: z
+    .enum(ITEM_KINDS)
+    .optional()
+    .describe("Without an icon: 'note' or 'key' ('cartridge' is a showcase piece)"),
   label: z.string().max(5).optional().describe('Word on the item label (real, <= 5 letters)'),
   band: z.string().optional().describe('Label band colour: pink = THE item of the story (default)'),
   dirty: z.boolean().optional(),
@@ -159,6 +173,7 @@ function parse<S extends z.ZodType>(schema: S, value: unknown, what: string): z.
 }
 
 function loadLevel(params: z.output<typeof b2ViewParams>, assets: ViewAssets): Level {
+  // A string is a built-in (showcase) level: the params schema refuses any other name.
   const input =
     typeof params.level === 'string' ? builtInLevel(params.level, params.stencil) : params.level;
   const checked = checkLevel(input, assets.known);
@@ -193,6 +208,10 @@ function itemLook(value: unknown, assets: ViewAssets): ItemLook {
   const band = item.band === undefined ? undefined : colorOfSwatch(item.band);
   if (item.band !== undefined && band === undefined)
     fail(`item.band "${item.band}" is not a game-b2 colour (e.g. pink, clay, dusk)`);
+  if (item.icon === undefined && item.kind === undefined)
+    fail(
+      "item: give it the film's own look, { icon: 'ledger' } (an icon of the assets or view.defineIcon), or kind: 'note' | 'key'",
+    );
   const art = item.icon === undefined ? undefined : artOf(assets.set, item.icon);
   if (item.icon !== undefined && art === undefined)
     fail(`item.icon "${item.icon}" is not an icon of the assets (define it in assets.icons)`);
@@ -321,13 +340,13 @@ export const b2View = defineFx({
     'update(t)': 'Repaints the view for local time t: call it every frame',
     'open([x, y], { at, dur })': 'Slides a door cell open (dur default 0.7 s)',
     'switchOn(lightId, { at })': 'The light (off until then) clicks on with two uneven stutters',
-    "act(clerkId, { act: 'talk' | 'no', at, until })":
-      'An NPC talks (mouth flaps at an uneven cadence) or shakes its head',
+    "act(personId, { act: 'talk' | 'no', at, until })":
+      "A person sprite of the level (the person generator's or the film's own) talks (mouth flaps at an uneven cadence) or shakes its head",
     'place(sprite, { at, fall })':
-      'A sprite ({ sprite, pos, z, label, ... }) drops in at `at` with an overshoot (returned stock landing on a desk)',
+      'A sprite ({ sprite, pos, z, label, ... }) drops in at `at` with an overshoot (a thing set down on a table)',
     'shake({ at, amp })': 'Screen shake with decay (a thump)',
     'take(item, { at, from: [x, y, z], until })':
-      'The hand reaches for a world point, closes on the item ({ label, band, dirty }) and swings back holding it',
+      "The hand reaches for a world point, closes on the item ({ icon: an icon of the film's assets } or { kind: 'note' | 'key', label, band, dirty }) and swings back holding it",
     'hold(item, { at, until })': 'The hand rises holding an item and lowers at until',
     'present({ at, until })':
       'The held item is pushed forward at someone (dip, overshoot, hold, ease back)',

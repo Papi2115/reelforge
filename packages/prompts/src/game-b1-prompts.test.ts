@@ -1,10 +1,11 @@
 /**
- * Game B1 wording in the prompts (PLAN.md#13.5 part c): a Game B1 project gets its own film, rolls,
- * game-native transitions (the continuity ones name their link), craft brief, critic checklist and
- * moment catalog (the high-score table and the manual page as breakthroughs, each with a required
- * intent; the calendar zoom and the cartridge as in-shot seams), no voxel text; the variety
- * validator runs on the game catalog with the generic rules and asks for the `continuity` of a
- * link transition. The legacy, Sketchbook, Comic and Game B2 renderings stay as they were.
+ * Game B1 wording in the prompts (PLAN.md#13.5 part c, #13.15 phase 2): a Game B1 project gets its
+ * own film, rolls, game-native transitions (the continuity ones name their link), the style
+ * grammar and a design process per shot (the narration's nouns → sprites, playfields, the room),
+ * craft brief, critic checklist and moment catalog (the high-score table and the manual page as
+ * breakthroughs, each with a required intent; the calendar zoom and the console swap as in-shot
+ * seams), no voxel text; the variety validator runs on the game catalog with the generic rules and
+ * asks for the `continuity` of a link transition. The showcase's nouns: game-b1-bias.test.ts.
  */
 import type { ContinuityKind, StoryboardShot, Treatment } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
@@ -77,12 +78,12 @@ const prompts = {
     shotId: 's04_scores',
     shotScene: 'scenes/s04_scores.js',
     shotJson: { id: 's04_scores', t0: 24, t1: 31.5, treatment: 'counter/odometer' },
-    shotWords: [{ text: 'boom', t: 26.7, tEnd: 27.1 }],
+    shotWords: [{ text: 'first', t: 26.7, tEnd: 27.1 }],
     neighbours: [],
     styleId: 'game-b1',
     lookId: 'atari-menu',
     lookDocs: "Look `atari-menu` (world Game B1, B roll): the console's screens.",
-    annotationPlan: '- "1982" (number): counter 1982',
+    annotationPlan: '- "1953" (number): counter 1953',
     ...sceneWorldVars(GAME, 'score-table'),
   }),
   'scene-fix': rendered('scene-fix', {
@@ -95,7 +96,7 @@ const prompts = {
   critic: rendered('critic', {
     styleId: 'game-b1',
     imagePaths: '.reelforge/qa/s06_flood/build-1.png',
-    intent: 'The flood of games rises; its weak point is quality control.',
+    intent: 'The storm rises over the point; its weak point is the old pier.',
     lookId: 'atari-boss',
     roll: 'C',
     lookRules: 'Atari boss: the pressure moments.',
@@ -115,10 +116,12 @@ describe('game-b1 prompts', () => {
 
   it('give the storyboard the world, its rolls, transitions with their links, catalog and quota', () => {
     const storyboard = prompts.storyboard;
-    expect(storyboard).toContain('storyboard artist for an Atari-era boss-fight montage video');
+    expect(storyboard).toContain('storyboard artist for an Atari 2600 game video');
     expect(storyboard).toContain(
-      'World brief (Game B1: Atari boss montage): the whole film is one Atari 2600 game',
+      "World brief (Game B1: Atari boss montage): the whole film is one Atari 2600 game about THIS film's subject",
     );
+    expect(storyboard).toContain('list its nouns, places and actions');
+    expect(storyboard).toContain('ONE boss card in the film, for the central problem');
     expect(storyboard).toContain('- `A` = the story (`atari-story`');
     expect(storyboard).toContain("- `B` = the console's screens (`atari-menu`");
     expect(storyboard).toContain('- `C` = the boss (`atari-boss`');
@@ -147,15 +150,17 @@ describe('game-b1 prompts', () => {
     expect(Buffer.byteLength(brief, 'utf8')).toBeLessThanOrEqual(1536);
     for (const part of [
       'write a comment: `// focal:',
-      'inside the TV 2600 rules',
+      'inside the TV 2600 rules (wide pixels, 8-bit sprites with ONE ink per row',
+      'big enough to read at 64 px wide',
       'every HUD element MEANS something: year = the story',
-      'a boss card only for the central problem',
-      "Dad's sticky note with real words",
-      'centred symmetric HUD spam, lives or health with no real threat, icon rows',
+      'ONE boss in the film, for the central problem',
+      'a sticky note with real words',
+      "Don't: a big number alone on black",
+      'centred symmetric HUD spam, icon rows',
       '> 6 competing elements',
       'only words of the narration or research notes',
+      'no `$` or `=`',
       'slick polished art: keep the sprites simple, slightly crude',
-      'docs/worlds/game-hud-b1-boss-v2/shots/',
     ]) {
       expect(brief).toContain(part);
     }
@@ -168,6 +173,11 @@ describe('game-b1 prompts', () => {
     expect(build).toContain('Never the same entrance and initials twice in one film');
     expect(build).toContain(`\`${GAME_B1_SNIPPETS.screen}\``);
     expect(build).toContain(`\`${GAME_B1_SNIPPETS.camera}\``);
+    expect(build).toContain(`\`${GAME_B1_SNIPPETS.defineSprite}\``);
+    expect(build).toContain(`\`${GAME_B1_SNIPPETS.interior}\``);
+    expect(build).toContain("`'#'` = a lit bit and `'.'` = empty (nothing else draws)");
+    expect(build).toContain('Design first, in a comment under the focal line (`// nouns: …`)');
+    expect(build).toContain('screen.assets(ctx.worldAssets)');
     expect(build).toContain('never end your reply with a `MISSING:` line');
     expect(build).not.toContain('MISSING: <prop names>');
     const fix = prompts['scene-fix'];
@@ -185,7 +195,8 @@ describe('game-b1 prompts', () => {
     expect(critic).toContain(
       'Planned page moment (`boss-card`): a boss card naming the central problem',
     );
-    expect(critic).toContain('the CRT, the scanlines, the panelling and the shag never do');
+    expect(critic).toContain("the CRT, the scanlines and the room's wallpaper or floor never do");
+    expect(critic).toContain('never a number alone on black');
   });
 
   it('give the script game surprises', () => {
@@ -219,7 +230,7 @@ function film(plans: readonly Plan[], lengthS = 6): StoryboardShot[] {
       t0: index * lengthS,
       t1: (index + 1) * lengthS,
       treatment: TREATMENT[roll],
-      intent: `shot ${id} with the cartridge`,
+      intent: `shot ${id} with the lighthouse`,
       scene: `scenes/${id}.js`,
       roll,
       look: LOOK[roll],
@@ -228,7 +239,7 @@ function film(plans: readonly Plan[], lengthS = 6): StoryboardShot[] {
           ? { type: 'cut' }
           : { type: 'wipe', duration: 0.8, style: `game-b1-${style}` },
       ...(moment === undefined || moment === '-' ? {} : { worldMoment: moment }),
-      ...(link === undefined ? {} : { continuity: { kind: link, object: 'cartridge' } }),
+      ...(link === undefined ? {} : { continuity: { kind: link, object: 'lighthouse' } }),
     };
   });
 }

@@ -211,7 +211,21 @@ function shotContent(
     paletteShift: shot.paletteShift,
     // Live co-direction (PLAN.md#12.14): undefined (left out) without one.
     direction: shot.direction,
+    // World assets (PLAN.md#13.15): every shot of a world may draw any of them; undefined
+    // (left out) without any, so old keys stay valid.
+    worldAssets: worldAssetInputs(manifest.worldAssets),
   };
+}
+
+/** The world asset files' hashes (sorted by file), or undefined without a `worldAssets` field. */
+export function worldAssetInputs(
+  worldAssets: RenderManifest['worldAssets'],
+): { world: string; files: { file: string; source: string }[] } | undefined {
+  if (worldAssets === undefined) return undefined;
+  const files = [...worldAssets.files]
+    .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0))
+    .map((entry) => ({ file: entry.file, source: sha256Hex(entry.source) }));
+  return { world: worldAssets.world, files };
 }
 
 export interface SegmentKeyInput {

@@ -46,7 +46,7 @@ export const manualSchema = z.strictObject({
     .array(whenParam)
     .max(5)
     .default([])
-    .describe("Dad's pencil ticks beside rules 1, 2, ... at these times (follow the narrator)"),
+    .describe('Pencil ticks beside rules 1, 2, ... at these times (follow the narrator)'),
   correction: z
     .strictObject({
       step: z.int().min(1).max(5),
@@ -127,7 +127,7 @@ function printable(what: string, text: string): string {
 function handable(what: string, text: string): string {
   const upper = text.toUpperCase();
   const missing = missingHandGlyphs(upper);
-  if (missing.length > 0) fail(`${what} "${text}": Dad's hand cannot write ${missing.join(' ')}`);
+  if (missing.length > 0) fail(`${what} "${text}": the hand cannot write ${missing.join(' ')}`);
   return upper;
 }
 

@@ -59,6 +59,7 @@ describe('bundled prompts', () => {
         'sound-cues',
         'storyboard',
         'tension',
+        'world-assets',
         'youtube-meta',
       ].sort(),
     );
@@ -220,6 +221,7 @@ describe('stages and models', () => {
       claims: 'critic',
       hooks: 'critic',
       brief: 'critic',
+      'world-assets': 'scene-build',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);

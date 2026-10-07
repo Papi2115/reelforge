@@ -34,6 +34,8 @@ export interface WorldText {
   readonly textCallKeys?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Option keys whose number literals are on screen (a tally row's `value`). */
   readonly numberKeys?: readonly string[] | undefined;
+  /** Call -> option of `[t, value]` keys whose values are on screen (Game B1 `counter: 'keys'`). */
+  readonly keyedNumbers?: Readonly<Record<string, string>> | undefined;
 }
 
 const TEXT_METHODS = new Set(['write', 'print', 'title', 'kinetic', 'lowerThird', 'typewriter']);
@@ -141,6 +143,37 @@ function shownNumber(node: AnyNode): string | undefined {
   return undefined;
 }
 
+/**
+ * The shown values of a call's literal `[[t, value], …]` option (a counter's keys): its first and
+ * last value and any key outside them; the keys in between are the steps of a count running from
+ * one to the other (a day counter 1 → 9 → 17 → 40), not claims of their own.
+ */
+function keyedValues(call: AnyNode, key: string): { node: AnyNode; texts: string[] }[] {
+  if (call.type !== 'CallExpression') return [];
+  const keys: { node: AnyNode; value: number; shown: string }[] = [];
+  for (const argument of call.arguments) {
+    if (argument.type !== 'ObjectExpression') continue;
+    for (const property of argument.properties) {
+      if (propertyKey(property) !== key || property.type !== 'Property') continue;
+      if (property.value.type !== 'ArrayExpression') continue;
+      for (const pair of property.value.elements) {
+        const value = pair?.type === 'ArrayExpression' ? pair.elements[1] : undefined;
+        const shown = value === null || value === undefined ? undefined : shownNumber(value);
+        if (pair && shown !== undefined) keys.push({ node: pair, value: Number(shown), shown });
+      }
+    }
+  }
+  const [first, last] = [keys[0], keys.at(-1)];
+  if (first === undefined || last === undefined) return [];
+  const [low, high] = [Math.min(first.value, last.value), Math.max(first.value, last.value)];
+  return keys
+    .filter((entry, index) => {
+      const end = index === 0 || index === keys.length - 1;
+      return end || entry.value < low || entry.value > high;
+    })
+    .map((entry) => ({ node: entry.node, texts: [entry.shown] }));
+}
+
 /** String values of `keys` anywhere in a call's arguments (the call's own text options). */
 function callOptionTexts(
   call: AnyNode,
@@ -168,6 +201,7 @@ export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreen
   const sounds = new Set(world.soundMethods ?? []);
   const numberKeys = new Set(world.numberKeys ?? []);
   const callKeys = world.textCallKeys ?? {};
+  const keyed = world.keyedNumbers ?? {};
   const inMeta = (node: AnyNode): boolean =>
     meta.some(([start, end]) => node.start >= start && node.end <= end);
   const found: OnScreenText[] = [];
@@ -196,6 +230,10 @@ export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreen
       for (const entry of callOptionTexts(node, new Set(ownKeys), constants)) {
         add(entry.node, entry.texts);
       }
+    }
+    const keyedOption = name !== undefined && Object.hasOwn(keyed, name) ? keyed[name] : undefined;
+    if (keyedOption !== undefined) {
+      for (const entry of keyedValues(node, keyedOption)) add(entry.node, entry.texts);
     }
     const key = propertyKey(node);
     if (node.type === 'Property' && key !== undefined && keys.has(key)) {

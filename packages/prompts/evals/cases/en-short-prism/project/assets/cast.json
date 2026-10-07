@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "world": "sketchbook",
+  "entries": [
+    {
+      "id": "prism",
+      "kind": "prop",
+      "name": "the glass prism",
+      "file": "assets/sketchbook/prism.json",
+      "shots": ["s01_hook"],
+      "notes": "the same outline in every shot"
+    }
+  ]
+}

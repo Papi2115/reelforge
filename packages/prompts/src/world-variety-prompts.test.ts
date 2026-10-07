@@ -143,7 +143,7 @@ describe('sketchbook moment wording', () => {
       ...sceneWorldVars(SKETCHBOOK, 'strip'),
     });
     expect(build).toContain('Page moment planned for this shot (`strip`;');
-    expect(build).toContain("build it with `page.strip({ y: 156, events: [{ label: '14 JULY'");
+    expect(build).toContain("build it with `page.strip({ y: 156, events: [{ label: 'SPRING'");
     expect(build).toContain('2-8 events in order');
     const popup = rendered('scene-build', {
       shotId: 's07',
@@ -155,7 +155,11 @@ describe('sketchbook moment wording', () => {
       ...sceneWorldVars(SKETCHBOOK, 'popup'),
     });
     expect(popup).toContain('`page.popup({ intent, x, y, w, depth, at, elements, pull })`');
-    expect(popup).toContain("`page.popup({ intent: 'the dancers grow from 1 to 400");
+    expect(popup).toContain("`page.popup({ intent: 'three days of rain lift the river");
+    expect(popup).toContain("another mechanism: `page.popup({ intent: 'behind the locked door");
+    expect(popup).toContain(
+      'a `gauge` (thermometer or water level, `level`) rising for any quantity',
+    );
     expect(popup).toContain('`focus` = the id the red pen loops');
     expect(popup).toContain('Every pop-up is original: invent the paper mechanism');
     expect(popup).toContain('Never the same mechanism twice in one film');
@@ -218,7 +222,8 @@ describe('sketchbook moment wording', () => {
     expect(text.motion).toContain("appear: 'bloom'");
     expect(text.motion).toContain('quick: true');
     expect(text.motion).toContain('hero: true');
-    expect(text.motion).toContain("layout: 'facing'");
+    expect(text.motion).toContain("layout: 'landscape'");
+    expect(text.motion).toContain("'top-down-map' a place from above");
     expect(text.motion).toContain('always create the page with `duration: ctx.shot.duration`');
   });
 });

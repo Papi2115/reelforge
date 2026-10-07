@@ -78,7 +78,7 @@ export function build(ctx) {
     seed: 1982,
     path: WALK.map(([at, x, y, yaw, ease]) => ({ at, x, y, yaw, ease })),
   });
-  view.hold({ label: 'E.T.', band: 'pink' }, { at: -1 });
+  view.hold({ kind: 'cartridge', label: 'E.T.', band: 'pink' }, { at: -1 });
   const map = view.automap({
     intent: 'the story so far: the office and the warehouse are done, the stores come next',
     at: 0,

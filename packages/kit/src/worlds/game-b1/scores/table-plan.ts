@@ -66,10 +66,10 @@ export const scoreTableSchema = z.strictObject({
   ring: z
     .strictObject({
       at: whenParam,
-      note: z.string().min(1).max(8).optional().describe("A word beside it in Dad's hand"),
+      note: z.string().min(1).max(8).optional().describe('A word beside it in the same hand'),
     })
     .optional()
-    .describe("Dad's grease pencil rings the hero score on the glass"),
+    .describe('A grease pencil rings the hero score on the glass'),
   enter: z.enum(['draw-in', 'cut']).default('draw-in'),
 });
 
@@ -256,7 +256,7 @@ export function planScoreTable(spec: Spec, at: (when: number | string) => number
   if (ring?.note !== undefined) {
     const missing = missingHandGlyphs(ring.note);
     if (missing.length > 0)
-      fail(`ring.note "${ring.note}": Dad's hand cannot write ${missing.join(' ')}`);
+      fail(`ring.note "${ring.note}": the hand cannot write ${missing.join(' ')}`);
   }
   const plan: TablePlan = {
     intent: spec.intent,

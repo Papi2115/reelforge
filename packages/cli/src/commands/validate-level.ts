@@ -5,13 +5,16 @@
  * doors, <= 12 lights, <= 40 sprites, placements and labels). Errors name the grid row or field.
  */
 import { readFile } from 'node:fs/promises';
-import { BUILT_IN_LEVELS, checkLevel } from '@reelforge/kit';
+import { BUILT_IN_LEVELS, checkLevel, type KnownAssets } from '@reelforge/kit';
 import { COMMON_OPTIONS, parseCommandArgs } from '../args.js';
 import { result, type CommandResult, type CommandContext } from '../command.js';
 import { describeUnknown, ProjectError, UsageError } from '../errors.js';
 import { plural, verdictLine } from '../format.js';
 import { levelsInScene, type SourceLevel } from '../project/level-source.js';
+import { readProjectFiles } from '../project/files.js';
 import { projectRelative, resolveInProject } from '../project/paths.js';
+import { b2LevelIds } from '../project/world-asset-refs.js';
+import { worldAssetSet } from '../project/world-assets.js';
 
 export const VALIDATE_LEVEL_USAGE = `usage: reelforge validate level <scenes/<shot>.js | level.json> [--json]
 Checks the Game B2 levels of a scene (every object with a \`grid\` and a \`legend\`, read from the
@@ -37,8 +40,12 @@ function nameOf(value: unknown): string {
     : '(no name)';
 }
 
-function checked(line: number | undefined, value: unknown): LevelReport {
-  const check = checkLevel(value);
+function checked(
+  line: number | undefined,
+  value: unknown,
+  known: KnownAssets | undefined,
+): LevelReport {
+  const check = checkLevel(value, known);
   if (!check.ok) {
     return { line, level: `level "${nameOf(value)}"`, severity: 'error', messages: check.errors };
   }
@@ -52,8 +59,8 @@ function checked(line: number | undefined, value: unknown): LevelReport {
   return { line, level: `level "${level.name}"`, severity: 'ok', messages: [parts.join(', ')] };
 }
 
-function report(entry: SourceLevel): LevelReport {
-  if (entry.kind === 'object') return checked(entry.line, entry.value);
+function report(entry: SourceLevel, known: KnownAssets | undefined): LevelReport {
+  if (entry.kind === 'object') return checked(entry.line, entry.value, known);
   if (entry.kind === 'unreadable') {
     return {
       line: entry.line,
@@ -64,13 +71,13 @@ function report(entry: SourceLevel): LevelReport {
       ],
     };
   }
-  const known = (BUILT_IN_LEVELS as readonly string[]).includes(entry.name);
+  const builtIn = (BUILT_IN_LEVELS as readonly string[]).includes(entry.name);
   return {
     line: entry.line,
     level: `built-in level "${entry.name}"`,
-    severity: known ? 'ok' : 'error',
+    severity: builtIn ? 'ok' : 'error',
     messages: [
-      known ? 'built in' : `unknown; the built-in levels are ${BUILT_IN_LEVELS.join(', ')}`,
+      builtIn ? 'built in' : `unknown; the built-in levels are ${BUILT_IN_LEVELS.join(', ')}`,
     ],
   };
 }
@@ -86,16 +93,16 @@ async function readInput(absolute: string, file: string): Promise<string> {
   }
 }
 
-function jsonLevel(text: string): LevelReport[] {
+function jsonLevel(text: string, known: KnownAssets | undefined): LevelReport[] {
   try {
-    return [checked(undefined, JSON.parse(text) as unknown)];
+    return [checked(undefined, JSON.parse(text) as unknown, known)];
   } catch (error) {
     if (!(error instanceof SyntaxError)) throw error;
     return [{ line: undefined, level: 'level', severity: 'error', messages: [error.message] }];
   }
 }
 
-function sceneLevels(text: string): LevelReport[] {
+function sceneLevels(text: string, known: KnownAssets | undefined): LevelReport[] {
   const found = levelsInScene(text);
   if (!found.ok) {
     return [{ line: undefined, level: 'scene', severity: 'error', messages: [found.error] }];
@@ -112,7 +119,7 @@ function sceneLevels(text: string): LevelReport[] {
       },
     ];
   }
-  return found.levels.map(report);
+  return found.levels.map((entry) => report(entry, known));
 }
 
 function line(file: string, entry: LevelReport): string[] {
@@ -128,6 +135,15 @@ function line(file: string, entry: LevelReport): string[] {
     ...shown,
     ...(more > 0 ? [`  - … and ${String(more)} more (--json lists all)`] : []),
   ];
+}
+
+/** The film's own sprite and texture ids (assets/game-b2/*.json, PLAN.md#13.15) + the scene's. */
+async function projectLevelIds(root: string, source: string): Promise<KnownAssets | undefined> {
+  const files = await readProjectFiles(root);
+  const set = files.worldAssets === undefined ? undefined : worldAssetSet(files.worldAssets);
+  const ids = b2LevelIds(source, set);
+  // None at all: the plain built-in check (messages exactly as before world assets).
+  return ids.sprites.size === 0 && ids.textures.size === 0 ? undefined : ids;
 }
 
 export async function runValidateLevel(
@@ -146,7 +162,8 @@ export async function runValidateLevel(
     throw new UsageError(`"${input}" is neither a scene (.js) nor a level (.json)`);
   }
   const text = await readInput(absolute, file);
-  const levels = lower.endsWith('.json') ? jsonLevel(text) : sceneLevels(text);
+  const known = await projectLevelIds(context.root, lower.endsWith('.json') ? '' : text);
+  const levels = lower.endsWith('.json') ? jsonLevel(text, known) : sceneLevels(text, known);
   const errors = levels.filter((entry) => entry.severity === 'error').length;
   const warnings = levels.filter((entry) => entry.severity === 'warning').length;
   const lines = [

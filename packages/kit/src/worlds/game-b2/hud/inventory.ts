@@ -9,9 +9,14 @@ import { drawText } from '../core/font.js';
 import { EASES, seg } from '../core/rand.js';
 import { C } from '../palette.js';
 import { cartridge, lookKey, type ItemLook } from '../ray/sprites-props.js';
+import { GAME_B2_SHOWCASE } from '../showcase.js';
 import { plate } from './plate.js';
 
 export const ICONS = ['cartridge', 'calendar', 'carton', 'note', 'key'] as const;
+/** What an inventory icon may be, as docs and errors say it (the showcase's icons left out). */
+export const ICON_HELP = `an icon id of the film's assets, or ${ICONS.filter(
+  (name) => !(GAME_B2_SHOWCASE.icons as readonly string[]).includes(name),
+).join(' | ')}`;
 export type IconName = (typeof ICONS)[number];
 
 export function isIconName(name: string): name is IconName {

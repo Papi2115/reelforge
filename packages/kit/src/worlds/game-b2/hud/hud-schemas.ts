@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { KitError } from '../../../errors.js';
 import { whenParam } from '../../../looks/blueprint/timing.js';
 import { textWidth, unsupportedChars } from '../core/font.js';
-import { ICONS } from './inventory.js';
+import { ICON_HELP } from './inventory.js';
 
 export const CALL = 'kit.fx.b2Hud()';
 
@@ -108,7 +108,7 @@ export const schemas = {
     items: z
       .array(
         z.strictObject({
-          icon: z.string().describe(`${ICONS.join(' | ')} or an icon id of the view's assets`),
+          icon: z.string().describe(ICON_HELP),
           label: words(z.string().min(1).max(24)),
           at: time.default(0),
           itemLabel: words(z.string().max(5)).optional(),

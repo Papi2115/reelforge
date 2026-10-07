@@ -45,6 +45,7 @@ import { buildShot, type BuiltShot } from './shot.js';
 import { resolveStyle, type ResolvedStyle } from './style.js';
 import { checkCards, collectCardTimeline, type CardDiagnostic } from './text/check-cards.js';
 import { createTimeline, sampleTimeline, type TimelineSample } from './timeline.js';
+import { videoWorldAssets } from './world-assets/build.js';
 import { findTransition, paletteNumbers } from './transitions/index.js';
 import { createPixelTransitionRenderer } from './transitions/render.js';
 
@@ -133,6 +134,8 @@ function createShotBuilder(
     lut: style.post.lut,
     ditherSize: style.post.dither.size,
   });
+  // The film's world assets (PLAN.md#13.15): parsed once, the same frozen value in every shot.
+  const worldAssets = videoWorldAssets(style.id, manifest.worldAssets)?.value;
   return (shot, namespace, index) =>
     buildShot({
       shot: {
@@ -153,6 +156,7 @@ function createShotBuilder(
       ambient: shotAmbient(manifest, style, index),
       assets,
       styleId: style.id,
+      worldAssets,
     });
 }
 

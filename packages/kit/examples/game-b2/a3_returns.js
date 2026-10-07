@@ -82,7 +82,7 @@ export function build(ctx) {
     );
   });
   view.shake({ at: 5.55, amp: 2.2 });
-  view.hold({ label: 'E.T.', band: 'pink' }, { at: -1 });
+  view.hold({ kind: 'cartridge', label: 'E.T.', band: 'pink' }, { at: -1 });
   view.present({ at: 3.8, until: 6.45 });
   view.act('clerk', { act: 'talk', at: 1.5, until: 3.6 });
   view.act('clerk', { act: 'no', at: 4.45, until: 4.8 });

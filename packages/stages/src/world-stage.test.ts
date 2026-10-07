@@ -160,7 +160,11 @@ describe('a sketchbook film on fake-claude', { timeout: 180_000 }, () => {
 
     const scenes = await runner.run({ stage: 'scenes' });
     expect(scenes.ok).toBe(true);
-    const builds = harness.specs.filter((spec) => spec.stage === 'scene-build');
+    // The world-assets turn (PLAN.md#13.15) runs on the scene builder's permissions too.
+    const builds = harness.specs.filter(
+      (spec) =>
+        spec.stage === 'scene-build' && !spec.prompt.startsWith('You are the production designer'),
+    );
     expect(builds).toHaveLength(6);
     for (const build of builds) {
       expect(build.prompt).toContain('Craft brief (Sketchbook; binding');

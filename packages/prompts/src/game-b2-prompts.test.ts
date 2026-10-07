@@ -1,9 +1,10 @@
 /**
- * Game B2 wording in the prompts (PLAN.md#13.4 part c): a Game B2 project gets its own film, rolls,
- * game-native transitions, craft brief, level format, critic checklist and moment catalog (automap
- * and tally as breakthroughs, the throw, each with a required intent), no voxel text; the variety
- * validator runs on the game catalog with the generic rules. The legacy, Sketchbook and Comic
- * renderings stay as they were (world-prompts.test.ts, comic-prompts.test.ts).
+ * Game B2 wording in the prompts (PLAN.md#13.4 part c, #13.15 phase 2): a Game B2 project gets its
+ * own film, rolls, game-native transitions, the style grammar and a design process per shot, the
+ * asset and level formats, a critic checklist and the moment catalog (automap and tally as
+ * breakthroughs, the throw, each with a required intent), no voxel text; the variety validator runs
+ * on the game catalog with the generic rules. Topic bias: game-b2-bias.test.ts. The legacy,
+ * Sketchbook and Comic renderings stay as they were (world-prompts.test.ts, comic-prompts.test.ts).
  */
 import type { StoryboardShot, Treatment } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
@@ -68,12 +69,12 @@ const prompts = {
     shotId: 's04_route',
     shotScene: 'scenes/s04_route.js',
     shotJson: { id: 's04_route', t0: 24, t1: 32, treatment: 'map' },
-    shotWords: [{ text: 'stores', t: 27.4, tEnd: 27.9 }],
+    shotWords: [{ text: 'harbour', t: 27.4, tEnd: 27.9 }],
     neighbours: [],
     styleId: 'game-b2',
     lookId: 'rpg-menu',
     lookDocs: "Look `rpg-menu` (world Game B2, B roll): the game's screens.",
-    annotationPlan: '- "the stores" (place): pin "TOY STORE"',
+    annotationPlan: '- "the harbour" (place): pin "THE HARBOUR"',
     ...sceneWorldVars(GAME, 'automap'),
   }),
   'scene-fix': rendered('scene-fix', {
@@ -85,8 +86,8 @@ const prompts = {
   }),
   critic: rendered('critic', {
     styleId: 'game-b2',
-    imagePaths: '.reelforge/qa/s09_pit/build-1.png',
-    intent: 'The cartridge is thrown into the pit.',
+    imagePaths: '.reelforge/qa/s09_net/build-1.png',
+    intent: 'The fisher throws the net back over the side.',
     lookId: 'rpg-boss',
     roll: 'C',
     lookRules: 'RPG boss: the pressure moments.',
@@ -108,7 +109,13 @@ describe('game-b2 prompts', () => {
     const storyboard = prompts.storyboard;
     expect(storyboard).toContain('storyboard artist for a first-person RPG video with a Doom vibe');
     expect(storyboard).toContain(
-      'World brief (Game B2: first-person RPG): the whole film is one first-person game level',
+      'World brief (Game B2: first-person RPG): the whole film is one first-person game, and every shot is a place of THIS story',
+    );
+    expect(storyboard).toContain('The world is a style, not a set of props');
+    expect(storyboard).toContain('A film about a forest walks a forest under the sky');
+    expect(storyboard).toContain("Each intent names the shot's place (indoors or outdoors");
+    expect(storyboard).toContain(
+      'change the place, the palette or the light from one walk to the next',
     );
     expect(storyboard).toContain('- `A` = the walk (`rpg-explore`');
     expect(storyboard).toContain("- `B` = the game's screens (`rpg-menu`");
@@ -127,34 +134,51 @@ describe('game-b2 prompts', () => {
     expect(storyboard).not.toMatch(/sketch|comic/i);
   });
 
-  it('give scene-build and scene-fix the craft brief, the level format and the toolkit', () => {
+  it('give scene-build and scene-fix the style grammar, the design process and the formats', () => {
     const brief = text.craftBrief;
     expect(Buffer.byteLength(brief, 'utf8')).toBeLessThanOrEqual(1536);
     for (const part of [
       'write a comment: `// focal:',
+      "A style, not a catalogue: the places, people, animals and things are THIS film's",
+      '32-colour ramps, crude sprites with a 1 px outline lit from the upper left',
+      'readable at 64 px (one big sprite or one strong wall feature)',
       'every HUD element MEANS something: progress = film progress, a checkpoint flag = a chapter',
       'the boss bar only for the central problem',
-      'written from the narration',
+      'every shot has a lit light or a sky',
       'centred symmetric HUD spam, decorative HP or ammo with no real threat, icon rows',
-      '> 6 competing elements, the same corridor twice in a film',
+      '> 6 competing elements, the same room, palette and mood as the walk before',
+      'long dark stretches',
       'only words of the narration or research notes',
       'slick polished art: keep the sprites simple, slightly crude',
-      'docs/worlds/game-hud-b2-rpg-v2/shots/',
+      'References for the light and the HUD only, never their things',
     ]) {
       expect(brief).toContain(part);
     }
     const build = prompts['scene-build'];
     expect(build).toContain(`${brief}\n`);
+    for (const step of [
+      "(i) list the narration's places, people, animals, objects and actions",
+      '(ii) each place: indoors',
+      '(iii) each noun → a sprite or an icon',
+      '(iv) write the level from those places',
+      '(v) vary',
+      '(vi) thumbnail test',
+    ]) {
+      expect(build).toContain(step);
+    }
     expect(build).toContain('Page moment planned for this shot (`automap`;');
     expect(build).toContain(`\`${GAME_B2_SNIPPETS.automap}\``);
     expect(build).toContain('Every automap is original');
     expect(build).toContain('Never the same opening and closing twice in one film');
     expect(build).toContain(`\`${GAME_B2_SNIPPETS.view}\``);
+    expect(build).toContain("The film's pack is `ctx.worldAssets`");
+    expect(build).toContain(GAME_B2_SNIPPETS.assets);
     expect(build).toContain(`const LEVEL = ${GAME_B2_SNIPPETS.level};`);
-    expect(build).toContain('at most 32x32, the border all walls');
+    expect(build).toContain(`const OUTDOOR = ${GAME_B2_SNIPPETS.outdoor};`);
+    expect(build).toContain('at most 32x32');
     expect(build).toContain('At most 12 `lights`');
     expect(build).toContain('and 40 `sprites`');
-    expect(build).toContain("Write the level from the narration's places and objects");
+    expect(build).toContain('The automap, the tally and the throw only in the shot the storyboard');
     expect(build).toContain('`reelforge validate level <the scene file>`');
     expect(build).not.toContain('MISSING: <prop names>');
     const fix = prompts['scene-fix'];
@@ -167,9 +191,10 @@ describe('game-b2 prompts', () => {
     const critic = prompts.critic;
     expect(critic).toContain('QA reviewer for first-person RPG game video frames');
     expect(critic).toContain(
-      'Craft check (Game B2: first-person RPG): one focal thing, off-centre',
+      'Craft check (Game B2: first-person RPG): one focal thing, off-centre, readable at thumbnail size',
     );
-    expect(critic).toContain('Planned page moment (`throw`): the held item leaving the hand');
+    expect(critic).toContain('the same person for everyone');
+    expect(critic).toContain('Planned page moment (`throw`): the held thing leaving the hand');
     expect(critic).toContain('a note starting `throw:`');
     expect(critic).toContain('the HUD plates, the woodgrain, the dither and the head-bob');
   });

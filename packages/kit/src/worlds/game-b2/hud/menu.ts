@@ -13,7 +13,7 @@ import { bayer, EASES, hash3, lerp, seg } from '../core/rand.js';
 import { C, colorOfSwatch } from '../palette.js';
 import { cartridge, lookKey, thing, type ItemArt, type ItemLook } from '../ray/sprites-props.js';
 import { caretOn, plate } from './plate.js';
-import { ICONS, isIconName, type IconName } from './inventory.js';
+import { ICON_HELP, isIconName, type IconName } from './inventory.js';
 import { time } from './hud-schemas.js';
 
 const caps = (max: number) =>
@@ -31,14 +31,14 @@ export const menuSchema = z.strictObject({
   quest: z
     .strictObject({
       now: caps(18).describe('The chapter, big (CHRISTMAS 1982)'),
-      objective: caps(28).describe('The quest in its accent box (SELL E.T. FOR CHRISTMAS.)'),
+      objective: caps(28).describe('The quest in its accent box (REACH THE SPRING.)'),
       done: z.array(caps(28)).max(4).default([]).describe('Chapters done, ticked by hand'),
       ahead: z.int().min(0).max(4).default(0).describe('Chapters still ahead (redacted bars)'),
     })
     .optional(),
   stats: z
     .strictObject({
-      title: caps(18).describe('What the sheet is about (E.T. CARTRIDGE)'),
+      title: caps(18).describe('What the sheet is about (THE OLD MILL)'),
       rows: z
         .array(
           z.strictObject({
@@ -56,7 +56,7 @@ export const menuSchema = z.strictObject({
       items: z
         .array(
           z.strictObject({
-            icon: z.string().describe(`${ICONS.join(' | ')} or an icon id of the view's assets`),
+            icon: z.string().describe(ICON_HELP),
             label: caps(18),
             sub: caps(18).default(''),
             itemLabel: caps(5).optional(),

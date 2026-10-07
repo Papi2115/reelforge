@@ -8,10 +8,10 @@
  * (a part floats), otherwise a good prop. Rendering of real scenes is covered by the Playwright
  * tests.
  */
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { CardDiagnostic } from '@reelforge/engine';
-import { METRICS_CUE } from '@reelforge/cli/service';
+import { METRICS_CUE, WORLD_ASSET_SHEET_SHOT_ID } from '@reelforge/cli/service';
 import { propExtensionFile, storyboardFileSchema } from '@reelforge/shared';
 import type { FrameRenderer, ShotRender, ShotRenderRequest } from '../scenes/tools.js';
 import { lineupRoleId, renderLineup } from './scripted-lineup.js';
@@ -67,6 +67,8 @@ export class ScriptedFrameRenderer implements FrameRenderer {
 
   private async renderTurntable(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
     const turntable = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
+    // A world-assets contact sheet (PLAN.md#13.15) draws the project's asset files.
+    if (request.shotId === WORLD_ASSET_SHEET_SHOT_ID) return this.renderSheet(request);
     const role = lineupRoleId(turntable);
     if (role !== undefined) return renderLineup(request, role);
     const name = /const NAME = "([A-Za-z0-9]+)"/.exec(turntable)?.[1] ?? '';
@@ -97,6 +99,34 @@ export class ScriptedFrameRenderer implements FrameRenderer {
       cards: [],
       anchors: [],
       cues: [{ t: 0, name: `${METRICS_CUE}${JSON.stringify(metrics)}`, shotId: request.shotId }],
+      errors: [],
+    };
+  }
+
+  /** A sheet renders when no asset file holds `render:fail` (a test's broken asset). */
+  private async renderSheet(request: ShotRenderRequest): Promise<ShotRender> {
+    const world = (await readdir(path.join(request.projectDir, 'assets'), { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+    for (const folder of world) {
+      const dir = path.join(request.projectDir, 'assets', folder);
+      for (const name of await readdir(dir)) {
+        if ((await readFile(path.join(dir, name), 'utf8')).includes('render:fail')) {
+          return { ok: false, error: `assets/${folder}/${name}: scripted failure`, errors: [] };
+        }
+      }
+    }
+    return {
+      ok: true,
+      width: WIDTH,
+      height: HEIGHT,
+      frames: request.times.map((t) => ({
+        t,
+        image: { width: WIDTH, height: HEIGHT, data: frame(false, t) },
+      })),
+      cards: [],
+      anchors: [],
+      cues: [],
       errors: [],
     };
   }

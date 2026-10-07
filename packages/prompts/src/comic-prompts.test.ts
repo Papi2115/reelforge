@@ -1,9 +1,10 @@
 /**
- * Comic wording in the prompts (PLAN.md#13.3 part c): a Comic project gets its own film, rolls,
- * panel-native transitions, craft brief, critic checklist and moment catalog (flashback and spread
- * as breakthroughs with a required intent), no voxel text; the variety validator runs on the comic
- * catalog with the generic rules. The legacy and Sketchbook renderings stay as they were
- * (world-prompts.test.ts, world-variety-prompts.test.ts).
+ * Comic wording in the prompts (PLAN.md#13.3 part c, #13.15): a Comic project gets its own film,
+ * rolls, panel-native transitions, craft brief (the style grammar), the per-shot design process
+ * over the open vocabulary, critic checklist and moment catalog (flashback and spread as
+ * breakthroughs with a required intent), no voxel text and no showcase content
+ * (comic-topic-bias.test.ts); the variety validator runs on the comic catalog with the generic rules. The legacy and
+ * Sketchbook renderings stay as they were (world-prompts.test.ts, world-variety-prompts.test.ts).
  */
 import type { StoryboardShot, Treatment } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
@@ -64,15 +65,15 @@ const prompts = {
     ...storyboardWorldVars(COMIC, 'comic-story', TRANSITIONS, { durationS: 155 }),
   }),
   'scene-build': rendered('scene-build', {
-    shotId: 's03_why',
-    shotScene: 'scenes/s03_why.js',
-    shotJson: { id: 's03_why', t0: 9, t1: 17, treatment: 'node-graph/timeline' },
+    shotId: 's03_flood',
+    shotScene: 'scenes/s03_flood.js',
+    shotJson: { id: 's03_flood', t0: 9, t1: 17, treatment: 'node-graph/timeline' },
     shotWords: [{ text: 'earlier', t: 9.4, tEnd: 9.9 }],
     neighbours: [],
     styleId: 'comic',
     lookId: 'comic-info',
     lookDocs: 'Look `comic-info` (world Comic, B roll): the explainer is still a comic page.',
-    annotationPlan: '- "1961" (date): caption "1961"',
+    annotationPlan: '- "1927" (date): caption "1927"',
     ...sceneWorldVars(COMIC, 'flashback'),
   }),
   'scene-fix': rendered('scene-fix', {
@@ -84,8 +85,8 @@ const prompts = {
   }),
   critic: rendered('critic', {
     styleId: 'comic',
-    imagePaths: '.reelforge/qa/s03_why/build-1.png',
-    intent: 'The deadline was set eight years earlier.',
+    imagePaths: '.reelforge/qa/s03_flood/build-1.png',
+    intent: 'The dam was built after the flood drowned the lower town.',
     lookId: 'comic-info',
     roll: 'B',
     lookRules: 'Comic info: a cutaway, a chart as panel art.',
@@ -123,24 +124,44 @@ describe('comic prompts', () => {
     expect(storyboard).not.toContain('sketch');
   });
 
-  it('give scene-build and scene-fix the craft brief and the toolkit, never a template', () => {
+  it('give scene-build and scene-fix the style grammar and the toolkit, never a template', () => {
     const brief = text.craftBrief;
     expect(Buffer.byteLength(brief, 'utf8')).toBeLessThanOrEqual(1536);
     for (const part of [
-      'write a comment: `// focal:',
-      'ONE focal point, off-centre (panel size = importance',
+      'The world gives the GRAMMAR, the narration gives the content',
+      'a comment: `// focal: <the one thing read first> | nouns:',
+      'ONE focal point, off-centre; panel size = importance, <= 5 panels',
       'balloon tails at the speaker',
+      'onomatopoeia = big imperfect letters on uneven beats',
       'speed lines stop before the subject',
       'a near-empty pause panel before a twist',
-      'identical panels in a grid (unless it is the joke), > 5 panels',
+      'Rough on purpose: simple, slightly crude figures',
+      'Thumbnail test: the hero reads at 64 px',
+      'no panel empty or flat > 0.6 s',
+      'identical panels in a grid (unless it is the joke)',
       'only words of the narration or research notes',
-      'slick polished art: keep figures simple, slightly crude',
-      'docs/worlds/comic-panels-v2/shots/',
+      'never a slur',
     ]) {
       expect(brief).toContain(part);
     }
     const build = prompts['scene-build'];
     expect(build).toContain(`${brief}\n`);
+    for (const part of [
+      '(i) list the nouns, places and actions',
+      '(ii) decide how each is drawn in comic grammar',
+      "(iii) Choose the layout from the narration's structure",
+      '(iv) No empty panel',
+      '(v) Thumbnail test on your frames',
+      'a recurring character is always drawn by its id',
+      'reelforge kit-docs comicPage',
+      'Pitfalls seen in real films:',
+    ]) {
+      expect(build).toContain(part);
+    }
+    for (const name of ['assets', 'cast', 'person', 'crowd', 'layout', 'audit', 'prop'] as const) {
+      expect(build).toContain(`\`${COMIC_SNIPPETS[name]}\``);
+    }
+    expect(build).not.toMatch(/inspiration|template `|\.js` \(/i);
     expect(build).toContain('Page moment planned for this shot (`flashback`;');
     expect(build).toContain(`\`${COMIC_SNIPPETS.flashback}\``);
     expect(build).toContain('Every flashback is original');
@@ -161,6 +182,8 @@ describe('comic prompts', () => {
     expect(critic).toContain('Planned page moment (`flashback`): the page printed as an older');
     expect(critic).toContain('a note starting `flashback:`');
     expect(critic).toContain('the paper, the panel borders, the gutters and the halftone screen');
+    expect(critic).toContain('the hero can be named at a glance, as at thumbnail size');
+    expect(critic).toContain('lettering cropped by the camera');
   });
 
   it('give the script comic surprises', () => {

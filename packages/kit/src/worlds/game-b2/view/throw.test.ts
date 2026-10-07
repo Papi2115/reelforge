@@ -75,15 +75,19 @@ describe('thrown items', () => {
     const v = view();
     const toss = v['throw'];
     if (toss === undefined) throw new Error('view.throw is not bound');
-    expect(() => toss({ label: 'E.T.' }, { at: 1, target: 'worker' })).toThrow(/intent/);
-    expect(() => toss({}, { intent: 'the deadline lands on the desk', at: 1 })).toThrow(
-      /exactly one of to/,
-    );
+    expect(() => toss({ kind: 'note' }, { at: 1, target: 'worker' })).toThrow(/intent/);
+    // An item without its look (an icon of the film, or a note / key) is refused: no default.
     expect(() =>
-      toss({}, { intent: 'the deadline lands on the desk', at: 1, target: 'nobody' }),
+      toss({ label: 'MAP' }, { intent: 'the deadline lands on the desk', at: 1, target: 'worker' }),
+    ).toThrow(/item: give it the film's own look/);
+    expect(() =>
+      toss({ kind: 'note' }, { intent: 'the deadline lands on the desk', at: 1 }),
+    ).toThrow(/exactly one of to/);
+    expect(() =>
+      toss({ kind: 'note' }, { intent: 'the deadline lands on the desk', at: 1, target: 'nobody' }),
     ).toThrow(/no sprite with id "nobody"/);
     expect(() =>
-      toss({}, { intent: 'the deadline lands on the desk', at: 1, to: [0.5, 0.5] }),
+      toss({ kind: 'note' }, { intent: 'the deadline lands on the desk', at: 1, to: [0.5, 0.5] }),
     ).toThrow(/inside a wall or door/);
     const done = toss(
       { kind: 'note', label: 'XMAS!' },

@@ -1,6 +1,7 @@
 /**
  * The Game B1 kit calls quoted by the prompts (prompts `GAME_B1_SNIPPETS`) run through the real kit:
- * its zod schemas and checks (the fonts, the high-score table's beat of silence and hold, the
+ * its zod schemas and checks (the 2600 sprite and playfield rules of the open vocabulary, the
+ * generators, the room DSL, the fonts, the high-score table's beat of silence and hold, the
  * manual's blocks and correction, the seams' order) throw on a call that drifted from the API, and
  * the screen repaints at a few times without an error.
  */
@@ -48,9 +49,11 @@ function kitApi(): unknown {
   }).api;
 }
 
-/** Calls a snippet needs before it (the calendar zoom zooms into the room's calendar). */
+/** Calls a snippet needs before it (definitions it draws, the room whose calendar it zooms into). */
 const BEFORE: Partial<Record<GameB1Snippet, readonly GameB1Snippet[]>> = {
-  calendarZoom: ['room'],
+  tv: ['defineSprite', 'spriteFrames', 'generatePerson', 'scenery'],
+  interiorPoster: ['defineSprite'],
+  calendarZoom: ['interior'],
 };
 
 /** Runs `code` on a fresh screen and repaints it. */
@@ -63,8 +66,11 @@ function run(code: string): Screen {
   return screen;
 }
 
+const joined = (names: readonly GameB1Snippet[]): string =>
+  names.map((part) => GAME_B1_SNIPPETS[part]).join(';\n');
+
 function runSnippet(name: GameB1Snippet): void {
-  run([...(BEFORE[name] ?? []), name].map((part) => GAME_B1_SNIPPETS[part]).join(';\n'));
+  run(joined([...(BEFORE[name] ?? []), name]));
 }
 
 describe('Game B1 snippets of the prompts', () => {
@@ -78,32 +84,63 @@ describe('Game B1 snippets of the prompts', () => {
     }).not.toThrow();
   });
 
-  it('runs every snippet together on one screen (one shot can hold them)', () => {
-    const { room, camera, year, progress, narrate, note, boss, tv } = GAME_B1_SNIPPETS;
-    expect(() =>
-      run([room, camera, year, progress, narrate, note, boss, tv].join(';\n')),
-    ).not.toThrow();
+  it('runs a whole shot together on one screen (one shot can hold them)', () => {
+    const shot: GameB1Snippet[] = [
+      'defineSprite',
+      'spriteFrames',
+      'generatePerson',
+      'generateAnimal',
+      'generateVehicle',
+      'generateBoss',
+      'scenery',
+      'definePlayfield',
+      'interiorPoster',
+      'camera',
+      'year',
+      'progress',
+      'narrate',
+      'note',
+      'boss',
+      'tv',
+      'counter',
+    ];
+    expect(() => run(joined(shot))).not.toThrow();
   });
 
   it('would fail on a call that drifted from the API', () => {
-    const { scoreTable, manual, calendarZoom, cartridge, levelSelect, note, boss } =
-      GAME_B1_SNIPPETS;
+    const s = GAME_B1_SNIPPETS;
     const noIntent = (code: string): string => code.replace(/intent: '[^']*', /, '');
-    for (const code of [scoreTable, manual, calendarZoom, cartridge, levelSelect]) {
-      expect(() => run(`${GAME_B1_SNIPPETS.room};\n${noIntent(code)}`)).toThrow(/intent/);
+    for (const code of [s.scoreTable, s.manual, s.calendarZoom, s.cartridge, s.levelSelect]) {
+      expect(() => run(`${s.interior};\n${noIntent(code)}`)).toThrow(/intent/);
     }
-    expect(() => run(calendarZoom)).toThrow(/room\(/);
-    expect(() => run(scoreTable.replace('hero: 0', "hero: 0, initials: 'roman'"))).toThrow(
+    expect(() => run(s.calendarZoom)).toThrow(/room\(/);
+    expect(() => run(s.scoreTable.replace('hero: 0', "hero: 0, initials: 'roman'"))).toThrow(
       /initials/,
     );
-    expect(() => run(scoreTable.replace('slam: { at: 2.78 }', 'slam: { at: 1.2 }'))).toThrow(
+    expect(() => run(s.scoreTable.replace('slam: { at: 2.78 }', 'slam: { at: 1.2 }'))).toThrow(
       /silence|beat/,
     );
-    expect(() => run(manual.replace("shape: 'cartridge'", "shape: 'dragon'"))).toThrow(/shape/);
-    expect(() => run(cartridge.replace("action: 'pull'", "action: 'eject'"))).toThrow(/action/);
-    expect(() => run(levelSelect.replace("icon: 'home'", "icon: 'castle'"))).toThrow(/icon/);
-    expect(() => run(note.replace("'MORE TIME'", "'MORE TIME THAN ANYONE'"))).toThrow(/16/);
-    expect(() => run(boss.replace('num: 1', 'num: 12'))).toThrow(/num/);
+    expect(() => run(s.manual.replace("shape: 'person'", "shape: 'dragon'"))).toThrow(/shape/);
+    expect(() => run(s.cartridge.replace("action: 'insert'", "action: 'eject'"))).toThrow(/action/);
+    expect(() => run(s.levelSelect.replace("icon: 'home'", "icon: 'castle'"))).toThrow(/icon/);
+    expect(() => run(s.note.replace("'THE OLD PIER'", "'THE OLD PIER BY THE SEA'"))).toThrow(/16/);
+    expect(() => run(s.boss.replace('num: 1', 'num: 12'))).toThrow(/num/);
+  });
+
+  it('would fail on sprites, playfields, generators and rooms that break the 2600 grammar', () => {
+    const s = GAME_B1_SNIPPETS;
+    expect(() => run(s.defineSprite.replace("'...##...'", "'...XX...'"))).toThrow(/'#'/);
+    expect(() => run(s.defineSprite.replace("'...##...'", "'...##....'"))).toThrow(/8 bits/);
+    expect(() => run(s.definePlayfield.replace("'#####...............'", "'#####'"))).toThrow(
+      /20|40/,
+    );
+    expect(() => run(s.generateAnimal.replace("kind: 'animal'", "kind: 'dragon'"))).toThrow(/kind/);
+    expect(() => run(s.interior.replace("shell: 'workshop'", "shell: 'castle'"))).toThrow(/shell/);
+    expect(() => run(s.interiorPoster)).toThrow(/lighthouse/);
+    expect(() => run(s.counter.replace('ships wrecked on the point', 'score'))).toThrow(/means/);
+    expect(() => run(s.defineSprite.replace("'gold', 'rust'", "'gold', 'green'"))).toThrow(
+      /avocado/,
+    );
   });
 
   it('are quoted verbatim by the world prompt texts', () => {

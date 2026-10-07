@@ -47,7 +47,7 @@ interface ShellDefaults {
 
 /** Wall props stay right of x 206 so the calendar (166-200) keeps its place. */
 export const SHELL_DEFAULTS: Record<Interior['shell'], ShellDefaults> = {
-  'living-room': { wall: 'panelling', wallColours: [], floor: 'shag', floorColours: [], props: [{ kind: 'shelf', x: 214, y: 44, w: 46, items: 'cartridges' }, { kind: 'plant', x: 290 }] },
+  'living-room': { wall: 'panelling', wallColours: [], floor: 'shag', floorColours: [], props: [{ kind: 'shelf', x: 214, y: 44, w: 46, items: 'books' }, { kind: 'plant', x: 290 }] },
   bedroom: { wall: 'wallpaper', wallColours: ['dusk', 'mauve', 'tan'], floor: 'carpet', floorColours: ['blue', 'night'], props: [{ kind: 'window', x: 214, sky: 'night', view: 'stars' }, { kind: 'poster', x: 274, y: 24 }, { kind: 'bed', x: 226 }] },
   arcade: { wall: 'paint', wallColours: ['night', 'tube'], floor: 'checker', floorColours: ['night', 'dusk'], props: [{ kind: 'cabinet', x: 214, type: 'arcade' }, { kind: 'cabinet', x: 248, type: 'arcade', colour: 'teal' }, { kind: 'cabinet', x: 282, type: 'arcade', colour: 'rust' }] },
   office: { wall: 'paint', wallColours: ['greyDark', 'grey'], floor: 'carpet', floorColours: ['greyDark', 'tube'], props: [{ kind: 'window', x: 212, sky: 'day', view: 'city' }, { kind: 'clock', x: 296, y: 14 }, { kind: 'desk', x: 214, on: 'typewriter' }, { kind: 'cabinet', x: 288, type: 'filing' }] },

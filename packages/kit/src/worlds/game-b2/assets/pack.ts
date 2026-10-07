@@ -19,8 +19,9 @@ import { iconGenSchema, makeIcon } from './gen-icons.js';
 import { makeObject, objectSchema } from './gen-objects.js';
 import { makePerson, personSchema } from './gen-people.js';
 import { makePlant, plantSchema } from './gen-plants.js';
-import { makeStructure, makeVehicle, structureSchema, vehicleSchema } from './gen-structures.js';
+import { makeStructure, structureSchema } from './gen-structures.js';
 import { makeTexture, textureGenSchema } from './gen-textures.js';
+import { makeVehicle, vehicleSchema } from './gen-vehicles.js';
 import type { MadeSprite } from './made.js';
 import { colourRef, colourRefHelp } from './ramps.js';
 

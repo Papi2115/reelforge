@@ -3,8 +3,9 @@
  * created in the world's style (continuity links and anti-slop guards on), the storyboard turn
  * with the game prompt and validators (its looks, game-native transitions, a continuity link),
  * the scene builds with the game craft brief, the level format and the critic check, no slop
- * finding on clean game shots; then a long game storyboard without breakthroughs gets the quota
- * repair turn and passes once it plans an automap and a tally. No real Claude call.
+ * finding on clean game shots (built in the open vocabulary: the shot's own textures and person);
+ * then a long game storyboard without breakthroughs gets the quota repair turn and passes once it
+ * plans an automap and a tally. No real Claude call.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -58,7 +59,7 @@ function storyboard(plans: readonly Plan[], edges: (index: number) => [number, n
       t0,
       t1,
       treatment: TREATMENT[roll],
-      intent: `Shot ${id} walks to what the narration names; the cartridge stays in the hand.`,
+      intent: `Shot ${id} walks to what the narration names; the lantern stays in the hand.`,
       scene: `scenes/${id}.js`,
       roll,
       look: LOOK[roll],
@@ -66,27 +67,43 @@ function storyboard(plans: readonly Plan[], edges: (index: number) => [number, n
         ? {}
         : { transitionIn: { type: 'wipe', duration: 0.8, style: `game-b2-${style}` } }),
       ...(moment === undefined ? {} : { worldMoment: moment }),
-      ...(link === undefined ? {} : { continuity: { kind: link, object: 'cartridge' } }),
+      ...(link === undefined ? {} : { continuity: { kind: link, object: 'lantern' } }),
     };
   });
   return JSON.stringify({ version: 1, shots }, null, 2);
 }
 
-/** A clean game shot: a walk in the warehouse, the phrase in the narration box, three traces. */
+/**
+ * A clean game shot in the open vocabulary: the shot's own textures and person, a walk to the lamp,
+ * the phrase in the narration box, three traces (the stuttering bulb, a worn wall, a shake).
+ */
 function walkScene(shot: FilmShot): string {
-  return `// focal: the narration box over the racks | traces: the faulty tube, a missing carton, a shake
+  return `// focal: the keeper under the lamp | traces: the stuttering bulb, a worn wall, a shake
 export const meta = { id: '${shot.id}', title: '${shot.phrase}', treatment: '${shot.treatment}' };
+
+const ASSETS = {
+  textures: { flagstone: { gen: 'texture', kind: 'stone', seed: 2, wear: 0.5 } },
+  sprites: { keeper: { gen: 'person', seed: 3, hat: 'cap', tool: 'lantern' } },
+};
+const LEVEL = {
+  name: 'hall', mood: 'tungsten', floor: 'flagstone',
+  grid: ['#######', '#.....#', '#.....#', '#######'],
+  legend: { '#': { wall: 'flagstone' } },
+  lights: [{ id: 'lamp', pos: [3.5, 1.5], flicker: 'bulb', bulb: true }],
+  sprites: [{ id: 'keeper', sprite: 'keeper', pos: [5.2, 1.6] }],
+};
 
 export function build(ctx) {
   const { kit, scene, anchor, sfx } = ctx;
   const size = [ctx.shot.width, ctx.shot.height];
   const view = kit.fx.b2View({
     size,
-    level: 'warehouse',
+    level: LEVEL,
+    assets: ASSETS,
     duration: ctx.shot.duration,
     anchor,
     seed: ${String(shot.index + 11)},
-    path: [{ at: 0, x: 3.5, y: 8.6, yaw: 2, ease: 'lin' }, { at: 1.2, x: 5.2, y: 8.7, yaw: 4, ease: 'out' }],
+    path: [{ at: 0, x: 1.5, y: 2.5, yaw: 2, ease: 'lin' }, { at: 1.2, x: 3.2, y: 2.4, yaw: -6, ease: 'out' }],
   });
   scene.add(view);
   const hud = kit.fx.b2Hud({ size, view, duration: ctx.shot.duration, anchor });
@@ -110,7 +127,7 @@ const CRAFT_OK = JSON.stringify({
     {
       path: 'sheet.png',
       verdict: 'ok',
-      note: 'focal: the narration box; traces: the faulty tube, a missing carton, a shake',
+      note: 'focal: the keeper under the lamp; traces: the stuttering bulb, a worn wall, a shake',
     },
   ],
 });
@@ -183,7 +200,11 @@ describe('a game-b2 film on fake-claude', { timeout: 180_000 }, () => {
 
     const scenes = await stages.run({ stage: 'scenes' });
     expect(scenes.ok).toBe(true);
-    const builds = harness.specs.filter((spec) => spec.stage === 'scene-build');
+    // The world-assets turn (PLAN.md#13.15) runs on the scene builder's permissions too.
+    const builds = harness.specs.filter(
+      (spec) =>
+        spec.stage === 'scene-build' && !spec.prompt.startsWith('You are the production designer'),
+    );
     expect(builds).toHaveLength(shots.length);
     for (const build of builds) {
       expect(build.prompt).toContain('Craft brief (Game B2; binding');

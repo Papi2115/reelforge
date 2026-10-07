@@ -64,7 +64,7 @@ export function build(ctx) {
     seed: 1983,
     path: WALK.map(([at, x, y, yaw, pitch, ease]) => ({ at, x, y, yaw, pitch, ease })),
   });
-  view.hold({ label: 'E.T.', band: 'pink' }, { at: -1 });
+  view.hold({ kind: 'cartridge', label: 'E.T.', band: 'pink' }, { at: -1 });
   ctx.scene.add(view);
 
   const hud = ctx.kit.fx.b2Hud({ size, view, duration: ctx.shot.duration, seed: 1983 });

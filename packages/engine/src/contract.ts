@@ -8,6 +8,7 @@ import type { AnnotateApi } from './annotations/types.js';
 import type { Treatment } from '@reelforge/shared';
 import type * as THREE from 'three';
 import type { EaseFunction, EaseName } from './camera/easing.js';
+import type { WorldAssetsValue } from './world-assets/build.js';
 import type {
   CameraMove,
   DollyZoomOptions,
@@ -248,6 +249,12 @@ export interface SceneContext {
   readonly ambient: AmbientApi;
   /** Asset pictures (photos, video stills) for kit props; `image()` in build only. */
   readonly assets: AssetsApi;
+  /**
+   * The film's own world assets (`assets/<world>/*.json`, PLAN.md#13.15), validated and frozen;
+   * pass them to the world's API (`sketchPage({ library })`, `page.art.load`, `b2View({ assets })`,
+   * `screen.assets`). The world's empty set without files; undefined outside a world.
+   */
+  readonly worldAssets: WorldAssetsValue | undefined;
 }
 
 export interface SceneModule {

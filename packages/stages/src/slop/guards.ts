@@ -174,6 +174,7 @@ export function slopSourceFindings(
       ? []
       : breakthroughIntentFindings(program, file, breakthroughs, setup.vocabulary)),
     ...(setup.spec === undefined ? [] : traceFindings(setup.spec, program, file)),
+    ...(setup.spec?.sourceChecks?.(program, file, setup.vocabulary) ?? []),
     ...uniform,
   ];
 }

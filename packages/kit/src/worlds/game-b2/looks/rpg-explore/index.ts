@@ -7,15 +7,17 @@
 import { defineLook } from '../../../../looks/types.js';
 import { b2Hud } from '../../hud/hud-fx.js';
 import { GAME_B2_ID } from '../../style.js';
+import { GAME_B2_SHOWCASE_LINE } from '../../showcase.js';
 import { b2View } from '../../view/view-fx.js';
 
-const DOCS = `Look \`rpg-explore\` (world Game B2, A roll): the story is a level you walk through. Build \`const view = kit.fx.b2View({ size: [ctx.shot.width, ctx.shot.height], duration: ctx.shot.duration, level, path, anchor: ctx.anchor })\` and \`const hud = kit.fx.b2Hud({ size, view, duration: ctx.shot.duration, anchor: ctx.anchor })\`; \`scene.add\` both; in update(t) call \`view.update(t); hud.update(t)\`.
-- Level: 'office' | 'warehouse' (+ \`stencil: 'WORD'\`) or your own { name, mood: dark|tungsten|fluorescent|shop|backroom, floor, ceiling, grid: ['#####', '#...#', ...] (<= 32x32, closed border), legend: { '#': { wall: 'concrete' }, D: { door: true }, o: { floor: 'carpet', ceiling: 'office' } }, lights (<= 12), sprites (<= 40: clerk, desk, sign, exit, boxes, item, card, bin, pallet, carton, sand-pile) }. Errors name the grid row.
+const DOCS = `Look \`rpg-explore\` (world Game B2, A roll): the story is a level you walk through. Build \`const view = kit.fx.b2View({ size: [ctx.shot.width, ctx.shot.height], duration: ctx.shot.duration, level, path, assets: ctx.worldAssets, anchor: ctx.anchor })\` and \`const hud = kit.fx.b2Hud({ size, view, duration: ctx.shot.duration, anchor: ctx.anchor })\`; \`scene.add\` both; in update(t) call \`view.update(t); hud.update(t)\`.
+- Level: the film's own place { name, mood: dark|tungsten|fluorescent|shop|backroom, floor, ceiling, sky (outdoors: { preset, skyline, ground }), grid: ['#####', '#...#', ...] (<= 32x32; closed border indoors), legend: { '#': { wall: 'concrete' }, D: { door: true }, o: { floor: 'carpet' } }, lights (<= 12), sprites (<= 40: the film's own from its assets, or desk, sign, exit, boxes, card, bin, pallet) }. Errors name the grid row.
 - Path: keys { at, x, y, yaw, pitch, ease } in cells; walk (in), stop (out), look (inOut); hold still >= 0.4 s somewhere.
-- View: open(door), switchOn(light), act(clerk, talk|no), place(sprite), shake, take(item, { from: [x, y, z] }), hold, present, throw(item, { intent, at, target | to }) (it leaves the hand, the target flinches), fog({ at, until }).
+- View: open(door), switchOn(light), act(person, talk|no), place(sprite), shake, take(item, { from: [x, y, z] }) with item = { icon } (the film's own icon), hold, present, throw(item, { intent, at, target | to }) (it leaves the hand, the target flinches), fog({ at, until }).
 - HUD: compass (year, place, target), minimap, narrate / say (CAPS, \\n, <= 3 lines), toast, inventory, choose, status; meter only for a real threat, boss only for the central problem, progress = film progress.
-Craft (QUALITY.md): write the focal point and three human traces in a comment first. ONE focal thing per shot (the item in the hand, the clerk, the sign), off-centre; pink (accent) only for THE item of the story; the HUD is texture, never the focal point. Traces: a bulb that stutters, a faulty tube, uneven strides, chalk or a hand-lettered sign, a struck-out option, an overshoot on the reach. Never: invented labels (every word is from the narration), constant walking, a HUD element that means nothing, polished art (keep the crude sprites).
-References: docs/worlds/game-hud-b2-rpg-v2/shots/s1-t3.5.png (one bulb, sand, chalk tally), s3-t20.png (the reach for the shelf), s7-t52.5.png (the clerk, struck options, UNSOLD bar).`;
+Craft (QUALITY.md): write the focal point and three human traces in a comment first. ONE focal thing per shot (the item in the hand, a person, a sign), off-centre; pink (accent) only for THE item of the story; the HUD is texture, never the focal point. Traces: a bulb that stutters, a faulty tube, uneven strides, chalk or a hand-lettered sign, a struck-out option, an overshoot on the reach. Never: invented labels (every word is from the narration), constant walking, a HUD element that means nothing, polished art (keep the crude sprites).
+${GAME_B2_SHOWCASE_LINE}
+Style references (light and HUD only, never their things): docs/worlds/game-hud-b2-rpg-v2/shots/s1-t3.5.png, s3-t20.png, s7-t52.5.png.`;
 
 export const rpgExploreLook = defineLook({
   id: 'rpg-explore',

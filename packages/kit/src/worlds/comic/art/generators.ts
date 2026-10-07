@@ -10,6 +10,7 @@ import { animalSchema, drawAnimal } from './gen-animals.js';
 import { backdropSchema, drawBackdrop } from './gen-backdrop.js';
 import { birdSchema, drawBird } from './gen-birds.js';
 import { buildingSchema, drawBuilding } from './gen-buildings.js';
+import { chartSchema, drawChart, drawMap, drawSign, mapSchema, signSchema } from './gen-charts.js';
 import { drawEffect, effectSchema } from './gen-effects.js';
 import { drawFish, fishSchema } from './gen-fish.js';
 import { drawObject, objectSchema } from './gen-objects.js';
@@ -17,16 +18,7 @@ import { crowdSchema, drawCrowd, drawPerson, personSchema } from './gen-people.j
 import { drawInterior, drawSpace, interiorSchema, spaceSchema } from './gen-places.js';
 import { drawTree, treeSchema } from './gen-plants.js';
 import { drawInsect, drawReptile, insectSchema, reptileSchema } from './gen-small.js';
-import {
-  chartSchema,
-  drawChart,
-  drawIcon,
-  drawMap,
-  drawSign,
-  iconSchema,
-  mapSchema,
-  signSchema,
-} from './gen-symbols.js';
+import { drawIcon, iconSchema } from './gen-symbols.js';
 import {
   drawDunes,
   drawForest,

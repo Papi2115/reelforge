@@ -110,7 +110,12 @@ describe('world game-b2', () => {
 describe('kit.fx.b2View / b2Hud', () => {
   it('builds a built-in level, takes an item and renders frames on the quad', () => {
     const view = factory('b2View')({ level: 'warehouse', stencil: 'E.T.', path: PATH, seed: 1 });
-    view['take']?.({ label: 'E.T.' }, { at: 0.2, from: [3.5, 7.05, 0.45] });
+    view['take']?.({ kind: 'note', label: 'MAP' }, { at: 0.2, from: [3.5, 7.05, 0.45] });
+    // The showcase's cartridge only when asked for; an item with no look at all is refused.
+    view['hold']?.({ kind: 'cartridge', label: 'E.T.' }, { at: 3 });
+    expect(() => view['hold']?.({ label: 'E.T.' }, { at: 3 })).toThrow(
+      /give it the film's own look/,
+    );
     view['open']?.([19, 8], { at: 0.5 });
     const hud = factory('b2Hud')({ view, duration: 4, seed: 1 });
     hud['compass']?.({ year: '1982', place: 'THE WAREHOUSE' });

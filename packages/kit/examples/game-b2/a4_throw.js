@@ -53,7 +53,7 @@ const WALK = [
   [8.0, 6.5, 6.5, -88, 'sine'],
 ];
 
-const CARTRIDGE = { label: 'E.T.', band: 'pink' };
+const CARTRIDGE = { kind: 'cartridge', label: 'E.T.', band: 'pink' };
 
 export function build(ctx) {
   const size = [ctx.shot.width, ctx.shot.height];

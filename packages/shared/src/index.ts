@@ -51,5 +51,6 @@ export * from './transitions.js';
 export * from './usage.js';
 export * from './waveform-peaks.js';
 export * from './words.js';
+export * from './world-assets.js';
 export * from './wow-transitions.js';
 export * from './youtube-meta.js';

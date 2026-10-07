@@ -8,7 +8,9 @@
  * (`grid row 3: ...`).
  */
 import { z } from 'zod';
+import { catalogPieces, openIds } from '../../showcase.js';
 import { B2_SWATCHES, type B2SwatchName } from '../palette.js';
+import { GAME_B2_SHOWCASE } from '../showcase.js';
 import { levelProblems } from './problems.js';
 import { skySchema } from './sky.js';
 
@@ -61,6 +63,8 @@ export const SPRITE_KINDS = [
   'bin',
 ] as const;
 export type BuiltInSprite = (typeof SPRITE_KINDS)[number];
+/** The built-in sprites, the showcase's own marked (error messages list only the others). */
+export const SPRITE_CATALOG = catalogPieces(SPRITE_KINDS, GAME_B2_SHOWCASE.sprites);
 export type BuiltInWall = (typeof WALL_TEXTURES)[number];
 
 /** Default heights of the low walls (sprites may stand on them: stacks on a counter). */
@@ -96,13 +100,24 @@ export function lowWallHeight(wall: string): number | undefined {
 }
 
 const known = (list: readonly string[]): string => list.join(', ');
+const OPEN_SPRITES = openIds(SPRITE_CATALOG);
 const pick = <const T extends readonly [string, ...string[]]>(list: T, what: string) =>
   z.enum(list, {
     error: (issue) => `unknown ${what} ${JSON.stringify(issue.input)} (known: ${known(list)})`,
   });
 
-/** A built-in name or an id of the film's assets (`section`). */
-function nameOf(list: readonly string[], what: string, ids: IdSet, section: string, open = false) {
+/**
+ * A built-in name or an id of the film's assets (`section`); errors list `shown` (the built-in
+ * names that are not showcase pieces).
+ */
+function nameOf(
+  list: readonly string[],
+  what: string,
+  ids: IdSet,
+  section: string,
+  open = false,
+  shown: readonly string[] = list,
+) {
   return z.string().superRefine((value, ctx) => {
     if (list.includes(value) || ids.has(value) || (open && value === 'none')) return;
     const own = [...ids.keys()];
@@ -112,7 +127,7 @@ function nameOf(list: readonly string[], what: string, ids: IdSet, section: stri
         : `; or define it in assets.${section}`;
     ctx.addIssue({
       code: 'custom',
-      message: `unknown ${what} ${JSON.stringify(value)} (known: ${known(list)})${hint}`,
+      message: `unknown ${what} ${JSON.stringify(value)} (known: ${known(shown)})${hint}`,
     });
   });
 }
@@ -178,7 +193,7 @@ function schemasFor(ids: KnownAssets) {
   });
   const sprite = z.strictObject({
     id: z.string().min(1).max(24).optional().describe('Name for view.act()'),
-    sprite: nameOf(SPRITE_KINDS, 'sprite', ids.sprites, 'sprites'),
+    sprite: nameOf(SPRITE_KINDS, 'sprite', ids.sprites, 'sprites', false, OPEN_SPRITES),
     pos,
     z: z.number().min(-1).max(4).optional().describe('Height of its foot above the floor'),
     w: z.number().min(0.05).max(6).optional().describe('World width (default per sprite)'),
@@ -194,7 +209,7 @@ function schemasFor(ids: KnownAssets) {
   const level = z.strictObject({
     name: z
       .string()
-      .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'level names are kebab case, e.g. warehouse'),
+      .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'level names are kebab case, e.g. pine-forest'),
     seed: z.int().min(0).optional(),
     mood: pick(MOODS, 'mood').default('dark'),
     density: z.number().min(0).max(0.5).optional().describe('Fog density (default from the mood)'),

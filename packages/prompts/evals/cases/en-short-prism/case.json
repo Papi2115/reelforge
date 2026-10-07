@@ -161,6 +161,7 @@
         }
       ]
     },
-    "roles": "Built optician: short hair, labCoat (cream) over a brightTeal top, darkSlate legs, glassesRound, magnifier; outfit colours 3.\ncast preview: all checks ok; reads as an optician from the front and the side."
+    "roles": "Built optician: short hair, labCoat (cream) over a brightTeal top, darkSlate legs, glassesRound, magnifier; outfit colours 3.\ncast preview: all checks ok; reads as an optician from the front and the side.",
+    "world-assets": "Built 1 prop (prism); new places: none.\nworld-assets check: 0 errors; the sheet reads at thumbnail size."
   }
 }

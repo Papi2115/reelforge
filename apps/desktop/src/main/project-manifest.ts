@@ -12,8 +12,10 @@
 import {
   describeUnknown,
   manifestCastRoles,
+  manifestWorldAssets,
   readCastRoles,
   readKitExtensions,
+  readWorldAssetFiles,
   type CastRoleFiles,
   type KitExtensionFiles,
 } from '@reelforge/cli/service';
@@ -170,6 +172,13 @@ export async function buildProjectManifest(
     return unavailable(`characters/ cannot be read: ${describeUnknown(error)}`);
   }
   const castRoles = manifestCastRoles(roles);
+  // A world's project assets (assets/<world>/*.json): the same files the CLI and export load.
+  let worldAssets: ReturnType<typeof manifestWorldAssets>;
+  try {
+    worldAssets = manifestWorldAssets(await readWorldAssetFiles(dir, project.data.style));
+  } catch (error) {
+    return unavailable(`assets/ cannot be read: ${describeUnknown(error)}`);
+  }
   // Asset pictures the scenes name (PLAN.md#12.11), decoded once into .reelforge/assets/decoded.
   const assets = await loadManifestAssets({
     root: dir,
@@ -190,6 +199,7 @@ export async function buildProjectManifest(
     ...(words.status === 'ok' ? { words: words.data } : {}),
     ...(props.extensions.length > 0 ? { kitExtensions: props.extensions } : {}),
     ...(castRoles === undefined ? {} : { castRoles }),
+    ...(worldAssets === undefined ? {} : { worldAssets }),
     ...(ambient ? { ambientVariation: { enabled: true, seed } } : {}),
     ...(assets.value ? { assets: assets.value } : {}),
     shots: manifestShots,

@@ -4,7 +4,8 @@
  * narration of the kit examples that tell another story (their header comments: the Moon race
  * board, the pyramid manual), the showcase's research notes (its NOTES.md and v1 NOTES.md: facts,
  * the screens, the HUD states, the level-select places, Dad's tag and notes) with the research
- * lines the examples state, and the kit's Game B1 template scenes.
+ * lines the examples state, and the kit's Game B1 template scenes; the open-vocabulary examples
+ * (PLAN.md#13.15: forest, ocean, space station, village, desert, city) with their own narration.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -71,6 +72,32 @@ const KIT = fileURLToPath(new URL('../../../kit/', import.meta.url));
 /** The kit's Game B1 template scenes (looks A/B/C, tables, manuals, seams): name -> source. */
 export function gameB1Examples(): Map<string, string> {
   const dir = path.join(KIT, 'examples', 'game-b1');
+  const files = readdirSync(dir).filter((name) => name.endsWith('.js'));
+  return new Map(files.map((name) => [name, readFileSync(path.join(dir, name), 'utf8')]));
+}
+
+/**
+ * The narration of the open-vocabulary examples (their header comments): each is its own film,
+ * judged with its own vocabulary (no showcase narration, so a showcase object would be unrequested).
+ */
+export const GAME_B1_OPEN_NARRATION: Readonly<Record<string, string>> = {
+  'o1_forest.js':
+    '1990. Four thousand old oaks stood in the valley. Every morning the ranger walked the ridge and counted them. By 2010 there were nine hundred left.',
+  'o2_ocean.js':
+    'The reef off Cape Rocha fed the whole village. Each dawn the boats rowed out and the fish came up to meet the nets. In 1998 the water warmed, and the reef turned white.',
+  'o3_station.js':
+    'In 1986 the first module of Mir reached orbit. Two cosmonauts lived aboard for months, and every ninety minutes they watched the sun rise over the Earth.',
+  'o4_village.js':
+    'A medieval village lived by its harvest. One summer the rain did not stop for six weeks. The wheat rotted in the fields, and the castle took what was left.',
+  'o5_desert.js':
+    'Crossing the Sahara by caravan took forty days. At the oasis a camel can drink a hundred litres in ten minutes.',
+  'o6_city.js':
+    "On Monday, October 19, 1987, the Dow Jones fell from 2246 to 1738 in a single day. By four o'clock, traders were running into the streets of New York.",
+};
+
+/** The kit's open-vocabulary examples (`examples/game-b1/open`): name -> source. */
+export function gameB1OpenExamples(): Map<string, string> {
+  const dir = path.join(KIT, 'examples', 'game-b1', 'open');
   const files = readdirSync(dir).filter((name) => name.endsWith('.js'));
   return new Map(files.map((name) => [name, readFileSync(path.join(dir, name), 'utf8')]));
 }

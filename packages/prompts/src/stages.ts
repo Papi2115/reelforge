@@ -42,6 +42,9 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   // The production line's brief (PLAN.md#13.9) is written from the topic alone: read-only tools,
   // no web (the critic's permissions); the line asks for the prompt's own model (Sonnet).
   brief: 'critic',
+  // A world film's own assets (PLAN.md#13.15) are built like project props: Opus, project edits
+  // (the stage puts back anything outside assets/) + reelforge.
+  'world-assets': 'scene-build',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

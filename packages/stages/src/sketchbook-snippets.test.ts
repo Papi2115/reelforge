@@ -1,7 +1,9 @@
 /**
  * The Sketchbook kit calls quoted by the prompts (prompts `SKETCHBOOK_SNIPPETS`) run through the
- * real kit: its zod schemas and checks (pop-up fit, motions on real pieces, lettering) throw on a
- * call that drifted from the API, and the page repaints at a few times without an error.
+ * real kit: its zod schemas and checks (pop-up fit, motions on real pieces, lettering, generator
+ * kinds and types, the project's asset files) throw on a call that drifted from the API, and the
+ * page repaints at a few times without an error. The page gets a project library like the one
+ * the scenes receive as `ctx.worldAssets` (a figure `ranger`, a prop `fire-tower`).
  */
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -16,6 +18,24 @@ const KIT_DIR = path.resolve(import.meta.dirname, '..', '..', 'kit');
 const three = createRequire(path.join(KIT_DIR, 'package.json'))('three') as KitOptions['three'];
 
 const SHOT = { width: 960, height: 540, duration: 6 };
+
+/** The project's asset files (`assets/sketchbook/<id>.json`) as the scenes receive them. */
+const WORLD_ASSETS = [
+  {
+    version: 1,
+    id: 'ranger',
+    kind: 'figure',
+    description: 'the park ranger: green vest, brimmed hat, holds a map',
+    spec: { clothes: 'vest', color: 'green', hat: 'brim', hatColor: 'kraft', holds: 'map' },
+  },
+  {
+    version: 1,
+    id: 'fire-tower',
+    kind: 'prop',
+    description: 'a wooden fire lookout tower on four legs',
+    spec: { h: 150, draw: 'building', type: 'tower' },
+  },
+];
 
 interface Page {
   update(t: number): void;
@@ -45,9 +65,9 @@ function kitApi(): unknown {
 }
 
 /** Runs a snippet on a fresh story page; returns the page (the snippet's value is not needed). */
-function run(code: string): Page {
+function run(code: string, worldAssets: unknown = WORLD_ASSETS): Page {
   const kit = kitApi();
-  const ctx = { shot: SHOT };
+  const ctx = { shot: SHOT, worldAssets };
   const page: unknown = runInNewContext(SKETCHBOOK_SNIPPETS.storyPage, { kit, ctx });
   runInNewContext(code, { kit, ctx, page });
   return page as Page;
@@ -59,11 +79,22 @@ describe('Sketchbook snippets of the prompts', () => {
     for (const t of [0, 1.5, 3, 5.9]) page.update(t);
   });
 
+  it('runs the page snippets in a project without asset files', () => {
+    for (const code of [SKETCHBOOK_SNIPPETS.storyPage, SKETCHBOOK_SNIPPETS.tornPage]) {
+      run(code, undefined).update(1);
+    }
+  });
+
   it('would fail on a call that drifted from the API', () => {
-    const popup = SKETCHBOOK_SNIPPETS.popup;
+    const { popup, popupFlap, heroWrite, plant, map, castPerson, useProp } = SKETCHBOOK_SNIPPETS;
     expect(() => run(popup.replace(/intent: '[^']*', /, ''))).toThrow(/intent/);
-    expect(() => run(popup.replace("target: 'square'", "target: 'door'"))).toThrow(/door/);
-    expect(() => run(SKETCHBOOK_SNIPPETS.heroWrite.replace('hero: true', 'hero: 1'))).toThrow();
+    expect(() => run(popup.replace("target: 'river'", "target: 'lake'"))).toThrow(/lake/);
+    expect(() => run(popupFlap.replace('open: 1', 'level: 1'))).toThrow(/level/);
+    expect(() => run(heroWrite.replace('hero: true', 'hero: 1'))).toThrow();
+    expect(() => run(plant.replace("type: 'oak'", "type: 'baobab'"))).toThrow(/type/);
+    expect(() => run(map.replace("land: 'coast'", "land: 'lake'"))).toThrow(/land/);
+    expect(() => run(castPerson, [])).toThrow(/ranger/);
+    expect(() => run(useProp, [])).toThrow(/fire-tower/);
   });
 
   it('are quoted verbatim by the world prompt texts', () => {

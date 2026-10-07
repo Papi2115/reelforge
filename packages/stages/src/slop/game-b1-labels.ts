@@ -27,18 +27,30 @@
  * `write`). Game words (HIGH SCORES, HOW TO PLAY, FIG., INSERT COIN, PRESS START, BOSS, WEAK POINT,
  * CONTINUE?, GAME OVER, INVENTORY FULL) and time units are labels; a two-digit year (XMAS 82) is
  * the full year of the sources.
+ *
+ * Open vocabulary (PLAN.md#13.15): sprite, playfield, generator and room ids (`defineSprite`,
+ * `generate`, `g.draw`, `interior('office')`), their `describe` and a counter's `means` are not on
+ * screen; a counter's `keys` values, a calendar's `year` and the chalk `lines` of a blackboard are;
+ * a shelf's `items` (the room DSL's enum: cartridges, books, …) are labels. Traces of the open
+ * layer: held-step motion (`g.util.path`, once) and sprites animated off each other's beat (`phase`,
+ * once). World checks
+ * (game-b1-showcase.ts): an unrequested showcase object per scene, number-only monotony per film.
  */
+import { b1NumberOnlyFindings, b1ShowcaseFindings } from './game-b1-showcase.js';
 import type { WorldSlopSpec } from './world-labels.js';
 
 const SQUASH = 'squash (a landing squash)';
 const TUMBLE = 'tumble (carts tumbling)';
 const TYPE = 'type (irregular typing)';
+const PHASE = "phase (sprites off each other's beat)";
 
 /** Words of the console's own screens and the HUD, and the time units of its counters. */
 const GAME_LABELS =
   'high score scores how play fig insert coin press start player game games over continue boss ' +
   'weak point level select inventory full menu manual ' +
-  'day days week weeks month months year years hour hours minute minutes';
+  'day days week weeks month months year years hour hours minute minutes ' +
+  // The room DSL's shelf items (`{ kind: 'shelf', items }`), an enum read as a text option.
+  'cartridges books boxes papers tools jars trophies records';
 
 export const GAME_B1_SLOP: WorldSlopSpec = {
   traceMethods: {
@@ -56,8 +68,11 @@ export const GAME_B1_SLOP: WorldSlopSpec = {
     levelSelect: 3,
     scoreTable: 3,
     manual: 3,
+    path: 1,
   },
   traceCaps: {
+    path: 1,
+    [PHASE]: 1,
     shake: 2,
     remap: 2,
     typed: 1,
@@ -80,13 +95,15 @@ export const GAME_B1_SLOP: WorldSlopSpec = {
     { key: 'squash', trace: SQUASH },
     { key: 'tumble', trace: TUMBLE },
     { key: 'type', trace: TYPE },
+    { key: 'phase', trace: PHASE },
   ],
   labels: GAME_LABELS.split(' '),
   labelPatterns: [],
   textMethods: ['narrate', 'say', 'text', 'score', 'note', 'year'],
   textKeys: ['speaker', 'who', 'score', 'steps', 'strike', 'write', 'tag', 'month'],
   textCallKeys: { boss: ['name'] },
-  numberKeys: ['score'],
+  numberKeys: ['score', 'year'],
+  keyedNumbers: { counter: 'keys' },
   shortYears: true,
   breakthroughs: {
     scoreTable: { enter: 'draw-in', initials: 'arcade' },
@@ -95,4 +112,6 @@ export const GAME_B1_SLOP: WorldSlopSpec = {
     cartridge: {},
     levelSelect: {},
   },
+  sourceChecks: b1ShowcaseFindings,
+  filmChecks: b1NumberOnlyFindings,
 };

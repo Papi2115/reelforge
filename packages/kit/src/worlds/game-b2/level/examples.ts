@@ -116,6 +116,11 @@ function warehouse(stencil: string | undefined): LevelInput {
   };
 }
 
+/** True for the name of a built-in (showcase) level. */
+export function isBuiltInLevel(name: string): name is BuiltInLevel {
+  return (BUILT_IN_LEVELS as readonly string[]).includes(name);
+}
+
 export function builtInLevel(name: BuiltInLevel, stencil?: string): LevelInput {
   return name === 'office' ? office(stencil) : warehouse(stencil);
 }

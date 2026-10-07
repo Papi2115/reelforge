@@ -30,7 +30,7 @@ export function build(ctx) {
     seed: 1983,
     path: WALK.map(([at, x, y, yaw, ease]) => ({ at, x, y, yaw, ease })),
   });
-  view.hold({ label: 'E.T.', band: 'pink' }, { at: -1 });
+  view.hold({ kind: 'cartridge', label: 'E.T.', band: 'pink' }, { at: -1 });
   const map = view.automap({
     intent: 'every rack in the warehouse leads to one door: the stock can only go out that way',
     at: 1.75,
