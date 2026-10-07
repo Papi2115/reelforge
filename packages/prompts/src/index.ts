@@ -32,6 +32,7 @@ export * from './validators/world-variety.js';
 export * from './validators/embedded-json.js';
 export * from './worlds/index.js';
 export * from './shot-range-vars.js';
+export * from './genre-vars.js';
 export * from './validators/dramaturgy.js';
 export * from './validators/characters.js';
 export * from './validators/mascot-words.js';

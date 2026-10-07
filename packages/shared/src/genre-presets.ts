@@ -1,9 +1,10 @@
 /**
  * Genre presets (PLAN.md#13.8, ADR-035, docs/genre-presets.md): one choice when a project is
  * created sets its style/world, look mode, rhythm, direction switches and research mode, and
- * carries the script's tone hint and the music/transition tendencies. Pure data: applying a preset
- * (genre-preset-apply.ts) writes ordinary project.json fields, so the pipeline needs no preset
- * code and a project made with a preset behaves like one where the user picked the same values.
+ * carries the script's tone hint and the music/look/transition tendencies. Pure data: applying a
+ * preset (genre-preset-apply.ts) writes ordinary project.json fields; the tendencies (script tone,
+ * preferred moods and looks, wow pace) are looked up by `project.json#genrePreset` when the stages
+ * run (`@reelforge/stages` genre.ts), so a project without a preset is untouched.
  *
  * Every number below is a DEFAULT to be tuned after real films (roadmap 3.3); the table is the
  * only place to change them. Channel Voxplain makes pop-science, tech, finance and crime films, so
@@ -74,11 +75,17 @@ export const genrePresetSchema = z.strictObject({
   continuityLinks: z.boolean(),
   /** Appended to the brief's tone in the script prompt (one short line). */
   scriptTone: oneLineSchema(200),
-  /** Music moods in order of preference (data only for now: the sound stage picks moods itself). */
+  /** Music moods in order of preference: a hint in the sound-cues prompt (any mood stays valid). */
   musicMoodsPreferred: z.array(z.enum(GENRE_MUSIC_MOODS)).min(1).max(GENRE_MUSIC_MOODS.length),
-  /** Looks of the built-in styles to favour in `mixed` (data only; worlds use their own looks). */
+  /**
+   * Looks of the built-in styles to favour in `mixed`: a hint in the storyboard prompt (only the
+   * looks the project offers; worlds use their own looks, so they get none).
+   */
   preferredLooks: z.array(kebabIdSchema).max(8).optional(),
-  /** Multiplier of the wow-transition budget (1 = as today; data only for now). */
+  /**
+   * Multiplier of the wow-transition budget and pace (1 = as without a preset), for the storyboard
+   * prompt and validator; clamped to `WOW_SCALE_BOUNDS` (wow-transitions.ts).
+   */
   wowTransitionBudget: z.number().min(0).max(3).optional(),
   notes: z.string().max(1_000).optional(),
 });

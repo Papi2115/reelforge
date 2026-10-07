@@ -22,7 +22,8 @@ import {
   type PromptWorld,
 } from './worlds/index.js';
 
-const WORLD_VARS = /^(world|craftBrief)/;
+/** World variables, and the genre preset's (ADR-035; genre-prompts.test.ts), stay unset. */
+const WORLD_VARS = /^(world|craftBrief|genre)/;
 
 function fixture(name: string): string {
   return readFileSync(path.join(import.meta.dirname, 'fixtures', name), 'utf8').replaceAll(
@@ -61,7 +62,7 @@ describe('world sections off (script, sound-cues)', () => {
 
   it('bumps the versions of the prompts with world variety wording', () => {
     const ids = ['storyboard', 'scene-build', 'scene-fix', 'critic', 'script', 'sound-cues'];
-    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([18, 18, 6, 9, 3, 5]);
+    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([19, 18, 6, 9, 3, 6]);
   });
 });
 

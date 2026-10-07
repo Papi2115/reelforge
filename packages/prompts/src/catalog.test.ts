@@ -68,7 +68,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 18, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 19, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -112,7 +112,7 @@ describe('renderPrompt', () => {
     });
     expect(promptVariables('sound-cues')).toEqual({
       required: ['styleId'],
-      optional: ['acts', 'world', 'worldMoods'],
+      optional: ['acts', 'world', 'worldMoods', 'genreMoods', 'genreName'],
     });
   });
 
@@ -123,7 +123,7 @@ describe('renderPrompt', () => {
     for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
       expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
     }
-    expect(loadPrompt('sound-cues').version).toBe(5);
+    expect(loadPrompt('sound-cues').version).toBe(6);
     expect(text).toContain("each shot's sound palette follows its `look`");
   });
 

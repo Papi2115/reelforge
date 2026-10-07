@@ -110,8 +110,11 @@ export const queueItemSchema = z.object({
   targetMinutes: z.number().positive().max(60).optional(),
   /** Style / world of this film instead of the channel's default. */
   style: stylePresetIdSchema.optional(),
-  /** Genre preset (13.8); recorded, applied once presets exist. */
-  genrePreset: z.string().trim().min(1).max(64).optional(),
+  /**
+   * Genre preset of this film (PLAN.md#13.8, ADR-035): absent = the channel's preset, null = none
+   * (not even the channel's); applied when the line creates the project.
+   */
+  genrePreset: z.string().trim().min(1).max(64).nullable().optional(),
   status: queueItemStatusSchema,
   /** Absolute project folder once the `project` step made it. */
   projectPath: z.string().min(1).max(4_096).optional(),

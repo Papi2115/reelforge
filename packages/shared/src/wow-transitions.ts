@@ -72,9 +72,46 @@ export function wowOccurrences(shots: readonly WowShot[]): WowOccurrence[] {
   });
 }
 
-/** How many wow moments a film of this length may have (at least one). */
-export function wowBudget(durationS: number): number {
-  return Math.max(1, Math.floor(durationS / WOW_RULES.warnSpacingS));
+/**
+ * Bounds of a genre preset's wow-transition multiplier (`wowTransitionBudget`, ADR-035): below
+ * the minimum (including 0) the minimum applies, so a preset never forbids wow moments; above the
+ * maximum the maximum, so they stay rare showpieces.
+ */
+export const WOW_SCALE_BOUNDS = { min: 0.25, max: 2 } as const;
+
+/** The spacing of wow moments under a multiplier (1 = `WOW_RULES` exactly). */
+export interface WowPacing {
+  /** Closer than this: warning; also one moment per this many seconds is the budget. */
+  readonly warnSpacingS: number;
+  /** Closer than this: error. */
+  readonly errorSpacingS: number;
+  /** The upper end of the "about one per …" range the prompt and messages name. */
+  readonly maxSpacingS: number;
+}
+
+/** The multiplier clamped to `WOW_SCALE_BOUNDS` (a non-finite one counts as 1). */
+export function clampWowScale(scale: number): number {
+  if (!Number.isFinite(scale)) return 1;
+  return Math.min(WOW_SCALE_BOUNDS.max, Math.max(WOW_SCALE_BOUNDS.min, scale));
+}
+
+/**
+ * Wow spacing under a genre multiplier: ×2 = twice as many moments (warnings at half the gap),
+ * ×0.5 = half as many. The error gap only shrinks (a calmer genre gets warnings, never new hard
+ * errors). Whole seconds; scale 1 = `WOW_RULES` (40 / 25 / 90 s).
+ */
+export function wowPacing(scale = 1): WowPacing {
+  const factor = clampWowScale(scale);
+  return {
+    warnSpacingS: Math.round(WOW_RULES.warnSpacingS / factor),
+    errorSpacingS: Math.round(WOW_RULES.errorSpacingS / Math.max(1, factor)),
+    maxSpacingS: Math.round(WOW_RULES.repeatWindowS / factor),
+  };
+}
+
+/** How many wow moments a film of this length may have (at least one); `scale`: genre preset. */
+export function wowBudget(durationS: number, scale = 1): number {
+  return Math.max(1, Math.floor(durationS / wowPacing(scale).warnSpacingS));
 }
 
 /** Lower-case word stems of a content tag (`documents` -> `document`), for intent matching. */

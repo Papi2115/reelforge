@@ -394,6 +394,11 @@ export interface StoryboardCheckOptions {
    * checks and the world's look run limit. Absent = neither (every other project).
    */
   readonly worldVariety?: WorldVarietyOptions;
+  /**
+   * The genre preset's wow-transition multiplier (ADR-035, `wowPacing`). Absent = 1 (the wow
+   * checks exactly as before presets).
+   */
+  readonly wowScale?: number;
 }
 
 /** Storyboard rules of a range (`StoryboardCheckOptions.rules` still win over them). */
@@ -429,7 +434,7 @@ export function checkStoryboard(
     ...treatmentIssues(shots, rules, ranged),
     ...identityIssues(shots),
     ...transitionIssues(shots, rules, options.worldTransitions),
-    ...checkWowTransitions(shots),
+    ...checkWowTransitions(shots, options.wowScale),
     ...checkContinuity(shots),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),

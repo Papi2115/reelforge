@@ -16,6 +16,7 @@ import { snapWhooshCues } from '../beat-sync/snap.js';
 import { activeBeatGrid, reportSoundSync } from '../beat-sync/stage.js';
 import { reviewRepetitions } from '../repetition/stage.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
+import { soundGenrePromptVars } from '../genre.js';
 import { FILES, inProject } from '../paths.js';
 import { WORLD_MOODS } from '../sound/acts.js';
 import { applyMoodHint, designSound, type SoundDesign } from '../sound/design.js';
@@ -89,6 +90,10 @@ async function claudeCues(
     acts: design.moods.length > 0 ? actLines(design) : undefined,
     // A world names only its own moods (real run Sketchbook 1); built-in styles: nothing.
     ...worldMoodVars(styleId),
+    // The genre preset's moods, best first (ADR-035); no preset = nothing.
+    ...(ctx.snapshot.project.status === 'ok'
+      ? soundGenrePromptVars(ctx.snapshot.project.value, styleId, design.moods.length > 0)
+      : {}),
   });
   if (!prompt.ok) return prompt;
   ctx.step('Claude: sound design', 30);
