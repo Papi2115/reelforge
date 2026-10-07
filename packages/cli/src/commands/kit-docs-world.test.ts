@@ -41,9 +41,27 @@ describe('kit-docs in a world project', () => {
   });
 
   it('never lists the looks of a world that is not wired yet, switch or not', () => {
-    for (const style of ['comic', 'game-b2']) {
+    for (const style of ['game-b2']) {
       expect(kitDocsScope(style, true)).toEqual({ style });
       expect(kitCatalog([], LOOKS, kitDocsScope(style, true)).looks).toEqual([]);
     }
+  });
+
+  it('lists the comic page and its three looks only with experimental worlds on', () => {
+    const catalog = kitCatalog([], LOOKS, kitDocsScope('comic', true));
+    expect(catalog.looks.map((look) => look.id)).toEqual([
+      'comic-story',
+      'comic-info',
+      'comic-loud',
+    ]);
+    const on = formatCatalog(catalog, { lookMode: 'mixed' });
+    expect(on).toContain('comicPage');
+    expect(on).not.toContain('sketchPage');
+    expect(on).not.toContain('kit.voxel:');
+    expect(Buffer.byteLength(on, 'utf8')).toBeLessThan(28 * 1024);
+    const off = formatCatalog(kitCatalog([], LOOKS, kitDocsScope('comic', false)), {
+      lookMode: 'mixed',
+    });
+    expect(off).not.toContain('comicPage');
   });
 });

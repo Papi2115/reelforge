@@ -64,6 +64,11 @@ export interface WorldMomentOption {
   readonly breakthrough: boolean;
   /** The looks that host it (the shot must be in one of them); empty = any look. */
   readonly looks: readonly string[];
+  /**
+   * Breakthroughs: what in the narration calls for it, a few words for the quota repair message
+   * ("a reveal or twist" → popup).
+   */
+  readonly cue?: string;
   /** Storyboard: "use when the narration …" (plain words, no full stop). */
   readonly useWhen: string;
   /** Scene-build / scene-fix: the exact call and its caps. */

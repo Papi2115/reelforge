@@ -33,6 +33,11 @@ import { writeContactSheet, type SheetShot } from './sheet.js';
 import { refineShot } from './shot-job.js';
 import { syncReport } from './sync-report.js';
 import { reviewRepetitions } from '../repetition/stage.js';
+import {
+  breakthroughSpecs,
+  repeatedBreakthroughFindings,
+  type ShotBreakthroughs,
+} from '../slop/breakthrough-intent.js';
 import { sameCompositionFindings } from '../slop/guards.js';
 import { popupSpecs, repeatedPopupFindings, type ShotPopups } from '../slop/popup-intent.js';
 import { parseScene } from '../slop/source-text.js';
@@ -84,20 +89,27 @@ async function checkAll(
   return ok({ findings, rows });
 }
 
-/** Pop-up originality guard: a pop-up repeating an earlier one's intent or mechanism (⚠). */
+/**
+ * Pop-up originality guard: a pop-up, or a world breakthrough with an intent (Comic: flashback,
+ * spread), repeating an earlier one's intent or mechanism (⚠).
+ */
 async function addRepeatedPopups(
   job: SceneJob,
   findings: Map<string, QaFinding[]>,
 ): Promise<Result<void, StageError>> {
   const shots: ShotPopups[] = [];
+  const breakthroughs: ShotBreakthroughs[] = [];
+  const kinds = job.antiSlop?.spec?.breakthroughs ?? {};
   for (const shot of job.shots) {
     const text = await readProjectText(job.ctx.projectDir, shot.scene);
     if (!text.ok) return text;
     const program = text.value === undefined ? undefined : parseScene(text.value);
-    if (program !== undefined) shots.push({ shotId: shot.id, popups: popupSpecs(program) });
+    if (program === undefined) continue;
+    shots.push({ shotId: shot.id, popups: popupSpecs(program) });
+    breakthroughs.push({ shotId: shot.id, specs: breakthroughSpecs(program, kinds) });
   }
-  for (const [shotId, found] of repeatedPopupFindings(shots)) {
-    findings.get(shotId)?.push(...found);
+  for (const found of [repeatedPopupFindings(shots), repeatedBreakthroughFindings(breakthroughs)]) {
+    for (const [shotId, entries] of found) findings.get(shotId)?.push(...entries);
   }
   return ok(undefined);
 }

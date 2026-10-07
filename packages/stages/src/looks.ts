@@ -189,6 +189,13 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
     'Sketch graph: blue ballpoint maths and evidence on graph paper, a kraft envelope back or a clipped index card: sums worked line by line, ruled charts with labelled axes, boxes that fill, one red result; numbers whole and readable.',
   'sketch-loud':
     'Sketch loud: one huge hand-lettered marker word or number on a lined page, crooked and off-centre with empty paper around it, the red pen correcting it, a flipbook riffled in the corner or a sticky note slapped on; never two loud words.',
+  // Comic (PLAN.md#13.3); the world's craft checklist comes with criticWorldVars.
+  'comic-story':
+    'Comic story: one printed comic page of 2-5 hand-ruled panels with uneven, leaning gutters (the panel that matters is the biggest), ink line art over off-register colour plates and halftone, speech balloons whose tails point at the speaker, yellow captions, at most one onomatopoeia; lettering whole and inside its balloon or caption.',
+  'comic-info':
+    'Comic info: an explainer that is still a comic page: a cutaway of the real object with its parts named by kinked leaders, a chart drawn as panel art with labelled axes, a hand-ticked checklist with a struck word and its correction, a worn stamp, a caption with the definition; one accent colour on the answer; numbers and labels whole and readable.',
+  'comic-loud':
+    'Comic loud: the page holds its breath, then hits: a near-empty pause panel with no lettering, ONE giant imperfect onomatopoeia breaking out of its panel, a slammed panel, or the one line lettered large with lots of empty paper; never two loud words at once.',
   'paper-cutout':
     'Paper cut-out: flat paper pieces with torn or cut edges on layered depth strips (sky bands, hills, city, a toy-theatre room) with soft dithered drop shadows, a jointed paper puppet, pixel-caps signs and title strips; seen straight on, no perspective close-ups; text whole and not over the puppet.',
 };

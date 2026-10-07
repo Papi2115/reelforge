@@ -80,6 +80,14 @@ function catalogIssues(
   });
 }
 
+/** "(a reveal or twist → popup, a sequence of dates → strip)" from the catalog's cues. */
+function cueHint(options: WorldVarietyOptions): string {
+  const cues = options.moments.flatMap((option) =>
+    option.breakthrough && option.cue !== undefined ? [`${option.cue} → ${option.id}`] : [],
+  );
+  return cues.length === 0 ? '' : ` (${cues.join(', ')})`;
+}
+
 function quotaIssues(
   shots: readonly StoryboardShot[],
   breakthroughs: ReadonlySet<string>,
@@ -98,7 +106,7 @@ function quotaIssues(
       issue(
         'error',
         'moment-quota',
-        `${String(planned.length)} breakthrough moments (${names}) in ${film}; this film needs at least ${String(quota.min)} (about one per ${String(rules.breakthroughTargetEveryS)} s): plan them where the narration calls for them (a reveal or twist → popup, a sequence of dates → strip)`,
+        `${String(planned.length)} breakthrough moments (${names}) in ${film}; this film needs at least ${String(quota.min)} (about one per ${String(rules.breakthroughTargetEveryS)} s): plan them where the narration calls for them${cueHint(options)}`,
         'shots',
       ),
     );

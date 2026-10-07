@@ -15,13 +15,21 @@ describe('style choices (PLAN.md#13.6)', () => {
     expect(styleChoices(false).map((choice) => choice.id)).toEqual(BUILT_IN);
     expect(styleChoices(false).every((choice) => !choice.world && !choice.preview)).toBe(true);
     expect(isOfferedStyle('sketchbook', false)).toBe(false);
+    expect(isOfferedStyle('comic', false)).toBe(false);
     expect(isOfferedStyle('noir-voxel', false)).toBe(true);
   });
 
-  it('adds Sketchbook as a preview world with the switch on, built-ins first', () => {
+  it('adds Sketchbook and Comic as preview worlds with the switch on, built-ins first', () => {
     const choices = styleChoices(true);
-    expect(choices.map((choice) => choice.id)).toEqual([...BUILT_IN, 'sketchbook']);
+    expect(choices.map((choice) => choice.id)).toEqual([...BUILT_IN, 'sketchbook', 'comic']);
     expect(choices.at(-1)).toEqual({
+      id: 'comic',
+      label: 'Comic',
+      description: 'Comic book pages: panels, halftone print, speech bubbles and onomatopoeia.',
+      world: true,
+      preview: true,
+    });
+    expect(choices.at(-2)).toEqual({
       id: 'sketchbook',
       label: 'Sketchbook',
       description:
@@ -30,11 +38,12 @@ describe('style choices (PLAN.md#13.6)', () => {
       preview: true,
     });
     expect(isOfferedStyle('sketchbook', true)).toBe(true);
+    expect(isOfferedStyle('comic', true)).toBe(true);
     expect(isOfferedStyle('no-such-style', true)).toBe(false);
   });
 
   it('never offers a world that is not wired yet, switch or not', () => {
-    for (const id of ['comic', 'game-b2']) {
+    for (const id of ['game-b2']) {
       expect(STYLE_REGISTRY.allIds).toContain(id);
       expect(isOfferedStyle(id, true)).toBe(false);
       expect(isOfferedStyle(id, false)).toBe(false);

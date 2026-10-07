@@ -261,6 +261,21 @@ transitions sound like themselves within the look too (`WORLD_TRANSITION_SFX`): 
 `page-flip` riffle, crumple and toss `paper-rustle` crinkle/busy, tape peel `tape-tear` peel, torn strip `tape-tear` tear (no
 paper-tear recipe yet).
 
+**comic** (world Comic, PLAN.md#13.3, experimental; a printed comic book heard up close, no bass): a world palette
+(`world: 'comic'`, `packages/stages/src/sound/palettes/comic.ts`) reusing the paper, pen and board recipes (no stamp or slam
+recipe of its own: both are the whiteboard's `board-tap` knock, the onomatopoeia's punch the `paper-pop` under it). Cut
+`paper-slide` short/in + `paper-pop` mid, or `page-flip` flip + `paper-rustle` soft; crossfade `paper-rustle` soft, glitch
+`scissor-snip` cut, wipe `page-flip` turn/flip; appear `paper-pop` mid/high, `marker-stroke` short or `pencil-scratch` line; list
+items `paper-pop` (low -> mid -> high); counter step `wood-tick` tick / tock, landing `board-tap` knock or `paper-pop` high; number
+`cap-pop` click, big number `board-tap` knock + `paper-pop` low; text in `marker-stroke` short + `paper-pop` high, typed
+`pencil-scratch` hatch; emphasis riser `paper-slide` long / hit `board-tap` knock/double + `paper-pop` low; end card `page-flip`
+turn + `paper-rustle` soft; ambience `room-tone` -33 / -36. Scene sfx: `stamp` and `hit` = `board-tap`, `snap` = `scissor-snip`,
+`pop`/`bubble` = `paper-pop`. Panel-native transitions (`COMIC_TRANSITION_SFX`): page turn `page-flip` turn/flip, page turned
+back `page-flip` turn + `paper-rustle`, gutter split `scissor-snip` cut + `paper-slide` long, into the panel `paper-slide`
+in/short, panel slam `board-tap` knock + `paper-pop` low 0.15 s into the transition, ink bleed `marker-stroke` long. Music
+moods of a comic film (`WORLD_MOODS`): `calm-tech`, `tense-investigation`, `lofi-chill` (no synth `retro-wave`, nothing too
+cheerful); default calm `calm-tech`, tense acts `tense-investigation`.
+
 ## Beat sync and repetition (PLAN.md#12.21, #12.23)
 
 - With `"beatSync": "auto"` the director's spoken-number hits, big-number whoosh-impacts and

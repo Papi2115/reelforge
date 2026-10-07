@@ -4,7 +4,9 @@
  * `print`, any local `write` helper) and the string values of text options (`text`, `label`,
  * `note`, `band`, `lines`, `caption`, `title`, `subtitle`, `labels`, a strip's `end`, a pop-up's
  * `items`, `marks`, `ends`, `prefix`, `suffix`), also
- * through a `const` holding a literal. Letters drawn from strokes: `stroke-text.ts`. The scene's
+ * through a `const` holding a literal; a world adds its own lettering calls and options (Comic:
+ * `caption`, `balloon`, `sfx`, `note`, `stamp`, `g.text`, a flashback's `when`; `WorldText`).
+ * Letters drawn from strokes: `stroke-text.ts`. The scene's
  * `meta` object is not on screen. Strings built at run time (`String(year)`, templates with
  * expressions) are not judged.
  */
@@ -14,8 +16,18 @@ import { visit } from '../scenes/source-checks.js';
 export interface OnScreenText {
   readonly text: string;
   readonly line: number;
-  /** `timeline-end`: a strip's `end` word (judged against the timeline's era too). */
-  readonly role?: 'timeline-end' | undefined;
+  /**
+   * `timeline-end`: a strip's `end` word (judged against the timeline's era too); `sound`: an
+   * onomatopoeia (the world's sound words are not invented there).
+   */
+  readonly role?: 'timeline-end' | 'sound' | undefined;
+}
+
+/** A world's own lettering (`WorldSlopSpec`): more text calls and options, sound calls. */
+export interface WorldText {
+  readonly textMethods?: readonly string[] | undefined;
+  readonly textKeys?: readonly string[] | undefined;
+  readonly soundMethods?: readonly string[] | undefined;
 }
 
 const TEXT_METHODS = new Set(['write', 'print', 'title', 'kinetic', 'lowerThird', 'typewriter']);
@@ -113,9 +125,12 @@ export function strings(node: AnyNode, constants: ReadonlyMap<string, string>): 
   );
 }
 
-export function onScreenTexts(program: AnyNode): OnScreenText[] {
+export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreenText[] {
   const meta = metaRanges(program);
   const constants = constantStrings(program);
+  const methods = new Set([...TEXT_METHODS, ...(world.textMethods ?? [])]);
+  const keys = new Set([...TEXT_KEYS, ...(world.textKeys ?? [])]);
+  const sounds = new Set(world.soundMethods ?? []);
   const inMeta = (node: AnyNode): boolean =>
     meta.some(([start, end]) => node.start >= start && node.end <= end);
   const found: OnScreenText[] = [];
@@ -129,17 +144,17 @@ export function onScreenTexts(program: AnyNode): OnScreenText[] {
   visit(program, (node) => {
     if (inMeta(node)) return;
     const name = calleeName(node);
-    if (node.type === 'CallExpression' && name !== undefined && TEXT_METHODS.has(name)) {
+    if (node.type === 'CallExpression' && name !== undefined && methods.has(name)) {
       const [first] = node.arguments;
       if (first !== undefined && first.type !== 'SpreadElement')
-        add(node, strings(first, constants));
+        add(node, strings(first, constants), sounds.has(name) ? 'sound' : undefined);
       const second = node.arguments[1];
       if (name === 'lowerThird' && second !== undefined && second.type !== 'SpreadElement') {
         add(node, strings(second, constants));
       }
     }
     const key = propertyKey(node);
-    if (node.type === 'Property' && key !== undefined && TEXT_KEYS.has(key)) {
+    if (node.type === 'Property' && key !== undefined && keys.has(key)) {
       // An array option is one label written on several lines: judged as one string.
       const lines = strings(node.value, constants);
       const role = key === 'end' ? 'timeline-end' : undefined;

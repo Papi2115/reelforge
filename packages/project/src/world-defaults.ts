@@ -24,7 +24,7 @@ const WORLD_DEFAULTS: WorldProjectDefaults = {
 
 /** The world styles and the project fields they set (over the template and the user's choices). */
 export const WORLD_PROJECT_DEFAULTS: Readonly<Record<string, WorldProjectDefaults>> = Object.freeze(
-  { sketchbook: WORLD_DEFAULTS },
+  { sketchbook: WORLD_DEFAULTS, comic: WORLD_DEFAULTS },
 );
 
 /** The defaults of a world style; undefined for every built-in style. */

@@ -30,6 +30,7 @@ import {
   signatureDistance,
   type FrameMetrics,
 } from './frame-guards.js';
+import { breakthroughIntentFindings } from './breakthrough-intent.js';
 import { popupIntentFindings } from './popup-intent.js';
 import { countTraces, MIN_HUMAN_TRACES, uniformTimings } from './source-guards.js';
 import { onScreenTexts, parseScene } from './source-text.js';
@@ -108,7 +109,7 @@ function textFindings(
   strokes: StrokeLettering,
   file: string,
 ): QaFinding[] {
-  const texts = [...onScreenTexts(program), ...strokes.texts];
+  const texts = [...onScreenTexts(program, setup.spec), ...strokes.texts];
   const invented = inventedTexts(texts, setup.vocabulary, setup.spec);
   if (invented.length === 0) return [];
   const named = invented
@@ -148,8 +149,8 @@ function traceFindings(spec: WorldSlopSpec, program: AnyNode, file: string): QaF
 }
 
 /**
- * Text provenance (with stroke-drawn letters), pop-up intents, human traces (world scenes) and
- * stagger variance of a scene's source.
+ * Text provenance (with stroke-drawn letters), pop-up and breakthrough intents, human traces
+ * (world scenes) and stagger variance of a scene's source.
  */
 export function slopSourceFindings(
   setup: AntiSlopSetup,
@@ -164,10 +165,14 @@ export function slopSourceFindings(
     ),
   );
   const strokes = strokeLettering(source, program);
+  const breakthroughs = setup.spec?.breakthroughs;
   return [
     ...textFindings(setup, program, strokes, file),
     ...strokeLetteringSlop(strokes, file),
     ...popupIntentFindings(program, file),
+    ...(breakthroughs === undefined
+      ? []
+      : breakthroughIntentFindings(program, file, breakthroughs, setup.vocabulary)),
     ...(setup.spec === undefined ? [] : traceFindings(setup.spec, program, file)),
     ...uniform,
   ];

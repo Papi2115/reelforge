@@ -5,7 +5,8 @@
  * sourced number ("1500s"), or when it is the visible result of a calculation with sourced
  * on-screen numbers ("365.2422 − 365 = 0.2422", "0.2422 × 4 = 0.9688"), at the precision shown.
  * 0 and 1 never need one. A timeline that ends in "now" needs the sources to reach the modern era
- * (a "now" at the end of a 1518 strip is invented).
+ * (a "now" at the end of a 1518 strip is invented). An onomatopoeia (role `sound`) may use the
+ * world's sound words ("CLANG", "BEEEP"); any other word in it still needs a source.
  */
 import {
   isFunctionWord,
@@ -100,6 +101,15 @@ function isLabel(word: string, spec: WorldSlopSpec | undefined): boolean {
   return GENERAL_LABELS.has(word) || (spec?.labels.includes(word) ?? false);
 }
 
+/** A sound word of the world, letters held or not ("BEEEP" = beep, "KRAAAK" = krak). */
+function isSoundWord(word: string, spec: WorldSlopSpec | undefined): boolean {
+  const sounds = spec?.soundWords;
+  if (sounds === undefined) return false;
+  return [word, word.replace(/(.)\1{2,}/g, '$1$1'), word.replace(/(.)\1+/g, '$1')].some((form) =>
+    sounds.has(form),
+  );
+}
+
 /**
  * Whether a string's unknown words make it invented: a name or label the sources do not have (a
  * capitalised word that does not start the string, any all-caps word of 2+ letters), or mostly
@@ -148,6 +158,7 @@ export function inventedTexts(
     );
     const unknownWords = words.filter((token) => {
       if (knownWord(vocabulary, token.text)) return false;
+      if (entry.role === 'sound' && isSoundWord(token.text, spec)) return false;
       // A number word on screen ("ten") is fine when the sources have its value.
       const [value] = spelledNumbers([token]);
       return value === undefined || !vocabulary.numbers.includes(value);

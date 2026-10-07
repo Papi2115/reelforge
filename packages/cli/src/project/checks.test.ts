@@ -21,6 +21,11 @@ describe('styleProblems', () => {
   });
 
   it('accepts an experimental world style only with experimental worlds on', () => {
+    expect(STYLE_REGISTRY.isExperimental('comic')).toBe(true);
+    expect(styleProblems('comic', STYLE_REGISTRY, true)).toEqual([]);
+    expect(styleProblems('comic', STYLE_REGISTRY, false)[0]?.message).toBe(
+      'style "comic" is an experimental world; turn on Experimental worlds in Settings',
+    );
     expect(STYLE_REGISTRY.isExperimental('sketchbook')).toBe(true);
     expect(styleProblems('sketchbook', STYLE_REGISTRY, true)).toEqual([]);
     expect(styleProblems('sketchbook', STYLE_REGISTRY, false)).toEqual([
@@ -44,11 +49,13 @@ describe('styleProblems', () => {
     expect(off?.message).toBe('unknown style preset "vaporwave"');
     expect(off?.fix).toBe('use one of: voxel-pixel-crisp640, noir-voxel, soft-480');
     const [on] = styleProblems('vaporwave', STYLE_REGISTRY, true);
-    expect(on?.fix).toBe('use one of: voxel-pixel-crisp640, noir-voxel, soft-480, sketchbook');
+    expect(on?.fix).toBe(
+      'use one of: voxel-pixel-crisp640, noir-voxel, soft-480, sketchbook, comic',
+    );
   });
 
   it('rejects a world that is not wired yet, switch or not, even when shipped', () => {
-    for (const style of ['comic', 'game-b2']) {
+    for (const style of ['game-b2']) {
       expect(STYLE_REGISTRY.entry(style)).toBeDefined();
       for (const registry of [STYLE_REGISTRY, SHIPPED]) {
         for (const experimental of [false, true]) {

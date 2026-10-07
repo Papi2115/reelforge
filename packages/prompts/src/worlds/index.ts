@@ -10,12 +10,14 @@ import {
   storyboardContinuityVars,
   storyboardMomentVars,
 } from './moment-vars.js';
+import { COMIC_PROMPTS } from './comic.js';
 import { SKETCHBOOK_PROMPTS } from './sketchbook.js';
 import type { WorldPromptText, WorldTransitionOption } from './types.js';
 import type { WorldQuotaOverride } from './variety.js';
 
 export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from './types.js';
 export { worldMomentOption } from './moment-vars.js';
+export { COMIC_SNIPPETS, type ComicSnippet } from './comic-snippets.js';
 export { SKETCHBOOK_SNIPPETS, type SketchbookSnippet } from './sketchbook-snippets.js';
 export {
   breakthroughQuota,
@@ -29,6 +31,7 @@ export {
 /** Prompt texts per world id. */
 export const WORLD_PROMPTS: Readonly<Record<string, WorldPromptText>> = Object.freeze({
   sketchbook: SKETCHBOOK_PROMPTS,
+  comic: COMIC_PROMPTS,
 });
 
 /** The prompt texts of a world (undefined for every other style). */

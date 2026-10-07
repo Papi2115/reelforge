@@ -39,12 +39,19 @@ function numberLiteral(node: AnyNode | undefined): number | undefined {
   return undefined;
 }
 
+/** An option that is switched off: the literal 0 or `false`. */
+function switchedOff(node: AnyNode): boolean {
+  return numberLiteral(node) === 0 || (node.type === 'Literal' && node.value === false);
+}
+
 export function countTraces(program: AnyNode, spec: WorldSlopSpec): TraceCount {
   const found = new Map<string, number>();
   let total = 0;
   const add = (name: string, weight: number): void => {
-    found.set(name, (found.get(name) ?? 0) + 1);
-    total += weight;
+    const seen = found.get(name) ?? 0;
+    found.set(name, seen + 1);
+    const cap = spec.traceCaps?.[name];
+    if (cap === undefined || seen < cap) total += weight;
   };
   visit(program, (node) => {
     const name = calleeName(node);
@@ -58,7 +65,7 @@ export function countTraces(program: AnyNode, spec: WorldSlopSpec): TraceCount {
       if (option.key !== key) continue;
       const hit =
         option.value === undefined
-          ? numberLiteral(node.value) !== 0
+          ? !switchedOff(node.value)
           : literalString(node.value) === option.value;
       if (hit) add(option.trace, 1);
     }

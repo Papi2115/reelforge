@@ -8,7 +8,7 @@ import { WORLD_PROMPTS } from '@reelforge/prompts';
 import { WORLD_PROJECT_DEFAULTS } from '@reelforge/project';
 import type { StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { storyboardLookVars, styleLookScope, styleLooks } from './looks.js';
+import { CRITIC_LOOK_RULES, storyboardLookVars, styleLookScope, styleLooks } from './looks.js';
 import { craftVerdicts } from './scenes/critic.js';
 import { kitNamesFromCatalog } from './scenes/tools.js';
 import { paletteForShot } from './sound/palettes/index.js';
@@ -45,7 +45,7 @@ function shot(id: string, extra: Partial<StoryboardShot> = {}): StoryboardShot {
 describe('world registry wiring', () => {
   it('has project defaults and prompt wording for every wired world', () => {
     const wired = WORLDS.filter((world) => world.wired);
-    expect(wired.map((world) => world.id)).toContain('sketchbook');
+    expect(wired.map((world) => world.id)).toEqual(['sketchbook', 'comic']);
     for (const world of wired) {
       expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toContain(world.id);
       expect(Object.keys(WORLD_PROMPTS)).toContain(world.id);
@@ -54,7 +54,7 @@ describe('world registry wiring', () => {
 
   it('never offers a world that is not wired yet, flag or not', () => {
     const unwired = WORLDS.filter((world) => !world.wired);
-    expect(unwired.map((world) => world.id)).toEqual(['comic', 'game-b2']);
+    expect(unwired.map((world) => world.id)).toEqual(['game-b2']);
     for (const { id } of unwired) {
       for (const scope of [{}, ON]) {
         expect(activeWorld(id, scope)).toBeUndefined();
@@ -196,6 +196,58 @@ describe('sketchbook project', () => {
     expect(criticWorldPromptVars(setup.world, strip)['worldMomentCheck']).toContain('accordion');
     expect(sceneWorldPromptVars(setup.world, shot('s01'))).not.toHaveProperty('worldMoment');
     expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('page moment');
+    expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
+  });
+});
+
+describe('comic project', () => {
+  const setup = lookSetup({ style: 'comic', lookMode: 'voxel-only' }, ON);
+
+  it('is offered only with experimental worlds, in its own looks and transitions', () => {
+    expect(activeWorld('comic')).toBeUndefined();
+    expect(lookSetup({ style: 'comic' }).looks).toEqual([]);
+    expect(setup.lookMode).toBe('mixed');
+    expect(setup.looks.map((look) => look.id)).toEqual(['comic-story', 'comic-info', 'comic-loud']);
+    expect(worldTransitionOptions(setup.world).map((option) => option.id)).toEqual([
+      'comic-page-turn',
+      'comic-page-back',
+      'comic-gutter-wipe',
+      'comic-panel-zoom',
+      'comic-panel-slam',
+      'comic-ink-bleed',
+    ]);
+    expect(storyboardWorldPromptVars(setup)).toMatchObject({
+      world: 'Comic',
+      worldFirstLook: 'comic-story',
+    });
+  });
+
+  it('builds with the comic page, sounds in the comic palette, judges each look', () => {
+    const names = kitNamesFromCatalog({ style: 'comic', experimental: true });
+    expect(names.fx.has('comicPage')).toBe(true);
+    expect(names.fx.has('sketchPage')).toBe(false);
+    expect(names.props.has('desk')).toBe(false);
+    const options = { lookMode: 'mixed' as const, style: 'comic' };
+    expect(paletteForShot(shot('s01', { look: 'comic-loud' }), options).id).toBe('comic');
+    expect(fixWorldPromptVars(setup.world, shot('s01'), setup.looks)).toMatchObject({
+      lookId: 'comic-story',
+    });
+    for (const look of setup.looks) expect(CRITIC_LOOK_RULES[look.id], look.id).toBeDefined();
+  });
+
+  it('plans flashbacks and spreads and gives the shot its moment', () => {
+    const vars = storyboardWorldPromptVars(setup, 120);
+    expect(vars['worldMoments']).toContain('- `flashback` (breakthrough; look `comic-info`)');
+    expect(vars['worldMomentRules']).toContain('Breakthroughs (`flashback`, `spread`)');
+    const options = storyboardWorldOptions(setup, undefined, true);
+    expect(options.worldVariety?.moments.map((moment) => moment.id)).toContain('spread');
+    expect(options.worldVariety?.continuityLinks).toBe(true);
+    const spread = shot('s09', { look: 'comic-loud', worldMoment: 'spread' });
+    expect(sceneWorldPromptVars(setup.world, spread)['worldMomentDirective']).toContain(
+      'page.spread(',
+    );
+    expect(criticWorldPromptVars(setup.world, spread)['worldMomentCheck']).toContain('spread:');
+    expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('CLANG');
     expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
   });
 });
