@@ -413,6 +413,7 @@ export {
   type RasterImage,
 } from './assets/pixels.js';
 export { refAt, refId, refLiterals, referencedAssetRefs } from './assets/refs.js';
+export * from './voice/index.js';
 export {
   boundaryStrength,
   chapterLinesOf,

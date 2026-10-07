@@ -36,6 +36,7 @@ export * from './shot-variants.js';
 export * from './stage-records.js';
 export * from './storyboard.js';
 export * from './style-preset.js';
+export * from './takes.js';
 export * from './taste-profile.js';
 export * from './tension.js';
 export * from './tension-tempo.js';
