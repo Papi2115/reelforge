@@ -55,3 +55,31 @@
 .world-row-reason {
   font-size: 12px;
 }
+
+/* Genre presets (PLAN.md#13.8): New project → Genre, Project settings → Genre. */
+.start-genre {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.start-genre p {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.start-genre select {
+  max-width: 100%;
+}
+
+.start-genre .genre-preview {
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.start-genre .genre-style-note {
+  color: var(--muted);
+  font-style: italic;
+}

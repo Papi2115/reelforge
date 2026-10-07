@@ -1,12 +1,14 @@
 /**
- * Settings → Channels → one channel (PLAN.md#13.13): name, color, the style new projects of the
- * channel start with, the ElevenLabs voice, the API key, publishing defaults and Delete. Every
- * field saves on its own (like the rest of Settings). The genre preset stays hidden until 13.8.
+ * Settings → Channels → one channel (PLAN.md#13.13): name, color, the style and the genre preset
+ * (PLAN.md#13.8) new projects of the channel start with, the ElevenLabs voice, the API key,
+ * publishing defaults and Delete. Every field saves on its own (like the rest of Settings).
  */
 import type { ChannelPatch } from '@reelforge/shared';
 import { useId, useState, type JSX } from 'react';
 import type { ChannelView } from '../../shared/channels-contract.js';
 import { styleLabel, type StyleChoice } from '../../shared/style-choices.js';
+import { GenreSelect } from '../project/GenreField.js';
+import { CHANNEL_GENRE_HINT } from '../project/genre-view.js';
 import {
   APP_DEFAULT_STYLE_LABEL,
   CHANNEL_COLORS,
@@ -131,6 +133,15 @@ export function ChannelDetail(props: ChannelDetailProps): JSX.Element {
         styles={props.styles}
         onChange={(style) => {
           patchShown({ defaultStyle: style });
+        }}
+      />
+      <GenreSelect
+        label="Genre of new projects"
+        className="field channel-field"
+        hint={CHANNEL_GENRE_HINT}
+        value={channel.genrePreset}
+        onChange={(genre) => {
+          patchShown({ genrePreset: genre });
         }}
       />
       {error !== undefined && (

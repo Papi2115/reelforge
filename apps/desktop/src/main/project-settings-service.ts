@@ -241,12 +241,13 @@ export class ProjectSettingsService {
     if (dir === undefined) return { status: 'error', message: 'no project is open' };
     const loaded = await this.load(dir);
     if (!loaded.ok) return { status: 'error', message: loaded.message };
-    const { style } = loaded.project;
+    const { style, genrePreset } = loaded.project;
     return {
       status: 'ok',
       settings: effectiveProjectSettings(loaded.project),
       looks: [...this.options.looks(style)],
       style: this.options.style(style),
+      ...(genrePreset === undefined ? {} : { genrePreset }),
     };
   }
 

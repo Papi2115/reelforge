@@ -4,6 +4,8 @@
  * folder picker in main), open an existing project folder, or reopen a recent
  * one. With more than one channel (PLAN.md#13.13) the form names the channel (the one of the most
  * recent project first; its style is preselected) and recent projects show their channel's dot.
+ * A genre preset (PLAN.md#13.8, the channel's preselected) fills in the style and the scenes per
+ * minute until the user changes them; only the touched fields are sent as explicit choices.
  */
 import type { ShotsPerMinute } from '@reelforge/shared';
 import { useEffect, useMemo, useState, type JSX, type SyntheticEvent } from 'react';
@@ -23,6 +25,8 @@ import {
   type ChannelList,
 } from '../channels/channel-view.js';
 import { errorMessage, rendererLog } from '../log.js';
+import { GenreField } from './GenreField.js';
+import { chosenGenre, genreFormValues, withTouched, type TouchedFields } from './genre-view.js';
 import { SceneCountFields } from './SceneCountFields.js';
 import { SCENE_COUNT_HINT } from './scene-count-view.js';
 import { StyleField } from './StyleField.js';
@@ -70,7 +74,18 @@ export function StartScreen({
     channels === undefined
       ? undefined
       : channelOf(channels, pickedChannel ?? initialChannelId(channels, recent));
-  const style = chosenStyle(pickedStyle, channelDefaultStyle(channel, defaultStyle), styles);
+  const [pickedGenre, setPickedGenre] = useState<string | null | undefined>(undefined);
+  const [touched, setTouched] = useState<TouchedFields>(new Set());
+  const genre = chosenGenre(pickedGenre, channel?.genrePreset);
+  const values = genreFormValues({
+    genre,
+    touched,
+    experimentalWorlds: experimentalWorlds === true,
+    style: chosenStyle(pickedStyle, channelDefaultStyle(channel, defaultStyle), styles),
+    shotsPerMinute,
+    fasterChecks,
+  });
+  const { style } = values;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -116,10 +131,12 @@ export function StartScreen({
       window.reelforge.newProject({
         title: title.trim(),
         language,
-        shotsPerMinute,
-        fasterChecks,
+        shotsPerMinute: values.shotsPerMinute,
+        fasterChecks: values.fasterChecks,
         ...(style === undefined ? {} : { style }),
         ...(channel === undefined ? {} : { channelId: channel.id }),
+        genrePreset: genre,
+        explicitFields: [...touched],
       }),
     );
   };
@@ -158,20 +175,44 @@ export function StartScreen({
             disabled={busy}
             onChange={(id) => {
               setPickedChannel(id);
-              // The new channel's style applies until a style is picked again.
+              // The new channel's style and genre apply until they are picked again.
               setPickedStyle(undefined);
+              setPickedGenre(undefined);
+              setTouched((previous) => new Set([...previous].filter((field) => field !== 'style')));
             }}
           />
         )}
-        <StyleField choices={styles} value={style} onChange={setPickedStyle} disabled={busy} />
+        <GenreField
+          value={genre}
+          resolution={values.resolution}
+          touched={touched}
+          experimentalWorlds={experimentalWorlds === true}
+          onChange={setPickedGenre}
+          disabled={busy}
+        />
+        <StyleField
+          choices={styles}
+          value={style}
+          onChange={(picked) => {
+            setPickedStyle(picked);
+            setTouched((previous) => withTouched(previous, 'style'));
+          }}
+          disabled={busy}
+        />
         <fieldset className="start-scene-count">
           <legend>Scenes and checks</legend>
           <p className="muted">{SCENE_COUNT_HINT}</p>
           <SceneCountFields
-            range={shotsPerMinute}
-            fasterChecks={fasterChecks}
-            onRange={setShotsPerMinute}
-            onFasterChecks={setFasterChecks}
+            range={values.shotsPerMinute}
+            fasterChecks={values.fasterChecks}
+            onRange={(range) => {
+              setShotsPerMinute(range);
+              setTouched((previous) => withTouched(previous, 'shotsPerMinute'));
+            }}
+            onFasterChecks={(on) => {
+              setFasterChecks(on);
+              setTouched((previous) => withTouched(previous, 'fasterChecks'));
+            }}
             disabled={busy}
           />
         </fieldset>

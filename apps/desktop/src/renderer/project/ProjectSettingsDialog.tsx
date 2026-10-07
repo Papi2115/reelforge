@@ -1,5 +1,6 @@
 /**
- * "Project settings": the project's channel (read-only, PLAN.md#13.13) and the options stored in
+ * "Project settings": the project's channel (read-only, PLAN.md#13.13), its genre preset
+ * (read-only, PLAN.md#13.8) and the options stored in
  * the open project's project.json (the style, read-only;
  * look mode, ambient variation, continuity links, characters and mascot, research assets, tension
  * map, dramaturgy, editing, scenes per minute and faster checks). In a world's project the rows
@@ -13,6 +14,7 @@ import { useEffect, useId, useRef, type JSX } from 'react';
 import type { ChannelView } from '../../shared/channels-contract.js';
 import { ChannelRow } from '../channels/ChannelRow.js';
 import { optionsStatus } from '../options/step-options-view.js';
+import { GenreRow } from './GenreRow.js';
 import { groupBySection, PROJECT_SETTINGS_ROWS } from './project-settings-view.js';
 import { useProjectSettings } from './use-project-settings.js';
 import { OptionRow } from './WorldRows.js';
@@ -69,6 +71,9 @@ export function ProjectSettingsDialog({
             <p className="muted">Loading…</p>
           )}
           {channel !== undefined && <ChannelRow channel={channel} />}
+          {controller.genrePreset !== undefined && (
+            <GenreRow genrePreset={controller.genrePreset} />
+          )}
           {settings !== undefined &&
             groupBySection(PROJECT_SETTINGS_ROWS).map((section) => (
               <section

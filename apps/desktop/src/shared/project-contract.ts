@@ -5,11 +5,21 @@
  */
 import {
   channelIdSchema,
+  genrePresetIdSchema,
   shotsPerMinuteSchema,
   stylePresetIdSchema,
   videoLanguageSchema,
+  type GenrePresetField,
 } from '@reelforge/shared';
 import { z } from 'zod';
+
+/** The New project form's fields a genre preset also sets (PLAN.md#13.8). */
+export const NEW_PROJECT_FORM_FIELDS = [
+  'style',
+  'shotsPerMinute',
+  'fasterChecks',
+] as const satisfies readonly GenrePresetField[];
+export type NewProjectFormField = (typeof NEW_PROJECT_FORM_FIELDS)[number];
 
 export const projectSummarySchema = z.object({
   dir: z.string(),
@@ -69,6 +79,19 @@ export const newProjectRequestSchema = z.strictObject({
    * omitted. Omitted = the default channel.
    */
   channelId: channelIdSchema.optional(),
+  /**
+   * Genre preset (PLAN.md#13.8, ADR-035): null = none (not even the channel's); omitted = the
+   * channel's. An id the app does not know is refused.
+   */
+  genrePreset: genrePresetIdSchema.nullable().optional(),
+  /**
+   * The fields above the user actually chose in the form (they beat the genre preset); the others
+   * are only shown defaults the preset may replace. Omitted = every one of them the request has.
+   */
+  explicitFields: z
+    .array(z.enum(NEW_PROJECT_FORM_FIELDS))
+    .max(NEW_PROJECT_FORM_FIELDS.length)
+    .optional(),
 });
 export type NewProjectRequest = z.infer<typeof newProjectRequestSchema>;
 

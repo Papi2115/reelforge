@@ -43,10 +43,10 @@ import type {
   RepairableFile,
   RepairFileResult,
 } from '../shared/snapshot-contract.js';
-import { isOfferedStyle } from '../shared/style-choices.js';
 import { newProjectChannel } from './channels/new-project-channel.js';
 import { checkFileText, repairFile } from './file-repair.js';
 import { describeError, type Logger } from './logger.js';
+import { newProjectChoices, refuseNewProjectRequest } from './new-project-options.js';
 import { buildProjectManifest } from './project-manifest.js';
 import { readProjectSnapshot } from './project-snapshot.js';
 
@@ -139,39 +139,26 @@ export class ProjectService {
   }
 
   async newProject(request: NewProjectRequest): Promise<ProjectOpenResult> {
-    // Checked before the picker: a style the app does not offer never creates a folder.
-    if (request.style !== undefined && !isOfferedStyle(request.style, this.experimentalWorlds())) {
-      return {
-        status: 'error',
-        error: {
-          kind: 'invalid-argument',
-          message: `style "${request.style}" is not offered (preview worlds need Settings → Projects → Experimental worlds)`,
-        },
-      };
-    }
+    const experimental = this.experimentalWorlds();
+    // Checked before the picker: an unoffered style or unknown genre never creates a folder.
+    const refused = refuseNewProjectRequest(request, experimental);
+    if (refused !== undefined) return { status: 'error', error: refused };
     const channel = await newProjectChannel(
       this.options.channelsFile,
       request.channelId,
-      this.experimentalWorlds(),
+      experimental,
       this.options.log,
     );
     if (!channel.ok) return { status: 'error', error: channel.error };
-    // The form's style, else the channel's, else the app's default.
-    const style = request.style ?? channel.value?.style ?? this.options.defaultStyle?.();
     const parent = await this.options.pickFolder('new-project-parent');
     if (parent === undefined) return { status: 'cancelled' };
     // A world's style gets its own defaults over these (createProject, world-defaults.ts).
     const created = await createProject({
       dir: newProjectDir(parent, request.title),
-      title: request.title,
-      language: request.language,
-      ...(style === undefined ? {} : { style }),
-      ...(channel.value === undefined
-        ? {}
-        : { channel: { id: channel.value.channel.id, defaultStyle: channel.value.style ?? null } }),
-      ...this.options.newProjectDefaults?.(),
-      ...(request.shotsPerMinute === undefined ? {} : { shotsPerMinute: request.shotsPerMinute }),
-      ...(request.fasterChecks === undefined ? {} : { fasterChecks: request.fasterChecks }),
+      ...newProjectChoices(request, channel.value, experimental, {
+        style: this.options.defaultStyle?.(),
+        ...this.options.newProjectDefaults?.(),
+      }),
       templateDir: this.options.templateDir,
       stylesDir: this.options.stylesDir,
       ...this.gitOption(),
@@ -211,6 +198,14 @@ export class ProjectService {
       };
     }
     return this.open(known.value.dir);
+  }
+
+  /**
+   * Opens a project main already knows (a film of the production line, PLAN.md#13.9); the folder
+   * comes from main's own queue files, never from the renderer.
+   */
+  openKnown(dir: string): Promise<ProjectOpenResult> {
+    return this.open(dir);
   }
 
   async recent(): Promise<RecentProjectEntry[]> {
