@@ -1,0 +1,280 @@
+/* Channels (PLAN.md#13.13): Settings → Channels (list panel + detail form), the channel badge and
+   dot of the header, the recent list and Project settings. Theme tokens only (styles.css). */
+.channel-note {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.channel-error {
+  margin: 0;
+  color: var(--error);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+}
+
+.channels-layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-5);
+}
+
+/* Left: a compact panel, list on top and a tool strip below (old-school editor panel). */
+.channels-list-panel {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  background: var(--bg);
+}
+
+.channels-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.channels-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'badge name tag'
+    'badge key key';
+  align-items: center;
+  column-gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-1);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.channels-item:hover {
+  background: var(--panel-raised);
+}
+
+.channels-item[aria-selected='true'] {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.channels-item .channel-badge {
+  grid-area: badge;
+}
+
+.channels-item-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channels-item-tag {
+  grid-area: tag;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-1);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.channels-item-key {
+  grid-area: key;
+  font-size: 11px;
+}
+
+.channels-list-tools {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.channels-list-tools > button:first-child {
+  flex: 1;
+}
+
+.channels-list-panel > .channel-error {
+  padding: var(--space-2) var(--space-3);
+}
+
+.channel-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-1);
+  background: var(--border-control);
+  color: var(--on-accent);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.channel-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--muted);
+}
+
+/* Right: the form of the chosen channel. */
+.channel-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.channel-detail > .settings-heading:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.channel-field textarea {
+  resize: vertical;
+  font: inherit;
+}
+
+.channel-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.channel-swatch {
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-1);
+}
+
+.channel-swatch[aria-checked='true'] {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg) inset;
+}
+
+.channel-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.channel-slider {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) 64px;
+  align-items: center;
+  column-gap: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.channel-slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.channel-slider-value {
+  text-align: right;
+  font-size: var(--text-xs);
+}
+
+.channel-slider-hint {
+  grid-column: 2 / 4;
+  font-size: var(--text-xs);
+}
+
+.channel-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* The API key: a framed box, so it reads as one thing. */
+.channel-key {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  background: var(--bg);
+}
+
+.channel-key-status {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.channel-key-title {
+  font-weight: 600;
+}
+
+.channel-key-saved {
+  color: var(--ok);
+}
+
+.channel-key-entry {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.channel-key-entry input {
+  flex: 1;
+  min-width: 0;
+}
+
+.channel-key-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.channel-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Header, recent list and Project settings. */
+.project-channel {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.recent-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.project-channel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.channel-add {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}

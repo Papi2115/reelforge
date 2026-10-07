@@ -1,5 +1,6 @@
 /**
- * "Project settings": options stored in the open project's project.json (the style, read-only;
+ * "Project settings": the project's channel (read-only, PLAN.md#13.13) and the options stored in
+ * the open project's project.json (the style, read-only;
  * look mode, ambient variation, continuity links, characters and mascot, research assets, tension
  * map, dramaturgy, editing, scenes per minute and faster checks). In a world's project the rows
  * that do not apply say why instead (WorldRows.tsx). Sections and rows are data
@@ -9,6 +10,8 @@
  * future builds and marks no step out of date.
  */
 import { useEffect, useId, useRef, type JSX } from 'react';
+import type { ChannelView } from '../../shared/channels-contract.js';
+import { ChannelRow } from '../channels/ChannelRow.js';
 import { optionsStatus } from '../options/step-options-view.js';
 import { groupBySection, PROJECT_SETTINGS_ROWS } from './project-settings-view.js';
 import { useProjectSettings } from './use-project-settings.js';
@@ -16,11 +19,14 @@ import { OptionRow } from './WorldRows.js';
 
 export interface ProjectSettingsDialogProps {
   readonly projectTitle: string;
+  /** The project's channel (read-only here); undefined while the channels load. */
+  readonly channel?: ChannelView | undefined;
   readonly onClose: () => void;
 }
 
 export function ProjectSettingsDialog({
   projectTitle,
+  channel,
   onClose,
 }: ProjectSettingsDialogProps): JSX.Element {
   const controller = useProjectSettings();
@@ -62,6 +68,7 @@ export function ProjectSettingsDialog({
           {settings === undefined && controller.error === undefined && (
             <p className="muted">Loading…</p>
           )}
+          {channel !== undefined && <ChannelRow channel={channel} />}
           {settings !== undefined &&
             groupBySection(PROJECT_SETTINGS_ROWS).map((section) => (
               <section

@@ -2,7 +2,8 @@
  * Start screen (PLAN.md#6.2): new project (title + language, style (PLAN.md#13.6: a preview world
  * only with Settings → Experimental worlds), scenes per minute and faster checks (ADR-027), then a
  * folder picker in main), open an existing project folder, or reopen a recent
- * one. Plain on purpose; 6.3 does the real layout.
+ * one. With more than one channel (PLAN.md#13.13) the form names the channel (the one of the most
+ * recent project first; its style is preselected) and recent projects show their channel's dot.
  */
 import type { ShotsPerMinute } from '@reelforge/shared';
 import { useEffect, useMemo, useState, type JSX, type SyntheticEvent } from 'react';
@@ -12,6 +13,15 @@ import type {
   RecentProjectEntry,
 } from '../../shared/project-contract.js';
 import { styleChoices } from '../../shared/style-choices.js';
+import { ChannelDot } from '../channels/ChannelBadge.js';
+import { ChannelField } from '../channels/ChannelField.js';
+import {
+  channelDefaultStyle,
+  channelOf,
+  initialChannelId,
+  showChannels,
+  type ChannelList,
+} from '../channels/channel-view.js';
 import { errorMessage, rendererLog } from '../log.js';
 import { SceneCountFields } from './SceneCountFields.js';
 import { SCENE_COUNT_HINT } from './scene-count-view.js';
@@ -31,6 +41,8 @@ export interface StartScreenProps {
   readonly defaultStyle?: string | undefined;
   /** Settings → Projects → "Experimental worlds (preview)" (PLAN.md#13.6). */
   readonly experimentalWorlds?: boolean | undefined;
+  /** The user's channels; undefined until loaded (projects then go to the default channel). */
+  readonly channels?: ChannelList | undefined;
 }
 
 type Language = ProjectSummary['language'];
@@ -42,6 +54,7 @@ export function StartScreen({
   defaultFasterChecks,
   defaultStyle,
   experimentalWorlds,
+  channels,
 }: StartScreenProps): JSX.Element {
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState<Language>(defaultLanguage ?? 'en');
@@ -51,8 +64,13 @@ export function StartScreen({
   const [fasterChecks, setFasterChecks] = useState(defaultFasterChecks ?? false);
   const [pickedStyle, setPickedStyle] = useState<string | undefined>(undefined);
   const styles = useMemo(() => styleChoices(experimentalWorlds === true), [experimentalWorlds]);
-  const style = chosenStyle(pickedStyle, defaultStyle, styles);
   const [recent, setRecent] = useState<RecentProjectEntry[]>([]);
+  const [pickedChannel, setPickedChannel] = useState<string | undefined>(undefined);
+  const channel =
+    channels === undefined
+      ? undefined
+      : channelOf(channels, pickedChannel ?? initialChannelId(channels, recent));
+  const style = chosenStyle(pickedStyle, channelDefaultStyle(channel, defaultStyle), styles);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -101,6 +119,7 @@ export function StartScreen({
         shotsPerMinute,
         fasterChecks,
         ...(style === undefined ? {} : { style }),
+        ...(channel === undefined ? {} : { channelId: channel.id }),
       }),
     );
   };
@@ -132,6 +151,18 @@ export function StartScreen({
             <option value="pl">Polski</option>
           </select>
         </label>
+        {showChannels(channels) && channel !== undefined && (
+          <ChannelField
+            channels={channels.channels}
+            value={channel.id}
+            disabled={busy}
+            onChange={(id) => {
+              setPickedChannel(id);
+              // The new channel's style applies until a style is picked again.
+              setPickedStyle(undefined);
+            }}
+          />
+        )}
         <StyleField choices={styles} value={style} onChange={setPickedStyle} disabled={busy} />
         <fieldset className="start-scene-count">
           <legend>Scenes and checks</legend>
@@ -177,22 +208,32 @@ export function StartScreen({
         <p className="muted">No recent projects.</p>
       ) : (
         <ul className="recent-list">
-          {recent.map((entry) => (
-            <li key={entry.dir}>
-              <button
-                type="button"
-                className="recent-item"
-                disabled={busy || !entry.exists}
-                title={entry.dir}
-                onClick={() => {
-                  run(() => window.reelforge.openRecentProject(entry.dir));
-                }}
-              >
-                <span>{entry.title}</span>
-                <span className="muted">{entry.exists ? entry.dir : `missing · ${entry.dir}`}</span>
-              </button>
-            </li>
-          ))}
+          {recent.map((entry) => {
+            const entryChannel = showChannels(channels)
+              ? channelOf(channels, entry.channelId)
+              : undefined;
+            return (
+              <li key={entry.dir}>
+                <button
+                  type="button"
+                  className="recent-item"
+                  disabled={busy || !entry.exists}
+                  title={entry.dir}
+                  onClick={() => {
+                    run(() => window.reelforge.openRecentProject(entry.dir));
+                  }}
+                >
+                  <span className="recent-title">
+                    {entryChannel !== undefined && <ChannelDot channel={entryChannel} />}
+                    {entry.title}
+                  </span>
+                  <span className="muted">
+                    {entry.exists ? entry.dir : `missing · ${entry.dir}`}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

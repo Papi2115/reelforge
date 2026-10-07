@@ -2,6 +2,9 @@ import { useEffect, useState, type JSX } from 'react';
 import type { ShotsPerMinute } from '@reelforge/shared';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
+import { ChannelDot } from './channels/ChannelBadge.js';
+import { channelOf, showChannels, type ChannelList } from './channels/channel-view.js';
+import { useChannels } from './channels/use-channels.js';
 import { projectMeta } from './layout/header-view.js';
 import { ProjectMenu } from './layout/ProjectMenu.js';
 import { StatusBar } from './layout/StatusBar.js';
@@ -34,6 +37,7 @@ function StartLayout({
   defaultFasterChecks,
   defaultStyle,
   experimentalWorlds,
+  channels,
 }: {
   readonly onOpened: (project: ProjectSummary) => void;
   readonly defaultLanguage: ProjectSummary['language'] | undefined;
@@ -41,6 +45,7 @@ function StartLayout({
   readonly defaultFasterChecks: boolean | undefined;
   readonly defaultStyle: string | undefined;
   readonly experimentalWorlds: boolean | undefined;
+  readonly channels: ChannelList | undefined;
 }): JSX.Element {
   // The demo has no audio: the player runs on the system clock.
   const player = usePlayer(undefined);
@@ -55,6 +60,7 @@ function StartLayout({
           defaultFasterChecks={defaultFasterChecks}
           defaultStyle={defaultStyle}
           experimentalWorlds={experimentalWorlds}
+          channels={channels}
         />
       </div>
       <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
@@ -72,6 +78,8 @@ export function App(): JSX.Element {
   const [needsYouSlot, setNeedsYouSlot] = useState<HTMLElement | null>(null);
   const settings = useSettings();
   const claude = useClaudeStatus();
+  const channels = useChannels();
+  const projectChannel = project === null ? undefined : channelOf(channels.list, project.channelId);
   const appSettings = settings.state?.settings;
   const firstRun = appSettings !== undefined && !appSettings.onboarding.connectClaudeDone;
   const [helpDialog, setHelpDialog] = useState<HelpDialogKind | null>(null);
@@ -135,6 +143,12 @@ export function App(): JSX.Element {
               }}
               onClose={closeProject}
             />
+            {showChannels(channels.list) && projectChannel !== undefined && (
+              <span className="project-channel">
+                <ChannelDot channel={projectChannel} />
+                <span className="project-channel-name">{projectChannel.name}</span>
+              </span>
+            )}
             <span className="project-meta">{projectMeta(project)}</span>
           </>
         )}
@@ -179,6 +193,7 @@ export function App(): JSX.Element {
             defaultFasterChecks={appSettings?.newProjectDefaults.fasterChecks}
             defaultStyle={appSettings?.defaultStyle}
             experimentalWorlds={appSettings?.experimental.worlds}
+            channels={channels.list}
             onOpened={(opened) => {
               setProject(opened);
               setHistoryOpen(false);
@@ -206,6 +221,7 @@ export function App(): JSX.Element {
           <ProjectSettingsDialog
             key={project.dir}
             projectTitle={project.title}
+            channel={projectChannel}
             onClose={() => {
               setProjectSettingsOpen(false);
             }}
@@ -217,6 +233,7 @@ export function App(): JSX.Element {
             onTab={setSettingsTab}
             settings={settings}
             claude={claude}
+            channels={channels}
             onClose={() => {
               setSettingsTab(null);
             }}

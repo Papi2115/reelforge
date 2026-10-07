@@ -33,6 +33,7 @@ import './hook-lab/hook-lab.css';
 import './settings/taste.css';
 import './options/options.css';
 import './director/director.css';
+import './channels/channels.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });
