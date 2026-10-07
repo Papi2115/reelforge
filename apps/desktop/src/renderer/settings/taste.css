@@ -55,3 +55,27 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Which profile (PLAN.md#13.13): the channel's dot and name, the picker without an open project. */
+.taste-scope-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.taste-scope > p {
+  margin: 2px 0 0;
+}
+
+.taste-pickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.taste-pickers > .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}

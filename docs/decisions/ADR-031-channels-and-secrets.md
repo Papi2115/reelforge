@@ -42,7 +42,10 @@ end up in a project folder, a commit, a log or the renderer.
   `channelId`; the summary and the recent list expose it.
 - **Taste.** The default channel keeps the app-wide `taste.json` (what was learned before 3.1 stays
   in use); a new channel gets `tasteProfile = <its id>` → `taste-<id>.json`, with `tastePerWorld`
-  `taste-<id>--<style>.json`. Switching TasteService to the open project's channel is a follow-up.
+  `taste-<id>--<style>.json` (a channel without its own profile, i.e. the default one, splits into
+  `taste--<style>.json`, leaving `taste.json` as it is). TasteService resolves the file per film from
+  `project.json` (channel + style) and channels.json on every use (`main/taste/taste-scope.ts`);
+  `tasteLearning` is the channel's on/off switch (absent = the app setting `taste.learning`).
 - **Secrets.** `<userData>/channel-secrets.bin.json` (version 1, schema in shared):
   `{ secrets: { <channelId>: { 'elevenlabs-api-key': <base64 of safeStorage ciphertext> } } }`.
   Electron `safeStorage` (DPAPI on Windows) encrypts; if `isEncryptionAvailable()` is false, or on

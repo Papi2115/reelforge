@@ -23,6 +23,7 @@ import { ProjectSettingsDialog } from './project/ProjectSettingsDialog.js';
 import { StartScreen } from './project/StartScreen.js';
 import { FirstRunGate } from './settings/FirstRunGate.js';
 import { OpenSettingsContext, type SettingsRequest } from './settings/open-settings.js';
+import { useTitleFont } from './settings/PixelTitles.js';
 import { SettingsDialog } from './settings/SettingsDialog.js';
 import { useClaudeStatus } from './settings/use-claude-status.js';
 import { useSettings } from './settings/use-settings.js';
@@ -94,6 +95,7 @@ export function App(): JSX.Element {
   const projectChannel = project === null ? undefined : channelOf(channels.list, project.channelId);
   const appSettings = settings.state?.settings;
   const firstRun = appSettings !== undefined && !appSettings.onboarding.connectClaudeDone;
+  useTitleFont(appSettings?.ui.pixelTitles);
   const [helpDialog, setHelpDialog] = useState<HelpDialogKind | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   /** Closed in this session without "Don't show again": it comes back after a restart. */

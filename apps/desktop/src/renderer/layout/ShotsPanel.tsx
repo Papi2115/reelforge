@@ -178,7 +178,8 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
   return (
     <section className={`panel shots-panel${compact ? ' compact' : ''}`} aria-label="Shots">
       <h2 className="panel-heading">
-        Shots {shots.length > 0 && <span className="count">{shots.length}</span>}
+        <span className="panel-heading-text">Shots</span>
+        {shots.length > 0 && <span className="count">{shots.length}</span>}
         <Counts shots={shots} badges={badges} locked={props.locked} />
         {props.lockable.length > 0 && (
           <button

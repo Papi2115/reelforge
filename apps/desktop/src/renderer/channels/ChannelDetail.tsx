@@ -185,6 +185,24 @@ export function ChannelDetail(props: ChannelDetailProps): JSX.Element {
         onCommit={(text) => savePublish({ creditsStyle: text })}
       />
 
+      <h3 className="settings-heading">Taste</h3>
+      <label className="settings-toggle channel-field">
+        <input
+          type="checkbox"
+          checked={channel.tastePerWorld === true}
+          onChange={(event) => {
+            patchShown({ tastePerWorld: event.target.checked ? true : null });
+          }}
+        />
+        <span>
+          Keep a separate profile for each world
+          <span className="muted">
+            {' '}
+            — each world learns and uses its own taste; off = one profile for the whole channel.
+          </span>
+        </span>
+      </label>
+
       <h3 className="settings-heading">Delete</h3>
       {channel.isDefault ? (
         <p className="muted channel-note">The default channel cannot be deleted.</p>

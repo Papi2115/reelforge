@@ -9,7 +9,6 @@ import {
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
-  tasteFile,
   TEST_PROJECTS_DIR_ENV,
   USER_DATA_ENV,
 } from './app-paths.js';
@@ -90,13 +89,6 @@ describe('assetLibraryDir', () => {
   it('lives in the app data folder, outside every project (PLAN.md#12.19)', () => {
     const userData = path.join(appData, 'ReelForge');
     expect(assetLibraryDir(userData)).toBe(path.join(appData, 'ReelForge', 'library'));
-  });
-});
-
-describe('tasteFile', () => {
-  it('lives in the app data folder, outside every project (PLAN.md#12.13)', () => {
-    const userData = path.join(appData, 'ReelForge');
-    expect(tasteFile(userData)).toBe(path.join(appData, 'ReelForge', 'taste.json'));
   });
 });
 

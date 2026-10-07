@@ -5,6 +5,7 @@ import { App } from './App.js';
 import { errorMessage, rendererLog } from './log.js';
 import './styles.css';
 import './ui.css';
+import './fonts/pixel-titles.css';
 import './layout/layout.css';
 import './layout/pipeline.css';
 import './layout/shots.css';

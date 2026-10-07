@@ -10,7 +10,8 @@
     "build": "node scripts/run.mjs build",
     "package": "node scripts/run.mjs package",
     "dist": "node scripts/run.mjs dist",
-    "icon": "node scripts/run.mjs icon"
+    "icon": "node scripts/run.mjs icon",
+    "pixel-face": "node scripts/run.mjs pixel-face"
   },
   "dependencies": {
     "@reelforge/claude-bridge": "workspace:*",

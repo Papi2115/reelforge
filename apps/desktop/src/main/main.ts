@@ -34,7 +34,6 @@ import {
   recentProjectsFile,
   resolveUserDataDir,
   settingsFile,
-  tasteFile,
   USER_DATA_SWITCH,
 } from './app-paths.js';
 import { registerAppSchemePrivileged, serveAppProtocol } from './app-protocol.js';
@@ -146,9 +145,10 @@ function main(): void {
     file: settingsFile(userDataDir),
     log: log.child('settings'),
   });
-  /** The local taste profile (PLAN.md#12.13): app data, never in a project or in git. */
+  /** Local taste profiles, one per channel (PLAN.md#12.13, #13.13): app data, never in git. */
   const taste = new TasteService({
-    file: tasteFile(userDataDir),
+    dir: userDataDir,
+    channelsFile: channelsFile(userDataDir),
     settings: () => settings.get(),
     log: log.child('taste'),
   });
@@ -380,7 +380,7 @@ function main(): void {
       frames: renderBackend.frames,
       audio: audioTools,
       assets: assetRuntime,
-      taste: taste.learner(),
+      taste: (projectDir) => taste.learner(projectDir),
     }),
     exportRun: {
       start: (listener) => exportBackend.service.runForStage(listener),
@@ -600,6 +600,7 @@ function main(): void {
       }),
       ...tasteHandlers({
         taste,
+        currentProject: () => projects.currentProject()?.dir,
         pickExportFile: async () => {
           const options = {
             title: 'Export the taste profile',

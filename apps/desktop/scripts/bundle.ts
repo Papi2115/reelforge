@@ -304,6 +304,8 @@ export function rendererViteConfig(
       sourcemap: true,
       // Local app, assets load from disk: one chunk with the engine host is fine.
       chunkSizeWarningLimit: 2048,
+      // The CSP allows fonts from the app only ('self', no data:): never inline the pixel face.
+      assetsInlineLimit: (file) => (file.endsWith('.ttf') ? false : undefined),
     },
   };
 }

@@ -17,6 +17,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
 };
 
 export interface AppAsset {

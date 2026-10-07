@@ -170,6 +170,14 @@ describe('channelTasteProfileFile', () => {
     expect(() =>
       channelTasteProfileFile({ tasteProfile: 'crime', tastePerWorld: true }, '../x'),
     ).toThrow();
+    // A channel without its own profile (the default one) splits by world next to taste.json.
+    expect(channelTasteProfileFile({ tastePerWorld: true }, 'sketchbook')).toBe(
+      'taste--sketchbook.json',
+    );
+    expect(channelTasteProfileFile({ tastePerWorld: true })).toBe('taste.json');
+    expect(channelTasteProfileFile({ tasteProfile: 'crime', tastePerWorld: false }, 'x')).toBe(
+      'taste-crime.json',
+    );
   });
 });
 

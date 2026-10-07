@@ -4,13 +4,15 @@
  * the test's own app data folder; where the OS cannot encrypt, the plain-words error instead),
  * removes the key, reorders; the start screen then offers the channel (its style preselected),
  * the project is created in channel 2 and the header and Project settings name it; the recent list
- * shows its dot; deleting the channel is refused while it has the project. The key value (a
+ * shows its dot; deleting the channel is refused while it has the project; Settings → Taste picks
+ * a channel's own profile (Forget empties only that one) and follows the per-world switch. The key value (a
  * canary) never shows in the page and is in no file under app data or the project. No Claude and
  * no network. Screenshots at 1280x720: out/test-app/channels-*.png.
  */
-import { mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { emptyTasteProfile } from '@reelforge/shared';
 import type { ElectronApplication, Locator, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
@@ -215,6 +217,59 @@ describe('channels', () => {
       .waitFor();
     expect((await savedChannels()).map((entry) => entry.id)).toContain('crime');
     await page.keyboard.press('Escape');
+  });
+
+  it('keeps a taste profile per channel: picker, Forget and the per-world switch', async () => {
+    // The Crime Desk channel learned three picks; the default channel nothing (taste.json absent).
+    const crimeProfile = path.join(userDataDir, 'taste-crime.json');
+    await writeFile(
+      crimeProfile,
+      JSON.stringify({
+        ...emptyTasteProfile(),
+        signals: { ...emptyTasteProfile().signals, pick: 3 },
+      }),
+    );
+    const dialog = await openChannelsSettings();
+    await dialog.getByRole('tab', { name: 'Taste' }).click();
+    const scope = dialog.getByRole('group', { name: 'Taste profile' });
+    // No project open: the picker, starting with the default channel.
+    await scope.getByText(/No project is open: pick a channel/).waitFor();
+    const picker = dialog.getByLabel('Channel', { exact: true });
+    expect(await picker.inputValue()).toBe('default');
+    await dialog.getByText(/^Recorded: 0 variant picks/).waitFor();
+    await picker.selectOption('crime');
+    await scope.getByText('Profile: Crime Desk').waitFor();
+    await scope.getByRole('img', { name: 'Channel: Crime Desk' }).waitFor();
+    await dialog.getByText(/^Recorded: 3 variant picks/).waitFor();
+    await shot('taste');
+    await dialog.getByRole('button', { name: 'Forget everything…' }).click();
+    await dialog.getByRole('button', { name: 'Forget everything', exact: true }).click();
+    await dialog.getByText('This taste profile was forgotten.').waitFor();
+    await dialog.getByText(/^Recorded: 0 variant picks/).waitFor();
+    const forgotten = await readJson(crimeProfile);
+    expect(forgotten['signals']).toMatchObject({ pick: 0 });
+    await expect(readFile(path.join(userDataDir, 'taste.json'))).rejects.toThrow();
+
+    // One profile per world: the channel's style of new projects until a film learns.
+    await dialog.getByRole('tab', { name: 'Channels' }).click();
+    await dialog.getByRole('option', { name: /Crime Desk/ }).click();
+    const crime = dialog.getByRole('region', { name: 'Channel Crime Desk', exact: true });
+    // Saved through main first, then shown checked (controlled by the saved list).
+    const perWorld = crime.getByRole('checkbox', {
+      name: /Keep a separate profile for each world/,
+    });
+    await perWorld.click();
+    await expect.poll(() => perWorld.isChecked()).toBe(true);
+    await expect
+      .poll(async () => (await savedChannels()).find((channel) => channel.id === 'crime'))
+      .toMatchObject({ tastePerWorld: true });
+    await dialog.getByRole('tab', { name: 'Taste' }).click();
+    await dialog.getByLabel('Channel', { exact: true }).selectOption('crime');
+    await scope.getByText(/^Profile: Crime Desk · /).waitFor();
+    await scope.getByText(/keeps a separate profile for each world/).waitFor();
+    await dialog.getByText(/taste-crime--noir-voxel\.json/).waitFor();
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
   });
 
   it('never writes the key value to a file or the page', async () => {

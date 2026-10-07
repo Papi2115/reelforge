@@ -29,7 +29,7 @@ export function Disclosure(props: DisclosureProps): JSX.Element {
         }}
       >
         <ChevronIcon direction={props.open ? 'down' : 'right'} />
-        {props.title}
+        <span className="disclosure-title">{props.title}</span>
         {props.summary !== undefined && <span className="muted">{props.summary}</span>}
       </button>
       {props.open && (

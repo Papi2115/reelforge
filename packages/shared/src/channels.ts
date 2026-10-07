@@ -11,7 +11,7 @@
  */
 import { z } from 'zod';
 import { stylePresetIdSchema } from './style-preset.js';
-import { TASTE_PROFILE_FILE } from './taste-profile.js';
+import { TASTE_PROFILE_FILE, tasteLearningSchema } from './taste-profile.js';
 
 export const CHANNELS_FILE_VERSION = 1;
 /** File name in the app data folder. */
@@ -88,6 +88,8 @@ const editableChannelShape = {
   tasteProfile: tasteProfileIdSchema.optional(),
   /** One profile per world of the channel (`taste-<id>--<style>.json`). Absent = off. */
   tastePerWorld: z.boolean().optional(),
+  /** Taste learning of the channel's films; absent = the app setting `taste.learning`. */
+  tasteLearning: tasteLearningSchema.optional(),
   /** Folder new projects of the channel are suggested in (absolute); absent = ask. */
   projectsDir: z.string().min(1).max(4_096).optional(),
   notes: z.string().max(5_000).optional(),
@@ -153,6 +155,7 @@ export const channelPatchSchema = z.strictObject({
   publishDefaults: channelPublishDefaultsSchema.nullable().optional(),
   tasteProfile: tasteProfileIdSchema.nullable().optional(),
   tastePerWorld: z.boolean().nullable().optional(),
+  tasteLearning: tasteLearningSchema.nullable().optional(),
   projectsDir: z.string().min(1).max(4_096).nullable().optional(),
   notes: z.string().max(5_000).nullable().optional(),
 });
@@ -235,17 +238,19 @@ export function channelForProject(
 /**
  * File name (in the app data folder) of the taste profile a channel's project uses: the app-wide
  * `taste.json` without a channel profile; `taste-<id>.json`; with `tastePerWorld`, one per style
- * (`taste-<id>--<style>.json`).
+ * (`taste-<id>--<style>.json`, or `taste--<style>.json` for a channel without its own profile, so
+ * the default channel can split by world too while `taste.json` stays as it is).
  */
 export function channelTasteProfileFile(
   channel: Pick<Channel, 'tasteProfile' | 'tastePerWorld'>,
   style?: string,
 ): string {
-  if (channel.tasteProfile === undefined) return TASTE_PROFILE_FILE;
   const perWorld = channel.tastePerWorld === true && style !== undefined;
-  return perWorld
-    ? `taste-${channel.tasteProfile}--${stylePresetIdSchema.parse(style)}.json`
-    : `taste-${channel.tasteProfile}.json`;
+  const world = perWorld ? `--${stylePresetIdSchema.parse(style)}` : '';
+  if (channel.tasteProfile === undefined) {
+    return perWorld ? `taste${world}.json` : TASTE_PROFILE_FILE;
+  }
+  return `taste-${channel.tasteProfile}${world}.json`;
 }
 
 // ---- Secrets (separate file, ciphertext only) ----

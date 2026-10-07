@@ -175,7 +175,7 @@ export function PipelineSidebar({
       aria-label="Pipeline"
     >
       <h2 className="panel-heading">
-        Pipeline
+        <span className="panel-heading-text">Pipeline</span>
         <button
           type="button"
           className="info-button"

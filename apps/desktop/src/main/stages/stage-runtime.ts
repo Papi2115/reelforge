@@ -119,8 +119,11 @@ export interface AppRunnerOptions {
   readonly audio: AudioTools;
   /** Asset sources of the Assets stage: undefined = the real ones (a test hook: a local server). */
   readonly assets?: AssetRuntime | undefined;
-  /** Taste learning (PLAN.md#12.13): the local profile; it reads the on/off switch itself. */
-  readonly taste?: TasteLearner | undefined;
+  /**
+   * Taste learning (PLAN.md#12.13): the profile of the project's channel (PLAN.md#13.13); it
+   * reads the channel and the on/off switch itself on every use.
+   */
+  readonly taste?: ((projectDir: string) => TasteLearner) | undefined;
 }
 
 /** `StageServiceOptions.createRunner` of the desktop app. */
@@ -137,6 +140,6 @@ export function appRunnerFactory(options: AppRunnerOptions): (projectDir: string
       guard: options.guard,
       store: options.store,
       assets: options.assets,
-      taste: options.taste,
+      taste: options.taste?.(projectDir),
     });
 }
