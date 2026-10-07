@@ -34,6 +34,8 @@ import {
 } from './schemas.js';
 import { SCREEN_METHODS } from './methods.js';
 import { toolkits, type Breakthrough, type Cue } from './toolkits.js';
+import { vocabApi, type VocabInfo } from '../vocab/api.js';
+import type { B1AssetIds } from '../vocab/assets.js';
 
 export interface Span {
   readonly at: number;
@@ -59,6 +61,11 @@ export type B1ScreenObject = FxObject & {
   cartridge(spec: unknown): Breakthrough;
   levelSelect(spec: unknown): Breakthrough;
   gameOver(spec: unknown): Span & { cues: readonly Cue[] };
+  defineSprite(id: string, spec: unknown): VocabInfo;
+  definePlayfield(id: string, spec: unknown): VocabInfo;
+  generate(id: string, spec: unknown): VocabInfo;
+  assets(file: unknown): B1AssetIds;
+  interior(spec?: unknown): void;
 };
 
 function buildScreen(params: z.output<typeof screenParams>, tools: KitTools): B1ScreenObject {
@@ -80,6 +87,7 @@ function buildScreen(params: z.output<typeof screenParams>, tools: KitTools): B1
     },
     room(spec?: unknown) {
       const o = parse(roomSchema, spec, 'room()');
+      model.interior = undefined;
       const gift = o.gift;
       model.room = {
         calendar:
@@ -222,7 +230,7 @@ function buildScreen(params: z.output<typeof screenParams>, tools: KitTools): B1
   const fx = asFx(output.object, (t) => {
     output.present(model.render(t));
   });
-  return Object.assign(fx, api, toolkits(model, at, end));
+  return Object.assign(fx, api, toolkits(model, at, end), vocabApi(model, at));
 }
 
 export const b1Screen = defineFx({

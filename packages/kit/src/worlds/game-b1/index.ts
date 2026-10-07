@@ -29,6 +29,16 @@ export { atariMenuLook } from './looks/atari-menu/index.js';
 export { atariStoryLook } from './looks/atari-story/index.js';
 /** The world's 23 inks [index name, swatch, hex] and its LUTs (the engine's game-native transitions). */
 export { B1_TABLE as GAME_B1_COLOURS, GAME_B1_LUTS } from './palette.js';
+/** The open vocabulary's project asset files (PLAN.md#13.15): format, validator, scene refs. */
+export {
+  B1_ASSET_VERSION,
+  b1AssetFileSchema,
+  b1SceneRefs,
+  checkB1Assets,
+  type B1AssetFile,
+  type B1AssetIds,
+  type B1AssetReport,
+} from './vocab/assets.js';
 
 export const GAME_B1 = defineWorld({
   id: GAME_B1_ID,

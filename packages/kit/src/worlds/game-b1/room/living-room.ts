@@ -42,7 +42,7 @@ function rabbitEars(p: RoomPen, x: number, y: number): void {
 }
 
 /** The TV cabinet at (22, 44); the glass is TV_GLASS. */
-function tvCabinet(p: RoomPen, glass: (rect: GlassRect) => void): void {
+export function tvCabinet(p: RoomPen, glass: (rect: GlassRect) => void): void {
   const x = 22;
   const y = 44;
   p.rr(x + 6, y + 76, 4, 8, C.WALNUT_D);
@@ -71,7 +71,7 @@ function tvCabinet(p: RoomPen, glass: (rect: GlassRect) => void): void {
   p.rr(x, y + 76, 124, 2, C.WALNUT_D);
 }
 
-function console2600(p: RoomPen, x: number, y: number): void {
+export function console2600(p: RoomPen, x: number, y: number): void {
   p.rr(x, y, 62, 16, C.VOID);
   p.rr(x + 2, y, 58, 1, C.GREY_D);
   for (let i = 0; i < 3; i += 1) p.rr(x + 4, y + 3 + i * 2, 18, 1, C.GREY_D);
@@ -83,7 +83,7 @@ function console2600(p: RoomPen, x: number, y: number): void {
 }
 
 /** The joystick and its cable, drawn by hand (an uneven polyline). */
-function joystick(p: RoomPen): void {
+export function joystick(p: RoomPen): void {
   p.rr(118, 146, 13, 10, C.VOID);
   p.rr(118, 146, 13, 1, C.GREY_D);
   p.rr(119, 147, 3, 2, C.ORANGE);

@@ -15,6 +15,18 @@ import type { IndexCanvas } from '../core/canvas.js';
 import { joy, missingGlyphs, score } from '../core/fonts.js';
 import { clamp01, EASES, frameOf, hash, lerp, seg, shake, typed, typedEnd } from '../core/math.js';
 import { colorOfSwatch, REMAP_NAMES, REMAPS, type RemapName } from '../palette.js';
+import {
+  drawCounter,
+  drawField,
+  drawObject,
+  drawSprite,
+  spriteBox,
+  type CounterSpec,
+  type DrawOptions,
+  type FieldOptions,
+  type VocabLookup,
+} from '../vocab/draw.js';
+import { hit, path, scroll } from '../vocab/logic.js';
 import { attractPicture, garbage } from './idle.js';
 
 export const TV_H = 180;
@@ -32,6 +44,8 @@ export interface SpriteOptions {
   readonly playfield?: boolean;
   /** false = never flickers (the hero), still counted. */
   readonly flicker?: boolean;
+  /** NUSIZ copies: x offsets in TV units of the same player (counted once on a scanline). */
+  readonly copies?: readonly number[];
 }
 
 export interface CartOptions extends SpriteOptions {
@@ -68,12 +82,26 @@ export class TvPainter {
   private ox = 0;
   private oy = 0;
   readonly frame: number;
-  readonly util = { seg, lerp, clamp01, ease: EASES, hash, shake, typed, typedEnd, frameOf };
+  readonly util = {
+    seg,
+    lerp,
+    clamp01,
+    ease: EASES,
+    hash,
+    shake,
+    typed,
+    typedEnd,
+    frameOf,
+    path,
+    scroll,
+    hit,
+  };
 
   constructor(
     private readonly cv: IndexCanvas,
     readonly t: number,
     private readonly flickerLimit = 2,
+    private readonly vocab?: VocabLookup,
   ) {
     this.frame = frameOf(t);
   }
@@ -154,7 +182,8 @@ export class TvPainter {
       (ox, oy) => {
         for (let i = 0; i < shown; i += 1) {
           const src = Math.min(rows.length - 1, Math.floor((i / shown) * rows.length));
-          this.bits(ox, oy, rows[src] ?? '', perRow[src] ?? -1, x, top + i * rowH, options);
+          for (const dx of options.copies ?? [0])
+            this.bits(ox, oy, rows[src] ?? '', perRow[src] ?? -1, x + dx, top + i * rowH, options);
         }
       },
       this.spriteMeta(top, shown * rowH, options),
@@ -299,6 +328,39 @@ export class TvPainter {
     this.push((ox, oy) => {
       this.cv.rect(ox + x, oy + y, w, h, c);
     });
+  }
+
+  private words(): VocabLookup {
+    if (this.vocab === undefined) fail('the film vocabulary is not available here');
+    return this.vocab;
+  }
+
+  /** A sprite of the film's vocabulary (defineSprite / generate / assets) at x, y in TV units. */
+  draw(id: string, x: number, y: number, options: DrawOptions = {}): void {
+    drawSprite(this, this.words(), id, x, y, options);
+  }
+
+  /** A playfield of the film's vocabulary from row y down; `shift` scrolls whole blocks. */
+  field(id: string, y: number, options: FieldOptions = {}): number {
+    return drawField(this, this.words(), id, y, options);
+  }
+
+  /** The box of a vocabulary sprite at x, y (for g.util.hit). */
+  box(id: string, x: number, y: number, size?: 1 | 2 | 4) {
+    return spriteBox(this.words(), id, x, y, size);
+  }
+
+  ball(x: number, y: number, options: { w?: number; h?: number; colour: string }): void {
+    drawObject(this, 'ball', x, y, options);
+  }
+
+  missile(x: number, y: number, options: { w?: number; h?: number; colour: string }): void {
+    drawObject(this, 'missile', x, y, options);
+  }
+
+  /** Score Block digits of a REAL number of the narration (`means` says which). */
+  counter(spec: CounterSpec): number {
+    return drawCounter(this, spec);
   }
 
   /** Free drawing in px on the picture's canvas (the escape hatch; keep the 2600 rules). */

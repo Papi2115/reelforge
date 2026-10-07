@@ -30,13 +30,16 @@ import {
   type YearKey,
 } from '../hud/overlay.js';
 import { C, INK_FLIP, T } from '../palette.js';
+import { drawInterior, type InteriorPlan } from '../room/interior.js';
 import { livingRoom, type GlassRect } from '../room/living-room.js';
 import { RoomPen, TV_GLASS, VIEWS, viewAt, type CameraKey, type View } from '../room/view.js';
 import { paintCartridge, type CartridgePlan } from '../seams/cartridge.js';
 import { paintZoomWipe, zoomView, type ZoomPlan } from '../seams/calendar-zoom.js';
 import { crt } from '../tv/crt.js';
 import { TvPainter } from '../tv/painter.js';
+import { Vocab } from '../vocab/registry.js';
 import type { RoomModel } from './room-model.js';
+import { fail } from './schemas.js';
 
 export type { RoomModel } from './room-model.js';
 
@@ -66,6 +69,10 @@ export class ScreenModel {
   readonly overlays: Overlay[] = [];
   readonly glassPainters: GlassPainter[] = [];
   room: RoomModel | undefined;
+  /** The room DSL's interior (screen.interior()); replaces the living room when set. */
+  interior: InteriorPlan | undefined;
+  /** The film's own sprites, playfields and rooms (open vocabulary, PLAN.md#13.15). */
+  readonly vocab = new Vocab(fail);
   readonly camera: CameraKey[] = [];
   readonly years: YearKey[] = [];
   score: ScoreSpec | undefined;
@@ -125,7 +132,7 @@ export class ScreenModel {
   paintPicture(pic: IndexCanvas, t: number): void {
     pic.clip();
     pic.fill(C.VOID);
-    const g = new TvPainter(pic, t, this.flickerLimit);
+    const g = new TvPainter(pic, t, this.flickerLimit, this.vocab);
     if (this.painters.length === 0) g.attract();
     for (const painter of this.painters) painter(g, t);
     g.flush();
@@ -170,9 +177,11 @@ export class ScreenModel {
     this.frame.fill(C.VOID);
     this.pen.set(view);
     const roomRadius = Math.round(5 * view.s);
-    livingRoom(this.pen, t, this.roomState(room, t), (rect) => {
+    const glassAt = (rect: GlassRect) => {
       if (view.inTv <= 0) this.finishGlass(rect, t, roomRadius, false, true);
-    });
+    };
+    if (this.interior === undefined) livingRoom(this.pen, t, this.roomState(room, t), glassAt);
+    else drawInterior(this.pen, t, this.interior, (id) => this.vocab.sprites.get(id), glassAt);
     if (view.inTv <= 0) return;
     const glass = this.pen.box(TV_GLASS.x, TV_GLASS.y, TV_GLASS.w, TV_GLASS.h);
     this.growGlass(glass, view.inTv, t, roomRadius);
