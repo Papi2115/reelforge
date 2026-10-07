@@ -108,7 +108,7 @@ describe('genreFormValues', () => {
 describe('genre preview and style note', () => {
   it('says what the preset sets in plain words', () => {
     expect(genrePreviewLine(resolved({ genre: 'history', experimentalWorlds: true }), NONE)).toBe(
-      'Hand-drawn notebook · calm pace · 3–5 scenes a minute · continuity links · no pattern interrupts',
+      'Hand-drawn notebook · calm pace · 3–5 scenes a minute · continuity links · no surprise moments',
     );
     expect(genrePreviewLine(resolved({ genre: 'tech-explainer' }), NONE)).toBe(
       'Chunky voxel 3D in crisp pixel art · mixed looks · fast pace · 8–12 scenes a minute',

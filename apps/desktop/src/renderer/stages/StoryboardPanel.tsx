@@ -18,7 +18,7 @@ export interface StoryboardPanelProps {
 
 function storyboardSummary(shotCount: number): string {
   return shotCount === 0
-    ? 'No shots yet. Run Storyboard in the pipeline: the shots appear in the Shots panel.'
+    ? 'No shots yet. Run the Storyboard step: the shots appear in the Shots panel.'
     : `${plural(shotCount, 'shot')} planned. They are listed in the Shots panel: select one to see it in the preview.`;
 }
 

@@ -12,7 +12,7 @@ import path from 'node:path';
 import type { ElectronApplication, Locator, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
-import { projectMenu, projectMenuButton } from './support/project-menu.js';
+import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -74,7 +74,7 @@ describe('genre presets', () => {
     const preview = start.getByRole('status', { name: 'What the genre sets' });
     // Sketchbook (and Comic) need the experimental switch, which is off: Soft 480.
     expect(await preview.textContent()).toBe(
-      'Warm, friendly voxel 3D with bigger pixels · mixed looks · calm pace · 3–5 scenes a minute · continuity links · no pattern interrupts',
+      'Warm, friendly voxel 3D with bigger pixels · mixed looks · calm pace · 3–5 scenes a minute · continuity links · no surprise moments',
     );
     await start.getByText(/^Sketchbook.*Comic.*, using Soft 480\.$/).waitFor();
     expect(await start.locator('input[type="radio"][value="soft-480"]').isChecked()).toBe(true);
@@ -95,6 +95,7 @@ describe('genre presets', () => {
 
     await projectMenu(page, 'Project settings');
     const settings = page.getByRole('dialog', { name: 'Project settings' });
+    await projectSettingsTab(settings, 'Channel & genre');
     const row = settings.getByRole('region', { name: 'Genre', exact: true });
     await row.getByText('History', { exact: true }).waitFor();
     expect(await row.locator('.project-genre-row').getAttribute('title')).toMatch(

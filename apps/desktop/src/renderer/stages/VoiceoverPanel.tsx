@@ -154,8 +154,8 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
         <GenerateStatus setup={setup} voice={voice} flow={flow} />
         {has && (
           <p className="muted vo-hint">
-            Replacing keeps the old take as <code>audio/vo.original.prev.*</code> and marks the
-            later stages out of date. Run Words timed again: scenes keep their anchors and follow
+            A new take keeps the old one in the project folder and marks the later steps out of
+            date. Then time the words again (Words timed): the scenes keep their anchors and follow
             the new timing.
           </p>
         )}

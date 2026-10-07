@@ -33,7 +33,9 @@ export function TrackMenu(props: {
       className="track-menu"
       ref={rootRef}
       onKeyDown={(event) => {
-        if (event.key === 'Escape') setOpen(false);
+        if (event.key !== 'Escape' || !open) return;
+        event.stopPropagation();
+        setOpen(false);
       }}
     >
       <button

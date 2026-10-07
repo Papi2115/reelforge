@@ -53,7 +53,7 @@ export function ScriptEditor(props: ScriptEditorProps): JSX.Element {
         (result) => {
           if (result.status === 'error') {
             setSaveState('error');
-            setProblem(result.message ?? 'script.txt was not saved.');
+            setProblem(result.message ?? 'The script was not saved.');
             return;
           }
           saved.current = text;
@@ -84,7 +84,7 @@ export function ScriptEditor(props: ScriptEditorProps): JSX.Element {
         value={text}
         readOnly={props.readOnly}
         spellCheck
-        placeholder="No script yet. Fill in the brief and press Write script, or paste your own script here: spoken words only, no headings or stage directions."
+        placeholder="No script yet. Fill in the brief and press Write script, or paste your own script here: spoken words only, no headings or notes for the speaker."
         onChange={(event) => {
           setText(event.target.value);
         }}

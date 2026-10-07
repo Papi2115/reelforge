@@ -1,8 +1,8 @@
 /**
  * Chat composer (PLAN.md#6.6): the change scope (Selection / Shot / Whole video) with what it
  * targets, the Whole-video suggestion chips (PLAN.md#7.6), the per-message "Think harder" toggle
- * and the message box. Enter sends (queues while Claude works), Shift+Enter is a new line, Esc
- * stops the running turn.
+ * and the message box. Enter sends (queues while Claude works), Shift+Enter is a new line
+ * (composer-keys.ts); Esc never stops the running turn (Ctrl+. does, layout/app-keys.ts).
  */
 import { useEffect, useRef, useState, type JSX } from 'react';
 import {
@@ -16,6 +16,7 @@ import {
   type ChatSendRequest,
 } from '../../shared/chat-contract.js';
 import { SendIcon } from '../layout/icons.js';
+import { composerKeyAction } from './composer-keys.js';
 import { selectionText } from './step-view.js';
 
 export interface ChatComposerProps {
@@ -27,7 +28,6 @@ export interface ChatComposerProps {
   readonly shotId: string | undefined;
   readonly running: boolean;
   readonly onSend: (request: ChatSendRequest) => Promise<boolean>;
-  readonly onStop: () => void;
   /** Text put into the message box (e.g. "Fix with Claude…"); a new nonce applies it again. */
   readonly prefill?: { readonly text: string; readonly nonce: number } | null;
 }
@@ -176,12 +176,14 @@ export function ChatComposer(props: ChatComposerProps): JSX.Element {
             setText(event.target.value);
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+            const action = composerKeyAction({
+              key: event.key,
+              shiftKey: event.shiftKey,
+              isComposing: event.nativeEvent.isComposing,
+            });
+            if (action === 'send') {
               event.preventDefault();
               sendText();
-            } else if (event.key === 'Escape' && running) {
-              event.preventDefault();
-              props.onStop();
             }
           }}
         />

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { TransportKey } from '../preview/transport-keys.js';
-import { appShortcut } from './app-keys.js';
+import {
+  appShortcut,
+  NEEDS_YOU_KEYS,
+  PRODUCTION_LINE_KEYS,
+  STOP_CLAUDE_KEYS,
+  TOGGLE_CHAT_KEYS,
+} from './app-keys.js';
 
 function key(patch: Partial<TransportKey>): TransportKey {
   return {
@@ -56,5 +62,24 @@ describe('appShortcut', () => {
     // Shift+L alone locks a shot; Ctrl+L is nothing.
     expect(appShortcut(key({ key: 'L', shiftKey: true }))).toBeUndefined();
     expect(appShortcut(key({ key: 'l', ctrlKey: true }))).toBeUndefined();
+  });
+
+  it('stops Claude with Ctrl+., also from the message box; never with Escape', () => {
+    expect(appShortcut(key({ key: '.', ctrlKey: true }))).toBe('stop-claude');
+    const field = { tagName: 'TEXTAREA', contentEditable: false };
+    expect(appShortcut(key({ key: '.', ctrlKey: true, target: field }))).toBe('stop-claude');
+    expect(appShortcut(key({ key: '.' }))).toBeUndefined();
+    expect(appShortcut(key({ key: '.', ctrlKey: true, altKey: true }))).toBeUndefined();
+    expect(appShortcut(key({ key: 'Escape' }))).toBeUndefined();
+    expect(appShortcut(key({ key: 'Escape', target: field }))).toBeUndefined();
+  });
+
+  it('labels the tooltips from the shortcut table', () => {
+    expect([TOGGLE_CHAT_KEYS, NEEDS_YOU_KEYS, PRODUCTION_LINE_KEYS, STOP_CLAUDE_KEYS]).toEqual([
+      'Ctrl+Shift+C',
+      'Ctrl+Shift+N',
+      'Ctrl+Shift+L',
+      'Ctrl+.',
+    ]);
   });
 });

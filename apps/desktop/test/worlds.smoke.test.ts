@@ -21,7 +21,7 @@ import {
   TEST_CLAUDE_LAUNCHER_ENV,
 } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
-import { projectMenu, projectMenuButton } from './support/project-menu.js';
+import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -99,7 +99,7 @@ describe('experimental worlds', () => {
     const styles = start.getByRole('group', { name: 'Style' });
     const sketchbook = styles.getByRole('radio', { name: /^Sketchbook\s*preview/ });
     await sketchbook.waitFor();
-    expect(await styles.getByRole('radio').count()).toBe(4);
+    expect(await styles.getByRole('radio').count()).toBe(6);
     await start.getByLabel('Video title').fill('Leap years');
     await sketchbook.check();
     await styles.getByText('Hand-drawn notebook: felt-tip pages, graph paper').waitFor();
@@ -132,9 +132,10 @@ describe('experimental worlds', () => {
     await looks.getByText('A · Sketch story').waitFor();
     expect(await looks.getByRole('listitem').count()).toBe(3);
     expect(await dialog.getByRole('radio', { name: /^Voxel only/ }).count()).toBe(0);
+    await page.screenshot({ path: path.join(screenshotDir, 'worlds-project-settings-1280.png') });
+    await projectSettingsTab(dialog, 'Characters');
     await dialog.getByText('Sketchbook draws its own heroes: no mascot appears').waitFor();
     expect(await dialog.getByRole('radio', { name: /^Pack style/ }).count()).toBe(0);
-    await page.screenshot({ path: path.join(screenshotDir, 'worlds-project-settings-1280.png') });
     await page.keyboard.press('Escape');
     await dialog.waitFor({ state: 'detached' });
   });

@@ -5,6 +5,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState, type JSX } from 'react';
 import { placeTourCard, TOUR_STEPS, type CardPlacement, type Rect } from './tour.js';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 
 export interface TourClose {
   /** "Don't show again" was ticked, or the last step was finished. */
@@ -67,15 +68,9 @@ export function GuidedTour({ onClose }: GuidedTourProps): JSX.Element {
     cardRef.current?.focus();
   }, [index]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose({ dontShowAgain });
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [onClose, dontShowAgain]);
+  useEscapeToClose(() => {
+    onClose({ dontShowAgain });
+  });
 
   if (step === undefined) return <></>;
   return (

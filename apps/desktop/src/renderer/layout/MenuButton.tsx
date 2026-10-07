@@ -58,6 +58,8 @@ export function MenuButton(props: MenuButtonProps): JSX.Element {
       onKeyDown={(event) => {
         if (!open) return;
         if (event.key === 'Escape') {
+          // The open menu is on top: it closes alone.
+          event.stopPropagation();
           setOpen(false);
           buttonRef.current?.focus();
         } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {

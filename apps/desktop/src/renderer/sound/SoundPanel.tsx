@@ -57,7 +57,7 @@ const ACTIONS: readonly {
   {
     action: 'generate-cues',
     label: 'Generate cues',
-    hint: 'Claude places sound effects, ambience and music from the storyboard (cues.json)',
+    hint: 'Claude places sound effects, ambience and music from the storyboard',
     kind: 'main',
   },
   {
@@ -69,7 +69,7 @@ const ACTIONS: readonly {
   {
     action: 'mix',
     label: 'Render mix',
-    hint: 'Mix everything into audio/mix.wav at −14 LUFS, true peak ≤ −1 dBTP',
+    hint: 'Mix voice, effects, ambience and music into one sound track at −14 LUFS, true peak ≤ −1 dBTP',
     kind: 'primary',
   },
   {
@@ -111,7 +111,7 @@ function MixReadout({
   return (
     <div className="mix-readout" data-testid="mix-readout">
       {readout === null ? (
-        <span className="muted">audio/mix.wav (no loudness report)</span>
+        <span className="muted">Mix rendered (no loudness report)</span>
       ) : (
         <>
           <span className={readout.lufsOk ? 'qa-ok' : 'qa-failed'}>

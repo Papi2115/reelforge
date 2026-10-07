@@ -77,7 +77,7 @@ describe('step options', () => {
 
   it('says when a change is being saved', () => {
     expect(optionsStatus(1)).toBe('Saving…');
-    expect(optionsStatus(0)).toBe('Saved automatically to project.json and the project history.');
+    expect(optionsStatus(0)).toBe('Saved automatically to the project and its history.');
   });
 });
 

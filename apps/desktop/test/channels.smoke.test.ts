@@ -14,7 +14,7 @@ import path from 'node:path';
 import type { ElectronApplication, Locator, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
-import { projectMenu, projectMenuButton } from './support/project-menu.js';
+import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 const CANARY = 'sk_canary_7f3a9b1e_do_not_leak_4c2d';
 
@@ -189,6 +189,7 @@ describe('channels', () => {
 
     await projectMenu(page, 'Project settings');
     const settings = page.getByRole('dialog', { name: 'Project settings' });
+    await projectSettingsTab(settings, 'Channel & genre');
     const row = settings.getByRole('region', { name: 'Channel', exact: true });
     expect(await row.textContent()).toContain('Crime Desk');
     await settings.getByRole('button', { name: 'Close' }).click();

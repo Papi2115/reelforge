@@ -74,5 +74,5 @@ export const OPTIONS_SUMMARY = 'same as Project settings';
 
 /** Footer line of the section: saving now, or where the last change went. */
 export function optionsStatus(pending: number): string {
-  return pending > 0 ? 'Saving…' : 'Saved automatically to project.json and the project history.';
+  return pending > 0 ? 'Saving…' : 'Saved automatically to the project and its history.';
 }

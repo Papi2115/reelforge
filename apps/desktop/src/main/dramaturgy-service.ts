@@ -200,12 +200,12 @@ export class DramaturgyService {
     let momentsNote: string | null = null;
     let proposals: Moment[] = [];
     if (switches.revealMoments !== 'auto') {
-      momentsNote = 'Reveal moments are off for this project (Project settings → Dramaturgy).';
+      momentsNote = 'Wow moments are off for this project (Project settings → Direction).';
     } else if (projectTensionMap(project.data) !== 'auto' || tension.status !== 'ok') {
       momentsNote =
-        'Reveal moments follow the tension curve: turn the tension map on and draw or propose a curve.';
+        'Wow moments follow the tension curve: turn the tension map on and draw or propose a curve.';
     } else if (storyboard.status !== 'ok' || words.status !== 'ok') {
-      momentsNote = 'Reveal moments need the storyboard and the timed words.';
+      momentsNote = 'Wow moments need the storyboard and the timed words.';
     } else {
       const cameraHints = momentCameraHints(project.data.style);
       proposals = proposeMoments({
@@ -216,7 +216,7 @@ export class DramaturgyService {
         ...(cameraHints === undefined ? {} : { cameraHints }),
       });
       if (proposals.length === 0 && noDecisions(storedMoments)) {
-        momentsNote = 'No tension peak is high enough for a reveal moment (0.6 or more).';
+        momentsNote = 'No tension peak is high enough for a wow moment (0.6 or more).';
       }
     }
     const merged = switches.revealMoments === 'auto' ? mergeMoments(proposals, storedMoments) : [];

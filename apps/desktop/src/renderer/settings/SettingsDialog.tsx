@@ -12,6 +12,7 @@ import { TastePage } from './TasteSettings.js';
 import { ToolsPage } from './ToolsSettings.js';
 import type { ClaudeStatusController } from './use-claude-status.js';
 import type { SettingsController } from './use-settings.js';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 
 export const SETTINGS_TABS = [
   'claude',
@@ -55,15 +56,7 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
   }, []);
   // Escape closes the dialog wherever the focus is (e.g. after a re-render dropped it to <body>).
   const { onClose } = props;
-  useEffect(() => {
-    const onKey = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
+  useEscapeToClose(onClose);
 
   const onTabKey = (event: KeyboardEvent): void => {
     const index = SETTINGS_TABS.indexOf(tab);

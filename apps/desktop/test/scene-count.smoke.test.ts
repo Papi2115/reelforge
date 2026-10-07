@@ -12,7 +12,7 @@ import path from 'node:path';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
-import { projectMenu, projectMenuButton } from './support/project-menu.js';
+import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -78,6 +78,7 @@ describe('scenes per minute and faster checks', () => {
   it('edits the range in Project settings: custom, then Standard', async () => {
     await projectMenu(page, 'Project settings');
     const dialog = page.getByRole('dialog', { name: 'Project settings' });
+    await projectSettingsTab(dialog, 'Scenes and checks');
     const region = dialog.getByRole('region', { name: 'Scenes and checks' });
     await region.waitFor();
     const select = region.getByRole('combobox', { name: /^Scenes per minute/ });

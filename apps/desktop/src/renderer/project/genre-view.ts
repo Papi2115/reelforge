@@ -125,7 +125,7 @@ function styleLook(id: string): string {
 
 /**
  * One line of what the preset sets, in plain words:
- * "Hand-drawn notebook · calm pace · 3–5 scenes a minute · continuity links · no pattern interrupts".
+ * "Hand-drawn notebook · calm pace · 3–5 scenes a minute · continuity links · no surprise moments".
  * Fields the user chose say "your …".
  */
 export function genrePreviewLine(
@@ -149,7 +149,7 @@ export function genrePreviewLine(
     parts.push(rangeText(range));
   }
   if (patch.continuityLinks === true) parts.push('continuity links');
-  if (patch.patternInterrupts === 'off') parts.push('no pattern interrupts');
+  if (patch.patternInterrupts === 'off') parts.push('no surprise moments');
   if (patch.fasterChecks === true) parts.push('faster checks');
   return parts.join(' · ');
 }

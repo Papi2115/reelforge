@@ -50,8 +50,10 @@ export function RedoConfirm(props: {
     >
       <p>
         {row.spec.label} runs again and replaces its output
-        {row.spec.id === 'script' ? ' (research.md, beats.md and script.txt, your edits too)' : ''}.
-        The current version stays in the project history.
+        {row.spec.id === 'script'
+          ? ' (the research, the story beats and the script, your edits too)'
+          : ''}
+        . The current version stays in the project history.
       </p>
       {row.invalidates.length > 0 ? (
         <p>

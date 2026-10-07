@@ -19,6 +19,7 @@ import { LineControls } from './LineControls.js';
 import { QueueItemRow } from './QueueItemRow.js';
 import { channelSummary } from './queue-view.js';
 import type { ProductionLineController } from './use-production-line.js';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 
 export interface ProductionLineDialogProps {
   readonly controller: ProductionLineController;
@@ -58,15 +59,7 @@ export function ProductionLineDialog(props: ProductionLineDialogProps): JSX.Elem
     if (focusedRow.current !== null) focusedRow.current.scrollIntoView({ block: 'nearest' });
     else closeRef.current?.focus();
   }, [focus, state === undefined]);
-  useEffect(() => {
-    const onKey = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'Escape') close();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [close]);
+  useEscapeToClose(close);
 
   const nameOf = (channelId: string): string =>
     props.channels?.channels.find((channel) => channel.id === channelId)?.name ?? channelId;

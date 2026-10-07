@@ -44,7 +44,7 @@ function Totals(props: {
 }): JSX.Element {
   const totals = scenesTotals(props.reports?.scenes ?? null, props.built);
   if (totals.kind === 'none') {
-    return <p className="muted">No shot is built yet. Run Scenes built in the pipeline.</p>;
+    return <p className="muted">No shot is built yet. Run the Scenes built step to build them.</p>;
   }
   if (totals.kind === 'unchecked') {
     return (

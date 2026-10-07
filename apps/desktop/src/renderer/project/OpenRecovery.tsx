@@ -60,7 +60,7 @@ export function OpenRecovery({ onOpened }: OpenRecoveryProps): JSX.Element | nul
           Restore from history
         </button>
       ) : (
-        <p className="muted">This folder has no history to restore project.json from.</p>
+        <p className="muted">This folder has no history to restore the project file from.</p>
       )}
       <button
         type="button"

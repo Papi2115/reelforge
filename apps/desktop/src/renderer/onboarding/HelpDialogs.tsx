@@ -1,90 +1,40 @@
 /**
- * Dialogs of the Help menu (PLAN.md#10.3): keyboard shortcuts, About ReelForge (version and the
- * Electron / Chrome versions — the header no longer shows them, licences,
- * the personal-use / subscription note) and Report a problem (opens the logs folder; nothing is
- * sent anywhere).
+ * Dialogs of the Help menu (PLAN.md#10.3): Keyboard shortcuts (every shortcut by group, generated
+ * from layout/shortcut-table.ts, the table the window-wide keys are matched from), About ReelForge
+ * (version and the Electron / Chrome versions — the header no longer shows them, licences, the
+ * personal-use / subscription note) and Report a problem (opens the logs folder; nothing is sent
+ * anywhere).
  */
 import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react';
 import type { AppInfo } from '../../shared/ipc-contract.js';
 import type { HelpTarget } from '../../shared/onboarding-contract.js';
+import { shortcutSections } from '../layout/shortcut-table.js';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 import { errorMessage } from '../log.js';
 
 export type HelpDialogKind = 'shortcuts' | 'about' | 'report';
-
-/** Shortcut sheet: the window (app-keys.ts), the player (transport-keys.ts), shots, the timeline
- *  and the chat composer. */
-export const SHORTCUT_GROUPS: readonly {
-  readonly title: string;
-  readonly keys: readonly (readonly [string, string])[];
-}[] = [
-  {
-    title: 'Window',
-    keys: [
-      ['?', 'This list of shortcuts'],
-      ['Ctrl + Shift + C', 'Show / hide the chat'],
-      ['Ctrl + Shift + N', 'Needs you: what waits for your decision'],
-      ['Ctrl + Shift + L', 'Production line: your queues of films'],
-    ],
-  },
-  {
-    title: 'Player',
-    keys: [
-      ['Space', 'Play / pause'],
-      ['← / →', 'One frame back / forward'],
-      ['Shift + ← / →', 'One second back / forward'],
-      ['Home / End', 'Start / end of the video'],
-      ['J / K / L', 'Slower / pause / play faster'],
-      ['M', 'Mute'],
-    ],
-  },
-  {
-    title: 'Shots',
-    keys: [
-      ['Shift + L', 'Lock / unlock the selected shot'],
-      ['V', 'Variants of the selected shot'],
-    ],
-  },
-  {
-    title: 'Timeline',
-    keys: [
-      ['Ctrl + Z', 'Undo'],
-      ['Ctrl + Y, Ctrl + Shift + Z', 'Redo'],
-      ['Delete', 'Delete the selected cue'],
-      ['← / → (cue selected)', 'Nudge the cue (Shift: more)'],
-      ['+ / −', 'Zoom in / out'],
-      ['Esc', 'Clear the selection'],
-    ],
-  },
-  {
-    title: 'Chat',
-    keys: [
-      ['Enter', 'Send the message'],
-      ['Shift + Enter', 'New line'],
-      ['Esc', 'Stop Claude while it works'],
-    ],
-  },
-];
 
 function HelpDialog(props: {
   readonly title: string;
   readonly onClose: () => void;
   readonly children: ReactNode;
   readonly actions?: ReactNode;
+  /** Extra class of the dialog box (the shortcuts dialog is wider). */
+  readonly className?: string;
 }): JSX.Element {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
+  // Opened over another dialog (? in Project settings), Esc closes only this one.
+  useEscapeToClose(props.onClose);
   return (
     <div className="modal-backdrop">
       <div
-        className="modal help-dialog"
+        className={`modal help-dialog ${props.className ?? ''}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-label={props.title}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') props.onClose();
-        }}
       >
         <h2 className="modal-title">{props.title}</h2>
         <div className="modal-body help-body">{props.children}</div>
@@ -140,22 +90,28 @@ export function HelpDialogs(props: {
   switch (props.kind) {
     case 'shortcuts':
       return (
-        <HelpDialog title="Keyboard shortcuts" onClose={props.onClose}>
-          {SHORTCUT_GROUPS.map((group) => (
-            <section key={group.title} className="shortcut-group">
-              <h3>{group.title}</h3>
-              <dl>
-                {group.keys.map(([keys, action]) => (
-                  <div key={keys} className="shortcut-row">
-                    <dt>
-                      <kbd>{keys}</kbd>
-                    </dt>
-                    <dd>{action}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          ))}
+        <HelpDialog title="Keyboard shortcuts" className="shortcuts-dialog" onClose={props.onClose}>
+          <div className="shortcut-groups">
+            {shortcutSections().map((section) => (
+              <section
+                key={section.group}
+                className="shortcut-group"
+                aria-label={`${section.title} shortcuts`}
+              >
+                <h3>{section.title}</h3>
+                <dl>
+                  {section.rows.map(({ id, keys, action }) => (
+                    <div key={id} className="shortcut-row">
+                      <dt>
+                        <kbd>{keys}</kbd>
+                      </dt>
+                      <dd>{action}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ))}
+          </div>
         </HelpDialog>
       );
     case 'about':
@@ -201,7 +157,7 @@ export function HelpDialogs(props: {
             take <code>main.log</code> and describe what you did and what you expected.
           </p>
           <p className="muted">
-            The log has file paths and stage messages, never your Claude credentials. Have a look
+            The log has file paths and step messages, never your Claude credentials. Have a look
             before you share it.
           </p>
         </HelpDialog>

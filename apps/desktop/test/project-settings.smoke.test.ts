@@ -5,8 +5,10 @@
  * (`Project settings: …`); research assets (2.1: no researchMode = Off) shows the full-auto ⚠
  * warning and the allowlist sources; the choices persist when the dialog and the project are
  * opened again; a step's panel (Sound design, Storyboard) shows "All options" with the same rows,
- * one commit per switch and the same state as the dialog. No Claude involved. Screenshots at
- * 1280x720: out/test-app/project-settings-*.png.
+ * one commit per switch and the same state as the dialog. The sections are tabs (keyboard: arrows,
+ * Home / End); Esc closes the dialog on top first (the Keyboard shortcuts dialog opened with ?
+ * over Project settings). No Claude involved. Screenshots at 1280x720:
+ * out/test-app/project-settings-*.png, out/test-app/shortcuts-1280.png.
  */
 import { spawnSync } from 'node:child_process';
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -22,7 +24,7 @@ import {
   stubFolderPicker,
 } from './support/electron-app.js';
 import { openStage, selectStage } from './support/pipeline-rows.js';
-import { projectMenu, projectMenuButton } from './support/project-menu.js';
+import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -127,6 +129,14 @@ describe('project settings', () => {
   it('changes look mode and ambient variation, saves and commits them', async () => {
     await openProject();
     const dialog = await openDialog();
+    expect(await dialog.getByRole('tab').allTextContents()).toEqual([
+      'Visuals',
+      'Characters',
+      'Direction',
+      'Scenes and checks',
+      'Research',
+      'Channel & genre',
+    ]);
     // The fixture predates 2.0: no fields = voxel only, no ambient variation.
     expect(await voxelOnly(dialog).isChecked()).toBe(true);
     expect(await mixed(dialog).isChecked()).toBe(false);
@@ -136,9 +146,11 @@ describe('project settings', () => {
     expect(await looks.getByRole('listitem').count()).toBeGreaterThanOrEqual(2);
     await dialog.getByText('Applies to the next Storyboard and Scenes build.').first().waitFor();
     // Research (2.1): no researchMode in the fixture = Off. Reserved sections are not rendered.
+    await projectSettingsTab(dialog, 'Research');
     await dialog.getByRole('region', { name: 'Research' }).waitFor();
     expect(await research(dialog, /^Off/).isChecked()).toBe(true);
     // Direction (2.2): the tension map, off without the field (tension.smoke.test.ts turns it on).
+    await projectSettingsTab(dialog, 'Direction');
     const direction = dialog.getByRole('region', { name: 'Direction' });
     await direction.waitFor();
     expect(
@@ -147,6 +159,7 @@ describe('project settings', () => {
         .isChecked(),
     ).toBe(false);
     expect(await dialog.getByRole('region', { name: 'Taste' }).count()).toBe(0);
+    await projectSettingsTab(dialog, 'Visuals');
 
     await mixed(dialog).click();
     await expectCommit('Project settings: look mode mixed looks');
@@ -160,6 +173,7 @@ describe('project settings', () => {
     await page.screenshot({ path: path.join(screenshotDir, 'project-settings-1280.png') });
 
     // Research assets: full auto shows the red licence warning; the allowlist its sources.
+    await projectSettingsTab(dialog, 'Research');
     await research(dialog, /^Full auto/).click();
     await expectCommit('Project settings: research assets full auto (unverified licences)');
     expect(await dialog.getByRole('alert').textContent()).toContain(
@@ -181,7 +195,20 @@ describe('project settings', () => {
     await research(dialog, /^Off/).click();
     await expectCommit('Project settings: research assets off');
 
-    // Keyboard: arrow keys move the radio choice, Escape closes the dialog.
+    // Keyboard: the tab list moves with the arrows / Home / End, arrow keys move the radio
+    // choice, Escape closes the dialog.
+    const researchTab = dialog.getByRole('tab', { name: 'Research', exact: true });
+    await researchTab.focus();
+    await page.keyboard.press('ArrowDown');
+    await dialog
+      .getByRole('tab', { name: 'Channel & genre' })
+      .and(page.locator(':focus'))
+      .waitFor();
+    await dialog.getByRole('region', { name: 'Genre', exact: true }).waitFor();
+    await page.keyboard.press('Home');
+    expect(await dialog.getByRole('tab', { name: 'Visuals' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
     await mixed(dialog).focus();
     await page.keyboard.press('ArrowUp');
     await expectCommit('Project settings: look mode voxel only');
@@ -248,10 +275,16 @@ describe('project settings', () => {
 
     // Project settings shows the same state; a change there reaches the open panel.
     const dialog = await openDialog();
+    await projectSettingsTab(dialog, 'Direction');
     const dialogBeat = dialog.getByRole('checkbox', { name: /^Cut on the beat/ });
     expect(await dialogBeat.isChecked()).toBe(true);
+    await expectFits();
+    await page.screenshot({
+      path: path.join(screenshotDir, 'project-settings-direction-1280.png'),
+    });
     await dialogBeat.uncheck();
     await expectCommit('Project settings: beat sync off');
+    await projectSettingsTab(dialog, 'Visuals');
     await dialog.getByRole('checkbox', { name: /^Continuity links between shots/ }).check();
     await expectCommit('Project settings: continuity links on');
     expect(await projectJson()).toMatchObject({ beatSync: 'off', continuityLinks: true });
@@ -268,7 +301,7 @@ describe('project settings', () => {
     expect(
       await planning.getByRole('checkbox', { name: /^Continuity links between shots/ }).isChecked(),
     ).toBe(true);
-    await planning.getByRole('checkbox', { name: /^Open and close loops/ }).waitFor();
+    await planning.getByRole('checkbox', { name: /^Plan questions and answers/ }).waitFor();
     await page.screenshot({
       path: path.join(screenshotDir, 'project-settings-storyboard-options-1280.png'),
     });
@@ -289,5 +322,21 @@ describe('project settings', () => {
       path: path.join(screenshotDir, 'project-settings-scenes-options-1280.png'),
     });
     await scenes.getByRole('button', { name: 'Back to preview' }).click();
+  });
+
+  it('closes the dialog on top first: Keyboard shortcuts over Project settings', async () => {
+    const dialog = await openDialog();
+    await page.keyboard.press('?');
+    const shortcuts = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+    for (const group of ['Project', 'Playback', 'Panels', 'Claude']) {
+      await shortcuts.getByRole('region', { name: `${group} shortcuts` }).waitFor();
+    }
+    await shortcuts.getByText('Ctrl+.', { exact: true }).waitFor();
+    await page.screenshot({ path: path.join(screenshotDir, 'shortcuts-1280.png') });
+    await page.keyboard.press('Escape');
+    await shortcuts.waitFor({ state: 'detached' });
+    expect(await dialog.isVisible()).toBe(true);
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
   });
 });

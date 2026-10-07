@@ -94,7 +94,7 @@ export function HistoryDrawer({ onClose, onReverted }: HistoryDrawerProps): JSX.
         </button>
       </header>
       <p className="muted history-note">
-        Every pipeline step and Claude turn is saved as a git commit in the project folder.
+        Every step and Claude turn is saved as a git commit in the project folder.
       </p>
       {error !== undefined && (
         <p className="start-error" role="alert">

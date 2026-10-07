@@ -23,7 +23,7 @@ import {
   stubFolderPicker,
 } from './support/electron-app.js';
 import { openStage } from './support/pipeline-rows.js';
-import { projectMenu } from './support/project-menu.js';
+import { projectMenu, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -104,9 +104,9 @@ describe('story beats in the Director', () => {
     await pointer.getByRole('button', { name: 'Open the Director' }).click();
     await page.getByRole('tab', { name: 'Director', selected: true }).waitFor();
     await section().waitFor({ timeout: 30_000 });
-    await section().getByText('Wow moments').waitFor();
+    await section().getByText('Wow moments', { exact: true }).waitFor();
     await section().getByText('Questions & answers:').waitFor();
-    await section().getByText('Wow moments').scrollIntoViewIfNeeded();
+    await section().getByText('Wow moments', { exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(screenshotDir, 'dramaturgy-1280.png') });
 
     await section().getByRole('button', { name: 'Accept' }).first().click();
@@ -136,10 +136,11 @@ describe('story beats in the Director', () => {
 
     await projectMenu(page, 'Project settings');
     const dialog = page.getByRole('dialog', { name: 'Project settings' });
+    await projectSettingsTab(dialog, 'Direction');
     for (const label of [
-      'Plan pattern interrupts',
-      'Open and close loops',
-      'Propose reveal moments',
+      'Plan surprise moments',
+      'Plan questions and answers',
+      'Propose wow moments',
     ]) {
       expect(await dialog.getByRole('checkbox', { name: new RegExp(label) }).isChecked()).toBe(
         true,

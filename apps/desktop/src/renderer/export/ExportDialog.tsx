@@ -23,6 +23,7 @@ import {
 } from './export-view.js';
 import { useExport } from './use-export.js';
 import { YoutubeExtras } from './YoutubeExtras.js';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 
 export interface ExportDialogProps {
   readonly dir: string;
@@ -36,15 +37,7 @@ export interface ExportDialogProps {
 }
 
 function useEscape(onClose: () => void): void {
-  useEffect(() => {
-    const onKey = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
+  useEscapeToClose(onClose);
 }
 
 export function ExportDialog(props: ExportDialogProps): JSX.Element {

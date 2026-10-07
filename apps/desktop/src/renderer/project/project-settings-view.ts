@@ -159,23 +159,27 @@ export const TENSION_MAP_NOTE =
   'Applies from the next Storyboard (Claude proposes a curve first) and the next sound design. Edit the curve in the Tension panel (Timeline → Tension). Off: the project behaves as before.';
 
 export const DRAMATURGY_NOTE =
-  'Applies from the next Script and Storyboard (interrupts, loops) and from the final review (moments to approve). Off: the project behaves as before.';
+  'Applies from the next Script and Storyboard (surprise moments, questions and answers) and from the final review (wow moments to approve). Off: the project behaves as before.';
 
-/** The dramaturgy switches (PLAN.md#12.25-12.27): one checkbox each. */
+/**
+ * The dramaturgy switches (PLAN.md#12.25-12.27), one checkbox each, named like the Director's
+ * Story beats: surprise moments (pattern interrupts), questions and answers (open loops), wow
+ * moments (reveal moments).
+ */
 export const DRAMATURGY_CHOICES = [
   {
     key: 'patternInterrupts',
-    title: 'Plan pattern interrupts',
+    title: 'Plan surprise moments',
     hint: 'One or two planned surprises a minute (more where the tension is high): a sudden change of look, scale or perspective, made with transitions and camera moves.',
   },
   {
     key: 'openLoops',
-    title: 'Open and close loops',
-    hint: 'The script opens questions (“I’ll show you in a moment”) and answers them later; a veiled object can be revealed on the answer. Loops that never close are flagged.',
+    title: 'Plan questions and answers',
+    hint: 'The script asks questions (“I’ll show you in a moment”) and answers them later; a veiled object can be revealed on the answer. A question that is never answered is flagged.',
   },
   {
     key: 'revealMoments',
-    title: 'Propose reveal moments',
+    title: 'Propose wow moments',
     hint: 'At the biggest tension peaks the app proposes a "wow" moment — silence before a hit, a palette flash or slow motion — for you to accept or reject.',
   },
 ] as const;

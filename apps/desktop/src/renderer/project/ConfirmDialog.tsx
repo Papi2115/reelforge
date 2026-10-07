@@ -1,5 +1,6 @@
 /** Minimal modal confirmation (in-page, no native dialog). */
 import { useEffect, useRef, type JSX, type ReactNode } from 'react';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 
 export interface ConfirmDialogProps {
   readonly title: string;
@@ -17,17 +18,13 @@ export function ConfirmDialog(props: ConfirmDialogProps): JSX.Element {
   useEffect(() => {
     cancelRef.current?.focus();
   }, []);
+  // Esc cancels this box only, never the dialog under it (escape-layers.ts).
+  useEscapeToClose(() => {
+    if (!props.busy) props.onCancel();
+  });
   return (
     <div className="modal-backdrop">
-      <div
-        className="modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-label={props.title}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape' && !props.busy) props.onCancel();
-        }}
-      >
+      <div className="modal" role="alertdialog" aria-modal="true" aria-label={props.title}>
         <h2 className="modal-title">{props.title}</h2>
         <div className="modal-body">{props.children}</div>
         <div className="modal-actions">
