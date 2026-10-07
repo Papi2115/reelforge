@@ -24,6 +24,8 @@ export * from './live-direction-parse.js';
 export * from './live-direction-words.js';
 export * from './loops.js';
 export * from './moments.js';
+export * from './offensive-terms.js';
+export * from './offensive-words.js';
 export * from './palette.js';
 export * from './pipeline-state.js';
 export * from './project.js';

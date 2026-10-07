@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { createAmbientApi } from './ambient.js';
 import { createAssetsApi } from './assets/api.js';
 import { NO_ASSETS, type AssetLibrary } from './assets/library.js';
-import type { AnchorResolver } from './anchors.js';
+import { shotAnchorResolver, type AnchorResolver } from './anchors.js';
 import type { FocusState } from './camera/bokeh.js';
 import { createCameraApi } from './camera/camera-api.js';
 import { createCameraDrift } from './camera/drift.js';
@@ -84,7 +84,12 @@ export interface BuiltShot {
 }
 
 function createAnchor(input: ShotInput): (phrase: string, nth?: number) => AnchorHit {
-  const { shot, resolveAnchor } = input;
+  const { shot } = input;
+  // The occurrence spoken in this shot, not the film's first (real run Comic 1).
+  const resolveAnchor = shotAnchorResolver(input.resolveAnchor, {
+    t0: shot.t0,
+    t1: shot.t0 + shot.duration,
+  });
   return (phrase, nth = 1) => {
     const span = resolveAnchor(phrase, nth);
     if (!span) {

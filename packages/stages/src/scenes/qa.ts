@@ -25,9 +25,11 @@ import {
 import { critiqueFrames, programmaticCritique, type TurnRunner } from './critic.js';
 import type { SceneJob } from './job.js';
 import { renderShot } from './render.js';
+import { researchExcerpt, shotFocus } from './research-excerpt.js';
 import { assetSizeFindings } from './source-checks.js';
 import { cameraInterruptFindings } from './source-checks-camera.js';
 import { characterSourceFindings } from './source-checks-characters.js';
+import { offensiveSourceFindings } from './source-checks-offensive.js';
 import { shotSyncEvents, syncFindings } from './sync.js';
 import type { ShotRender } from './tools.js';
 
@@ -127,6 +129,8 @@ export async function qaRound(
     ...assetSizeFindings(source, shot.scene),
     ...cameraInterruptFindings(source, shot.scene, shot.interrupt),
     ...characterSourceFindings(source, shot.scene, shot, job.characters),
+    // Slurs and profanity in any string (an error: the fix turn replaces the word).
+    ...offensiveSourceFindings(source, shot.scene),
   ];
   const sync = syncFindings(
     shotSyncEvents({
@@ -158,6 +162,7 @@ export async function qaRound(
         ...criticWorldPromptVars(job.world, shot),
       },
       craft: job.world !== undefined,
+      research: researchExcerpt(job.researchNotes, shotFocus(shot, job.words)),
       render,
       sheetFile: qaSheetFile(shot.id, label),
     },

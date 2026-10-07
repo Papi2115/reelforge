@@ -1,10 +1,12 @@
 /**
  * Breakthrough originality of a world whose showpieces are toolkits with a required `intent`
  * (Comic: `page.flashback`, `page.spread`; Game B2: `view.automap`, `hud.tally`, `view.throw`;
+ * Game B1: `screen.scoreTable`, `screen.manual` and the seams with an intent;
  * Papi's rule after real run Sketchbook 2, generalised):
  * every call names the claim it shows, in words the narration or research uses (an intent the
  * sources never mention is decoration), and no two of a film share their mechanism (the options
- * that make it, e.g. `cover page + arrange rows`, with the kit's defaults) or their intent. Read
+ * that make it, e.g. `cover page + arrange rows` or a nested `figure.layout`, with the kit's
+ * defaults) or their intent. Read
  * from the scene source (no execution). Warnings only, like every anti-slop guard.
  */
 import type { AnyNode } from 'acorn';
@@ -33,11 +35,12 @@ export interface BreakthroughSpec {
 
 /** Content words of an intent that the sources must know (at least this many). */
 const MIN_GROUNDED = 2;
-/** Words that say nothing about a breakthrough's claim (Comic, Game B2). */
+/** Words that say nothing about a breakthrough's claim (Comic, Game B2, Game B1). */
 const VAGUE = new Set(
   (
     'flashback flashbacks spread spreads past big picture look back page ' +
-    'automap map maps tally tallies throw throws thrown toss tossed recap intermission screen level'
+    'automap map maps tally tallies throw throws thrown toss tossed recap intermission screen level ' +
+    'high score scores table tables manual manuals rule rules swap zoom'
   ).split(' '),
 );
 
@@ -51,6 +54,11 @@ function property(node: AnyNode | undefined, key: string): AnyNode | undefined {
   return undefined;
 }
 
+/** A nested option by its dotted path (`figure.layout`). */
+function optionAt(node: AnyNode | undefined, path: string): AnyNode | undefined {
+  return path.split('.').reduce<AnyNode | undefined>((at, key) => property(at, key), node);
+}
+
 function mechanismOf(
   options: AnyNode | undefined,
   defaults: Readonly<Record<string, string>>,
@@ -58,7 +66,7 @@ function mechanismOf(
   const parts: string[] = [];
   if (Object.keys(defaults).length === 0) return undefined;
   for (const [key, fallback] of Object.entries(defaults)) {
-    const node = property(options, key);
+    const node = optionAt(options, key);
     const value = node === undefined ? fallback : literalString(node);
     if (value === undefined) return undefined;
     parts.push(`${key} ${value}`);

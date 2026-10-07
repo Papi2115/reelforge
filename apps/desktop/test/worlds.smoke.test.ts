@@ -99,7 +99,7 @@ describe('experimental worlds', () => {
     const styles = start.getByRole('group', { name: 'Style' });
     const sketchbook = styles.getByRole('radio', { name: /^Sketchbook\s*preview/ });
     await sketchbook.waitFor();
-    expect(await styles.getByRole('radio').count()).toBe(6);
+    expect(await styles.getByRole('radio').count()).toBe(7);
     await start.getByLabel('Video title').fill('Leap years');
     await sketchbook.check();
     await styles.getByText('Hand-drawn notebook: felt-tip pages, graph paper').waitFor();

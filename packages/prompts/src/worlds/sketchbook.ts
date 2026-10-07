@@ -11,12 +11,13 @@ import type { WorldPromptText } from './types.js';
 
 const CRAFT_BRIEF = `Craft brief (Sketchbook; binding):
 - First, write a comment: \`// focal: <the one thing read first> | traces: <three human traces>\`; build toward it.
-- Do: ONE focal point, off-centre; red only for the correction on the point, after a still beat (>= 0.4 s); crude figures (loop heads, stick limbs, reacting faces); holds of different lengths; >= 3 traces: a crossed-out word and its fix, a two-stroke arrow, an uneven underline, a pencil margin doubt, angled tape, a coffee ring, a smudge.
+- Do: ONE focal point, off-centre; red only for the correction on the point, after a still beat (>= 0.4 s); crude figures (loop heads, stick limbs, reacting faces); >= 3 traces: a crossed-out word and its fix, a two-stroke arrow, a pencil margin doubt, angled tape, a coffee ring, a smudge.
 - Fill the page: hero >= 25% of the page height (figure \`h\` >= 135), purposeful marks around it; never < 3 elements on the page for > 0.6 s.
 - One hand: ALWAYS \`kit.fx.sketchPage({ …, duration: ctx.shot.duration })\` (the hand leaves the subject in the last 0.4 s); last mark done >= 0.4 s before the end; marks > 80 px apart never overlap in time. The hand draws the key marks (figure, hero object); short of time, labels and numbers \`appear\` on their own: never cut a narration word.
 - Don't: centred or symmetric layouts, decoration without meaning, rows of icons, uniform gaps or timings, constant motion, > 6 elements, a second accent or loud word, slick drawings.
 - Text: only words of the narration or research notes (real numbers, names, dates), no invented labels/figures; always \`page.write\`; no \`ctx.text\`, \`ctx.annotate\` or stroke-drawn letters.
-- References (docs/worlds/sketchbook-v2/shots/): s2-t6.0.png one idea; s4-t7.4.png red +1 DAY, a pencil doubt; s3-t7.9.png boxes fill, one red result; s1-t6.0.png marker word, red fix.`;
+- No slur-like words (chink): sound words CLINK, CLANG, TINK.
+- References (docs/worlds/sketchbook-v2/shots/): s2-t6.0.png one idea; s4-t7.4.png red +1 DAY; s3-t7.9.png boxes fill, one red result; s1-t6.0.png marker word, red fix.`;
 
 export const SKETCHBOOK_PROMPTS: WorldPromptText = {
   film: 'a hand-drawn sketchbook video (one spiral notebook, every page drawn live by a visible hand)',

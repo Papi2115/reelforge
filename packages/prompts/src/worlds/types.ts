@@ -4,6 +4,8 @@
  * these instead when the stage passes a world's variables; every other project gets the prompts
  * byte for byte as before.
  */
+import type { ContinuityKind } from '@reelforge/shared';
+
 export interface WorldPromptText {
   /** Storyboard, first line: "the director/storyboard artist for <film>". */
   readonly film: string;
@@ -87,4 +89,9 @@ export interface WorldTransitionOption {
   /** The style's own length, seconds. */
   readonly duration: number;
   readonly description: string;
+  /**
+   * The continuity link kind it renders (Game B1: the calendar zoom, the cartridge in / out):
+   * named on a shot, it needs the shot's `continuity` link (validators/world-variety.ts).
+   */
+  readonly link?: ContinuityKind | undefined;
 }

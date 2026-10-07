@@ -4,7 +4,7 @@
  * too: a number is sourced when the vocabulary has it, when it names the decade/century of a
  * sourced number ("1500s"), or when it is the visible result of a calculation with sourced
  * on-screen numbers ("365.2422 − 365 = 0.2422", "0.2422 × 4 = 0.9688"), at the precision shown.
- * 0 and 1 never need one. A timeline that ends in "now" needs the sources to reach the modern era
+ * 0 and 1 never need one; in a world with `shortYears` (Game B1) "82" is sourced by 1982. A timeline that ends in "now" needs the sources to reach the modern era
  * (a "now" at the end of a 1518 strip is invented). An onomatopoeia (role `sound`) may use the
  * world's sound words ("CLANG", "BEEEP"); any other word in it still needs a source.
  */
@@ -66,12 +66,30 @@ function derived(token: Token, onScreen: readonly number[], known: readonly numb
   return false;
 }
 
+/** "82" of a sourced 1982 (a world with `shortYears`: a tag, a level-select label). */
+function shortYear(token: Token, vocabulary: Vocabulary): boolean {
+  if (!/^\d{2}$/.test(token.text)) return false;
+  const value = token.number ?? Number.NaN;
+  return vocabulary.numbers.some(
+    (known) =>
+      Number.isInteger(known) &&
+      known >= MODERN_YEARS.from - 100 &&
+      known <= MODERN_YEARS.to &&
+      known % 100 === value,
+  );
+}
+
 /** The numeric tokens of every string that the vocabulary or the shot's own numbers source. */
-function sourcedNumbers(numbers: readonly Token[], vocabulary: Vocabulary): Set<Token> {
+function sourcedNumbers(
+  numbers: readonly Token[],
+  vocabulary: Vocabulary,
+  shortYears = false,
+): Set<Token> {
   const sourced = new Set<Token>();
   const direct = (token: Token): boolean => {
     const value = token.number ?? Number.NaN;
     if (TRIVIAL_NUMBERS.has(value)) return true;
+    if (shortYears && shortYear(token, vocabulary)) return true;
     if (token.range !== undefined) {
       const [start, end] = token.range;
       return vocabulary.numbers.some((known) => known >= start && known < end);
@@ -146,7 +164,7 @@ export function inventedTexts(
   const numbers = tokenized.flatMap((tokens) =>
     tokens.filter((token) => token.number !== undefined),
   );
-  const sourced = sourcedNumbers(numbers, vocabulary);
+  const sourced = sourcedNumbers(numbers, vocabulary, spec?.shortYears === true);
   return texts.flatMap((entry, index) => {
     const tokens = tokenized[index] ?? [];
     const words = tokens.filter(

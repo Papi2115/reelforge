@@ -4,6 +4,7 @@
  * real labels of the world's objects (not "invented text"). Keyed by world id; a world without an
  * entry gets no trace check (its helpers are unknown) and only the general labels.
  */
+import { GAME_B1_SLOP } from './game-b1-labels.js';
 import { GAME_B2_SLOP } from './game-b2-labels.js';
 
 /** A source option that is a human trace when present on a call (jittered lettering, red pen). */
@@ -32,6 +33,8 @@ export interface WorldSlopSpec {
   readonly textCallKeys?: Readonly<Record<string, readonly string[]>> | undefined;
   /** Option keys whose number literals are on screen (a tally row's `value`). */
   readonly numberKeys?: readonly string[] | undefined;
+  /** Two-digit years ("XMAS 82") are sourced by the full year of the sources (1982). */
+  readonly shortYears?: boolean | undefined;
   /** Lettering calls of sounds (onomatopoeia): `soundWords` are not invented there. */
   readonly soundMethods?: readonly string[] | undefined;
   readonly soundWords?: ReadonlySet<string> | undefined;
@@ -166,6 +169,7 @@ const SPECS: Readonly<Record<string, WorldSlopSpec>> = {
   sketchbook: SKETCHBOOK,
   comic: COMIC,
   'game-b2': GAME_B2_SLOP,
+  'game-b1': GAME_B1_SLOP,
 };
 
 export function worldSlopSpec(worldId: string | undefined): WorldSlopSpec | undefined {

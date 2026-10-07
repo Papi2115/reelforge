@@ -28,8 +28,32 @@ Source for the first entries: `docs/real-run-sketchbook-3.md` (defect table) and
 - `reelforge looks`, `lookSummaries` scope for experimental worlds, `templates/project/CLAUDE.md` voxel wording, prop builder in a world, asset-research wording ("photo on the CRT").
 - Files over ~400 lines: `packages/prompts/src/validators/storyboard.ts` (482), `apps/desktop/src/main/main.ts` (656), `Workspace.tsx` (439), `styles.css`.
 - Flaky: `apps/desktop live-direction.bench.test.ts` under load; own-assets smoke (retry diagnostics added).
+- Research note about the 1949 fluorine test needs a human fact check; real films must be fact-checked before publishing.
 
 ## UI (light rebuild still open)
 - U6 (status words polish), U8 dock, U10 library (taste/characters per world/channel instead), U11 export dialog v2, U12 copy pass (pattern interrupts / open loops wording), U13 pixel face for titles.
 - Clicking Script/Voiceover/Words opens a document over the preview — judge if too much.
 - Docked Sound panel is short at 720p.
+
+## Comic (beta)
+From [real run Comic 1](real-run-comic-1.md) (Piltdown Man, 61 s, mean 15.2/20; numbers = defect ids there).
+- high: critic judges facts against the storyboard intent, not `research.md`; the fix turn flipped s07's research-correct fluorine gauges back to the storyboard's inverted ones and the shot passed ✓. (#1)
+- high: a slur as onomatopoeia (CHINK) only gets an "invented text" ⚠; needs a denylist → error for all on-screen text. (#2)
+- high: ruled but empty panels / blank hook for 0.6–3 s (s01, s03, s04, s08, s11). (#3)
+- medium: page camera crops lettering (CHINK→NK, AY?, 953). (#4)
+- medium: closed sound-word list → false "invented text" for LA LA LA, SKRRT, CLINK. (#5)
+- medium: key objects unreadable (skull drawn as a potato / dark disc). (#6)
+- medium: `sfx({ rise: 4 })` crashes at render, lint passes. (#7)
+- medium: every scene turn rebuilds the harness from the whole kit; one half-written world breaks frames/anchors for all worlds. (#8)
+- medium: invented quantities and dropped hedges ("MOST LIKELY" ~90 % bar, "40 YEARS" for "about forty"). (#9)
+- low: layout presets used 0/13, 5 pages share one 2-panel grammar; two loud words at once; balloon tail at nobody; anchors resolve to the film's first occurrence; small W reads as N; letter-by-letter caption typing; false `transition-focus` warning for comic wipes; 61 MB MP4 for 61 s; script 22 % over target. (#10–#16)
+
+## Game B2 (beta)
+From [real run Game B2 1](real-run-game-b2-1.md) (Great Stink of London, 54 s, mean 14.8/20; numbers = defect ids there).
+- high: unplanned breakthroughs at scene level (s03 built a `hud.tally` on a no-moment shot → 3 breakthroughs, tally twice); nothing flags it. (#1)
+- high: dark, monotonous levels (brown brick boxes; automap 70 % black; tally on `backdrop: 'dark'`; last 13 s dark). (#2)
+- high: level vocabulary too small for real topics (one clerk sprite for every person, cartridge `item` for every object, no water/river, ≤ 42 px labels). (#3)
+- medium: shared-object link breaks between `view.present` and `view.hold` (item jumps, two hands); `map-unfold` grows the next shot's walk view, the automap unfolds later inside the shot. (#4, #5)
+- medium: tally default `dissolve` exit blacks the whole frame with a live backdrop; `view.take` leaves the level sprite on the floor. (#6, #7)
+- medium: 7 of 11 fix turns spent on lamp/`switchOn` click sync; critic false "clipped" on typewriter frames, misses blink/double sprite/broken link; invented meter counts and small tally values pass the text guard. (#8–#10)
+- low: illegible wall signs; 8 HUD elements in one frame; per-shot chapter flags differ; throw as decoration; zod-style `validate level` messages; one transient ffmpeg probe timeout in mix. (#11–#16)

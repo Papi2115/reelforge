@@ -288,6 +288,20 @@ moods of a game film (`WORLD_MOODS`, PLAN.md#13.4 part c): `lofi-chill`, `tense-
 where the synth fits, kept for the liveliest acts; nothing bright or cheerful); default calm `lofi-chill`, tense acts
 `tense-investigation`.
 
+**game-b1** (world Game B1, PLAN.md#13.5, experimental; an Atari 2600 in a 1982 living room): a world palette (`world:
+'game-b1'`, `packages/stages/src/sound/palettes/game-b1.ts`) reusing built-in recipes (no cartridge, coin or slam recipe of its
+own): the cartridge click `relay-click` latch, the garbage of a cartridge in the slot `crt-zap` static, the coin-up (INSERT COIN,
+a chosen level) `chime-up`, the slam of a boss name or a high score `board-tap` knock, blips `measure-blip` / `led-blip` /
+`terminal-tick`, the manual's page `paper-slide` / `page-flip`, Dad's pencil `pencil-scratch`, typing `key-click` /
+`keyboard` (terminal); busy slots have two or three candidates; bed: the CRT's `crt-hum`. Game-native transitions
+(`GAME_B1_TRANSITION_SFX`): calendar zoom `crt-zap` degauss, cartridge in `relay-click` latch + `crt-zap` static, cartridge out
+`crt-zap` static, attract cycle `measure-blip` low, scanline wipe `crt-zap` degauss, page slide `paper-slide` in, page turn
+`page-flip` turn, room shake `board-tap` knock; the kit's high-score table, manual page, calendar zoom, cartridge, level select
+and game-over screen return their own cues (`for (const c of r.cues) ctx.sfx.at(c.t, c.name)`). Music moods of an Atari film
+(`WORLD_MOODS`, PLAN.md#13.5 part c): `lofi-chill` (the room), `retro-wave` (the console's synth, for the livelier acts),
+`tense-investigation` (the boss fights); nothing bright or cheerful; default calm `lofi-chill`, tense acts
+`tense-investigation`.
+
 ## Beat sync and repetition (PLAN.md#12.21, #12.23)
 
 - With `"beatSync": "auto"` the director's spoken-number hits, big-number whoosh-impacts and

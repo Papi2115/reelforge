@@ -35,7 +35,7 @@ function legacyVars(id: PromptId): Record<string, string> {
   const { required, optional } = promptVariables(id);
   return Object.fromEntries(
     [...required, ...optional]
-      .filter((name) => !/^(world|craftBrief|genre)/.test(name))
+      .filter((name) => !/^(world|craftBrief|genre|research|noQuestions)/.test(name))
       .map((name) => [name, `<${name}>`]),
   );
 }

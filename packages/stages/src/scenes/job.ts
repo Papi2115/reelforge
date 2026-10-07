@@ -71,6 +71,11 @@ export interface SceneJob {
   readonly characters: CharacterSettings;
   /** Anti-slop guards (PLAN.md#13.7); undefined = off for this project (no ⚠ slop findings). */
   readonly antiSlop?: AntiSlopSetup | undefined;
+  /**
+   * `research.md` (real run Comic 1): the critic and the fix turn judge facts by it, not by the
+   * storyboard intent; undefined = no notes (the prompts as before).
+   */
+  readonly researchNotes?: string | undefined;
 }
 
 /** Installed kit names per style (and experimental scope); computed once each. */
@@ -127,6 +132,8 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     assets,
   });
   if (!antiSlop.ok) return antiSlop;
+  const researchNotes = await readProjectText(ctx.projectDir, FILES.research);
+  if (!researchNotes.ok) return researchNotes;
   return ok({
     ctx,
     frames: tools.frames,
@@ -151,6 +158,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     dramaturgy: await loadSceneDramaturgy(ctx.projectDir, project.value),
     characters: await loadCharacterSettings(ctx.projectDir, project.value),
     antiSlop: antiSlop.value,
+    researchNotes: researchNotes.value,
   });
 }
 

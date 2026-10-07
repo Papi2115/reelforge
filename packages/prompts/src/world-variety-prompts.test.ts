@@ -23,7 +23,8 @@ import {
 } from './worlds/index.js';
 
 /** World variables, and the genre preset's (ADR-035; genre-prompts.test.ts), stay unset. */
-const WORLD_VARS = /^(world|craftBrief|genre)/;
+// ...and the research and no-questions sections (real runs Comic 1, Game B2 1): unset for legacy.
+const WORLD_VARS = /^(world|craftBrief|genre|research|noQuestions)/;
 
 function fixture(name: string): string {
   return readFileSync(path.join(import.meta.dirname, 'fixtures', name), 'utf8').replaceAll(
@@ -62,7 +63,7 @@ describe('world sections off (script, sound-cues)', () => {
 
   it('bumps the versions of the prompts with world variety wording', () => {
     const ids = ['storyboard', 'scene-build', 'scene-fix', 'critic', 'script', 'sound-cues'];
-    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([19, 18, 6, 9, 3, 6]);
+    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([19, 18, 7, 10, 3, 6]);
   });
 });
 

@@ -1,8 +1,10 @@
 /**
- * `script.txt`: spoken narration only (no markdown, headings, stage directions, emojis) and a word
- * count within the tolerance of the target (the app aligns this text to the recording).
+ * `script.txt`: spoken narration only (no markdown, headings, stage directions, emojis, offensive
+ * words) and a word count within the tolerance of the target (the app aligns this text to the
+ * recording).
  */
 import { issue, report, type ValidationIssue, type ValidationReport } from './issues.js';
+import { offensiveTextIssues } from './offensive.js';
 
 /** Speaking rate the script prompt plans with (PLAN.md: ≈150 words per minute). */
 export const WORDS_PER_MINUTE = 150;
@@ -74,6 +76,8 @@ export function validateScript(
       );
     }
   }
+  // Slurs and profanity are never narrated (real run Comic 1): an error, the repair turn rewords.
+  issues.push(...offensiveTextIssues(text));
   const wordCount = countWords(text);
   const tolerance = options.tolerance ?? 0.15;
   const deviation = (wordCount - options.targetWords) / options.targetWords;

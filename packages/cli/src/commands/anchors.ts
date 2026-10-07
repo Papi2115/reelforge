@@ -3,6 +3,7 @@
  * anchors and sfx cues the scene declares in build() (a build-only dry run in the engine) with
  * the ±150 ms landing check.
  */
+import { pickShotOccurrence, type AnchorWindow } from '@reelforge/engine';
 import { AnchorIndex } from '@reelforge/pipeline';
 import { COMMON_OPTIONS, parseCommandArgs, parseInteger } from '../args.js';
 import { result, type Command } from '../command.js';
@@ -23,7 +24,8 @@ import {
 
 export const ANCHORS_USAGE = `usage: reelforge anchors [--shot <id>] [--phrase "<spoken words>" [--nth <n>]] [--json]
 With --phrase: where the phrase is spoken (fuzzy match over timing/words.json), all occurrences
-and the shot it falls in. Without: builds each scene (no rendering) and lists the anchors it
+and the shot it falls in; with --shot too, the occurrence spoken in that shot (as ctx.anchor
+resolves it: --nth counts from the shot's start when the film-wide one is outside the shot). Without: builds each scene (no rendering) and lists the anchors it
 resolves and the sfx cues it schedules, checking that cues land within ±${String(LANDING_TOLERANCE_S * 1000)} ms of an anchor
 and that anchors are spoken inside their shot.
   --shot <id>        only this shot
@@ -61,17 +63,48 @@ function shotAt(files: ProjectFiles, t: number): string | undefined {
   return files.storyboard.data.shots.find((shot) => t >= shot.t0 && t < shot.t1)?.id;
 }
 
+/** The storyboard range of `--shot` (anchors in a shot mean the occurrence spoken in it). */
+function shotWindow(files: ProjectFiles, shotId: string | undefined): AnchorWindow | undefined {
+  if (shotId === undefined) return undefined;
+  const shot =
+    files.storyboard.status === 'ok'
+      ? files.storyboard.data.shots.find((candidate) => candidate.id === shotId)
+      : undefined;
+  if (shot === undefined) {
+    throw new ProjectError(
+      `no shot ${shotId} in ${PROJECT_PATHS.storyboard}`,
+      'pass a shot id from storyboard.json, or leave --shot out to resolve over the whole film',
+    );
+  }
+  return { t0: shot.t0, t1: shot.t1 };
+}
+
+/** The film-wide `nth` occurrence, or with a shot the one spoken in it (pickShotOccurrence). */
+function resolveIn(
+  index: AnchorIndex,
+  phrase: string,
+  nth: number,
+  window: AnchorWindow | undefined,
+): ReturnType<AnchorIndex['resolve']> {
+  const resolved = index.resolve(phrase, nth);
+  if (window === undefined || !resolved.ok) return resolved;
+  const picked = pickShotOccurrence(index.occurrences(phrase), nth, window);
+  return picked === undefined ? resolved : { ok: true, value: picked };
+}
+
 function resolvePhrases(
   files: ProjectFiles,
   phrases: readonly string[],
   nth: number,
+  shotId?: string,
 ): { lines: string[]; json: unknown[]; problems: number } {
   const index = requireIndex(files);
+  const window = shotWindow(files, shotId);
   const lines: string[] = [];
   const json: unknown[] = [];
   let problems = 0;
   for (const phrase of phrases) {
-    const resolved = index.resolve(phrase, nth);
+    const resolved = resolveIn(index, phrase, nth, window);
     if (!resolved.ok) {
       problems += 1;
       lines.push(
@@ -165,7 +198,7 @@ export const anchorsCommand: Command = {
     const nth = values.nth === undefined ? 1 : parseInteger(values.nth, '--nth', 1, 1000);
     const files = await readProjectFiles(context.root);
     if (values.phrase !== undefined) {
-      const resolved = resolvePhrases(files, values.phrase, nth);
+      const resolved = resolvePhrases(files, values.phrase, nth, values.shot);
       resolved.lines.push(
         verdictLine(
           resolved.problems,

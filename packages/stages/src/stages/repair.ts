@@ -7,6 +7,7 @@ import { renderPrompt, type PromptId, type ValidationIssue } from '@reelforge/pr
 import type { TemplateVars } from '@reelforge/prompts';
 import type { SessionPurpose } from '@reelforge/shared';
 import { stageError, type StageContext, type StageError } from '../types.js';
+import { activeWorld, worldScope } from '../worlds.js';
 
 export function formatIssue(issue: ValidationIssue): string {
   return `${issue.code}: ${issue.message}${issue.path === undefined ? '' : ` (at ${issue.path})`}`;
@@ -20,13 +21,30 @@ export function warningLines(issues: readonly ValidationIssue[]): string[] {
   return issues.filter((issue) => issue.severity === 'warning').map(formatIssue);
 }
 
-export function repairPrompt(file: string, problems: readonly string[]): string {
+/** Closes every unattended fix turn (real run Game B2 1: a fix turn ended with a question). */
+export const NO_QUESTIONS =
+  'Never ask the user a question; decide, apply the fix and finish with the report.';
+
+/** `noQuestions`: projects in a world (built-in styles keep the text as it was). */
+export function repairPrompt(
+  file: string,
+  problems: readonly string[],
+  noQuestions = false,
+): string {
+  const close = noQuestions ? ` ${NO_QUESTIONS}` : '';
   return [
     `The file \`${file}\` you wrote does not pass the app's checks:`,
     ...problems.map((problem) => `- ${problem}`),
     '',
-    `Fix \`${file}\` in place following the original rules of this task. Change nothing else, then reply with one line saying what you fixed.`,
+    `Fix \`${file}\` in place following the original rules of this task. Change nothing else, then reply with one line saying what you fixed.${close}`,
   ].join('\n');
+}
+
+/** The project is in a world: its fix and repair turns get `NO_QUESTIONS`. */
+export function inWorld(ctx: Pick<StageContext, 'snapshot' | 'settings'>): boolean {
+  const { project } = ctx.snapshot;
+  if (project.status !== 'ok') return false;
+  return activeWorld(project.value.style, worldScope(ctx.settings)) !== undefined;
 }
 
 export function render(id: PromptId, vars: TemplateVars): Result<string, StageError> {
@@ -69,7 +87,7 @@ export async function checkWithRepair<T>(
   loop.ctx.step(`Repairing ${loop.file}`);
   const turn = await loop.ctx.claude({
     prompt: loop.prompt,
-    text: repairPrompt(loop.file, first.problems),
+    text: repairPrompt(loop.file, first.problems, inWorld(loop.ctx)),
     purpose: loop.purpose,
     newSession: false,
     label: `${loop.label} repair`,

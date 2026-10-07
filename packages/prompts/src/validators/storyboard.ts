@@ -34,6 +34,7 @@ import { checkAssetNeeds, checkShotAssets, type AssetNeedRules } from './asset-n
 import { checkCharacters, type CharacterCheckOptions } from './characters.js';
 import { checkContinuity } from './continuity.js';
 import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
+import { offensiveJsonIssues } from './offensive.js';
 import {
   issue,
   parseJsonText,
@@ -470,6 +471,7 @@ export function checkStoryboard(
     ...(options.characters === undefined
       ? []
       : checkCharacters(storyboard, options.words, options.characters)),
+    ...offensiveJsonIssues(storyboard),
   ];
 }
 

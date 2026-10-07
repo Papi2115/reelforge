@@ -1,5 +1,5 @@
 /**
- * World `game-b1` (PLAN.md#13.5 part a): registered in WORLDS, experimental and unwired, its style
+ * World `game-b1` (PLAN.md#13.5 parts a and c): registered in WORLDS, experimental and wired, its style
  * a valid world style (the 23 showcase inks, every token mapped, 640x360, no post dither, a
  * neutral variation budget), look A bound only in its own style, and the kit API (b1Screen) fails
  * with readable errors.
@@ -56,11 +56,11 @@ function screen(params: Record<string, unknown> = {}): Screen {
 }
 
 describe('world game-b1', () => {
-  it('is registered last, experimental and unwired, with looks A, B, C on its own palette', () => {
+  it('is registered last, experimental and wired, with looks A, B, C on its own palette', () => {
     expect(WORLDS.at(-1)).toBe(GAME_B1);
     expect(GAME_B1.experimental).toBe(true);
-    expect(GAME_B1.wired).toBe(false);
-    expect(isUnwiredWorldStyle(GAME_B1_ID)).toBe(true);
+    expect(GAME_B1.wired).toBe(true);
+    expect(isUnwiredWorldStyle(GAME_B1_ID)).toBe(false);
     expect(GAME_B1.soundPalette).toBe('game-b1');
     expect(GAME_B1.looks).toEqual([atariStoryLook, atariMenuLook, atariBossLook]);
     expect(GAME_B1.looks.map((look) => look.rolls)).toEqual([['A'], ['B'], ['C']]);

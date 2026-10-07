@@ -23,6 +23,7 @@ import {
 import {
   isContinuityStyle,
   PAGE_CAMERA_HINTS,
+  type ContinuityKind,
   type MomentKind,
   projectLookMode,
   shotLook,
@@ -86,18 +87,25 @@ export function promptWorld(world: World | undefined): PromptWorld | undefined {
   return world === undefined || text === undefined ? undefined : { label: world.label, text };
 }
 
-/** A world's page-native transition as the prompt, the validator and the picker use it. */
+/**
+ * A world's page-native transition as the prompt, the validator and the picker use it; `link` =
+ * the continuity link kind it renders (Game B1's calendar zoom and cartridge in / out).
+ */
 export type WorldTransitionChoice = Pick<
   WorldTransition,
   'id' | 'type' | 'duration' | 'description'
->;
+> & { readonly link?: ContinuityKind };
 
 /** The page-native transitions of a world (engine `WORLD_TRANSITIONS`), in engine order. */
 export function worldTransitionOptions(world: World | undefined): WorldTransitionChoice[] {
   if (world === undefined) return [];
   return Object.values(WORLD_TRANSITIONS)
     .filter((style) => style.world === world.id)
-    .map(({ id, type, duration, description }) => ({ id, type, duration, description }));
+    .map((style) => {
+      const { id, type, duration, description } = style;
+      const link = 'link' in style ? style.link : undefined;
+      return { id, type, duration, description, ...(link === undefined ? {} : { link }) };
+    });
 }
 
 /**
@@ -192,13 +200,15 @@ export function criticWorldPromptVars(
 
 /**
  * Fills a world style into every non-cut transition that names none (deterministic: project seed
- * + shot id, never the style used just before); continuity links and named styles stay.
+ * + shot id, never the style used just before); continuity links and named styles stay. A style
+ * that renders a link (`link`) is never filled in: an unplanned link has no object.
  */
 export function assignWorldTransitions(
   shots: readonly StoryboardShot[],
-  options: readonly WorldTransitionChoice[],
+  choices: readonly WorldTransitionChoice[],
   seed: number,
 ): { readonly shots: StoryboardShot[]; readonly changed: readonly string[] } {
+  const options = choices.filter((option) => option.link === undefined);
   const changed: string[] = [];
   let previous: string | undefined;
   const result = shots.map((shot, index): StoryboardShot => {

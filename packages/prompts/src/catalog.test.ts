@@ -102,12 +102,14 @@ describe('renderPrompt', () => {
       optional: [
         'selection',
         'critic',
+        'research',
         'craftBrief',
         'world',
         'lookId',
         'worldMomentDirective',
         'worldMoment',
         'continuityDirective',
+        'noQuestions',
       ],
     });
     expect(promptVariables('sound-cues')).toEqual({

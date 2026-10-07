@@ -62,7 +62,7 @@ Register the world by adding it to `WORLDS` in `packages/kit/src/worlds/index.ts
    it for every built-in style with the world registered.
 7. **Wired**: when the world gets its prompts (`WORLD_PROMPTS` entry) and project defaults (`WORLD_PROJECT_DEFAULTS` entry), set
    `wired: true` in its `defineWorld` and re-read its one-line `STYLE_DESCRIPTIONS` entry (`apps/desktop/src/shared/style-choices.ts`);
-   `packages/stages/src/worlds.test.ts` then requires both entries (and lists the worlds still unwired). Before that the app and the runtime Claude never see the world.
+   `packages/stages/src/worlds.test.ts` then requires both entries (and that no registered world is left unwired). Before that the app and the runtime Claude never see the world.
 8. **Ship**: flip `experimental` off on the world and its looks, add `styles/<world-id>/`, a sound palette, the world's row in Project
    settings, a decision-log line in CLAUDE.md §8.
 
@@ -155,7 +155,8 @@ Slots: `hero`, `figures`, `label`, `note`, `thing` box, `ground`. **Rule: the he
 ## Variety: page moments, quota and rhythm (real run Sketchbook 1)
 The first real world film used neither breakthrough: the storyboard prompt never mentioned them. Now a world's prompt text carries a
 **moment catalog** (`WorldPromptText.moments`, Sketchbook: `packages/prompts/src/worlds/sketchbook-moments.ts`, Comic:
-`comic-moments.ts`, see "Comic: wiring", Game B2: `game-b2-moments.ts`, see "Game B2: wiring") and the storyboard
+`comic-moments.ts`, see "Comic: wiring", Game B2: `game-b2-moments.ts`, see "Game B2: wiring", Game B1:
+`game-b1-moments.ts`, see "Game B1: wiring") and the storyboard
 writes an optional `"worldMoment"` per shot (`@reelforge/shared` `storyboardShotSchema`, kebab case, absent = plain):
 
 | Moment | Kind | Look | Use when the narration… |
@@ -375,7 +376,7 @@ examples in `packages/kit/examples/game-b2/` show different mechanisms; their er
   card 14 (no name on the card by design).
 
 ## Game B1: two worlds in one frame, look A (PLAN.md#13.5 part a)
-World `game-b1` (experimental, unwired), code `packages/kit/src/worlds/game-b1/`, showcase `docs/worlds/game-hud-b1-boss-v2/`.
+World `game-b1` (experimental; wired in part c), code `packages/kit/src/worlds/game-b1/`, showcase `docs/worlds/game-hud-b1-boss-v2/`.
 - **Style**: the showcase's 23 inks, 640x360 (x3 = 1080p), no engine post (dither spread 0, no engine scanlines or vignette):
   the CRT belongs to the TV picture only and is painted by the kit as palette LUTs (NTSC bleed, scanlines, a hum bar, rounded
   tube); the living room stays in clean square pixels. Variation budget `game-b1` is neutral (one room and one console per
@@ -413,8 +414,8 @@ World `game-b1` (experimental, unwired), code `packages/kit/src/worlds/game-b1/`
   happens); deadline 19 at t 2.6 / 6.3 (same as `s3-t2.6` / `s3-t6.3`), 17 at t 7.3 (dead boss, struck note, an emptier frame).
   Deliberate roughness kept (crude sprites, uneven grain). Files <= 400 lines (the showcase's room.js is split into
   `room/view.ts`, `room/props.ts`, `room/living-room.ts`).
-- Part b (next section): looks B/C, the breakthroughs, the continuity helpers, the transitions, the sound palette. Not
-  yet: prompts and wiring (part c).
+- Part b (next section): looks B/C, the breakthroughs, the continuity helpers, the transitions, the sound palette. Part c:
+  prompts and wiring ("Game B1: wiring").
 
 ## Game B1: breakthroughs, continuity, looks B/C, transitions, sound (PLAN.md#13.5 part b)
 The two showpieces (showcase shots 4 and 8) are **toolkits, never templates**: `intent` required, every word from the
@@ -471,8 +472,8 @@ unchanged (the `look-atari-story` goldens of a1-a3 pass as committed).
   `game-b1-cartridge-in` / `-out` (link `carry-environment`: roll + garbage + click jolt; garbage + collapse to a line and
   a dot + dark beat + power-on), `game-b1-attract-cycle` (three uneven colour-cycle steps, then the burst redraw),
   `game-b1-scanline-wipe`, `game-b1-page-slide`, `game-b1-page-turn`, `game-b1-room-shake` (held decaying jolts, one flash
-  frame, the next shot settles). The style metadata carries `link` for the three continuity ones (the stage does not
-  read it yet: part c). Goldens `transition-game-b1-*` (`packages/kit/test/render/transition-game-b1.test.ts`).
+  frame, the next shot settles). The style metadata carries `link` for the three continuity ones (the storyboard stage
+  draws a planned link with them: "Game B1: wiring"). Goldens `transition-game-b1-*` (`packages/kit/test/render/transition-game-b1.test.ts`).
 - **Sound** (`packages/stages/src/sound/palettes/game-b1.ts`, now the world's and every look's palette): no cartridge,
   coin or slam recipes exist, so it reuses built-in ones: the cartridge click = `relay-click` latch, garbage = `crt-zap`
   static, the coin-up (INSERT COIN, a chosen level) = `chime-up`, the slam = `board-tap` knock, blips = `measure-blip` /
@@ -540,3 +541,60 @@ Game B2 is **wired** (`wired: true`): offered with Settings → Experimental wor
   or mascot (640x360 comes with the style preset, 30 fps with the template). Music moods `lofi-chill`,
   `tense-investigation`, `retro-wave` (`WORLD_MOODS`); critic look rules `CRITIC_LOOK_RULES['rpg-*']`; `reelforge kit-docs`
   lists `b2View`, `b2Hud` and the three looks with the experimental switch on.
+
+## Game B1: wiring (PLAN.md#13.5 part c)
+Game B1 is **wired** (`wired: true`): offered with Settings → Experimental worlds on, like the other three worlds.
+- **Prompts** (`packages/prompts/src/worlds/game-b1.ts`): film, brief (two worlds in one frame: 2600 rules inside the TV,
+  square pixels in the room; boss cards, Dad's notes, the HUD), rolls (A the story `atari-story`, B the console's screens
+  `atari-menu`, C the boss `atari-boss`), rhythm (back and forth between the TV and the room), game-native `transitionIn`
+  (style + `focus`; the storyboard's list names the link of the three continuity ones), camera (the living-room camera: push
+  into the TV, pull back, land on the calendar or the console, no orbit), interrupts (`look-switch` only), marks/annotate
+  (all text in the TV, the HUD and Dad's notes, never `ctx.text`/`ctx.annotate`), motion (one `b1Screen` per shot; every
+  HUD element must mean something), craft brief (≤ 1.5 KB, QUALITY.md §6 game-hud as the do-list), critic
+  medium/style/vibe/checklist, continuity (`zoom-through` = `game-b1-calendar-zoom`, `carry-environment` =
+  `game-b1-cartridge-in` / `-out`, `shared-object`: write `"continuity"` AND name the transition), surprise beats. Exact kit
+  calls in `game-b1-snippets.ts`, run through the real kit by `packages/stages/src/game-b1-snippets.test.ts` (each alone,
+  together on one screen, and drifted calls that must throw).
+- **Moment catalog** (`game-b1-moments.ts`), checked by the generic variety validator:
+
+| Moment | Kind | Look | Use when the narration… |
+| --- | --- | --- | --- |
+| `score-table` | breakthrough | `atari-menu` (B) | ranks the story's facts or records in the order they happened, one landing now |
+| `manual` | breakthrough | `atari-menu` (B) | explains how something works as a few rules in a row |
+| `calendar-zoom` | moment (intent required) | `atari-story` | jumps to a date, a deadline or a year and the whole place changes |
+| `cartridge` | moment (intent required) | `atari-story`, `atari-menu` | puts a game into homes or takes it back |
+| `level-select` | moment (intent required) | `atari-menu` | moves the story to another place or time |
+| `boss-card` | moment | `atari-boss`, `atari-story` | names the central problem and shows it winning or losing |
+| `game-over` | moment | `atari-boss` | loses the fight or asks whether it goes on |
+| `dialogue` | moment | `atari-story` | lets someone in the story speak |
+| `glass-note` | moment | `atari-story`, `atari-boss` | names the weak point or the lesson in a few words |
+| `tv-push` | moment | `atari-story` | moves between the people living the story and the game itself |
+
+  The score table and the manual are toolkits, never templates: `intent` required, rows / rules / scores from the narration
+  (no invented figures), inspirations b1/b4 and b3/b5, never the same entrance + initials (table) or entrance + exit +
+  figure (manual) twice in a film.
+- **Continuity links drawn by world transitions** (`packages/stages/src/world-links.ts`): a world transition with `link`
+  draws a planned link of that kind. A linked shot opens with the world's transition of its link's kind (the one named in
+  `transitionIn.style`, else the world's first: the calendar zoom for `zoom-through`, the cartridge in for
+  `carry-environment`) at its own length (at most half the shot) on the link's anchor; a kind the world has no transition
+  for (`shared-object`) keeps the generic `continuity-<kind>` style. The scene directive gives the link's real length; the
+  final review counts a world link transition as rendered. With links on, a link transition named on a shot without
+  `"continuity"` is a storyboard error (`continuity-link`: the object both shots build is missing); the stage never fills a
+  link transition into an unlinked shot. Worlds without link transitions: byte-identical behaviour.
+- **Guards** (`packages/stages/src/slop/game-b1-labels.ts`): traces = `note`, `shake` (≤ 2), `remap` (≤ 2), `typed`, `hash`,
+  `garbage` (1 each at most), `boss`, `gameOver` (1), `room`, `calendarZoom`, `cartridge` (2), `levelSelect`, `scoreTable`,
+  `manual` (3); options `under`, `strike`, `tick`, `ring`, `ticks`, `correction`, `markAt`, `tree`, `gift`, `squash`,
+  `tumble`, `type`. Text provenance reads `narrate`, `say` (and its `speaker`), the painter's `text` and `score`, `year`,
+  `note` lines, a cartridge `label`, a gift `tag`, the calendar `month`, a boss card's `name` (only inside `boss`), the
+  table's `who` and `score` (numbers and strings), the manual's `steps`, `caption` and correction (`strike`, `write`);
+  game words (HIGH SCORES, HOW TO PLAY, INSERT COIN, PRESS START, BOSS, WEAK POINT, CONTINUE?, GAME OVER, INVENTORY FULL)
+  and time units are labels (LIVES, HP are not: lives only for a real threat); a two-digit year (`XMAS 82`) is sourced by
+  its full year (`shortYears`). `slop/breakthrough-intent.ts`: a score table, manual page, calendar zoom, cartridge swap or
+  level select without an intent, with a generic one or one the sources never make → ⚠; mechanisms may name nested options
+  (`figure.layout`); the final review flags a repeated mechanism or intent. Calibration: 0 findings on the 14 Game B1
+  templates (showcase narration + notes) and the 42 Game B1 goldens; 33/33 planted fakes caught, numbers included
+  (`slop/game-b1-*.test.ts`).
+- **Project defaults**: `WORLD_PROJECT_DEFAULTS['game-b1']` = continuity links on, anti-slop guards on, mixed looks, no pack
+  or mascot (640x360 comes with the style preset, 30 fps with the template). Music moods `lofi-chill`, `retro-wave`,
+  `tense-investigation` (`WORLD_MOODS`); critic look rules `CRITIC_LOOK_RULES['atari-*']`; `reelforge kit-docs` lists
+  `b1Screen` and the three looks with the experimental switch on.

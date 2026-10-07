@@ -103,3 +103,21 @@ describe('shotSyncEvents', () => {
     expect(syncFindings(events, shot)).toEqual([]);
   });
 });
+
+describe('anchors spoken again inside the shot (real run Comic 1)', () => {
+  it('measures an anchor against the occurrence in the shot, not the film first', () => {
+    const repeated = new AnchorIndex([
+      { text: 'in', t: 0.61, tEnd: 0.7 },
+      { text: 'was', t: 33.0, tEnd: 33.2 },
+      { text: 'in', t: 33.2, tEnd: 33.35 },
+    ]);
+    const s08 = { id: 's08', t0: 32.47, t1: 36.23 };
+    const [event] = shotSyncEvents({
+      shot: s08,
+      anchors: [{ shotId: 's08', phrase: 'in', nth: 1, t: 33.2, tEnd: 33.35 }],
+      sceneCues: [],
+      words: repeated,
+    });
+    expect(event).toMatchObject({ kind: 'anchor', spokenT: 33.2, deltaMs: 0, verdict: 'ok' });
+  });
+});

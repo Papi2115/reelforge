@@ -6,7 +6,8 @@
  * breakthroughs in adjacent shots; one moment kind at most once per 90 s; never three shots in a
  * row with the same moment (or plain) in the same roll; at least three distinct page transitions;
  * with continuity links on, at least one link in films of 45 s+ (the world's signature cut, real
- * run Sketchbook 2 planned none). The look run (at most two in a row) is the rhythm check with the world's limit (storyboard.ts).
+ * run Sketchbook 2 planned none) and every world transition that renders a link (Game B1) on a
+ * linked shot. The look run (at most two in a row) is the rhythm check with the world's limit (storyboard.ts).
  * Every finding is an error, so the storyboard's repair turn fixes it.
  */
 import { continuityKindOf, shotLook, type StoryboardShot } from '@reelforge/shared';
@@ -246,6 +247,37 @@ function continuityQuotaIssues(
   ];
 }
 
+/**
+ * With links on, a world transition that renders a continuity link (Game B1's calendar zoom and
+ * cartridge in / out, `WorldTransitionOption.link`) needs the shot's `continuity` (the object both
+ * shots build and the stage's link transition); without it the cut is a link nobody planned.
+ */
+function linkTransitionIssues(
+  shots: readonly StoryboardShot[],
+  options: WorldVarietyOptions,
+): ValidationIssue[] {
+  const kinds = new Map(
+    (options.transitions ?? []).flatMap((option) =>
+      option.link === undefined ? [] : [[option.id, option.link] as const],
+    ),
+  );
+  if (kinds.size === 0) return [];
+  return shots.flatMap((shot, index): ValidationIssue[] => {
+    const transition = shot.transitionIn;
+    if (index === 0 || shot.continuity !== undefined || transition?.type === 'cut') return [];
+    const kind = transition?.style === undefined ? undefined : kinds.get(transition.style);
+    if (kind === undefined) return [];
+    return [
+      issue(
+        'error',
+        'continuity-link',
+        `${shot.id}: ${transition?.style ?? ''} is a ${kind} link: add "continuity": { "kind": "${kind}", "object": "<the thing both shots show>" } and name the object in both intents, or use another transition`,
+        where(index, 'transitionIn'),
+      ),
+    ];
+  });
+}
+
 /** The variety checks of a world's storyboard (see the module comment). */
 export function checkWorldVariety(
   shots: readonly StoryboardShot[],
@@ -266,5 +298,6 @@ export function checkWorldVariety(
     ...runIssues(shots, rules),
     ...transitionVarietyIssues(shots, durationS, options, rules),
     ...(options.continuityLinks === true ? continuityQuotaIssues(shots, durationS, rules) : []),
+    ...(options.continuityLinks === true ? linkTransitionIssues(shots, options) : []),
   ];
 }

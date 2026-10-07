@@ -8,7 +8,6 @@
 import { ok, type Result } from '@reelforge/claude-bridge';
 import { storyboardOutputSchema, type StoryboardOutput } from '@reelforge/prompts';
 import {
-  applyContinuityTransitions,
   continuityBudget,
   continuityDuration,
   plannedLinks,
@@ -21,6 +20,8 @@ import {
 import { writeProjectJson } from './files.js';
 import { FILES } from './paths.js';
 import type { StageContext, StageError } from './types.js';
+import { applyWorldContinuity, worldLinkKind } from './world-links.js';
+import type { WorldTransitionChoice } from './worlds.js';
 
 /** Storyboard prompt vars: the continuity section and the film's link budget (switch on only). */
 export function storyboardContinuityVars(
@@ -31,12 +32,16 @@ export function storyboardContinuityVars(
   return { continuityLinks: true, continuityBudget: continuityBudget(narrationEndS) };
 }
 
-/** Writes the linked shots' `transitionIn` from their links into storyboard.json (no link: as is). */
+/**
+ * Writes the linked shots' `transitionIn` from their links into storyboard.json (no link: as is);
+ * `worldTransitions` = the world's transitions, whose link styles draw the links (world-links.ts).
+ */
 export async function applyStoryboardContinuity(
   ctx: StageContext,
   storyboard: StoryboardOutput,
+  worldTransitions: readonly WorldTransitionChoice[] = [],
 ): Promise<Result<StoryboardOutput, StageError>> {
-  const linked = applyContinuityTransitions(storyboard.shots);
+  const linked = applyWorldContinuity(storyboard.shots, worldTransitions);
   if (linked.changed.length === 0) return ok(storyboard);
   return writeProjectJson(ctx.projectDir, FILES.storyboard, storyboardOutputSchema, {
     ...storyboard,
@@ -73,6 +78,16 @@ function takeOver(previous: StoryboardShot, link: ContinuityLink): string {
   return `This shot continues ${previous.id} through a ${link.kind} link: ${start}${place}.`;
 }
 
+/** Seconds the link plays: a world link transition's own (written length), else the generic one. */
+function linkDuration(shot: StoryboardShot, link: ContinuityLink): number {
+  const transition = shot.transitionIn;
+  return transition !== undefined &&
+    transition.type !== 'cut' &&
+    worldLinkKind(transition) === link.kind
+    ? transition.duration
+    : continuityDuration(shot, link);
+}
+
 /** Scene-build prompt vars of one shot: the directive of the links it starts or ends (or none). */
 export function sceneContinuityVars(
   shots: readonly StoryboardShot[],
@@ -86,20 +101,25 @@ export function sceneContinuityVars(
     lines.push(takeOver(previous, shot.continuity));
   }
   if (next?.continuity !== undefined) {
-    lines.push(handOver(next, next.continuity, continuityDuration(next, next.continuity)));
+    lines.push(handOver(next, next.continuity, linkDuration(next, next.continuity)));
   }
   return lines.length === 0 ? {} : { continuityDirective: lines.join(' ') };
 }
 
 /**
  * The final review's "continuity" line: links planned in the storyboard vs rendered (the link's
- * transition is in place and neither of its shots failed). No links = no line.
+ * transition, generic or the world's own link style, is in place and neither of its shots
+ * failed). No links = no line.
  */
 export function continuityReviewNotes(
   shots: readonly StoryboardShot[],
   entries: readonly FinalReviewShot[],
 ): string[] {
-  const links = plannedLinks(shots);
+  const links = plannedLinks(shots).map((link) => {
+    const shot = shots.find((candidate) => candidate.id === link.toShotId);
+    const world = worldLinkKind(shot?.transitionIn) === link.link.kind;
+    return world ? { ...link, wired: true } : link;
+  });
   if (links.length === 0) return [];
   const failed = new Set(
     entries.filter((entry) => entry.status === 'failed').map((entry) => entry.shotId),

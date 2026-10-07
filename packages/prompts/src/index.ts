@@ -38,6 +38,7 @@ export * from './validators/characters.js';
 export * from './validators/mascot-words.js';
 export * from './validators/roles.js';
 export * from './validators/script.js';
+export * from './validators/offensive.js';
 export * from './validators/critic.js';
 export * from './validators/cues.js';
 export * from './validators/review.js';

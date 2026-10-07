@@ -8,7 +8,7 @@ import { WORLD_PROMPTS } from '@reelforge/prompts';
 import { WORLD_PROJECT_DEFAULTS } from '@reelforge/project';
 import type { StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { CRITIC_LOOK_RULES, storyboardLookVars, styleLookScope, styleLooks } from './looks.js';
+import { CRITIC_LOOK_RULES, storyboardLookVars, styleLookScope } from './looks.js';
 import { craftVerdicts } from './scenes/critic.js';
 import { kitNamesFromCatalog } from './scenes/tools.js';
 import { paletteForShot } from './sound/palettes/index.js';
@@ -45,7 +45,7 @@ function shot(id: string, extra: Partial<StoryboardShot> = {}): StoryboardShot {
 describe('world registry wiring', () => {
   it('has project defaults and prompt wording for every wired world', () => {
     const wired = WORLDS.filter((world) => world.wired);
-    expect(wired.map((world) => world.id)).toEqual(['sketchbook', 'comic', 'game-b2']);
+    expect(wired.map((world) => world.id)).toEqual(['sketchbook', 'comic', 'game-b2', 'game-b1']);
     for (const world of wired) {
       expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toContain(world.id);
       expect(Object.keys(WORLD_PROMPTS)).toContain(world.id);
@@ -53,21 +53,22 @@ describe('world registry wiring', () => {
   });
 
   it('never offers a world that is not wired yet, flag or not', () => {
-    const unwired = WORLDS.filter((world) => !world.wired);
-    expect(unwired.map((world) => world.id)).toEqual(['game-b1']);
+    // Every registered world is wired today; an unwired copy of each is never active.
+    expect(WORLDS.filter((world) => !world.wired)).toEqual([]);
+    const unwired = WORLDS.map((world) => ({ ...world, wired: false }));
     for (const { id } of unwired) {
       for (const scope of [{}, ON]) {
-        expect(activeWorld(id, scope)).toBeUndefined();
-        expect(styleLooks(id, scope)).toEqual([]);
-        const setup = lookSetup({ style: id }, scope);
-        expect(setup.world).toBeUndefined();
-        expect(setup.looks).toEqual([]);
-        expect(storyboardWorldPromptVars(setup, 120)).toEqual({});
-        expect(storyboardWorldOptions(setup)).toEqual({});
+        expect(activeWorld(id, scope, unwired)).toBeUndefined();
+        expect(activeWorld(id, scope, [])).toBeUndefined();
       }
-      expect(styleLookScope(id, ON)).toEqual({ style: id });
+      expect(activeWorld(id, ON)?.id).toBe(id);
+      expect(styleLookScope(id, ON)).toEqual({ style: id, experimental: true });
     }
-    expect(styleLookScope('sketchbook', ON)).toEqual({ style: 'sketchbook', experimental: true });
+    // A style no world registers is no world: no world prompts or options.
+    const missing = lookSetup({ style: 'game-b9' }, ON);
+    expect(missing.world).toBeUndefined();
+    expect(storyboardWorldPromptVars(missing, 120)).toEqual({});
+    expect(storyboardWorldOptions(missing)).toEqual({});
   });
 
   it('offers an experimental world only with the flag', () => {
@@ -306,5 +307,83 @@ describe('game-b2 project', () => {
     expect(criticWorldPromptVars(setup.world, tally)['worldMomentCheck']).toContain('tally:');
     expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('a sudden game moment');
     expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
+  });
+});
+
+describe('game-b1 project', () => {
+  const setup = lookSetup({ style: 'game-b1', lookMode: 'voxel-only' }, ON);
+
+  it('is offered only with experimental worlds, in its own looks and transitions', () => {
+    expect(activeWorld('game-b1')).toBeUndefined();
+    expect(lookSetup({ style: 'game-b1' }).looks).toEqual([]);
+    expect(setup.lookMode).toBe('mixed');
+    expect(setup.looks.map((look) => look.id)).toEqual(['atari-story', 'atari-menu', 'atari-boss']);
+    const options = worldTransitionOptions(setup.world);
+    expect(options.map((option) => [option.id, option.link])).toEqual([
+      ['game-b1-calendar-zoom', 'zoom-through'],
+      ['game-b1-cartridge-in', 'carry-environment'],
+      ['game-b1-cartridge-out', 'carry-environment'],
+      ['game-b1-attract-cycle', undefined],
+      ['game-b1-scanline-wipe', undefined],
+      ['game-b1-page-slide', undefined],
+      ['game-b1-page-turn', undefined],
+      ['game-b1-room-shake', undefined],
+    ]);
+    expect(storyboardWorldPromptVars(setup)).toMatchObject({
+      world: 'Game B1: Atari boss montage',
+      worldFirstLook: 'atari-story',
+    });
+    expect(storyboardWorldPromptVars(setup)['worldTransitions']).toContain(
+      '- `game-b1-calendar-zoom` (wipe, about 1.2 s; the `zoom-through` link)',
+    );
+  });
+
+  it('builds with the screen, sounds in its palette, judges each look', () => {
+    const names = kitNamesFromCatalog({ style: 'game-b1', experimental: true });
+    expect(names.fx.has('b1Screen')).toBe(true);
+    expect(names.fx.has('b2View')).toBe(false);
+    expect(names.props.has('desk')).toBe(false);
+    const options = { lookMode: 'mixed' as const, style: 'game-b1' };
+    expect(paletteForShot(shot('s01', { look: 'atari-boss' }), options).id).toBe('game-b1');
+    expect(fixWorldPromptVars(setup.world, shot('s01'), setup.looks)).toMatchObject({
+      lookId: 'atari-story',
+    });
+    for (const look of setup.looks) expect(CRITIC_LOOK_RULES[look.id], look.id).toBeDefined();
+  });
+
+  it('plans score tables and manual pages and gives the shot its moment', () => {
+    const vars = storyboardWorldPromptVars(setup, 120);
+    expect(vars['worldMoments']).toContain('- `score-table` (breakthrough; look `atari-menu`)');
+    expect(vars['worldMomentRules']).toContain('Breakthroughs (`score-table`, `manual`)');
+    const options = storyboardWorldOptions(setup, undefined, true);
+    expect(options.worldVariety?.moments.map((moment) => moment.id)).toContain('manual');
+    expect(options.worldVariety?.transitions?.[0]?.link).toBe('zoom-through');
+    const manual = shot('s08', { look: 'atari-menu', worldMoment: 'manual' });
+    expect(sceneWorldPromptVars(setup.world, manual)['worldMomentDirective']).toContain(
+      'screen.manual(',
+    );
+    expect(criticWorldPromptVars(setup.world, manual)['worldMomentCheck']).toContain('manual:');
+    expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('attract mode');
+    expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
+  });
+
+  it('never fills a link transition into a shot without a link', () => {
+    const options = worldTransitionOptions(setup.world);
+    const shots = Array.from({ length: 40 }, (_, index) =>
+      shot(`s${String(index + 1).padStart(2, '0')}`, {
+        transitionIn: { type: 'wipe', duration: 0.8 },
+      }),
+    );
+    const filled = assignWorldTransitions(shots, options, 1983).shots.slice(1);
+    const styles = new Set(
+      filled.map((entry) => (entry.transitionIn?.type === 'cut' ? '' : entry.transitionIn?.style)),
+    );
+    expect([...styles].sort()).toEqual([
+      'game-b1-attract-cycle',
+      'game-b1-page-slide',
+      'game-b1-page-turn',
+      'game-b1-room-shake',
+      'game-b1-scanline-wipe',
+    ]);
   });
 });

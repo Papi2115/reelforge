@@ -35,6 +35,11 @@ export interface CritiqueInput {
    * and three human traces fails like an `off-intent` one.
    */
   readonly craft?: boolean | undefined;
+  /**
+   * The project's research notes for this shot (`researchExcerpt`): facts are judged by them and a
+   * contradiction is a `fact-conflict:` note (a ⚠, never a fix turn); undefined = none.
+   */
+  readonly research?: string | undefined;
 }
 
 export interface Critique {
@@ -45,10 +50,17 @@ export interface Critique {
   readonly notes: readonly string[];
 }
 
+/** A critic note about storyboard vs research notes (critic prompt v10). */
+const FACT_CONFLICT = /^\s*fact-conflict\s*:/i;
+
+export function isFactConflict(entry: CriticVerdictRecord): boolean {
+  return FACT_CONFLICT.test(entry.note);
+}
+
 /** A world critic's `ok` without the focal point and the traces is a `craft:` failure. */
 export function craftVerdicts(verdicts: readonly CriticVerdictRecord[]): CriticVerdictRecord[] {
   return verdicts.map((entry) =>
-    entry.verdict !== 'ok' || isCraftNote(entry.note)
+    entry.verdict !== 'ok' || isCraftNote(entry.note) || isFactConflict(entry)
       ? entry
       : {
           verdict: 'off-intent',
@@ -66,11 +78,21 @@ export function programmaticCritique(render: ShotRenderOk): QaFinding[] {
   ];
 }
 
-function verdictFindings(verdicts: readonly CriticVerdictRecord[]): QaFinding[] {
+/**
+ * Failed frames are errors (a fix turn); a fact conflict (the storyboard contradicts the research
+ * notes) is a warning for the user, so no fix turn flips research-correct data back.
+ */
+export function verdictFindings(verdicts: readonly CriticVerdictRecord[]): QaFinding[] {
   return verdicts
-    .filter((entry) => entry.verdict !== 'ok')
+    .filter((entry) => entry.verdict !== 'ok' || isFactConflict(entry))
     .map((entry) =>
-      finding('critic', 'error', `the frame critic says "${entry.verdict}": ${entry.note}`),
+      isFactConflict(entry)
+        ? finding(
+            'critic',
+            'warning',
+            `the frame critic found a fact conflict (storyboard vs research notes; check the facts before publishing): ${entry.note}`,
+          )
+        : finding('critic', 'error', `the frame critic says "${entry.verdict}": ${entry.note}`),
     );
 }
 
@@ -83,6 +105,7 @@ async function askCritic(
     intent: input.intent,
     styleId: input.styleId,
     ...input.lookVars,
+    ...(input.research === undefined ? {} : { research: input.research }),
   });
   if (!prompt.ok) return prompt;
   const turn = await runTurn({

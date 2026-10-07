@@ -5,7 +5,7 @@
  * each measured against the nearest anchor of the shot, and annotations with a `phrase` (their
  * `at` against that phrase, PLAN.md#11.8). Pure, so it is unit-tested directly.
  */
-import type { CardDiagnostic, ResolvedAnchor } from '@reelforge/engine';
+import { pickShotOccurrence, type CardDiagnostic, type ResolvedAnchor } from '@reelforge/engine';
 import type { AnchorIndex } from '@reelforge/pipeline';
 import type { QaFinding, ShotSync, SyncEvent, SyncVerdict } from '@reelforge/shared';
 import { finding } from './checks.js';
@@ -49,8 +49,12 @@ function verdictOf(deltaS: number): SyncVerdict {
 
 function anchorEvent(input: ShotSyncInput, anchor: ResolvedAnchor): SyncEvent {
   const { shot } = input;
-  const resolved = input.words?.resolve(anchor.phrase, anchor.nth);
-  const spokenT = resolved?.ok === true ? resolved.value.t : anchor.t;
+  // The occurrence spoken in this shot, as the engine resolves it (pickShotOccurrence).
+  const spoken =
+    input.words === undefined
+      ? undefined
+      : pickShotOccurrence(input.words.occurrences(anchor.phrase), anchor.nth, shot);
+  const spokenT = spoken?.t ?? anchor.t;
   const delta = anchor.t - spokenT;
   const inside = anchor.t >= shot.t0 && anchor.t < shot.t1;
   return {

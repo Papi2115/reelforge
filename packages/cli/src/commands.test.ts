@@ -157,6 +157,17 @@ describe('reelforge anchors --phrase', () => {
     );
   });
 
+  it('with --shot resolves the occurrence spoken in that shot', async () => {
+    const run = await runCli(project.root, 'anchors', '--phrase', 'Doom', '--shot', 's02');
+    expect(run.code).toBe(0);
+    expect(run.stdout).toContain('ok "Doom" -> 6.50–');
+    expect(run.stdout).toContain('in shot s02');
+    const film = await runCli(project.root, 'anchors', '--phrase', 'Doom');
+    expect(film.stdout).toContain('ok "Doom" -> 0.30–');
+    const unknown = await runCli(project.root, 'anchors', '--phrase', 'Doom', '--shot', 's09');
+    expect(unknown.code).not.toBe(0);
+  });
+
   it('reports a phrase that is not spoken with the closest matches', async () => {
     const run = await runCli(
       project.root,

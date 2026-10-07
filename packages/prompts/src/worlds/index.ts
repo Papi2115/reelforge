@@ -11,6 +11,7 @@ import {
   storyboardMomentVars,
 } from './moment-vars.js';
 import { COMIC_PROMPTS } from './comic.js';
+import { GAME_B1_PROMPTS } from './game-b1.js';
 import { GAME_B2_PROMPTS } from './game-b2.js';
 import { SKETCHBOOK_PROMPTS } from './sketchbook.js';
 import type { WorldPromptText, WorldTransitionOption } from './types.js';
@@ -19,6 +20,7 @@ import type { WorldQuotaOverride } from './variety.js';
 export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from './types.js';
 export { worldMomentOption } from './moment-vars.js';
 export { COMIC_SNIPPETS, type ComicSnippet } from './comic-snippets.js';
+export { GAME_B1_SNIPPETS, type GameB1Snippet } from './game-b1-snippets.js';
 export { GAME_B2_SNIPPETS, type GameB2Snippet } from './game-b2-snippets.js';
 export { SKETCHBOOK_SNIPPETS, type SketchbookSnippet } from './sketchbook-snippets.js';
 export {
@@ -35,6 +37,7 @@ export const WORLD_PROMPTS: Readonly<Record<string, WorldPromptText>> = Object.f
   sketchbook: SKETCHBOOK_PROMPTS,
   comic: COMIC_PROMPTS,
   'game-b2': GAME_B2_PROMPTS,
+  'game-b1': GAME_B1_PROMPTS,
 });
 
 /** The prompt texts of a world (undefined for every other style). */
@@ -59,9 +62,13 @@ export function worldTransitionRange(option: Pick<WorldTransitionOption, 'durati
   return { min: round2(option.duration * 0.75), max: round2(option.duration * 1.5) };
 }
 
-/** One line per page-native transition in the storyboard prompt. */
+/**
+ * One line per page-native transition in the storyboard prompt; a transition that renders a
+ * continuity link (Game B1) names its kind.
+ */
 export function worldTransitionLine(option: WorldTransitionOption): string {
-  return `- \`${option.id}\` (${option.type}, about ${String(option.duration)} s): ${option.description}.`;
+  const link = option.link === undefined ? '' : `; the \`${option.link}\` link`;
+  return `- \`${option.id}\` (${option.type}, about ${String(option.duration)} s${link}): ${option.description}.`;
 }
 
 function transitionExample(option: WorldTransitionOption): string {

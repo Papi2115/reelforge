@@ -1,5 +1,5 @@
 /** kit-docs of a world project (PLAN.md#13.6): always mixed, experimental looks behind the env. */
-import { kitCatalog, LOOKS } from '@reelforge/kit';
+import { kitCatalog, LOOKS, WORLDS } from '@reelforge/kit';
 import { describe, expect, it } from 'vitest';
 import { formatCatalog } from './kit-docs-index.js';
 import {
@@ -41,7 +41,10 @@ describe('kit-docs in a world project', () => {
   });
 
   it('never lists the looks of a world that is not wired yet, switch or not', () => {
-    for (const style of ['game-b1']) {
+    // Every registered world is wired today (Game B1 last, PLAN.md#13.5 part c).
+    const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
+    expect(unwired).toEqual([]);
+    for (const style of unwired) {
       expect(kitDocsScope(style, true)).toEqual({ style });
       expect(kitCatalog([], LOOKS, kitDocsScope(style, true)).looks).toEqual([]);
     }
@@ -78,5 +81,23 @@ describe('kit-docs in a world project', () => {
       lookMode: 'mixed',
     });
     expect(off).not.toContain('b2View');
+  });
+
+  it('lists the Atari screen and its three looks only with experimental worlds on', () => {
+    const catalog = kitCatalog([], LOOKS, kitDocsScope('game-b1', true));
+    expect(catalog.looks.map((look) => look.id)).toEqual([
+      'atari-story',
+      'atari-menu',
+      'atari-boss',
+    ]);
+    const on = formatCatalog(catalog, { lookMode: 'mixed' });
+    expect(on).toContain('b1Screen');
+    expect(on).not.toContain('b2View');
+    expect(on).not.toContain('kit.voxel:');
+    expect(Buffer.byteLength(on, 'utf8')).toBeLessThan(28 * 1024);
+    const off = formatCatalog(kitCatalog([], LOOKS, kitDocsScope('game-b1', false)), {
+      lookMode: 'mixed',
+    });
+    expect(off).not.toContain('b1Screen');
   });
 });

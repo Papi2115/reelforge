@@ -305,8 +305,12 @@ async function run(
       ),
     );
   }
-  // Linked shots get their continuity transition (PLAN.md#13.2); no links = no-op.
-  const linked = await applyStoryboardContinuity(ctx, validated);
+  // Linked shots get their continuity transition (PLAN.md#13.2, #13.5); no links = no-op.
+  const linked = await applyStoryboardContinuity(
+    ctx,
+    validated,
+    worldTransitionOptions(setup.world),
+  );
   if (!linked.ok) return linked;
   const styled =
     lookMode === 'mixed'

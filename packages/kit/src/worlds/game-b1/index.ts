@@ -7,8 +7,9 @@
  * screens: menus, the level-select map and the breakthroughs, the high-score table and the
  * instruction manual), C `atari-boss` (boss slams, bars, the crash, continue?). Continuity: the
  * camera push into the TV, the calendar zoom and the cartridge insert / pull in the scenes, the
- * game-native `game-b1-*` transitions in the engine. Experimental and unwired: renders with
- * `render:frames --experimental`, offered nowhere.
+ * game-native `game-b1-*` transitions in the engine. Experimental: renders with
+ * `render:frames --experimental`; the app offers it only with experimental worlds on. Wired: its
+ * prompts (`@reelforge/prompts` worlds/game-b1.ts) and project defaults exist (PLAN.md#13.5 part c).
  *
  * Text: the frame draws its own faces (Joy 5x6, Score Block, Box Art, Dad Hand, Rough Print;
  * CC0) into its raster; `fonts` maps the engine text roles to the engine pixel fonts.
@@ -35,6 +36,7 @@ export const GAME_B1 = defineWorld({
   description:
     'The film as an Atari 2600 game in a 1982 living room: the story inside the TV (wide pixels, one colour per sprite row, flicker, CRT) or the room around it, a camera pushing into the TV, boss cards and sticky notes.',
   experimental: true,
+  wired: true,
   style: GAME_B1_STYLE,
   fonts: { display: 'display', mono: 'mono' },
   soundPalette: 'game-b1',
