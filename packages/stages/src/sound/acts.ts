@@ -45,6 +45,7 @@ export const STYLE_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
   'soft-480': ['lofi-chill', 'calm-tech'],
   sketchbook: ['lofi-chill', 'calm-tech'],
   comic: ['calm-tech', 'tense-investigation'],
+  'game-b2': ['lofi-chill', 'tense-investigation', 'retro-wave'],
 };
 export const DEFAULT_STYLE_MOODS: readonly MusicMood[] = ['calm-tech', 'bright-explainer'];
 
@@ -58,6 +59,7 @@ export const TENSION_STYLE_MOODS: Readonly<Record<string, readonly [MusicMood, M
   'soft-480': ['lofi-chill', 'calm-tech'],
   sketchbook: ['lofi-chill', 'calm-tech'],
   comic: ['calm-tech', 'tense-investigation'],
+  'game-b2': ['lofi-chill', 'tense-investigation'],
 };
 export const DEFAULT_TENSION_MOODS: readonly [MusicMood, MusicMood] = ['calm-tech', 'retro-wave'];
 /** A body act this tense (mean) gets the tense mood; intro and outro need TENSE_EDGE_ACT. */
@@ -180,6 +182,9 @@ export const WORLD_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
   sketchbook: ['lofi-chill', 'calm-tech'],
   // A printed adventure comic: calm under the story pages, tense where the page holds its breath.
   comic: ['calm-tech', 'tense-investigation', 'lofi-chill'],
+  // A late-night game level: a low lo-fi bed in the rooms, tense at the boss, a retro synth for
+  // the liveliest acts (the one world where the synth fits); nothing bright or cheerful.
+  'game-b2': ['lofi-chill', 'tense-investigation', 'retro-wave'],
 };
 
 /** Mood per act: Claude's hint where given (same length as the acts), else the style default. */

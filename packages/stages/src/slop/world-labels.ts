@@ -4,6 +4,7 @@
  * real labels of the world's objects (not "invented text"). Keyed by world id; a world without an
  * entry gets no trace check (its helpers are unknown) and only the general labels.
  */
+import { GAME_B2_SLOP } from './game-b2-labels.js';
 
 /** A source option that is a human trace when present on a call (jittered lettering, red pen). */
 export interface TraceOption {
@@ -27,6 +28,10 @@ export interface WorldSlopSpec {
   readonly textMethods?: readonly string[] | undefined;
   /** The world's own text options (string values on screen). */
   readonly textKeys?: readonly string[] | undefined;
+  /** Option keys that are on-screen text only inside the named call (`boss: ['name']`). */
+  readonly textCallKeys?: Readonly<Record<string, readonly string[]>> | undefined;
+  /** Option keys whose number literals are on screen (a tally row's `value`). */
+  readonly numberKeys?: readonly string[] | undefined;
   /** Lettering calls of sounds (onomatopoeia): `soundWords` are not invented there. */
   readonly soundMethods?: readonly string[] | undefined;
   readonly soundWords?: ReadonlySet<string> | undefined;
@@ -157,7 +162,11 @@ const COMIC: WorldSlopSpec = {
   },
 };
 
-const SPECS: Readonly<Record<string, WorldSlopSpec>> = { sketchbook: SKETCHBOOK, comic: COMIC };
+const SPECS: Readonly<Record<string, WorldSlopSpec>> = {
+  sketchbook: SKETCHBOOK,
+  comic: COMIC,
+  'game-b2': GAME_B2_SLOP,
+};
 
 export function worldSlopSpec(worldId: string | undefined): WorldSlopSpec | undefined {
   return worldId !== undefined && Object.hasOwn(SPECS, worldId) ? SPECS[worldId] : undefined;

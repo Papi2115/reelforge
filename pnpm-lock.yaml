@@ -287,6 +287,9 @@ importers:
       '@reelforge/shared':
         specifier: workspace:*
         version: link:../shared
+      acorn:
+        specifier: 8.18.0
+        version: 8.18.0
       esbuild:
         specifier: 0.28.2
         version: 0.28.2

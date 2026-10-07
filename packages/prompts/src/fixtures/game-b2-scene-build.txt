@@ -1,0 +1,72 @@
+Build the scene module for ONE shot. Follow `CLAUDE.md` in this project exactly (scene contract, determinism, kit, self-QA).
+
+Shot: {"id":"s04_route","t0":24,"t1":32,"treatment":"map"}
+Narration during this shot (with word times): [{"text":"stores","t":27.4,"tEnd":27.9}]
+World: Game B2: first-person RPG (style `game-b2`; its craft brief is below). Neighbouring shots (for continuity, do not edit): []
+Look of this shot: `rpg-menu`. In this world every look plays in the same game (a raycast level in the 32-colour palette, the woodgrain HUD with its own pixel face, pink only for THE item of the story): build in the look, never imitate other effects or bring outside colours. How to build in it:
+Look `rpg-menu` (world Game B2, B roll): the game's screens.
+Craft brief (Game B2; binding):
+- First, write a comment: `// focal: <the one thing read first> | traces: <three human traces>`; build toward it.
+- Do: ONE focal thing, off-centre (the item in the hand, the clerk, the sign, the stamp); pink (the accent) only on THE item of the story; every HUD element MEANS something: progress = film progress, a checkpoint flag = a chapter, a meter only for a real threat, the boss bar only for the central problem; walk, then HOLD a look >= 0.4 s; >= 3 traces: a bulb that stutters, a faulty tube, chalk on a wall, a hand-lettered sign, a struck option, a reach that overshoots, a shake with decay, a dev note.
+- One level per scene, written from the narration's places and objects: its nouns are the signs, stencils and sprites.
+- Don't: centred symmetric HUD spam, decorative HP or ammo with no real threat, icon rows, > 6 competing elements, the same corridor twice in a film, constant walking, slick polished art: keep the sprites simple, slightly crude.
+- Text: only words of the narration or research notes (real numbers, names, dates; game words: QUEST LOG, NEW QUEST, + ITEM, EST.), all in the HUD and the level; no invented labels or numbers; no `ctx.text` or `ctx.annotate`.
+- References (docs/worlds/game-hud-b2-rpg-v2/shots/): s1-t3.5.png one bulb, sand, a chalk tally; s3-t20.png the reach for the shelf; s4-t30.4.png done rooms solid, the next dashed, a NEXT note; s8-t62.6.png the tally, the UNSOLD stamp.
+Page moment planned for this shot (`automap`; the storyboard planned it from the narration and the critic checks that it shows): build it with `view.automap({ intent, at, until, enter, exit, scale, rooms, replay, marks, note, camera, legend })` (look `rpg-menu`), a toolkit, never a template. The shape of a call (one way of many; never copy it or the inspirations): `view.automap({ intent: 'the corridor is behind us; the office with the deadline comes next', at: 1, until: 5.6, scale: 12, rooms: [{ cell: [4, 6], label: 'THE CORRIDOR', sub: '1983' }, { cell: [17, 5], label: 'THE OFFICE', sub: '1982', state: 'next', at: 2.2 }], marks: [{ kind: 'objective', pos: [20.6, 2.6], at: 2.6 }], note: { text: 'NEXT: THE DEADLINE', pos: [14.5, 9.6], to: [20.4, 2.8], at: 3.3 } })`. Every automap is original: the map IS this shot's level, so write a level of the film's route (one room per place of the narration, doors between) and decide what the map must SHOW (the claim) and how: `enter: 'unfold'` (grows out of the HUD minimap: keep `hud.minimap()`), `'wipe'` or `'cut'`; `exit: 'fold'` (back into the minimap) or `'cut'`; `replay: { from, to, dur }` (the arrow replays the walk and the rooms draw on as it enters them; `from` < 0 = the walk before the shot); rooms `{ cell, label, sub, state: 'done' | 'next' | 'ahead' | 'hidden', at, labelAt }`; `marks` (`objective` diamond, `item` = THE item, `cross`); a margin `note` with its two-stroke arrow; `camera` pans `[{ at, x, y }]`. Never the same opening and closing twice in one film. `intent` (required, 12-160 characters) names the claim (`two rooms done, the stores come next`), never a generic "the map"; room names and the note are words of the narration (caps; labels <= 18, the note <= 24 characters); at most 10 rooms and 6 marks. The kit's errors say what to move (a label off screen, under the narration box, two labels colliding). Sounds: `const r = <the call>`, then `for (const c of r.cues) ctx.sfx.at(c.t, c.name)`. Inspiration, each a different mechanism: `b2_automap.js` (the story so far: a replay, a pan to the rooms ahead, the NEXT note, a fold), `b3_automap_dive.js` (a dive into the map mid-walk: unfold, the one door out, fold, the walk goes on). A neighbour shot may grow it out of its minimap with `game-b2-map-unfold` or take it back with `game-b2-map-fold` (keep the map centred on the player at that end).
+
+Annotation plan from the storyboard (hints, not orders): put each in the game, timed to its spoken phrase (`at: 'the phrase'`, with `anchor: ctx.anchor` on the view and the HUD): a name or place on the compass (`hud.compass({ place })`) or a sign in the level, a fact into the inventory (`hud.inventory`) or a toast (`hud.toast`), a number on a meter or a tally row, a line in the narration box (`hud.narrate`); never with `ctx.annotate` or `ctx.text`. Adapt the form, or drop a mark, when it does not fit the picture (it would cover the subject or clutter the frame).
+- "the stores" (place): pin "TOY STORE"
+
+
+
+
+Steps:
+1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.
+2. Write `scenes/s04_route.js`: `meta`, `build`, `update`. Sync key moments to words with `ctx.anchor("phrase")`; register matching `sfx.at(...)`. Build ONE view and ONE HUD per shot: `const LEVEL = { … }` (this shot's level, step 4), `kit.fx.b2View({ size: [ctx.shot.width, ctx.shot.height], level: LEVEL, duration: ctx.shot.duration, anchor: ctx.anchor, path: [{ at: 0, x: 15.2, y: 7.6, yaw: -50, ease: 'lin' }, { at: 1.4, x: 16.9, y: 6.9, yaw: -58, ease: 'out' }, { at: 2.3, x: 17.2, y: 6.8, yaw: -66, pitch: 6, ease: 'inOut' }] })`, `kit.fx.b2Hud({ size: [ctx.shot.width, ctx.shot.height], view, duration: ctx.shot.duration, anchor: ctx.anchor })`; `scene.add(view); scene.add(hud)` in build(), `view.update(t); hud.update(t)` in update(t). Walk, then HOLD: path keys `{ at, x, y, yaw, pitch, eye, ease }` in cells (walk in with 'in', stop with 'out', turn or look down with 'inOut'), uneven strides, a still look of at least 0.4 s; never constant walking. The HUD: `hud.compass({ at: 0.25, year: '1982', place: 'THE OFFICE', target: [20.6, 2.3] })`, `hud.minimap({ at: 0.45 })`, the narration box `hud.narrate('1982. ATARI WANTS E.T.\nON SHELVES FOR CHRISTMAS.', { at: 'atari', until: 4.4 })` (the narration's words, CAPS, \n breaks, <= 3 lines), `hud.progress({ at: 0.6, from: 0.2, to: 0.29, chapters: [0.2, 0.47, 0.71] })` (this shot's t0 and t1 as shares of the film in storyboard.json) and `hud.checkpoint({ label: 'THE WAREHOUSE', at: 0.4 })` when a chapter starts, `hud.toast({ head: 'NEW QUEST', body: 'SHELVES BY CHRISTMAS', at: 2.9 })`, `hud.inventory({ at: 0.9, items: [{ icon: 'calendar', label: 'DEADLINE: ~5 WEEKS', at: -3 }, { icon: 'cartridge', label: '+ E.T. CARTRIDGE', at: 'cartridge', band: 'pink' }] })`; a meter only for the real threat, a boss bar only for the central problem; every HUD element must say something in this shot, leave the rest out. In the level: `view.switchOn('bulb', { at: 0.42 })`, `view.open([13, 6], { at: 4.9, dur: 0.7 })`, `view.take({ label: 'E.T.', band: 'pink' }, { at: 'cartridge', from: [17.9, 6.2, 0.45] })`, `view.hold({ label: 'E.T.', band: 'pink' }, { at: -1 })`, `view.act('clerk', { act: 'talk', at: 'sells', until: 3.6 })` (a `clerk` sprite with that id), `view.fog({ at: 1, until: 3.2 })`. Never cut content words from the narration. Text inside the safe area.
+3. Self-QA loop: `reelforge lint` → `reelforge frames --at` (start, key anchor moments, end−0.1) → Read the PNGs → fix → `reelforge anchors --shot s04_route`. Max 2 fix iterations.
+4. The level is the set: this world has no props to build, so never end your reply with a `MISSING:` line. Write the level from the narration's places and objects: ONE level per scene, the place this shot is in (a corridor, an office, a warehouse, a store aisle, a returns desk), the things the narration names as sprites with its real words as labels and stencils, nothing decorative. Format (the `level` of `kit.fx.b2View`; or a built-in `'office' | 'warehouse'` with `stencil: 'WORD'`): `{ name (kebab case), mood: 'dark' | 'tungsten' | 'fluorescent' | 'shop' | 'backroom', floor, ceiling, grid, legend, lights, sprites }`. `grid` = rows of equal length, one character per 1x1 cell, at most 32x32, the border all walls. `legend` maps every other character to a wall `{ wall: 'concrete' | 'wood-panel' | 'cubicle' | 'shelf' | 'shelf-end' | 'corrugated' | 'cinderblock' | 'counter' | 'store-shelf', label (shelf stencil, <= 4 letters), chalk: 'tally' | 'arrow' | 'cross', count, pinned: 'calendar' | 'poster', crossed, height, cap }`, a door `{ door: true }` (walls on two opposite sides) or an open cell `{ floor, ceiling, flicker, mood }` ('.' is open); floors 'concrete' | 'concrete-sand' | 'carpet' | 'warehouse' | 'warehouse-line' | 'tile' | 'tile-big' | 'sand', ceilings 'dark' | 'office' | 'office-light' | 'warehouse' | 'warehouse-tube' | 'grey' | 'grey-tube'. At most 12 `lights` `{ id, pos: [x, y], z, power, radius, flicker: 'none' | 'tube' | 'bulb', bulb }` and 40 `sprites` `{ id, sprite: 'clerk' | 'desk' | 'sign' | 'exit' | 'carton' | 'boxes' | 'pallet' | 'item' | 'card' | 'bin' | 'sand-pile', pos: [x, y], label, band, person, tilt }`; positions in cells (x right, y down, 0.5 = the middle of cell 0), never inside a wall. A worked level (the built-in office: a dark corridor with one bulb and a chalk tally, a door, the tungsten office behind it):
+```js
+const LEVEL = {
+  name: 'office', mood: 'dark', floor: 'concrete', ceiling: 'dark',
+  grid: [
+    '#############WWWWWWWWWWW',
+    '#############WWWWWKWWWWW',
+    '#############WooooooooWW',
+    '#############WooooooooWW',
+    '#############WouLoooooWW',
+    '#########T###WooooooLoPW',
+    '#..........,.DooooooooDW',
+    '#####..######WoooooLooWW',
+    '#############WouuuooooWW',
+    '#############WooooooooWW',
+    '#############WooooooooWW',
+    '#############WWWWWWWWWWW',
+  ],
+  legend: {
+    '#': { wall: 'concrete' },
+    T: { wall: 'concrete', chalk: 'tally', count: 5 },
+    W: { wall: 'wood-panel' },
+    K: { wall: 'wood-panel', pinned: 'calendar', crossed: 23 },
+    P: { wall: 'wood-panel', pinned: 'poster' },
+    u: { wall: 'cubicle' },
+    D: { door: true },
+    ',': { floor: 'concrete-sand' },
+    o: { floor: 'carpet', ceiling: 'office', mood: 'tungsten' },
+    L: { floor: 'carpet', ceiling: 'office-light', mood: 'tungsten' },
+  },
+  lights: [
+    { id: 'bulb', pos: [11.0, 6.45], z: 0.68, power: 1.7, radius: 1.45, flicker: 'bulb', bulb: true },
+    { pos: [16.5, 4.5], power: 0.8, radius: 4.2 },
+    { pos: [19.5, 7.5], power: 0.7, radius: 4.2 },
+    { pos: [20.5, 5.5], power: 0.6, radius: 3.6 },
+    { id: 'desk-lamp', pos: [20.6, 2.1], z: 0.5, power: 0.4, radius: 1.4 },
+  ],
+  sprites: [
+    { id: 'clue', sprite: 'sand-pile', pos: [11.05, 6.8], band: 'pink', label: 'E.T.' },
+    { id: 'worker', sprite: 'desk', pos: [20.6, 2.3], person: true },
+  ],
+};
+```
+Check it before the frames: `reelforge validate level <the scene file>` (each error names the grid row or the field), fix it and run it again.
+
+Reply in ≤5 lines: what the shot shows, QA result (lint/frames/anchors).

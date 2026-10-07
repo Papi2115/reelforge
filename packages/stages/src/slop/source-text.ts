@@ -5,7 +5,9 @@
  * `note`, `band`, `lines`, `caption`, `title`, `subtitle`, `labels`, a strip's `end`, a pop-up's
  * `items`, `marks`, `ends`, `prefix`, `suffix`), also
  * through a `const` holding a literal; a world adds its own lettering calls and options (Comic:
- * `caption`, `balloon`, `sfx`, `note`, `stamp`, `g.text`, a flashback's `when`; `WorldText`).
+ * `caption`, `balloon`, `sfx`, `note`, `stamp`, `g.text`, a flashback's `when`; Game B2: the HUD's
+ * `narrate`/`say`/`stinger`, option keys read only inside one call (a boss bar's `name`) and
+ * numbers on screen (a tally row's `value`); `WorldText`).
  * Letters drawn from strokes: `stroke-text.ts`. The scene's
  * `meta` object is not on screen. Strings built at run time (`String(year)`, templates with
  * expressions) are not judged.
@@ -28,6 +30,10 @@ export interface WorldText {
   readonly textMethods?: readonly string[] | undefined;
   readonly textKeys?: readonly string[] | undefined;
   readonly soundMethods?: readonly string[] | undefined;
+  /** Option keys that are on-screen text only inside the named call (`boss: ['name']`). */
+  readonly textCallKeys?: Readonly<Record<string, readonly string[]>> | undefined;
+  /** Option keys whose number literals are on screen (a tally row's `value`). */
+  readonly numberKeys?: readonly string[] | undefined;
 }
 
 const TEXT_METHODS = new Set(['write', 'print', 'title', 'kinetic', 'lowerThird', 'typewriter']);
@@ -125,12 +131,43 @@ export function strings(node: AnyNode, constants: ReadonlyMap<string, string>): 
   );
 }
 
+/** A number literal (with a sign) as it is shown; undefined for anything else. */
+function shownNumber(node: AnyNode): string | undefined {
+  if (node.type === 'Literal' && typeof node.value === 'number') return String(node.value);
+  if (node.type === 'UnaryExpression' && node.operator === '-') {
+    const inner = shownNumber(node.argument);
+    return inner === undefined ? undefined : `-${inner}`;
+  }
+  return undefined;
+}
+
+/** String values of `keys` anywhere in a call's arguments (the call's own text options). */
+function callOptionTexts(
+  call: AnyNode,
+  keys: ReadonlySet<string>,
+  constants: ReadonlyMap<string, string>,
+): { node: AnyNode; texts: string[] }[] {
+  if (call.type !== 'CallExpression') return [];
+  const found: { node: AnyNode; texts: string[] }[] = [];
+  for (const argument of call.arguments) {
+    visit(argument, (node) => {
+      const key = propertyKey(node);
+      if (node.type === 'Property' && key !== undefined && keys.has(key)) {
+        found.push({ node, texts: strings(node.value, constants) });
+      }
+    });
+  }
+  return found;
+}
+
 export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreenText[] {
   const meta = metaRanges(program);
   const constants = constantStrings(program);
   const methods = new Set([...TEXT_METHODS, ...(world.textMethods ?? [])]);
   const keys = new Set([...TEXT_KEYS, ...(world.textKeys ?? [])]);
   const sounds = new Set(world.soundMethods ?? []);
+  const numberKeys = new Set(world.numberKeys ?? []);
+  const callKeys = world.textCallKeys ?? {};
   const inMeta = (node: AnyNode): boolean =>
     meta.some(([start, end]) => node.start >= start && node.end <= end);
   const found: OnScreenText[] = [];
@@ -153,12 +190,23 @@ export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreen
         add(node, strings(second, constants));
       }
     }
+    const ownKeys =
+      name !== undefined && Object.hasOwn(callKeys, name) ? callKeys[name] : undefined;
+    if (ownKeys !== undefined) {
+      for (const entry of callOptionTexts(node, new Set(ownKeys), constants)) {
+        add(entry.node, entry.texts);
+      }
+    }
     const key = propertyKey(node);
     if (node.type === 'Property' && key !== undefined && keys.has(key)) {
       // An array option is one label written on several lines: judged as one string.
       const lines = strings(node.value, constants);
       const role = key === 'end' ? 'timeline-end' : undefined;
       add(node, node.value.type === 'ArrayExpression' ? [lines.join(' ')] : lines, role);
+    }
+    if (node.type === 'Property' && key !== undefined && numberKeys.has(key)) {
+      const shown = shownNumber(node.value);
+      if (shown !== undefined) add(node, [shown]);
     }
   });
   return found;

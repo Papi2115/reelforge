@@ -4,8 +4,9 @@
  * of a level the runtime Claude describes as a text grid; a woodgrain HUD at native 640x360
  * carries the story's data. Looks: A `rpg-explore` (walk, take, talk, throw), B `rpg-menu` (menus,
  * the automap and the intermission tally: the breakthrough scenes), C `rpg-boss` (boss bar,
- * damage numbers, stinger, shake). Experimental: renders with `render:frames --experimental`,
- * offered nowhere.
+ * damage numbers, stinger, shake). Experimental: renders with `render:frames --experimental`;
+ * the app offers it only with experimental worlds on. Wired: its prompts (`@reelforge/prompts`
+ * worlds/game-b2.ts) and project defaults exist (PLAN.md#13.4 part c).
  *
  * Text: the HUD draws its own "Bezel 5x7" face (CC0) into its raster; `ctx.text` / `ctx.annotate`
  * stay the engine pixel fonts (`fonts` maps the roles to them), so the look's docs send all
@@ -24,6 +25,7 @@ export { rpgBossLook } from './looks/rpg-boss/index.js';
 export { rpgExploreLook } from './looks/rpg-explore/index.js';
 export { rpgMenuLook } from './looks/rpg-menu/index.js';
 export { checkLevel, type LevelInput } from './level/schema.js';
+export { BUILT_IN_LEVELS } from './level/examples.js';
 /** The world's 32 colours [index name, swatch, hex] (the engine's game-native transitions). */
 export { B2_TABLE as GAME_B2_COLOURS } from './palette.js';
 
@@ -33,6 +35,7 @@ export const GAME_B2 = defineWorld({
   description:
     'The film as a first-person RPG level (Doom vibe): a raycast walk through tungsten and fluorescent rooms, the hand takes the named thing, NPCs talk; woodgrain HUD with year compass, minimap and typed narration.',
   experimental: true,
+  wired: true,
   style: GAME_B2_STYLE,
   fonts: { display: 'display', mono: 'mono' },
   soundPalette: 'game-b2',

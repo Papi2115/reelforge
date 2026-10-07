@@ -1,6 +1,7 @@
 /**
  * Breakthrough originality of a world whose showpieces are toolkits with a required `intent`
- * (Comic: `page.flashback`, `page.spread`; Papi's rule after real run Sketchbook 2, generalised):
+ * (Comic: `page.flashback`, `page.spread`; Game B2: `view.automap`, `hud.tally`, `view.throw`;
+ * Papi's rule after real run Sketchbook 2, generalised):
  * every call names the claim it shows, in words the narration or research uses (an intent the
  * sources never mention is decoration), and no two of a film share their mechanism (the options
  * that make it, e.g. `cover page + arrange rows`, with the kit's defaults) or their intent. Read
@@ -22,16 +23,22 @@ export interface BreakthroughSpec {
   readonly kind: string;
   /** The literal `intent`; undefined when missing or built at run time. */
   readonly intent: string | undefined;
-  /** `cover page + arrange stair`; undefined when an option is computed at run time. */
+  /**
+   * `cover page + arrange stair`; undefined when an option is computed at run time or the kind
+   * names no mechanism options (only its intent is compared).
+   */
   readonly mechanism: string | undefined;
   readonly line: number;
 }
 
 /** Content words of an intent that the sources must know (at least this many). */
 const MIN_GROUNDED = 2;
-/** Words that say nothing about a flashback's or spread's claim. */
+/** Words that say nothing about a breakthrough's claim (Comic, Game B2). */
 const VAGUE = new Set(
-  'flashback flashbacks spread spreads past big picture look back page'.split(' '),
+  (
+    'flashback flashbacks spread spreads past big picture look back page ' +
+    'automap map maps tally tallies throw throws thrown toss tossed recap intermission screen level'
+  ).split(' '),
 );
 
 const slop = (message: string): QaFinding => finding('slop', 'warning', message);
@@ -49,6 +56,7 @@ function mechanismOf(
   defaults: Readonly<Record<string, string>>,
 ): string | undefined {
   const parts: string[] = [];
+  if (Object.keys(defaults).length === 0) return undefined;
   for (const [key, fallback] of Object.entries(defaults)) {
     const node = property(options, key);
     const value = node === undefined ? fallback : literalString(node);
@@ -56,6 +64,17 @@ function mechanismOf(
     parts.push(`${key} ${value}`);
   }
   return parts.join(' + ');
+}
+
+/**
+ * The options object of a breakthrough call: the argument that names an `intent`, else the last
+ * object literal (`view.throw(item, { intent, … })` takes the item first), else the first argument.
+ */
+function optionsOf(call: AnyNode): AnyNode | undefined {
+  if (call.type !== 'CallExpression') return undefined;
+  const args = call.arguments.flatMap((arg) => (arg.type === 'SpreadElement' ? [] : [arg]));
+  const objects = args.filter((arg) => arg.type === 'ObjectExpression');
+  return objects.find((arg) => property(arg, 'intent') !== undefined) ?? objects.at(-1) ?? args[0];
 }
 
 /** The breakthrough calls of a scene source. */
@@ -67,8 +86,7 @@ export function breakthroughSpecs(program: AnyNode, kinds: BreakthroughKinds): B
     if (node.type !== 'CallExpression' || kind === undefined || !Object.hasOwn(kinds, kind)) {
       return;
     }
-    const [first] = node.arguments;
-    const options = first?.type === 'SpreadElement' ? undefined : first;
+    const options = optionsOf(node);
     const intent = property(options, 'intent');
     specs.push({
       kind,

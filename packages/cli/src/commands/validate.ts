@@ -13,12 +13,18 @@ import {
   type ProjectFiles,
 } from '../project/files.js';
 import { PROJECT_PATHS } from '../project/paths.js';
+import { runValidateLevel, VALIDATE_LEVEL_USAGE } from './validate-level.js';
+
+/** `reelforge validate level <file>`: the Game B2 level check (validate-level.ts). */
+const LEVEL_SUBCOMMAND = 'level';
 
 export const VALIDATE_USAGE = `usage: reelforge validate [--json]
 Validates project.json, brief.json, storyboard.json, timing/words.json and cues.json (schema and
 version) and checks them against each other (contiguous shots, scene files, style, time ranges,
 asset ids the shots assign exist in assets.json).
-Exit code: 0 valid (warnings allowed), 1 errors found, 2 usage error.`;
+Exit code: 0 valid (warnings allowed), 1 errors found, 2 usage error.
+
+${VALIDATE_LEVEL_USAGE}`;
 
 export interface FileStatus {
   readonly file: string;
@@ -121,6 +127,7 @@ export const validateCommand: Command = {
   summary: 'zod-validate the project JSON files and cross-check them',
   usage: VALIDATE_USAGE,
   async run(argv, context) {
+    if (argv[0] === LEVEL_SUBCOMMAND) return runValidateLevel(argv.slice(1), context);
     parseCommandArgs(argv, COMMON_OPTIONS, false);
     const files = await readProjectFiles(context.root);
     const statuses = fileStatuses(files);

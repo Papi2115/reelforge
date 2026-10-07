@@ -41,7 +41,7 @@ describe('kit-docs in a world project', () => {
   });
 
   it('never lists the looks of a world that is not wired yet, switch or not', () => {
-    for (const style of ['game-b2']) {
+    for (const style of ['game-b1']) {
       expect(kitDocsScope(style, true)).toEqual({ style });
       expect(kitCatalog([], LOOKS, kitDocsScope(style, true)).looks).toEqual([]);
     }
@@ -63,5 +63,20 @@ describe('kit-docs in a world project', () => {
       lookMode: 'mixed',
     });
     expect(off).not.toContain('comicPage');
+  });
+
+  it('lists the game view, HUD and its three looks only with experimental worlds on', () => {
+    const catalog = kitCatalog([], LOOKS, kitDocsScope('game-b2', true));
+    expect(catalog.looks.map((look) => look.id)).toEqual(['rpg-explore', 'rpg-menu', 'rpg-boss']);
+    const on = formatCatalog(catalog, { lookMode: 'mixed' });
+    expect(on).toContain('b2View');
+    expect(on).toContain('b2Hud');
+    expect(on).not.toContain('comicPage');
+    expect(on).not.toContain('kit.voxel:');
+    expect(Buffer.byteLength(on, 'utf8')).toBeLessThan(28 * 1024);
+    const off = formatCatalog(kitCatalog([], LOOKS, kitDocsScope('game-b2', false)), {
+      lookMode: 'mixed',
+    });
+    expect(off).not.toContain('b2View');
   });
 });

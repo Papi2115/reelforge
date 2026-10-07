@@ -196,6 +196,13 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
     'Comic info: an explainer that is still a comic page: a cutaway of the real object with its parts named by kinked leaders, a chart drawn as panel art with labelled axes, a hand-ticked checklist with a struck word and its correction, a worn stamp, a caption with the definition; one accent colour on the answer; numbers and labels whole and readable.',
   'comic-loud':
     'Comic loud: the page holds its breath, then hits: a near-empty pause panel with no lettering, ONE giant imperfect onomatopoeia breaking out of its panel, a slammed panel, or the one line lettered large with lots of empty paper; never two loud words at once.',
+  // Game B2 (PLAN.md#13.4); the world's craft checklist comes with criticWorldVars.
+  'rpg-explore':
+    'RPG explore: a first-person walk through a raycast room of the place the narrator names (chunky walls, dithered tungsten or fluorescent light and fog), the hand taking or holding THE item (pink band), crude sprites, a woodgrain HUD (year compass, minimap, the narration box); the focal thing off-centre, a held look after the walk; HUD words whole and readable.',
+  'rpg-menu':
+    "RPG menu: the game's own screens over the dimmed level: a paused quest log or stat sheet with the inventory grid, the automap (walked rooms solid, the next dashed, room names in caps) or the end-of-chapter tally (counters on a smoked plate, a still beat, one stamp); real numbers and the narration's names only; text whole and readable.",
+  'rpg-boss':
+    'RPG boss: one pressure moment: a boss bar only for the central problem, numbers popping off the thing in danger, ONE stinger phrase slammed letter by letter, a shake with decay, or the held item thrown and landing with dust; never two loud things at once; HUD words whole and readable.',
   'paper-cutout':
     'Paper cut-out: flat paper pieces with torn or cut edges on layered depth strips (sky bands, hills, city, a toy-theatre room) with soft dithered drop shadows, a jointed paper puppet, pixel-caps signs and title strips; seen straight on, no perspective close-ups; text whole and not over the puppet.',
 };

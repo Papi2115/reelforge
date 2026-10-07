@@ -41,6 +41,7 @@
     "@reelforge/pipeline": "workspace:*",
     "@reelforge/prompts": "workspace:*",
     "@reelforge/shared": "workspace:*",
+    "acorn": "8.18.0",
     "esbuild": "0.28.2",
     "playwright": "1.63.0",
     "zod": "4.6.5"

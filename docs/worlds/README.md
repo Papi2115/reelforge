@@ -155,7 +155,7 @@ Slots: `hero`, `figures`, `label`, `note`, `thing` box, `ground`. **Rule: the he
 ## Variety: page moments, quota and rhythm (real run Sketchbook 1)
 The first real world film used neither breakthrough: the storyboard prompt never mentioned them. Now a world's prompt text carries a
 **moment catalog** (`WorldPromptText.moments`, Sketchbook: `packages/prompts/src/worlds/sketchbook-moments.ts`, Comic:
-`comic-moments.ts`, see "Comic: wiring") and the storyboard
+`comic-moments.ts`, see "Comic: wiring", Game B2: `game-b2-moments.ts`, see "Game B2: wiring") and the storyboard
 writes an optional `"worldMoment"` per shot (`@reelforge/shared` `storyboardShotSchema`, kebab case, absent = plain):
 
 | Moment | Kind | Look | Use when the narration… |
@@ -308,7 +308,7 @@ World `game-b2` (experimental), code `packages/kit/src/worlds/game-b2/`, showcas
 - **Look A `rpg-explore`**, templates `packages/kit/examples/game-b2/a1_corridor.js` (showcase shot 1), `a2_warehouse.js`
   (shot 3, inventory instead of the toast + a checkpoint), `a3_returns.js` (shot 7, its level written inline as the format
   demo); goldens `look-rpg-explore-*` in `packages/kit/test/render/look-rpg-explore.test.ts`.
-- Not yet (later parts): prompts and the `reelforge validate level` command (`checkLevel` stays callable).
+- Prompts and `reelforge validate level`: part c ("Game B2: wiring" below).
 
 ## Game B2: breakthrough scenes, throw, looks B/C, transitions, sound (PLAN.md#13.4 part b)
 The two showpieces of the showcase (shots 4 and 8) are **toolkits, never templates** (Sketchbook rules from test film 2):
@@ -373,3 +373,96 @@ examples in `packages/kit/examples/game-b2/` show different mechanisms; their er
   par `b5` 16, quest log `b1` 18 (close to shot 5), clone aisle `c1` 16 (shelves and stinger read; a SALE card crosses
   the stinger), throws `a4` 17 / `c2` 16 (the toss reads in motion; stills show a small item). Transitions 15-17, level
   card 14 (no name on the card by design).
+
+## Game B1: two worlds in one frame, look A (PLAN.md#13.5 part a)
+World `game-b1` (experimental, unwired), code `packages/kit/src/worlds/game-b1/`, showcase `docs/worlds/game-hud-b1-boss-v2/`.
+- **Style**: the showcase's 23 inks, 640x360 (x3 = 1080p), no engine post (dither spread 0, no engine scanlines or vignette):
+  the CRT belongs to the TV picture only and is painted by the kit as palette LUTs (NTSC bleed, scanlines, a hum bar, rounded
+  tube); the living room stays in clean square pixels. Variation budget `game-b1` is neutral (one room and one console per
+  film). Sound: placeholder palette `game-b2` (CRT zap, relay-click latch, key-click typing, blips, tungsten hum) until the
+  world's own palette (`packages/stages`, a later part).
+- **`kit.fx.b1Screen`** paints one 640x360 index frame per t from scratch (`screen/model.ts`): (1) the picture inside the TV:
+  the scene's `tv((g, t) => ...)` painters in TV units (160x180, each a 4x2 px wide pixel) with 2600 rules: sprites of <= 16
+  bits with ONE colour per row (stretch, flip, squash); more than `flickerLimit` (2) sprites on a scanline flicker on
+  alternate frames (calls are recorded and replayed, so the rule sees the whole frame; `flicker: false` = the hero,
+  `playfield: true` = resting objects outside the limit); playfield of 20 blocks mirrored or repeated; colour bands per line;
+  cartridges (tumbling); Joy text typed at an irregular cadence; Score Block digits; whole-picture remaps (`dim`, `flash`,
+  `drain`, `ghost`, attract `cycle1`-`cycle3`); the attract mode (also the idle TV when there is no painter) and the garbage
+  frame; then the in-game boss cards. (2) The living room (`room/`, square room units, 320x180 at zoom 2): panelling, shag,
+  TV cabinet with rabbit ears, console, joystick with a hand-drawn cable, and `room({ calendar, tree, presents, gift, lamp,
+  carts })`; the picture is blitted into the TV glass and gets the CRT there. (3) The glass: sticky notes. (4) The HUD.
+- **Camera = continuity**: `camera([{ at, on: 'room' | 'tv' | 'calendar' | 'console' | x, y, zoom, ease }])`. A view carries
+  `inTv` (0..1): while the room zooms on the TV, the picture grows from the glass rect to the full frame (ease-in), the CRT
+  radius and the glass notes with it. `inTv = 1` is exactly the TV-only frame and the start of the push exactly the room
+  (tested pixel for pixel), so a push in or pull back is one continuous move. `calendar` lands the wall calendar where a
+  calendar boss stands on the TV (the shot 2 -> 3 match cut; the scanline wipe itself is a later part).
+- **HUD** (never scanlined; every element is story data, QUALITY.md §6): `year` (odometer with lag and overshoot, the old
+  year burned into the glass), `score` (a number from the story), `progress` (cartridge slots; slots = shots and from / to =
+  index / count gives one cartridge per shot), `checkpoint` (a flag over the current slot, its name typed), `lives` (hearts:
+  only a real threat), `boss` (in-game card: BOSS n types, the Box Art name slams from a side, HP segments arrive unevenly,
+  each loss flashes and shakes, `defeat` = flicker death), `say` / `narrate` (box opens as its first letter lands, voiced
+  cadence, blinking cursor), `note` (Dad's sticky note on the glass: slap, curl, underline twice, crimson strike or tick).
+- **Look A `atari-story`**, templates `packages/kit/examples/game-b1/a1_hook.js`, `a2_xmas.js`, `a3_deadline.js` (showcase
+  shots 1-3 without their transitions); goldens `look-atari-story-*` (`packages/kit/test/render/look-atari-story.test.ts`).
+- **Measured** (plain Node under vitest, best batch of 30 frames, template scenes incl. output): hook 2.1, Christmas room 2.3,
+  deadline 2.1 ms/frame (`screen/screen.test.ts`). The CRT loops read their LUTs from locals: through vitest's import
+  bindings the same loops took 10 ms.
+- **QUALITY §7 self-scores vs the showcase stills** (/20): hook 18 at t 3.9 (the same frame as `s1-t3.9`: the lit cart on the
+  dim pile; t 5.9 is weaker, ~15: the showcase cuts to the level map there, here the pit just empties out); Christmas 17 at
+  t 5.5 (same as `s2-t5.5`; tree lights and TV still compete a little), 16 at t 7.9 (the calendar push reads, nothing else
+  happens); deadline 19 at t 2.6 / 6.3 (same as `s3-t2.6` / `s3-t6.3`), 17 at t 7.3 (dead boss, struck note, an emptier frame).
+  Deliberate roughness kept (crude sprites, uneven grain). Files <= 400 lines (the showcase's room.js is split into
+  `room/view.ts`, `room/props.ts`, `room/living-room.ts`).
+- Not yet (later parts): looks B/C, the high-score table and instruction-manual breakthroughs, the continuity transitions
+  (cartridge insert / pull with the hand, calendar scanline wipe, level-select map, attract draw-in, page slide / turn),
+  the world's own sound palette, prompts and wiring.
+
+## Game B2: wiring (PLAN.md#13.4 part c)
+Game B2 is **wired** (`wired: true`): offered with Settings → Experimental worlds on, like Sketchbook and Comic.
+- **Prompts** (`packages/prompts/src/worlds/game-b2.ts`): film, brief, rolls (A the walk `rpg-explore`, B the game's screens
+  `rpg-menu`, C the pressure `rpg-boss`), rhythm (never the same corridor twice), game-native `transitionIn` (style + `focus`),
+  camera (the player's eyes, walk then hold, no orbit), interrupts (`look-switch` only), marks/annotate (all text in the HUD
+  and the level, never `ctx.text`/`ctx.annotate`), motion (one `b2View` + one `b2Hud` per shot; every HUD element must mean
+  something), craft brief (≤ 1.5 KB, QUALITY.md §6 game-hud as the do-list), critic medium/style/vibe/checklist, continuity
+  (`shared-object` = the held item across places, `carry-environment`, `zoom-through`; the map link `game-b2-map-unfold` /
+  `-fold`), surprise beats. Exact kit calls in `game-b2-snippets.ts`, run through the real kit by
+  `packages/stages/src/game-b2-snippets.test.ts` (and the worked level paints the same pixels as the built-in `office`).
+- **Level format for the runtime Claude** (the scene turn's step 4, `missing`): no props in this world, the level is the set;
+  one level per scene written from the narration's places and objects; the format with its caps (grid ≤ 32×32 with a closed
+  border, ≤ 12 lights, ≤ 40 sprites; every wall/floor/ceiling/mood/sprite id, checked against the kit's enums by the snippets
+  test) and one worked level (the built-in `office`, written out). **`reelforge validate level <scene.js | level.json>`**
+  (`packages/cli/src/commands/validate-level.ts`): reads every object with a `grid` and a `legend` from the scene source
+  (literals, consts, spreads; no execution) and every built-in name, checks them with the kit's `checkLevel`; errors name the
+  grid row or field; a level computed at run time is a warning. Listed in the scene-build prompt and in the template
+  `CLAUDE.md` (Self-QA step 5).
+- **Moment catalog** (`game-b2-moments.ts`), checked by the generic variety validator:
+
+| Moment | Kind | Look | Use when the narration… |
+| --- | --- | --- | --- |
+| `automap` | breakthrough | `rpg-menu` (B) | takes stock of where the story has been and where it goes next |
+| `tally` | breakthrough | `rpg-menu` (B) | sums up a chapter in numbers (made vs sold, time vs par) |
+| `throw` | moment (intent required) | `rpg-explore`, `rpg-boss` | gets rid of something, sends it back or hands it on |
+| `quest-log` | moment | `rpg-menu` | pauses to take stock: the goal, what is done, the facts so far |
+| `inventory-pick` | moment | `rpg-explore` | names the one object or fact the story turns on |
+| `dialogue` | moment | `rpg-explore`, `rpg-boss` | lets someone in the story speak, or weighs options |
+| `boss-card` | moment | `rpg-boss` | names the central problem and shows it winning or losing |
+| `stinger` | moment | `rpg-boss` | lands the one phrase the film turns on (once per film) |
+| `level-card` | moment | any (opens with `game-b2-level-card`) | opens a new chapter, place or year |
+
+  Automap, tally and throw are toolkits, never templates: `intent` required, inspirations b2/b3, b4/b5, a4/c2, never the same
+  opening + closing (automap), backdrop + entrance + exit (tally) or item + target (throw) twice in a film.
+- **Guards** (`packages/stages/src/slop/game-b2-labels.ts`): traces = `switchOn`, `shake` (≤ 2), `act` (≤ 2), `take`, `place`
+  (≤ 2), `present`, `choose`, `stinger`, `damage` (≤ 1), `fog` (1 each), `throw` and `menu` (2), `automap` and `tally` (3);
+  level options `chalk`, `crossed`, `flicker: 'tube' | 'bulb'`, `tilt`, `dirty`, `note`; the built-in `office` / `warehouse`
+  count for their two traces each. Text provenance reads `narrate`, `say`, `stinger`, the HUD options (`place`, `year`, a
+  toast's `head`/`body`, `speaker`, choice `options`, menu lines, `sub`, `unit`, `stencil`, …), a boss bar's `name` (only
+  inside `boss`: level names are not on screen) and a tally row's numeric `value`; game words (QUEST, LOG, EST., PAR, …) and
+  time units are labels, a one-digit damage number is a meter's lost segments. `slop/breakthrough-intent.ts`: an automap,
+  tally or throw without an intent, with a generic one or one the sources never make → ⚠; the final review flags a repeated
+  mechanism or intent. The text stem now folds a doubled consonant (`betting` = `bet`): the HUD is all caps, so a paraphrase
+  there counts as a label. Calibration: 0 findings on the 11 Game B2 templates (showcase narration + notes) and the 33 Game B2
+  goldens; 30/30 planted fakes caught (`slop/game-b2-*.test.ts`).
+- **Project defaults**: `WORLD_PROJECT_DEFAULTS['game-b2']` = continuity links on, anti-slop guards on, mixed looks, no pack
+  or mascot (640x360 comes with the style preset, 30 fps with the template). Music moods `lofi-chill`,
+  `tense-investigation`, `retro-wave` (`WORLD_MOODS`); critic look rules `CRITIC_LOOK_RULES['rpg-*']`; `reelforge kit-docs`
+  lists `b2View`, `b2Hud` and the three looks with the experimental switch on.

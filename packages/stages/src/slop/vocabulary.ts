@@ -82,12 +82,16 @@ export function tokenize(text: string): Token[] {
   });
 }
 
-/** A crude stem: plural/verb endings off, so "years" = "year", "drifted" = "drift". */
+/**
+ * A crude stem: plural/verb endings off, so "years" = "year", "drifted" = "drift", "betting" =
+ * "bet" (a doubled final consonant before -ing/-ed is one; "filling" keeps its "ll").
+ */
 export function stem(word: string): string {
   const rules: readonly (readonly [RegExp, string])[] = [
     [/ies$/, 'y'],
     [/(ss|sh|ch|x)es$/, '$1'],
     [/([^s])s$/, '$1'],
+    [/([b-df-hj-km-rtv-y])\1(?:ing|ed)$/, '$1'],
     [/ing$/, ''],
     [/ed$/, ''],
     [/ly$/, ''],

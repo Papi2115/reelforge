@@ -45,7 +45,7 @@ function shot(id: string, extra: Partial<StoryboardShot> = {}): StoryboardShot {
 describe('world registry wiring', () => {
   it('has project defaults and prompt wording for every wired world', () => {
     const wired = WORLDS.filter((world) => world.wired);
-    expect(wired.map((world) => world.id)).toEqual(['sketchbook', 'comic']);
+    expect(wired.map((world) => world.id)).toEqual(['sketchbook', 'comic', 'game-b2']);
     for (const world of wired) {
       expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toContain(world.id);
       expect(Object.keys(WORLD_PROMPTS)).toContain(world.id);
@@ -54,7 +54,7 @@ describe('world registry wiring', () => {
 
   it('never offers a world that is not wired yet, flag or not', () => {
     const unwired = WORLDS.filter((world) => !world.wired);
-    expect(unwired.map((world) => world.id)).toEqual(['game-b2']);
+    expect(unwired.map((world) => world.id)).toEqual(['game-b1']);
     for (const { id } of unwired) {
       for (const scope of [{}, ON]) {
         expect(activeWorld(id, scope)).toBeUndefined();
@@ -248,6 +248,63 @@ describe('comic project', () => {
     );
     expect(criticWorldPromptVars(setup.world, spread)['worldMomentCheck']).toContain('spread:');
     expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('CLANG');
+    expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
+  });
+});
+
+describe('game-b2 project', () => {
+  const setup = lookSetup({ style: 'game-b2', lookMode: 'voxel-only' }, ON);
+
+  it('is offered only with experimental worlds, in its own looks and transitions', () => {
+    expect(activeWorld('game-b2')).toBeUndefined();
+    expect(lookSetup({ style: 'game-b2' }).looks).toEqual([]);
+    expect(setup.lookMode).toBe('mixed');
+    expect(setup.looks.map((look) => look.id)).toEqual(['rpg-explore', 'rpg-menu', 'rpg-boss']);
+    expect(worldTransitionOptions(setup.world).map((option) => option.id)).toEqual([
+      'game-b2-melt',
+      'game-b2-fog',
+      'game-b2-darkness',
+      'game-b2-door',
+      'game-b2-level-card',
+      'game-b2-map-unfold',
+      'game-b2-map-fold',
+    ]);
+    expect(storyboardWorldPromptVars(setup)).toMatchObject({
+      world: 'Game B2: first-person RPG',
+      worldFirstLook: 'rpg-explore',
+    });
+  });
+
+  it('builds with the view and the HUD, sounds in its palette, judges each look', () => {
+    const names = kitNamesFromCatalog({ style: 'game-b2', experimental: true });
+    expect(names.fx.has('b2View')).toBe(true);
+    expect(names.fx.has('b2Hud')).toBe(true);
+    expect(names.fx.has('comicPage')).toBe(false);
+    expect(names.props.has('desk')).toBe(false);
+    const options = { lookMode: 'mixed' as const, style: 'game-b2' };
+    expect(paletteForShot(shot('s01', { look: 'rpg-boss' }), options).id).toBe('game-b2');
+    expect(fixWorldPromptVars(setup.world, shot('s01'), setup.looks)).toMatchObject({
+      lookId: 'rpg-explore',
+    });
+    for (const look of setup.looks) expect(CRITIC_LOOK_RULES[look.id], look.id).toBeDefined();
+  });
+
+  it('plans automaps and tallies and gives the shot its moment', () => {
+    const vars = storyboardWorldPromptVars(setup, 120);
+    expect(vars['worldMoments']).toContain('- `automap` (breakthrough; look `rpg-menu`)');
+    expect(vars['worldMomentRules']).toContain('Breakthroughs (`automap`, `tally`)');
+    const options = storyboardWorldOptions(setup, undefined, true);
+    expect(options.worldVariety?.moments.map((moment) => moment.id)).toContain('tally');
+    expect(options.worldVariety?.continuityLinks).toBe(true);
+    const tally = shot('s08', { look: 'rpg-menu', worldMoment: 'tally' });
+    expect(sceneWorldPromptVars(setup.world, tally)['worldMomentDirective']).toContain(
+      'hud.tally(',
+    );
+    expect(sceneWorldPromptVars(setup.world, tally)['worldMissing']).toContain(
+      'reelforge validate level',
+    );
+    expect(criticWorldPromptVars(setup.world, tally)['worldMomentCheck']).toContain('tally:');
+    expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('a sudden game moment');
     expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
   });
 });

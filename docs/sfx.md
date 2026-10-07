@@ -276,6 +276,18 @@ in/short, panel slam `board-tap` knock + `paper-pop` low 0.15 s into the transit
 moods of a comic film (`WORLD_MOODS`): `calm-tech`, `tense-investigation`, `lofi-chill` (no synth `retro-wave`, nothing too
 cheerful); default calm `calm-tech`, tense acts `tense-investigation`.
 
+**game-b2** (world Game B2, PLAN.md#13.4, experimental; a 1980s first-person game heard from inside): a world palette
+(`world: 'game-b2'`, `packages/stages/src/sound/palettes/game-b2.ts`) reusing built-in recipes (no footstep, door or pickup
+recipe of its own): footsteps `board-tap` / `wood-tick`, the door `servo` + `relay-click` latch, the pickup `chime-up`, HUD
+typing `key-click` / `keyboard`, blips `terminal-tick` / `measure-blip` / `led-blip`, the stamp and thumps `board-tap` knock,
+menus `window-open` / `window-close`, the CRT `crt-zap`; busy slots have two or three candidates; bed: the tungsten `hum`.
+Game-native transitions (`GAME_B2_TRANSITION_SFX`): melt `servo` down, fog `swoosh-soft`, darkness `relay-click` latch +
+`crt-zap` power-on, door `servo` up, level card `swoosh-soft` right, map unfold `chime-up` two, map fold `window-close` chirp;
+the kit's automap, tally, throw and stinger return their own cues (`for (const c of r.cues) ctx.sfx.at(c.t, c.name)`). Music
+moods of a game film (`WORLD_MOODS`, PLAN.md#13.4 part c): `lofi-chill`, `tense-investigation`, `retro-wave` (the one world
+where the synth fits, kept for the liveliest acts; nothing bright or cheerful); default calm `lofi-chill`, tense acts
+`tense-investigation`.
+
 ## Beat sync and repetition (PLAN.md#12.21, #12.23)
 
 - With `"beatSync": "auto"` the director's spoken-number hits, big-number whoosh-impacts and
