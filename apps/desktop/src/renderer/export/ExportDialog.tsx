@@ -1,36 +1,24 @@
 /**
- * Export dialog (PLAN.md#9.1, #9.2): preset (with the integer scale factor of the style's render
- * size; impossible ones are disabled with the reason), encoder (+ a real test encode), quality
- * profile, render workers, output folder and file name, chapters and thumbnail (any frame: "Use
- * the playhead frame"), then "Add to queue". Shots the final review (PLAN.md#11.5) left ⚠/✗ are
- * listed first (click one to go to it); with any listed the button reads "Export anyway", and a
- * scene that cannot render at all blocks it. The queue and the YouTube suggestions sit beside the
- * form, then the publish kit (PLAN.md#12.17). The last choices are saved by main when a job is
- * queued.
+ * Export dialog (PLAN.md#9.1, #9.2; v2 = U11 of docs/ux/redesign-2.4.md). Left: shots the final
+ * review (PLAN.md#11.5) left ⚠/✗ (click one to go to it), the asset licences, then the form with
+ * the essentials first (format, quality, file name, folder, also save) and the technical knobs
+ * under "Advanced", and "Export video" ("Export anyway" with pre-flight shots; a scene that cannot
+ * render at all blocks it). Right: the export queue, only while something runs or is listed, then
+ * one "YouTube texts" section (titles + the publish kit, PLAN.md#12.17). The last choices are
+ * saved by main when a job is queued.
  */
-import { useEffect, useRef, useState, type JSX } from 'react';
-import {
-  ENCODER_PREFERENCES,
-  EXPORT_QUALITY_PROFILES,
-  type EncoderPreference,
-} from '@reelforge/shared';
-import type { ExportOptions } from '../../shared/export-contract.js';
+import { useEffect, useState, type JSX } from 'react';
 import { ExportAssets } from '../assets/ExportAssets.js';
 import { errorMessage } from '../log.js';
-import { PublishKit } from '../publish/PublishKit.js';
 import { ExportPreflight } from '../stages/FinalReview.js';
 import type { Preflight } from '../stages/final-review-view.js';
+import { ExportFormFields } from './ExportFormFields.js';
 import { ExportQueueList } from './ExportQueueList.js';
 import {
-  autoWorkers,
-  ENCODER_LABELS,
-  encoderTestLine,
   formProblem,
   formRequest,
-  frameTimeText,
   initialForm,
-  presetLabel,
-  QUALITY_LABELS,
+  queueVisible,
   type ExportForm,
 } from './export-view.js';
 import { useExport } from './use-export.js';
@@ -57,224 +45,6 @@ function useEscape(onClose: () => void): void {
       window.removeEventListener('keydown', onKey);
     };
   }, [onClose]);
-}
-
-function FormFields(props: {
-  readonly options: ExportOptions;
-  readonly form: ExportForm;
-  readonly setForm: (update: (form: ExportForm) => ExportForm) => void;
-  readonly playhead: number;
-  readonly onFolder: (reset: boolean) => void;
-}): JSX.Element {
-  const { options, form, setForm } = props;
-  const [encoderTest, setEncoderTest] = useState<string | null>(null);
-  // Only the newest test may show its answer (the encoder can change while one runs).
-  const tests = useRef(0);
-  const testEncoder = (encoder: EncoderPreference): void => {
-    tests.current += 1;
-    const test = tests.current;
-    setEncoderTest('Testing…');
-    const show = (text: string): void => {
-      if (test === tests.current) setEncoderTest(encoder === 'auto' ? `Auto: ${text}` : text);
-    };
-    window.reelforge.testEncoder(encoder).then(
-      (result) => {
-        show(encoderTestLine(result));
-      },
-      (error: unknown) => {
-        show(errorMessage(error));
-      },
-    );
-  };
-  // The autodetected encoder of "Auto", once when the dialog opens.
-  const initialEncoder = useRef(form.encoder);
-  useEffect(() => {
-    if (initialEncoder.current === 'auto') testEncoder('auto');
-  }, []);
-  const thumbAt = form.thumbnailAt ?? options.thumbnailDefaultS;
-  return (
-    <>
-      <fieldset className="export-field">
-        <legend>
-          Preset
-          {options.render === null
-            ? ''
-            : ` (render ${String(options.render.width)}×${String(options.render.height)})`}
-        </legend>
-        {options.presets.map((preset) => (
-          <label
-            key={preset.id}
-            className={`export-radio${preset.factor === null ? ' blocked' : ''}`}
-          >
-            <input
-              type="radio"
-              name="export-preset"
-              value={preset.id}
-              checked={form.preset === preset.id}
-              disabled={preset.factor === null}
-              aria-describedby={preset.problem === null ? undefined : `preset-problem-${preset.id}`}
-              onChange={() => {
-                setForm((current) => ({ ...current, preset: preset.id }));
-              }}
-            />
-            <span>{presetLabel(preset)}</span>
-            {preset.problem !== null && (
-              <span className="export-problem" id={`preset-problem-${preset.id}`}>
-                {preset.problem}
-              </span>
-            )}
-          </label>
-        ))}
-      </fieldset>
-      <div className="export-field export-row">
-        <label>
-          Encoder
-          <select
-            value={form.encoder}
-            onChange={(event) => {
-              const encoder = ENCODER_PREFERENCES.find((id) => id === event.target.value);
-              if (encoder !== undefined) setForm((current) => ({ ...current, encoder }));
-              tests.current += 1;
-              setEncoderTest(null);
-            }}
-          >
-            {ENCODER_PREFERENCES.map((id) => (
-              <option key={id} value={id}>
-                {ENCODER_LABELS[id]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="small-button"
-          onClick={() => {
-            testEncoder(form.encoder);
-          }}
-        >
-          Test encoder
-        </button>
-      </div>
-      {encoderTest !== null && (
-        <p className="export-note" role="status">
-          {encoderTest}
-        </p>
-      )}
-      <fieldset className="export-field export-inline">
-        <legend>Quality</legend>
-        {EXPORT_QUALITY_PROFILES.map((profile) => (
-          <label key={profile} className="export-radio">
-            <input
-              type="radio"
-              name="export-quality"
-              checked={form.quality === profile}
-              onChange={() => {
-                setForm((current) => ({ ...current, quality: profile }));
-              }}
-            />
-            {QUALITY_LABELS[profile]}
-          </label>
-        ))}
-      </fieldset>
-      <label className="export-field export-row">
-        Render workers
-        <input
-          type="number"
-          min={1}
-          max={options.cores}
-          value={form.workers}
-          onChange={(event) => {
-            setForm((current) => ({ ...current, workers: Number(event.target.value) }));
-          }}
-        />
-        <span className="muted">
-          auto = {autoWorkers(options.cores)} of {options.cores} cores
-        </span>
-      </label>
-      <div className="export-field">
-        <span className="export-label">Output folder</span>
-        <div className="export-row">
-          <span className="export-folder mono" title={options.outputDir}>
-            {options.outputDir}
-          </span>
-          <button
-            type="button"
-            className="small-button"
-            onClick={() => {
-              props.onFolder(false);
-            }}
-          >
-            Change…
-          </button>
-          {options.customOutputDir && (
-            <button
-              type="button"
-              className="small-button"
-              onClick={() => {
-                props.onFolder(true);
-              }}
-            >
-              Use out/
-            </button>
-          )}
-        </div>
-      </div>
-      <label className="export-field export-row">
-        File name
-        <input
-          type="text"
-          value={form.fileName}
-          aria-label="File name"
-          onChange={(event) => {
-            setForm((current) => ({ ...current, fileName: event.target.value }));
-          }}
-        />
-      </label>
-      <label className="export-check">
-        <input
-          type="checkbox"
-          checked={form.includeChapters}
-          onChange={(event) => {
-            setForm((current) => ({ ...current, includeChapters: event.target.checked }));
-          }}
-        />
-        chapters.txt
-        <span className="muted">
-          {options.chapters.text === null
-            ? ` (${options.chapters.problem ?? 'none'})`
-            : ' (YouTube format)'}
-        </span>
-      </label>
-      <div className="export-check-row">
-        <label className="export-check">
-          <input
-            type="checkbox"
-            checked={form.includeThumbnail}
-            onChange={(event) => {
-              setForm((current) => ({ ...current, includeThumbnail: event.target.checked }));
-            }}
-          />
-          thumb.png at{' '}
-          <span className="mono">{thumbAt === null ? '—' : frameTimeText(thumbAt)}</span>
-          {form.thumbnailAt === null && <span className="muted"> (middle of the first shot)</span>}
-        </label>
-        <button
-          type="button"
-          className="small-button"
-          title="Use the frame under the timeline playhead as the thumbnail"
-          onClick={() => {
-            setForm((current) => ({
-              ...current,
-              includeThumbnail: true,
-              thumbnailAt: props.playhead,
-            }));
-          }}
-        >
-          Use playhead frame ({frameTimeText(props.playhead)})
-        </button>
-      </div>
-    </>
-  );
 }
 
 export function ExportDialog(props: ExportDialogProps): JSX.Element {
@@ -344,7 +114,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
             {options === undefined || form === null ? (
               <p className="muted">Loading…</p>
             ) : (
-              <FormFields
+              <ExportFormFields
                 options={options}
                 form={form}
                 setForm={(update) => {
@@ -383,7 +153,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
                     : 'Render and encode the video')
                 }
               >
-                {anyway ? 'Export anyway' : 'Add to queue'}
+                {anyway ? 'Export anyway' : 'Export video'}
               </button>
               {problem !== null && problem !== 'Loading…' && (
                 <span className="export-problem">{problem}</span>
@@ -391,27 +161,24 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
             </div>
           </form>
           <div className="export-side">
-            <ExportQueueList
-              queue={data.queue}
-              onCancel={(id) => {
-                void window.reelforge.cancelExportJob(id);
-              }}
-              onResume={(id) => {
-                report(window.reelforge.resumeExportJob(id));
-              }}
-              onResumeInterrupted={() => {
-                report(window.reelforge.resumeInterruptedExport());
-              }}
-              onOpenFolder={(id) => {
-                report(window.reelforge.openExportFolder(id));
-              }}
-            />
-            <YoutubeExtras
-              meta={data.meta}
-              chapters={options?.chapters ?? { text: null, problem: null }}
-              onMeta={data.setMeta}
-            />
-            <PublishKit revision={data.meta?.generatedAt ?? ''} />
+            {queueVisible(data.queue) && (
+              <ExportQueueList
+                queue={data.queue}
+                onCancel={(id) => {
+                  void window.reelforge.cancelExportJob(id);
+                }}
+                onResume={(id) => {
+                  report(window.reelforge.resumeExportJob(id));
+                }}
+                onResumeInterrupted={() => {
+                  report(window.reelforge.resumeInterruptedExport());
+                }}
+                onOpenFolder={(id) => {
+                  report(window.reelforge.openExportFolder(id));
+                }}
+              />
+            )}
+            <YoutubeExtras meta={data.meta} onMeta={data.setMeta} />
           </div>
         </div>
       </div>

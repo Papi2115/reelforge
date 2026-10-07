@@ -284,6 +284,17 @@ describe('export dialog', () => {
     await openRow('Video exported');
     await dialog().waitFor();
     await dialog().getByText('1080p (Full HD) · 1920×1080 · ×3').waitFor();
+    // Essentials first: no queue before the first export, the chapters row says what it writes,
+    // the encoder sits under Advanced.
+    expect(await dialog().getByRole('region', { name: 'Export queue' }).count()).toBe(0);
+    await dialog()
+      .getByRole('checkbox', { name: /^Chapters 3 chapters → chapters.txt/ })
+      .waitFor();
+    await expect
+      .poll(() => dialog().getByRole('combobox', { name: 'Encoder' }).isVisible())
+      .toBe(false);
+    await shot('export-dialog');
+    await dialog().getByRole('button', { name: 'Advanced' }).click();
     await dialog().getByRole('combobox', { name: 'Encoder' }).selectOption('cpu');
     await dialog().getByRole('button', { name: 'Test encoder' }).click();
     await dialog()
@@ -293,8 +304,8 @@ describe('export dialog', () => {
     await dialog()
       .getByRole('button', { name: /^Use playhead frame/ })
       .click();
-    await shot('export-dialog');
-    await dialog().getByRole('button', { name: 'Add to queue' }).click();
+    await shot('export-advanced');
+    await dialog().getByRole('button', { name: 'Export video' }).click();
     const first = job('Doom on a calculator.mp4');
     await first.getByTestId('export-report').waitFor({ timeout: 300_000 });
     await shot('export-done');
@@ -339,7 +350,7 @@ describe('export dialog', () => {
   it('cancels an export and resumes it with the finished shots from the cache', async () => {
     await dialog().getByRole('radio', { name: 'High' }).check();
     await dialog().getByRole('textbox', { name: 'File name' }).fill('Doom high');
-    await dialog().getByRole('button', { name: 'Add to queue' }).click();
+    await dialog().getByRole('button', { name: 'Export video' }).click();
     const second = job('Doom high.mp4');
     await second.locator('.export-shots li').first().waitFor({ timeout: 120_000 });
     await second.getByRole('button', { name: 'Cancel' }).click();
@@ -375,10 +386,10 @@ describe('export dialog', () => {
   }, 420_000);
 
   it('suggests title, description and tags with Claude (fake) and copies them', async () => {
-    const youtube = dialog().getByRole('region', { name: 'YouTube' });
+    const youtube = dialog().getByRole('region', { name: 'YouTube texts' });
     await youtube.getByRole('button', { name: 'Suggest with Claude' }).click();
     await youtube.getByText('Can a 61 KB calculator run Doom?').waitFor({ timeout: 60_000 });
-    await youtube.getByText('by Claude').waitFor();
+    await youtube.getByText('by Claude', { exact: true }).waitFor();
     const meta = await json(path.join(dir, 'out', 'metadata.json'));
     expect(meta).toMatchObject({ source: 'claude', titles: SUGGESTION.titles });
     await youtube.getByRole('button', { name: 'Copy title 2' }).click();

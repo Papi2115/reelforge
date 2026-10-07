@@ -1,12 +1,13 @@
 /**
- * Publish kit section of the export dialog (PLAN.md#12.17): the four paste-ready texts of the
- * finished film (description, chapters, tags, credits) with a Copy button each, "Save to
- * publish/" (tracked, committed) and "Open folder". A banner warns while a used asset's licence is
- * unverified. Nothing is uploaded: the user pastes the texts into YouTube Studio.
+ * Publish kit of the export dialog (PLAN.md#12.17), inside its "YouTube texts" section (U11 of
+ * docs/ux/redesign-2.4.md): the four paste-ready texts of the finished film (description,
+ * chapters, tags, credits) with a Copy button each, "Refresh", "Save to publish/" (tracked,
+ * committed) and "Open folder". A banner warns while a used asset's licence is unverified.
+ * Nothing is uploaded: the user pastes the texts into YouTube Studio.
  */
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import type { PublishKitResult } from '../../shared/publish-contract.js';
-import { CopyButton } from '../export/YoutubeExtras.js';
+import { CopyButton } from '../export/CopyButton.js';
 import { errorMessage } from '../log.js';
 import {
   chaptersNote,
@@ -68,15 +69,7 @@ export function PublishKit({ revision }: PublishKitProps): JSX.Element {
   const banner = kit === null ? null : unverifiedBanner(kit);
   const chapters = kit === null ? null : chaptersNote(kit);
   return (
-    <section className="publish-kit" aria-labelledby="publish-kit-title">
-      <div className="youtube-head">
-        <h3 className="section-title" id="publish-kit-title">
-          Publish kit
-        </h3>
-        <button type="button" className="small-button" onClick={load}>
-          Refresh
-        </button>
-      </div>
+    <div className="publish-kit">
       {result === undefined && <p className="muted">Reading the project…</p>}
       {result?.status === 'error' && <p className="muted">{result.message}</p>}
       {kit !== null && (
@@ -114,21 +107,28 @@ export function PublishKit({ revision }: PublishKitProps): JSX.Element {
               />
             </div>
           ))}
-          <div className="publish-actions">
+        </>
+      )}
+      <div className="publish-actions">
+        <button type="button" className="small-button" onClick={load}>
+          Refresh
+        </button>
+        {kit !== null && (
+          <>
             <button type="button" className="small-button" aria-disabled={busy} onClick={save}>
               {busy ? 'Saving…' : 'Save to publish/'}
             </button>
             <button type="button" className="small-button" onClick={openFolder}>
               Open folder
             </button>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
       {note !== null && (
         <p className="muted publish-note" role="status">
           {note}
         </p>
       )}
-    </section>
+    </div>
   );
 }

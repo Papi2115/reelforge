@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { ExportJob, ExportOptions, ExportReport } from '../../shared/export-contract.js';
 import {
+  advancedSummary,
   autoWorkers,
   cacheLine,
+  chaptersRow,
+  chaptersSkippedReason,
   clockText,
   encoderTestLine,
   formProblem,
@@ -10,6 +13,7 @@ import {
   initialForm,
   presetLabel,
   progressLine,
+  queueVisible,
   reportLine,
   shotsLine,
   sizeText,
@@ -115,6 +119,57 @@ describe('export view', () => {
       '1:01 · 1920×1080 · 23.4 MB · 48.3 fps · h264_nvenc (final) · in 1:35',
     );
     expect(cacheLine(REPORT)).toBe('Re-rendered 1 of 12 shots (11 from the cache)');
+  });
+
+  it('says honestly when chapters are skipped and why', () => {
+    expect(
+      chaptersRow({ text: null, problem: 'YouTube needs at least 3 chapters, got 2' }, true),
+    ).toEqual({ available: false, text: 'skipped: needs 3 chapters of 10 s (this film has 2)' });
+    expect(
+      chaptersRow(
+        { text: null, problem: '"Intro" lasts under 10 s (0:05); merge it with a neighbour' },
+        true,
+      ).text,
+    ).toBe('skipped: needs 3 chapters of 10 s ("Intro" at 0:05 is shorter)');
+    expect(chaptersRow({ text: null, problem: null }, false).text).toBe(
+      'skipped: needs 3 chapters of 10 s (this film has none)',
+    );
+    expect(
+      chaptersSkippedReason(
+        'no split at shot boundaries gives 3+ chapters of 10 s or more (video 25 s)',
+      ),
+    ).toBe('needs 3 chapters of 10 s (no split at the shots gives that in 25 s)');
+    expect(chaptersSkippedReason('the first chapter must start at 0:00')).toBe(
+      'the first chapter must start at 0:00',
+    );
+    const text = '0:00 A\n0:11 B\n0:22 C\n';
+    expect(chaptersRow({ text, problem: null }, true)).toEqual({
+      available: true,
+      text: '3 chapters → chapters.txt',
+    });
+    expect(chaptersRow({ text, problem: null }, false).text).toBe('not written');
+  });
+
+  it('summarizes the closed Advanced choices and shows the queue only with items', () => {
+    const form = initialForm(OPTIONS);
+    expect(advancedSummary(form)).toBe('Encoder NVENC (NVIDIA) · 6 render workers');
+    expect(advancedSummary({ ...form, encoder: 'auto', workers: 1 })).toBe(
+      'Encoder Auto · 1 render worker',
+    );
+    expect(queueVisible(undefined)).toBe(false);
+    expect(queueVisible({ projectDir: 'C:/p', jobs: [], interrupted: null })).toBe(false);
+    expect(
+      queueVisible({
+        projectDir: 'C:/p',
+        jobs: [],
+        interrupted: {
+          output: 'C:/p/out/Film.mp4',
+          preset: '1080p30',
+          finishedShots: 2,
+          totalShots: 5,
+        },
+      }),
+    ).toBe(true);
   });
 
   it('describes a running job and the encoder test', () => {

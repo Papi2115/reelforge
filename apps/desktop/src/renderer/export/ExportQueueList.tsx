@@ -3,6 +3,7 @@
  * and render speed, the shots being rendered, Cancel / Resume / Open folder, the final report
  * (duration, size, average fps, encoder, cache hits, warnings such as the switch to the CPU
  * encoder, also shown under the status line while the job runs) and failures with what to do.
+ * The dialog shows it only while something runs or is listed (`queueVisible`).
  */
 import { plural } from '../../shared/plural.js';
 import type { JSX } from 'react';
@@ -159,9 +160,6 @@ export function ExportQueueList(props: ExportQueueListProps): JSX.Element {
             Resume
           </button>
         </div>
-      )}
-      {jobs.length === 0 && interrupted === null && (
-        <p className="muted">Nothing exported in this session yet.</p>
       )}
       <ul className="export-jobs">
         {jobs.map((job) => (

@@ -7,6 +7,7 @@ import type {
   PublishKitView,
   PublishSaveResult,
 } from '../../shared/publish-contract.js';
+import { chaptersSkippedReason } from '../export/export-view.js';
 
 export const PUBLISH_FILE_LABELS: Readonly<Record<PublishFileNameView, string>> = {
   'description.txt': 'Description',
@@ -42,9 +43,11 @@ export function kitSummary(kit: PublishKitView): string {
   return `${chapters} · ${source} · ${assets}`;
 }
 
-/** Why chapters.txt has no chapters, in plain words (null when it has them). */
+/** Why chapters.txt has no chapters, in the export form's plain words (null when it has them). */
 export function chaptersNote(kit: PublishKitView): string | null {
-  return kit.chapterProblem === null ? null : `No chapters: ${kit.chapterProblem}.`;
+  return kit.chapterProblem === null
+    ? null
+    : `Chapters skipped: ${chaptersSkippedReason(kit.chapterProblem)}.`;
 }
 
 /** Status line after Save to publish/. */

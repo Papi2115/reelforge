@@ -315,7 +315,7 @@ describe('asset research', () => {
     );
     await section.getByRole('button', { name: 'Copy credits' }).waitFor();
     // Not blocked by the assets: the submit button says nothing about them.
-    const submit = dialog.getByRole('button', { name: /^(Add to queue|Export anyway)$/ });
+    const submit = dialog.getByRole('button', { name: /^(Export video|Export anyway)$/ });
     expect((await submit.getAttribute('title')) ?? '').not.toContain('asset');
     await screenshot('export');
   }, 180_000);

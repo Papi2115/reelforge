@@ -5,7 +5,7 @@
  * builds on it). Nothing when the project has no downloaded assets.
  */
 import type { JSX } from 'react';
-import { CopyButton } from '../export/YoutubeExtras.js';
+import { CopyButton } from '../export/CopyButton.js';
 import { exportAssetsView, sourceLabel } from './assets-view.js';
 import { useAssets } from './use-assets.js';
 

@@ -1,7 +1,9 @@
 /**
- * View model of the export dialog (PLAN.md#9.1, #9.2): labels of presets (with the integer scale
- * factor), encoders and quality profiles, the request the form builds, and the queue's lines —
- * progress, ETA, per-shot frames, the final report ("re-rendered 1 of 12 shots"). Pure.
+ * View model of the export dialog (PLAN.md#9.1, #9.2, U11 of docs/ux/redesign-2.4.md): labels of
+ * presets (with the integer scale factor), encoders and quality profiles, the request the form
+ * builds, the honest chapters row, the closed "Advanced" summary, when the queue shows, and the
+ * queue's lines (progress, ETA, per-shot frames, the final report "re-rendered 1 of 12 shots").
+ * Pure.
  */
 import type { EncoderPreference, ExportQualityProfile } from '@reelforge/shared';
 import { plural } from '../../shared/plural.js';
@@ -10,6 +12,7 @@ import type {
   ExportJob,
   ExportJobRequest,
   ExportOptions,
+  ExportQueueState,
   ExportReport,
   PresetOption,
 } from '../../shared/export-contract.js';
@@ -155,6 +158,62 @@ export function cacheLine(report: ExportReport): string {
   const cached = report.cachedShots > 0 ? ` (${String(report.cachedShots)} from the cache)` : '';
   const resumed = report.resumed ? ', resumed' : '';
   return `Re-rendered ${String(report.renderedShots)} of ${plural(report.totalShots, 'shot')}${cached}${resumed}`;
+}
+
+/** YouTube's chapter rule (`MIN_CHAPTERS` / `MIN_CHAPTER_SECONDS` of the pipeline). */
+const CHAPTER_RULE = 'needs 3 chapters of 10 s';
+
+/**
+ * Why there are no chapters, in plain words starting with YouTube's rule, e.g. `needs 3 chapters
+ * of 10 s (this film has 2)`. The reasons come from the pipeline's chapter checks; anything else
+ * is shown as it is.
+ */
+export function chaptersSkippedReason(problem: string | null): string {
+  if (problem === null) return `${CHAPTER_RULE} (this film has none)`;
+  const count = /at least \d+ chapters, got (\d+)/.exec(problem);
+  if (count !== null) return `${CHAPTER_RULE} (this film has ${count[1] ?? '0'})`;
+  const short = /^"(.+)" lasts under \d+ s \(([\d:]+)\)/.exec(problem);
+  if (short !== null) {
+    return `${CHAPTER_RULE} ("${short[1] ?? ''}" at ${short[2] ?? ''} is shorter)`;
+  }
+  if (/too short or has too few shots/.test(problem)) {
+    return `${CHAPTER_RULE} (the film is too short or has too few shots)`;
+  }
+  const split = /^no split at shot boundaries .*\(video (\d+) s\)$/.exec(problem);
+  if (split !== null) {
+    return `${CHAPTER_RULE} (no split at the shots gives that in ${split[1] ?? ''} s)`;
+  }
+  return problem;
+}
+
+export interface ChaptersRow {
+  /** The checkbox can be used (the film has valid chapters). */
+  readonly available: boolean;
+  /** The line next to "Chapters". */
+  readonly text: string;
+}
+
+/** The export's chapters row: what will be written, or that it is skipped and why. */
+export function chaptersRow(chapters: ExportOptions['chapters'], include: boolean): ChaptersRow {
+  if (chapters.text === null) {
+    return { available: false, text: `skipped: ${chaptersSkippedReason(chapters.problem)}` };
+  }
+  const count = chapters.text.trim().split('\n').length;
+  return {
+    available: true,
+    text: include ? `${plural(count, 'chapter')} → chapters.txt` : 'not written',
+  };
+}
+
+/** The line next to the closed "Advanced" toggle: what its choices are now. */
+export function advancedSummary(form: ExportForm): string {
+  const encoder = form.encoder === 'auto' ? 'Auto' : ENCODER_LABELS[form.encoder];
+  return `Encoder ${encoder} · ${plural(form.workers, 'render worker')}`;
+}
+
+/** The queue shows while something runs or is listed (or an export did not finish). */
+export function queueVisible(queue: ExportQueueState | undefined): boolean {
+  return queue !== undefined && (queue.jobs.length > 0 || queue.interrupted !== null);
 }
 
 /** The encoder test in one line. */
