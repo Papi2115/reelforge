@@ -4,7 +4,7 @@
  * only when the app runs with experimental worlds on: it sets `REELFORGE_EXPERIMENTAL_WORLDS=1`
  * for its Claude processes (the CLI shims' env), matching `StageSettings.experimentalWorlds`.
  */
-import { isWorldStyle, type LookScope } from '@reelforge/kit';
+import { isUnwiredWorldStyle, isWorldStyle, type LookScope } from '@reelforge/kit';
 import { projectLookMode, type LookMode, type ProjectFile } from '@reelforge/shared';
 
 export const EXPERIMENTAL_WORLDS_ENV = 'REELFORGE_EXPERIMENTAL_WORLDS';
@@ -20,7 +20,10 @@ export function kitDocsLookMode(project: Pick<ProjectFile, 'lookMode' | 'style'>
   return isWorldStyle(project.style) ? 'mixed' : projectLookMode(project);
 }
 
-/** The catalog scope of a project style (experimental looks only with the env switch). */
+/**
+ * The catalog scope of a project style (experimental looks only with the env switch; never the
+ * looks of a world that is not wired yet, which stay render-only).
+ */
 export function kitDocsScope(style: string | undefined, experimental: boolean): LookScope {
-  return experimental ? { style, experimental: true } : { style };
+  return experimental && !isUnwiredWorldStyle(style) ? { style, experimental: true } : { style };
 }

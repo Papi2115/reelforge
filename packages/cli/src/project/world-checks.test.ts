@@ -1,4 +1,5 @@
 /** World variety in `reelforge validate` (real run Sketchbook 2: quota errors only at the stage). */
+import { WORLDS } from '@reelforge/kit';
 import type { ProjectFile, StoryboardFile, StoryboardShot } from '@reelforge/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EXPERIMENTAL_WORLDS_ENV } from '../commands/kit-docs-world.js';
@@ -95,6 +96,11 @@ describe('worldVarietyProblems', () => {
   it('checks nothing outside a world or in a world that is off', () => {
     expect(codes({ ...PROJECT, style: 'voxel-pixel-crisp640' }, PLAIN)).toEqual([]);
     expect(codes(PROJECT, PLAIN, false)).toEqual([]);
+  });
+
+  it('checks nothing in a world that is not wired yet (styleProblems reports it)', () => {
+    const unwired = WORLDS.map((world) => ({ ...world, wired: false }));
+    expect(worldVarietyProblems(PROJECT, storyboard(PLAIN), true, unwired)).toEqual([]);
   });
 
   it('points at storyboard.json with the validator message', () => {

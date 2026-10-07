@@ -17,6 +17,10 @@ goldens stay as they are. Contract: PLAN.md#13.1. Code: `packages/kit/src/worlds
 - `World.experimental: true` — its style resolves in the engine (`resolveStyle`, the harness) but is not in `STYLE_PRESET_IDS` (style picker,
   `reelforge check`, prompts). `pnpm render:frames -- --preset <world-id> --experimental …` is the showcase render; without
   `--experimental` the render is refused.
+- `World.wired` (default `false`; `defineWorld` fills it) — the world has its prompt wording (`WORLD_PROMPTS`, `packages/prompts/src/worlds`)
+  and project defaults (`WORLD_PROJECT_DEFAULTS`, `packages/project/src/world-defaults.ts`). An unwired world is render-only: never in
+  the app's style lists (even with Settings → Experimental worlds on), refused by `reelforge validate` ("a world still in development"),
+  no looks in kit-docs, no world in the stages (`activeWorld`). A world that is not experimental must be wired.
 - The engine registers the world's `style` (validated with `stylePresetSchema` of `@reelforge/shared`; `id` = world id) next to the built-in
   presets; `fonts` map the text roles `display`/`mono` to engine font ids (today only the two pixel fonts, `display` and `mono`). A world
   with its own lettering (Sketchbook) draws it inside its page template and tells its looks to write all text there, not with `ctx.text`.
@@ -56,7 +60,10 @@ Register the world by adding it to `WORLDS` in `packages/kit/src/worlds/index.ts
 6. **No-harm test**: the existing fixtures stay byte-identical (`docs/kit-catalog.md`, prompt fixtures, kit-docs index, goldens of the
    existing looks/styles); `packages/kit/src/worlds/worlds.test.ts` and `packages/cli/src/commands/kit-docs-styles.test.ts` show how to prove
    it for every built-in style with the world registered.
-7. **Ship**: flip `experimental` off on the world and its looks, add `styles/<world-id>/`, a sound palette, the world's row in Project
+7. **Wired**: when the world gets its prompts (`WORLD_PROMPTS` entry) and project defaults (`WORLD_PROJECT_DEFAULTS` entry), set
+   `wired: true` in its `defineWorld` and re-read its one-line `STYLE_DESCRIPTIONS` entry (`apps/desktop/src/shared/style-choices.ts`);
+   `packages/stages/src/worlds.test.ts` then requires both entries (and lists the worlds still unwired). Before that the app and the runtime Claude never see the world.
+8. **Ship**: flip `experimental` off on the world and its looks, add `styles/<world-id>/`, a sound palette, the world's row in Project
    settings, a decision-log line in CLAUDE.md §8.
 
 ## Sketchbook: breakthrough scenes (PLAN.md#13.6)
@@ -173,3 +180,94 @@ writes an optional `"worldMoment"` per shot (`@reelforge/shared` `storyboardShot
 - Also world-aware now: the script's surprise beats (page moments, no camera moves), the music moods (Sketchbook: `lofi-chill`,
   `calm-tech` only), repetition control's visual signature (moment + look + paper; a plain page has none) and the reveal-moment
   camera hints (`PAGE_CAMERA_HINTS` / `worldMomentCameraHints`: no orbit).
+
+## Comic: the page compositor (PLAN.md#13.3 part a, ADR-032)
+Code: `packages/kit/src/worlds/comic/` (experimental). Visual contract: `docs/worlds/comic-panels-v2/` (shots 1, 2, 6 ported
+as `packages/kit/examples/comic/a1_hook.js`, `a2_descent.js`, `a3_squeeze.js`; goldens `look-comic-story-*`).
+- **One page per shot**: `kit.fx.comicPage({ seed, anchor })`, 640x360 index raster painted for every t (paper -> panels ->
+  lettering), palette-pure (22 print inks, `dither.spread: 0`). No engine change: panels are masks in one framebuffer.
+- **Panels**: `page.panels(layout, { weights, mirror })` (`splash`, `2-up`, `strip`, `3-up-l`, `4-grid`, `4-l`, `splash-inset`;
+  hand-ruled, leaning uneven gutters, offset rows, seeded) or `page.panel(quad | (t) => quad)`; at most 5 at once.
+  Per panel: `draw((g, t) => ...)`, `enter({ at, kind: cut|slam|slide|pop, rough })`, `exit(at)`, `morph(quad, { at, dur })`
+  (gutters closing), `camera([{ at, x, y, zoom }])` (camera = panel moves), `clock({ offset, rate, hold })`, `toPage(x, y, t)`.
+- **The painter's `g`**: fills on `g.plate` (printed 1-2 px off register, seeded per panel), ink on `g` (`g.ink` boils at
+  10 fps); `g.tone(ink, level | (lx, ly) => level, { on })` halftone, `g.dither`, `g.layer`, `g.clip`, `g.blob` (one-outline
+  silhouettes: hands, gloves), `g.speedLines` (stop before the subject), `g.trail`, `g.text`, `g.bigLetter`, `g.ground`,
+  `g.digits`, `g.rnd(key, i)`.
+- **Page**: `camera([...])` (reads the page like an eye), `shake(at)`, `press()` (plates Y, C, M, K land one by one),
+  `balloon(text, { kind: speech|radio|thought, tail, dots })`, `caption`, `sfx(word, { beats, angles, rise })` (letters slam on
+  uneven beats and may break the frame), `note` (pencil margin question), `arrow`, `loop`, `tick`, `strike`, `highlight`,
+  `thumbprint`, `smudge`, `coffeeRing`, `draw` (free page layer), `util` (seg, track, pop, rnd).
+- **Fonts**: Inkhand (lettering) and Forge Display (onomatopoeia) as own CC0 glyph tables in the kit; never `ctx.text`.
+- Extras for every look: `page.stamp(text, { x, y, at, angle, color })` (worn rubber stamp + a page hit), `caption(..., { type })`
+  (lettered in), `page.draw(fn, { z })` (a drawing among the panels), `g.text(..., { reveal, slant })`, `g.standing(text, ...)` (block
+  letters standing in the picture), `page.util.torn(...)` (a torn cutaway outline).
+
+## Comic: looks B and C, breakthroughs, transitions, sound (PLAN.md#13.3 part b)
+- **Look B `comic-info`** (B roll): cutaways, charts as panel art, codes slammed like sound effects, a ticked checklist, stamps,
+  captions; templates `b1_cutaway.js` (shot 4), `b2_checklist.js` (shot 7, now ONE accent: the codes print paper-white, the
+  yellow GO highlight is the point). **Look C `comic-loud`** (C roll): the near-empty pause panel, onomatopoeia breaking the frame,
+  a slammed panel, the line lettered large; templates `c1_pause.js` (shot 8), `c2_landed.js` (shot 10), `c3_contact.js` (new: a
+  panel slams in past the margin, CONTACT across both panels). Goldens `look-comic-info-*`, `look-comic-loud-*`.
+- **`page.flashback(spec)`** (hosted by look B; a toolkit, never a template): the past as an older print job - the `SEPIA` remap
+  of the page inks (brown key, one tan tint, yellowed stock; palette-pure) and a coarser screen rotated ~30 degrees, one tint plate
+  1 px off. `intent` (required, the claim), `when` (time-stamp caption, lettered in), 1-5 `beats` `{ at, draw: (g, t, [w, h]),
+  weight, caption, enter }` revealed panel by panel in narration order (beat-local px), `cover: 'page'` (the whole page re-inked,
+  aged edge, foxing, the coming beats pencilled in when it opens the shot) or `'strip'` (a torn strip pasted crooked over the
+  present page, which stays in colour; it slides or drops in and leaves at `until`), `arrange: 'rows' | 'row' | 'stair' | 'pile'`,
+  `box`, optional `stamp` (the only red of the past). Readable errors: no intent, > 5 beats, beats out of order or < 0.15 s
+  apart, `until` before the last beat has held 0.4 s, a box off the page. Inspiration: `f1_flashback_1961.js` (page + rows +
+  stamp), `f2_flashback_bug.js` (a torn strip of 1947 over today's screen).
+- **`page.spread(spec)`** (hosted by look C): the frame becomes two pages, one picture `art` across the fold, a spine crease.
+  `assemble: 'merge'` (panels that turn out to be one picture: `pieces` grid/columns/halves, gutters close on their own beats,
+  register offsets go to 0, borders thin, the margin slides off, the picture grows to bleed), `'unfold'` (the book opens from
+  the spine, the lifted page edges flatten) or `'pull-back'` (a small panel on `focus` whose camera pulls back to the spread);
+  `delay`, `dur`, up to 3 `insets` (only after it is whole), `beats` (narration landing). **Hold rule** (the 6.5 s silence of
+  the showcase, DECISIONS.md): between the finished spread and `until` (default `comicPage({ duration })`) no gap > 4 s without a
+  beat, inset, note, balloon or panel - checked on the first frame. Inspiration: `s1_spread_tranquility.js` (merge, the hold
+  trimmed to 2.5 / 1.5 / 1.5 / 1.4 s), `s2_spread_summit.js` (unfold + an inset). Unit tests `breakthrough/breakthrough.test.ts`.
+- **Panel-native transitions** (`packages/engine/src/transitions/comic/`, world `comic`, `type: 'wipe'` fallback, `focus` used):
+  `comic-page-turn`, `comic-page-back` (into a flashback), `comic-gutter-wipe` (cut along a leaning gutter, halves pulled apart),
+  `comic-panel-zoom` (push in, the next page pops up as an inset at the focus and grows: a match cut through a panel),
+  `comic-panel-slam`, `comic-ink-bleed` (out of a flashback). Goldens `transition-comic-*` (`transition-comic.test.ts`).
+- **Sound palette `comic`** (`packages/stages/src/sound/palettes/comic.ts`, `world: 'comic'`): page flips and slides, paper
+  rustle, felt-pen lettering, pencil, scissors, and the whiteboard's `board-tap` knock for stamps, slams and onomatopoeia (no new
+  synthesis); 2-3 candidates per busy slot; each comic transition has its own sound (`COMIC_TRANSITION_SFX`).
+- **Known**: the front-view Eagle (s1) can read like a face - kept, it is the showcase Papi approved. Beat/inset content is not
+  rotated with a tilted strip or pile clipping (kept small: <= 1.8 / 5 degrees). Prompt wording and moment catalog: later part.
+
+## Game B2: raycaster, level format, HUD (PLAN.md#13.4 part a)
+World `game-b2` (experimental), code `packages/kit/src/worlds/game-b2/`, showcase `docs/worlds/game-hud-b2-rpg-v2/`.
+- **Style**: the showcase's 32 colours, 640x360 (x3 = 1080p), post dither off (spread 0): the raycaster dithers its own
+  light and fog levels (4x4 Bayer) through one Doom-style colormap per room mood, so every pixel is an exact palette index.
+  Variation budget `game-b2` is neutral (places differ by their level). Sound: placeholder `retro-ui` until a `game-b2`
+  stages palette exists (a later part).
+- **Renderer** (`ray/`): textured-column raycaster on a 320x180 index buffer, doubled into the 640x360 screen; floors and
+  ceilings per pixel, low walls with caps (counter, cubicle), sliding doors, depth-tested billboards, per-room lights
+  (a light lights only its own room; an opening door spills the bright room into the dark one). Textures and sprites are
+  seeded pure functions, cached. Measured on the dev machine (Node, warehouse + hand + HUD, 640x360): **2.8 ms/frame avg,
+  p95 3.5 ms, max 5.5 ms** (`view/world.test.ts` logs its best batch, slower under vitest's module transform, and allows
+  30 ms for slow CI runners).
+- **Level format** (`level/schema.ts`, `checkLevel`): `{ name, mood, floor, ceiling, grid: ['#####', '#...#', ...], legend,
+  lights, sprites }`. Grid <= 32x32, closed border, one character per cell (`.`/space = open with the level's floor and
+  ceiling); legend entries are walls `{ wall, label, chalk, count, pinned, crossed, height, cap }`, doors `{ door: true }`
+  (walls on two opposite sides) or open cells `{ floor, ceiling, flicker, mood }` (`mood` makes a room: a dark corridor
+  opening onto a tungsten office). <= 12 lights `{ id, pos, z, power, radius, flicker: none|tube|bulb, bulb }`, <= 40
+  sprites `{ id, sprite, pos, z, w, h, label, band, person, seed, tilt }` (sprite kinds: sand-pile, carton, pallet, desk,
+  clerk, sign, exit, boxes, item, card, bin). Errors name the field or grid row (`grid row 1: "x" at x=2 is not in the
+  legend`, `sprites[0] (clerk): pos [0.5, 0.5] is inside a wall cell`, label width per sprite kind). Built-in levels
+  `office` and `warehouse` (ported from the showcase map, `stencil` fills their carton/sign word).
+- **`kit.fx.b2View`**: level + camera path (keys `{ at, x, y, yaw, pitch, eye, ease }`, uneven seeded strides, head-bob,
+  breathing when still) + timed events: `open` (door), `switchOn` (light clicks on with two stutters), `act` (clerk talks /
+  shakes head), `place` (sprite drops in with an overshoot), `shake`, and the hand: `take(item, { from: [x, y, z] })`,
+  `hold`, `present`. Path keys inside walls are errors.
+- **`kit.fx.b2Hud`** (over the view, transparent elsewhere; HUD words are caps): `compass` (year roll, heading tape,
+  objective marker, place typed), `minimap` (rooms walked so far + footprints), `meter` (HP-style: only a real threat),
+  `status`, `boss` (only the central problem), `progress` + `checkpoint` (film progress strip, chapter flags), `toast`,
+  `inventory` (left column: facts picked up), `say` / `narrate` (irregular typewriter, chained lines keep the box open),
+  `choose` (cursor with overshoot, struck options, the pick lights up).
+- **Look A `rpg-explore`**, templates `packages/kit/examples/game-b2/a1_corridor.js` (showcase shot 1), `a2_warehouse.js`
+  (shot 3, inventory instead of the toast + a checkpoint), `a3_returns.js` (shot 7, its level written inline as the format
+  demo); goldens `look-rpg-explore-*` in `packages/kit/test/render/look-rpg-explore.test.ts`.
+- Not yet (later parts): automap and intermission tally, the cartridge throw, fog transitions, looks B/C, prompts and the
+  `reelforge validate level` command.

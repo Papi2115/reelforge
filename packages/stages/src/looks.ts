@@ -3,7 +3,15 @@
  * prompt get from the project's `lookMode` and the kit's look registry. `voxel-only` (every
  * project made before 2.0) gets nothing, so its prompts and checks stay exactly as they were.
  */
-import { getLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
+import {
+  getLook,
+  isUnwiredWorldStyle,
+  listLooks,
+  LOOKS,
+  voxelLook,
+  type Look,
+  type LookScope,
+} from '@reelforge/kit';
 import { DEFAULT_LOOK_RHYTHM_RULES, maxNonCutTransitions } from '@reelforge/prompts';
 import {
   describePairs,
@@ -17,15 +25,28 @@ import {
 } from '@reelforge/shared';
 
 /**
+ * The kit scope of a project style: experimental looks only with `scope.experimental` and never
+ * for a world that is not wired yet (its looks are render-only until it has prompts).
+ */
+export function styleLookScope(
+  style: string | undefined,
+  scope: { readonly experimental?: boolean | undefined } = {},
+): LookScope {
+  return scope.experimental === true && !isUnwiredWorldStyle(style)
+    ? { style, experimental: true }
+    : { style };
+}
+
+/**
  * The looks a project of this style offers (PLAN.md#13.1, ADR-029): for the built-in styles
  * exactly `listLooks()`; a world's style is exclusive, only that world's looks (an experimental
- * world's only with `scope.experimental`, worlds.ts).
+ * world's only with `scope.experimental`, a wired one only, worlds.ts).
  */
 export function styleLooks(
   style: string | undefined,
   scope: { readonly experimental?: boolean | undefined } = {},
 ): Look[] {
-  return listLooks(LOOKS, scope.experimental === true ? { style, experimental: true } : { style });
+  return listLooks(LOOKS, styleLookScope(style, scope));
 }
 
 /** A look as the app's settings list it (`project-settings` dialog). */

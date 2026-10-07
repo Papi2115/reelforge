@@ -43,14 +43,17 @@ export function worldScope(settings: Pick<StageSettings, 'experimentalWorlds'>):
   return { experimental: settings.experimentalWorlds === true };
 }
 
-/** The world of `style` when it is offered in `scope` (shipped, or experimental with the flag). */
+/**
+ * The world of `style` when it is offered in `scope` (shipped, or experimental with the flag); a
+ * world that is not wired yet (no prompts or project defaults) is never offered.
+ */
 export function activeWorld(
   style: string | undefined,
   scope: WorldScope = {},
   worlds: readonly World[] = WORLDS,
 ): World | undefined {
   const world = worlds.find((entry) => entry.id === style);
-  if (world === undefined) return undefined;
+  if (world === undefined || !world.wired) return undefined;
   return world.experimental && scope.experimental !== true ? undefined : world;
 }
 

@@ -32,7 +32,7 @@ export function worldVarietyProblems(
   worlds: readonly World[] = WORLDS,
 ): Problem[] {
   const world = worlds.find((entry) => entry.id === project.style);
-  if (world === undefined || (world.experimental && !experimentalWorlds)) return [];
+  if (world === undefined || !world.wired || (world.experimental && !experimentalWorlds)) return [];
   const moments = worldPromptText(world.id)?.moments ?? [];
   if (moments.length === 0) return [];
   const issues = checkWorldVariety(storyboard.shots, {

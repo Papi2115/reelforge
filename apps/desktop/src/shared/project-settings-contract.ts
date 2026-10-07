@@ -117,6 +117,11 @@ export const projectSettingsStateSchema = z.discriminatedUnion('status', [
     /** Looks the project's style offers (voxel first; a world: its own A/B/C looks). */
     looks: z.array(lookSummarySchema),
     style: projectStyleSchema,
+    /**
+     * project.json#genrePreset (PLAN.md#13.8), read-only: the genre preset the project was
+     * created with; absent = none.
+     */
+    genrePreset: z.string().optional(),
   }),
   z.object({ status: z.literal('error'), message: z.string() }),
 ]);

@@ -8,6 +8,7 @@ import {
   TEST_WORLD_ID,
   TEST_WORLD_STYLE,
 } from '../../../kit/src/testing/test-world.js';
+import { WORLDS } from '../../../kit/src/worlds/index.js';
 import { buildPaletteLut, hexToRgb, lutLookup } from '../palette.js';
 import { resolveStyle } from '../style.js';
 import {
@@ -24,12 +25,26 @@ const WITH_TEST_WORLD = createStyleRegistry(BUILT_IN_STYLE_PRESETS, [TEST_WORLD]
 describe('style registry', () => {
   it('lists exactly the built-in styles while only experimental worlds ship', () => {
     expect(STYLE_PRESET_IDS).toEqual(BUILT_IN_IDS);
-    expect(STYLE_REGISTRY.allIds).toEqual([...BUILT_IN_IDS, 'sketchbook']);
+    expect(STYLE_REGISTRY.allIds).toEqual([...BUILT_IN_IDS, ...WORLDS.map((world) => world.id)]);
     for (const id of BUILT_IN_IDS) {
       expect(STYLE_REGISTRY.entry(id)?.world).toBeUndefined();
       expect(STYLE_REGISTRY.isExperimental(id)).toBe(false);
     }
     expect(STYLE_REGISTRY.isExperimental('sketchbook')).toBe(true);
+    expect(STYLE_REGISTRY.isExperimental('comic')).toBe(true);
+  });
+
+  it('resolves the comic style palette-pure: every swatch maps to itself through the LUT', () => {
+    const style = resolveStyle({ style: 'comic' });
+    expect([style.width, style.height]).toEqual([640, 360]);
+    const swatches = Object.values(STYLE_REGISTRY.find('comic')?.palette ?? {});
+    expect(swatches).toHaveLength(22);
+    const lut = buildPaletteLut(swatches.map(hexToRgb));
+    swatches.forEach((hex, index) => {
+      expect(lutLookup(lut, hexToRgb(hex)), hex).toBe(index);
+    });
+    expect(renderStyleProblem(STYLE_REGISTRY, 'comic', false)).toMatch(/--experimental/);
+    expect(renderStyleProblem(STYLE_REGISTRY, 'comic', true)).toBeUndefined();
   });
 
   it('resolves the sketchbook style palette-pure: every swatch maps to itself through the LUT', () => {

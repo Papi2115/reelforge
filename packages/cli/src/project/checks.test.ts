@@ -46,6 +46,25 @@ describe('styleProblems', () => {
     const [on] = styleProblems('vaporwave', STYLE_REGISTRY, true);
     expect(on?.fix).toBe('use one of: voxel-pixel-crisp640, noir-voxel, soft-480, sketchbook');
   });
+
+  it('rejects a world that is not wired yet, switch or not, even when shipped', () => {
+    for (const style of ['comic', 'game-b2']) {
+      expect(STYLE_REGISTRY.entry(style)).toBeDefined();
+      for (const registry of [STYLE_REGISTRY, SHIPPED]) {
+        for (const experimental of [false, true]) {
+          expect(styleProblems(style, registry, experimental)).toEqual([
+            {
+              severity: 'error',
+              file: 'project.json',
+              at: 'style',
+              message: `style "${style}" is a world still in development; it cannot be used for a project yet`,
+              fix: 'do not change the style yourself: ask the user to pick another style for this project',
+            },
+          ]);
+        }
+      }
+    }
+  });
 });
 
 describe('reelforge validate on a Sketchbook project', () => {

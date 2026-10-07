@@ -20,6 +20,7 @@ import { loadCharacterSettings } from '../characters.js';
 import { loadSceneDramaturgy, type SceneDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson } from '../files.js';
 import { readLockedShots } from '../locks.js';
+import { styleLookScope } from '../looks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
 import { RoleBuilder } from '../roles/builder.js';
@@ -76,11 +77,11 @@ export interface SceneJob {
 const kitNamesByScope = new Map<string, KitNames>();
 
 function installedKitNames(style: string, scope: WorldScope): KitNames {
-  const experimental = scope.experimental === true;
-  const key = `${style}|${String(experimental)}`;
+  const lookScope = styleLookScope(style, scope);
+  const key = `${style}|${String(lookScope.experimental === true)}`;
   let names = kitNamesByScope.get(key);
   if (names === undefined) {
-    names = kitNamesFromCatalog(experimental ? { style, experimental } : { style });
+    names = kitNamesFromCatalog(lookScope);
     kitNamesByScope.set(key, names);
   }
   return names;

@@ -32,6 +32,7 @@ export const SKETCHBOOK = defineWorld({
   description:
     'A hand-drawn spiral notebook: a visible hand draws crude stick people, hand-lettered notes and red corrections with felt-tip, ballpoint and coloured pencils; line boil, paper, tape, coffee rings.',
   experimental: true,
+  wired: true,
   style: SKETCHBOOK_STYLE,
   fonts: { display: 'display', mono: 'mono' },
   soundPalette: 'sketchbook',

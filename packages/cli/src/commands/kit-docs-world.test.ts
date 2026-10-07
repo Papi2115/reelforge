@@ -39,4 +39,11 @@ describe('kit-docs in a world project', () => {
       formatCatalog(kitCatalog(), { lookMode: 'mixed' }),
     );
   });
+
+  it('never lists the looks of a world that is not wired yet, switch or not', () => {
+    for (const style of ['comic', 'game-b2']) {
+      expect(kitDocsScope(style, true)).toEqual({ style });
+      expect(kitCatalog([], LOOKS, kitDocsScope(style, true)).looks).toEqual([]);
+    }
+  });
 });

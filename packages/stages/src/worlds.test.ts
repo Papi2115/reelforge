@@ -8,7 +8,7 @@ import { WORLD_PROMPTS } from '@reelforge/prompts';
 import { WORLD_PROJECT_DEFAULTS } from '@reelforge/project';
 import type { StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { storyboardLookVars } from './looks.js';
+import { storyboardLookVars, styleLookScope, styleLooks } from './looks.js';
 import { craftVerdicts } from './scenes/critic.js';
 import { kitNamesFromCatalog } from './scenes/tools.js';
 import { paletteForShot } from './sound/palettes/index.js';
@@ -43,11 +43,31 @@ function shot(id: string, extra: Partial<StoryboardShot> = {}): StoryboardShot {
 }
 
 describe('world registry wiring', () => {
-  it('has project defaults and prompt wording for every world', () => {
-    for (const world of WORLDS) {
+  it('has project defaults and prompt wording for every wired world', () => {
+    const wired = WORLDS.filter((world) => world.wired);
+    expect(wired.map((world) => world.id)).toContain('sketchbook');
+    for (const world of wired) {
       expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toContain(world.id);
       expect(Object.keys(WORLD_PROMPTS)).toContain(world.id);
     }
+  });
+
+  it('never offers a world that is not wired yet, flag or not', () => {
+    const unwired = WORLDS.filter((world) => !world.wired);
+    expect(unwired.map((world) => world.id)).toEqual(['comic', 'game-b2']);
+    for (const { id } of unwired) {
+      for (const scope of [{}, ON]) {
+        expect(activeWorld(id, scope)).toBeUndefined();
+        expect(styleLooks(id, scope)).toEqual([]);
+        const setup = lookSetup({ style: id }, scope);
+        expect(setup.world).toBeUndefined();
+        expect(setup.looks).toEqual([]);
+        expect(storyboardWorldPromptVars(setup, 120)).toEqual({});
+        expect(storyboardWorldOptions(setup)).toEqual({});
+      }
+      expect(styleLookScope(id, ON)).toEqual({ style: id });
+    }
+    expect(styleLookScope('sketchbook', ON)).toEqual({ style: 'sketchbook', experimental: true });
   });
 
   it('offers an experimental world only with the flag', () => {

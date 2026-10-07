@@ -22,6 +22,12 @@ export interface World {
   /** Hidden from style pickers and prompts; renderable only by showcase renders. */
   readonly experimental: boolean;
   /**
+   * The app may offer it: its prompt wording (`@reelforge/prompts` `WORLD_PROMPTS`) and project
+   * defaults (`@reelforge/project` `WORLD_PROJECT_DEFAULTS`) exist. An unwired world is render-only
+   * (`render:frames --experimental`), even with the Experimental worlds switch on.
+   */
+  readonly wired: boolean;
+  /**
    * The engine style preset (`stylePresetSchema` of @reelforge/shared; `id` = the world id). The
    * kit has no shared dependency: the engine validates it when it registers the world.
    */
@@ -33,6 +39,9 @@ export interface World {
   readonly looks: readonly Look[];
 }
 
+/** A world module as written: `wired` defaults to false (render-only until its prompts exist). */
+export type WorldDefinition = Omit<World, 'wired'> & { readonly wired?: boolean };
+
 const WORLD_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const worldMetaSchema = z.object({
@@ -40,6 +49,7 @@ const worldMetaSchema = z.object({
   label: z.string().min(1).max(40),
   description: z.string().min(1).max(240),
   experimental: z.boolean(),
+  wired: z.boolean().optional(),
   fonts: z.object({ display: z.string().min(1), mono: z.string().min(1) }),
   soundPalette: z.string().min(1),
 });
@@ -61,8 +71,12 @@ function checkLooks(world: World): void {
   }
 }
 
-/** Validates a world module at load time: a broken world fails loudly, like a broken look. */
-export function defineWorld(world: World): World {
+/**
+ * Validates a world module at load time: a broken world fails loudly, like a broken look. A world
+ * that is not experimental any more must be wired (a shipped world has prompts and defaults).
+ */
+export function defineWorld(definition: WorldDefinition): World {
+  const world: World = { ...definition, wired: definition.wired ?? false };
   const parsed = worldMetaSchema.safeParse(world);
   if (!parsed.success) {
     const details = parsed.error.issues
@@ -75,6 +89,9 @@ export function defineWorld(world: World): World {
       world.id,
       `style.id is ${JSON.stringify(world.style['id'])} (expected the world id)`,
     );
+  }
+  if (!world.experimental && !world.wired) {
+    throw worldError(world.id, 'a world that is not experimental must be wired');
   }
   checkLooks(world);
   return Object.freeze(world);
