@@ -6,6 +6,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { formatCommitMessage, type AutocommitKind, type CommitKind } from './commit-message.js';
+import { stageablePathspecs } from './git-pathspec.js';
 import { gitChecked, runGit, type GitOptions } from './git-runner.js';
 import { clearIndexLock } from './index-lock.js';
 import { lockKey, withLock } from './mutex.js';
@@ -37,6 +38,12 @@ export interface AutocommitOptions {
   /** `ReelForge-Step` trailer; defaults to the kind. */
   readonly step?: string;
   readonly git?: GitOptions;
+  /**
+   * Commit ONLY these project files/folders (project-relative or absolute inside the project);
+   * other changes stay uncommitted. Used when jobs run in parallel (one shot's commit must not
+   * pick up another shot's work in progress). Undefined = every change.
+   */
+  readonly paths?: readonly string[];
 }
 
 export function hasRepository(dir: string): boolean {
@@ -104,13 +111,31 @@ async function headHash(dir: string, options: GitOptions): Promise<Result<string
   return ok(result.value.code === 0 ? result.value.stdout.trim() : undefined);
 }
 
-/** True when the index differs from HEAD (or HEAD is unborn and the index has files). */
-async function hasStagedChanges(dir: string, options: GitOptions): Promise<Result<boolean>> {
-  const result = await runGit(dir, ['diff', '--cached', '--quiet', '--no-ext-diff'], options);
+/**
+ * True when the index differs from HEAD (or HEAD is unborn and the index has files), limited to
+ * `pathspecs` when given.
+ */
+async function hasStagedChanges(
+  dir: string,
+  options: GitOptions,
+  pathspecs?: readonly string[],
+): Promise<Result<boolean>> {
+  const limit = pathspecs === undefined ? [] : ['--', ...pathspecs];
+  const result = await runGit(
+    dir,
+    ['diff', '--cached', '--quiet', '--no-ext-diff', ...limit],
+    options,
+  );
   if (!result.ok) return result;
   if (result.value.code === 0) return ok(false);
   if (result.value.code === 1) return ok(true);
   return err(projectError('git-failed', `git diff --cached failed: ${result.value.stderr.trim()}`));
+}
+
+interface CommitIndexExtras {
+  readonly revertOf?: string;
+  /** Commit only these (staged) pathspecs (`git commit --only`); other staged entries stay. */
+  readonly pathspecs?: readonly string[];
 }
 
 /** Commits the index with a structured message (caller holds the project lock). */
@@ -120,20 +145,22 @@ async function commitIndex(
   kind: CommitKind,
   step: string,
   options: GitOptions,
-  revertOf?: string,
+  extras: CommitIndexExtras = {},
 ): Promise<Result<CommitResult>> {
+  const { revertOf, pathspecs } = extras;
   const text = formatCommitMessage(
     revertOf === undefined ? { message, kind, step } : { message, kind, step, revertOf },
   );
   if (!text.ok) return text;
-  const changed = await hasStagedChanges(dir, options);
+  const changed = await hasStagedChanges(dir, options, pathspecs);
   if (!changed.ok) return changed;
   if (!changed.value) return ok({ status: 'nothing-to-commit' });
   const identity = await ensureIdentity(dir, options);
   if (!identity.ok) return identity;
+  const only = pathspecs === undefined ? [] : ['--only', '--', ...pathspecs];
   const commit = await gitChecked(
     dir,
-    ['commit', '--quiet', '--no-edit', '--cleanup=whitespace', '--file=-'],
+    ['commit', '--quiet', '--no-edit', '--cleanup=whitespace', '--file=-', ...only],
     options,
     text.value,
   );
@@ -162,8 +189,33 @@ async function commitAll(
 }
 
 /**
- * Commits every change in the project (respecting its .gitignore). Nothing changed ->
- * `nothing-to-commit`, no empty commits.
+ * Stages and commits only `paths` (caller holds the project lock): other changes, staged or not,
+ * stay out of the commit and keep their state.
+ */
+async function commitPaths(
+  dir: string,
+  message: string,
+  kind: CommitKind,
+  step: string,
+  options: GitOptions,
+  paths: readonly string[],
+): Promise<Result<CommitResult>> {
+  const text = formatCommitMessage({ message, kind, step });
+  if (!text.ok) return text;
+  const pathspecs = await stageablePathspecs(dir, paths, options);
+  if (!pathspecs.ok) return pathspecs;
+  if (pathspecs.value.length === 0) return ok({ status: 'nothing-to-commit' });
+  const lock = await clearIndexLock(dir, options);
+  if (!lock.ok) return lock;
+  const add = await gitChecked(dir, ['add', '--all', '--', ...pathspecs.value], options);
+  if (!add.ok) return add;
+  return commitIndex(dir, message, kind, step, options, { pathspecs: pathspecs.value });
+}
+
+/**
+ * Commits every change in the project (respecting its .gitignore), or only `options.paths`.
+ * Nothing changed -> `nothing-to-commit`, no empty commits. All git access to one project is
+ * serialized, so concurrent callers never interleave their index updates.
  */
 export function autocommit(
   dir: string,
@@ -171,7 +223,13 @@ export function autocommit(
   options: AutocommitOptions,
 ): Promise<Result<CommitResult>> {
   const step = options.step ?? options.kind;
-  return withLock(dir, () => commitAll(dir, message, options.kind, step, options.git ?? {}));
+  const git = options.git ?? {};
+  const paths = options.paths;
+  return withLock(dir, () =>
+    paths === undefined
+      ? commitAll(dir, message, options.kind, step, git)
+      : commitPaths(dir, message, options.kind, step, git, paths),
+  );
 }
 
 /** Internal commits of this package (`create`, migrations) with a fixed kind. */
@@ -234,7 +292,9 @@ export async function restoreAndCommit(
     await rollbackToHead(dir, options);
     return restore;
   }
-  const commit = await commitIndex(dir, message, 'revert', 'revert', options, target.hash);
+  const commit = await commitIndex(dir, message, 'revert', 'revert', options, {
+    revertOf: target.hash,
+  });
   if (!commit.ok) {
     await rollbackToHead(dir, options);
     return commit;

@@ -61,7 +61,11 @@ export async function updateScenesReport(
     : err(stageError('io', `${FILES.scenesReport}: ${written.error.message}`));
 }
 
-/** Stores a finished shot: report record, autocommit "Scene sNN <verb> ✓/⚠/✗", shot event. */
+/**
+ * Stores a finished shot: report record, autocommit "Scene sNN <verb> ✓/⚠/✗" of the shot's scene
+ * file only (shots build in parallel: another shot's work in progress must not land in this
+ * commit, or reverting it would undo the wrong shot), shot event.
+ */
 export async function saveShotRecord(
   job: SceneJob,
   shot: StoryboardShot,
@@ -75,7 +79,7 @@ export async function saveShotRecord(
     records.set(record.shotId, record);
   });
   if (!written.ok) return written;
-  if (commit) await ctx.commit(commitSubject(shot, record.status, verb));
+  if (commit) await ctx.commit(commitSubject(shot, record.status, verb), [shot.scene]);
   ctx.shot(shot.id, 'finished', record.status);
   return ok(undefined);
 }

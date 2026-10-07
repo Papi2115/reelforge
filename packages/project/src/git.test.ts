@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatCommitMessage } from './commit-message.js';
@@ -178,6 +178,37 @@ describe('autocommit + history + revert', () => {
     expect(await entries()).toHaveLength(1 + committed.length);
     const status = await runGit(dir, ['status', '--porcelain'], sandbox.git);
     expect(status.ok && status.value.stdout).toBe('');
+  });
+
+  it('commits only the given paths, even when other work is staged or in progress', async () => {
+    await write('scenes/s02.js', 'two-v1\n');
+    await commit('base');
+    await write(SCENE, 'one\n');
+    await write('scenes/s03.js', 'three, in progress\n');
+    await runGit(dir, ['add', 'scenes/s03.js'], sandbox.git);
+    await rm(path.join(dir, 'scenes', 's02.js'));
+    const shot = (paths: readonly string[], message: string) =>
+      autocommit(dir, message, { kind: 'pipeline-step', step: 'scenes', paths, git: sandbox.git });
+    const [one, gone] = await Promise.all([
+      shot([SCENE], 'Scene s01 built'),
+      shot([path.join(dir, 'scenes', 's02.js')], 'Scene s02 removed'),
+    ]);
+    expect(one.ok && one.value.status).toBe('committed');
+    expect(gone.ok && gone.value.status).toBe('committed');
+    const [latest, previous] = await entries();
+    expect(previous?.files).toEqual([{ status: 'added', path: SCENE }]);
+    expect(latest?.files).toEqual([{ status: 'deleted', path: 'scenes/s02.js' }]);
+    // The other shot's staged work stays staged and uncommitted.
+    const status = await runGit(dir, ['status', '--porcelain'], sandbox.git);
+    expect(status.ok && status.value.stdout).toBe('A  scenes/s03.js\n');
+    // Nothing (left) to commit: unchanged, never written, ignored.
+    for (const paths of [[SCENE], ['scenes/s09.js'], ['out/Film.mp4'], []]) {
+      await write('out/Film.mp4', 'mp4');
+      const none = await shot(paths, 'Nothing');
+      expect(none.ok && none.value.status).toBe('nothing-to-commit');
+    }
+    const outside = await shot(['../escape.js'], 'Escape');
+    expect(!outside.ok && outside.error.kind).toBe('invalid-argument');
   });
 
   it('reads commits made outside ReelForge as external', async () => {

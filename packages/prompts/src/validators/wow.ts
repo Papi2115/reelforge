@@ -9,6 +9,7 @@
  */
 import {
   getTransitionStyle,
+  isContinuityStyle,
   WOW_RULES,
   wowOccurrences,
   wowStyleOf,
@@ -151,6 +152,8 @@ function shotIssues(
       return;
     }
     if (getTransitionStyle(transition.style)?.wow?.focus === true) return;
+    // A continuity link renders with its anchor as the focus (ADR-030, `continuityTransition`).
+    if (isContinuityStyle(transition.style)) return;
     issues.push(
       issue(
         'warning',

@@ -1,5 +1,7 @@
 import {
+  applyContinuityTransitions,
   assignTransitionStyles,
+  CONTINUITY_STYLE_IDS,
   storyboardShotSchema,
   transitionHash,
   WOW_RULES,
@@ -149,6 +151,27 @@ describe('wow transition checks', () => {
     ).toEqual(['warning:transition-focus']);
     expect(codes(timeline(60, { 20: { style: 'enter-lens', focus: { x: 0.3, y: 0.3 } } }))).toEqual(
       [],
+    );
+  });
+
+  it('accepts the anchor focus of a continuity link (zoom-through in real test film 3)', () => {
+    for (const style of CONTINUITY_STYLE_IDS) {
+      expect(codes(timeline(60, { 20: { style, focus: { x: 0.7, y: 0.3 } } }))).toEqual([]);
+    }
+    const linked = applyContinuityTransitions(
+      timeline(60, {}).map((shot, index) =>
+        index === 4
+          ? { ...shot, continuity: { kind: 'zoom-through' as const, object: 'tank' } }
+          : shot,
+      ),
+    );
+    expect(linked.shots[4]?.transitionIn).toMatchObject({
+      style: 'continuity-zoom-through',
+      focus: { x: 0.5, y: 0.5 },
+    });
+    const text = JSON.stringify({ version: 1, shots: linked.shots });
+    expect(validateStoryboard(text).issues.map((entry) => entry.code)).not.toContain(
+      'transition-focus',
     );
   });
 
