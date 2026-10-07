@@ -8,8 +8,10 @@
 import { z } from 'zod';
 import { textWidth } from '../core/font.js';
 import { colorOfSwatch } from '../palette.js';
+import { artOf } from '../view/view-assets.js';
 import type { B2World } from '../view/world.js';
 import { checkText, parseWith, time } from './hud-schemas.js';
+import { ICONS, isIconName } from './inventory.js';
 import { createMenu, menuSchema } from './menu.js';
 import type { HudModel, Span } from './model.js';
 import { stingerLands } from './stinger.js';
@@ -93,6 +95,14 @@ export function hudExtras({ model, world, seed, at, fail }: Context) {
         checkText(`menu.stats.rows[${String(i)}].value`, row.value, 1, 160, 2);
       });
       if (o.stats !== undefined) checkText('menu.stats.title', o.stats.title, 1, 330, 3);
+      const arts = (o.inventory?.items ?? []).map((item, i) => {
+        const art = world === undefined ? undefined : artOf(world.assets, item.icon);
+        if (!isIconName(item.icon) && art === undefined)
+          fail(
+            `menu.inventory.items[${String(i)}].icon "${item.icon}" is unknown (known: ${ICONS.join(', ')}; or an icon id of the view's assets)`,
+          );
+        return art;
+      });
       o.inventory?.items.forEach((item, i) => {
         checkText(`menu.inventory.items[${String(i)}].label`, item.label, 1, 170, 1);
         if (item.band !== undefined && colorOfSwatch(item.band) === undefined)
@@ -105,7 +115,7 @@ export function hudExtras({ model, world, seed, at, fail }: Context) {
           fail(`menu.inventory.select[${String(i)}]: no item ${String(step.index)}`);
         return { at: at(step.at), index: step.index };
       });
-      model.menu(createMenu(o, from, until, select, seed));
+      model.menu(createMenu(o, from, until, select, seed, arts));
       return { at: from, end: until };
     },
     stinger(text: string, options: unknown): Span & { cues: readonly HudCue[] } {

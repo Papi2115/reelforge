@@ -11,7 +11,9 @@ import { anchorParam, createResolver } from '../../../looks/blueprint/timing.js'
 import { defineFx, type KitTools } from '../../../registry.js';
 import { colorOfSwatch } from '../palette.js';
 import { createOutput, SCREEN_H, SCREEN_W } from '../view/output.js';
+import { artOf } from '../view/view-assets.js';
 import { b2WorldOf } from '../view/view-fx.js';
+import { ICONS, isIconName } from './inventory.js';
 import { hudExtras, type HudCue } from './hud-extra.js';
 import { CALL, checkText, fail, parse, type Input } from './hud-schemas.js';
 import { HudModel, type Span } from './model.js';
@@ -192,12 +194,17 @@ function buildHud(params: z.output<typeof b2HudParams>, tools: KitTools): B2HudO
       const items = o.items.map((item, i) => {
         checkText(`inventory.items[${String(i)}].label`, item.label, 1, 200, 1);
         const band = item.band === undefined ? undefined : colorOfSwatch(item.band);
+        const art = world === undefined ? undefined : artOf(world.assets, item.icon);
+        if (!isIconName(item.icon) && art === undefined)
+          fail(
+            `inventory.items[${String(i)}].icon "${item.icon}" is unknown (known: ${ICONS.join(', ')}; or an icon id of the view's assets)`,
+          );
         return {
-          icon: item.icon,
+          icon: isIconName(item.icon) ? item.icon : 'note',
           label: item.label,
           at: at(item.at),
           out: item.out === undefined ? undefined : at(item.out),
-          look: { label: item.itemLabel, band },
+          look: { label: item.itemLabel, band, art },
         };
       });
       model.inventory({ at: at(o.at), until: until(o.until), items });
@@ -240,7 +247,7 @@ export const b2Hud = defineFx({
     'narrate(text, { at, until })': 'The narration box (no speaker)',
     'choose({ speaker, options, at, until, steps: [{ at, cursor | strike | pick }] })':
       'A choice box: the cursor moves with an overshoot, struck options are crossed by hand, the pick lights up',
-    "inventory({ items: [{ icon: 'cartridge' | 'calendar' | 'carton' | 'note' | 'key', label, at, itemLabel, band, out }], at, until })":
+    "inventory({ items: [{ icon: 'cartridge' | 'calendar' | 'carton' | 'note' | 'key' | an assets icon id, label, at, itemLabel, band, out }], at, until })":
       'Inventory bar: facts picked up so far; a new one drops in and its name types above; `out` = it leaves (thrown)',
     'tally({ intent, at, until, title, sub, rows: [{ label, value, format, unit, approx, est, role, underline }], stamp: { text }, backdrop, enter, exit })':
       'Breakthrough: the intermission screen (chapter recap). Counters tick up row by row, then a still beat and a stamp; melts in, dissolves out; holds <= 4 s. Returns { at, end, cues }',

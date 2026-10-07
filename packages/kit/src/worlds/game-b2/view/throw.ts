@@ -9,7 +9,7 @@ import { Bmp, rotate } from '../core/bitmap.js';
 import { EASES, hash3, lerp, seg } from '../core/rand.js';
 import { C } from '../palette.js';
 import type { SpriteDraw } from '../ray/lighting.js';
-import { sprite, thing, type ItemLook, type Sprite } from '../ray/sprites-props.js';
+import { lookKey, sprite, thing, type ItemLook, type Sprite } from '../ray/sprites-props.js';
 
 export interface ThrowEvent {
   /** The hand starts its wind-up. */
@@ -42,7 +42,7 @@ let dustFrames: readonly Sprite[] | undefined;
 
 /** Eight tumble frames of an item (45 degree steps, nearest-neighbour). */
 function tumble(item: ItemLook): readonly Sprite[] {
-  const key = JSON.stringify(item);
+  const key = lookKey(item);
   const hit = frameCache.get(key);
   if (hit !== undefined) return hit;
   const base = thing(20, 23, item).outline(C.VOID);

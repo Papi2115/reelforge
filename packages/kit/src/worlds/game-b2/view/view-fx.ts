@@ -17,12 +17,13 @@ import { defineFx, type KitTools } from '../../../registry.js';
 import { EASE_IDS } from '../core/rand.js';
 import { compileExtraSprite, compileLevel, type CompiledLevel } from '../level/compile.js';
 import { BUILT_IN_LEVELS, builtInLevel } from '../level/examples.js';
-import { checkLevel, isDoor, isWall, legendOf, spriteSchema, type Level } from '../level/schema.js';
+import { checkLevel, isDoor, isWall, legendOf, levelSchemas, type Level } from '../level/schema.js';
 import { createPath, type Camera, type PathKey } from '../ray/camera.js';
 import { colorOfSwatch } from '../palette.js';
 import { ITEM_KINDS, type ItemLook } from '../ray/sprites-props.js';
 import { createOutput, SCREEN_H, SCREEN_W } from './output.js';
 import { viewExtras, type Timed } from './view-extra.js';
+import { artOf, defineAsset, isPerson, loadViewAssets, type ViewAssets } from './view-assets.js';
 import { B2World } from './world.js';
 
 const CALL = 'kit.fx.b2View()';
@@ -61,7 +62,13 @@ export const b2ViewParams = z.object({
   level: z
     .union([z.enum(BUILT_IN_LEVELS), z.record(z.string(), z.unknown())])
     .describe(
-      "'office' | 'warehouse' (built-in) or a level object { name, mood, floor, ceiling, grid, legend, lights, sprites }",
+      "'office' | 'warehouse' (built-in) or a level object { name, mood, floor, ceiling, sky, grid, legend, lights, sprites }",
+    ),
+  assets: z
+    .union([z.record(z.string(), z.unknown()), z.array(z.record(z.string(), z.unknown())).max(4)])
+    .optional()
+    .describe(
+      "The film's own { sprites, textures, icons } (pixel art or generators, e.g. { gen: 'plant', kind: 'conifer' }); their ids work in the level like built-in names",
     ),
   stencil: z
     .string()
@@ -88,6 +95,7 @@ export const b2ViewParams = z.object({
 
 const itemSchema = z.strictObject({
   kind: z.enum(ITEM_KINDS).optional().describe('cartridge (default), note or key'),
+  icon: z.string().optional().describe("An icon id of the film's assets (a ledger, a brick)"),
   label: z.string().max(5).optional().describe('Word on the item label (real, <= 5 letters)'),
   band: z.string().optional().describe('Label band colour: pink = THE item of the story (default)'),
   dirty: z.boolean().optional(),
@@ -123,6 +131,8 @@ export type B2ViewObject = FxObject & {
     options: { at: number | string; until?: number | string },
   ): { at: number; end: number };
   present(options: { at: number | string; until: number | string }): { at: number; end: number };
+  defineSprite(id: string, spec: unknown): void;
+  defineIcon(id: string, spec: unknown): void;
   cameraAt(t: number): Camera;
   automap(spec: unknown): Timed & { open: number; fold: number; intent: string };
   throw(item: unknown, spec: unknown): Timed & { release: number; land: number; intent: string };
@@ -148,10 +158,10 @@ function parse<S extends z.ZodType>(schema: S, value: unknown, what: string): z.
   );
 }
 
-function loadLevel(params: z.output<typeof b2ViewParams>): Level {
+function loadLevel(params: z.output<typeof b2ViewParams>, assets: ViewAssets): Level {
   const input =
     typeof params.level === 'string' ? builtInLevel(params.level, params.stencil) : params.level;
-  const checked = checkLevel(input);
+  const checked = checkLevel(input, assets.known);
   if (!checked.ok) fail(`level is invalid:\n- ${checked.errors.join('\n- ')}`);
   return checked.level;
 }
@@ -178,25 +188,31 @@ function pathKeys(
   });
 }
 
-function itemLook(value: unknown): ItemLook {
+function itemLook(value: unknown, assets: ViewAssets): ItemLook {
   const item = parse(itemSchema, value ?? {}, 'item');
   const band = item.band === undefined ? undefined : colorOfSwatch(item.band);
   if (item.band !== undefined && band === undefined)
     fail(`item.band "${item.band}" is not a game-b2 colour (e.g. pink, clay, dusk)`);
-  return { kind: item.kind, label: item.label, band, dirty: item.dirty };
+  const art = item.icon === undefined ? undefined : artOf(assets.set, item.icon);
+  if (item.icon !== undefined && art === undefined)
+    fail(`item.icon "${item.icon}" is not an icon of the assets (define it in assets.icons)`);
+  return { kind: item.kind, label: item.label, band, dirty: item.dirty, art };
 }
 
 function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2ViewObject {
   const resolve = createResolver(params.anchor, CALL);
   const seed = params.seed ?? Math.floor(tools.rng() * 2_147_483_647) % 100_000;
-  const level = loadLevel(params);
-  const compiled: CompiledLevel = compileLevel(level);
+  const assets = loadViewAssets(params.assets, fail);
+  const level = loadLevel(params, assets);
+  const compiled: CompiledLevel = compileLevel(level, assets.set);
   const world = new B2World(
     compiled,
     createPath(pathKeys(params, level, resolve), seed),
     seed,
     params.bob,
+    assets.set,
   );
+  const look = (value: unknown): ItemLook => itemLook(value, assets);
   const forever = params.duration ?? Number.POSITIVE_INFINITY;
   const output = createOutput(tools, params.size, params.layer, 'b2View');
   const screen = new Uint8Array(SCREEN_W * SCREEN_H);
@@ -223,19 +239,19 @@ function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2Vi
       return { at, end: at + 0.3 };
     },
     act(id: string, options: { act: 'talk' | 'no'; at: number | string; until: number | string }) {
-      if (!level.sprites.some((entry) => entry.id === id && entry.sprite === 'clerk'))
-        fail(`act("${id}"): no clerk sprite with that id`);
+      if (!level.sprites.some((entry) => entry.id === id && isPerson(assets, entry.sprite)))
+        fail(`act("${id}"): no clerk or person sprite with that id`);
       const at = time(options.at, 'act');
       const until = time(options.until, 'act');
       world.act(id, options.act, at, until);
       return { at, end: until };
     },
     place(sprite: unknown, options: { at: number | string; fall?: number }) {
-      const spec = parse(spriteSchema, sprite, 'place(sprite)');
-      const checked = checkLevel({ ...level, sprites: [...level.sprites, spec] });
+      const spec = parse(levelSchemas(assets.known).sprite, sprite, 'place(sprite)');
+      const checked = checkLevel({ ...level, sprites: [...level.sprites, spec] }, assets.known);
       if (!checked.ok) fail(`place(): ${checked.errors.join('; ')}`);
       const at = time(options.at, 'place');
-      world.place(compileExtraSprite(compiled, spec), at, options.fall ?? 0.25);
+      world.place(compileExtraSprite(compiled, spec, assets.set), at, options.fall ?? 0.25);
       return { at, end: at + 0.22 };
     },
     shake(options: { at: number | string; amp?: number }) {
@@ -258,7 +274,7 @@ function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2Vi
         kind: 'take',
         at: time(timing.at, 'take'),
         until,
-        item: itemLook(item),
+        item: look(item),
         from,
       });
     },
@@ -268,7 +284,7 @@ function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2Vi
         kind: 'hold',
         at: time(options.at, 'hold'),
         until,
-        item: itemLook(item),
+        item: look(item),
       });
     },
     present(options: { at: number | string; until: number | string }) {
@@ -278,8 +294,14 @@ function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2Vi
         until: time(options.until, 'present'),
       });
     },
+    defineSprite(id: string, spec: unknown) {
+      defineAsset(assets, 'sprites', id, spec, fail);
+    },
+    defineIcon(id: string, spec: unknown) {
+      defineAsset(assets, 'icons', id, spec, fail);
+    },
     cameraAt: (t: number) => world.camera(t),
-    ...viewExtras({ world, compiled, seed, time, fail, parse, itemLook }),
+    ...viewExtras({ world, compiled, seed, time, fail, parse, itemLook: look }),
   };
   const fx = asFx(output.object, (t) => {
     world.render(t, screen);
@@ -309,6 +331,10 @@ export const b2View = defineFx({
     'hold(item, { at, until })': 'The hand rises holding an item and lowers at until',
     'present({ at, until })':
       'The held item is pushed forward at someone (dip, overshoot, hold, ease back)',
+    'defineSprite(id, spec)':
+      "Defines one more project sprite after build (pixel art { rows, legend } or { gen: 'creature', ... }) for place()",
+    'defineIcon(id, spec)':
+      "Defines an item icon ({ gen: 'icon', kind: 'book' } or 12x12 rows) for take/hold/throw ({ icon: id }) and the HUD inventory",
     'cameraAt(t)': 'The camera { x, y, yaw, pitch, eye } at t',
     'automap({ intent, at, until, enter, exit, scale, rooms, replay, marks, note, camera, legend })':
       'Breakthrough: the level from above, generated from its grid (walls, doors, walked / next / ahead rooms, footprints, the arrow). Unfolds out of the HUD minimap and folds back (continuity). Returns { at, end, open, fold, cues }',

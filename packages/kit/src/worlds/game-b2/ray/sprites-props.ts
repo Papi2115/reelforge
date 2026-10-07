@@ -32,6 +32,29 @@ export interface ItemLook {
   /** Colour of the label band (swatch index); the accent marks THE item of the story. */
   readonly band?: number | undefined;
   readonly dirty?: boolean | undefined;
+  /** The film's own item icon (assets.icons): drawn instead of the shell. */
+  readonly art?: ItemArt | undefined;
+}
+
+/** A project icon as a held / thrown / inventory item; `key` = id + content hash (caches). */
+export interface ItemArt {
+  readonly key: string;
+  readonly bmp: Bmp;
+}
+
+/** Cache key of an item look (the art by its key, not its pixels). */
+export function lookKey(look: ItemLook): string {
+  return JSON.stringify({ ...look, art: look.art?.key });
+}
+
+/** The art scaled by the largest whole factor that fits w x h (nearest neighbour). */
+function artThing(art: ItemArt, w: number, h: number): Bmp {
+  const k = Math.max(1, Math.floor(Math.min(w / art.bmp.w, h / art.bmp.h)));
+  const out = new Bmp(art.bmp.w * k, art.bmp.h * k);
+  for (let y = 0; y < out.h; y += 1)
+    for (let x = 0; x < out.w; x += 1)
+      out.d[y * out.w + x] = art.bmp.d[Math.floor(y / k) * art.bmp.w + Math.floor(x / k)] ?? T;
+  return out;
 }
 
 /** A generic cartridge-style shell with our own label (no real logo). */
@@ -231,6 +254,7 @@ function key(w: number, h: number): Bmp {
 
 /** The item as a bitmap of about w x h (cartridge, note or key), not outlined. */
 export function thing(w: number, h: number, look: ItemLook, seed = 5): Bmp {
+  if (look.art !== undefined) return artThing(look.art, w, h);
   if (look.kind === 'note') return note(w, h, look);
   if (look.kind === 'key') return key(w, Math.round(h * 0.5));
   return cartridge(w, h, look, seed);

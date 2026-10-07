@@ -8,7 +8,7 @@
 import { EASES, lerp, seg } from '../core/rand.js';
 import { C, T } from '../palette.js';
 import { handHold, handOpen, type HandSprite } from '../ray/sprites-people.js';
-import type { ItemLook } from '../ray/sprites-props.js';
+import { lookKey, type ItemLook } from '../ray/sprites-props.js';
 import type { Camera } from '../ray/camera.js';
 import { shade } from '../ray/lighting.js';
 import { project, VIEW_H, VIEW_W } from '../ray/raycast.js';
@@ -56,7 +56,7 @@ export class HandTrack {
   }
 
   private holding(item: ItemLook): HandSprite {
-    const key = JSON.stringify(item);
+    const key = lookKey(item);
     let found = this.sprites.get(key);
     if (found === undefined) {
       found = handHold(item);

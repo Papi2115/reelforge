@@ -11,9 +11,9 @@ import { Bmp, handStroke } from '../core/bitmap.js';
 import { drawText, textWidth, typedCount, typeTimes } from '../core/font.js';
 import { bayer, EASES, hash3, lerp, seg } from '../core/rand.js';
 import { C, colorOfSwatch } from '../palette.js';
-import { cartridge, thing, type ItemLook } from '../ray/sprites-props.js';
+import { cartridge, lookKey, thing, type ItemArt, type ItemLook } from '../ray/sprites-props.js';
 import { caretOn, plate } from './plate.js';
-import { ICONS, type IconName } from './inventory.js';
+import { ICONS, isIconName, type IconName } from './inventory.js';
 import { time } from './hud-schemas.js';
 
 const caps = (max: number) =>
@@ -56,7 +56,7 @@ export const menuSchema = z.strictObject({
       items: z
         .array(
           z.strictObject({
-            icon: z.enum(ICONS),
+            icon: z.string().describe(`${ICONS.join(' | ')} or an icon id of the view's assets`),
             label: caps(18),
             sub: caps(18).default(''),
             itemLabel: caps(5).optional(),
@@ -83,6 +83,8 @@ export interface Menu {
   readonly select: readonly { at: number; index: number }[];
   readonly objectiveTimes: readonly number[];
   readonly seed: number;
+  /** Project icons of the inventory items (by index), drawn doubled. */
+  readonly arts: readonly (ItemArt | undefined)[];
 }
 
 const SLOTS = [
@@ -96,7 +98,7 @@ const SLOTS = [
 const icons = new Map<string, Bmp>();
 
 function bigIcon(icon: IconName, look: ItemLook): Bmp {
-  const key = `${icon}:${JSON.stringify(look)}`;
+  const key = `${icon}:${lookKey(look)}`;
   const hit = icons.get(key);
   if (hit !== undefined) return hit;
   let b: Bmp;
@@ -227,7 +229,11 @@ function inventory(b: Bmp, menu: Menu, t: number, y: number): void {
       return;
     }
     const band = item.band === undefined ? undefined : colorOfSwatch(item.band);
-    const icon = bigIcon(item.icon, { label: item.itemLabel, band });
+    const art = menu.arts[i];
+    const icon =
+      art !== undefined || !isIconName(item.icon)
+        ? thing(30, 30, { art })
+        : bigIcon(item.icon, { label: item.itemLabel, band });
     b.blit(icon, sx + 23 - (icon.w >> 1), top + 23 - (icon.h >> 1));
   });
   let current = -1;
@@ -298,8 +304,9 @@ export function createMenu(
   until: number,
   select: Menu['select'],
   seed: number,
+  arts: Menu['arts'] = [],
 ): Menu {
   const objectiveAt = at + 0.35 + 1.1 + 0.5;
   const objectiveTimes = typeTimes(spec.quest?.objective ?? '', 4242 + seed, objectiveAt, 0.045);
-  return { spec, at, until, select, objectiveTimes, seed };
+  return { spec, at, until, select, objectiveTimes, seed, arts };
 }

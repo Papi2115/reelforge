@@ -6,6 +6,7 @@
 import { BAYER } from '../core/rand.js';
 import { FOG_LEVELS, LIGHT_LEVELS, LIGHT_MAX } from '../palette.js';
 import type { Sprite } from './sprites-props.js';
+import type { Texture } from './texture.js';
 
 /** Lights one room can hold this frame (the level's 12 plus door spill). */
 export const LIGHTS_PER_ROOM = 16;
@@ -67,6 +68,10 @@ export interface FrameState {
   readonly sprites: readonly SpriteDraw[];
   /** Extra fog 0..1 over everything (fog interludes). */
   readonly fogBoost: number;
+  /** The level's textures this frame (animated ones on their current frame). */
+  readonly textures: readonly Texture[];
+  /** Shot time (sky drift, stars, the underwater shimmer). */
+  readonly t: number;
 }
 
 /** Colormap lookup with Bayer-dithered light and fog levels. */

@@ -8,11 +8,15 @@ import { Bmp } from '../core/bitmap.js';
 import { drawText } from '../core/font.js';
 import { EASES, seg } from '../core/rand.js';
 import { C } from '../palette.js';
-import { cartridge, type ItemLook } from '../ray/sprites-props.js';
+import { cartridge, lookKey, type ItemLook } from '../ray/sprites-props.js';
 import { plate } from './plate.js';
 
 export const ICONS = ['cartridge', 'calendar', 'carton', 'note', 'key'] as const;
 export type IconName = (typeof ICONS)[number];
+
+export function isIconName(name: string): name is IconName {
+  return (ICONS as readonly string[]).includes(name);
+}
 
 export interface InventoryItem {
   readonly icon: IconName;
@@ -34,11 +38,13 @@ const MAX_SLOTS = 6;
 const cache = new Map<string, Bmp>();
 
 function icon(item: InventoryItem): Bmp {
-  const key = `${item.icon}:${JSON.stringify(item.look)}`;
+  const key = `${item.icon}:${lookKey(item.look)}`;
   const hit = cache.get(key);
   if (hit) return hit;
   let b: Bmp;
-  if (item.icon === 'cartridge') {
+  if (item.look.art !== undefined) {
+    b = item.look.art.bmp;
+  } else if (item.icon === 'cartridge') {
     b = cartridge(16, 19, item.look).outline(C.VOID);
   } else if (item.icon === 'calendar') {
     b = new Bmp(17, 17, C.PAPER);

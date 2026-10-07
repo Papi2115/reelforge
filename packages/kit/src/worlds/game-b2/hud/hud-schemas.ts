@@ -108,7 +108,7 @@ export const schemas = {
     items: z
       .array(
         z.strictObject({
-          icon: z.enum(ICONS),
+          icon: z.string().describe(`${ICONS.join(' | ')} or an icon id of the view's assets`),
           label: words(z.string().min(1).max(24)),
           at: time.default(0),
           itemLabel: words(z.string().max(5)).optional(),

@@ -5,12 +5,14 @@
  * `render(t, screen)` paints the 640x360 index screen from scratch, a pure function of t (no
  * state carried between frames, any seek order).
  */
+import { emptyAssets, type AssetSet } from '../assets/pack.js';
 import { EASES, hash3, seg } from '../core/rand.js';
 import type { CompiledLevel, CompiledSprite } from '../level/compile.js';
 import type { CameraPath, Camera } from '../ray/camera.js';
 import { RoomLights, type FrameState, type SpriteDraw } from '../ray/lighting.js';
 import { createWorldBuffers, renderWorld, roomAt, VIEW_H, VIEW_W } from '../ray/raycast.js';
 import { bulb, type Sprite } from '../ray/sprites-props.js';
+import type { Texture } from '../ray/texture.js';
 import type { Automap, MapCover } from '../map/automap.js';
 import { drawHand, HandTrack } from './hand.js';
 import { SCREEN_W } from './output.js';
@@ -46,6 +48,8 @@ export class B2World {
   readonly level: CompiledLevel;
   readonly path: CameraPath;
   readonly hand = new HandTrack();
+  /** The film's own sprites, textures and icons (the HUD reads the icons). */
+  readonly assets: AssetSet;
   private readonly seed: number;
   private readonly bob: number;
   private readonly doors: DoorEvent[] = [];
@@ -63,15 +67,25 @@ export class B2World {
   private readonly doorOpen: Float32Array;
   private readonly glow: Float32Array;
   private readonly lights: RoomLights;
+  /** The level's textures this frame (animated slots swapped to their current frame). */
+  private readonly frameTextures: Texture[];
 
-  constructor(level: CompiledLevel, path: CameraPath, seed: number, bob: number) {
+  constructor(
+    level: CompiledLevel,
+    path: CameraPath,
+    seed: number,
+    bob: number,
+    assets: AssetSet = emptyAssets(),
+  ) {
     this.level = level;
+    this.assets = assets;
     this.path = path;
     this.seed = seed;
     this.bob = bob;
     this.doorOpen = new Float32Array(level.w * level.h);
     this.glow = new Float32Array(level.textures.length);
     this.lights = new RoomLights(level.regions.length);
+    this.frameTextures = [...level.textures];
   }
 
   open(x: number, y: number, at: number, duration: number): void {
@@ -143,6 +157,14 @@ export class B2World {
     return h < 0.07 ? 0.1 : h < 0.11 ? 0.55 : 1;
   }
 
+  /** A flame: an uneven, smoothed flicker per light. */
+  private fire(t: number, index: number): number {
+    const k = t * 9;
+    const a = hash3(Math.floor(k), 7, this.seed + index);
+    const b = hash3(Math.floor(k) + 1, 7, this.seed + index);
+    return 0.78 + 0.32 * (a + (b - a) * (k - Math.floor(k)));
+  }
+
   private switchLevel(id: string | undefined, t: number): number {
     const at = id === undefined ? undefined : this.switches.get(id);
     if (at === undefined) return 1;
@@ -163,8 +185,12 @@ export class B2World {
     const pick = (index: number): Sprite => frames[index] ?? frames[0] ?? BULB_OFF;
     if (frames.length === 1) return pick(0);
     if (sprite.kind === 'desk') return pick(hash3(Math.floor(t * 7), 2, this.seed) < 0.55 ? 1 : 0);
-    if (sprite.kind === 'clerk' && flinching(this.flinches, sprite.id, t))
+    if (sprite.person && flinching(this.flinches, sprite.id, t))
       return pick(Math.floor(t * 14) % 2 ? 2 : 3);
+    if (!sprite.person && sprite.fps > 0) {
+      const count = frames.length;
+      return pick((((Math.floor(t * sprite.fps) + sprite.phase) % count) + count) % count);
+    }
     const act = this.acts.find((a) => a.id === sprite.id && a.at <= t && t < a.until);
     if (act === undefined) return pick(0);
     const tick = Math.floor(t * 14);
@@ -202,15 +228,23 @@ export class B2World {
     level.textures.forEach((texture, id) => {
       this.glow[id] = texture.flicker ? (tube > 0.5 ? texture.glow : 0) : texture.glow;
     });
+    for (const anim of level.animated) {
+      const count = anim.frames.length;
+      const frame = ((Math.floor(t * anim.fps) % count) + count) % count;
+      const texture = anim.frames[frame];
+      if (texture !== undefined) this.frameTextures[anim.id] = texture;
+    }
     const sprites: SpriteDraw[] = [];
-    for (const light of level.lights) {
+    level.lights.forEach((light, index) => {
       const on = this.switchLevel(light.id, t);
       const flicker =
         light.flicker === 'tube'
           ? tube
-          : light.flicker === 'bulb' && hash3(Math.floor(t * 11), 5, this.seed) < 0.04
-            ? 0.7
-            : 1;
+          : light.flicker === 'fire'
+            ? this.fire(t, index)
+            : light.flicker === 'bulb' && hash3(Math.floor(t * 11), 5, this.seed) < 0.04
+              ? 0.7
+              : 1;
       const sway = light.bulb ? 0.035 * Math.sin(t * 1.9) + 0.012 * Math.sin(t * 4.3 + 1) : 0;
       this.lights.add(
         light.region,
@@ -230,7 +264,7 @@ export class B2World {
           w: 0.1,
           h: 0.4,
         });
-    }
+    });
     const knocked = (entry: CompiledSprite, z: number): SpriteDraw => {
       const off = flinchOffset(this.flinches, entry.id, t);
       const spr = this.frameOf(entry, t);
@@ -251,6 +285,8 @@ export class B2World {
       glow: this.glow,
       sprites,
       fogBoost: this.fogBoost(t),
+      textures: this.frameTextures,
+      t,
     };
   }
 

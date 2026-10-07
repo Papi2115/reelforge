@@ -8,6 +8,7 @@
 import { wallTextureAt, type CompiledLevel } from '../level/compile.js';
 import type { Camera } from './camera.js';
 import { shade, type FrameState } from './lighting.js';
+import { outdoorFlats } from './outdoor.js';
 
 export const VIEW_W = 320;
 export const VIEW_H = 180;
@@ -28,6 +29,7 @@ export function createWorldBuffers(): WorldBuffers {
 
 const rdx = new Float32Array(VIEW_W);
 const rdy = new Float32Array(VIEW_W);
+const RAYS = { rdx, rdy, width: VIEW_W, height: VIEW_H, focal: FOCAL, tanHalf: TANH } as const;
 /** Fog of the current floor/ceiling row, per room. */
 const rowFog = new Float32Array(256);
 
@@ -52,7 +54,8 @@ function flats(
   horizon: number,
 ): void {
   const { buf, depth } = out;
-  const { w, h, textures, regions } = level;
+  const { w, h, regions } = level;
+  const textures = state.textures;
   for (let y = 0; y < VIEW_H; y += 1) {
     const dyc = y + 0.5 - horizon;
     const isFloor = dyc > 0;
@@ -198,7 +201,7 @@ function castColumn(
       exit,
       room,
     });
-    if (type.h >= 1) break;
+    if (type.h >= level.tallest) break;
   }
   return count;
 }
@@ -212,7 +215,7 @@ function drawHit(
   x: number,
   horizon: number,
 ): void {
-  const tex = level.textures[hit.tex];
+  const tex = state.textures[hit.tex];
   const room = level.regions[hit.room];
   if (tex === undefined || room === undefined) return;
   const { buf, depth } = out;
@@ -231,7 +234,9 @@ function drawHit(
   const glowNow = state.glow[hit.tex] ?? 0;
   for (let y = y0; y <= y1; y += 1) {
     const z = eye + (horizon - y - 0.5) / scale;
-    const ty = Math.min(63, Math.max(0, Math.floor(((hit.h - z) / hit.h) * 64)));
+    const fromTop = hit.h - z;
+    const v = hit.h > 1 ? fromTop - Math.floor(fromTop) : fromTop / hit.h;
+    const ty = Math.min(63, Math.max(0, Math.floor(v * 64)));
     const c = tex.bmp.d[ty * 64 + tx] ?? 255;
     if (c === 255) continue;
     const glows = tex.emissive[c] === 1 && glowNow > 0;
@@ -343,7 +348,8 @@ export function renderWorld(
     rdy[x] = dirY + dirX * TANH * k;
   }
   out.depth.fill(FAR);
-  flats(level, cam, state, out, horizon);
+  if (level.sky === undefined) flats(level, cam, state, out, horizon);
+  else outdoorFlats(level, level.sky, cam, state, out, horizon, RAYS, state.t);
   walls(level, cam, state, out, horizon);
   billboards(level, cam, state, out, horizon);
   return horizon;

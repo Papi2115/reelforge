@@ -24,7 +24,10 @@ export { GAME_B2_ID, GAME_B2_STYLE } from './style.js';
 export { rpgBossLook } from './looks/rpg-boss/index.js';
 export { rpgExploreLook } from './looks/rpg-explore/index.js';
 export { rpgMenuLook } from './looks/rpg-menu/index.js';
-export { checkLevel, type LevelInput } from './level/schema.js';
+export { checkLevel, type KnownAssets, type LevelInput } from './level/schema.js';
+/** The film's own sprites / textures / icons (open vocabulary, PLAN.md#13.15). */
+export { checkAssets, type AssetsResult } from './assets/registry.js';
+export type { AssetPackInput } from './assets/pack.js';
 export { BUILT_IN_LEVELS } from './level/examples.js';
 /** The world's 32 colours [index name, swatch, hex] (the engine's game-native transitions). */
 export { B2_TABLE as GAME_B2_COLOURS } from './palette.js';

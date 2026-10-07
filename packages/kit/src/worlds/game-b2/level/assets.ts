@@ -8,12 +8,10 @@ import { clerk, desk } from '../ray/sprites-people.js';
 import { cached, type Texture } from '../ray/texture.js';
 import * as F from '../ray/textures-flats.js';
 import * as W from '../ray/textures-walls.js';
-import { LOW_WALLS, type SpriteSpec, type WallCell } from './schema.js';
+import { lowWallHeight, type BuiltInSprite, type SpriteSpec, type WallCell } from './schema.js';
 
 /** World width, height and foot height of each sprite kind. */
-export const SPRITE_SIZE: Readonly<
-  Record<SpriteSpec['sprite'], readonly [number, number, number]>
-> = {
+export const SPRITE_SIZE: Readonly<Record<BuiltInSprite, readonly [number, number, number]>> = {
   'sand-pile': [0.5, 0.21, 0],
   carton: [0.42, 0.25, 0],
   pallet: [0.9, 0.82, 0],
@@ -51,6 +49,8 @@ export function wallTexture(cell: WallCell, seed: number, variant: number): Text
         return W.counter(seed);
       case 'store-shelf':
         return W.storeShelf(seed + variant * 17);
+      default:
+        return W.concrete(seed + 11, cell);
     }
   });
 }
@@ -98,17 +98,17 @@ export function doorTexture(): Texture {
 }
 
 export function wallHeight(cell: WallCell): number {
-  return cell.height ?? LOW_WALLS[cell.wall] ?? 1;
+  return cell.height ?? lowWallHeight(cell.wall) ?? 1;
 }
 
-const DEFAULT_CAP: Partial<Record<WallCell['wall'], number>> = { cubicle: C.PUTTY, counter: C.TAN };
+const DEFAULT_CAP: Readonly<Record<string, number>> = { cubicle: C.PUTTY, counter: C.TAN };
 
 export function wallCap(cell: WallCell): number {
   return cell.cap === undefined ? (DEFAULT_CAP[cell.wall] ?? -1) : (colorOfSwatch(cell.cap) ?? -1);
 }
 
 /** The frames of a sprite: 0 = rest; desk 1 = typing; clerk 1 = talking, 2/3 = head-shake. */
-export function spriteFrames(spec: SpriteSpec): P.Sprite[] {
+export function spriteFrames(spec: SpriteSpec & { readonly sprite: BuiltInSprite }): P.Sprite[] {
   const look = {
     label: spec.label ?? '',
     band: spec.band === undefined ? undefined : colorOfSwatch(spec.band),
