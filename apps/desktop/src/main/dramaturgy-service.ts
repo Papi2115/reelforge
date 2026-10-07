@@ -51,8 +51,8 @@ const SYNC_REPORT_FILE = '.reelforge/sync-report.json';
 
 export interface DramaturgyServiceOptions {
   readonly projectDir: () => string | undefined;
-  /** Commits the open project; resolves true when a commit was made. */
-  readonly commit: (message: string) => Promise<boolean>;
+  /** Commits `paths` of the open project; resolves true when a commit was made. */
+  readonly commit: (message: string, paths: readonly string[]) => Promise<boolean>;
   readonly now: () => Date;
   readonly log: Logger;
 }
@@ -165,7 +165,7 @@ export class DramaturgyService {
       return { status: 'error', message: `cannot write ${MOMENTS_FILE}: ${describeError(error)}` };
     }
     const message = describeDecision(view.moment, request.decision);
-    const committed = await this.options.commit(message);
+    const committed = await this.options.commit(message, [MOMENTS_FILE]);
     this.options.log.info(`${message}${committed ? '' : ' (not committed)'}`);
     const after = await this.load(dir);
     return 'message' in after

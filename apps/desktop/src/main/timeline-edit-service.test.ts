@@ -28,6 +28,7 @@ const FIXTURE = path.resolve(
 let root: string;
 let dir: string;
 let commits: string[];
+let committedPaths: (readonly string[])[];
 let service: TimelineEditService;
 
 beforeEach(async () => {
@@ -35,10 +36,12 @@ beforeEach(async () => {
   dir = path.join(root, 'Mój film');
   await cp(FIXTURE, dir, { recursive: true });
   commits = [];
+  committedPaths = [];
   service = new TimelineEditService({
     projectDir: () => dir,
-    commit: (message) => {
+    commit: (message, paths) => {
       commits.push(message);
+      committedPaths.push(paths);
       return Promise.resolve(true);
     },
     log: createLogger(() => undefined),
@@ -68,6 +71,7 @@ describe('TimelineEditService', () => {
     const result = okResult(await service.edit({ change: moveS01, reason: 'edit' }));
     expect(result.message).toBe('Move boundary s01/s02 to 2.50 s');
     expect(commits).toEqual(['Move boundary s01/s02 to 2.50 s']);
+    expect(committedPaths).toEqual([['storyboard.json']]);
     expect(result.inverse).toEqual({
       file: 'storyboard',
       edits: [{ kind: 'move-boundary', left: 's01', right: 's02', from: 2.5, to: 2.2 }],

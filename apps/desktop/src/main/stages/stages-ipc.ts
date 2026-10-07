@@ -78,8 +78,8 @@ export interface StagesHandlerOptions {
   readonly probe: AudioProbe;
   readonly hasWhisperModel: (model: WhisperModelId) => boolean;
   readonly mic: MicPermissionGate;
-  /** Autocommit of a project (shot locks). */
-  readonly commit: (dir: string, message: string) => Promise<void>;
+  /** Autocommit of `paths` in a project (shot locks). */
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<void>;
   /**
    * Taste learning (PLAN.md#12.13): a lock approves shots as they are, a rebuild sends them back;
    * the profile owner ignores both while learning is off.

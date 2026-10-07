@@ -4,7 +4,7 @@
  * look registry for the project's style (`styleLookSummaries`, ADR-029: a world's style offers
  * only its own looks), so a newly available look shows up without a UI change.
  */
-import { isWorldStyle } from '@reelforge/kit';
+import { isUnwiredWorldStyle, isWorldStyle } from '@reelforge/kit';
 import { styleLooks, styleLookSummaries } from '@reelforge/stages';
 import type { LookSummary, ProjectStyle } from '../shared/project-settings-contract.js';
 import { describeStyle } from '../shared/style-choices.js';
@@ -45,6 +45,7 @@ export function projectStyle(style: string, experimentalWorlds: boolean): Projec
       enabled: true,
     };
   }
+  if (isUnwiredWorldStyle(style)) return { ...choice, enabled: false, inDevelopment: true };
   return { ...choice, enabled: !choice.preview || experimentalWorlds };
 }
 
@@ -54,10 +55,11 @@ export function projectSettingsHandlers(
 ): ProjectSettingsHandlers {
   const service = new ProjectSettingsService({
     projectDir: () => projects.currentProject()?.dir,
-    commit: async (message) => {
+    commit: async (message, paths) => {
       const result = await projects.autocommit(message, {
         kind: 'manual',
         step: PROJECT_SETTINGS_STEP,
+        paths,
       });
       if (!result.ok) log.warn(`project settings not committed: ${result.error.message}`);
       return result.ok && result.value.status === 'committed';

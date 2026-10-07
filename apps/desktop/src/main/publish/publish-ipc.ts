@@ -6,6 +6,7 @@ import type { AppSettings } from '@reelforge/shared';
 import type { ClaudeRunner } from '@reelforge/stages';
 import type { InvokeHandlers } from '../ipc-router.js';
 import type { Logger } from '../logger.js';
+import type { StepCommit } from '../project-commits.js';
 import { ClaimsService } from './claims-service.js';
 import { PublishService } from './publish-service.js';
 
@@ -18,8 +19,8 @@ export interface PublishHandlerOptions {
   readonly currentProject: () => string | undefined;
   readonly claude: ClaudeRunner;
   readonly settings: () => AppSettings;
-  /** Autocommit with a step name; false when it failed (logged by the caller). */
-  readonly commit: (dir: string, message: string, step: string) => Promise<boolean>;
+  /** Autocommit of `paths` with a step name; false when it failed (logged by the caller). */
+  readonly commit: StepCommit;
   readonly openPath: (folder: string) => Promise<string>;
   readonly log: Logger;
 }
@@ -27,7 +28,7 @@ export interface PublishHandlerOptions {
 export function publishHandlers(options: PublishHandlerOptions): PublishHandlers {
   const publish = new PublishService({
     currentProject: options.currentProject,
-    commit: (dir, message) => options.commit(dir, message, 'publish'),
+    commit: (dir, message, paths) => options.commit(dir, message, 'publish', paths),
     openPath: options.openPath,
     log: options.log,
   });
@@ -36,7 +37,7 @@ export function publishHandlers(options: PublishHandlerOptions): PublishHandlers
     claude: options.claude,
     settings: options.settings,
     now: () => new Date(),
-    commit: (dir, message) => options.commit(dir, message, 'sources'),
+    commit: (dir, message, paths) => options.commit(dir, message, 'sources', paths),
     log: options.log,
   });
   return {

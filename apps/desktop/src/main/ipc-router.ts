@@ -186,6 +186,12 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.channelSecretsSet, handlers.channelSecretsSet);
   registerInvoke(IPC.channelSecretsHas, handlers.channelSecretsHas);
   registerInvoke(IPC.channelSecretsDelete, handlers.channelSecretsDelete);
+  registerInvoke(IPC.voiceListSentences, handlers.voiceListSentences);
+  registerInvoke(IPC.voiceEstimate, handlers.voiceEstimate);
+  registerInvoke(IPC.voiceGenerate, handlers.voiceGenerate);
+  registerInvoke(IPC.voiceCancel, handlers.voiceCancel);
+  registerInvoke(IPC.voiceRetake, handlers.voiceRetake);
+  registerInvoke(IPC.voiceTestKey, handlers.voiceTestKey);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

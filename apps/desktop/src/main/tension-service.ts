@@ -108,8 +108,8 @@ export function shotChanges(
 export interface TensionServiceOptions {
   /** Folder of the open project (undefined: none open). */
   readonly projectDir: () => string | undefined;
-  /** Commits the open project; resolves true when a commit was made. */
-  readonly commit: (message: string) => Promise<boolean>;
+  /** Commits `paths` of the open project; resolves true when a commit was made. */
+  readonly commit: (message: string, paths: readonly string[]) => Promise<boolean>;
   readonly log: Logger;
 }
 
@@ -178,7 +178,7 @@ export class TensionService {
       this.options.log.error(`cannot write ${TENSION_FILE}: ${describeError(error)}`);
       return { status: 'error', message: `cannot write ${TENSION_FILE}: ${describeError(error)}` };
     }
-    const committed = await this.options.commit(subject);
+    const committed = await this.options.commit(subject, [TENSION_FILE]);
     this.options.log.info(`${subject}${committed ? '' : ' (not committed)'}`);
     return { status: 'ok', file, committed, ...changes };
   }

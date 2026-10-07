@@ -8,7 +8,6 @@ import path from 'node:path';
 import { killTree, PipelineStateStore } from '@reelforge/claude-bridge';
 import { ASSET_LIBRARY_ENV, defaultAssetRuntime } from '@reelforge/cli/assets';
 import { writeCliShims } from '@reelforge/cli/shims';
-import { autocommit } from '@reelforge/project';
 import {
   app,
   BrowserWindow,
@@ -50,12 +49,14 @@ import { createChildProcessRegistry } from './child-processes.js';
 import { chatHandlers } from './claude/chat-ipc.js';
 import { claudeSetup, prepareShims, type ClaudeRuntimeOptions } from './claude/claude-runtime.js';
 import { ClaudeService } from './claude/claude-service.js';
+import { commitChatTurn } from './claude/turn-commit.js';
 import { loadDemoManifest } from './demo-manifest.js';
 import { registerIpc } from './ipc-router.js';
 import { createLogger, describeError, fileAndStderrSink } from './logger.js';
 import { MicPermissionGate } from './mic-permission.js';
 import { serveMediaProtocol } from './media-protocol.js';
 import { isAllowedNavigation, resolveRendererSource } from './navigation-policy.js';
+import { madeCommit, manualCommitter } from './project-commits.js';
 import { projectHandlers } from './project-ipc.js';
 import { tensionHandlers } from './tension-ipc.js';
 import { directionsHandlers } from './directions-ipc.js';
@@ -86,11 +87,14 @@ import {
   settingsAudioTools,
   sharedClaudeRunner,
 } from './stages/stage-runtime.js';
-import { StageService } from './stages/stage-service.js';
+import { projectKey, StageService } from './stages/stage-service.js';
 import { replacementDialogOptions, stagesHandlers, type ReplacePick } from './stages/stages-ipc.js';
 import { variantsHandlers } from './stages/variants-ipc.js';
 import { createExportBackend } from './export/export-backend.js';
 import { createSoundBackend, settingsFfmpeg } from './sound/sound-backend.js';
+import { elevenLabsTestUrl } from './voice/test-hooks.js';
+import { voiceHandlers } from './voice/voice-ipc.js';
+import { VoiceService } from './voice/voice-service.js';
 import { soundPickerOptions } from './sound/sound-ipc.js';
 import { createTimelineEdits, timelineHandlers } from './timeline-ipc.js';
 import { whisperTestHooks } from './whisper/test-hooks.js';
@@ -307,7 +311,9 @@ function main(): void {
       ...renderBackend.serviceEnv(dir),
       [ASSET_LIBRARY_ENV]: libraryDir,
     }),
-    commit: (dir, message) => autocommit(dir, message, { kind: 'claude-turn' }),
+    // Every change of the turn, minus the scenes a parallel scene build is still writing.
+    commit: (dir, message) =>
+      commitChatTurn(dir, message, { shotsInProgress: stages.shotsInProgress(dir) }),
     review: {
       run: (mode, observer): Promise<StageCommandResult> =>
         stages.enqueue([{ stage: 'scenes', action: mode }], observer),
@@ -321,6 +327,9 @@ function main(): void {
 
   const pipelineStore = new PipelineStateStore();
   const stagesLog = log.child('stages');
+  // App edits commit only the files they wrote (another writer may be mid-way, PLAN.md#13).
+  const stagesCommit = manualCommitter(stagesLog);
+  const appCommit = manualCommitter(log);
   const testHooks = !app.isPackaged && process.env[TEST_HOOKS_ENV] === '1';
   const recordedTranscript = testHooks ? process.env[TEST_TRANSCRIPT_ENV] : undefined;
   const settingsAudio = settingsAudioTools(() => settings.get(), undefined, whisperBase);
@@ -387,10 +396,8 @@ function main(): void {
     store: pipelineStore,
     currentProject: () => projects.currentProject()?.dir,
     scriptBusy: (dir) => stages.isBusyWith(dir, 'script'),
-    commit: async (dir, message, step) => {
-      const committed = await autocommit(dir, message, { kind: 'manual', step });
-      if (!committed.ok)
-        stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+    commit: async (dir, message, step, paths) => {
+      await stagesCommit(dir, message, step, paths);
     },
     afterChange: () => {
       stages.refresh();
@@ -399,6 +406,30 @@ function main(): void {
   });
   const pickReplacement = async (kind: ReplacePick): Promise<string | undefined> =>
     (await showOpen(replacementDialogOptions(kind)))?.[0];
+  /** ElevenLabs voice (PLAN.md#13.14): main only, with the project's channel key. */
+  const voiceFfmpeg = settingsFfmpeg(() => settings.get());
+  const voice = new VoiceService({
+    channelsFile: channelsFile(userDataDir),
+    secrets: channelSecrets,
+    store: pipelineStore,
+    baseUrl: elevenLabsTestUrl(process.env, testHooks),
+    ffmpeg: async () => {
+      const manager = await voiceFfmpeg();
+      return manager.ok ? manager.value : null;
+    },
+    importVoiceover: (dir, file) =>
+      projectKey(projects.currentProject()?.dir ?? '') === projectKey(dir)
+        ? stages.enqueue([{ stage: 'voiceover', source: file }])
+        : Promise.resolve({ status: 'error', message: 'the project was closed meanwhile' }),
+    voiceoverBusy: (dir) => stages.isBusyWith(dir, 'voiceover'),
+    commit: async (dir, message, paths) => {
+      await stagesCommit(dir, message, 'voiceover', paths);
+    },
+    push: (progress) => {
+      mainWindow?.webContents.send(IPC_PUSH.voiceProgress.name, progress);
+    },
+    log: log.child('voice'),
+  });
 
   const timelineEdits = createTimelineEdits(projects, log.child('timeline'));
   const appInfo = (): AppInfo => ({
@@ -455,60 +486,34 @@ function main(): void {
         hasWhisperModel: (model) => audioTools.hasWhisperModel(model),
         mic: micGate,
         taste: { recordShots: (dir, shotIds, kind) => taste.recordShots(dir, shotIds, kind) },
-        commit: async (dir, message) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step: 'locks' });
-          if (!committed.ok)
-            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+        commit: async (dir, message, paths) => {
+          await stagesCommit(dir, message, 'locks', paths);
         },
         log: stagesLog,
       }),
       ...tensionHandlers({
         currentProject: () => projects.currentProject()?.dir,
-        commit: async (dir, message, step) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step });
-          if (!committed.ok) {
-            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
-            return false;
-          }
-          return committed.value.status === 'committed';
-        },
+        commit: async (dir, message, step, paths) =>
+          madeCommit(await stagesCommit(dir, message, step, paths)),
         enqueue: (requests) => stages.enqueue(requests),
         log: log.child('tension'),
       }),
       ...dramaturgyHandlers({
         currentProject: () => projects.currentProject()?.dir,
-        commit: async (dir, message, step) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step });
-          if (!committed.ok) {
-            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
-            return false;
-          }
-          return committed.value.status === 'committed';
-        },
+        commit: async (dir, message, step, paths) =>
+          madeCommit(await stagesCommit(dir, message, step, paths)),
         log: log.child('dramaturgy'),
       }),
       ...directionsHandlers({
         currentProject: () => projects.currentProject()?.dir,
-        commit: async (dir, message, step) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step });
-          if (!committed.ok) {
-            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
-            return false;
-          }
-          return committed.value.status === 'committed';
-        },
+        commit: async (dir, message, step, paths) =>
+          madeCommit(await stagesCommit(dir, message, step, paths)),
         log: log.child('directions'),
       }),
       ...editingHandlers({
         currentProject: () => projects.currentProject()?.dir,
-        commit: async (dir, message, step) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step });
-          if (!committed.ok) {
-            stagesLog.warn(`autocommit "${message}" failed: ${committed.error.message}`);
-            return false;
-          }
-          return committed.value.status === 'committed';
-        },
+        commit: async (dir, message, step, paths) =>
+          madeCommit(await stagesCommit(dir, message, step, paths)),
         enqueue: (requests) => stages.enqueue(requests),
         log: log.child('editing'),
       }),
@@ -524,9 +529,8 @@ function main(): void {
             properties: ['openFile', 'multiSelections'],
             filters: OWN_ASSET_FILTERS,
           }),
-        commit: async (dir, message) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step: 'assets' });
-          if (!committed.ok) log.warn(`autocommit "${message}" failed: ${committed.error.message}`);
+        commit: async (dir, message, paths) => {
+          await appCommit(dir, message, 'assets', paths);
         },
         log: log.child('assets'),
       }),
@@ -534,11 +538,8 @@ function main(): void {
         currentProject: () => projects.currentProject()?.dir,
         claude: sharedClaudeRunner(() => claude.sessionManager()),
         settings: () => settings.get(),
-        commit: async (dir, message, step) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step });
-          if (!committed.ok) log.warn(`autocommit "${message}" failed: ${committed.error.message}`);
-          return committed.ok;
-        },
+        commit: async (dir, message, step, paths) =>
+          (await appCommit(dir, message, step, paths)).ok,
         openPath: (folder) => shell.openPath(folder),
         log: log.child('publish'),
       }),
@@ -549,11 +550,7 @@ function main(): void {
         store: pipelineStore,
         scriptBusy: (dir) => stages.isBusyWith(dir, 'script'),
         flushScript: () => scriptDocuments.flush(),
-        commit: async (dir, message) => {
-          const committed = await autocommit(dir, message, { kind: 'manual', step: 'script' });
-          if (!committed.ok) log.warn(`autocommit "${message}" failed: ${committed.error.message}`);
-          return committed.ok;
-        },
+        commit: async (dir, message, paths) => (await appCommit(dir, message, 'script', paths)).ok,
         afterChange: () => {
           stages.refresh();
         },
@@ -582,6 +579,7 @@ function main(): void {
         secrets: channelSecrets,
         log: log.child('channels'),
       }),
+      ...voiceHandlers(voice, () => projects.currentProject()?.dir),
       ...variantsHandlers({
         service: stages,
         currentProject: () => projects.currentProject()?.dir,
@@ -610,6 +608,8 @@ function main(): void {
       !stages.busy &&
       !scriptDocuments.dirty &&
       !settings.saving;
+    // A voice job is stopped (its paid takes are already saved), never waited for.
+    voice.cancel();
     if (childrenKilled || idle) return;
     event.preventDefault();
     childrenKilled = true;

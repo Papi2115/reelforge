@@ -2,7 +2,9 @@
 
 PLAN.md#13.14, ADR-033. Code: `packages/pipeline/src/voice/` (exported from `@reelforge/pipeline`),
 schemas `packages/shared/src/takes.ts`. API facts: `docs/spikes/elevenlabs-api.md` (2026-10-07).
-This part is the engine only; the Voiceover stage button, channel key lookup and UI are the next packet.
+The desktop integration (main `apps/desktop/src/main/voice/`, panel `renderer/stages/VoiceoverGenerate.tsx`) uses
+the project's channel voice and key; the assembled file goes through the Voiceover step like a manual import
+(previous take archived, later steps out of date). UI copy: `docs/ui-copy.md` "Voice generation".
 Manual voice-over import stays as it is.
 
 ## Flow

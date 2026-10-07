@@ -14,6 +14,7 @@
     "../src/shared/export-contract.ts",
     "../src/main/whisper/test-hooks.ts",
     "../src/main/whisper/testing/fake-mirror.ts",
+    "../src/main/voice/test-hooks.ts",
     "../electron-builder.config.ts"
   ],
   "references": [

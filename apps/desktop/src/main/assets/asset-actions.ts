@@ -17,6 +17,7 @@ import {
   removeFromLibrary,
 } from '@reelforge/cli/assets';
 import type { ResearchMode } from '@reelforge/shared';
+import { FILES } from '@reelforge/stages';
 import type {
   AssetsEditRequest,
   AssetsImportRequest,
@@ -33,8 +34,8 @@ export interface AssetActionsOptions {
   readonly saveOwnToLibrary: () => boolean;
   /** Main's file picker (images and videos); undefined when cancelled. */
   readonly pickFiles: () => Promise<readonly string[] | undefined>;
-  /** Autocommit of the project after a change of assets.json. */
-  readonly commit: (dir: string, message: string) => Promise<void>;
+  /** Autocommit of `paths` (assets.json) after a change of the catalogue. */
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<void>;
   /** assets.json changed: the pipeline state may have changed. */
   readonly changed: () => void;
   readonly now?: () => Date;
@@ -83,8 +84,9 @@ export class AssetActions {
     return this.options.now?.() ?? new Date();
   }
 
+  /** The bytes live in git-ignored `.reelforge/assets/`: only the catalogue is committed. */
   private async finish(dir: string, message: string): Promise<void> {
-    await this.options.commit(dir, message);
+    await this.options.commit(dir, message, [FILES.assets]);
     this.options.changed();
   }
 

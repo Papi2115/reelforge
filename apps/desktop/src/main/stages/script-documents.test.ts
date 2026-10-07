@@ -35,6 +35,8 @@ interface Harness {
   readonly dir: string;
   readonly store: PipelineStateStore;
   readonly commits: string[];
+  /** The paths of each commit (only the files the action wrote). */
+  readonly committedPaths: (readonly string[])[];
   busy: boolean;
 }
 
@@ -45,17 +47,20 @@ function harness(
   const dir = projects.create(files);
   const store = new PipelineStateStore();
   const commits: string[] = [];
+  const committedPaths: (readonly string[])[] = [];
   const state: Harness = {
     dir,
     store,
     commits,
+    committedPaths,
     busy: false,
     docs: new ScriptDocuments({
       store,
       currentProject: () => dir,
       scriptBusy: () => state.busy,
-      commit: (_dir, message) => {
+      commit: (_dir, message, _step, paths) => {
         commits.push(message);
+        committedPaths.push(paths);
         return Promise.resolve();
       },
       afterChange: () => undefined,
@@ -123,6 +128,7 @@ describe('ScriptDocuments', () => {
     });
     expect((await h.docs.brief()).brief).toEqual(brief);
     expect(h.commits).toEqual(['Brief: Rainbows in a glass of water']);
+    expect(h.committedPaths).toEqual([['brief.json']]);
   });
 
   it('reads the script view: texts, sources, target and report', async () => {
@@ -177,6 +183,7 @@ describe('ScriptDocuments', () => {
     });
     expect((await scriptState(h))['script']?.approvedAt).toBeUndefined();
     expect(h.commits).toEqual(['Edit script', 'Import script from from editor.txt']);
+    expect(h.committedPaths).toEqual([['script.txt'], ['script.txt']]);
   });
 
   it('refuses changes while the script stage runs, and an empty approval', async () => {

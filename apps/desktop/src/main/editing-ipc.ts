@@ -31,6 +31,7 @@ import type {
 import type { StageCommandResult } from '../shared/stages-contract.js';
 import type { InvokeHandlers } from './ipc-router.js';
 import { describeError, type Logger } from './logger.js';
+import type { StepCommit } from './project-commits.js';
 
 /** Commit trailer `ReelForge-Step` of an applied repetition. */
 export const REPETITION_STEP = 'repetition';
@@ -39,8 +40,8 @@ export type EditingHandlers = Pick<InvokeHandlers, 'editingState' | 'repetitionA
 
 export interface EditingHandlerOptions {
   readonly currentProject: () => string | undefined;
-  /** Commits the open project with the given step; true when a commit was made. */
-  readonly commit: (dir: string, message: string, step: string) => Promise<boolean>;
+  /** Commits `paths` of the project with the given step; true when a commit was made. */
+  readonly commit: StepCommit;
   readonly enqueue: (requests: readonly StageRequest[]) => Promise<StageCommandResult>;
   readonly log: Logger;
 }
@@ -99,7 +100,8 @@ async function act(
   const applied = await applyRepetition(dir, project, request.id);
   if (!applied.ok) return { status: 'error', message: applied.error.message };
   const { message, files, requests } = applied.value;
-  const committed = files.length > 0 ? await options.commit(dir, message, REPETITION_STEP) : false;
+  const committed =
+    files.length > 0 ? await options.commit(dir, message, REPETITION_STEP, files) : false;
   let queued = false;
   if (requests.length > 0) {
     const result = await options.enqueue(requests);

@@ -10,6 +10,7 @@ import type { WhisperState } from '../shared/whisper-contract.js';
 import type { SettingsHandlers } from './settings-ipc.js';
 import type { SoundHandlers } from './sound/sound-ipc.js';
 import type { VariantsHandlers } from './stages/variants-ipc.js';
+import type { VoiceHandlers } from './voice/voice-ipc.js';
 import type { ExportHandlers } from './export/export-ipc.js';
 import type { AssetsHandlers } from './assets/assets-ipc.js';
 import type { ChannelsHandlers } from './channels/channels-ipc.js';
@@ -214,6 +215,27 @@ function channelStubs(record: <T>(request: unknown, response: T) => Promise<T>):
   };
 }
 
+/** ElevenLabs voice channels (PLAN.md#13.14). */
+function voiceStubs(record: <T>(request: unknown, response: T) => Promise<T>): VoiceHandlers {
+  const failed = { status: 'error', kind: 'no-key', message: 'n/a' } as const;
+  return {
+    voiceListSentences: (request) =>
+      record(request, {
+        setup: { status: 'unavailable', message: 'n/a' },
+        generated: false,
+        scriptChanged: false,
+        audioFile: null,
+        sentences: [],
+        running: null,
+      } as const),
+    voiceEstimate: (request) => record(request, failed),
+    voiceGenerate: (request) => record(request, failed),
+    voiceCancel: (request) => record(request, false),
+    voiceRetake: (request) => record(request, failed),
+    voiceTestKey: (request) => record(request, failed),
+  };
+}
+
 /** Shot variant channels (PLAN.md#11.3). */
 function variantStubs(record: <T>(request: unknown, response: T) => Promise<T>): VariantsHandlers {
   return {
@@ -361,6 +383,7 @@ function setup(): {
       ...soundStubs(record),
       ...variantStubs(record),
       ...channelStubs(record),
+      ...voiceStubs(record),
     },
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),

@@ -20,6 +20,13 @@ describe('lookSummaries', () => {
     ]);
     expect(lookSummaries('sketchbook', false)).toEqual([]);
   });
+
+  it('lists no looks for a world that is not wired yet, switch or not', () => {
+    for (const style of ['comic', 'game-b2']) {
+      expect(lookSummaries(style, true)).toEqual([]);
+      expect(lookSummaries(style, false)).toEqual([]);
+    }
+  });
 });
 
 describe('projectStyle', () => {
@@ -39,5 +46,15 @@ describe('projectStyle', () => {
       preview: false,
       enabled: true,
     });
+  });
+
+  it('never lets a world that is not wired yet build, and says it is in development', () => {
+    expect(projectStyle('comic', true)).toMatchObject({
+      world: true,
+      enabled: false,
+      inDevelopment: true,
+    });
+    expect(projectStyle('game-b2', false)).toMatchObject({ enabled: false, inDevelopment: true });
+    expect(projectStyle('sketchbook', true)).not.toHaveProperty('inDevelopment');
   });
 });

@@ -105,6 +105,8 @@ export const projectStyleSchema = z.object({
   preview: z.boolean(),
   /** False for a preview world while Settings → "Experimental worlds (preview)" is off. */
   enabled: z.boolean(),
+  /** A world that is not wired yet (render-only): never enabled, whatever the switch says. */
+  inDevelopment: z.boolean().optional(),
 });
 export type ProjectStyle = z.infer<typeof projectStyleSchema>;
 

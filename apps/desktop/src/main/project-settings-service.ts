@@ -62,8 +62,8 @@ type RawProject = z.infer<typeof rawProjectSchema>;
 export interface ProjectSettingsServiceOptions {
   /** Folder of the open project (undefined: none open). */
   readonly projectDir: () => string | undefined;
-  /** Commits the open project; resolves true when a commit was made. */
-  readonly commit: (message: string) => Promise<boolean>;
+  /** Commits `paths` of the open project; resolves true when a commit was made. */
+  readonly commit: (message: string, paths: readonly string[]) => Promise<boolean>;
   /** Looks a project of this style offers (kit registry, ADR-029). */
   readonly looks: (style: string) => readonly LookSummary[];
   /** How the dialog shows the project's style (read-only). */
@@ -277,7 +277,7 @@ export class ProjectSettingsService {
       return { status: 'error', message: `cannot write ${PROJECT_FILE}: ${describeError(error)}` };
     }
     const message = describeSettingsChange(before, after);
-    const committed = await this.options.commit(message);
+    const committed = await this.options.commit(message, [PROJECT_FILE]);
     this.options.log.info(`${message}${committed ? '' : ' (not committed)'}`);
     return { status: 'ok', settings: after, committed };
   }

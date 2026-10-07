@@ -245,3 +245,58 @@
   flex: none;
   max-height: 140px;
 }
+
+/* ElevenLabs generation in the Voiceover panel (PLAN.md#13.14) */
+.voice-run {
+  flex: none;
+}
+
+.voice-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  background: var(--panel-raised);
+}
+
+.voice-estimate {
+  margin: 0;
+  font-size: 14px;
+}
+
+.voice-sentence-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.voice-sentence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+
+.voice-sentence-time {
+  flex: none;
+  width: 3.2em;
+  font-size: 12px;
+}
+
+.voice-sentence-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.voice-redo-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 50%;
+  font-size: 12px;
+}

@@ -47,13 +47,15 @@ function record(overrides: Partial<AssetRecord>): AssetRecord {
 let root: string;
 let dir: string;
 let commits: string[];
+let committedPaths: (readonly string[])[];
 let opened: string[];
 
 function service(current: () => string | undefined = () => dir): PublishService {
   return new PublishService({
     currentProject: current,
-    commit: (_dir, message) => {
+    commit: (_dir, message, paths) => {
       commits.push(message);
+      committedPaths.push(paths);
       return Promise.resolve(true);
     },
     openPath: (folder) => {
@@ -111,6 +113,7 @@ beforeEach(async () => {
   dir = path.join(root, 'Mój film');
   await cp(EXAMPLE, dir, { recursive: true });
   commits = [];
+  committedPaths = [];
   opened = [];
 });
 
@@ -166,6 +169,7 @@ describe('PublishService', () => {
       committed: true,
     });
     expect(commits).toEqual(['Save the publish kit']);
+    expect(committedPaths).toEqual([PUBLISH_FILES.map((name) => `publish/${name}`)]);
     const chapters = await readFile(path.join(dir, 'publish', 'chapters.txt'), 'utf8');
     expect(chapters.split('\n')[0]).toBe('0:00 Doom Runs');
     expect(await service().openFolder()).toEqual({ status: 'opened' });

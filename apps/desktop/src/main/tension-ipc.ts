@@ -8,6 +8,7 @@ import type { StageRequest } from '@reelforge/stages';
 import type { StageCommandResult } from '../shared/stages-contract.js';
 import type { InvokeHandlers } from './ipc-router.js';
 import type { Logger } from './logger.js';
+import type { StepCommit } from './project-commits.js';
 import { TENSION_STEP, TensionService } from './tension-service.js';
 
 export type TensionHandlers = Pick<
@@ -17,8 +18,8 @@ export type TensionHandlers = Pick<
 
 export interface TensionHandlerOptions {
   readonly currentProject: () => string | undefined;
-  /** Commits the open project with `ReelForge-Step: tension`; true when a commit was made. */
-  readonly commit: (dir: string, message: string, step: string) => Promise<boolean>;
+  /** Commits `paths` of the project with `ReelForge-Step: tension`; true when a commit was made. */
+  readonly commit: StepCommit;
   readonly enqueue: (requests: readonly StageRequest[]) => Promise<StageCommandResult>;
   readonly log: Logger;
 }
@@ -26,9 +27,9 @@ export interface TensionHandlerOptions {
 export function tensionHandlers(options: TensionHandlerOptions): TensionHandlers {
   const service = new TensionService({
     projectDir: options.currentProject,
-    commit: async (message) => {
+    commit: async (message, paths) => {
       const dir = options.currentProject();
-      return dir === undefined ? false : options.commit(dir, message, TENSION_STEP);
+      return dir === undefined ? false : options.commit(dir, message, TENSION_STEP, paths);
     },
     log: options.log,
   });

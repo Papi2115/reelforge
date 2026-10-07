@@ -155,6 +155,11 @@ export class StageService {
     );
   }
 
+  /** Shots whose scene file a running scene build in `dir` is writing (kept out of chat commits). */
+  shotsInProgress(dir: string): string[] {
+    return this.pipelines.get(projectKey(dir))?.active?.run.shotsInProgress() ?? [];
+  }
+
   /** Queues Run/Redo of `stages` (in order, one group) in the open project. */
   async run(stages: readonly PipelineStage[]): Promise<StageCommandResult> {
     const requests: AppStageRequest[] = [];

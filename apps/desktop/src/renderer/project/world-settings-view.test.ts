@@ -78,4 +78,11 @@ describe('Project settings in a world (PLAN.md#13.6)', () => {
     );
     expect(styleBlockedText(CRISP)).toBeUndefined();
   });
+
+  it('says a world still in development cannot be built, switch or not', () => {
+    const comic = { ...SKETCHBOOK, id: 'comic', label: 'Comic', enabled: false };
+    expect(styleBlockedText({ ...comic, inDevelopment: true })).toBe(
+      'Comic is a world still in development: it cannot be built yet. Choose another style for a new project.',
+    );
+  });
 });

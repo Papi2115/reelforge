@@ -33,6 +33,16 @@ describe('style choices (PLAN.md#13.6)', () => {
     expect(isOfferedStyle('no-such-style', true)).toBe(false);
   });
 
+  it('never offers a world that is not wired yet, switch or not', () => {
+    for (const id of ['comic', 'game-b2']) {
+      expect(STYLE_REGISTRY.allIds).toContain(id);
+      expect(isOfferedStyle(id, true)).toBe(false);
+      expect(isOfferedStyle(id, false)).toBe(false);
+      // Still described (the header names a hand-edited project's style).
+      expect(describeStyle(id)?.world).toBe(true);
+    }
+  });
+
   it('has a one-line description for every registered style', () => {
     for (const id of STYLE_REGISTRY.allIds) {
       const description = STYLE_DESCRIPTIONS[id] ?? '';

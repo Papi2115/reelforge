@@ -3,7 +3,8 @@
  * (the previous take is archived and later stages are marked out of date; scenes keep their
  * anchors and follow the new timing), and the VO <-> script discrepancy report: the length
  * against the word-count estimate now, the alignment and its mismatch regions (click to seek)
- * after Words timed.
+ * after Words timed. With a voice and key for the project's channel, "Generate with ElevenLabs"
+ * (PLAN.md#13.14) sits next to them, then the generated sentences with play and redo.
  */
 import { useState, type JSX } from 'react';
 import type { StageCommandResult } from '../../shared/stages-contract.js';
@@ -11,6 +12,9 @@ import type { StageReports } from '../../shared/voiceover-contract.js';
 import { StageProgress } from './StageProgress.js';
 import { Recorder } from './Recorder.js';
 import { useRecorder } from './use-recorder.js';
+import { useVoice } from './use-voice.js';
+import { GenerateButton, GenerateStatus, useGenerateFlow } from './VoiceoverGenerate.js';
+import { VoiceSentences } from './VoiceSentences.js';
 import type { StagesControls } from './use-stages.js';
 import { MismatchList } from './WordsPanel.js';
 import { alignmentView, clock, voFit } from './vo-view.js';
@@ -29,6 +33,8 @@ export interface VoiceoverPanelProps {
 function Current(props: {
   readonly reports: StageReports | undefined;
   readonly recordingFile: string | null;
+  /** The voice-over in use came from ElevenLabs Generate. */
+  readonly generated: boolean;
 }): JSX.Element {
   const record = props.reports?.voiceover ?? null;
   if (record === null) {
@@ -48,7 +54,7 @@ function Current(props: {
   });
   return (
     <p className="vo-current">
-      <strong>{record.sourceName}</strong>
+      <strong>{props.generated ? 'Generated with ElevenLabs' : record.sourceName}</strong>
       {record.durationS !== null && <span className="mono"> · {clock(record.durationS)}</span>}
       <span className="muted"> · imported {imported}</span>
       {record.previous !== null && (
@@ -90,6 +96,13 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
   const running = state?.running?.stage === 'voiceover' ? state.running : null;
   const queued = state?.queue.includes('voiceover') === true;
   const has = props.reports?.voiceover != null || props.recordingFile !== null;
+  const info = state?.stages.find((stage) => stage.stage === 'voiceover');
+  const voice = useVoice(`${info?.status ?? ''}:${info?.updatedAt ?? ''}`);
+  const flow = useGenerateFlow(voice);
+  const setup = voice.state?.setup;
+  const voiceBusy = voice.progress !== null || flow.phase.kind !== 'idle';
+  const busy = recorder.phase !== 'idle' || running !== null || queued || voiceBusy;
+  const generateReady = setup?.status === 'ready';
 
   const report = (result: StageCommandResult): void => {
     setNotice(result.status === 'error' ? (result.message ?? 'That did not work.') : null);
@@ -104,12 +117,22 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
         </button>
       </div>
       <div className="doc-body vo-body">
-        <Current reports={props.reports} recordingFile={props.recordingFile} />
+        <Current
+          reports={props.reports}
+          recordingFile={props.recordingFile}
+          generated={voice.state?.generated === true}
+        />
         <div className="vo-actions" role="group" aria-label="Voice-over actions">
+          <GenerateButton
+            setup={setup}
+            generated={voice.state?.generated === true}
+            flow={flow}
+            busy={busy}
+          />
           <button
             type="button"
             className="small-button"
-            disabled={recorder.phase !== 'idle' || running !== null || queued}
+            disabled={busy}
             title="wav, mp3, m4a, ogg or flac"
             onClick={() => {
               void window.reelforge.importVoiceover().then(report);
@@ -119,8 +142,8 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
           </button>
           <button
             type="button"
-            className="small-button primary"
-            disabled={recorder.phase !== 'idle' || running !== null || queued}
+            className={generateReady ? 'small-button' : 'small-button primary'}
+            disabled={busy}
             onClick={() => {
               void recorder.open();
             }}
@@ -128,6 +151,7 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
             {has ? 'Record a new take…' : 'Record…'}
           </button>
         </div>
+        <GenerateStatus setup={setup} voice={voice} flow={flow} />
         {has && (
           <p className="muted vo-hint">
             Replacing keeps the old take as <code>audio/vo.original.prev.*</code> and marks the
@@ -157,6 +181,12 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
             }}
           />
         )}
+        <VoiceSentences
+          sentences={voice.state?.sentences ?? []}
+          audioFile={voice.state?.audioFile ?? null}
+          voice={voice}
+          busy={busy}
+        />
         <FitReport
           reports={props.reports}
           hasRecording={has}

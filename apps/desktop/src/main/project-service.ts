@@ -322,11 +322,16 @@ export class ProjectService {
 
   /**
    * Hook for later stages (pipeline runner, Claude turns): commits the open project with a
-   * structured message (`ReelForge-Step` trailer). No-op result when nothing changed.
+   * structured message (`ReelForge-Step` trailer). No-op result when nothing changed. With
+   * `paths` only those project files are committed (other writers' work stays out).
    */
   autocommit(
     message: string,
-    options: { readonly kind: AutocommitKind; readonly step?: string },
+    options: {
+      readonly kind: AutocommitKind;
+      readonly step?: string;
+      readonly paths?: readonly string[];
+    },
   ): Promise<Result<CommitResult>> {
     const project = this.current;
     if (!project) return Promise.resolve(err({ ...noProject() }));
