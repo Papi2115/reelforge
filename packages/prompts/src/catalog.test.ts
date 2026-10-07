@@ -124,7 +124,10 @@ describe('renderPrompt', () => {
     const rendered = renderPrompt('sound-cues', { styleId: 'voxel-pixel-crisp640' });
     expect(rendered.ok).toBe(true);
     const text = rendered.ok ? rendered.value : '';
-    for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
+    // Sketchbook-world recipes are named by the world's palette and `reelforge kit-docs sfx`, not by
+    // the base prompt (which stays byte-identical for voxel/legacy projects).
+    const worldOnly = new Set<string>(['pen-click', 'marker-thump', 'paper-tear']);
+    for (const name of [...SFX_RECIPES, ...MUSIC_MOODS].filter((entry) => !worldOnly.has(entry))) {
       expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
     }
     expect(loadPrompt('sound-cues').version).toBe(6);
