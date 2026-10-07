@@ -57,3 +57,12 @@ From [real run Game B2 1](real-run-game-b2-1.md) (Great Stink of London, 54 s, m
 - medium: tally default `dissolve` exit blacks the whole frame with a live backdrop; `view.take` leaves the level sprite on the floor. (#6, #7)
 - medium: 7 of 11 fix turns spent on lamp/`switchOn` click sync; critic false "clipped" on typewriter frames, misses blink/double sprite/broken link; invented meter counts and small tally values pass the text guard. (#8–#10)
 - low: illegible wall signs; 8 HUD elements in one frame; per-shot chapter flags differ; throw as decoration; zod-style `validate level` messages; one transient ffmpeg probe timeout in mix. (#11–#16)
+
+## Game B1 (beta)
+From [real run Game B1 1](real-run-game-b1-1.md) (Y2K bug, 56 s, mean 15.0/20; numbers = defect ids there).
+- high: `g.sprite` / `g.playfield` draw only `'#'` bits and silently ignore `'1'`/`'X'`/arrays (doc never says `'#'`) → 0 sprites in the film, the 2600 flicker rule never runs, every figure is a `g.rect` block. (#1)
+- high: calendar-zoom link = the transition's push + a crossfade into s08's own room view → two calendars ghosted 32.9–33.2. (#2)
+- high: transitions hide or duplicate in-shot beats: attract-cycle hides the whole cartridge pull; page-slide slides a TV picture, then the manual slides again. (#3)
+- medium: calendar `mark` max 28 (no 31 DEC); a second boss card for a question (FALSE ALARM? ×2); glass notes illegible while the camera is in the room; big number on black in 10/12 shots, 29 % near-black frames. (#4–#7)
+- medium: locked score-table row prints its score; disputed $100B shown without its hedge; 4/7 fix turns on sfx sync (s10 deletes kit craft cues); critic misses the seams and flags beats before they happen. (#8–#11)
+- low: BOSS label over the HUD year; room-shake between TV-only shots; decorative FIG. 1 and a source URL as Dad's margin note; no `$`/`=` glyphs; sound-cues turn swaps the world's `board-tap`; engine harness stale after `tsc -b`/`build:cli` and built from live `kit/src` (a parallel coder's uncommitted kit work leaked into the export). (#12–#17)
