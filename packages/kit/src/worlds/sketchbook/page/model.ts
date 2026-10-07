@@ -24,7 +24,7 @@ import { drawPen } from '../draw/pen.js';
 import type { Point, Xform } from '../draw/paths.js';
 import { PAGE_WIDTH } from '../style.js';
 import { HandQueue } from './hand-queue.js';
-import { planHand, type HandPlan, type HandTask, type TaskTiming } from './hand-plan.js';
+import { planHand, taskTime, type HandPlan, type HandTask, type TaskTiming } from './hand-plan.js';
 
 export interface PageSettings {
   readonly width: number;
@@ -71,7 +71,7 @@ interface Hand {
 
 /** What a task is besides its marks (page call options). */
 export interface TaskMeta {
-  /** The scene's hero mark: it keeps its time, others wait for it. */
+  /** The scene's hero mark: first among tasks timed with it, waits <= MAX_SLIP for earlier ones. */
   readonly hero?: boolean | undefined;
   /** Cap height of a write (the default hero is the largest text). */
   readonly text?: number | undefined;
@@ -96,6 +96,19 @@ export interface HandProbe {
   readonly others: number;
   readonly drawing: readonly InkProbe[];
 }
+
+/** A queued hand task as planned (tests: the hand keeps the anchor order, nothing self-writes). */
+export interface TaskProbe {
+  /** The task's own time (as the scene asked). */
+  readonly at: number;
+  /** Its final marks. */
+  readonly marks: readonly Mark[];
+  /** The hand draws it (else it appears by itself). */
+  readonly drawn: boolean;
+}
+
+/** After its last mark the hand holds this long, then leaves the subject (s). */
+const HOLD = 0.15;
 
 /** The in-shot marks of a task that go without the hand, appearing by themselves. */
 function appearing(
@@ -168,14 +181,20 @@ export class SketchPage {
   ): readonly Mark[] {
     let placed = timing === 'exact' ? marks : beforeShot(marks);
     if (this.settings.pen && timing !== 'exact') placed = appearing(placed, timing, meta.appear);
+    const at = placed.reduce(
+      (first, mark) => (mark.held ? Math.min(first, mark.t0) : first),
+      Infinity,
+    );
     if (this.settings.pen && timing === 'exact') this.queue.pinMarks(placed);
     else if (this.settings.pen) placed = this.queue.place(placed, timing === 'parallel');
-    this.addTask(placed, timing, meta);
+    this.addTask(placed, timing, { ...meta, at });
     const xf = this.toScreen;
     for (const mark of placed) {
       this.addLayer({
         key: mark.t0,
-        from: mark.t0,
+        // The plan moves marks later, except a task that loses the hand: it appears whole from
+        // its own time, before its later strokes were due (never gate those by their old times).
+        from: Math.min(mark.t0, at),
         draw: (canvas, t) => {
           const final = this.finalOf(mark);
           const tip = drawMark(canvas, final, t, xf);
@@ -225,12 +244,17 @@ export class SketchPage {
     return this.held.reduce((end, mark) => Math.max(end, mark.t0 + mark.dur), 0);
   }
 
-  private addTask(marks: readonly Mark[], timing: TaskTiming, meta: TaskMeta): void {
+  private addTask(
+    marks: readonly Mark[],
+    timing: TaskTiming,
+    meta: TaskMeta & { readonly at?: number },
+  ): void {
     const held = marks.filter((mark) => mark.held);
     this.held.push(...held);
     if (timing === 'parallel') for (const mark of held) this.parallel.add(mark);
     else if (held.length > 0) {
-      this.tasks.push({ marks: held, timing, hero: meta.hero ?? false, text: meta.text ?? 0 });
+      const { hero = false, text = 0, at } = meta;
+      this.tasks.push({ marks: held, timing, hero, text, at });
     }
     this.hand = undefined;
   }
@@ -290,17 +314,22 @@ export class SketchPage {
 
   /**
    * The hand at t; in the shot's last FINAL s it leaves for a clear rest spot or the page (once
-   * it has finished a mark it is drawing then: ink never writes itself). Never while another
-   * hand works the page (one hand at a time).
+   * it has finished a mark it is drawing then: ink never writes itself), or earlier, HOLD s after
+   * its last mark (and any scripted stretch): it does not park on the subject. Never while
+   * another hand works the page (one hand at a time).
    */
   private handState(t: number, active: ActiveMark | null, hand: Hand): PenState | null {
     if (this.others.some((visible) => visible(t))) return null;
     const end = this.settings.duration;
     if (end === undefined) return this.stateAt(t, active, hand);
-    let from = end - FINAL;
+    let inked = -Infinity;
     for (const mark of hand.plan.drawn) {
-      if (mark.t0 < end) from = Math.max(from, mark.t0 + mark.dur);
+      if (mark.t0 < end) inked = Math.max(inked, mark.t0 + mark.dur);
     }
+    let from = Math.max(end - FINAL, inked);
+    let last = inked;
+    for (const [start, stop] of this.busy) if (start < end) last = Math.max(last, stop);
+    if (last > -Infinity && last + HOLD < from) from = last + HOLD;
     if (t < from) return this.stateAt(t, active, hand);
     const state = this.stateAt(from, this.activeAt(from, hand), hand);
     return state && retreat(state, t - from, hand.rules, this.settings.height);
@@ -324,6 +353,18 @@ export class SketchPage {
     if (!hand) return;
     const state = this.handState(t, active, hand);
     if (state) drawPen(canvas, state, this.scale);
+  }
+
+  /** Every queued hand task as the plan timed it (empty without the hand). */
+  taskProbes(): readonly TaskProbe[] {
+    if (!this.settings.pen) return [];
+    const { plan } = this.handOf();
+    return this.tasks
+      .filter((task) => task.timing === 'queue')
+      .map((task) => {
+        const marks = task.marks.map((mark) => plan.moved.get(mark) ?? mark);
+        return { at: taskTime(task), marks, drawn: marks.every((mark) => plan.drawn.has(mark)) };
+      });
   }
 
   /** The hand and the ink at t, without painting (the one-hand invariants in tests). */

@@ -36,7 +36,9 @@ export const penOptions = z.object({
   hero: z
     .boolean()
     .default(false)
-    .describe('The hero mark of the shot: it keeps its time and gets the hand; others wait for it'),
+    .describe(
+      'The hero mark of the shot: it gets the hand, first among marks timed with it (waits <= 0.6 s for earlier ones)',
+    ),
   appear: z
     .enum(APPEAR_KINDS)
     .optional()
@@ -99,7 +101,10 @@ export const fillOptions = z.object({
   seed: z.int().min(0).optional(),
   held: z.boolean().default(true),
   parallel: z.boolean().default(false).describe('Never take the hand: appears by itself'),
-  hero: z.boolean().default(false).describe('The hero mark: keeps its time, others wait'),
+  hero: z
+    .boolean()
+    .default(false)
+    .describe('The hero mark: gets the hand first among marks timed with it'),
   appear: z.enum(APPEAR_KINDS).optional().describe('No hand: bloom, pop or type'),
   attach: attachParam,
 });
@@ -157,7 +162,10 @@ export const figureOptions = z.object({
   seed: z.int().min(0).optional(),
   subject: z.boolean().default(true).describe('The hand keeps off it when it can (rest rule)'),
   parallel: z.boolean().default(false).describe('Drawn without the hand, on time'),
-  hero: z.boolean().default(false).describe('The hero mark: keeps its time, others wait'),
+  hero: z
+    .boolean()
+    .default(false)
+    .describe('The hero mark: gets the hand first among marks timed with it'),
 });
 
 export const sheetOptions = z.object({

@@ -4,8 +4,10 @@
  * - `HandQueue.place` (in build, call by call): a task that would start while the hand is busy
  *   far away (another task, a strip, a scripted stretch) waits until the hand has finished and
  *   travelled there, if that slips it by <= MAX_SLIP s; its marks move as a whole and the page
- *   call returns the new times. Otherwise it keeps its time here. A `parallel` task never takes
- *   the hand: it keeps its time and does not hold up anyone.
+ *   call returns the new times. Otherwise it keeps its time here. Only what started no later
+ *   than the task holds it up (a pinned stretch always does): a task is never queued behind a
+ *   later one (the hand keeps the anchor order). A `parallel` task never takes the hand: it
+ *   keeps its time and does not hold up anyone.
  * - `planHand` (hand-plan.ts, at the first frame, over every task): settles what is left; nothing
  *   but a `parallel` task is drawn without the hand.
  */
@@ -31,6 +33,10 @@ interface Claim {
   readonly end: Point | null;
   /** The task's held marks with their ends (page px), by start. */
   readonly marks: readonly (readonly [Mark, Point, Point])[];
+  /** Pinned (another hand, a script, exact marks): it holds up every task it meets. */
+  readonly fixed: boolean;
+  /** The task's own time (before the queue moved it). */
+  readonly at: number;
 }
 
 /** Time to travel from a to b (s); null = off the page. */
@@ -50,7 +56,7 @@ function handOn(claim: Claim, t: number): Point | null {
 }
 
 /** The claim of a task (page px): from its first held mark to its last one. */
-function claimOf(marks: readonly Mark[]): Claim | null {
+function claimOf(marks: readonly Mark[], fixed: boolean): Claim | null {
   const held = marks.filter((mark) => mark.held).sort((a, b) => a.t0 - b.t0);
   const first = held[0];
   if (!first) return null;
@@ -60,7 +66,9 @@ function claimOf(marks: readonly Mark[]): Claim | null {
   for (const [mark, , point] of ends) {
     if (end === null || mark.t0 + mark.dur >= last.t0 + last.dur) [last, end] = [mark, point];
   }
-  return { from: first.t0, to: last.t0 + last.dur, start: ends[0]?.[1] ?? null, end, marks: ends };
+  const start = ends[0]?.[1] ?? null;
+  const from = first.t0;
+  return { from, to: last.t0 + last.dur, start, end, marks: ends, fixed, at: from };
 }
 
 function shifted(marks: readonly Mark[], by: number): Mark[] {
@@ -74,12 +82,12 @@ export class HandQueue {
 
   /** The hand is busy from `from` to `to` (another hand works the page, a scripted stretch). */
   pin(from: number, to: number): void {
-    this.claims.push({ from, to, start: null, end: null, marks: [] });
+    this.claims.push({ from, to, start: null, end: null, marks: [], fixed: true, at: from });
   }
 
   /** Marks the hand must draw exactly when they are (a strip's writing). */
   pinMarks(marks: readonly Mark[]): void {
-    const claim = claimOf(marks);
+    const claim = claimOf(marks, true);
     if (claim) this.claims.push(claim);
   }
 
@@ -88,12 +96,12 @@ export class HandQueue {
    * then (by at most MAX_SLIP s), else unchanged (`parallel`: never moved, never in the way).
    */
   place(marks: readonly Mark[], parallel: boolean): Mark[] {
-    const task = claimOf(marks);
+    const task = claimOf(marks, false);
     if (!task || parallel) return [...marks];
     const slip = this.slipOf(task);
     const placed = shifted(marks, slip <= MAX_SLIP ? slip : 0);
-    const claim = claimOf(placed);
-    if (claim) this.claims.push(claim);
+    const claim = claimOf(placed, false);
+    if (claim) this.claims.push({ ...claim, at: task.from });
     const first = claim?.marks[0]?.[0];
     if (first && slip > 0 && slip <= MAX_SLIP) this.queued.add(first);
     return placed;
@@ -106,6 +114,7 @@ export class HandQueue {
     for (;;) {
       const start = from;
       const hit = this.claims.find((claim) => {
+        if (!claim.fixed && claim.at > task.from + 1e-6) return false;
         const at = handOn(claim, Math.max(start, claim.from));
         if (at && task.start && distance(at, task.start) <= NEAR) return false;
         const lead = moved ? travelTime(claim.end, task.start) : 0;

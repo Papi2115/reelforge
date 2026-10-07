@@ -14,14 +14,23 @@ const WAVE = 0.14;
 const TYPE_STEP = 0.045;
 const TYPE_MAX = 0.6;
 
-/** The task's marks appearing from `at` (in drawing order), held by no hand. */
-export function appearMarks(marks: readonly Mark[], kind: AppearKind, at: number): Mark[] {
+/**
+ * The task's marks appearing from `at` (in drawing order), held by no hand. `wave` false = a
+ * bloom soaks in everywhere at once: a word that lost the hand must not arrive letter by letter
+ * in writing order (that reads as ink writing itself).
+ */
+export function appearMarks(
+  marks: readonly Mark[],
+  kind: AppearKind,
+  at: number,
+  wave = true,
+): Mark[] {
   const order = [...marks].sort((a, b) => a.t0 - b.t0);
   const n = Math.max(1, order.length - 1);
   const span = Math.min(TYPE_MAX, TYPE_STEP * order.length);
   const timing = new Map<Mark, { t0: number; dur: number }>();
   order.forEach((mark, index) => {
-    const k = index / n;
+    const k = wave ? index / n : 0;
     if (kind === 'bloom') timing.set(mark, { t0: at + WAVE * k, dur: BLOOM });
     else if (kind === 'type') timing.set(mark, { t0: at + span * k, dur: 0 });
     else timing.set(mark, { t0: at, dur: 0 });

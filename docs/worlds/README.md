@@ -97,19 +97,26 @@ The two showpieces of the showcase (`docs/worlds/sketchbook-v2`, shots 5 and 8) 
 - The writing hand: `SketchPage.addHandScript` (scripted stretches: lifting the flap, pulling the tab) and `addBusy` (another hand works
   the page: the hand leaves, never glides across) keep one hand on the page; strip marks reach the hand track as page-space proxies.
 
-## Sketchbook: one writing hand (PLAN.md#13.6, real run 2)
+## Sketchbook: one writing hand (PLAN.md#13.6, real runs 2 and 3)
 Code: `page/hand-queue.ts` (call-time queue), `page/hand-plan.ts` (first-frame plan), `draw/hand.ts` (track),
 `draw/hand-room.ts` (where the hand may be), `draw/appear.ts` (ink without a hand), `page/hand-check.ts` (the invariants).
 - **Ownership:** every stroke-drawn mark has the hand's nib on it; nothing writes itself stroke by stroke. The hand draws the key
   things (figures, the hero mark); small labels, numbers and words may **appear by themselves** while it works elsewhere:
   `appear: 'bloom'` (the ink soaks in pixel by pixel, a small wave across the word), `'pop'` (all at once), `'type'` (letter by
-  letter). `parallel: true` = appear `bloom`. A mark the scene sets `held: false` on a page with the hand appears too.
-- **Hero:** `hero: true` on a mark or figure (default: the largest in-shot `page.write`, the later one on a tie) keeps its time; a
-  task under way pauses for it (its remaining marks wait until the hand has finished and travelled back).
-- **Queue (build time):** every page call is one hand task. A task that starts while the hand is busy more than 80 px away waits
-  until the hand has finished and travelled there (~0.12 s + distance / 1600 px/s) when that slips it by **≤ 0.6 s**; the call
-  returns the new `{ at, end }`. **Plan (first frame):** what is still in conflict waits too (the hero and the breakthrough
-  choreography keep their time), except secondary text that would wait more than 0.6 s: it appears (bloom) on time. A task that
+  letter). `parallel: true` = appear `bloom`. A mark the scene sets `held: false` on a page with the hand appears too. A task
+  that loses the hand (below) soaks in **whole at once** on its own time (a bloom without the wave): never letter by letter in
+  writing order, which reads as ink writing itself (run 3, s03 red WAVE).
+- **Anchor order:** the hand takes the tasks in the order of their own times (as the scene asked them): a task never starts
+  before one timed earlier, and a later task never displaces one whose time has come (run 3, s04: the base fill on "fifteen"
+  was drawn after the hero top block).
+- **Hero:** `hero: true` on a mark or figure (default: the largest in-shot `page.write`, the later one on a tie) goes first among
+  tasks timed at the same moment and waits for earlier tasks **≤ 0.6 s**; an earlier task that would push it further (it could
+  only get the hand after the hero) appears by itself on its own time instead of being reordered behind it.
+- **Queue (build time):** every page call is one hand task. A task that starts while the hand is busy more than 80 px away (on a
+  task timed no later, a strip or a script) waits until the hand has finished and travelled there (~0.12 s + distance / 1600
+  px/s) when that slips it by **≤ 0.6 s**; the call returns the new `{ at, end }`. **Plan (first frame):** what is still in
+  conflict waits too (the breakthrough choreography keeps its time), except secondary text that would wait more than 0.6 s: it
+  appears on its own time (see Ownership); the plan may still move a returned time. A task that
   starts before the shot (`at < 0`) is already on the page: done by t = 0, no hand. A task running into the shot's last 0.4 s is
   written faster to end before it when that keeps ≥ 40 % of its pace; else the hand finishes it, then leaves.
 - **Motion:** glides at hand speed; a pen swap goes out and back only when there is time, else the hand glides over; the wrist
@@ -117,10 +124,12 @@ Code: `page/hand-queue.ts` (call-time queue), `page/hand-plan.ts` (first-frame p
 - **Subject safety** (`keepClear` boxes; figures add theirs): the wrist turns away while drawing, glides bend around a subject that
   is not the target when the speed limit allows, a pause ≥ 0.4 s that would leave the hand on a subject parks it on a clear margin
   spot (or its rest spot), and with `duration: ctx.shot.duration` the hand leaves for its rest spot or off the page in the shot's
-  last 0.4 s. Pure in t, seek-order independent.
-- **Invariants** (`checkHand`; tests `page/hand-check.test.ts` over every example, the film-2 scenes in
-  `packages/kit/test/fixtures/sketchbook-run2` and seeded worst cases): ≤ 1 hand; every non-appearing mark being drawn has the nib
-  within 90 px of its tip; a glide moves ≤ 180 px per 1/60 s; the wrist turns ≤ 12° per 1/60 s.
+  last 0.4 s, or already 0.15 s after its last mark (and any scripted stretch) when that is earlier: it does not park on the
+  subject (run 3, s09/s11); the exit starts fast (ease-out over 0.35 s). Pure in t, seek-order independent.
+- **Invariants** (`checkHand`; tests `page/hand-check.test.ts` over every example, the film-2 and film-3 scenes in
+  `packages/kit/test/fixtures/sketchbook-run2`/`-run3` and seeded worst cases): ≤ 1 hand; every non-appearing mark being drawn has
+  the nib within 90 px of its tip; a glide moves ≤ 180 px per 1/60 s; the wrist turns ≤ 12° per 1/60 s; hand-drawn tasks start in
+  anchor order; a task without the hand appears whole from one moment.
 
 ## Sketchbook: lettering pace (real run 2)
 `page.write` without `until` is brisk (a 12-letter word in ~1–1.2 s at cap heights ≤ 40, bigger letters a little slower, the

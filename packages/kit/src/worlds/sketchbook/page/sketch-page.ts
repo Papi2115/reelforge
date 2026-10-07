@@ -115,7 +115,7 @@ const PAGE_METHODS = {
   'keepClear(x, y, w, h)':
     'A subject box the hand keeps off: it turns the wrist, glides around it, never rests on it (figures add theirs)',
   '{ hero, appear, parallel } (options of every pen mark and figure)':
-    "One hand draws the key things: every stroke-drawn mark has the nib on it. The hero (hero: true, default the largest text) keeps its time; others wait for the hand (returned at/end = real times); a secondary write that would wait > 0.6 s appears by itself on time. appear: 'bloom' (ink soaks in) | 'pop' | 'type' (letter by letter) = no hand, on purpose; parallel: true = appear 'bloom'",
+    "One hand draws the key things: every stroke-drawn mark has the nib on it. The hand takes marks in time order; the hero (hero: true, default the largest text) goes first among marks timed together and waits <= 0.6 s for earlier ones; others wait for the hand (returned at/end = real times); a secondary write that would wait > 0.6 s appears by itself, whole, on time. appear: 'bloom' (ink soaks in) | 'pop' | 'type' (letter by letter) = no hand, on purpose; parallel: true = appear 'bloom'",
   'textWidth(text, size, hand) / doneAt()': 'Layout width of a text; time the last mark ends',
   'slots()':
     "With layout (look A: 'hero-left' big figure + big label, 'facing' two figures, 'tall-diagram' tall figure + diagram right, 'wide-strip' three figures on one ground): { hero, figures, label, note, thing: [x, y, w, h], ground: [x0, y, x1] }, seeded nudges; hero figure >= 25 % page height",

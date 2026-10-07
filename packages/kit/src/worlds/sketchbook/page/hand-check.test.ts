@@ -1,8 +1,11 @@
 /**
  * The one-hand invariants (hand-check.ts) over every Sketchbook example scene, the scenes of real
  * test film 2 (docs/real-run-sketchbook-2.md: ghost-writing in s01/s03, hops, two hands in s10;
- * fixtures in packages/kit/test/fixtures/sketchbook-run2 with their anchor times) and a synthetic
- * worst case: at most one hand, no ink without the nib on it (unless parallel), no hop, no flip.
+ * fixtures in packages/kit/test/fixtures/sketchbook-run2 with their anchor times), of real test
+ * film 3 (docs/real-run-sketchbook-3.md: a red WAVE that lost the hand wrote itself in s03, the
+ * hero reordered the bar in s04, the hand parked on the subject in s09/s11; fixtures in
+ * sketchbook-run3) and a synthetic worst case: at most one hand, no ink without the nib on it
+ * (unless parallel or appearing), no hop, no flip, tasks in anchor order, nothing self-writes.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -12,15 +15,19 @@ import { describe, expect, it } from 'vitest';
 import { createKit } from '../../../kit.js';
 import { SKETCHBOOK_PALETTE } from '../../../testing/palettes.js';
 import { testRng } from '../../../testing/rng.js';
+import { InkCanvas } from '../draw/canvas.js';
+import { drawMark } from '../draw/ink.js';
 import { hash } from '../draw/math.js';
 import type { PageApi } from './api.js';
 import { checkHand, type HandViolation } from './hand-check.js';
+import { MAX_SLIP } from './hand-queue.js';
 import type { SketchPage } from './model.js';
 import { sketchPageModel } from './sketch-page.js';
 
 const KIT_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..');
 const EXAMPLES = path.join(KIT_ROOT, 'examples', 'sketchbook');
 const RUN2 = path.join(KIT_ROOT, 'test', 'fixtures', 'sketchbook-run2');
+const RUN3 = path.join(KIT_ROOT, 'test', 'fixtures', 'sketchbook-run3');
 
 /** Shot lengths of the example scenes (as their render tests). */
 const EXAMPLE_DURATIONS: Readonly<Record<string, number>> = {
@@ -144,6 +151,81 @@ describe('one hand: real test film 2 (Dancing Plague)', () => {
   });
 });
 
+describe('one hand: real test film 3 (Great Molasses Flood)', () => {
+  const shots = JSON.parse(readFileSync(path.join(RUN3, 'anchors.json'), 'utf8')) as Readonly<
+    Record<string, Run2Shot>
+  >;
+  async function page(id: string): Promise<{ model: SketchPage; shot: Run2Shot }> {
+    const shot = shots[id];
+    if (!shot) throw new Error(id);
+    const [model] = await buildScene(path.join(RUN3, `${id}.js`), shot.duration, shot.anchors);
+    if (!model) throw new Error(`${id}: no page`);
+    return { model, shot };
+  }
+
+  it.each(Object.keys(shots))('%s', async (id) => {
+    const { model, shot } = await page(id);
+    expect(summary(checkHand(model, 0, shot.duration))).toEqual([]);
+  });
+
+  it('s03: the red WAVE that loses the hand to the strike soaks in whole, on its own time', async () => {
+    const { model, shot } = await page('s03_wave_word');
+    const down = shot.anchors['down#1']?.t ?? NaN;
+    const wave = model.taskProbes().find((task) => Math.abs(task.at - (down + 0.3)) < 1e-6);
+    expect(wave?.drawn).toBe(false);
+    expect(new Set(wave?.marks.map((mark) => mark.t0))).toEqual(new Set([down + 0.3]));
+    expect(wave?.marks.every((mark) => mark.reveal === 'bloom')).toBe(true);
+    // On the painted page too (not only in the plan): every letter is whole once it soaked in.
+    const t = down + 0.3 + 0.23;
+    const painted = new InkCanvas(960, 540);
+    model.render(painted, t);
+    for (const mark of wave?.marks ?? []) {
+      const alone = new InkCanvas(960, 540);
+      drawMark(alone, mark, t, model.toScreen);
+      let [ink, shown] = [0, 0];
+      alone.data.forEach((value, index) => {
+        if (value === 0) return;
+        ink += 1;
+        if (painted.data[index] === value) shown += 1;
+      });
+      expect(shown / ink).toBeGreaterThan(0.9);
+    }
+  });
+
+  it('s04: the base fill on "fifteen" is drawn on its word, before the hero top block', async () => {
+    const { model, shot } = await page('s04_wave_ruler');
+    const fifteen = shot.anchors['fifteen#1']?.t ?? NaN;
+    const fifty = shot.anchors['fifty feet high#1']?.t ?? NaN;
+    const starts = (at: number): number[] =>
+      model
+        .taskProbes()
+        .filter((task) => task.drawn && Math.abs(task.at - at) < 1e-6)
+        .map((task) => Math.min(...task.marks.map((mark) => mark.t0)));
+    expect(starts(fifteen)).toEqual([fifteen]);
+    const [hero] = starts(fifty);
+    expect(hero).toBeGreaterThanOrEqual(fifty);
+    expect(hero).toBeLessThan(fifty + 0.2);
+  });
+
+  it.each(['s09_four_months', 's11_blame'])(
+    '%s: the hand does not park on the subject after its last mark',
+    async (id) => {
+      const { model, shot } = await page(id);
+      const last = Math.max(
+        ...model
+          .taskProbes()
+          .filter((task) => task.drawn)
+          .flatMap((task) => task.marks.map((mark) => mark.t0 + mark.dur)),
+      );
+      const there = model.probe(last).pen;
+      const later = model.probe(Math.min(last + 0.25, shot.duration)).pen;
+      if (!there) throw new Error(`${id}: no hand at the last mark`);
+      const away = later ? Math.hypot(later.x - there.x, later.y - there.y) : Infinity;
+      expect(away).toBeGreaterThan(150);
+    },
+  );
+});
+
 describe('one hand: synthetic worst case', () => {
   /** Many marks far apart, overlapping in time, in every kind (seeded, the same every run). */
   function chaos(seed: number, hero: boolean): Page {
@@ -178,12 +260,19 @@ describe('one hand: synthetic worst case', () => {
     expect(summary(checkHand(model, 0, 6))).toEqual([]);
   });
 
-  it('keeps the hero on its time with the hand on it', () => {
+  it('draws the hero with the hand, after the tasks timed before it, at most MAX_SLIP late', () => {
     const model = sketchPageModel(chaos(8, true));
     if (!model) throw new Error('no page model');
-    const hero = model.probe(2.15).drawing.find((ink) => ink.tip[1] > 180 && ink.tip[1] < 320);
-    expect(hero).toBeDefined();
-    const pen = model.probe(2.15).pen;
-    expect(pen && hero && Math.hypot(pen.x - hero.tip[0], pen.y - hero.tip[1])).toBeLessThan(5);
+    const hero = model.taskProbes().find((task) => task.at === 2);
+    expect(hero?.drawn).toBe(true);
+    const start = Math.min(...(hero?.marks.map((mark) => mark.t0) ?? []));
+    // Behind the tasks timed before it, but never more than MAX_SLIP late.
+    expect(start).toBeGreaterThanOrEqual(2);
+    expect(start).toBeLessThanOrEqual(2 + MAX_SLIP + 1e-6);
+    const stroke = hero?.marks.find((mark) => mark.dur > 0.04);
+    const probe = model.probe((stroke?.t0 ?? NaN) + (stroke?.dur ?? NaN) / 2);
+    const ink = probe.drawing.find((candidate) => candidate.mark === stroke);
+    const pen = probe.pen;
+    expect(ink && pen && Math.hypot(pen.x - ink.tip[0], pen.y - ink.tip[1])).toBeLessThan(5);
   });
 });

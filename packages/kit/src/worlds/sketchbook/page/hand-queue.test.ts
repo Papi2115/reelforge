@@ -1,7 +1,8 @@
 /**
  * One writing hand per page (hand-queue.ts, hand-plan.ts, hand.ts, hand-room.ts): overlapping
- * far-apart tasks are serialised (the later one waits; the hero keeps its time; secondary text
- * that would wait too long appears by itself, never written without the hand), the hand never
+ * far-apart tasks are serialised in anchor order (the later one waits; the hero only wins a tie;
+ * secondary text that would wait too long soaks in whole by itself, never written without the
+ * hand), the hand never
  * jumps or shows two nibs, glides bend around a subject, pauses and the shot's end never leave
  * the hand resting on the subject; all pure in t.
  */
@@ -168,7 +169,7 @@ describe('one hand per page: the queue', () => {
     expect(moved[0]?.t0).toBeGreaterThan(1.95 + 0.2);
   });
 
-  it('gives the hand to the hero: an earlier task pauses for it and resumes after', () => {
+  it('never lets the hero displace a task timed before it (s04): the hero waits', () => {
     const note = [0, 1, 2, 3, 4].map((i) =>
       strokeMark([600 + i * 20, 100, 610 + i * 20, 80], { t0: 1 + i * 0.2, dur: 0.15, seed: i }),
     );
@@ -176,11 +177,53 @@ describe('one hand per page: the queue', () => {
       strokeMark([100 + i * 60, 450, 140 + i * 60, 350], { t0: 2 + i * 0.3, dur: 0.25, seed: i }),
     );
     const plan = planHand([task(note), { ...task(hero), hero: true }], []);
-    expect(hero.every((mark) => plan.drawn.has(mark) && !plan.moved.has(mark))).toBe(true);
-    const times = note.map((mark) => (plan.moved.get(mark) ?? mark).t0);
-    // The hand needs ~0.38 s to get from the note down to the hero.
-    expect(times.slice(0, 3)).toEqual([1, 1.2, 1.4]);
-    expect(times[3]).toBeGreaterThan(2.55);
+    expect(note.every((mark) => plan.drawn.has(mark) && !plan.moved.has(mark))).toBe(true);
+    const times = hero.map((mark) => (plan.moved.get(mark) ?? mark).t0);
+    // The note ends at 1.95; the hand needs ~0.38 s to get from the note down to the hero.
+    expect(times[0]).toBeGreaterThan(1.95 + 0.3);
+    expect(hero.every((mark) => plan.drawn.has(plan.moved.get(mark) ?? mark))).toBe(true);
+  });
+
+  it('lets the hero wait at most MAX_SLIP: a longer earlier task appears by itself instead', () => {
+    const note = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) =>
+      strokeMark([600 + i * 20, 100, 610 + i * 20, 80], { t0: 1 + i * 0.2, dur: 0.15, seed: i }),
+    );
+    const hero = [strokeMark([100, 450, 140, 350], { t0: 2, dur: 0.3, seed: 1 })];
+    const plan = planHand([task(note), { ...task(hero), hero: true }], []);
+    expect(plan.moved.has(hero[0] as Mark)).toBe(false);
+    const shown = note.map((mark) => plan.moved.get(mark));
+    expect(shown.every((mark) => mark?.reveal === 'bloom' && mark.t0 === 1)).toBe(true);
+  });
+
+  it('gives the hero only a tie: of two tasks timed together it goes first', () => {
+    const near = [strokeMark([600, 100, 700, 80], { t0: 1, dur: 0.3, seed: 1 })];
+    const hero = [strokeMark([100, 450, 140, 350], { t0: 1, dur: 0.3, seed: 2 })];
+    const plan = planHand([task(near), { ...task(hero), hero: true }], []);
+    expect(plan.moved.has(hero[0] as Mark)).toBe(false);
+    expect(plan.moved.get(near[0] as Mark)?.t0).toBeGreaterThan(1.3);
+  });
+
+  it('takes tasks by their own time, not by where the call-time queue put them', () => {
+    // A was asked for 0.1 but already queued to 0.5; B (asked for 0.3) must not start before it.
+    const a = [strokeMark([100, 100, 200, 100], { t0: 0.5, dur: 0.3, seed: 1 })];
+    const b = [strokeMark([700, 450, 800, 450], { t0: 0.3, dur: 0.1, seed: 2 })];
+    const plan = planHand(
+      [
+        { ...task(a), at: 0.1 },
+        { ...task(b), at: 0.3 },
+      ],
+      [],
+    );
+    expect(plan.moved.has(a[0] as Mark)).toBe(false);
+    expect(plan.moved.get(b[0] as Mark)?.t0).toBeGreaterThan(0.8);
+  });
+
+  it('never queues a task behind one the scene timed later (call order is not time order)', () => {
+    const queue = new HandQueue();
+    const later = [strokeMark([100, 100, 200, 100], { t0: 1, dur: 0.4, seed: 1 })];
+    const earlier = [strokeMark([700, 450, 800, 450], { t0: 0.9, dur: 0.3, seed: 2 })];
+    expect(queue.place(later, false)[0]?.t0).toBe(1);
+    expect(queue.place(earlier, false)[0]?.t0).toBe(0.9);
   });
 
   it('defaults the hero to the largest in-shot text (the later one on a tie)', () => {
@@ -200,7 +243,8 @@ describe('one hand per page: the queue', () => {
     const shown = label.map((mark) => plan.moved.get(mark));
     expect(shown.map((mark) => mark?.reveal)).toEqual(['bloom', 'bloom']);
     expect(shown.map((mark) => mark?.held)).toEqual([false, false]);
-    expect(shown[0]?.t0).toBe(1.3);
+    // Whole at once on its own time: never letter by letter in writing order (s03 WAVE).
+    expect(shown.map((mark) => mark?.t0)).toEqual([1.3, 1.3]);
   });
 });
 

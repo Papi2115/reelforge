@@ -3,13 +3,20 @@
  * marks of one page call). Rules (docs/worlds/README.md, "One writing hand"):
  * - a `parallel` task never takes the hand: its ink appears by itself, at its own time;
  * - every other held mark is drawn by the hand, its nib on the mark's tip; nothing writes itself;
- * - the hero task keeps its time (explicit `hero: true`, else the largest in-shot text, the later
- *   one on a tie); the breakthrough choreography (`exact` marks, other hands) keeps its time too;
+ * - the hand takes the tasks in the order of their own times (`at`, as the scene asked, before
+ *   any queueing): a task whose time has come is never displaced by a later one, and each task
+ *   starts no earlier than the one before it (marks are drawn in anchor order). The hero
+ *   (explicit `hero: true`, else the largest in-shot text, the later one on a tie) only goes
+ *   first among tasks of the same time; the breakthrough choreography (`exact` marks, other
+ *   hands) keeps its time;
  * - every other mark that would need the hand while it is busy far away (or could not get there
- *   at hand speed) waits until the hand is free and has travelled there: a task can be paused
- *   for the hero and resumes after it. Waiting only ever moves marks later;
- * - except secondary text (a write that is not the hero) that would wait more than MAX_SLIP: it
- *   appears by itself on time (an ink bloom, draw/appear.ts), never written without the hand.
+ *   at hand speed) waits until the hand is free and has travelled there. Waiting only ever moves
+ *   marks later;
+ * - the hero waits for earlier tasks at most MAX_SLIP: an earlier task that would push it
+ *   further (it could only get the hand after the hero) is not reordered behind it;
+ * - such a task, and secondary text (a write that is not the hero) that would wait more than
+ *   MAX_SLIP, appears by itself on its own time, all of it soaking in at once (an ink bloom
+ *   without the writing-order wave, draw/appear.ts), never written without the hand.
  * The call-time queue (hand-queue.ts) already moved most tasks; this pass settles the rest.
  */
 import { distance, HAND_SPEED } from '../draw/hand-room.js';
@@ -26,10 +33,12 @@ export type TaskTiming = 'queue' | 'parallel' | 'exact';
 export interface HandTask {
   readonly marks: readonly Mark[];
   readonly timing: TaskTiming;
-  /** The scene marked it as the shot's hero (it keeps its time). */
+  /** The scene marked it as the shot's hero (first among tasks timed with it). */
   readonly hero: boolean;
   /** Cap height of a write (0 = not text): the default hero is the largest text. */
   readonly text: number;
+  /** The task's own time as the scene asked (before the call-time queue); default its start. */
+  readonly at?: number | undefined;
 }
 
 export interface HandPlan {
@@ -98,6 +107,9 @@ function freeAfter(slot: Slot, ps: Point): number {
 const startOf = (marks: readonly Mark[]): number =>
   marks.reduce((first, mark) => Math.min(first, mark.t0), Infinity);
 
+/** The task's own time (the anchor order of the hand). */
+export const taskTime = (task: HandTask): number => task.at ?? startOf(task.marks);
+
 /**
  * The default hero: the largest in-shot text task (on a tie the later one); -1 = none. A task
  * the scene marked `hero` wins over it.
@@ -118,13 +130,17 @@ export function heroTask(tasks: readonly HandTask[]): number {
   return best;
 }
 
-/** Times a task's marks (in their order) after the hand's slots; `delay` = the most any waits. */
+/**
+ * Times a task's marks (in their order) after the hand's slots, starting no earlier than
+ * `notBefore`; `delay` = the most any waits.
+ */
 function place(
   task: HandTask,
   index: number,
   slots: readonly Slot[],
+  notBefore: number,
 ): { marks: Mark[]; delay: number } {
-  let delay = 0;
+  let delay = Math.max(0, notBefore - startOf(task.marks));
   let most = 0;
   const final = new Map<Mark, Mark>();
   for (const mark of [...task.marks].sort((a, b) => a.t0 - b.t0)) {
@@ -197,18 +213,35 @@ export function planHand(
     .filter(({ task }) => task.timing === 'queue' && task.marks.length > 0)
     .sort(
       (a, b) =>
+        taskTime(a.task) - taskTime(b.task) ||
         Number(isHero(b.task, b.index)) - Number(isHero(a.task, a.index)) ||
-        startOf(a.task.marks) - startOf(b.task.marks) ||
         a.index - b.index,
     );
+  // A later hero keeps the hand from MAX_SLIP after its own time: what would push it further.
+  const reservations = (after: number): Slot[] =>
+    order
+      .filter(({ task, index }) => isHero(task, index) && taskTime(task) > after + EPS)
+      .flatMap(({ task, index }) => {
+        const shift = Math.max(0, taskTime(task) + MAX_SLIP - startOf(task.marks));
+        return task.marks.map((mark) => slotOf({ ...mark, t0: mark.t0 + shift }, index));
+      });
+  // The hand keeps the anchor order: no task starts before the one taken before it.
+  let notBefore = -Infinity;
   for (const { task, index } of order) {
-    const placed = place(task, index, slots);
-    // Secondary text the hand cannot get to in time appears by itself, on time.
-    if (task.text > 0 && !isHero(task, index) && placed.delay > MAX_SLIP) {
-      const shown = appearMarks(task.marks, 'bloom', startOf(task.marks));
+    const hero = isHero(task, index);
+    const ahead = hero ? [] : reservations(taskTime(task));
+    const placed = place(task, index, [...slots, ...ahead], notBefore);
+    const last = placed.marks.reduce((latest, mark) => Math.max(latest, mark.t0), -Infinity);
+    const displaces = placed.delay > EPS && ahead.some((slot) => slot.from <= last + EPS);
+    // A task that would only get the hand after a later hero (never reordered), or secondary
+    // text that would wait too long, appears by itself on its own time.
+    const late = startOf(placed.marks) - taskTime(task);
+    if (!hero && (displaces || (task.text > 0 && Math.max(late, placed.delay) > MAX_SLIP))) {
+      const shown = appearMarks(task.marks, 'bloom', taskTime(task), false);
       task.marks.forEach((mark, k) => moved.set(mark, shown[k] ?? mark));
       continue;
     }
+    notBefore = startOf(placed.marks);
     let wasMoved = false;
     const squeezed = beforeCut(placed.marks, cut);
     const fits = squeezed.every((mark) => {

@@ -130,7 +130,11 @@ export function wristTurn(start: Point, end: Point, rules: HandRules): number {
   return best;
 }
 
-function bounds(points: readonly number[]): [Point, Point] {
+/**
+ * Where a hatch sweep starts and ends, inset into its box: dir 1 sweeps from the top left to
+ * the bottom right, dir -1 from the bottom left to the top right (ink.ts fillAt).
+ */
+function bounds(points: readonly number[], dir: 1 | -1): [Point, Point] {
   let x0 = Infinity;
   let y0 = Infinity;
   let x1 = -Infinity;
@@ -141,16 +145,17 @@ function bounds(points: readonly number[]): [Point, Point] {
     y0 = Math.min(y0, at(points, i + 1));
     y1 = Math.max(y1, at(points, i + 1));
   }
+  const [top, bottom] = [y0 + (y1 - y0) * 0.2, y0 + (y1 - y0) * 0.8];
   return [
-    [x0 + (x1 - x0) * 0.2, y0 + (y1 - y0) * 0.2],
-    [x0 + (x1 - x0) * 0.8, y0 + (y1 - y0) * 0.8],
+    [x0 + (x1 - x0) * 0.2, dir === 1 ? top : bottom],
+    [x0 + (x1 - x0) * 0.8, dir === 1 ? bottom : top],
   ];
 }
 
 /** Where the hand starts and ends a mark (through `xf`). */
 export function markEnds(mark: Mark, xf: Xform): [Point, Point] {
   if (mark.type === 'fill') {
-    const [a, z] = bounds(mark.source ? mark.source(mark.t0) : mark.poly);
+    const [a, z] = bounds(mark.source ? mark.source(mark.t0) : mark.poly, mark.dir);
     return [xf(a[0], a[1]), xf(z[0], z[1])];
   }
   const first = markShape(mark, mark.t0).pts;
@@ -185,7 +190,8 @@ export function retreat(
   const target: Point = spot ?? [from.x + (below - from.y) * 0.8, below];
   const k = elapsed / RETREAT;
   if (k >= 1 && !spot) return null;
-  const e = ease('inOut', k);
+  // A decisive exit: off the subject quickly, settling at the end.
+  const e = ease('out', k);
   return {
     ...from,
     x: lerp(from.x, target[0], e),
