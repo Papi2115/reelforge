@@ -29,6 +29,7 @@ export const STYLE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   sketchbook: 'Hand-drawn notebook: felt-tip pages, graph paper, pop-up and accordion moments.',
   comic: 'Comic book pages: panels, halftone print, speech bubbles and onomatopoeia.',
   'game-b2': 'First-person RPG: a corridor walk with a HUD, dialogue and inventory.',
+  'game-b1': 'Atari 2600 game in a 1982 living room: CRT picture, boss cards, sticky notes.',
 };
 
 /** How the app describes style `id`; undefined for a style this build does not ship. */
