@@ -39,7 +39,13 @@ export function build(ctx) {
     },
     inventory: {
       items: [
-        { icon: 'cartridge', label: 'E.T. CARTRIDGE', sub: 'ATARI 2600 · 1982', itemLabel: 'E.T.', band: 'pink' },
+        {
+          icon: 'cartridge',
+          label: 'E.T. CARTRIDGE',
+          sub: 'ATARI 2600 · 1982',
+          itemLabel: 'E.T.',
+          band: 'pink',
+        },
         { icon: 'calendar', label: 'DEADLINE', sub: 'ABOUT FIVE WEEKS', band: 'pink' },
         { icon: 'carton', label: 'WAREHOUSE STOCK', sub: 'BETTING ON A HIT', itemLabel: 'E.T.' },
       ],

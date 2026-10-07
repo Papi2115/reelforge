@@ -5,7 +5,8 @@
  * breakthrough scenes are page methods: `page.flashback` (sepia strip, look B) and `page.spread`
  * (double-page spread, look C). The panel-native transitions are engine compositors (`comic-*`
  * styles), the sounds the `comic` palette. Experimental: it renders with
- * `render:frames --experimental`; the app offers it only with experimental worlds on.
+ * `render:frames --experimental`; the app offers it only with experimental worlds on. Wired: its
+ * prompts (`@reelforge/prompts` worlds/comic.ts) and project defaults exist (PLAN.md#13.3 part c).
  *
  * Compositor (ADR-032): `kit.fx.comicPage` paints every panel into one index framebuffer, the
  * same way Sketchbook's page does; panels are masks with their own clock and camera.
@@ -33,6 +34,7 @@ export const COMIC = defineWorld({
   description:
     'A printed comic book: uneven hand-ruled panels on newsprint, ink line art over off-register colour plates and halftone, speech balloons, captions and big onomatopoeia; the camera reads the page.',
   experimental: true,
+  wired: true,
   style: COMIC_STYLE,
   fonts: { display: 'display', mono: 'mono' },
   soundPalette: 'comic',

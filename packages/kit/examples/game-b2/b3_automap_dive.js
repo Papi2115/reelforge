@@ -36,7 +36,7 @@ export function build(ctx) {
     at: 1.75,
     until: 6.0,
     scale: 13,
-    rooms: [{ cell: [10, 3], label: 'THE WAREHOUSE', sub: '1982', labelAt: [2.2, -1.6] }],
+    rooms: [{ cell: [10, 3], label: 'THE WAREHOUSE', sub: '1982', labelAt: [19.8, 2.2] }],
     marks: [
       { kind: 'cross', pos: [1.5, 8.5], at: 3.0 },
       { kind: 'objective', pos: [19.5, 8.5], at: 3.6 },

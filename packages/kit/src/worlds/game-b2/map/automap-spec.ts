@@ -54,7 +54,9 @@ export const automapSchema = z.strictObject({
     .default([]),
   replay: z
     .strictObject({
-      from: z.number().describe('Path time the arrow replays from (may be < 0: the walk before the shot)'),
+      from: z
+        .number()
+        .describe('Path time the arrow replays from (may be < 0: the walk before the shot)'),
       to: whenParam.optional().describe('Path time it replays to (default: the map start)'),
       dur: z.number().min(0.6).max(6).optional().describe('Seconds the replay takes'),
     })
@@ -84,7 +86,9 @@ export const automapSchema = z.strictObject({
     .array(z.strictObject({ at: whenParam, x: z.number(), y: z.number() }))
     .max(6)
     .default([])
-    .describe('Pans: at = the move starts, [x, y] = cell centred after it (anticipation, overshoot)'),
+    .describe(
+      'Pans: at = the move starts, [x, y] = cell centred after it (anticipation, overshoot)',
+    ),
   legend: z
     .union([z.boolean(), z.strictObject({ done: caps(10), ahead: caps(10) })])
     .default(true)

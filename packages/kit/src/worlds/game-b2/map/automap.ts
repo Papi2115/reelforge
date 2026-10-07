@@ -8,7 +8,7 @@
  * pure function of t: every frame is composed from scratch.
  */
 import { Bmp } from '../core/bitmap.js';
-import { bayer, EASES, hash3, lerp, seg } from '../core/rand.js';
+import { EASES, hash3, lerp, seg } from '../core/rand.js';
 import { C } from '../palette.js';
 import type { CameraPath } from '../ray/camera.js';
 import { SCREEN_H, SCREEN_W } from '../view/output.js';
@@ -28,20 +28,21 @@ import {
   type PenStyle,
 } from './automap-draw.js';
 import { SCREEN_CX, SCREEN_CY, type AutomapPlan, type RoomPlan } from './automap-plan.js';
+import {
+  blitFold,
+  copyCover,
+  foldCover,
+  foldState,
+  fullCover,
+  MINI,
+  onMap,
+  unfoldCover,
+  unfoldRect,
+  wipeCover,
+  type FoldState,
+  type MapCover,
+} from './automap-fold.js';
 import { pencilOrder, type PenLine } from './rooms.js';
-
-/** The HUD minimap's inner rect (plate 538,12,86,66 inset by 4) and its 3 px per cell. */
-export const MINI = { x: 542, y: 16, w: 78, h: 58, cell: 3 } as const;
-
-/** What the map covers on screen at t: the HUD clears its persistent elements there. */
-export interface MapCover {
-  readonly x0: number;
-  readonly y0: number;
-  readonly x1: number;
-  readonly y1: number;
-  /** True where the map (not the view under it) is on screen. */
-  shows(x: number, y: number): boolean;
-}
 
 interface Ordered {
   readonly order: readonly { line: PenLine; flip: boolean }[];
@@ -83,7 +84,8 @@ export class Automap {
   /** Path time the arrow shows at t (the replay, else the live walk). */
   private arrowTime(t: number): number {
     const replay = this.plan.replay;
-    if (replay === undefined || t >= replay.until) return t;
+    // Before the replay the arrow is where the walk is (the minimap's arrow): continuity.
+    if (replay === undefined || t >= replay.until || t < replay.at) return t;
     return lerp(replay.from, replay.to, seg(t, replay.at, replay.until));
   }
 
@@ -121,7 +123,11 @@ export class Automap {
   }
 
   private progress(room: RoomPlan, t: number): number {
-    return room.drawEnd <= room.drawAt ? (t >= room.drawAt ? 1 : 0) : seg(t, room.drawAt, room.drawEnd);
+    return room.drawEnd <= room.drawAt
+      ? t >= room.drawAt
+        ? 1
+        : 0
+      : seg(t, room.drawAt, room.drawEnd);
   }
 
   private walls(b: Bmp, frame: MapFrame, area: number, p: number, state: RoomPlan['state']): void {
@@ -142,13 +148,27 @@ export class Automap {
     for (const room of this.plan.rooms) {
       const cells = geometry.rooms[room.room]?.cells ?? [];
       if (room.state === 'done')
-        fillCells(b, frame, cells, room.room, seg(t, room.drawEnd - 0.25, room.drawEnd + 0.3), (x, y) =>
-          b.px(x, y, C.MOSS_D),
+        fillCells(
+          b,
+          frame,
+          cells,
+          room.room,
+          seg(t, room.drawEnd - 0.25, room.drawEnd + 0.3),
+          (x, y) => {
+            b.px(x, y, C.MOSS_D);
+          },
         );
       else
-        fillCells(b, frame, cells, room.room, seg(t, room.drawAt, room.drawAt + 0.4), (x, y, mx, my) => {
-          if ((mx + my) % 6 === 0) b.px(x, y, C.CHAR);
-        });
+        fillCells(
+          b,
+          frame,
+          cells,
+          room.room,
+          seg(t, room.drawAt, room.drawAt + 0.4),
+          (x, y, mx, my) => {
+            if ((mx + my) % 6 === 0) b.px(x, y, C.CHAR);
+          },
+        );
     }
   }
 
@@ -165,7 +185,8 @@ export class Automap {
       const state = sides.some((room) => room.state === 'done') ? 'done' : first.state;
       this.walls(b, frame, geometry.rooms.length + k, this.progress(first, t), state);
       if (t < first.drawAt + 0.25) return;
-      const warm = objective !== undefined && t > objective.at && sides.some((r) => r.state === 'next');
+      const warm =
+        objective !== undefined && t > objective.at && sides.some((r) => r.state === 'next');
       const c = warm ? C.SAND_L : C.TAN;
       const [jx, jy] = frame.jitter(door.rooms[0]);
       const x = Math.round(frame.ox + door.x * frame.s) + jx;
@@ -204,7 +225,8 @@ export class Automap {
     for (let y = gy; y < SCREEN_H; y += grid)
       for (let x = gx; x < SCREEN_W; x += grid) b.px(x, y, C.MOSS_D);
     this.floors(b, frame, t);
-    for (const room of this.plan.rooms) this.walls(b, frame, room.room, this.progress(room, t), room.state);
+    for (const room of this.plan.rooms)
+      this.walls(b, frame, room.room, this.progress(room, t), room.state);
     this.doors(b, frame, t);
     const pathT = this.arrowTime(t);
     this.footprints(b, frame, pathT);
@@ -228,7 +250,13 @@ export class Automap {
       if (room.label === undefined) return;
       const [colour, subColour] = LABEL_COLOURS[room.state];
       const look = { ...room.label, colour, subColour, seed: i };
-      label(b, Math.round(ox + room.label.x) + (i % 2 ? 1 : -1), Math.round(oy + room.label.y), look, t);
+      label(
+        b,
+        Math.round(ox + room.label.x) + (i % 2 ? 1 : -1),
+        Math.round(oy + room.label.y),
+        look,
+        t,
+      );
     });
     const note = this.plan.note;
     if (note !== undefined) {
@@ -238,11 +266,15 @@ export class Automap {
       if (note.to !== undefined) {
         const w = handTextWidth(note.text);
         const start: [number, number] = [nx + Math.min(40, w * 0.3), ny + 20];
-        const end: [number, number] = [ox + note.to[0] * this.plan.scale, oy + note.to[1] * this.plan.scale - 8];
+        const end: [number, number] = [
+          ox + note.to[0] * this.plan.scale,
+          oy + note.to[1] * this.plan.scale - 8,
+        ];
         noteArrow(b, start, end, t, (note.times.at(-1) ?? note.at) + 0.2, 404);
       }
     }
-    if (this.plan.legend !== null && t > this.plan.open) legend(b, this.plan.legend.done, this.plan.legend.ahead);
+    if (this.plan.legend !== null && t > this.plan.open)
+      legend(b, this.plan.legend.done, this.plan.legend.ahead);
   }
 
   /** Map origin for a centre (cells) at the screen centre. */
@@ -250,69 +282,21 @@ export class Automap {
     return { ox: Math.round(cx - centre.x * s), oy: Math.round(cy - centre.y * s) };
   }
 
-  /** The unfold rect at t (from the minimap to the full screen). */
-  private unfoldRect(t: number): { x: number; y: number; w: number; h: number; e: number } {
-    const e = EASES.inOut(seg(t, this.plan.at, this.plan.open));
-    return {
-      x: lerp(MINI.x, 0, e),
-      y: lerp(MINI.y, 0, e),
-      w: lerp(MINI.w, SCREEN_W, e),
-      h: lerp(MINI.h, SCREEN_H, e),
-      e,
-    };
-  }
-
-  /** The fold at t: the frozen map shrinks onto the minimap in held steps, then dithers away. */
-  private foldState(t: number) {
+  /** The fold at t, around the arrow where the map froze. */
+  private fold(t: number): FoldState {
     const { foldAt, scale } = this.plan;
-    const steps = Math.floor(seg(t, foldAt + 0.1, foldAt + 0.7) * 8) / 8;
-    const e = t < foldAt + 0.1 ? -0.018 * Math.sin(Math.PI * seg(t, foldAt, foldAt + 0.1)) : EASES.inOut(steps);
-    const mix = seg(t, foldAt + 0.72, foldAt + 0.97);
-    const centre = this.centre(foldAt);
     const pose = this.path.at(this.arrowTime(foldAt), 0, 0);
-    const px = SCREEN_CX + (pose.x - centre.x) * scale;
-    const py = SCREEN_CY + (pose.y - centre.y) * scale;
-    const cw = (MINI.w * scale) / MINI.cell;
-    const ch = (MINI.h * scale) / MINI.cell;
-    return {
-      sx: lerp(0, px - cw / 2, e),
-      sy: lerp(0, py - ch / 2, e),
-      sw: lerp(SCREEN_W, cw, e),
-      sh: lerp(SCREEN_H, ch, e),
-      dx: Math.round(lerp(0, MINI.x, e)),
-      dy: Math.round(lerp(0, MINI.y, e)),
-      dw: Math.round(lerp(SCREEN_W, MINI.w, e)),
-      dh: Math.round(lerp(SCREEN_H, MINI.h, e)),
-      mix,
-    };
+    return foldState(t, foldAt, scale, onMap(pose, this.centre(foldAt), scale));
   }
 
   /** The screen area the map covers at t (null: no map). */
   cover(t: number): MapCover | null {
     const { at, until, open, foldAt, enter, exit } = this.plan;
     if (t < at || t >= until) return null;
-    const full = (shows: (x: number, y: number) => boolean): MapCover => ({ x0: 0, y0: 0, x1: SCREEN_W, y1: SCREEN_H, shows });
-    if (t < open && enter === 'unfold') {
-      const r = this.unfoldRect(t);
-      const [x0, y0, x1, y1] = [Math.floor(r.x), Math.floor(r.y), Math.ceil(r.x + r.w), Math.ceil(r.y + r.h)];
-      return { x0, y0, x1, y1, shows: () => true };
-    }
-    if (t < open && enter === 'wipe') {
-      const p = EASES.inOut(seg(t, at, open));
-      const mcx = MINI.x + MINI.w / 2;
-      const mcy = MINI.y + MINI.h / 2;
-      const far = Math.hypot(mcx, SCREEN_H - mcy);
-      return full((x, y) => (0.7 * Math.hypot(x - mcx, y - mcy)) / far + 0.3 * bayer(x, y) < p);
-    }
-    if (t < foldAt || exit === 'cut') return full(() => true);
-    const f = this.foldState(t);
-    return {
-      x0: Math.max(0, f.dx - 1),
-      y0: Math.max(0, f.dy - 1),
-      x1: Math.min(SCREEN_W, f.dx + f.dw + 1),
-      y1: Math.min(SCREEN_H, f.dy + f.dh + 1),
-      shows: (x, y) => !(f.mix > 0 && bayer(x, y) < f.mix),
-    };
+    if (t < open && enter === 'unfold') return unfoldCover(EASES.inOut(seg(t, at, open)));
+    if (t < open && enter === 'wipe') return wipeCover(EASES.inOut(seg(t, at, open)));
+    if (t < foldAt || exit === 'cut') return fullCover(() => true);
+    return foldCover(this.fold(t));
   }
 
   /** True when the map covers the whole screen at t (the 3D view need not render). */
@@ -325,57 +309,30 @@ export class Automap {
   paint(t: number, screen: Uint8Array): void {
     const cover = this.cover(t);
     if (cover === null) return;
-    const { scale, open, foldAt, exit, enter } = this.plan;
+    const { at, scale, open, foldAt, exit, enter } = this.plan;
     const b = this.scratch;
     if (t >= foldAt && exit === 'fold') {
-      this.paintFold(t, screen);
+      if (this.frozen === undefined) {
+        this.frozen = new Bmp(SCREEN_W, SCREEN_H, C.VOID);
+        const { ox, oy } = this.origin(this.centre(foldAt), scale);
+        this.compose(this.frozen, foldAt, ox, oy, scale, true);
+      }
+      blitFold(screen, this.frozen, this.fold(t));
       return;
     }
     if (t < open && enter === 'unfold') {
-      const r = this.unfoldRect(t);
-      const s = lerp(MINI.cell, scale, r.e);
-      const { ox, oy } = this.origin(this.centre(this.plan.at), s, r.x + r.w / 2, r.y + r.h / 2);
+      const e = EASES.inOut(seg(t, at, open));
+      const r = unfoldRect(e);
+      const s = lerp(MINI.cell, scale, e);
+      const { ox, oy } = this.origin(this.centre(at), s, r.x + r.w / 2, r.y + r.h / 2);
       this.compose(b, t, ox, oy, s, false);
-      this.copy(screen, cover, true);
+      copyCover(screen, b, cover, true);
       return;
     }
     const { ox, oy } = this.origin(this.centre(t), scale);
     this.compose(b, t, ox, oy, scale, t >= open);
-    this.copy(screen, cover, false);
-  }
-
-  private copy(screen: Uint8Array, cover: MapCover, rim: boolean): void {
-    const src = this.scratch.d;
-    for (let y = cover.y0; y < cover.y1; y += 1)
-      for (let x = cover.x0; x < cover.x1; x += 1) {
-        if (!cover.shows(x, y)) continue;
-        const i = y * SCREEN_W + x;
-        const edge = rim && (x === cover.x0 || y === cover.y0 || x === cover.x1 - 1 || y === cover.y1 - 1);
-        screen[i] = edge ? C.VOID : (src[i] ?? C.VOID);
-      }
-  }
-
-  private paintFold(t: number, screen: Uint8Array): void {
-    const { foldAt, scale } = this.plan;
-    if (this.frozen === undefined) {
-      this.frozen = new Bmp(SCREEN_W, SCREEN_H, C.VOID);
-      const { ox, oy } = this.origin(this.centre(foldAt), scale);
-      this.compose(this.frozen, foldAt, ox, oy, scale, true);
-    }
-    const src = this.frozen.d;
-    const f = this.foldState(t);
-    for (let y = Math.max(0, f.dy - 1); y < Math.min(SCREEN_H, f.dy + f.dh + 1); y += 1)
-      for (let x = Math.max(0, f.dx - 1); x < Math.min(SCREEN_W, f.dx + f.dw + 1); x += 1) {
-        const i = y * SCREEN_W + x;
-        const inside = x >= f.dx && y >= f.dy && x < f.dx + f.dw && y < f.dy + f.dh;
-        if (!inside) {
-          if (f.mix === 0) screen[i] = C.VOID;
-          continue;
-        }
-        if (f.mix > 0 && bayer(x, y) < f.mix) continue;
-        const qx = Math.floor(f.sx + ((x - f.dx + 0.5) * f.sw) / f.dw);
-        const qy = Math.floor(f.sy + ((y - f.dy + 0.5) * f.sh) / f.dh);
-        screen[i] = qx >= 0 && qy >= 0 && qx < SCREEN_W && qy < SCREEN_H ? (src[qy * SCREEN_W + qx] ?? C.VOID) : C.VOID;
-      }
+    copyCover(screen, b, cover, false);
   }
 }
+
+export { MINI, type MapCover } from './automap-fold.js';

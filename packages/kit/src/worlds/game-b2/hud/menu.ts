@@ -138,7 +138,14 @@ function quest(b: Bmp, menu: Menu, t: number, y: number): void {
   const base = menu.at + 0.35;
   drawText(b, 'NOW', lx, y + 34, C.SAND);
   const titleAt = base + 1.1;
-  drawText(b, q.now.slice(0, Math.floor(seg(t, titleAt, titleAt + 0.4) * q.now.length)), lx, y + 46, C.PAPER, 3);
+  drawText(
+    b,
+    q.now.slice(0, Math.floor(seg(t, titleAt, titleAt + 0.4) * q.now.length)),
+    lx,
+    y + 46,
+    C.PAPER,
+    3,
+  );
   const boxAt = titleAt + 0.35;
   if (t > boxAt) {
     const size = Math.round(12 * EASES.outBack(seg(t, boxAt, boxAt + 0.2)));
@@ -157,7 +164,16 @@ function quest(b: Bmp, menu: Menu, t: number, y: number): void {
     drawText(b, line, lx + 16, yy, C.PUTTY);
     const tick = base + 0.35 + i * 0.48 * (0.8 + 0.4 * hash3(menu.seed, i, 2));
     const p = seg(t, tick, tick + 0.16);
-    if (p > 0) handStroke(b, [lx + 1, yy + 3, lx + 4, yy + 7, lx + 11, yy - 2], C.SAGE, 90 + i, 1.5, p, true);
+    if (p > 0)
+      handStroke(
+        b,
+        [lx + 1, yy + 3, lx + 4, yy + 7, lx + 11, yy - 2],
+        C.SAGE,
+        90 + i,
+        1.5,
+        p,
+        true,
+      );
   });
   if (q.ahead > 0) {
     const ay = y + 143 + Math.max(2, q.done.length) * 15 + 15;
@@ -172,7 +188,14 @@ function stats(b: Bmp, menu: Menu, t: number, y: number): void {
   if (sheet === undefined) return;
   const lx = 50;
   const base = menu.at + 0.35;
-  drawText(b, sheet.title.slice(0, Math.floor(seg(t, base + 0.2, base + 0.6) * sheet.title.length)), lx, y + 38, C.PAPER, 3);
+  drawText(
+    b,
+    sheet.title.slice(0, Math.floor(seg(t, base + 0.2, base + 0.6) * sheet.title.length)),
+    lx,
+    y + 38,
+    C.PAPER,
+    3,
+  );
   handStroke(b, [lx, y + 68, lx + 170, y + 69, lx + 330, y + 67], C.SLATE, 78, 2, 1);
   let at = base + 0.7;
   sheet.rows.forEach((row, i) => {
@@ -233,7 +256,9 @@ function inventory(b: Bmp, menu: Menu, t: number, y: number): void {
   }
   const item = inv.items[current];
   if (item === undefined) return;
-  const n = Math.floor(seg(t, movedAt + 0.12, movedAt + 0.7) * (item.label.length + item.sub.length));
+  const n = Math.floor(
+    seg(t, movedAt + 0.12, movedAt + 0.7) * (item.label.length + item.sub.length),
+  );
   drawText(b, item.label.slice(0, n), 432, y + 162, C.BULB);
   drawText(b, item.sub.slice(0, Math.max(0, n - item.label.length)), 432, y + 176, C.PAPER);
 }
@@ -256,7 +281,8 @@ export function drawMenu(b: Bmp, menu: Menu, t: number): void {
   b.rect(x + 6, y + 20, w - 12, 1, C.VOID);
   const { spec } = menu;
   drawText(b, spec.left, x + 16, y + 7, C.BULB, 1, { shadow: C.VOID });
-  if (spec.inventory !== undefined) drawText(b, spec.right, 432, y + 7, C.BULB, 1, { shadow: C.VOID });
+  if (spec.inventory !== undefined)
+    drawText(b, spec.right, 432, y + 7, C.BULB, 1, { shadow: C.VOID });
   if (spec.paused) drawText(b, 'PAUSED', x + w - 56, y + 7, C.PAPER, 1, { shadow: C.VOID });
   quest(b, menu, t, y);
   stats(b, menu, t, y);
@@ -266,7 +292,13 @@ export function drawMenu(b: Bmp, menu: Menu, t: number): void {
 }
 
 /** Resolves a menu (objective typing times, selection times). */
-export function createMenu(spec: MenuSpec, at: number, until: number, select: Menu['select'], seed: number): Menu {
+export function createMenu(
+  spec: MenuSpec,
+  at: number,
+  until: number,
+  select: Menu['select'],
+  seed: number,
+): Menu {
   const objectiveAt = at + 0.35 + 1.1 + 0.5;
   const objectiveTimes = typeTimes(spec.quest?.objective ?? '', 4242 + seed, objectiveAt, 0.045);
   return { spec, at, until, select, objectiveTimes, seed };

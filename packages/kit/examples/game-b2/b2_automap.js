@@ -89,7 +89,14 @@ export function build(ctx) {
     rooms: [
       { cell: [3, 4], label: 'THE OFFICE', sub: '1982' },
       { cell: [12, 6], label: 'THE WAREHOUSE', sub: '1982' },
-      { cell: [18, 4], label: 'TOY STORE', sub: '1982', state: 'next', at: 3.55 },
+      {
+        cell: [18, 4],
+        label: 'TOY STORE',
+        sub: '1982',
+        state: 'next',
+        at: 3.55,
+        labelAt: [18.9, 1.45],
+      },
       { cell: [25, 6], label: 'RETURNS', sub: '1983', state: 'ahead', at: 3.85 },
     ],
     marks: [
@@ -97,7 +104,7 @@ export function build(ctx) {
       { kind: 'objective', pos: [18.1, 6.5], at: 4.3 },
     ],
     note: { text: 'NEXT: THE STORES', pos: [14.6, -1.6], to: [18.1, 6.5], at: 5.25 },
-    camera: [{ at: 3.25, x: 19.2, y: 7.4 }],
+    camera: [{ at: 3.25, x: 20.2, y: 7.6 }],
   });
   for (const cue of map.cues) ctx.sfx.at(cue.t, cue.name);
   ctx.scene.add(view);

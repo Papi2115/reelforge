@@ -185,7 +185,8 @@ export function planTally(
   const outAt = until - EXIT_S[spec.exit];
   const check = (text: string, where: string, max: number, scale: number): void => {
     const bad = unsupportedChars(text);
-    if (bad.length > 0) fail(`tally.${where}: "${text}" has characters the face cannot draw: ${bad.join(' ')}`);
+    if (bad.length > 0)
+      fail(`tally.${where}: "${text}" has characters the face cannot draw: ${bad.join(' ')}`);
     if (textWidth(text, scale) > max) fail(`tally.${where}: "${text}" is too wide; shorten it`);
   };
   check(spec.title, 'title', 270, 3);
@@ -204,8 +205,17 @@ export function planTally(
     const big = value > 14;
     const dur = row.dur ?? (big ? 0.7 + hash3(seed, k, 1) * 0.25 : Math.min(0.75, 0.12 * n + 0.1));
     const begin = row.at === undefined ? start : time(row.at, `tally.rows[${String(k)}].at`);
-    const counts = big ? values(seed + k, n, value) : Array.from({ length: n }, (_, i) => Math.round(((i + 1) / n) * value));
-    const times = ticks(811 + seed + k * 12, begin + 0.1, begin + 0.1 + dur, n, row.stall ?? (k === 0 && big), row.brake ?? (k === 1 && big));
+    const counts = big
+      ? values(seed + k, n, value)
+      : Array.from({ length: n }, (_, i) => Math.round(((i + 1) / n) * value));
+    const times = ticks(
+      811 + seed + k * 12,
+      begin + 0.1,
+      begin + 0.1 + dur,
+      n,
+      row.stall ?? (k === 0 && big),
+      row.brake ?? (k === 1 && big),
+    );
     const texts = counts.map((v, i) => format(row, v, i === n - 1));
     const final = texts.at(-1) ?? '';
     if (valueWidth(final) > 190) fail(`tally.rows[${String(k)}]: "${final}" is too wide`);
@@ -213,23 +223,60 @@ export function planTally(
     if (row.role !== 'count' && (spec.rows[k - 1]?.role ?? 'count') === 'count' && k > 0) y += 8;
     const rowY = y + (k === 1 ? 1 : 0);
     y += 28;
-    start = landed + 0.28 + 0.45 * hash3(seed, k, 7) + (row.role !== 'count' ? 0.1 : 0);
+    start = landed + 0.22 + 0.4 * hash3(seed, k, 7) + (row.role !== 'count' ? 0.1 : 0);
     const zero = format(row, 0, false);
-    return { label: row.label, role: row.role, est: row.est, underline: row.underline, y: rowY, times, texts, zero, final, at: begin, landed, jitter: 71 + k };
+    return {
+      label: row.label,
+      role: row.role,
+      est: row.est,
+      underline: row.underline,
+      y: rowY,
+      times,
+      texts,
+      zero,
+      final,
+      at: begin,
+      landed,
+      jitter: 71 + k,
+    };
   });
   const lastLanded = Math.max(...rows.map((row) => row.landed));
   let stamp: TallyPlan['stamp'];
   if (spec.stamp !== undefined) {
     check(spec.stamp.text, 'stamp.text', 150, 4);
-    const impact = spec.stamp.at === undefined ? lastLanded + 0.86 : time(spec.stamp.at, 'tally.stamp.at');
+    const impact =
+      spec.stamp.at === undefined ? lastLanded + 0.86 : time(spec.stamp.at, 'tally.stamp.at');
     stamp = { text: spec.stamp.text, at: impact };
   }
   const lastEvent = Math.max(lastLanded, stamp?.at ?? 0);
   if (lastEvent + 0.5 > outAt)
-    fail(`tally: its numbers land at ${lastEvent.toFixed(2)} s but it leaves at ${outAt.toFixed(2)} s; give it more time (until) or fewer rows`);
+    fail(
+      `tally: its numbers land at ${lastEvent.toFixed(2)} s but it leaves at ${outAt.toFixed(2)} s; give it more time (until) or fewer rows`,
+    );
   if (outAt - lastEvent > 4)
-    fail(`tally: it holds ${(outAt - lastEvent).toFixed(1)} s after its last number; hold at most 4 s (end it sooner)`);
+    fail(
+      `tally: it holds ${(outAt - lastEvent).toFixed(1)} s after its last number; hold at most 4 s (end it sooner)`,
+    );
   const bottom = (rows.at(-1)?.y ?? top) + (stamp === undefined ? 36 : 62);
-  const plate: [number, number, number, number] = [34, 26, 306, Math.max(170, Math.min(300, bottom - 26))];
-  return { intent: spec.intent, at, until, title: spec.title, sub: spec.sub, rows, backdrop: spec.backdrop, enter: spec.enter, exit: spec.exit, plate, meltEnd, outAt, ...(stamp === undefined ? {} : { stamp }) };
+  const plate: [number, number, number, number] = [
+    34,
+    26,
+    306,
+    Math.max(170, Math.min(300, bottom - 26)),
+  ];
+  return {
+    intent: spec.intent,
+    at,
+    until,
+    title: spec.title,
+    sub: spec.sub,
+    rows,
+    backdrop: spec.backdrop,
+    enter: spec.enter,
+    exit: spec.exit,
+    plate,
+    meltEnd,
+    outAt,
+    ...(stamp === undefined ? {} : { stamp }),
+  };
 }

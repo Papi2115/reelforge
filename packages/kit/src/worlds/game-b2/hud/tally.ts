@@ -136,15 +136,36 @@ function drawRows(b: Bmp, tally: TallyPlan, t: number): void {
       const p1 = seg(t, row.landed + 0.25, row.landed + 0.49);
       const p2 = seg(t, row.landed + 0.55, row.landed + 0.67);
       if (p1 > 0)
-        handStroke(b, [VALUE_X - w - 3, y, VALUE_X - w * 0.4, y + 1, VALUE_X + 3, y - 1], C.GREY, 91, 2.2, p1);
+        handStroke(
+          b,
+          [VALUE_X - w - 3, y, VALUE_X - w * 0.4, y + 1, VALUE_X + 3, y - 1],
+          C.GREY,
+          91,
+          2.2,
+          p1,
+        );
       if (p2 > 0)
-        handStroke(b, [VALUE_X - 4, y + 2, VALUE_X - w * 0.55, y + 3, VALUE_X - w + 6, y + 2], C.GREY, 92, 2.6, p2);
+        handStroke(
+          b,
+          [VALUE_X - 4, y + 2, VALUE_X - w * 0.55, y + 3, VALUE_X - w + 6, y + 2],
+          C.GREY,
+          92,
+          2.6,
+          p2,
+        );
     }
   }
 }
 
 /** Scaled, centred blit of a stamp bitmap; `shade` turns it into a shadow on what is below. */
-function blitScaled(b: Bmp, src: Bmp, scale: number, cx: number, cy: number, shade?: Uint8Array): void {
+function blitScaled(
+  b: Bmp,
+  src: Bmp,
+  scale: number,
+  cx: number,
+  cy: number,
+  shade?: Uint8Array,
+): void {
   const w = Math.round(src.w * scale);
   const h = Math.round(src.h * scale);
   const x0 = Math.round(cx - w / 2);
@@ -225,13 +246,15 @@ export function drawTally(
   drawStamp(work, tally, t);
   const [dx, dy] = shakeOf(tally, t);
   const out = b.d;
-  for (let y = 0; y < SCREEN_H; y += 1) {
-    const sy = clamp(y - dy, 0, SCREEN_H - 1);
-    for (let x = 0; x < SCREEN_W; x += 1) {
-      const c = work.d[sy * SCREEN_W + clamp(x - dx, 0, SCREEN_W - 1)] ?? T;
-      if (c !== T || tally.backdrop !== 'live') out[y * SCREEN_W + x] = c;
+  if (dx === 0 && dy === 0 && tally.backdrop !== 'live') out.set(work.d);
+  else
+    for (let y = 0; y < SCREEN_H; y += 1) {
+      const sy = clamp(y - dy, 0, SCREEN_H - 1);
+      for (let x = 0; x < SCREEN_W; x += 1) {
+        const c = work.d[sy * SCREEN_W + clamp(x - dx, 0, SCREEN_W - 1)] ?? T;
+        if (c !== T || tally.backdrop !== 'live') out[y * SCREEN_W + x] = c;
+      }
     }
-  }
   if (tally.enter === 'melt' && t < tally.at + MELT_S && before !== undefined)
     melt(out, before, (t - tally.at) / MELT_S);
   if (t < tally.outAt) return;

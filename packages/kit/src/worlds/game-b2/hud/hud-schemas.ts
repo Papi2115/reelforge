@@ -128,7 +128,11 @@ export function fail(message: string): never {
   throw new KitError('invalid-params', `${CALL}: ${message}`);
 }
 
-export function parseWith<S extends z.ZodType>(schema: S, value: unknown, what: string): z.output<S> {
+export function parseWith<S extends z.ZodType>(
+  schema: S,
+  value: unknown,
+  what: string,
+): z.output<S> {
   const parsed = schema.safeParse(value ?? {});
   if (parsed.success) return parsed.data;
   return fail(

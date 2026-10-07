@@ -116,7 +116,9 @@ across, 8 px at 640 wide).
 
 Calibration (unit tests): 0 findings on all 30 Sketchbook goldens (looks A/B/C, pop-up, strip) and 4 voxel goldens, on the 10
 Sketchbook template scenes (text, traces, timing) with the showcase narration + research notes; different Sketchbook scenes are
-≥ 0.45 apart in layout. 26/26 seeded bad cases caught (`slop/detection.test.ts`). **Camera sanity** (moves that crop text or end
+≥ 0.45 apart in layout. 26/26 seeded bad cases caught (`slop/detection.test.ts`). Comic (PLAN.md#13.3 part c): 0 findings
+on the 12 comic templates and 36 comic goldens, 24/25 planted fakes caught (`slop/comic-*.test.ts`; the miss: clutter inside
+panels, whose inked borders join every mark into one component); its breakthroughs' intents must be grounded in the sources. **Camera sanity** (moves that crop text or end
 without a hold, for all moves) is not in v1: it stays with the interrupt check (`source-checks-camera.ts`) — backlog.
 
 ### 8.2 Variety (real run Sketchbook 1: "not a single pop-up, I got bored")

@@ -321,7 +321,8 @@ export function storeShelf(seed: number): Texture {
     }
     b.rect(0, board + 19, TEX, 2, C.PUTTY);
     b.rect(0, board + 21, TEX, 1, C.GREY);
-    for (let px = 3 + (board % 5); px < TEX; px += 13 + ((px * 7) % 5)) b.rect(px, board + 19, 5, 2, C.PAPER);
+    for (let px = 3 + (board % 5); px < TEX; px += 13 + ((px * 7) % 5))
+      b.rect(px, board + 19, 5, 2, C.PAPER);
   }
   b.rect(0, 63, TEX, 1, C.VOID);
   return texture(b);

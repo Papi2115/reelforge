@@ -39,12 +39,13 @@ function letter(ch: string, scale: number, tilt: number): Bmp {
   const key = `${ch}:${String(scale)}:${String(tilt)}`;
   const hit = letters.get(key);
   if (hit !== undefined) return hit;
-  const w = textWidth(ch, scale) + 4;
-  const b = new Bmp(w, 7 * scale + 4);
-  drawText(b, ch, 2, 2, C.UMBER, scale);
+  const w = textWidth(ch, scale) + 6;
+  const b = new Bmp(w, 7 * scale + 6);
+  drawText(b, ch, 3, 3, C.UMBER, scale);
   const top = new Bmp(w, 7 * scale + 4);
-  drawText(top, ch, 0, 0, C.BULB, scale);
+  drawText(top, ch, 1, 1, C.BULB, scale);
   b.blit(top, 0, 0);
+  b.outline(C.VOID);
   const out = tilt === 0 ? b : rotate(b, tilt);
   letters.set(key, out);
   return out;

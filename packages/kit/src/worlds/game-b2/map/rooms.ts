@@ -191,11 +191,7 @@ function findDoors(level: CompiledLevel, roomOf: Int16Array): Door[] {
 }
 
 /** Edges between open cells and solid ones, merged into runs per (line, side, area, class). */
-function findLines(
-  level: CompiledLevel,
-  area: (i: number) => number,
-  areas: number,
-): PenLine[][] {
+function findLines(level: CompiledLevel, area: (i: number) => number, areas: number): PenLine[][] {
   const shell = shellOf(level);
   const runs = new Map<string, { h: boolean; q: number; side: number; at: number[] }>();
   const { w, h } = level;
@@ -287,7 +283,7 @@ export function pencilOrder(
       let best = 0;
       let bestDistance = Number.POSITIVE_INFINITY;
       let flip = false;
-      left.forEach((line, k) => {
+      for (const [k, line] of left.entries()) {
         const [ax, ay, bx, by] = line.h
           ? [line.a0, line.q, line.a1, line.q]
           : [line.q, line.a0, line.q, line.a1];
@@ -295,7 +291,7 @@ export function pencilOrder(
         const db = Math.abs(bx - px) + Math.abs(by - py);
         if (da < bestDistance) [best, bestDistance, flip] = [k, da, false];
         if (db < bestDistance) [best, bestDistance, flip] = [k, db, true];
-      });
+      }
       const [line] = left.splice(best, 1);
       if (line === undefined) break;
       order.push({ line, flip });

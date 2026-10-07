@@ -213,7 +213,7 @@ export class HudModel {
     let before: Uint8Array | undefined;
     if (world !== undefined) {
       view = new Uint8Array(SCREEN_W * SCREEN_H);
-      const cam = world.render(tally.at, view);
+      const cam = world.paint(tally.at, view);
       before = view.slice();
       const hud = new Bmp(SCREEN_W, SCREEN_H);
       this.drawPersistent(hud, tally.at, cam, world);

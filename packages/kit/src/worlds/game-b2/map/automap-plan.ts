@@ -52,7 +52,12 @@ export interface AutomapPlan {
   readonly geometry: MapGeometry;
   readonly rooms: readonly RoomPlan[];
   readonly replay?: { from: number; to: number; at: number; until: number };
-  readonly marks: readonly { kind: 'objective' | 'item' | 'cross'; x: number; y: number; at: number }[];
+  readonly marks: readonly {
+    kind: 'objective' | 'item' | 'cross';
+    x: number;
+    y: number;
+    at: number;
+  }[];
   readonly note?: {
     text: string;
     x: number;
@@ -77,7 +82,13 @@ interface Visit {
 }
 
 /** Rooms the walk enters between path times t0 and t1, in order. */
-function visits(level: CompiledLevel, geometry: MapGeometry, path: CameraPath, t0: number, t1: number) {
+function visits(
+  level: CompiledLevel,
+  geometry: MapGeometry,
+  path: CameraPath,
+  t0: number,
+  t1: number,
+) {
   const out: Visit[] = [];
   for (let t = t0; t <= t1 + 1e-9; t += 0.05) {
     const p = path.at(Math.min(t, t1));
@@ -126,7 +137,9 @@ export function planAutomap(
   const open = at + ENTER_S[spec.enter];
   const foldAt = until - EXIT_S[spec.exit];
   if (foldAt - open < 1.2)
-    fail(`automap: ${String(until - at)} s is too short; the map needs >= 1.2 s open between unfolding and folding`);
+    fail(
+      `automap: ${String(until - at)} s is too short; the map needs >= 1.2 s open between unfolding and folding`,
+    );
   let replay: AutomapPlan['replay'];
   if (spec.replay !== undefined) {
     const to = spec.replay.to === undefined ? at : time(spec.replay.to, 'automap.replay.to');
@@ -137,18 +150,23 @@ export function planAutomap(
     const a = path.at(to);
     const b = path.at(replay.until);
     if (Math.hypot(a.x - b.x, a.y - b.y) > 0.3)
-      fail('automap.replay: the walk moves between replay.to and the replay end; hold the path still while the map is up');
+      fail(
+        'automap.replay: the walk moves between replay.to and the replay end; hold the path still while the map is up',
+      );
   }
   const endTime = replay?.to ?? Math.max(at, 0);
   const walked = visits(level, geometry, path, replay?.from ?? 0, endTime);
   const realTime = (pathT: number): number =>
     replay === undefined || pathT <= replay.from
       ? open
-      : replay.at + ((pathT - replay.from) / (replay.to - replay.from)) * (replay.until - replay.at);
+      : replay.at +
+        ((pathT - replay.from) / (replay.to - replay.from)) * (replay.until - replay.at);
   const listed = spec.rooms.map((room, i) => {
     const id = roomOfPoint(geometry, level, room.cell[0], room.cell[1]);
     if (id < 0)
-      fail(`automap.rooms[${String(i)}]: [${String(room.cell[0])}, ${String(room.cell[1])}] is not inside a room (a wall, a door or outside the grid)`);
+      fail(
+        `automap.rooms[${String(i)}]: [${String(room.cell[0])}, ${String(room.cell[1])}] is not inside a room (a wall, a door or outside the grid)`,
+      );
     if (room.label !== '') checkText(room.label, `automap.rooms[${String(i)}].label`, 140, fail);
     if (room.sub !== '') checkText(room.sub, `automap.rooms[${String(i)}].sub`, 140, fail);
     return { ...room, id, index: i };
@@ -168,7 +186,8 @@ export function planAutomap(
           : spec.enter === 'unfold' && visit.t <= at
             ? at
             : open + 0.1 + k * 0.55 * (0.85 + 0.3 * hash3(k, visit.room, 3));
-    const instant = replay === undefined && spec.enter === 'unfold' && visit.t <= at && own?.at === undefined;
+    const instant =
+      replay === undefined && spec.enter === 'unfold' && visit.t <= at && own?.at === undefined;
     const drawEnd = instant ? drawAt : drawAt + drawLength(geometry, visit.room);
     lastDone = Math.max(lastDone, drawEnd);
     plans.push({ room: visit.room, state: 'done', drawAt, drawEnd, entry: [visit.x, visit.y] });
@@ -190,27 +209,31 @@ export function planAutomap(
     const box = geometry.rooms[plan.room];
     const [, h] = labelSize(own.label, own.sub);
     const x = own.labelAt !== undefined ? own.labelAt[0] * s : (box?.x0 ?? 0) * s + 2;
-    const above = (box?.y0 ?? 0) * s - h - 5;
-    const y = own.labelAt !== undefined ? own.labelAt[1] * s : above >= 0 ? above : (box?.y1 ?? 0) * s + 4;
-    const labelAt = plan.state === 'done' ? Math.max(plan.drawAt, plan.drawEnd - 0.1) : plan.drawAt + 0.13;
+    // Above the room's top wall (the narration box owns the bottom of the frame).
+    const y = own.labelAt !== undefined ? own.labelAt[1] * s : (box?.y0 ?? 0) * s - h - 5;
+    const labelAt =
+      plan.state === 'done' ? Math.max(plan.drawAt, plan.drawEnd - 0.1) : plan.drawAt + 0.13;
     const pace = 0.025 * (own.label.length + own.sub.length + 1) * 1.3;
     const tick = plan.state === 'done' ? labelAt + pace + 0.22 : -1;
     return { ...plan, label: { name: own.label, sub: own.sub, x, y, at: labelAt, tick } };
   });
   const items = spec.marks.filter((mark) => mark.kind === 'item');
-  if (items.length > 1) fail('automap.marks: only ONE item mark (it is the accent: THE item of the story)');
+  if (items.length > 1)
+    fail('automap.marks: only ONE item mark (it is the accent: THE item of the story)');
   const marks = spec.marks.map((mark, i) => {
     const [x, y] = mark.pos;
     if (x < 0 || y < 0 || x > level.w || y > level.h)
       fail(`automap.marks[${String(i)}]: [${String(x)}, ${String(y)}] is outside the grid`);
     return { kind: mark.kind, x, y, at: time(mark.at, 'automap.marks.at') };
   });
-  const startCam = spec.enter === 'cut' ? fitCentre(geometry, withLabels) : path.at(at);
+  const startCam = spec.enter === 'cut' ? fitCentre(geometry, withLabels, s) : path.at(at);
   const camera = [{ at, x: startCam.x, y: startCam.y }];
-  for (const key of spec.camera) camera.push({ at: time(key.at, 'automap.camera.at'), x: key.x, y: key.y });
+  for (const key of spec.camera)
+    camera.push({ at: time(key.at, 'automap.camera.at'), x: key.x, y: key.y });
   if (spec.camera.length === 0 && spec.enter !== 'cut') {
-    const fit = fitCentre(geometry, withLabels);
-    if (Math.hypot(fit.x - startCam.x, fit.y - startCam.y) > 1) camera.push({ at: open + 0.05, ...fit });
+    const fit = fitCentre(geometry, withLabels, s);
+    if (Math.hypot(fit.x - startCam.x, fit.y - startCam.y) > 1)
+      camera.push({ at: open + 0.05, ...fit });
   }
   camera.sort((a, b) => a.at - b.at);
   let note: AutomapPlan['note'];
@@ -218,7 +241,14 @@ export function planAutomap(
     const { text, pos, to } = spec.note;
     checkText(text, 'automap.note', 400, fail);
     const noteAt = time(spec.note.at, 'automap.note.at');
-    note = { text, x: pos[0] * s, y: pos[1] * s, at: noteAt, times: typeTimes(text, 4747, noteAt, 0.026), ...(to === undefined ? {} : { to }) };
+    note = {
+      text,
+      x: pos[0] * s,
+      y: pos[1] * s,
+      at: noteAt,
+      times: typeTimes(text, 4747, noteAt, 0.026),
+      ...(to === undefined ? {} : { to }),
+    };
   }
   const states = new Set(withLabels.map((plan) => plan.state));
   const legend =
@@ -231,24 +261,53 @@ export function planAutomap(
     checkText(legend.done, 'automap.legend.done', 80, fail);
     checkText(legend.ahead, 'automap.legend.ahead', 80, fail);
   }
-  const plan: AutomapPlan = { intent: spec.intent, at, until, open, foldAt, enter: spec.enter, exit: spec.exit, scale: s, geometry, rooms: withLabels, marks, camera, legend, ...(replay === undefined ? {} : { replay }), ...(note === undefined ? {} : { note }) };
+  const plan: AutomapPlan = {
+    intent: spec.intent,
+    at,
+    until,
+    open,
+    foldAt,
+    enter: spec.enter,
+    exit: spec.exit,
+    scale: s,
+    geometry,
+    rooms: withLabels,
+    marks,
+    camera,
+    legend,
+    ...(replay === undefined ? {} : { replay }),
+    ...(note === undefined ? {} : { note }),
+  };
   checkLayout(plan, fail);
   return plan;
 }
 
-function fitCentre(geometry: MapGeometry, plans: readonly RoomPlan[]): { x: number; y: number } {
+function fitCentre(
+  geometry: MapGeometry,
+  plans: readonly RoomPlan[],
+  s: number,
+): { x: number; y: number } {
   const boxes = plans.map((plan) => geometry.rooms[plan.room]).filter((box) => box !== undefined);
   if (boxes.length === 0) return { x: 0, y: 0 };
   const x0 = Math.min(...boxes.map((box) => box.x0));
   const x1 = Math.max(...boxes.map((box) => box.x1));
   const y0 = Math.min(...boxes.map((box) => box.y0));
   const y1 = Math.max(...boxes.map((box) => box.y1));
-  // Sit a little above the middle: the narration box takes the bottom of the frame.
-  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 + 1.5 };
+  // Keep the map above the narration box (bottom of the frame) when it fits, else the top in view.
+  const above = y1 - (CAPTION[1] - 4 - SCREEN_CY) / s;
+  const topIn = y0 + (SCREEN_CY - SAFE[1] - 20) / s;
+  return { x: (x0 + x1) / 2, y: Math.min(Math.max((y0 + y1) / 2, above), topIn) };
 }
 
 /** Screen box of map px (x, y, w, h) when the camera holds at `centre` (cells). */
-function onScreen(plan: AutomapPlan, centre: { x: number; y: number }, x: number, y: number, w: number, h: number): Box {
+function onScreen(
+  plan: AutomapPlan,
+  centre: { x: number; y: number },
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): Box {
   const sx = SCREEN_CX + x - centre.x * plan.scale;
   const sy = SCREEN_CY + y - centre.y * plan.scale;
   return [sx, sy, sx + w, sy + h];
@@ -259,26 +318,53 @@ function checkLayout(plan: AutomapPlan, fail: (message: string) => never): void 
   const inSafe = (box: Box): boolean =>
     box[0] >= SAFE[0] && box[1] >= SAFE[1] && box[2] <= SAFE[2] && box[3] <= SAFE[3];
   const check = (what: string, x: number, y: number, w: number, h: number, t: number): void => {
-    const box = onScreen(plan, holdAt(plan.camera, t + 0.3), x, y, w, h);
-    if (!inSafe(box))
-      fail(`${what} is off screen when it appears (t ${t.toFixed(2)}); pan the camera there first or move it (labelAt / pos)`);
-    if (overlaps(box, CAPTION))
-      fail(`${what} sits under the narration box when it appears (t ${t.toFixed(2)}); move it up (labelAt / pos) or pan the camera`);
-    if (plan.legend !== null && overlaps(box, LEGEND))
-      fail(`${what} sits on the legend (bottom right); move it`);
+    // Where the camera holds when it appears, and at every hold after that (it stays on the map).
+    const holds = [
+      { at: t, ...holdAt(plan.camera, t + 0.3) },
+      ...plan.camera.filter((key) => key.at > t).map((key) => ({ ...key, at: key.at + 1.1 })),
+    ];
+    for (const hold of holds) {
+      const box = onScreen(plan, hold, x, y, w, h);
+      const when = `t ${hold.at.toFixed(2)}`;
+      if (!inSafe(box))
+        fail(
+          `${what} is off screen at ${when}; pan the camera there first or move it (labelAt / pos)`,
+        );
+      if (overlaps(box, CAPTION))
+        fail(
+          `${what} sits under the narration box at ${when}; move it up (labelAt / pos) or pan the camera`,
+        );
+      if (plan.legend !== null && overlaps(box, LEGEND))
+        fail(`${what} sits on the legend (bottom right); move it`);
+    }
     const map: Box = [x - 3, y - 3, x + w + 3, y + h + 3];
     const clash = placed.find((other) => overlaps(other.box, map));
-    if (clash !== undefined) fail(`${what} collides with ${clash.what}; move one of them (labelAt / pos)`);
+    if (clash !== undefined)
+      fail(`${what} collides with ${clash.what}; move one of them (labelAt / pos)`);
     placed.push({ box: map, what });
   };
   plan.rooms.forEach((room) => {
     if (room.label === undefined) return;
     const [w, h] = labelSize(room.label.name, room.label.sub);
-    check(`automap label "${room.label.name}"`, room.label.x - 14, room.label.y, w + 14, h, room.label.at);
+    check(
+      `automap label "${room.label.name}"`,
+      room.label.x - 14,
+      room.label.y,
+      w + 14,
+      h,
+      room.label.at,
+    );
   });
   if (plan.note !== undefined) {
     const { text, x, y, at } = plan.note;
     const w = handTextWidth(text);
-    check(`automap.note "${text}"`, x, y - Math.round(w * 0.035), w, 16 + Math.round(w * 0.035), at);
+    check(
+      `automap.note "${text}"`,
+      x,
+      y - Math.round(w * 0.035),
+      w,
+      16 + Math.round(w * 0.035),
+      at,
+    );
   }
 }

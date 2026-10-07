@@ -312,7 +312,7 @@ export const b2View = defineFx({
     'cameraAt(t)': 'The camera { x, y, yaw, pitch, eye } at t',
     'automap({ intent, at, until, enter, exit, scale, rooms, replay, marks, note, camera, legend })':
       'Breakthrough: the level from above, generated from its grid (walls, doors, walked / next / ahead rooms, footprints, the arrow). Unfolds out of the HUD minimap and folds back (continuity). Returns { at, end, open, fold, cues }',
-    "throw(item, { intent, at, to: [x, y] | target: spriteId, z, arc, dur, windup, stay, shake })":
+    'throw(item, { intent, at, to: [x, y] | target: spriteId, z, arc, dur, windup, stay, shake })':
       'The held item is thrown (dip, swing, release at `at`) along an arc; it tumbles, lands with dust; the target sprite flinches. Returns { at, release, land, end, cues }',
     'fog({ at, until, amount })': 'A fog bank rolls in and clears: time passes between two beats',
   },

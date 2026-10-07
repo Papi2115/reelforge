@@ -14,13 +14,7 @@ import { bulb, type Sprite } from '../ray/sprites-props.js';
 import type { Automap, MapCover } from '../map/automap.js';
 import { drawHand, HandTrack } from './hand.js';
 import { SCREEN_W } from './output.js';
-import {
-  flinching,
-  flinchOffset,
-  throwSprites,
-  type Flinch,
-  type ThrowEvent,
-} from './throw.js';
+import { flinching, flinchOffset, throwSprites, type Flinch, type ThrowEvent } from './throw.js';
 
 export type NpcAct = 'talk' | 'no';
 
@@ -63,6 +57,8 @@ export class B2World {
   private readonly throws: ThrowEvent[] = [];
   private readonly flinches: Flinch[] = [];
   private readonly automaps: Automap[] = [];
+  /** Spans an opaque HUD screen (a tally) covers: the 3D view need not render there. */
+  private readonly occluded: { at: number; until: number }[] = [];
   private readonly buffers = createWorldBuffers();
   private readonly doorOpen: Float32Array;
   private readonly glow: Float32Array;
@@ -113,6 +109,11 @@ export class B2World {
     this.flinches.push({ id: hit, at: event.land, dx: dx / length, dy: dy / length });
   }
 
+  /** Nothing of the view shows in [at, until) (an opaque HUD screen covers it). */
+  occlude(at: number, until: number): void {
+    this.occluded.push({ at, until });
+  }
+
   addAutomap(automap: Automap): void {
     this.automaps.push(automap);
   }
@@ -131,9 +132,7 @@ export class B2World {
     for (const { at, until, amount } of this.fogs)
       boost = Math.max(
         boost,
-        amount *
-          EASES.inOut(seg(t, at, at + 0.6)) *
-          (1 - EASES.inOut(seg(t, until - 0.6, until))),
+        amount * EASES.inOut(seg(t, at, at + 0.6)) * (1 - EASES.inOut(seg(t, until - 0.6, until))),
       );
     return boost;
   }
@@ -255,8 +254,17 @@ export class B2World {
     };
   }
 
-  /** Paints frame t into `screen` (640x360 indices, the 3D view doubled, the automap over it). */
+  /**
+   * Paints frame t into `screen` (640x360 indices, the 3D view doubled, the automap over it);
+   * under an opaque HUD screen (`occlude`) it paints nothing.
+   */
   render(t: number, screen: Uint8Array): Camera {
+    if (this.occluded.some((span) => span.at <= t && t < span.until)) return this.camera(t);
+    return this.paint(t, screen);
+  }
+
+  /** Paints frame t whatever covers it (the frozen frame behind a tally). */
+  paint(t: number, screen: Uint8Array): Camera {
     const cam = this.camera(t);
     const automap = this.automaps.find((entry) => entry.cover(t) !== null);
     if (automap !== undefined && automap.opaque(t)) {

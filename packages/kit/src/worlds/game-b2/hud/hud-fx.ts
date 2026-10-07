@@ -36,7 +36,6 @@ export const b2HudParams = z.object({
   anchor: anchorParam,
 });
 
-
 export type B2HudObject = FxObject & {
   compass(options: Input<'compass'>): Span;
   minimap(options?: Input<'minimap'>): Span;

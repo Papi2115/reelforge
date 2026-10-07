@@ -154,7 +154,8 @@ Slots: `hero`, `figures`, `label`, `note`, `thing` box, `ground`. **Rule: the he
 
 ## Variety: page moments, quota and rhythm (real run Sketchbook 1)
 The first real world film used neither breakthrough: the storyboard prompt never mentioned them. Now a world's prompt text carries a
-**moment catalog** (`WorldPromptText.moments`, Sketchbook: `packages/prompts/src/worlds/sketchbook-moments.ts`) and the storyboard
+**moment catalog** (`WorldPromptText.moments`, Sketchbook: `packages/prompts/src/worlds/sketchbook-moments.ts`, Comic:
+`comic-moments.ts`, see "Comic: wiring") and the storyboard
 writes an optional `"worldMoment"` per shot (`@reelforge/shared` `storyboardShotSchema`, kebab case, absent = plain):
 
 | Moment | Kind | Look | Use when the narration… |
@@ -234,14 +235,52 @@ as `packages/kit/examples/comic/a1_hook.js`, `a2_descent.js`, `a3_squeeze.js`; g
   rustle, felt-pen lettering, pencil, scissors, and the whiteboard's `board-tap` knock for stamps, slams and onomatopoeia (no new
   synthesis); 2-3 candidates per busy slot; each comic transition has its own sound (`COMIC_TRANSITION_SFX`).
 - **Known**: the front-view Eagle (s1) can read like a face - kept, it is the showcase Papi approved. Beat/inset content is not
-  rotated with a tilted strip or pile clipping (kept small: <= 1.8 / 5 degrees). Prompt wording and moment catalog: later part.
+  rotated with a tilted strip or pile clipping (kept small: <= 1.8 / 5 degrees).
+
+## Comic: wiring (PLAN.md#13.3 part c)
+Comic is **wired** (`wired: true`): offered with Settings → Experimental worlds on, like Sketchbook.
+- **Prompts** (`packages/prompts/src/worlds/comic.ts`): film, brief, rolls (A story page `comic-story`, B information page
+  `comic-info`, C loud page `comic-loud`), rhythm, panel-native `transitionIn` (style + `focus`), camera (the reader's eye,
+  no orbit), interrupts (`look-switch` only), marks/annotate (all lettering on the page, never `ctx.text`/`ctx.annotate`),
+  motion (one `comicPage` per shot, panel size = importance, fast-fast-pause), craft brief (≤ 1.5 KB, QUALITY.md §6 as the
+  do-list), critic medium/style/vibe/checklist, continuity wording, surprise beats. Exact kit calls in
+  `comic-snippets.ts`, run through the real kit by `packages/stages/src/comic-snippets.test.ts`.
+- **Moment catalog** (`comic-moments.ts`), checked by the generic variety validator (`validators/world-variety.ts`; the quota
+  repair message names each breakthrough's `cue`):
+
+| Moment | Kind | Look | Use when the narration… |
+| --- | --- | --- | --- |
+| `flashback` | breakthrough | `comic-info` (B) | goes back to where something came from (an origin, a cause, "years earlier") |
+| `spread` | breakthrough | `comic-loud` (C) | lands the big picture (an arrival, the scale of a place, the machine as a whole) |
+| `pause-panel` | moment | `comic-loud` | falls silent right before a twist, a verdict or an arrival |
+| `impact-break` | moment | `comic-loud`, `comic-story` | lands a hit, a touchdown, an alarm |
+| `cutaway` | moment | `comic-info` | explains how something works inside |
+| `checklist` | moment | `comic-info` | weighs conditions or options toward a verdict |
+| `big-line` | moment | `comic-loud`, `comic-story` | speaks the one line the film turns on |
+| `squeeze` | moment | `comic-story` | tightens: time runs out, pressure builds |
+
+  Flashback and spread are toolkits, never templates: `intent` required, inspirations f1/f2 and s1/s2, never the same
+  cover + arrangement (flashback) or assembly (spread) twice in a film.
+- **Guards** (`packages/stages/src/slop/world-labels.ts` `COMIC`): traces = `thumbprint`, `smudge`, `coffeeRing`, `note`,
+  `arrow`, `loop`, `tick`, `strike`, `highlight`, `stamp`, `press`, `rough`, `pencil` (1 each), seeded `rnd`/`range` (1 each at
+  most), `flashback`/`spread` (3); options `rough: true`, `tilt`, `slant`, sfx `angles`/`rise`. Text provenance reads
+  `caption`, `balloon`, `sfx`, `note`, `stamp`, `g.text`, `g.standing`, `g.digits`, `g.bigLetter` and a flashback's `when`;
+  sound words (`CLANG`, `BEEEP`, …) are free only in `sfx`/`bigLetter`; labels `MEANWHILE`, `LATER`, `EARLIER`, `FULL`, `EMPTY`.
+  `slop/breakthrough-intent.ts`: a flashback/spread without an intent, with a generic one or one the narration and research never
+  make (< 2 known content words) → ⚠; the final review flags a repeated mechanism or intent in a film. Calibration: 0 findings on
+  the 12 comic templates (with the showcase narration + notes) and the 36 comic goldens; 24/25 planted fakes caught
+  (`slop/comic-detection.test.ts`). Known blind spot: the clutter count sees a comic page as 1-3 components (the inked panel
+  borders join every mark), so clutter inside panels is not measured (backlog: per-panel counting).
+- **Project defaults**: `WORLD_PROJECT_DEFAULTS.comic` = continuity links on, anti-slop guards on, mixed looks, no pack or
+  mascot (640x360 comes with the style preset, 30 fps with the template). Music moods `calm-tech`, `tense-investigation`,
+  `lofi-chill` (`WORLD_MOODS`); critic look rules `CRITIC_LOOK_RULES['comic-*']`; `reelforge kit-docs` lists `comicPage` and the
+  three looks with the experimental switch on.
 
 ## Game B2: raycaster, level format, HUD (PLAN.md#13.4 part a)
 World `game-b2` (experimental), code `packages/kit/src/worlds/game-b2/`, showcase `docs/worlds/game-hud-b2-rpg-v2/`.
 - **Style**: the showcase's 32 colours, 640x360 (x3 = 1080p), post dither off (spread 0): the raycaster dithers its own
   light and fog levels (4x4 Bayer) through one Doom-style colormap per room mood, so every pixel is an exact palette index.
-  Variation budget `game-b2` is neutral (places differ by their level). Sound: placeholder `retro-ui` until a `game-b2`
-  stages palette exists (a later part).
+  Variation budget `game-b2` is neutral (places differ by their level). Sound: the world's own palette `game-b2` (part b).
 - **Renderer** (`ray/`): textured-column raycaster on a 320x180 index buffer, doubled into the 640x360 screen; floors and
   ceilings per pixel, low walls with caps (counter, cubicle), sliding doors, depth-tested billboards, per-room lights
   (a light lights only its own room; an opening door spills the bright room into the dark one). Textures and sprites are
@@ -269,5 +308,68 @@ World `game-b2` (experimental), code `packages/kit/src/worlds/game-b2/`, showcas
 - **Look A `rpg-explore`**, templates `packages/kit/examples/game-b2/a1_corridor.js` (showcase shot 1), `a2_warehouse.js`
   (shot 3, inventory instead of the toast + a checkpoint), `a3_returns.js` (shot 7, its level written inline as the format
   demo); goldens `look-rpg-explore-*` in `packages/kit/test/render/look-rpg-explore.test.ts`.
-- Not yet (later parts): automap and intermission tally, the cartridge throw, fog transitions, looks B/C, prompts and the
-  `reelforge validate level` command.
+- Not yet (later parts): prompts and the `reelforge validate level` command (`checkLevel` stays callable).
+
+## Game B2: breakthrough scenes, throw, looks B/C, transitions, sound (PLAN.md#13.4 part b)
+The two showpieces of the showcase (shots 4 and 8) are **toolkits, never templates** (Sketchbook rules from test film 2):
+a required `intent` (the claim), content from the narration, never the same mechanism twice in a film. Inspiration
+examples in `packages/kit/examples/game-b2/` show different mechanisms; their errors are sentences that say what to move.
+- **`view.automap(spec)`** (`map/`): a Doom overhead map generated from the shot's own level grid (`rooms.ts`: rooms =
+  4-connected open cells split by doors, every open/solid edge a pen line, shell walls vs interior islands, seeded
+  hand-ruling: overruns, 1 px restarts, ±30 % pen speed, own dash rhythm). Spec: `{ intent, at, until, enter: unfold |
+  wipe | cut, exit: fold | cut, scale, rooms: [{ cell, label, sub, state: done | next | ahead | hidden, at, labelAt }],
+  replay: { from, to, dur } (path times, may be < 0 = the walk before the shot), marks: [{ kind: objective | item | cross,
+  pos, at }], note: { text, pos, to, at }, camera: [{ at, x, y }], legend }`. Walked rooms draw on in pencil order as the
+  replayed arrow enters them; next / ahead rooms are dashed and hatched; the camera pans with anticipation and overshoot.
+  **Continuity**: `unfold` grows out of the HUD minimap (same centre = the player, same heading, 3 px per cell growing to
+  the map's scale), `wipe` dithers in radially from it, `fold` squeezes the frozen map in held steps back onto the minimap
+  at 3 px per cell around the arrow and dithers into the real minimap; before a replay starts the arrow is the live walk.
+  The HUD clears its persistent elements where the map covers the screen. Validator (`automap-plan.ts`): cells inside a
+  room, one accent item, a replay that ends where the walk is, labels / notes inside the safe area, off the narration box
+  and the legend and apart from each other **at every camera hold after they appear**. The showcase's "empty box" frame
+  was the narration box open before its first letter: the box now finishes opening as the first letter lands (tested).
+  Examples: `b2_automap.js` (shot 4: the story so far, replay, pan, the NEXT note, fold), `b3_automap_dive.js` (mid-walk
+  dive: unfold, the one door out, fold, the walk goes on).
+- **`hud.tally(spec)`** (`hud/tally*.ts`): Doom's intermission card. `{ intent, at, until, title, sub, rows: [{ label,
+  value, format: comma | plain | percent | unit | time, unit, approx, est, role: count | par | best, underline, at, dur,
+  stall, brake }] (1-6), stamp: { text, at }, backdrop: freeze | live | dark, enter: melt | cut, exit: dissolve | melt |
+  cut }`. Counters tick on seeded uneven cadences (big numbers decelerate and never look round until they land, a stall, a
+  brake), a real descending comma, EST. tags, par / best lines under a hand rule, pencil underline, coffee ring, then a
+  0.7 s silent beat and the misregistered rubber stamp over the plate's right edge (shadow anticipation, overshoot, shake
+  with decay). `freeze` holds the view at `at` behind the smoked-glass plate (the level is the painting); the view does
+  not render under an opaque tally. Rules: the numbers land >= 0.5 s before it leaves, it holds <= 4 s after its last
+  number / stamp. Returns sound cues (`for (const c of r.cues) ctx.sfx.at(c.t, c.name)`), silent in the still beat.
+  Examples: `b4_tally.js` (shot 8), `b5_tally_par.js` (live office behind, a percent of par, RUSHED, melts away).
+- **`view.throw(item, spec)`** (`view/throw.ts`): `{ intent, at (release), to: [x, y] | target: spriteId, z, arc, dur,
+  windup, stay, shake }`; items `{ kind: cartridge | note | key, label, band }`. The hand dips (anticipation), swings, opens
+  at the release and lowers out; the item leaves about where the held item was (same size), tumbles through 8 frames
+  along the arc, lands with a bounce and an 8.5 fps dust puff, rests or is gone (bin, pit); the target flinches (a clerk
+  shakes his head). Pair it with the inventory item's new `out` time and a toast. Examples: `a4_throw.js` (the cartridge
+  onto the returns pile), `c2_throw_note.js` (the XMAS! note onto the programmer's desk). Also `view.fog({ at, until })`.
+- **Look B `rpg-menu`** (rolls B): `hud.menu({ quest | stats, inventory: { items, select }, note })`, the paused menu
+  over the dimmed level; template `b1_quest_log.js` (shot 5). Hosts the automap and the tally.
+- **Look C `rpg-boss`** (rolls C): `hud.damage({ text, at, on: meter | boss })`, `hud.stinger(text, { at, until })` (letters
+  slam on uneven beats, fall out under gravity), `hud.shake`; template `c1_clone_aisle.js` (shot 6: new wall texture
+  `store-shelf`, MARKET draining, FLOODED, TOO MANY). Every look binds `b2View` + `b2Hud` (world-level templates).
+- **Game-native transitions** (`packages/engine/src/transitions/game-b2/`, world-scoped like the Sketchbook's, `type:
+  'wipe'` fallback): `game-b2-melt` (Doom's screen melt), `game-b2-fog` (a flat sand fog bank, like the showcase's 1983 ->
+  2014 interlude), `game-b2-darkness` (light falls in hue-keeping steps to black, the next place clicks on with two
+  stutters), `game-b2-door` (the frame rises like a door, we walk through), `game-b2-level-card` (a woodgrain HUD plate
+  sweeps across; the incoming shot's compass types the place), and the continuity links `game-b2-map-unfold` /
+  `game-b2-map-fold` (an automap shot grows out of / shrinks back into the neighbour's minimap; keep the map centred on
+  the player at that end). Goldens `transition-game-b2-*` (`packages/kit/test/render/transition-game-b2.test.ts`).
+- **Sound** (`packages/stages/src/sound/palettes/game-b2.ts`): no footstep, door or pickup recipes exist, so it reuses
+  built-in ones: footsteps = `board-tap` / `wood-tick`, the door = `servo` + `relay-click` latch, the pickup =
+  `chime-up`, HUD typing = `key-click` / `keyboard` (terminal), blips = `terminal-tick` / `measure-blip` / `led-blip`, the
+  stamp and thumps = `board-tap` knock, menus = `window-open` / `window-close`, the CRT = `crt-zap`; busy slots have two
+  or three candidates (variation); bed: tungsten `hum`. Each game-native transition sounds like itself
+  (`GAME_B2_TRANSITION_SFX`).
+- **Measured** (plain Node, best batch of 30 frames, view + HUD, 640x360): walk 2.3 ms, automap 2.7 ms, tally 2.4 ms
+  (p95 <= 4.9 ms; the first tally frame builds its frozen still once, ~30 ms).
+- **QUALITY §7 self-scores vs the showcase stills** (/20): automap story `b2` 17 (arrow + diamond left of centre, ahead
+  rooms dashed, the note; rooms are plain rectangles, the note's arrow brushes the TOY STORE label), automap dive `b3` 14
+  (correct and continuous, but one big room reads thin: an inspiration example, not a showpiece), tally `b4` 18 (counters,
+  stall, underline, the stamp over the plate's edge; the frozen back room is plainer than the showcase's painting), tally
+  par `b5` 16, quest log `b1` 18 (close to shot 5), clone aisle `c1` 16 (shelves and stinger read; a SALE card crosses
+  the stinger), throws `a4` 17 / `c2` 16 (the toss reads in motion; stills show a small item). Transitions 15-17, level
+  card 14 (no name on the card by design).

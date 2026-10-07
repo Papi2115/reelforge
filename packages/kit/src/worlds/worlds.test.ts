@@ -254,10 +254,13 @@ describe('defineWorld', () => {
 });
 
 describe('wired worlds (PLAN.md#13)', () => {
-  it('wires only Sketchbook so far; the other worlds are render-only', () => {
-    expect(WORLDS.filter((entry) => entry.wired).map((entry) => entry.id)).toEqual(['sketchbook']);
+  it('wires Sketchbook and Comic so far; the other worlds are render-only', () => {
+    expect(WORLDS.filter((entry) => entry.wired).map((entry) => entry.id)).toEqual([
+      'sketchbook',
+      'comic',
+    ]);
     expect(isUnwiredWorldStyle('sketchbook')).toBe(false);
-    expect(isUnwiredWorldStyle('comic')).toBe(true);
+    expect(isUnwiredWorldStyle('comic')).toBe(false);
     expect(isUnwiredWorldStyle('game-b2')).toBe(true);
     for (const style of STYLES_OF_TODAY) expect(isUnwiredWorldStyle(style)).toBe(false);
     expect(isUnwiredWorldStyle(TEST_WORLD_ID, [TEST_WORLD])).toBe(true);

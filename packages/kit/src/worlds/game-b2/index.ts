@@ -24,6 +24,8 @@ export { rpgBossLook } from './looks/rpg-boss/index.js';
 export { rpgExploreLook } from './looks/rpg-explore/index.js';
 export { rpgMenuLook } from './looks/rpg-menu/index.js';
 export { checkLevel, type LevelInput } from './level/schema.js';
+/** The world's 32 colours [index name, swatch, hex] (the engine's game-native transitions). */
+export { B2_TABLE as GAME_B2_COLOURS } from './palette.js';
 
 export const GAME_B2 = defineWorld({
   id: GAME_B2_ID,

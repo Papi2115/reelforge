@@ -1,7 +1,8 @@
 /**
  * World `game-b2` (PLAN.md#13.4): registered in WORLDS, experimental, its style a valid world style
  * (32 showcase colours, every token mapped, 640x360, no post dither, a neutral variation budget),
- * look A bound only in its style, and the kit API (b2View, b2Hud) fails with readable errors.
+ * looks A/B/C bound only in its style on the world's own sound palette, and the kit API (b2View,
+ * b2Hud) fails with readable errors.
  */
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
@@ -9,7 +10,14 @@ import { createKit, kitCatalog } from '../../kit.js';
 import { getLook, isWorldStyle, listLooks, LOOKS } from '../../looks/index.js';
 import { testRng } from '../../testing/rng.js';
 import { WORLDS } from '../index.js';
-import { GAME_B2, GAME_B2_ID, GAME_B2_STYLE, rpgExploreLook } from './index.js';
+import {
+  GAME_B2,
+  GAME_B2_ID,
+  GAME_B2_STYLE,
+  rpgBossLook,
+  rpgExploreLook,
+  rpgMenuLook,
+} from './index.js';
 import { B2_SWATCHES, B2_TABLE } from './palette.js';
 
 const PALETTE: Readonly<Record<string, string>> = Object.fromEntries(
@@ -49,15 +57,20 @@ function factory(name: 'b2View' | 'b2Hud'): Factory {
 const PATH = [{ at: 0, x: 2.5, y: 8.5, yaw: 0 }];
 
 describe('world game-b2', () => {
-  it('is registered, experimental, with look A on a placeholder sound palette', () => {
+  it('is registered, experimental, with looks A/B/C on its own sound palette', () => {
     expect(WORLDS).toContain(GAME_B2);
     expect(GAME_B2.experimental).toBe(true);
-    expect(GAME_B2.looks).toEqual([rpgExploreLook]);
-    expect(rpgExploreLook.rolls).toEqual(['A']);
-    expect(rpgExploreLook.styles).toEqual([GAME_B2_ID]);
-    expect(rpgExploreLook.experimental).toBe(true);
-    expect(rpgExploreLook.soundPalette).toBe('retro-ui');
-    expect(rpgExploreLook.variationBudget).toBe(GAME_B2_ID);
+    expect(GAME_B2.soundPalette).toBe('game-b2');
+    expect(GAME_B2.looks).toEqual([rpgExploreLook, rpgMenuLook, rpgBossLook]);
+    expect(GAME_B2.looks.map((look) => look.rolls)).toEqual([['A'], ['B'], ['C']]);
+    for (const look of GAME_B2.looks) {
+      expect(look.styles, look.id).toEqual([GAME_B2_ID]);
+      expect(look.experimental, look.id).toBe(true);
+      expect(look.soundPalette, look.id).toBe('game-b2');
+      expect(look.variationBudget, look.id).toBe(GAME_B2_ID);
+      expect(look.docs, look.id).toMatch(/focal point and three human traces/);
+      expect(look.docs.length, look.id).toBeLessThan(2600);
+    }
   });
 
   it('has the 32 showcase colours, every token mapped, no token-named swatch', () => {
@@ -79,9 +92,10 @@ describe('world game-b2', () => {
   it('offers its look only in its own style and binds b2View / b2Hud only there', () => {
     expect(isWorldStyle(GAME_B2_ID)).toBe(true);
     expect(listLooks(LOOKS, { style: GAME_B2_ID })).toEqual([]);
-    expect(listLooks(LOOKS, { style: GAME_B2_ID, experimental: true })).toEqual([rpgExploreLook]);
+    expect(listLooks(LOOKS, { style: GAME_B2_ID, experimental: true })).toEqual(GAME_B2.looks);
     for (const style of BUILT_IN) {
-      expect(getLook('rpg-explore', LOOKS, { style, experimental: true })).toBeUndefined();
+      for (const look of GAME_B2.looks)
+        expect(getLook(look.id, LOOKS, { style, experimental: true })).toBeUndefined();
       expect(Object.keys(fx(style))).not.toContain('b2View');
     }
     expect(Object.keys(fx(GAME_B2_ID))).toEqual(expect.arrayContaining(['b2View', 'b2Hud']));
@@ -90,8 +104,6 @@ describe('world game-b2', () => {
       ['b2View', 'rpg-explore'],
       ['b2Hud', 'rpg-explore'],
     ]);
-    expect(rpgExploreLook.docs).toMatch(/focal point and three human traces/);
-    expect(rpgExploreLook.docs.length).toBeLessThan(2600);
   });
 });
 

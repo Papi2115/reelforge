@@ -46,9 +46,7 @@ function tumble(item: ItemLook): readonly Sprite[] {
   const hit = frameCache.get(key);
   if (hit !== undefined) return hit;
   const base = thing(20, 23, item).outline(C.VOID);
-  const frames = Array.from({ length: 8 }, (_, k) =>
-    sprite(k === 0 ? base : rotate(base, k * 45)),
-  );
+  const frames = Array.from({ length: 8 }, (_, k) => sprite(k === 0 ? base : rotate(base, k * 45)));
   frameCache.set(key, frames);
   return frames;
 }
@@ -73,7 +71,10 @@ function dust(): readonly Sprite[] {
 }
 
 /** The item's position at t (world cells, z) and whether it is still in the air. */
-export function flightAt(event: ThrowEvent, t: number): { x: number; y: number; z: number; u: number } {
+export function flightAt(
+  event: ThrowEvent,
+  t: number,
+): { x: number; y: number; z: number; u: number } {
   const u = seg(t, event.release, event.land);
   const [x0, y0, z0] = event.from;
   const [x1, y1, z1] = event.to;

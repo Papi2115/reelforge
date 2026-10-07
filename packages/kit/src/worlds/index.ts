@@ -11,6 +11,7 @@ import type { World } from './types.js';
 
 export * from './types.js';
 export { COMIC_ID, COMIC_INKS } from './comic/index.js';
+export { GAME_B2_COLOURS, GAME_B2_ID } from './game-b2/index.js';
 export {
   SKETCHBOOK_ID,
   SKETCHBOOK_INKS,

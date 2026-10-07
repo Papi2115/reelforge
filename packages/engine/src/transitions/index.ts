@@ -40,6 +40,13 @@ import { carryEnvironment, sharedObject, zoomThrough } from './continuity.js';
 import { cubeSmash } from './cube-smash.js';
 import { diveIn, diveOut } from './dive.js';
 import { enterBinoculars, enterKeyhole, enterLens, enterWindow } from './enter.js';
+import {
+  GAME_B2_COMPOSITORS,
+  GAME_B2_TRANSITION_STYLES,
+  isGameB2Transition,
+  type GameB2TransitionId,
+  type GameB2TransitionStyle,
+} from './game-b2/index.js';
 import { crtZoom, drawOver, pixelSortMelt, tileFlip } from './looks.js';
 import { pageTurn, paperRoll, spongeWipe } from './paper.js';
 import {
@@ -69,6 +76,13 @@ export {
   type ComicTransitionStyle,
 } from './comic/index.js';
 export {
+  GAME_B2_TRANSITION_IDS,
+  GAME_B2_TRANSITION_STYLES,
+  isGameB2Transition,
+  type GameB2TransitionId,
+  type GameB2TransitionStyle,
+} from './game-b2/index.js';
+export {
   isSketchbookTransition,
   SKETCHBOOK_TRANSITION_IDS,
   SKETCHBOOK_TRANSITION_STYLES,
@@ -81,10 +95,14 @@ export {
  * world-scoped page-native transitions.
  */
 export type EngineTransitionId =
-  TransitionStyleId | ContinuityStyleId | SketchbookTransitionId | ComicTransitionId;
+  | TransitionStyleId
+  | ContinuityStyleId
+  | SketchbookTransitionId
+  | ComicTransitionId
+  | GameB2TransitionId;
 
-/** A world's page-native transition id (Sketchbook, Comic). */
-export type WorldTransitionId = SketchbookTransitionId | ComicTransitionId;
+/** A world's page-native transition id (Sketchbook, Comic, Game B2). */
+export type WorldTransitionId = SketchbookTransitionId | ComicTransitionId | GameB2TransitionId;
 
 /** A transition the engine can composite, with its compositor. */
 export interface EngineTransition {
@@ -103,7 +121,9 @@ export interface ContinuityTransition extends ContinuityStyle {
 }
 
 /** A world's page-native transition (PLAN.md#13.6, #13.3) with its compositor. */
-export type WorldTransition = (WorldTransitionStyle | ComicTransitionStyle) & {
+export type WorldTransition = (
+  WorldTransitionStyle | ComicTransitionStyle | GameB2TransitionStyle
+) & {
   readonly composite: Compositor;
 };
 
@@ -134,6 +154,7 @@ const COMPOSITORS: Readonly<Record<EngineTransitionId, Compositor>> = {
   'continuity-carry-environment': carryEnvironment,
   ...SKETCHBOOK_COMPOSITORS,
   ...COMIC_COMPOSITORS,
+  ...GAME_B2_COMPOSITORS,
 };
 
 export const TRANSITIONS: Readonly<Record<TransitionStyleId, KitTransition>> = Object.fromEntries(
@@ -150,9 +171,11 @@ export const CONTINUITY_TRANSITIONS: Readonly<Record<ContinuityStyleId, Continui
 
 export const WORLD_TRANSITIONS: Readonly<Record<WorldTransitionId, WorldTransition>> =
   Object.fromEntries(
-    [...Object.values(SKETCHBOOK_TRANSITION_STYLES), ...Object.values(COMIC_TRANSITION_STYLES)].map(
-      (style) => [style.id, { ...style, composite: COMPOSITORS[style.id] }],
-    ),
+    [
+      ...Object.values(SKETCHBOOK_TRANSITION_STYLES),
+      ...Object.values(COMIC_TRANSITION_STYLES),
+      ...Object.values(GAME_B2_TRANSITION_STYLES),
+    ].map((style) => [style.id, { ...style, composite: COMPOSITORS[style.id] }]),
   ) as Record<WorldTransitionId, WorldTransition>;
 
 /**
@@ -161,7 +184,8 @@ export const WORLD_TRANSITIONS: Readonly<Record<WorldTransitionId, WorldTransiti
  */
 export function findTransition(style: string | undefined): EngineTransition | undefined {
   if (style === undefined) return undefined;
-  if (isSketchbookTransition(style) || isComicTransition(style)) return WORLD_TRANSITIONS[style];
+  if (isSketchbookTransition(style) || isComicTransition(style) || isGameB2Transition(style))
+    return WORLD_TRANSITIONS[style];
   if ((TRANSITION_STYLE_IDS as readonly string[]).includes(style)) {
     return TRANSITIONS[style as TransitionStyleId];
   }

@@ -40,7 +40,12 @@ export const throwSchema = z.strictObject({
   at: whenParam.describe('The item leaves the hand (the wind-up is before it)'),
   to: cell.optional().describe('Landing point in cells (or target)'),
   target: z.string().min(1).optional().describe('Sprite id it hits (it flinches); or to'),
-  z: z.number().min(-0.5).max(1).optional().describe('Landing height (default floor / low wall / sprite)'),
+  z: z
+    .number()
+    .min(-0.5)
+    .max(1)
+    .optional()
+    .describe('Landing height (default floor / low wall / sprite)'),
   arc: z.number().min(0).max(1.2).optional().describe('Extra height at the top of the arc'),
   dur: z.number().min(0.25).max(1.6).optional().describe('Flight seconds (default from distance)'),
   windup: z.number().min(0.2).max(0.8).default(0.38).describe('Seconds of dip and swing before it'),
@@ -74,7 +79,8 @@ function landing(
     fail('throw(): give exactly one of to: [x, y] or target: spriteId');
   if (spec.target !== undefined) {
     const sprite = compiled.sprites.find((entry) => entry.id === spec.target);
-    if (sprite === undefined) return fail(`throw(): no sprite with id "${spec.target}" in the level`);
+    if (sprite === undefined)
+      return fail(`throw(): no sprite with id "${spec.target}" in the level`);
     // People catch it on the chest and it drops at their feet; things take it on top.
     const person = sprite.kind === 'clerk';
     const z = spec.z ?? (person ? 0 : sprite.z + Math.min(sprite.h * 0.45, 0.45));
@@ -89,7 +95,9 @@ function landing(
   const type = compiled.wallTypes[compiled.wall[cy * compiled.w + cx] ?? 0];
   const height = type === undefined || type.tex.length === 0 ? 0 : type.h;
   if (height >= 1 || type?.door === true)
-    fail(`throw(to): [${String(x)}, ${String(y)}] is inside a wall or door; land it in an open cell or on a low wall`);
+    fail(
+      `throw(to): [${String(x)}, ${String(y)}] is inside a wall or door; land it in an open cell or on a low wall`,
+    );
   return { to: [x, y, spec.z ?? height], hit: undefined };
 }
 
@@ -104,7 +112,14 @@ export function viewExtras(ctx: Context) {
       world.addAutomap(new Automap(plan, world.path, seed));
       const cues: Cue[] = [{ t: plan.at, name: 'blip-up' }];
       if (plan.exit === 'fold') cues.push({ t: plan.foldAt + 0.1, name: 'blip-down' });
-      return { at: plan.at, end: plan.until, open: plan.open, fold: plan.foldAt, intent: plan.intent, cues };
+      return {
+        at: plan.at,
+        end: plan.until,
+        open: plan.open,
+        fold: plan.foldAt,
+        intent: plan.intent,
+        cues,
+      };
     },
     throw(item: unknown, spec: unknown): Timed & { release: number; land: number; intent: string } {
       const look = ctx.itemLook(item);
@@ -115,10 +130,11 @@ export function viewExtras(ctx: Context) {
       const { to, hit } = landing(ctx, o, dir);
       // It leaves the hand about where the held item is on screen (the same size): ~1 cell ahead.
       const ahead = Math.min(1, 0.6 * Math.hypot(to[0] - cam.x, to[1] - cam.y));
+      // ...a little right of centre (the hand), its middle just above the eye line.
       const from: [number, number, number] = [
-        cam.x + dir[0] * ahead,
-        cam.y + dir[1] * ahead,
-        cam.eye + 0.05,
+        cam.x + dir[0] * ahead - dir[1] * 0.12 * ahead,
+        cam.y + dir[1] * ahead + dir[0] * 0.12 * ahead,
+        cam.eye - 0.07,
       ];
       const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
       const dur = o.dur ?? clamp(0.3 + distance * 0.11, 0.35, 1.3);
@@ -130,7 +146,7 @@ export function viewExtras(ctx: Context) {
         item: look,
         from,
         to,
-        arc: o.arc ?? Math.min(0.6, 0.12 + distance * 0.06),
+        arc: o.arc ?? Math.min(0.6, 0.04 + distance * 0.06),
         stay: o.stay,
         spin: hashSpin(seed, release),
         region: (x, y) => roomAt(compiled, x, y),

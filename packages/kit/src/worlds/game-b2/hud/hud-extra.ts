@@ -61,6 +61,8 @@ export function hudExtras({ model, world, seed, at, fail }: Context) {
         fail("tally(): enter 'melt' and backdrop 'freeze' need the view: kit.fx.b2Hud({ view })");
       const plan = planTally(o, time2, seed, fail);
       model.tally(plan);
+      // Opaque from its first frame to its exit: the view under it need not render.
+      if (world !== undefined && plan.backdrop !== 'live') world.occlude(plan.at, plan.outAt);
       const cues: HudCue[] = [];
       for (const row of plan.rows) {
         row.times.slice(0, -1).forEach((t, k) => {
@@ -99,7 +101,8 @@ export function hudExtras({ model, world, seed, at, fail }: Context) {
       if (o.note !== undefined) checkText('menu.note', o.note, 2, 130, 1);
       const items = o.inventory?.items.length ?? 0;
       const select = (o.inventory?.select ?? []).map((step, i) => {
-        if (step.index >= items) fail(`menu.inventory.select[${String(i)}]: no item ${String(step.index)}`);
+        if (step.index >= items)
+          fail(`menu.inventory.select[${String(i)}]: no item ${String(step.index)}`);
         return { at: at(step.at), index: step.index };
       });
       model.menu(createMenu(o, from, until, select, seed));
@@ -126,7 +129,13 @@ export function hudExtras({ model, world, seed, at, fail }: Context) {
       const from = at(o.at);
       const [x, y] = o.pos ?? model.anchorOf(o.on, from);
       const w = textWidth(o.text, 3);
-      model.damage({ text: o.text, at: from, x: Math.min(630 - w / 2, Math.max(w / 2 + 10, x)), y, colour });
+      model.damage({
+        text: o.text,
+        at: from,
+        x: Math.min(630 - w / 2, Math.max(w / 2 + 10, x)),
+        y,
+        colour,
+      });
       return { at: from, end: from + 0.95 };
     },
     shake(options: unknown): Span {
