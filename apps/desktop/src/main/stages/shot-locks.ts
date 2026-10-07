@@ -5,6 +5,7 @@
  * what HEAD holds and what the lock guard keeps; nothing else is committed (another shot may be
  * half-built right now).
  */
+import path from 'node:path';
 import { SHOT_LOCKS_FILE } from '@reelforge/shared';
 import { lockedFiles, setShotsLocked } from '@reelforge/stages';
 import type { StageCommandResult } from '../../shared/stages-contract.js';
@@ -36,9 +37,36 @@ async function lockCommitPaths(
   return [SHOT_LOCKS_FILE, ...(protectedFiles.ok ? protectedFiles.value.map((f) => f.file) : [])];
 }
 
-export async function lockShots(request: LockShotsRequest): Promise<StageCommandResult> {
+/** The last lock change per project (resolved dir, case-folded on Windows). */
+const pendingChanges = new Map<string, Promise<unknown>>();
+
+function projectKey(dir: string): string {
+  const resolved = path.resolve(dir);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+/**
+ * Lock changes of one project run one after another, each from its write to its commit: the UI
+ * shows a lock as soon as locks.json changes, so a quick second toggle (Shift+L twice) may arrive
+ * while the first one is still committing. Interleaved, the first commit would take the second's
+ * locks.json and the second would find nothing to commit.
+ */
+export function lockShots(request: LockShotsRequest): Promise<StageCommandResult> {
   const { dir } = request;
-  if (dir === undefined) return { status: 'error', message: 'No project is open.' };
+  if (dir === undefined)
+    return Promise.resolve({ status: 'error', message: 'No project is open.' });
+  const key = projectKey(dir);
+  const previous = pendingChanges.get(key) ?? Promise.resolve();
+  const change = previous.then(() => changeLocks(dir, request));
+  const settled = change.catch(() => undefined);
+  pendingChanges.set(key, settled);
+  void settled.then(() => {
+    if (pendingChanges.get(key) === settled) pendingChanges.delete(key);
+  });
+  return change;
+}
+
+async function changeLocks(dir: string, request: LockShotsRequest): Promise<StageCommandResult> {
   const ids = [...new Set(request.shotIds)];
   const written = await setShotsLocked(dir, ids, request.locked, request.now);
   if (!written.ok) return { status: 'error', message: written.error.message };
