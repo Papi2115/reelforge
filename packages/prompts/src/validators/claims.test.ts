@@ -133,3 +133,57 @@ describe('validateClaimsReply', () => {
     );
   });
 });
+
+describe('hedged claims (real run Game B1 2: "about six" flagged as unhedged)', () => {
+  const script =
+    'The schedule says eight hours. Crews average about six. Worms grow ~7 ft. It took six.';
+  const sentences = scriptSentences(script);
+  const sources = researchClaimSources('- crews sleep around 6 h — https://example.org/sleep');
+  const fileOf = (...claims: Record<string, unknown>[]) => {
+    const options = { sentences, sourceIds: new Set(sources.map((source) => source.id)) };
+    const parsed = validateClaimsReply(reply(...claims), options).value;
+    if (parsed === undefined) throw new Error('unparsed');
+    return claimsFileFromReply(parsed, {
+      ...options,
+      sources,
+      checkedAt: '2026-10-07T00:00:00.000Z',
+      scriptFingerprint: '0123abcd',
+    }).claims.map((entry) => [entry.text, entry.status, entry.note ?? null]);
+  };
+  const unhedged = 'Notes advise hedging; the script states it without a hedge.';
+  const disputed = (sentence: number, text: string, note: string) =>
+    claim({ sentence, text, kind: 'number', sources: ['r1'], status: 'disputed', note });
+
+  it('treats about/around/roughly/nearly/~ as a hedge, before or inside the claim', () => {
+    expect(
+      fileOf(
+        disputed(2, 'Crews average about six.', unhedged),
+        disputed(2, 'six', unhedged),
+        claim({
+          sentence: 3,
+          text: '~7 ft',
+          kind: 'number',
+          sources: [],
+          status: 'disputed',
+          note: 'not exact',
+        }),
+      ),
+    ).toEqual([
+      ['Crews average about six.', 'sourced', null],
+      ['six', 'sourced', null],
+      ['~7 ft', 'unsourced', null],
+    ]);
+  });
+
+  it('keeps a real dispute and an unhedged claim disputed', () => {
+    expect(
+      fileOf(
+        disputed(2, 'about six', 'The source says crews sleep seven hours.'),
+        disputed(4, 'It took six.', unhedged),
+      ),
+    ).toEqual([
+      ['about six', 'disputed', 'The source says crews sleep seven hours.'],
+      ['It took six.', 'disputed', unhedged],
+    ]);
+  });
+});

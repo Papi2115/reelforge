@@ -17,8 +17,19 @@ import { genericIntent, overlap, SAME_INTENT } from './popup-intent.js';
 import { calleeName, constantStrings, literalString, propertyKey, strings } from './source-text.js';
 import { isFunctionWord, knownWord, tokenize, type Vocabulary } from './vocabulary.js';
 
-/** Breakthrough method -> its mechanism options and the kit's defaults (`WorldSlopSpec`). */
-export type BreakthroughKinds = Readonly<Record<string, Readonly<Record<string, string>>>>;
+/**
+ * Reads the mechanism of a toolkit whose mechanism is a structure, not a few enum options (Comic
+ * `panelBreak`: its entrances, what its moves change, its gutters); undefined = unreadable.
+ */
+export type MechanismReader = (options: AnyNode | undefined) => string | undefined;
+
+/**
+ * Breakthrough method -> its mechanism options and the kit's defaults, or a reader of its
+ * mechanism (`WorldSlopSpec`).
+ */
+export type BreakthroughKinds = Readonly<
+  Record<string, Readonly<Record<string, string>> | MechanismReader>
+>;
 
 export interface BreakthroughSpec {
   /** The method: `flashback`, `spread`. */
@@ -61,8 +72,9 @@ function optionAt(node: AnyNode | undefined, path: string): AnyNode | undefined 
 
 function mechanismOf(
   options: AnyNode | undefined,
-  defaults: Readonly<Record<string, string>>,
+  defaults: Readonly<Record<string, string>> | MechanismReader,
 ): string | undefined {
+  if (typeof defaults === 'function') return defaults(options);
   const parts: string[] = [];
   if (Object.keys(defaults).length === 0) return undefined;
   for (const [key, fallback] of Object.entries(defaults)) {
@@ -78,7 +90,7 @@ function mechanismOf(
  * The options object of a breakthrough call: the argument that names an `intent`, else the last
  * object literal (`view.throw(item, { intent, … })` takes the item first), else the first argument.
  */
-function optionsOf(call: AnyNode): AnyNode | undefined {
+export function optionsOf(call: AnyNode): AnyNode | undefined {
   if (call.type !== 'CallExpression') return undefined;
   const args = call.arguments.flatMap((arg) => (arg.type === 'SpreadElement' ? [] : [arg]));
   const objects = args.filter((arg) => arg.type === 'ObjectExpression');

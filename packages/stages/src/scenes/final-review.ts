@@ -24,7 +24,13 @@ import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
 import type { StageError } from '../types.js';
 import { finding, fixableFindings, formatFinding } from './checks.js';
-import { checkShot, findingsStatus, legibilityCheck } from './final-checks.js';
+import {
+  checkShot,
+  FINAL_CRITIC_PREFIX,
+  findingsStatus,
+  legibilityCheck,
+  reviewedFindings,
+} from './final-checks.js';
 import type { SceneJob } from './job.js';
 import { readScenesReport, updateScenesReport } from './report.js';
 import { SHEET_ROWS, triage } from './review.js';
@@ -47,8 +53,6 @@ import type { ShotProgram } from '../slop/world-labels.js';
 export const FINAL_REVIEW_QUEUE = 'scenes-final-review';
 /** Fix turns per shot in the automatic pass. */
 const AUTO_FIX_ITERATIONS = 1;
-/** Build findings the review cannot check again (kept as they are). */
-const CARRIED_SOURCES = new Set<QaFinding['source']>(['missing-prop']);
 
 export interface FinalReviewOutcome {
   readonly review: FinalReview;
@@ -172,7 +176,7 @@ async function critic(
   if (!suspects.ok) return suspects;
   for (const suspect of suspects.value) {
     const list = checked.findings.get(suspect.shot);
-    list?.push(finding('critic', 'error', `the frame critic flagged it: ${suspect.reason}`));
+    list?.push(finding('critic', 'error', `${FINAL_CRITIC_PREFIX}${suspect.reason}`));
   }
   return ok(undefined);
 }
@@ -245,13 +249,7 @@ function entryOf(
   sync: SyncReport | undefined,
 ): FinalReviewShot {
   const locked = job.locked.has(shot.id);
-  const findings =
-    fixed && record !== undefined
-      ? record.findings
-      : [
-          ...found,
-          ...(record?.findings ?? []).filter((entry) => CARRIED_SOURCES.has(entry.source)),
-        ];
+  const findings = reviewedFindings(found, record, fixed);
   const problems = sync?.shots.find((entry) => entry.shotId === shot.id)?.problems ?? 0;
   return {
     shotId: shot.id,

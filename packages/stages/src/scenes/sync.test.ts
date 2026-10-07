@@ -121,3 +121,60 @@ describe('anchors spoken again inside the shot (real run Comic 1)', () => {
     expect(event).toMatchObject({ kind: 'anchor', spokenT: 33.2, deltaMs: 0, verdict: 'ok' });
   });
 });
+
+describe('kit cues (real runs Game B1 1 #10, Game B1 2 #7)', () => {
+  const kitScene = `export function build(ctx) {
+  const { sfx } = ctx;
+  const hit = ctx.anchor('61 KB');
+  const r = ctx.kit.worlds.gameB1.screen(ctx).scoreTable({ at: hit.t });
+  for (const c of r.cues) if (c.name !== 'glitch') sfx.at(c.t, c.name);
+  sfx.at(hit.t + 0.4, 'whoosh');
+  sfx.at(hit.t, 'tick');
+  return {};
+}`;
+  const cues = [
+    { t: 3.0, name: 'tick' },
+    { t: 3.3, name: 'tick' },
+    { t: 3.35, name: 'blip' },
+    { t: 3.4, name: 'whoosh' },
+    { t: 6.4, name: 'blip' },
+  ];
+  const verdicts = (source: string | undefined) =>
+    shotSyncEvents({ shot, anchors: [anchor('61 KB', 3.0)], sceneCues: cues, words, source }).map(
+      (event) => `${event.label} ${event.verdict}`,
+    );
+
+  it("frees the kit's cues near a word; the scene's own cues and cues outside the shot stay checked", () => {
+    expect(verdicts(kitScene)).toEqual([
+      '61 KB ok',
+      'tick ok',
+      'tick free',
+      'blip free',
+      'whoosh off',
+      'blip outside-shot',
+    ]);
+  });
+
+  it('checks every cue without kit loops, with a computed name or with an unreadable source', () => {
+    const before = [
+      '61 KB ok',
+      'tick ok',
+      'tick off',
+      'blip off',
+      'whoosh off',
+      'blip outside-shot',
+    ];
+    expect(verdicts(undefined)).toEqual(before);
+    expect(verdicts(kitScene.replace(/for \(const c of r\.cues\).*\n/, ''))).toEqual(before);
+    expect(verdicts(kitScene.replace("'whoosh'", 'name'))).toEqual(before);
+    expect(verdicts('export function build( {')).toEqual(before);
+  });
+
+  it('keeps every cue of a name the scene schedules in its own loop checked', () => {
+    const looped = kitScene.replace(
+      "sfx.at(hit.t, 'tick');",
+      "for (const t of [hit.t]) sfx.at(t, 'tick');",
+    );
+    expect(verdicts(looped)).toContain('tick off');
+  });
+});

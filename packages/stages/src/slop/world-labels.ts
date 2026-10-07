@@ -6,6 +6,8 @@
  */
 import type { AnyNode } from 'acorn';
 import type { QaFinding } from '@reelforge/shared';
+import type { BreakthroughKinds } from './breakthrough-intent.js';
+import { comicShowcaseFindings, panelBreakMechanism } from './comic-breakthroughs.js';
 import { GAME_B1_SLOP } from './game-b1-labels.js';
 import { GAME_B2_SLOP } from './game-b2-labels.js';
 import type { Vocabulary } from './vocabulary.js';
@@ -38,6 +40,8 @@ export interface WorldSlopSpec {
   readonly numberKeys?: readonly string[] | undefined;
   /** Call -> option of `[t, value]` keys whose values are on screen (Game B1 `counter: 'keys'`). */
   readonly keyedNumbers?: Readonly<Record<string, string>> | undefined;
+  /** Text options that are a correction (a red pen's struck and written word): labels. */
+  readonly correctionKeys?: readonly string[] | undefined;
   /** Two-digit years ("XMAS 82") are sourced by the full year of the sources (1982). */
   readonly shortYears?: boolean | undefined;
   /** Lettering calls of sounds (onomatopoeia): `soundWords` are not invented there. */
@@ -45,9 +49,10 @@ export interface WorldSlopSpec {
   readonly soundWords?: ReadonlySet<string> | undefined;
   /**
    * Breakthrough calls with a required `intent` (the claim) and the options that make their
-   * mechanism, with the kit's defaults: never the same mechanism twice in a film.
+   * mechanism, with the kit's defaults (or a reader of it): never the same mechanism twice in a
+   * film.
    */
-  readonly breakthroughs?: Readonly<Record<string, Readonly<Record<string, string>>>> | undefined;
+  readonly breakthroughs?: BreakthroughKinds | undefined;
   /** The world's own checks of one scene's source (Game B1: an unrequested showcase object). */
   readonly sourceChecks?:
     ((program: AnyNode, file: string, vocabulary: Vocabulary) => QaFinding[]) | undefined;
@@ -128,7 +133,9 @@ const COMIC_SOUNDS =
  * jitter (`rnd`/`range`, once each). `flashback` and `spread` draw their own traces (foxing, aged
  * edge, torn strip; spine crease, out-of-register pieces) and count for three. Text lives in the
  * page's lettering and the painter's `g.text`/`g.standing`/`g.digits`/`g.bigLetter`; `sfx` letters
- * sounds.
+ * sounds. Breakthroughs (PLAN.md#13.15): `flashback`, `spread` and the open toolkit `panelBreak`
+ * (its mechanism read from its panels, moves and gutters); one that replays a showcase template
+ * is flagged per scene (comic-breakthroughs.ts).
  */
 const COMIC: WorldSlopSpec = {
   traceMethods: {
@@ -190,7 +197,9 @@ const COMIC: WorldSlopSpec = {
   breakthroughs: {
     flashback: { cover: 'page', arrange: 'rows' },
     spread: { assemble: 'merge', pieces: 'grid' },
+    panelBreak: panelBreakMechanism,
   },
+  sourceChecks: (program, file) => comicShowcaseFindings(program, file),
 };
 
 const SPECS: Readonly<Record<string, WorldSlopSpec>> = {

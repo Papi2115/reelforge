@@ -8,7 +8,12 @@ import {
 } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { MIN_CHAPTER_SECONDS } from '../export/chapters.js';
-import { boundaryStrength, chapterTitle, planChapterStarts } from './chapter-plan.js';
+import {
+  boundaryStrength,
+  chapterTitle,
+  isStoryboardJargon,
+  planChapterStarts,
+} from './chapter-plan.js';
 import {
   buildPublishKit,
   publishChapters,
@@ -165,6 +170,38 @@ describe('publish chapters', () => {
       'The exam calculator',
       'Four megabytes needed',
     ]);
+  });
+
+  it('never titles a chapter with storyboard wording (real run Comic 2: "Story page")', () => {
+    const intents = [
+      'Hook: one splash page, a huge inked 1,000 M',
+      'Story page, three beats, the last biggest',
+      'The jellyfish glides in the dark',
+    ];
+    const shots = intents.map((intent, index) => shot(index, 12, { intent }));
+    const narration = [
+      'Below roughly one thousand meters, the sun gives up.',
+      'First, the trick. A compound called luciferin reacts with oxygen.',
+      'Why? Anglerfish dangle a lure.',
+    ];
+    const timed = (sentences: readonly string[]) =>
+      sentences.flatMap((sentence, index) =>
+        sentence.split(' ').map((text, offset) => ({
+          text,
+          t: index * 12 + offset * 0.3,
+          tEnd: index * 12 + offset * 0.3 + 0.25,
+        })),
+      );
+    const titles = (words: ReturnType<typeof timed>): string[] =>
+      publishChapters({ shots, durationS: 36, meta: null, words }).chapters.map(
+        (chapter) => chapter.title,
+      );
+    expect(titles(timed(narration))).toEqual(['One Thousand Meters', 'Trick', 'Anglerfish Dangle']);
+    // Nothing spoken: intents without storyboard wording only.
+    expect(titles([])).toEqual(['Intro', 'Part 2', 'The jellyfish glides']);
+    expect(isStoryboardJargon('Story page')).toBe(true);
+    expect(isStoryboardJargon('Closing card')).toBe(false);
+    expect(isStoryboardJargon('Four megabytes needed')).toBe(false);
   });
 
   it('makes short human titles from intents', () => {

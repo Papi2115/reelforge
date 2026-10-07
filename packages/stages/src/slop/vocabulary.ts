@@ -103,12 +103,19 @@ export function stem(word: string): string {
   return word;
 }
 
-/** Number words of a token run: "sixteen centuries" -> 16, "365 and a quarter" -> 365.25. */
-export function spelledNumbers(tokens: readonly Token[]): number[] {
-  const found: number[] = [];
-  let [total, current, active] = [0, 0, false];
+/** A number of a token run (digits or words) with its tokens `[start, end)`. */
+export interface NumberRun {
+  readonly value: number;
+  readonly start: number;
+  readonly end: number;
+}
+
+/** Numbers of a token run: "sixteen centuries" -> 16, "365 and a quarter" -> 365.25. */
+export function numberRuns(tokens: readonly Token[]): NumberRun[] {
+  const found: NumberRun[] = [];
+  let [total, current, active, start, end] = [0, 0, false, 0, 0];
   const flush = (): void => {
-    if (active) found.push(total + current);
+    if (active) found.push({ value: total + current, start, end });
     [total, current, active] = [0, 0, false];
   };
   for (let index = 0; index < tokens.length; index += 1) {
@@ -117,35 +124,91 @@ export function spelledNumbers(tokens: readonly Token[]): number[] {
     const [unit, scale, fraction] = [UNITS[word], SCALES[word], FRACTIONS[word]];
     if (number !== undefined) {
       flush();
-      [current, active] = [number, true];
+      [current, active, start, end] = [number, true, index, index + 1];
     } else if (unit !== undefined) {
-      [current, active] = [current + unit, true];
+      if (!active) start = index;
+      [current, active, end] = [current + unit, true, index + 1];
     } else if (scale !== undefined && active) {
       if (scale === 100) current *= 100;
       else [total, current] = [total + current * scale, 0];
+      end = index + 1;
     } else if (active && word === 'and' && UNITS[next] !== undefined) {
       // "three hundred and five": the number goes on.
     } else if (active && word === 'and' && next === 'a' && FRACTIONS[after] !== undefined) {
       current += FRACTIONS[after] ?? 0;
       index += 2;
+      end = index + 1;
     } else {
       flush();
-      if (fraction !== undefined) found.push(fraction);
+      if (fraction !== undefined) found.push({ value: fraction, start: index, end: index + 1 });
     }
   }
   flush();
   return found;
 }
 
+/** Number words of a token run: "sixteen centuries" -> 16, "365 and a quarter" -> 365.25. */
+export function spelledNumbers(tokens: readonly Token[]): number[] {
+  return numberRuns(tokens).map((run) => run.value);
+}
+
+export function isFunctionWord(word: string): boolean {
+  return FUNCTION_WORDS.has(word);
+}
+
+/** The stem of the word right after a number (what it counts: "four DEGREES"), if any. */
+export function countedUnit(tokens: readonly Token[], end: number): string | undefined {
+  const token = tokens[end];
+  if (token === undefined || token.number !== undefined || token.text.length < 2) return undefined;
+  return isFunctionWord(token.text) ? undefined : stem(token.text);
+}
+
 export interface Vocabulary {
   readonly words: ReadonlySet<string>;
   readonly stems: ReadonlySet<string>;
   readonly numbers: readonly number[];
+  /**
+   * Counted things of the sources ("four degrees": `degree`) -> every number of the sentences
+   * that count them; a string counting the same thing with another number changed it.
+   */
+  readonly quantities: ReadonlyMap<string, readonly number[]>;
+}
+
+/** Sentences of a source text (a decimal point is not a sentence end). */
+function sentencesOf(text: string): string[] {
+  return text.split(/(?<=[.!?;])\s+|\n+/);
+}
+
+/**
+ * Counted things of one source text: a counted number gives its thing every number of its
+ * sentence; a bare number counts the last thing counted before it ("The schedule says eight
+ * hours. Crews average about six." -> hour: 8, 6).
+ */
+function addQuantities(text: string, quantities: Map<string, number[]>): void {
+  const add = (unit: string, values: readonly number[]): void => {
+    quantities.set(unit, [...(quantities.get(unit) ?? []), ...values]);
+  };
+  let last: string | undefined;
+  for (const sentence of sentencesOf(text)) {
+    const tokens = tokenize(sentence);
+    const runs = numberRuns(tokens);
+    for (const run of runs) {
+      const unit = countedUnit(tokens, run.end);
+      if (unit !== undefined)
+        add(
+          unit,
+          runs.map((each) => each.value),
+        );
+      else if (last !== undefined) add(last, [run.value]);
+      last = unit ?? last;
+    }
+  }
 }
 
 export function buildVocabulary(texts: readonly string[]): Vocabulary {
   const words = new Set<string>();
   const numbers = new Set<number>();
+  const quantities = new Map<string, number[]>();
   for (const text of texts) {
     const tokens = tokenize(text);
     for (const token of tokens) {
@@ -153,12 +216,9 @@ export function buildVocabulary(texts: readonly string[]): Vocabulary {
       else numbers.add(token.number);
     }
     for (const value of spelledNumbers(tokens)) numbers.add(value);
+    addQuantities(text, quantities);
   }
-  return { words, stems: new Set([...words].map(stem)), numbers: [...numbers] };
-}
-
-export function isFunctionWord(word: string): boolean {
-  return FUNCTION_WORDS.has(word);
+  return { words, stems: new Set([...words].map(stem)), numbers: [...numbers], quantities };
 }
 
 /** A word the vocabulary has: as it is, by stem, or as an abbreviation ("feb" of "february"). */

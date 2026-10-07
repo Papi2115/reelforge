@@ -1,15 +1,19 @@
 /**
  * Chapter titles from the narration (real run 2.3: titles taken from shot intents read like
- * "Cold open in a dark"): the key phrase of the sentence spoken at the chapter start, i.e. its
- * longest run of content words (filler and function words break runs, "of"/"and" may join two
- * content words), at most MAX_TITLE_WORDS words, in title case. EN and PL function words.
+ * "Cold open in a dark"): the key phrase of the first sentence spoken from the chapter start that
+ * has one ("Why?" has none: real run Comic 2 fell back to the intent "Story page"), i.e. its
+ * longest run of content words (filler, hedges and function words break runs, "of"/"and" may join
+ * two content words, "one" may open a run), at most MAX_TITLE_WORDS words, in title case. EN and
+ * PL function words.
  */
 import type { TimedWord } from '@reelforge/shared';
 
 /** Words spoken up to this long before the chapter start still belong to it (shot cut lead). */
 const LEAD_S = 0.3;
-/** At most this many words of the first sentence are read. */
+/** At most this many words of a sentence are read. */
 const SENTENCE_WORDS = 16;
+/** At most this many sentences from the chapter start are tried. */
+const MAX_SENTENCES = 3;
 
 const STOP_WORDS = new Set(
   [
@@ -23,6 +27,7 @@ const STOP_WORDS = new Set(
     "again once up down out off one let’s let's here’s here's that’s that's there’s there's",
     'yes yeah right even still yet though because while until after before during every',
     'almost anything something everything nothing',
+    'roughly nearly around approximately below above first',
     // Polish function words and filler
     'i w we z ze na do to że się jest są był była było byli o od po za jak ale czy nie tak',
     'już tylko ten ta te tego tej co który która które bo więc no teraz a oraz lub dla przez',
@@ -33,6 +38,8 @@ const STOP_WORDS = new Set(
 );
 /** Joiners kept inside a run when a content word follows ("Rope of Memory"). */
 const JOINERS = new Set(['of', 'and', '&']);
+/** Number words that are stop words yet may open a run ("One Thousand Meters"). */
+const OPENERS = new Set(['one']);
 /** Lower-case in title case unless first. */
 const MINOR_WORDS = new Set(['a', 'an', 'the', 'of', 'and', 'or', 'in', 'on', 'at', 'to', 'for']);
 
@@ -49,17 +56,22 @@ function endsSentence(text: string): boolean {
   return /[.!?…]["'”’)\]]*$/.test(text);
 }
 
-/** The words of the first sentence spoken from `t` (before `until`). */
-function sentenceAt(words: readonly TimedWord[], t: number, until: number): string[] {
+/** The words of the first sentences spoken from `t` (before `until`). */
+function sentencesAt(words: readonly TimedWord[], t: number, until: number): string[][] {
   const first = words.findIndex((word) => word.t >= t - LEAD_S);
   if (first < 0) return [];
-  const sentence: string[] = [];
+  const sentences: string[][] = [];
+  let sentence: string[] = [];
   for (const word of words.slice(first)) {
-    if (word.t >= until || sentence.length >= SENTENCE_WORDS) break;
-    sentence.push(word.text);
-    if (endsSentence(word.text)) break;
+    if (word.t >= until || sentences.length >= MAX_SENTENCES) break;
+    if (sentence.length < SENTENCE_WORDS) sentence.push(word.text);
+    if (endsSentence(word.text)) {
+      sentences.push(sentence);
+      sentence = [];
+    }
   }
-  return sentence;
+  if (sentence.length > 0 && sentences.length < MAX_SENTENCES) sentences.push(sentence);
+  return sentences;
 }
 
 /** Longest run of content words (joiners inside); ties: the earliest. */
@@ -75,8 +87,10 @@ function keyPhrase(sentence: readonly string[]): string[] {
   sentence.forEach((raw, index) => {
     const word = bare(raw);
     const next = bare(sentence[index + 1] ?? '');
+    const lower = word.toLowerCase();
     if (isContent(word)) run.push(word);
-    else if (run.length > 0 && JOINERS.has(word.toLowerCase()) && isContent(next)) run.push(word);
+    else if (run.length > 0 && JOINERS.has(lower) && isContent(next)) run.push(word);
+    else if (run.length === 0 && OPENERS.has(lower) && isContent(next)) run.push(word);
     else close();
     // A clause ends the run (a comma between two names is not one phrase).
     if (/[,;:]$/.test(raw)) close();
@@ -107,7 +121,10 @@ export function spokenChapterTitle(
   until: number,
   maxWords: number,
 ): string | undefined {
-  const phrase = keyPhrase(sentenceAt(words, t, until)).slice(0, maxWords);
-  while (phrase.length > 1 && !isContent(phrase.at(-1) ?? '')) phrase.pop();
-  return phrase.length === 0 ? undefined : titleCase(phrase);
+  for (const sentence of sentencesAt(words, t, until)) {
+    const phrase = keyPhrase(sentence).slice(0, maxWords);
+    while (phrase.length > 1 && !isContent(phrase.at(-1) ?? '')) phrase.pop();
+    if (phrase.some(isContent)) return titleCase(phrase);
+  }
+  return undefined;
 }

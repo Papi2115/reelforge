@@ -6,7 +6,7 @@
  */
 import { lintScene } from '@reelforge/engine';
 import { ok, type Result } from '@reelforge/claude-bridge';
-import type { QaFinding, ShotSync, StoryboardShot } from '@reelforge/shared';
+import type { QaFinding, ShotBuildRecord, ShotSync, StoryboardShot } from '@reelforge/shared';
 import { readProjectText } from '../files.js';
 import { slopShotFindings } from '../slop/guards.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
@@ -39,6 +39,41 @@ export function legibilityCheck(
       minGlyphPx: job.settings.minGlyphPx,
       frameWidth,
     });
+}
+
+/** How the final review's batched critic words its findings (not carried into a later review). */
+export const FINAL_CRITIC_PREFIX = 'the frame critic flagged it: ';
+
+/**
+ * Build findings the review cannot check again and keeps as they are: a missing prop and the
+ * build critic's verdicts on the full frames (real run Game B1 2: the review's sheet critic does
+ * not see what the build critic saw, so its ⚠ must not vanish silently).
+ */
+export function carriedBuildFindings(
+  record: Pick<ShotBuildRecord, 'findings'> | undefined,
+): QaFinding[] {
+  return (record?.findings ?? []).filter(
+    (entry) =>
+      entry.source === 'missing-prop' ||
+      (entry.source === 'critic' && !entry.message.startsWith(FINAL_CRITIC_PREFIX)),
+  );
+}
+
+/**
+ * A shot's findings after the review: a fixed shot's new build record, else the review's own
+ * findings plus the carried build findings it does not repeat.
+ */
+export function reviewedFindings(
+  found: readonly QaFinding[],
+  record: Pick<ShotBuildRecord, 'findings'> | undefined,
+  fixed: boolean,
+): QaFinding[] {
+  if (fixed && record !== undefined) return [...record.findings];
+  const messages = new Set(found.map((entry) => entry.message));
+  return [
+    ...found,
+    ...carriedBuildFindings(record).filter((entry) => !messages.has(entry.message)),
+  ];
 }
 
 /** ✓ / ⚠ / ✗ of a finding list (fatal = cannot render). */

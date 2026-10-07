@@ -101,11 +101,15 @@ describe('Comic guards on the approved templates', () => {
     expect(repeatedBreakthroughFindings(film).size).toBe(0);
   });
 
-  it('reports nothing at all on the templates through the public source guard', () => {
+  it('reports nothing on the templates through the public source guard but their own template', () => {
     const findings = EXAMPLES.flatMap(([name, source]) =>
       slopSourceFindings(SETUP, source, name).map((entry) => entry.message),
     );
-    expect(findings).toEqual([]);
+    // The breakthrough examples ARE the showcase templates (comic-breakthroughs.ts, PLAN.md#13.15):
+    // a film's scene that replays one is flagged, so they are, and nothing else is.
+    const replays = /replays a showcase template/;
+    expect(findings.filter((message) => !replays.test(message))).toEqual([]);
+    expect(findings.filter((message) => replays.test(message))).toHaveLength(4);
   });
 });
 

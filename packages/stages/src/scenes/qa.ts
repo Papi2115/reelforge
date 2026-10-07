@@ -143,6 +143,7 @@ export async function qaRound(
       anchors: render.anchors,
       sceneCues: render.cues,
       words: job.anchorIndex,
+      source,
     }),
     shot,
   );

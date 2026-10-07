@@ -24,7 +24,7 @@
  * and `score` digits, the HUD `year`, Dad's `note` lines and the cartridge's tape `label`, a gift
  * `tag`, the calendar `month`, a boss card's `name` (read only inside `boss`), the high-score rows
  * (`who`, a `score` number or string), the manual's `steps` and its correction (`strike`,
- * `write`). Game words (HIGH SCORES, HOW TO PLAY, FIG., INSERT COIN, PRESS START, BOSS, WEAK POINT,
+ * `write`, labels: any unknown word is invented). Game words (HIGH SCORES, HOW TO PLAY, FIG., INSERT COIN, PRESS START, BOSS, WEAK POINT,
  * CONTINUE?, GAME OVER, INVENTORY FULL) and time units are labels; a two-digit year (XMAS 82) is
  * the full year of the sources.
  *
@@ -104,6 +104,7 @@ export const GAME_B1_SLOP: WorldSlopSpec = {
   textCallKeys: { boss: ['name'] },
   numberKeys: ['score', 'year'],
   keyedNumbers: { counter: 'keys' },
+  correctionKeys: ['strike', 'write'],
   shortYears: true,
   breakthroughs: {
     scoreTable: { enter: 'draw-in', initials: 'arcade' },

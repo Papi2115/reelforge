@@ -20,9 +20,10 @@ export interface OnScreenText {
   readonly line: number;
   /**
    * `timeline-end`: a strip's `end` word (judged against the timeline's era too); `sound`: an
-   * onomatopoeia (the world's sound words are not invented there).
+   * onomatopoeia (the world's sound words are not invented there); `correction`: a word a red
+   * pen strikes or writes (a label: any unknown word is invented).
    */
-  readonly role?: 'timeline-end' | 'sound' | undefined;
+  readonly role?: 'timeline-end' | 'sound' | 'correction' | undefined;
 }
 
 /** A world's own lettering (`WorldSlopSpec`): more text calls and options, sound calls. */
@@ -36,6 +37,8 @@ export interface WorldText {
   readonly numberKeys?: readonly string[] | undefined;
   /** Call -> option of `[t, value]` keys whose values are on screen (Game B1 `counter: 'keys'`). */
   readonly keyedNumbers?: Readonly<Record<string, string>> | undefined;
+  /** Text options that are a correction (Game B1 manual `strike` / `write`). */
+  readonly correctionKeys?: readonly string[] | undefined;
 }
 
 const TEXT_METHODS = new Set(['write', 'print', 'title', 'kinetic', 'lowerThird', 'typewriter']);
@@ -202,6 +205,7 @@ export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreen
   const numberKeys = new Set(world.numberKeys ?? []);
   const callKeys = world.textCallKeys ?? {};
   const keyed = world.keyedNumbers ?? {};
+  const corrections = new Set(world.correctionKeys ?? []);
   const inMeta = (node: AnyNode): boolean =>
     meta.some(([start, end]) => node.start >= start && node.end <= end);
   const found: OnScreenText[] = [];
@@ -239,7 +243,7 @@ export function onScreenTexts(program: AnyNode, world: WorldText = {}): OnScreen
     if (node.type === 'Property' && key !== undefined && keys.has(key)) {
       // An array option is one label written on several lines: judged as one string.
       const lines = strings(node.value, constants);
-      const role = key === 'end' ? 'timeline-end' : undefined;
+      const role = key === 'end' ? 'timeline-end' : corrections.has(key) ? 'correction' : undefined;
       add(node, node.value.type === 'ArrayExpression' ? [lines.join(' ')] : lines, role);
     }
     if (node.type === 'Property' && key !== undefined && numberKeys.has(key)) {

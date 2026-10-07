@@ -4,9 +4,9 @@ import {
   SHOWCASE_RESEARCH,
   sketchbookExamples,
 } from '../testing/slop-fixtures.js';
-import { onScreenTexts, parseScene } from './source-text.js';
+import { onScreenTexts, parseScene, type OnScreenText } from './source-text.js';
 import { inventedTexts } from './text-provenance.js';
-import { buildVocabulary, spelledNumbers, stem, tokenize } from './vocabulary.js';
+import { buildVocabulary, spelledNumbers, stem, tokenize, type Vocabulary } from './vocabulary.js';
 import { worldSlopSpec } from './world-labels.js';
 
 const VOCABULARY = buildVocabulary([SHOWCASE_NARRATION, SHOWCASE_RESEARCH]);
@@ -140,5 +140,68 @@ describe('text provenance', () => {
       [3, ['synergy', 'matrix']],
       [4, ['87']],
     ]);
+  });
+});
+
+describe('text provenance of the open-vocabulary films (real runs Comic 2, Game B1 2)', () => {
+  const OCEAN = buildVocabulary([
+    'Below roughly one thousand meters, the sun gives up. No light. Four degrees Celsius.',
+    'Bacteria turn chemicals into energy, and feed giant tube worms.',
+    '- Giant tube worms up to ~7 ft (about 2 m) — https://www.npr.org/2011/12/05/x',
+  ]);
+  const STATION = buildVocabulary([
+    'The schedule says eight hours. Crews average about six.',
+    'Exercise pushes back: two hours a day on a treadmill, a bike and a weights machine.',
+  ]);
+  const flagged = (
+    strings: readonly OnScreenText[],
+    vocabulary: Vocabulary,
+    world: string,
+  ): (readonly string[])[] =>
+    inventedTexts(strings, vocabulary, worldSlopSpec(world)).map((entry) => entry.unknown);
+  const plain = (...strings: string[]): OnScreenText[] =>
+    strings.map((text, line) => ({ text, line }));
+
+  it('flags a changed number of a counted thing, even when the value is elsewhere', () => {
+    expect(flagged(plain('FOUR DEGREES CELSIUS', '4 DEGREES', '1,000 M'), OCEAN, 'comic')).toEqual(
+      [],
+    );
+    expect(flagged(plain('TWO DEGREES CELSIUS'), OCEAN, 'comic')).toEqual([
+      ['two (changed number)'],
+    ]);
+    expect(flagged(plain('2 DEGREES'), OCEAN, 'comic')).toEqual([['2 (changed number)']]);
+    // 2 counts metres in the notes: not a changed number there.
+    expect(flagged(plain('ABOUT 2 M'), OCEAN, 'comic')).toEqual([]);
+    expect(flagged(plain('2 HOURS A DAY', '8 HOURS', '6 HOURS'), STATION, 'game-b1')).toEqual([]);
+    expect(flagged(plain('9 HOURS'), STATION, 'game-b1')).toEqual([['9 (changed number)']]);
+  });
+
+  it('never calls sound-shaped words invented, in any lettering and world', () => {
+    const sounds = (texts: OnScreenText[], world: string) => flagged(texts, OCEAN, world);
+    const sfx = (text: string): OnScreenText => ({ text, line: 1, role: 'sound' });
+    expect(sounds([sfx('BRRRING!'), sfx('FSSSHH'), sfx('RRIP!'), sfx('BOOM')], 'comic')).toEqual(
+      [],
+    );
+    for (const world of ['comic', 'game-b1', 'game-b2', 'sketchbook']) {
+      expect(sounds(plain('ZZZ', 'SHH', 'BEEEP', 'PSST'), world)).toEqual([]);
+    }
+    // A real word that is a sound is allowed only in sound lettering; slurs never are.
+    expect(sounds(plain('CRASH'), 'comic')).toEqual([['crash']]);
+    expect(sounds([sfx('CHINK')], 'comic')).toEqual([['chink']]);
+    expect(sounds(plain('LUNAR MODULE'), 'comic')).toEqual([['lunar', 'module']]);
+  });
+
+  it("flags a B1 manual's invented correction word, lower case too", () => {
+    const program = parseScene(`export function build(ctx) {
+  const screen = ctx.kit.worlds.gameB1.screen(ctx);
+  screen.manual({ intent: 'x', steps: ['EXERCISE ON A TREADMILL.'], correction: { step: 1, strike: 'rest', write: 'PUSH' } });
+  return {};
+}`);
+    if (program === undefined) throw new Error('does not parse');
+    const texts = onScreenTexts(program, worldSlopSpec('game-b1'));
+    expect(texts.filter((entry) => entry.role === 'correction').map((entry) => entry.text)).toEqual(
+      ['rest', 'PUSH'],
+    );
+    expect(flagged(texts, STATION, 'game-b1')).toEqual([['rest']]);
   });
 });
