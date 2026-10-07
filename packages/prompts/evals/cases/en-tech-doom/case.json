@@ -32,6 +32,17 @@
     "shotIds": ["s08_memory"]
   },
   "replies": {
+    "brief": {
+      "topic": "Why the 1993 game Doom runs on calculators, printers and even pregnancy tests: tiny hardware needs and an open-sourced engine.",
+      "hook": "A game from 1993 now runs on a pregnancy test.",
+      "keyFacts": [
+        "Confirm the minimum hardware Doom needed in 1993",
+        "When was the Doom engine source code released?",
+        "Which pregnancy-test ports really ran the game?"
+      ],
+      "tone": "curious, punchy",
+      "audience": "Tech-curious viewers without a programming background."
+    },
     "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 9 sourced facts.\nMain sources: Wikipedia (Doom, Doom engine), Doom Wiki.\nUncertain: which pregnancy-test ports really ran the game.",
     "script": "Word count: 86. Estimated duration: about 35 seconds.\nAll claims are sourced in research.md.",

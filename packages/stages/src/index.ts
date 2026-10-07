@@ -207,3 +207,4 @@ export {
   variantDecisionSignal,
   type TasteLearner,
 } from './taste/signals.js';
+export * from './queue/index.js';

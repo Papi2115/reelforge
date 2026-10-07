@@ -188,6 +188,12 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
       });
       return vars === undefined ? err(`${file.id}: script.txt is empty`) : ok(vars);
     }
+    case 'brief':
+      return ok({
+        topic: brief.topic,
+        language: brief.language,
+        targetMinutes: brief.targetMinutes ?? 5,
+      });
     case 'youtube-meta':
       return ok({
         title: project.title,

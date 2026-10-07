@@ -25,6 +25,7 @@ export * from './moments.js';
 export * from './palette.js';
 export * from './pipeline-state.js';
 export * from './project.js';
+export * from './queue.js';
 export * from './recent-projects.js';
 export * from './render-manifest.js';
 export * from './repetition.js';

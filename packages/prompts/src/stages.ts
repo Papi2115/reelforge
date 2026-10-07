@@ -39,6 +39,9 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   // Hook lab openings (PLAN.md#12.16) are written from the script alone: read-only tools, no web
   // (the critic's permissions); the app asks for the prompt's own model (Sonnet) explicitly.
   hooks: 'critic',
+  // The production line's brief (PLAN.md#13.9) is written from the topic alone: read-only tools,
+  // no web (the critic's permissions); the line asks for the prompt's own model (Sonnet).
+  brief: 'critic',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

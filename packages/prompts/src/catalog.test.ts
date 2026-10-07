@@ -24,7 +24,7 @@ import { permissionStageFor, promptModel, promptToolNames } from './stages.js';
 
 const PROMPTS_DIR = path.join(import.meta.dirname, '..', 'prompts');
 /** Prompts that run on Sonnet under the critic's read-only permissions. */
-const SONNET_ON_CRITIC: readonly string[] = ['claims', 'hooks'];
+const SONNET_ON_CRITIC: readonly string[] = ['brief', 'claims', 'hooks'];
 
 describe('bundled prompts', () => {
   it('match prompts/*.md (run `pnpm --filter @reelforge/prompts generate` after editing)', () => {
@@ -44,6 +44,7 @@ describe('bundled prompts', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
         'assets',
+        'brief',
         'claims',
         'critic',
         'hooks',
@@ -216,6 +217,7 @@ describe('stages and models', () => {
       tension: 'storyboard',
       claims: 'critic',
       hooks: 'critic',
+      brief: 'critic',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);
@@ -229,6 +231,7 @@ describe('stages and models', () => {
     // the app passes the declared model explicitly, so the stage default (Haiku) never applies.
     expect(loadPrompt('claims').model).toBe('sonnet');
     expect(loadPrompt('hooks').model).toBe('sonnet');
+    expect(loadPrompt('brief').model).toBe('sonnet');
     for (const id of PROMPT_IDS.filter((candidate) => !SONNET_ON_CRITIC.includes(candidate))) {
       expect(loadPrompt(id).model, id).toBe(DEFAULT_STAGE_MODELS[permissionStageFor(id)]);
     }
