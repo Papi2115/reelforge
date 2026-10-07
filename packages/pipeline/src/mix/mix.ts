@@ -12,64 +12,33 @@ import path from 'node:path';
 import { describeError, type FfmpegError } from '../ffmpeg/errors.js';
 import { renameRetrying } from '../fs-retry.js';
 import { parseMediaAudioInfo, type LoudnessStats } from '../audio/measure.js';
-import {
-  measureLoudness,
-  type CleanStage,
-  type FfmpegRunner,
-  type PassContext,
-} from '../audio/passes.js';
+import { measureLoudness, type CleanStage, type PassContext } from '../audio/passes.js';
 import { err, ok, type Result } from '../result.js';
-import { writeBusWav, type BusSilence } from './bus.js';
+import { writeBusWav } from './bus.js';
 import { decodeAudioFile, type StereoClip } from './clip.js';
 import type { CuesFile } from './cues.js';
 import { MIX_SAMPLE_RATE, secondsToFrames } from './dsp.js';
 import { MIX_REQUIRED_FILTERS, premixArgs, type MusicBusInput } from './graph.js';
 import { STEM_FILE_NAMES, masterMix, writeStems } from './master.js';
+import {
+  busSilences,
+  workFiles,
+  type MixAudioOptions,
+  type MixStage,
+  type WorkFiles,
+} from './mix-options.js';
 import { cueFiles, planMix, type MixPlan } from './plan.js';
 import { analyzeMix } from './qa.js';
 import { MIX_REPORT_VERSION, MixReportSchema, type MixReport, type StemName } from './report.js';
 
-export type MixStage =
-  'analyze' | 'decode' | 'synthesize' | 'premix' | 'master' | 'verify' | 'stems';
-
-export interface MixProgress {
-  readonly stage: MixStage;
-  /** 0..1 within the current ffmpeg pass; null when unknown. */
-  readonly ratio: number | null;
-}
-
-export interface MixAudioOptions {
-  readonly ffmpeg: FfmpegRunner;
-  /** Voice-over (normally `audio/vo.clean.wav`); also the ducking sidechain. */
-  readonly voPath: string;
-  /** Final mix (normally `audio/mix.wav`). */
-  readonly outputPath: string;
-  /** Folder that relative cue file paths are resolved against (the project folder). */
-  readonly baseDir: string;
-  /** Position in the voice-over that plays at 0 s (preview windows, see preview.ts). */
-  readonly voStartS?: number | undefined;
-  /** When set, `vo.wav`, `sfx.wav`, `ambience.wav` and `music.wav` are written here. */
-  readonly stemsDir?: string | undefined;
-  /** Parent folder for temporary files (default: the output's folder); always cleaned up. */
-  readonly workDir?: string | undefined;
-  /** Allowed |after - target| for `withinTolerance` (default 0.5 LU). */
-  readonly toleranceLu?: number;
-  /** Re-render the master with a corrected gain when off by more than this (default 0.3 LU). */
-  readonly correctionThresholdLu?: number;
-  readonly signal?: AbortSignal | undefined;
-  readonly onProgress?: ((progress: MixProgress) => void) | undefined;
-  /**
-   * Silences of the bed (SFX, ambience, music; never the VO) before the hits of accepted reveal
-   * moments (PLAN.md#12.27), film seconds. Absent/empty = the mix is byte-identical to before.
-   */
-  readonly silences?: readonly MixSilenceWindow[] | undefined;
-}
-
-/** A silence of the bed, film seconds (`from` < `to`). */
-export interface MixSilenceWindow {
-  readonly from: number;
-  readonly to: number;
-}
+export {
+  busSilences,
+  type MixAudioOptions,
+  type MixProgress,
+  type MixSilenceWindow,
+  type MixStage,
+  type WorkFiles,
+} from './mix-options.js';
 
 const SILENT_LUFS = -70;
 
@@ -78,26 +47,6 @@ const CLEAN_TO_MIX_STAGE: Readonly<Record<CleanStage, MixStage>> = {
   render: 'master',
   verify: 'verify',
 };
-
-export interface WorkFiles {
-  readonly sfx: string;
-  readonly ambience: string;
-  readonly music: (index: number) => string;
-  readonly premix: string;
-  readonly voStem: string;
-  readonly musicStem: string;
-}
-
-function workFiles(dir: string): WorkFiles {
-  return {
-    sfx: path.join(dir, 'sfx.bus.wav'),
-    ambience: path.join(dir, 'ambience.bus.wav'),
-    music: (index) => path.join(dir, `music-${String(index)}.bus.wav`),
-    premix: path.join(dir, 'premix.wav'),
-    voStem: path.join(dir, 'vo.stem.wav'),
-    musicStem: path.join(dir, 'music.stem.wav'),
-  };
-}
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
 
@@ -123,16 +72,6 @@ function samePath(first: string, second: string): boolean {
   const a = path.resolve(first);
   const b = path.resolve(second);
   return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
-}
-
-/** Silence windows (s) -> bus frames; the window ends exactly on the hit's first frame. */
-export function busSilences(windows: readonly MixSilenceWindow[]): BusSilence[] {
-  return windows
-    .map((window) => ({
-      startFrame: secondsToFrames(window.from),
-      endFrame: secondsToFrames(window.to),
-    }))
-    .filter((silence) => silence.endFrame > silence.startFrame);
 }
 
 /** One mix render (preview.ts drives its decode / bus / premix steps on its own). */

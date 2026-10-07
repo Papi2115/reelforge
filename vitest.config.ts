@@ -56,6 +56,8 @@ export default defineConfig({
           include: [
             '{apps,packages,tools,spikes}/*/src/**/*.test.ts',
             'apps/*/scripts/**/*.test.ts',
+            // Repo-wide guards (e.g. the file size guard).
+            'scripts/**/*.test.ts',
             // Pure helpers of the app smoke tests (CI mode, media tools): no Electron needed.
             'apps/*/test/support/**/*.test.ts',
           ],

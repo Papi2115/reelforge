@@ -13,19 +13,9 @@ import { selectionText, toSelection } from '../chat/step-view.js';
 import { playbackAudioUrl } from '../preview/audio-source.js';
 import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
-import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
-import {
-  buildProgress,
-  builtShotIds,
-  fixPrompt,
-  joinBanners,
-  propsBanner,
-  propsSummary,
-  rolesBanner,
-  shotBadges,
-} from '../stages/scenes-view.js';
+import { builtShotIds, fixPrompt, shotBadges } from '../stages/scenes-view.js';
 import { useShotLocks } from '../stages/use-shot-locks.js';
-import { emptyStageHint, stationFacts } from '../stages/stations-view.js';
+import { emptyStageHint } from '../stages/stations-view.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { useVariantsDock } from '../stages/use-variants-dock.js';
@@ -33,7 +23,6 @@ import { CommandBar } from '../direction/CommandBar.js';
 import { DirectorTab } from '../director/DirectorTab.js';
 import { OpenDirectorContext, useSideTabs } from '../director/use-director-tab.js';
 import { directorRefreshKey } from '../director/director-view.js';
-import { directionSummary } from '../direction/direction-view.js';
 import { useDirection } from '../direction/use-direction.js';
 import { MAX_VARIANT_NOTE } from '../../shared/variants-contract.js';
 import { VariantsDockPanel } from '../stages/VariantsPanel.js';
@@ -41,7 +30,6 @@ import { useAssets } from '../assets/use-assets.js';
 import { useMixPreview } from '../sound/use-mix-preview.js';
 import { useSound } from '../sound/use-sound.js';
 import { useTimeline } from '../timeline/use-timeline.js';
-import { TensionPanel } from '../tension/TensionPanel.js';
 import { useTensionMapOn } from '../tension/use-tension-map.js';
 import { useTension } from '../tension/use-tension.js';
 import { AppShell } from './AppShell.js';
@@ -49,15 +37,12 @@ import { CenterDocument, isDockedDocument, type CenterDocumentKind } from './Cen
 import { CHAT_RAIL_WIDTH } from './chat-dock.js';
 import { useChatDock } from './use-chat-dock.js';
 import { ChatPanel } from './ChatPanel.js';
-import { PipelineSidebar } from './PipelineSidebar.js';
-import { ShotsPanel } from './ShotsPanel.js';
-import { TimelinePanel } from './TimelinePanel.js';
-import { FileProblemsBanner } from './FileProblemsBanner.js';
 import { NeedsYou } from './NeedsYou.js';
 import { useOpenRequest, type WorkspaceLine } from '../queue/use-open-request.js';
-import { openStageTarget } from './open-stage.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
+import { WorkspaceBottom } from './WorkspaceBottom.js';
 import { WorkspaceDialogs } from './WorkspaceDialogs.js';
+import { WorkspaceLeft } from './WorkspaceLeft.js';
 import { usePref } from './ui-prefs.js';
 
 export interface WorkspaceProps {
@@ -239,83 +224,41 @@ export function Workspace(props: WorkspaceProps): JSX.Element {
       <AppShell
         collapsedRight={chatDock.open ? undefined : CHAT_RAIL_WIDTH}
         left={
-          <div className="left-stack">
-            {error !== undefined && (
-              <p className="panel-error banner" role="alert">
-                {error}
-              </p>
-            )}
-            <FileProblemsBanner
-              dir={project.dir}
-              problems={snapshot?.problems ?? []}
-              onRepaired={() => {
-                void reload();
-              }}
-            />
-            <PipelineSidebar
-              stages={stages}
-              facts={stationFacts(reports?.scenes ?? null, shots, built)}
-              onOpen={(target) => {
-                openStageTarget(target, openStageOpeners);
-              }}
-              {...(onOpenToolsSettings === undefined
-                ? {}
-                : { onOpenSettings: onOpenToolsSettings })}
-              onBrief={() => {
-                setCenterDocument({ kind: 'script', tab: 'brief' });
-              }}
-            />
-            {(shotNotice ?? locks.notice) !== undefined && (
-              <p className="panel-error banner" role="alert">
-                {shotNotice ?? locks.notice}
-              </p>
-            )}
-            <ShotsPanel
-              storyboard={snapshot?.storyboard}
-              selectedId={timeline.selectedShotId}
-              time={time}
-              onSelect={selectShot}
-              badges={badges}
-              built={built}
-              progress={buildProgress(running, shots.length)}
-              propsBanner={joinBanners(
-                propsBanner(propsSummary(reports?.scenes ?? null, reports?.props ?? null)),
-                rolesBanner(reports?.roles ?? null),
-              )}
-              actionsBlocked={scenesBusy ? 'Scenes built is running or queued.' : null}
-              onRebuild={(shotId) => {
-                runScenes('build', shotId);
-              }}
-              locked={locks.locked}
-              outOfSync={outOfSyncLocked(
-                locks.locked,
-                reports?.sync ?? null,
-                reports?.finalReview ?? null,
-              )}
-              lockable={lockableOkShots(shots, badges, locks.locked)}
-              onLock={(shotIds, lock) => {
-                void locks.setLocked(shotIds, lock);
-              }}
-              onVariants={variants.open}
-              withVariants={variants.withVariants}
-              directed={direction.directed}
-              directionSummary={(shotId) => directionSummary(direction.directions?.shots[shotId])}
-              onUnlockAndFix={(shotId) => {
-                void locks.setLocked([shotId], false).then((unlocked) => {
-                  if (unlocked) runScenes('sync-check', shotId);
-                });
-              }}
-              onFix={(shotId) => {
-                const shot = shots.find((candidate) => candidate.id === shotId);
-                if (shot !== undefined) selectShot(shot);
-                setPrefill((current) => ({
-                  text: fixPrompt(shotId, badges.get(shotId)),
-                  nonce: (current?.nonce ?? 0) + 1,
-                }));
-                chatDock.show();
-              }}
-            />
-          </div>
+          <WorkspaceLeft
+            dir={project.dir}
+            error={error}
+            snapshot={snapshot}
+            reload={reload}
+            stages={stages}
+            reports={reports}
+            shots={shots}
+            built={built}
+            badges={badges}
+            running={running}
+            scenesBusy={scenesBusy}
+            openers={openStageOpeners}
+            onOpenToolsSettings={onOpenToolsSettings}
+            onBrief={() => {
+              setCenterDocument({ kind: 'script', tab: 'brief' });
+            }}
+            notice={shotNotice}
+            locks={locks}
+            selectedShotId={timeline.selectedShotId}
+            time={time}
+            onSelect={selectShot}
+            runScenes={runScenes}
+            variants={variants}
+            direction={direction}
+            onFix={(shotId) => {
+              const shot = shots.find((candidate) => candidate.id === shotId);
+              if (shot !== undefined) selectShot(shot);
+              setPrefill((current) => ({
+                text: fixPrompt(shotId, badges.get(shotId)),
+                nonce: (current?.nonce ?? 0) + 1,
+              }));
+              chatDock.show();
+            }}
+          />
         }
         center={
           <div
@@ -406,47 +349,21 @@ export function Workspace(props: WorkspaceProps): JSX.Element {
           />
         }
         bottom={
-          <div className="bottom-stack">
-            <TimelinePanel
-              model={timeline.model}
-              duration={timeline.duration}
-              time={time}
-              playing={playing}
-              fps={fps}
-              selection={timeline.selection}
-              editing={timeline.editing}
-              locked={locks.locked}
-              waveform={timeline.waveform}
-              onSeek={(t) => {
-                player.seek(t);
-              }}
-              onScrub={(t) => {
-                player.scrub(t);
-              }}
-              onDropSound={addSound}
-              tensionOpen={tensionPrefs.open}
-              onToggleTension={() => {
-                setTensionPrefs((current) => ({ open: !current.open }));
-              }}
-            />
-            {tensionPrefs.open && words.length > 0 && (
-              <TensionPanel
-                tension={tension}
-                shots={shots}
-                words={words}
-                durationS={timeline.duration}
-                time={time}
-                locked={locks.locked}
-                mapOn={tensionMapOn}
-                onSeek={(t) => {
-                  player.seek(t);
-                }}
-                onClose={() => {
-                  setTensionPrefs({ open: false });
-                }}
-              />
-            )}
-          </div>
+          <WorkspaceBottom
+            timeline={timeline}
+            player={player}
+            time={time}
+            playing={playing}
+            fps={fps}
+            locked={locks.locked}
+            onDropSound={addSound}
+            tensionPrefs={tensionPrefs}
+            setTensionPrefs={setTensionPrefs}
+            tension={tension}
+            shots={shots}
+            words={words}
+            tensionMapOn={tensionMapOn}
+          />
         }
       />
     </OpenDirectorContext>

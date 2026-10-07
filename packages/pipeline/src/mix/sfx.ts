@@ -14,28 +14,13 @@ import type { FfmpegError } from '../ffmpeg/errors.js';
 import type { Result } from '../result.js';
 import { boom, hit, hitSoft, pop, snap, stamp } from './sfx/impact.js';
 import type { SfxCategory, SfxDefinition } from './sfx/layers.js';
-import { downer, riser, swooshIn, swooshOut, whoosh, whooshImpact } from './sfx/motion.js';
-import {
-  bubble,
-  bubbleUp,
-  cameraShutter,
-  glitch,
-  paper,
-  scribble,
-  typewriter,
-} from './sfx/texture.js';
+import { swooshIn, swooshOut, whoosh, whooshImpact } from './sfx/motion.js';
+import { downer, riser } from './sfx/risers.js';
+import { bubble, bubbleUp, glitch, typewriter } from './sfx/texture.js';
+import { cameraShutter, paper, scribble } from './sfx/texture-paper.js';
 import { chime, coin, ding, sparkle } from './sfx/tonal.js';
-import {
-  blip,
-  blipDown,
-  blipUp,
-  click,
-  errorBuzz,
-  notification,
-  success,
-  tick,
-  tock,
-} from './sfx/ui.js';
+import { blip, blipDown, blipUp, click, tick, tock } from './sfx/ui.js';
+import { errorBuzz, notification, success } from './sfx/ui-cues.js';
 import {
   dataPing,
   measureBlipSfx,

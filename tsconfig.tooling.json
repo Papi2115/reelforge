@@ -10,6 +10,7 @@
     "vitest.config.ts",
     "eslint.config.js",
     "scripts/**/*.mjs",
+    "scripts/**/*.ts",
     "tools/*/bin/**/*.mjs",
     "tools/*/lib/**/*.mjs"
   ]

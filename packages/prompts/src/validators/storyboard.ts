@@ -13,18 +13,11 @@
 import {
   applyContinuityTransitions,
   DEFAULT_LOOK_ID,
-  describePairs,
-  getTransitionStyle,
-  isContinuityStyle,
-  shotLook,
   shotRangeRules,
   STANDARD_TEMPO,
   storyboardFileSchema,
-  TRANSITION_STYLE_IDS,
-  transitionSuits,
   type LookMode,
   type ShotsPerMinute,
-  type StoryboardShot,
   type TensionFile,
   type WordsFile,
 } from '@reelforge/shared';
@@ -36,7 +29,6 @@ import { checkContinuity } from './continuity.js';
 import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
 import { offensiveJsonIssues } from './offensive.js';
 import {
-  issue,
   parseJsonText,
   report,
   schemaIssues,
@@ -45,10 +37,16 @@ import {
 } from './issues.js';
 import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from './rhythm.js';
 import { checkShotRange } from './shot-range.js';
+import {
+  identityIssues,
+  timelineIssues,
+  transitionIssues,
+  treatmentIssues,
+  wordIssues,
+} from './storyboard-shots.js';
 import { checkTensionTempo } from './tension.js';
 import { checkWowTransitions } from './wow.js';
 import { checkWorldVariety, type WorldVarietyOptions } from './world-variety.js';
-import { worldTransitionIssues } from './world-transitions.js';
 import { WORLD_VARIETY_RULES } from '../worlds/variety.js';
 import type { WorldTransitionOption } from '../worlds/types.js';
 
@@ -96,269 +94,8 @@ export const DEFAULT_STORYBOARD_RULES: StoryboardRules = {
   ...DEFAULT_LOOK_RHYTHM_RULES,
 };
 
-const EPSILON = 1e-3;
-const fmt = (seconds: number): string => seconds.toFixed(3);
 /** Shortest mascot reactor shot (a reaction micro-beat), seconds. */
-export const REACTOR_MIN_SHOT_S = 1.2;
-
-function timelineIssues(
-  shots: readonly StoryboardShot[],
-  rules: StoryboardRules,
-): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  const first = shots[0];
-  if (first !== undefined && Math.abs(first.t0) > EPSILON) {
-    issues.push(
-      issue(
-        'error',
-        'not-from-zero',
-        `first shot starts at ${fmt(first.t0)}, not 0`,
-        'shots[0].t0',
-      ),
-    );
-  }
-  shots.forEach((shot, index) => {
-    const previous = shots[index - 1];
-    if (previous !== undefined && Math.abs(shot.t0 - previous.t1) > EPSILON) {
-      issues.push(
-        issue(
-          'error',
-          'not-contiguous',
-          `${shot.id} starts at ${fmt(shot.t0)} but ${previous.id} ends at ${fmt(previous.t1)}`,
-          `shots[${String(index)}].t0`,
-        ),
-      );
-    }
-    const length = shot.t1 - shot.t0;
-    const where = `shots[${String(index)}]`;
-    // A mascot reaction may be a micro-beat as short as REACTOR_MIN_SHOT_S (2.3.7).
-    const reactor = shot.mascot?.role === 'reactor';
-    const minShotS = reactor ? Math.min(rules.minShotS, REACTOR_MIN_SHOT_S) : rules.minShotS;
-    const typicalMinS = reactor
-      ? Math.min(rules.typicalMinShotS, REACTOR_MIN_SHOT_S)
-      : rules.typicalMinShotS;
-    if (length < minShotS || length > rules.maxShotS) {
-      issues.push(
-        issue(
-          'error',
-          'shot-length',
-          `${shot.id} lasts ${length.toFixed(2)} s (allowed ${String(minShotS)}–${String(rules.maxShotS)} s)`,
-          where,
-        ),
-      );
-    } else if (length < typicalMinS || length > rules.typicalMaxShotS) {
-      issues.push(
-        issue(
-          'warning',
-          'shot-length',
-          `${shot.id} lasts ${length.toFixed(2)} s (typical ${String(typicalMinS)}–${String(rules.typicalMaxShotS)} s)`,
-          where,
-        ),
-      );
-    }
-  });
-  return issues;
-}
-
-function treatmentIssues(
-  shots: readonly StoryboardShot[],
-  rules: StoryboardRules,
-  continuesExempt: boolean,
-): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  let run = 0;
-  shots.forEach((shot, index) => {
-    const same = index > 0 && shots[index - 1]?.treatment === shot.treatment;
-    // With a range (ADR-027) a `continues` shot is the same picture going on, not a repeat.
-    const exempt = continuesExempt && shot.continues === true;
-    run = same ? run + (exempt ? 0 : 1) : 1;
-    if (!exempt && run === rules.maxTreatmentRun + 1) {
-      issues.push(
-        issue(
-          'error',
-          'treatment-run',
-          `${shot.treatment} used more than ${String(rules.maxTreatmentRun)} times in a row (up to ${shot.id})`,
-          `shots[${String(index)}].treatment`,
-        ),
-      );
-    }
-  });
-  return issues;
-}
-
-function identityIssues(shots: readonly StoryboardShot[]): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  const ids = new Set<string>();
-  const scenes = new Set<string>();
-  shots.forEach((shot, index) => {
-    const where = `shots[${String(index)}]`;
-    if (ids.has(shot.id))
-      issues.push(issue('error', 'duplicate-id', `shot id ${shot.id} repeats`, `${where}.id`));
-    if (scenes.has(shot.scene))
-      issues.push(
-        issue('error', 'duplicate-scene', `scene ${shot.scene} repeats`, `${where}.scene`),
-      );
-    ids.add(shot.id);
-    scenes.add(shot.scene);
-    if (!/^scenes\/[^/\\]+\.js$/.test(shot.scene)) {
-      issues.push(
-        issue(
-          'error',
-          'scene-path',
-          `scene must be scenes/<name>.js, got ${shot.scene}`,
-          `${where}.scene`,
-        ),
-      );
-    } else if (shot.scene !== `scenes/${shot.id}.js`) {
-      issues.push(
-        issue(
-          'warning',
-          'scene-path',
-          `scene ${shot.scene} does not match id ${shot.id}`,
-          `${where}.scene`,
-        ),
-      );
-    }
-  });
-  return issues;
-}
-
-function durationIssue(
-  label: string,
-  duration: number,
-  min: number,
-  max: number,
-  where: string,
-): ValidationIssue[] {
-  return duration < min || duration > max
-    ? [
-        issue(
-          'warning',
-          'transition-duration',
-          `${label} lasts ${String(duration)} s (use ${String(min)}–${String(max)} s)`,
-          where,
-        ),
-      ]
-    : [];
-}
-
-/** Checks of a transition-kit `style` (PLAN.md#12.15): known id, its duration, its look pair. */
-function styleIssues(
-  shot: StoryboardShot,
-  previous: StoryboardShot,
-  style: string,
-  duration: number,
-  where: string,
-): ValidationIssue[] {
-  const known = getTransitionStyle(style);
-  if (known === undefined) {
-    return [
-      issue(
-        'error',
-        'transition-style',
-        `unknown transition style "${style}"; use one of ${TRANSITION_STYLE_IDS.join(', ')}`,
-        `${where}.style`,
-      ),
-    ];
-  }
-  const from = shotLook(previous);
-  const to = shotLook(shot);
-  const issues = durationIssue(style, duration, known.duration.min, known.duration.max, where);
-  if (known.lookChange && from === to) {
-    issues.push(
-      issue(
-        'error',
-        'transition-special',
-        `${style} is a look-change transition but ${previous.id} and ${shot.id} are both ${to}; use it only where the look changes`,
-        `${where}.style`,
-      ),
-    );
-  } else if (!transitionSuits(known, from, to, { from: previous.roll, to: shot.roll })) {
-    issues.push(
-      issue(
-        'warning',
-        'transition-pair',
-        `${style} does not suit ${from} -> ${to} (it suits ${describePairs(known)})`,
-        `${where}.style`,
-      ),
-    );
-  }
-  return issues;
-}
-
-function transitionIssues(
-  shots: readonly StoryboardShot[],
-  rules: StoryboardRules,
-  world: readonly WorldTransitionOption[] | undefined,
-): ValidationIssue[] {
-  return shots.flatMap((shot, index) => {
-    const transition = shot.transitionIn;
-    const where = `shots[${String(index)}].transitionIn`;
-    if (transition === undefined || transition.type === 'cut') return [];
-    const previous = shots[index - 1];
-    if (previous === undefined)
-      return [issue('error', 'first-transition', 'the first shot has no transition', where)];
-    const { duration, style } = transition;
-    // A continuity link's transition comes from the link (continuity.ts checks it).
-    if (isContinuityStyle(style)) return [];
-    // A world names only its own page-native styles (world-transitions.ts, PLAN.md#13.6).
-    if (style !== undefined && world !== undefined)
-      return worldTransitionIssues(style, duration, world, where);
-    if (style !== undefined) return styleIssues(shot, previous, style, duration, where);
-    return durationIssue(
-      transition.type,
-      duration,
-      rules.minTransitionS,
-      rules.maxTransitionS,
-      where,
-    );
-  });
-}
-
-function wordIssues(
-  shots: readonly StoryboardShot[],
-  words: WordsFile,
-  rules: StoryboardRules,
-): ValidationIssue[] {
-  const lastWord = words.words.at(-1);
-  if (lastWord === undefined) return [];
-  const issues: ValidationIssue[] = [];
-  shots.slice(0, -1).forEach((shot, index) => {
-    const boundary = shot.t1;
-    const onStart = words.words.some(
-      (word) => Math.abs(word.t - boundary) <= rules.boundaryToleranceS,
-    );
-    const inside = words.words.find((word) => boundary > word.t && boundary < word.tEnd);
-    const inPause =
-      inside === undefined &&
-      words.words.some((word) => word.t >= boundary && word.t - boundary <= rules.pauseLeadS);
-    if (onStart || inPause) return;
-    const detail = inside === undefined ? 'not on a word start' : `mid-word ("${inside.text}")`;
-    issues.push(
-      issue(
-        'error',
-        'boundary-not-on-word',
-        `${shot.id} ends at ${fmt(boundary)}: ${detail}`,
-        `shots[${String(index)}].t1`,
-      ),
-    );
-  });
-  const last = shots.at(-1);
-  if (last !== undefined) {
-    const tail = last.t1 - lastWord.tEnd;
-    if (tail < -rules.boundaryToleranceS || tail > rules.maxTailS) {
-      issues.push(
-        issue(
-          'error',
-          'end-mismatch',
-          `last shot ends at ${fmt(last.t1)}, last word ends at ${fmt(lastWord.tEnd)} (allowed tail 0–${String(rules.maxTailS)} s)`,
-          `shots[${String(shots.length - 1)}].t1`,
-        ),
-      );
-    }
-  }
-  return issues;
-}
+export { REACTOR_MIN_SHOT_S } from './storyboard-shots.js';
 
 export interface StoryboardCheckOptions {
   /** `timing/words.json`; enables the boundary and end checks. */
