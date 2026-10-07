@@ -11,6 +11,8 @@ import type { SettingsHandlers } from './settings-ipc.js';
 import type { SoundHandlers } from './sound/sound-ipc.js';
 import type { VariantsHandlers } from './stages/variants-ipc.js';
 import type { VoiceHandlers } from './voice/voice-ipc.js';
+import { LINE_GATE_CHANNELS, type QueueHandlers } from './queue/queue-ipc.js';
+import { defaultLinePrefs } from './queue/line-prefs.js';
 import type { ExportHandlers } from './export/export-ipc.js';
 import type { AssetsHandlers } from './assets/assets-ipc.js';
 import type { ChannelsHandlers } from './channels/channels-ipc.js';
@@ -236,6 +238,44 @@ function voiceStubs(record: <T>(request: unknown, response: T) => Promise<T>): V
   };
 }
 
+/** Production line channels (PLAN.md#13.9). */
+function queueStubs(record: <T>(request: unknown, response: T) => Promise<T>): QueueHandlers {
+  const done = { status: 'ok', message: null } as const;
+  return {
+    queueState: (request) =>
+      record(request, {
+        line: {
+          activity: 'stopped',
+          until: null,
+          message: null,
+          current: null,
+          wanted: false,
+          runUntil: { kind: 'idle' },
+          lastEnd: null,
+          problem: null,
+        },
+        channels: [],
+        attention: [],
+        prefs: defaultLinePrefs(),
+      } as const),
+    queueAddTopics: (request) => record(request, done),
+    queueRemove: (request) => record(request, done),
+    queueMove: (request) => record(request, done),
+    queueHold: (request) => record(request, done),
+    queueResume: (request) => record(request, done),
+    queueRetry: (request) => record(request, done),
+    queueSetOptions: (request) => record(request, done),
+    queueStart: (request) => record(request, done),
+    queueStop: (request) => record(request, done),
+    queueApproveScript: (request) => record(request, done),
+    queueOpenProject: (request) => record(request, { status: 'cancelled' } as const),
+    queueOpenFolder: (request) => record(request, done),
+    queueMarkReviewed: (request) => record(request, done),
+    queueWake: (request) => record(request, done),
+    queuePrefs: (request) => record(request, defaultLinePrefs()),
+  };
+}
+
 /** Shot variant channels (PLAN.md#11.3). */
 function variantStubs(record: <T>(request: unknown, response: T) => Promise<T>): VariantsHandlers {
   return {
@@ -253,7 +293,9 @@ function setup(): {
   logs: RendererLogEntry[];
   lines: string[];
   calls: unknown[];
+  handled: string[];
 } {
+  const handled: string[] = [];
   const ipc = new FakeIpcMain();
   const logs: RendererLogEntry[] = [];
   const lines: string[] = [];
@@ -384,12 +426,14 @@ function setup(): {
       ...variantStubs(record),
       ...channelStubs(record),
       ...voiceStubs(record),
+      ...queueStubs(record),
     },
+    onHandled: (channel) => handled.push(channel),
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),
     log: createLogger((line) => lines.push(line)),
   });
-  return { ipc, logs, lines, calls };
+  return { ipc, logs, lines, calls, handled };
 }
 
 describe('registerIpc', () => {
@@ -405,6 +449,15 @@ describe('registerIpc', () => {
   it('answers trusted, valid requests', async () => {
     const { ipc } = setup();
     await expect(ipc.invoke(IPC.appInfo.name, APP_URL, null)).resolves.toEqual(appInfo);
+  });
+
+  it('reports each handled request by its channel (the production line listens)', async () => {
+    const { ipc, handled } = setup();
+    await ipc.invoke(IPC.appInfo.name, APP_URL, null);
+    await expect(ipc.invoke(IPC.appInfo.name, APP_URL, { extra: 1 })).rejects.toThrow();
+    expect(handled).toEqual([IPC.appInfo.name]);
+    expect(LINE_GATE_CHANNELS.has(IPC.scriptApprove.name)).toBe(true);
+    expect(LINE_GATE_CHANNELS.has(IPC.appInfo.name)).toBe(false);
   });
 
   it('rejects untrusted senders and invalid payloads', async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import type { ShotsPerMinute } from '@reelforge/shared';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
@@ -26,6 +26,12 @@ import { OpenSettingsContext, type SettingsRequest } from './settings/open-setti
 import { SettingsDialog } from './settings/SettingsDialog.js';
 import { useClaudeStatus } from './settings/use-claude-status.js';
 import { useSettings } from './settings/use-settings.js';
+import { LineButton } from './queue/LineButton.js';
+import { lineAttentionItems } from './queue/line-attention.js';
+import { ProductionLineDialog } from './queue/ProductionLineDialog.js';
+import type { OpenRequest } from './queue/use-open-request.js';
+import { useProductionLine } from './queue/use-production-line.js';
+import type { QueueItemRef, QueueOpenPanel } from '../shared/queue-contract.js';
 
 const log = rendererLog('app');
 const DEMO_SOURCE = { kind: 'demo' } as const;
@@ -81,6 +87,10 @@ export function App(): JSX.Element {
   const settings = useSettings();
   const claude = useClaudeStatus();
   const channels = useChannels();
+  /** The production line (PLAN.md#13.9): its dialog, its films in the inbox. */
+  const line = useProductionLine();
+  const [openRequest, setOpenRequest] = useState<OpenRequest | null>(null);
+  const openNonce = useRef(0);
   const projectChannel = project === null ? undefined : channelOf(channels.list, project.channelId);
   const appSettings = settings.state?.settings;
   const firstRun = appSettings !== undefined && !appSettings.onboarding.connectClaudeDone;
@@ -115,8 +125,33 @@ export function App(): JSX.Element {
     });
   };
 
+  const channelName = (channelId: string): string =>
+    channels.list?.channels.find((channel) => channel.id === channelId)?.name ?? channelId;
+
+  /** A film of the production line, opened at a panel; a problem in plain words, if any. */
+  const openFilm = async (
+    ref: QueueItemRef,
+    panel: QueueOpenPanel,
+  ): Promise<string | undefined> => {
+    try {
+      const result = await window.reelforge.openQueueProject(ref, panel);
+      if (result.status === 'error') return result.error.message;
+      if (result.status === 'cancelled') return undefined;
+      setProject(result.project);
+      setHistoryOpen(false);
+      openNonce.current += 1;
+      setOpenRequest({ panel, dir: result.project.dir, nonce: openNonce.current });
+      line.close();
+      return undefined;
+    } catch (error) {
+      log.error(`openQueueProject failed: ${errorMessage(error)}`);
+      return 'The project could not be opened. See the log for details.';
+    }
+  };
+
   const closeProject = (): void => {
     setHistoryOpen(false);
+    setOpenRequest(null);
     setProjectSettingsOpen(false);
     window.reelforge.closeProject().then(
       () => {
@@ -155,6 +190,7 @@ export function App(): JSX.Element {
           </>
         )}
         <span className="header-spacer" />
+        <LineButton controller={line} />
         {project && <div className="needs-you-slot" ref={setNeedsYouSlot} />}
         <HelpMenu
           onTour={
@@ -207,6 +243,11 @@ export function App(): JSX.Element {
               key={project.dir}
               project={project}
               headerSlot={needsYouSlot}
+              line={{
+                items: lineAttentionItems(line.state?.attention ?? [], channelName, project.dir),
+                show: line.show,
+                openRequest,
+              }}
               onOpenToolsSettings={() => {
                 setSettingsRequest({ tab: 'tools' });
               }}
@@ -245,6 +286,9 @@ export function App(): JSX.Element {
               setSettingsRequest(null);
             }}
           />
+        )}
+        {line.dialog.open && (
+          <ProductionLineDialog controller={line} channels={channels.list} onOpenFilm={openFilm} />
         )}
         {tourOpen && project !== null && (
           <GuidedTour

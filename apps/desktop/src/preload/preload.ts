@@ -12,6 +12,7 @@ import {
   type InvokeChannel,
   type ReelforgeApi,
 } from '../shared/ipc-contract.js';
+import type { QueueItemRef } from '../shared/queue-contract.js';
 
 // The page CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });
@@ -43,6 +44,11 @@ function subscribe<Payload extends z.ZodType>(
   return () => {
     ipcRenderer.removeListener(channel.name, handler);
   };
+}
+
+/** Only the two ids (the requests are strict: a whole item view would be refused). */
+function refOf(ref: QueueItemRef): QueueItemRef {
+  return { channelId: ref.channelId, itemId: ref.itemId };
 }
 
 const api: ReelforgeApi = {
@@ -184,6 +190,32 @@ const api: ReelforgeApi = {
   editLibraryEntry: (request) => invoke(IPC.libraryEdit, request),
   removeLibraryEntry: (sha256) => invoke(IPC.libraryRemove, { sha256 }),
   useLibraryEntry: (sha256) => invoke(IPC.libraryUse, { sha256 }),
+  getQueueState: () => invoke(IPC.queueState, null),
+  addQueueTopics: (channelId, topics) =>
+    invoke(IPC.queueAddTopics, {
+      channelId,
+      topics: topics.map((topic) =>
+        topic.targetMinutes === undefined
+          ? { topic: topic.topic }
+          : { topic: topic.topic, targetMinutes: topic.targetMinutes },
+      ),
+    }),
+  removeQueueItem: (ref) => invoke(IPC.queueRemove, refOf(ref)),
+  moveQueueItem: (ref, index) => invoke(IPC.queueMove, { ...refOf(ref), index }),
+  holdQueueItem: (ref) => invoke(IPC.queueHold, refOf(ref)),
+  resumeQueueItem: (ref) => invoke(IPC.queueResume, refOf(ref)),
+  retryQueueItem: (ref) => invoke(IPC.queueRetry, refOf(ref)),
+  setQueueOptions: (channelId, patch) => invoke(IPC.queueSetOptions, { channelId, patch }),
+  startLine: (runUntil) => invoke(IPC.queueStart, { runUntil }),
+  stopLine: () => invoke(IPC.queueStop, null),
+  approveQueueScript: (ref) => invoke(IPC.queueApproveScript, refOf(ref)),
+  openQueueProject: (ref, panel) => invoke(IPC.queueOpenProject, { ...refOf(ref), panel }),
+  openQueueFolder: (ref, folder) => invoke(IPC.queueOpenFolder, { ...refOf(ref), folder }),
+  markQueueReviewed: (ref) => invoke(IPC.queueMarkReviewed, refOf(ref)),
+  wakeLine: () => invoke(IPC.queueWake, null),
+  updateLinePrefs: (patch) => invoke(IPC.queuePrefs, patch),
+  onQueueChanged: (listener) => subscribe(IPC_PUSH.queueChanged, listener),
+  onQueueShowItem: (listener) => subscribe(IPC_PUSH.queueShowItem, listener),
   log: (entry) => {
     ipcRenderer.send(IPC_EVENTS.log.name, entry);
   },

@@ -46,4 +46,15 @@ describe('appShortcut', () => {
     expect(appShortcut(key({ key: '?', shiftKey: true, target: input }))).toBeUndefined();
     expect(appShortcut(key({ key: '?', shiftKey: true, repeat: true }))).toBeUndefined();
   });
+
+  it('opens the Production line with Ctrl+Shift+L, also from a text field', () => {
+    expect(appShortcut(key({ key: 'L', ctrlKey: true, shiftKey: true }))).toBe('production-line');
+    const field = { tagName: 'TEXTAREA', contentEditable: false };
+    expect(appShortcut(key({ key: 'L', ctrlKey: true, shiftKey: true, target: field }))).toBe(
+      'production-line',
+    );
+    // Shift+L alone locks a shot; Ctrl+L is nothing.
+    expect(appShortcut(key({ key: 'L', shiftKey: true }))).toBeUndefined();
+    expect(appShortcut(key({ key: 'l', ctrlKey: true }))).toBeUndefined();
+  });
 });

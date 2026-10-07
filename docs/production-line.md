@@ -32,11 +32,31 @@ exporting → done`, or `failed` (step + reason), or `paused` (on hold by you).
   is lost. Only one line runs per app (lock file).
 - **Schedules.** Run until idle or until a time; optional quiet hours (no new step starts).
 
+## In the app
+
+Header → **Production line** (Ctrl+Shift+L): one tab per channel, the line's status, Start / Stop, "Run until" (nothing is
+left, or a time), quiet hours, the channel's options (approve scripts automatically, pause the channel, default length),
+"Add topics (one per line)" with "Topic | 6" for a 6-minute film, and the queue with each film's status, its live step and
+its buttons (Open script → Approve script, Add voice, Retry, Hold / Resume, Move up / down, Remove, Open project, the video
+folder and the publish kit). Films are made in English. The films that wait for you are also in "Needs you"; a system
+notification (Settings → Projects → Production line) says when a film is ready, needs you, or the line stops.
+
+- Started with "Run until nothing is left", the line stays on after it ran out of work: approving a script (in the dialog
+  or in the film's Script panel), importing a voiceover, saving a channel's key, adding topics, Resume or Retry let it go
+  on by itself. Stop turns that off.
+- A channel with an ElevenLabs voice and key (Settings → Channels) gets its voiceovers generated; without them the film
+  waits ("Voice needed") until you record or import one in its project.
+- The line uses the app's own stages (one runner per project: a stage you run in the same film meanwhile is refused as
+  "busy"), the Claude usage-limit pause of the chat, the app's export and publish kit, and a render service of its own for
+  the film being made, so the film you have open does not matter.
+- Closing the app stops the running step (it runs again next time); the line does not start by itself on the next launch.
+
 ## Files
 
 - `<app data>/queues/<channelId>.json` — the channel's queue (version 1).
 - `<app data>/queues/line.json` — usage-limit pause, last channel served.
 - `<app data>/queues/runner.lock` — the running line's pid.
+- `<app data>/production-line.json` — notifications on/off and the quiet hours (the app's).
 
 ## API for the desktop app (`@reelforge/stages`)
 

@@ -160,6 +160,17 @@ export class StageService {
     return this.pipelines.get(projectKey(dir))?.active?.run.shotsInProgress() ?? [];
   }
 
+  /**
+   * The runner of `dir`, shared with the production line (PLAN.md#13.9): one runner per project,
+   * so a run of the line and a run from the sidebar refuse each other ("busy") instead of
+   * writing the same files, and the sidebar sees the line's stage live. The line handles its own
+   * crash recovery: opening the project later must not mark the line's running stage interrupted.
+   */
+  runnerFor(dir: string): StageRunner {
+    this.recovered.add(projectKey(dir));
+    return this.pipeline(dir).runner;
+  }
+
   /** Queues Run/Redo of `stages` (in order, one group) in the open project. */
   async run(stages: readonly PipelineStage[]): Promise<StageCommandResult> {
     const requests: AppStageRequest[] = [];

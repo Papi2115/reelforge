@@ -23,6 +23,7 @@ export const SHORTCUT_GROUPS: readonly {
       ['?', 'This list of shortcuts'],
       ['Ctrl + Shift + C', 'Show / hide the chat'],
       ['Ctrl + Shift + N', 'Needs you: what waits for your decision'],
+      ['Ctrl + Shift + L', 'Production line: your queues of films'],
     ],
   },
   {

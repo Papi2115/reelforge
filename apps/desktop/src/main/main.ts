@@ -93,6 +93,9 @@ import { variantsHandlers } from './stages/variants-ipc.js';
 import { createExportBackend } from './export/export-backend.js';
 import { createSoundBackend, settingsFfmpeg } from './sound/sound-backend.js';
 import { elevenLabsTestUrl } from './voice/test-hooks.js';
+import { createQueueBackend } from './queue/queue-backend.js';
+import { LINE_GATE_CHANNELS } from './queue/queue-ipc.js';
+import { showLineNotice } from './queue/line-notification.js';
 import { voiceHandlers } from './voice/voice-ipc.js';
 import { VoiceService } from './voice/voice-service.js';
 import { soundPickerOptions } from './sound/sound-ipc.js';
@@ -308,7 +311,8 @@ function main(): void {
     settings: () => settings.get(),
     currentProject: () => projects.currentProject()?.dir,
     renderEnv: (dir) => ({
-      ...renderBackend.serviceEnv(dir),
+      // A film of the production line gets the line's render service (PLAN.md#13.9).
+      ...(renderBackend.serviceEnv(dir) ?? queue.render.serviceEnv(dir)),
       [ASSET_LIBRARY_ENV]: libraryDir,
     }),
     // Every change of the turn, minus the scenes a parallel scene build is still writing.
@@ -388,6 +392,8 @@ function main(): void {
     guard: claude.guard,
     push: (state) => {
       mainWindow?.webContents.send(IPC_PUSH.stagesChanged.name, state);
+      // An approval or a voiceover in a film of the production line opens its gate.
+      if (state.projectDir !== null) queue.service.outsideChange(state.projectDir);
     },
     log: stagesLog,
     finalReview: () => settings.get().scenes.finalReview,
@@ -430,6 +436,41 @@ function main(): void {
     },
     log: log.child('voice'),
   });
+
+  /** The production line (PLAN.md#13.9): per-channel queues of topics, built one film at a time. */
+  const lineLog = log.child('line');
+  const queue = createQueueBackend({
+    userDataDir,
+    channelsFile: channelsFile(userDataDir),
+    source,
+    layout,
+    cores: availableParallelism(),
+    settings,
+    projects,
+    stages,
+    pipelineStore,
+    claude: sharedClaudeRunner(() => claude.sessionManager()),
+    guard: claude.guard,
+    secrets: channelSecrets,
+    elevenLabsUrl: elevenLabsTestUrl(process.env, testHooks),
+    voiceFfmpeg: async () => {
+      const manager = await voiceFfmpeg();
+      return manager.ok ? manager.value : null;
+    },
+    stagesCommit,
+    appCommit,
+    defaultProjectsDir: () =>
+      defaultProjectsDir(app.getPath('documents'), process.env, app.isPackaged),
+    openPath: (target) => shell.openPath(target),
+    push: (state) => {
+      mainWindow?.webContents.send(IPC_PUSH.queueChanged.name, state);
+    },
+    notify: (notice) => {
+      showLineNotice(notice, () => mainWindow, lineLog, testHooks);
+    },
+    log: lineLog,
+  });
+  void queue.service.init();
 
   const timelineEdits = createTimelineEdits(projects, log.child('timeline'));
   const appInfo = (): AppInfo => ({
@@ -580,6 +621,7 @@ function main(): void {
         log: log.child('channels'),
       }),
       ...voiceHandlers(voice, () => projects.currentProject()?.dir),
+      ...queue.handlers,
       ...variantsHandlers({
         service: stages,
         currentProject: () => projects.currentProject()?.dir,
@@ -588,6 +630,10 @@ function main(): void {
         frames: renderBackend.frames,
         log: stagesLog,
       }),
+    },
+    // The app's own decisions that may open a waiting film's gate (PLAN.md#13.9).
+    onHandled: (channel) => {
+      if (LINE_GATE_CHANNELS.has(channel)) queue.service.outsideChange();
     },
     onRendererLog: (entry) => {
       log.child(`renderer:${entry.scope}`).log(entry.level, entry.message);
@@ -607,6 +653,7 @@ function main(): void {
       !claude.busy &&
       !stages.busy &&
       !scriptDocuments.dirty &&
+      !queue.service.busy &&
       !settings.saving;
     // A voice job is stopped (its paid takes are already saved), never waited for.
     voice.cancel();
@@ -616,6 +663,7 @@ function main(): void {
     log.info(`killing ${String(children.size)} child process tree(s) and Claude before quitting`);
     void Promise.all([
       children.killAll(),
+      queue.dispose(),
       stages.dispose().then(() => claude.dispose()),
       scriptDocuments.flush(),
       settings.whenSaved(),
@@ -631,6 +679,7 @@ function main(): void {
     void stages.dispose();
     void claude.dispose();
     exportBackend.service.queue.dispose();
+    void queue.dispose();
     void renderBackend.dispose();
     settingsBackend.dispose();
     log.info('quit');

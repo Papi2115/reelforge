@@ -54,6 +54,7 @@ import { ShotsPanel } from './ShotsPanel.js';
 import { TimelinePanel } from './TimelinePanel.js';
 import { FileProblemsBanner } from './FileProblemsBanner.js';
 import { NeedsYou } from './NeedsYou.js';
+import { useOpenRequest, type WorkspaceLine } from '../queue/use-open-request.js';
 import { openStageTarget } from './open-stage.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
 import { WorkspaceDialogs } from './WorkspaceDialogs.js';
@@ -65,13 +66,15 @@ export interface WorkspaceProps {
   readonly onOpenToolsSettings?: () => void;
   /** Where the header's "Needs you" button renders (App.tsx). */
   readonly headerSlot: HTMLElement | null;
+  /** The production line in the inbox (PLAN.md#13.9) and where its items go. */
+  readonly line: WorkspaceLine;
 }
 
 const TENSION_PREFS_KEY = 'reelforge.layout.tension.v1';
 const tensionPrefsSchema = z.object({ open: z.boolean() });
 
 export function Workspace(props: WorkspaceProps): JSX.Element {
-  const { project, onOpenToolsSettings, headerSlot } = props;
+  const { project, onOpenToolsSettings, headerSlot, line } = props;
   const { snapshot, error, previewRevision, audioRevision, reload } = useProjectSnapshot(
     project.dir,
   );
@@ -109,6 +112,12 @@ export function Workspace(props: WorkspaceProps): JSX.Element {
   }, [snapshot]);
 
   const sideTabs = useSideTabs(chatDock.show);
+  useOpenRequest(line.openRequest, project.dir, {
+    document: setCenterDocument,
+    assetsDialog: () => {
+      setAssetsOpen(true);
+    },
+  });
   const openStageOpeners = {
     document: setCenterDocument,
     exportDialog: () => {
@@ -219,7 +228,13 @@ export function Workspace(props: WorkspaceProps): JSX.Element {
         slot={headerSlot}
         dir={project.dir}
         project={{ snapshot, state: stages.state, reports, shots, built, assets: assets.state }}
-        open={{ ...openStageOpeners, shot: seekShot, director: sideTabs.openDirector }}
+        lineItems={line.items}
+        open={{
+          ...openStageOpeners,
+          shot: seekShot,
+          director: sideTabs.openDirector,
+          line: line.show,
+        }}
       />
       <AppShell
         collapsedRight={chatDock.open ? undefined : CHAT_RAIL_WIDTH}

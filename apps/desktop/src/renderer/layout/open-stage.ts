@@ -2,7 +2,7 @@
  * What opening a pipeline step does in the workspace (PLAN.md#6.3): its document under / beside
  * the preview, the export or assets dialog, or the Shots panel brought into view (Storyboard).
  * Also where a "Needs you" item goes (stages/attention-view.ts): a step selected in the pipeline,
- * a shot, the brief, Script → Sources or a Director section.
+ * a shot, the brief, Script → Sources, a Director section or a film of the production line.
  */
 import type { AttentionTarget } from '../stages/attention-view.js';
 import { PIPELINE_ROWS, type OpenTarget } from '../stages/pipeline-view.js';
@@ -18,6 +18,8 @@ export interface StageOpeners {
 export interface AttentionOpeners extends StageOpeners {
   readonly shot: (shotId: string, t: number) => void;
   readonly director: (section: 'beats' | 'editing') => void;
+  /** A film of the production line in the Production line dialog. */
+  readonly line: (ref: { readonly channelId: string; readonly itemId: string }) => void;
 }
 
 /** Brings the Shots panel into view (Open of the Storyboard stage). */
@@ -80,6 +82,9 @@ export function openAttentionTarget(target: AttentionTarget, open: AttentionOpen
       return;
     case 'director':
       open.director(target.section);
+      return;
+    case 'line':
+      open.line({ channelId: target.channelId, itemId: target.itemId });
       return;
     case 'step': {
       if (focusStepRow(target.rowId)) return;

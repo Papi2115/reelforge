@@ -30,6 +30,8 @@ export type InvokeHandlers = {
 
 export interface IpcRouterOptions {
   readonly handlers: InvokeHandlers;
+  /** After a request was handled (its channel name), e.g. to tell the production line. */
+  readonly onHandled?: (channel: string) => void;
   /** Renderer log entries (`window.reelforge.log`). */
   readonly onRendererLog: (entry: RendererLogEntry) => void;
   /** True for frames allowed to call main (the app window's renderer origin). */
@@ -59,7 +61,9 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
         log.warn(`invalid ${channel.name} request: ${request.error.message}`);
         throw new Error(`${channel.name}: invalid request`);
       }
-      return handler(request.data);
+      const response = await handler(request.data);
+      options.onHandled?.(channel.name);
+      return response;
     });
   }
 
@@ -192,6 +196,22 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.voiceCancel, handlers.voiceCancel);
   registerInvoke(IPC.voiceRetake, handlers.voiceRetake);
   registerInvoke(IPC.voiceTestKey, handlers.voiceTestKey);
+  registerInvoke(IPC.queueState, handlers.queueState);
+  registerInvoke(IPC.queueAddTopics, handlers.queueAddTopics);
+  registerInvoke(IPC.queueRemove, handlers.queueRemove);
+  registerInvoke(IPC.queueMove, handlers.queueMove);
+  registerInvoke(IPC.queueHold, handlers.queueHold);
+  registerInvoke(IPC.queueResume, handlers.queueResume);
+  registerInvoke(IPC.queueRetry, handlers.queueRetry);
+  registerInvoke(IPC.queueSetOptions, handlers.queueSetOptions);
+  registerInvoke(IPC.queueStart, handlers.queueStart);
+  registerInvoke(IPC.queueStop, handlers.queueStop);
+  registerInvoke(IPC.queueApproveScript, handlers.queueApproveScript);
+  registerInvoke(IPC.queueOpenProject, handlers.queueOpenProject);
+  registerInvoke(IPC.queueOpenFolder, handlers.queueOpenFolder);
+  registerInvoke(IPC.queueMarkReviewed, handlers.queueMarkReviewed);
+  registerInvoke(IPC.queueWake, handlers.queueWake);
+  registerInvoke(IPC.queuePrefs, handlers.queuePrefs);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

@@ -19,6 +19,7 @@ import type { SettingsState } from '../../shared/settings-contract.js';
 import { ExperimentalWorlds } from './ExperimentalWorlds.js';
 import { NewProjectCharacters } from './NewProjectCharacters.js';
 import { NewProjectSceneCount } from './NewProjectSceneCount.js';
+import { LineSettings } from '../queue/LineSettings.js';
 
 export interface PageProps {
   readonly state: SettingsState;
@@ -292,6 +293,7 @@ export function ProjectsPage({ state, update }: PageProps): JSX.Element {
           </span>
         </span>
       </label>
+      <LineSettings />
     </div>
   );
 }
