@@ -12,6 +12,7 @@ import { anchorParam, createResolver } from '../../../looks/blueprint/timing.js'
 import { hexPixel, Raster } from '../../../looks/blueprint/raster.js';
 import { createQuad } from '../../../looks/whiteboard/quad.js';
 import { createKitObject } from '../../../object.js';
+import { createArt } from '../art/api.js';
 import { defineFx, type KitTools } from '../../../registry.js';
 import { createFlashback } from '../breakthrough/flashback.js';
 import { createSpread } from '../breakthrough/spread.js';
@@ -71,6 +72,14 @@ const PAGE_METHODS = {
   'draw((g, t) => ..., { at, until, over, z })':
     'Free drawing in page coordinates (over or under the panels, or among them by z = panel order)',
   util: 'Pure helpers: seg(t, a, b, ease), track([[t, v, ease], ...], t), lerp, clamp01, pop(t, at, dur), rnd(key, i), range(key, i, a, b), torn(x0, y0, x1, y1, key) = points of a torn cutaway opening',
+  'art.<generator>(g, { x, y, size, flip, seed, ... })':
+    "OPEN VOCABULARY - draw what YOUR narration names in the comic grammar (never the showcase's Apollo props): person (pose stand/walk/run/point/hold/slump/look-up/wave/sit, expression neutral/happy/sad/angry/surprised/scared, build, skin, hair, hat, outfit, top, bottom, tool), crowd, animal (species deer/horse/dog/wolf/fox/cat/lion/bear/cow/camel/sheep/pig/rabbit, pose), bird, fish (also shark/whale/jellyfish/crab/octopus), insect, reptile, tree, bush, grass, flowers, cactus, seaweed, sky, land, hills, sea, dunes, forest, skyline, interior (room/module/stone/wood), space, backdrop (preset forest/meadow/mountains/ocean/underwater/desert/city/village/room/station/space/night, box), building, vehicle, object (skull, key, barrel, book, clock, ... by defining features), icon, chart (values from the narration), map, sign, effect (impact/sweat/rain/fire/...); x, y = where it stands (fish, insects, flying birds, icons, effects: centre); a bad option lists the valid ones",
+  'art.shape(g, parts, { x, y, scale, flip }) / art.sprite(g, { rows, legend, px }, place)':
+    "New things from JSON in the ink style: parts { shape: 'ellipse'|'rect'|'poly'|'capsule'|'line'|'dots'|'sprite'|'use'|'gen', fill, shade, hatch, outline, wobble } (model units, 0,0 = where it stands, up = -y); sprite rows of characters with a legend onto the inks",
+  'art.defineProp/defineCharacter/defineBackdrop(id, spec) / art.draw(g, id, { x, y, size, flip, ...knobs }) / art.load(assetFile)':
+    "Name the film's own things once (spec = { parts } | { sprite } | { gen: 'person', hat: 'brim', ... } | { layers: [{ gen: 'sky', ... }] }) and draw them in every panel; load = a project file assets/comic/*.json { version: 1, world: 'comic', props, characters, backdrops }",
+  'layout(beats, { backdrop }) / audit({ until })':
+    'Panels from beats [{ at, weight, draw, backdrop }]: the preset is chosen by count and importance (art.suggestLayout(weights) explains it), each panel enters on its beat WITH its establishing backdrop (never an empty ruled panel); audit lists panels empty for > 0.6 s',
 } as const;
 
 function pixelTable(tools: KitTools): Uint32Array {
@@ -83,7 +92,8 @@ function pixelTable(tools: KitTools): Uint32Array {
 
 export type ComicPageObject = FxObject &
   ReturnType<typeof createStructureApi> &
-  ReturnType<typeof createLetteringApi> & {
+  ReturnType<typeof createLetteringApi> &
+  ReturnType<typeof createArt> & {
     readonly size: readonly [number, number];
     readonly flashback: ReturnType<typeof createFlashback>;
     readonly spread: ReturnType<typeof createSpread>;
@@ -122,7 +132,9 @@ function buildPage(params: z.output<typeof comicPageParams>, tools: KitTools): C
   const size = [PAGE_WIDTH, PAGE_HEIGHT] as const;
   const lettering = createLetteringApi(ctx);
   const breakthroughs = { flashback: createFlashback(ctx, lettering), spread: createSpread(ctx) };
-  return Object.assign(fx, { ...createStructureApi(ctx), ...lettering, ...breakthroughs, size });
+  const structure = createStructureApi(ctx);
+  const open = createArt(ctx, (layout, options) => structure.panels(layout, options));
+  return Object.assign(fx, { ...structure, ...lettering, ...breakthroughs, ...open, size });
 }
 
 export const comicPage = defineFx({
