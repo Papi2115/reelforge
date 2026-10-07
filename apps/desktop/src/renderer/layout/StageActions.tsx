@@ -11,6 +11,7 @@ import {
   type ActionView,
   type RowView,
 } from '../stages/pipeline-view.js';
+import type { StationView } from '../stages/stations-view.js';
 
 export function ActionButton(props: {
   readonly label: string;
@@ -66,15 +67,20 @@ export function RedoConfirm(props: {
 
 export function StageDetail(props: {
   readonly row: RowView;
+  /** The status sentence of the row (stations-view.ts). */
+  readonly station: StationView | undefined;
   readonly now: number;
-  /** Start with the error details open ("See what failed"). */
+  /** Start with the error details open ("See what went wrong"). */
   readonly detailsOpen: boolean;
 }): JSX.Element {
-  const { row, now } = props;
+  const { row, station, now } = props;
   const [showDetails, setShowDetails] = useState(props.detailsOpen);
   const failed = row.status === 'failed' || row.status === 'interrupted';
+  // The raw error text stays behind Details; the sentence carries the translated cause.
+  const raw = row.error?.message ?? (row.status === 'failed' ? row.detail : null);
   const issues = row.error?.issues ?? [];
-  const hasDetails = failed && (issues.length > 0 || row.warnings.length > 0 || row.error !== null);
+  const hasDetails = failed && (issues.length > 0 || row.warnings.length > 0 || raw !== null);
+  const line = station === undefined || station.sentence === '' ? null : station.sentence;
   const progress =
     row.status === 'running'
       ? [
@@ -83,10 +89,10 @@ export function StageDetail(props: {
         ].filter((part) => part !== null)
       : [];
   return (
-    <div className={`stage-detail status-${row.status}`} aria-live="polite">
-      {row.detail !== null && (
-        <p className="stage-detail-line" title={row.detail}>
-          {row.detail}
+    <div className={`stage-detail status-${station?.css ?? row.status}`} aria-live="polite">
+      {line !== null && (
+        <p className="stage-detail-line" title={line}>
+          {line}
           {progress.length > 0 && <span className="mono muted"> · {progress.join(' · ')}</span>}
         </p>
       )}
@@ -117,6 +123,7 @@ export function StageDetail(props: {
       {hasDetails && showDetails && (
         <ul className="stage-issues">
           {row.error !== null && <li className="mono">{row.error.kind}</li>}
+          {raw !== null && <li className="mono">{raw}</li>}
           {issues.map((issue) => (
             <li key={issue}>{issue}</li>
           ))}

@@ -1,4 +1,8 @@
-import type { ExportProgress } from '@reelforge/pipeline';
+import {
+  ENCODER_FALLBACK_MESSAGE,
+  type ExportProgress,
+  type ExportWarning,
+} from '@reelforge/pipeline';
 import { describe, expect, it } from 'vitest';
 import type {
   ExportJobRequest,
@@ -35,11 +39,13 @@ const DONE: ExportOutcome = {
   gpu: 'ANGLE',
   resumed: false,
   wallMs: 4000,
+  warnings: [],
 };
 
 interface Started {
   readonly request: ExportStartRequest;
   readonly listener: (event: ExportProgress) => void;
+  readonly onWarning: (warning: ExportWarning) => void;
   readonly finish: (outcome: ExportOutcome) => void;
 }
 
@@ -49,9 +55,9 @@ function setup() {
   let cancels = 0;
   const queue = new ExportQueue({
     currentProject: () => 'C:/p',
-    start: (request, listener) =>
+    start: (request, listener, _output, onWarning) =>
       new Promise((resolve) => {
-        started.push({ request, listener, finish: resolve });
+        started.push({ request, listener, onWarning, finish: resolve });
       }),
     cancel: () => {
       cancels += 1;
@@ -172,6 +178,50 @@ describe('export queue', () => {
       status: 'failed',
       error: { kind: 'no-encoder', message: 'nothing works', hint: failureHint('no-encoder') },
     });
+  });
+
+  it('shows the switch to the CPU encoder under the status line and in the report', async () => {
+    const { queue, started, last, flush } = setup();
+    queue.enqueue(REQUEST, 'C:/p/out/film.mp4');
+    await flush();
+    const run = started[0];
+    if (run === undefined) throw new Error('not started');
+    run.onWarning({
+      type: 'encoder-retry',
+      encoder: 'h264_nvenc',
+      shotId: 's01',
+      detail: 'InitializeEncoder failed: out of memory (10)',
+      message: 'GPU encoder failed to open for shot s01; retrying',
+    });
+    expect(last().jobs[0]?.progress.warning).toBeNull();
+    run.onWarning({
+      type: 'encoder-fallback',
+      from: 'h264_nvenc',
+      to: 'libx264',
+      detail: 'InitializeEncoder failed: out of memory (10)',
+      message: ENCODER_FALLBACK_MESSAGE,
+    });
+    expect(last().jobs[0]?.progress.warning).toBe(ENCODER_FALLBACK_MESSAGE);
+    // The restarted pass announces a new plan: the shot list resets, the warning stays.
+    run.listener({
+      type: 'plan',
+      shots: 3,
+      cachedShots: 0,
+      totalFrames: 300,
+      framesToRender: 300,
+      workers: 2,
+      encoder: 'libx264 (final)',
+      resumed: false,
+    });
+    expect(last().jobs[0]?.progress).toMatchObject({
+      shots: [],
+      warning: ENCODER_FALLBACK_MESSAGE,
+    });
+    run.finish({ ...DONE, warnings: [ENCODER_FALLBACK_MESSAGE] });
+    await flush();
+    await flush();
+    expect(last().jobs[0]?.report?.warnings).toEqual([ENCODER_FALLBACK_MESSAGE]);
+    expect(queue.resume('export-1')).toMatchObject({ status: 'invalid' });
   });
 
   it('lets a caller wait for its job (the sidebar stage)', async () => {

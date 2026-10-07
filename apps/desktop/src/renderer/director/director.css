@@ -1,0 +1,155 @@
+/*
+ * The Director tab next to Chat (DirectorTab.tsx, docs/ux/redesign-2.4.md §2.4): a scrolling
+ * column of sections (switch · status · result · action). The switches are the Project settings
+ * rows, compact like a step's "All options".
+ */
+.director {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.director p {
+  margin: 0;
+}
+
+.director-empty {
+  padding: var(--space-3) 0;
+  color: var(--muted);
+}
+
+.director-section {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-soft);
+  scroll-margin-top: var(--space-3);
+}
+
+.director-section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.director-section-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.director-line {
+  overflow-wrap: anywhere;
+}
+
+.director-opening {
+  font-style: italic;
+}
+
+.director-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.director-curve {
+  display: block;
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-2);
+  background: var(--panel-raised);
+}
+
+.director-curve path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The side column's header holds three tabs, the queue and Stop in 360 px. */
+.chat-header .tab {
+  padding-inline: var(--space-2);
+}
+
+/*
+ * The shared option rows as one line per switch: the section heading replaces the row title, and
+ * the hints and "applies from" notes stay in Project settings (the footer says so).
+ */
+.director-switch .project-setting-row {
+  gap: var(--space-2);
+}
+
+.director-switch .project-setting-title,
+.director-switch .project-setting-note,
+.director-switch .settings-toggle .muted {
+  display: none;
+}
+
+.director-switch .settings-toggle {
+  gap: var(--space-3);
+  padding: 6px 8px;
+  font-size: var(--text-sm);
+}
+
+.director-switch .settings-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Story beats and Editing rows: the actions go under the text in the narrow column. */
+.director .moment,
+.director .repetition {
+  grid-template-columns: 1fr;
+}
+
+.director .moment-actions,
+.director .repetition-actions {
+  grid-row: auto;
+  grid-column: 1;
+  flex-wrap: wrap;
+}
+
+.director-history {
+  max-height: 180px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  font-size: var(--text-sm);
+}
+
+.director-history .undone {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.director-history-shot {
+  font-family: var(--font-mono);
+  color: var(--accent-text);
+}
+
+.director-footer {
+  font-size: var(--text-xs);
+}
+
+/* Old entry points (one release): "… now in the Director. Open the Director". */
+.director-pointer {
+  margin: var(--space-3) 0;
+  font-size: var(--text-sm);
+}
+
+.director-pointer .link-button {
+  padding: 0;
+  color: var(--accent-text);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+}

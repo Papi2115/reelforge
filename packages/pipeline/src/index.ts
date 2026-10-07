@@ -358,6 +358,12 @@ export type {
 } from './export/media.js';
 export { AUDIO_BITRATE, createFfmpegMedia, type ExportFfmpeg } from './export/ffmpeg-media.js';
 export {
+  DEFAULT_ENCODER_RETRY_DELAY_MS,
+  DEFAULT_ENCODER_STAGGER_MS,
+  ENCODER_FALLBACK_MESSAGE,
+  isEncoderOpenFailure,
+} from './export/encoder-fallback.js';
+export {
   MIN_CHAPTERS,
   MIN_CHAPTER_SECONDS,
   buildChaptersTxt,
@@ -381,6 +387,7 @@ export {
   type ExportProgress,
   type ExportResult,
   type ExportVideoOptions,
+  type ExportWarning,
 } from './export/export-video.js';
 export {
   ASSET_DECODE_VERSION,

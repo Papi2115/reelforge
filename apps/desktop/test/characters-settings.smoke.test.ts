@@ -19,6 +19,7 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
+import { projectMenu, projectMenuButton } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -47,11 +48,11 @@ async function openProject(): Promise<void> {
   if (app === undefined) throw new Error('the app is not running');
   await stubFolderPicker(app, dir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page.getByRole('button', { name: 'Project settings' }).waitFor({ timeout: 30_000 });
+  await projectMenuButton(page).waitFor({ timeout: 30_000 });
 }
 
 async function openDialog(): Promise<Locator> {
-  await page.getByRole('button', { name: 'Project settings' }).click();
+  await projectMenu(page, 'Project settings');
   const dialog = page.getByRole('dialog', { name: 'Project settings' });
   await dialog.getByRole('region', { name: 'Characters' }).waitFor();
   return dialog;
@@ -138,7 +139,7 @@ describe('characters and mascot settings', () => {
   });
 
   it('keeps the choices when the dialog and the project are opened again', async () => {
-    await page.getByRole('button', { name: 'Close project' }).click();
+    await projectMenu(page, 'Close project');
     await page.getByRole('region', { name: 'Start' }).waitFor();
     await openProject();
     const dialog = await openDialog();

@@ -1,12 +1,30 @@
 /**
  * Overlays over the preview frame (PLAN.md#6.4): the fps debug readout, the hot-reload status /
- * engine error list (the last working frame stays visible underneath), the preview audio warning
- * and the snapshot notice.
+ * engine error list (the last working frame stays visible underneath), the preview audio warning,
+ * the snapshot notice and the empty stage of a project without a video yet.
  */
 import { useEffect, useState, type JSX } from 'react';
 import type { SnapshotSaveResult } from '../../shared/player-contract.js';
 import type { FrameStatsSnapshot } from './frame-stats.js';
 import type { Player } from './player.js';
+import { emptyStageTitle } from './preview-source.js';
+
+/** In place of the frame while the project has nothing to play (never the demo scene). */
+export function EmptyStage({
+  hint,
+  problem,
+}: {
+  readonly hint: string | undefined;
+  readonly problem: string | undefined;
+}): JSX.Element {
+  return (
+    <div className="preview-empty" role="status" data-testid="preview-empty">
+      <p className="preview-empty-title">{emptyStageTitle(hint)}</p>
+      <p className="preview-empty-sub">Your video will play here.</p>
+      {problem !== undefined && <p className="preview-empty-problem">{problem}</p>}
+    </div>
+  );
+}
 
 const STATS_REFRESH_MS = 250;
 

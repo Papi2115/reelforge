@@ -41,7 +41,9 @@ function projectProp(index: number): KitCatalogEntry {
 /** Available look ids, voxel first (the 2.0 looks, then the 2.3 ones). */
 const LOOK_IDS = listLooks().map((look) => look.id);
 const PROPS = Array.from({ length: 12 }, (_, index) => projectProp(index));
-const LOOK_NAMES = LOOKS.filter((look) => look.id !== 'voxel').flatMap((look) => [
+// The 2.x looks (world looks are scoped to their own style and never in these indexes).
+const BUILT_IN_LOOKS = LOOKS.filter((look) => look.id !== 'voxel' && look.styles === undefined);
+const LOOK_NAMES = BUILT_IN_LOOKS.flatMap((look) => [
   ...(look.kit.env ?? []),
   ...(look.kit.props ?? []),
   ...(look.kit.fx ?? []),

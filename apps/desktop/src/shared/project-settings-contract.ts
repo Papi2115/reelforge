@@ -1,7 +1,8 @@
 /**
  * IPC payloads of the per-project settings dialog: options stored in the open project's
  * `project.json` (2.x: look mode, ambient variation, research mode + sources, tension map,
- * dramaturgy, editing, characters and mascot, scenes per minute and faster checks).
+ * dramaturgy, editing, characters and mascot, scenes per minute and faster checks; 3.0: continuity
+ * links between shots).
  * Main reads and writes the file (zod-validated, atomic, autocommitted); the renderer only sees
  * the effective values and sends patches. Changes apply to future builds: nothing is marked
  * out of date. Merged into ipc-contract.ts.
@@ -52,6 +53,8 @@ export const projectSettingsSchema = z.object({
   shotsPerMinute: shotsPerMinuteSchema.nullable(),
   /** Faster checks (ADR-027); absent in project.json = off. */
   fasterChecks: z.boolean(),
+  /** Continuity links between shots (PLAN.md#13.2); absent in project.json = off. */
+  continuityLinks: z.boolean(),
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 
@@ -73,6 +76,7 @@ export const projectSettingsPatchSchema = z
     /** null removes the range from project.json. */
     shotsPerMinute: shotsPerMinuteSchema.nullable().optional(),
     fasterChecks: z.boolean().optional(),
+    continuityLinks: z.boolean().optional(),
   })
   .refine((patch) => Object.values(patch).some((value) => value !== undefined), {
     message: 'the patch changes nothing',
@@ -87,12 +91,30 @@ export const lookSummarySchema = z.object({
 });
 export type LookSummary = z.infer<typeof lookSummarySchema>;
 
+/**
+ * The project's style (PLAN.md#13.6), read-only: a project keeps the style it was created with
+ * (nothing in the app changes `project.json` `style`). A world's style brings its own looks and
+ * heroes, so the look mode, characters and mascot rows do not apply there.
+ */
+export const projectStyleSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+  world: z.boolean(),
+  /** An experimental world (shown as "preview"). */
+  preview: z.boolean(),
+  /** False for a preview world while Settings → "Experimental worlds (preview)" is off. */
+  enabled: z.boolean(),
+});
+export type ProjectStyle = z.infer<typeof projectStyleSchema>;
+
 export const projectSettingsStateSchema = z.discriminatedUnion('status', [
   z.object({
     status: z.literal('ok'),
     settings: projectSettingsSchema,
-    /** Available looks, voxel first. */
+    /** Looks the project's style offers (voxel first; a world: its own A/B/C looks). */
     looks: z.array(lookSummarySchema),
+    style: projectStyleSchema,
   }),
   z.object({ status: z.literal('error'), message: z.string() }),
 ]);

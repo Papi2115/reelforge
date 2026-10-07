@@ -15,7 +15,15 @@ import { ENV_DEFINITIONS } from './env/index.js';
 import { checkExtensionNames } from './extensions.js';
 import { FX_DEFINITIONS } from './fx/index.js';
 import type { Three } from './object.js';
-import { extraLookDefinitions, listLooks, LOOKS, VOXEL_LOOK_ID, type Look } from './looks/index.js';
+import {
+  extraLookDefinitions,
+  isWorldStyle,
+  listLooks,
+  LOOKS,
+  VOXEL_LOOK_ID,
+  type Look,
+  type LookScope,
+} from './looks/index.js';
 import { PROP_DEFINITIONS } from './props/index.js';
 import {
   bindRegistry,
@@ -66,6 +74,13 @@ export interface KitOptions {
    */
   readonly looks?: readonly Look[] | undefined;
   /**
+   * Id of the active style: looks scoped to styles (worlds, `Look.styles`) are bound only in one
+   * of theirs, experimental ones included (showcase renders). Absent = the unscoped looks only. A
+   * world's style binds only its own looks next to the voxel kit's definitions (whose names
+   * stay reserved; ADR-029).
+   */
+  readonly style?: string | undefined;
+  /**
    * Ambient variation of the shot (PLAN.md#12.8); absent = environments exactly as authored.
    */
   readonly variation?: AmbientVariation | undefined;
@@ -86,7 +101,7 @@ export function createKit(options: KitOptions): KitHandle {
   const context = createKitContext(options.three, options.palette, options.rng, options.variation);
   const voxel = createVoxelApi(context);
   const extraProps = options.extraProps ?? [];
-  const looks = extraLookDefinitions(options.looks);
+  const looks = extraLookDefinitions(options.looks, { style: options.style, experimental: true });
   const definitionsOf = (kind: KitKind): KitDefinition[] =>
     looks[kind].map((entry) => entry.definition);
   checkExtensionNames(
@@ -146,26 +161,32 @@ export interface KitCatalog {
 /**
  * Machine-readable description of everything in ctx.kit (source of kit-docs, PLAN.md#3.3):
  * the voxel kit's entries, then those of the other available looks, then `projectProps` (the
- * project's own props). `looks` defaults to LOOKS.
+ * project's own props). `looks` defaults to LOOKS; the default scope lists exactly the looks of
+ * the built-in styles. A world's style (`scope.style`) is exclusive (ADR-029): only that world's
+ * looks and the project props, no voxel API, voxel entries or character pack.
  */
 export function kitCatalog(
   projectProps: readonly KitCatalogEntry[] = [],
   looks: readonly Look[] = LOOKS,
+  scope: LookScope = {},
 ): KitCatalog {
-  const extra = extraLookDefinitions(looks);
+  const extra = extraLookDefinitions(looks, scope);
   const lookEntries = (kind: KitKind): KitCatalogEntry[] =>
     extra[kind].flatMap((entry) => catalogEntries([entry.definition], entry.look));
+  const world = isWorldStyle(scope.style, looks);
+  const voxelEntries = (definitions: readonly KitDefinition[]): KitCatalogEntry[] =>
+    world ? [] : catalogEntries(definitions, VOXEL_LOOK_ID);
   return {
     version: KIT_VERSION,
-    looks: listLooks(looks).map(({ id, label, description }) => ({ id, label, description })),
-    voxel: VOXEL_API_DOCS,
-    env: [...catalogEntries(ENV_DEFINITIONS, VOXEL_LOOK_ID), ...lookEntries('env')],
-    props: [
-      ...catalogEntries(PROP_DEFINITIONS, VOXEL_LOOK_ID),
-      ...lookEntries('prop'),
-      ...projectProps,
-    ],
-    fx: [...catalogEntries(FX_DEFINITIONS, VOXEL_LOOK_ID), ...lookEntries('fx')],
-    cast: catalogEntries(CAST_DEFINITIONS, VOXEL_LOOK_ID),
+    looks: listLooks(looks, scope).map(({ id, label, description }) => ({
+      id,
+      label,
+      description,
+    })),
+    voxel: world ? {} : VOXEL_API_DOCS,
+    env: [...voxelEntries(ENV_DEFINITIONS), ...lookEntries('env')],
+    props: [...voxelEntries(PROP_DEFINITIONS), ...lookEntries('prop'), ...projectProps],
+    fx: [...voxelEntries(FX_DEFINITIONS), ...lookEntries('fx')],
+    cast: voxelEntries(CAST_DEFINITIONS),
   };
 }

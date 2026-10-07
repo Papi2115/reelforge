@@ -305,6 +305,9 @@ function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionV
   if (spec.open.kind === 'voiceover') {
     return { enabled: true, hint: 'Import, record or replace the voice-over; fit to the script' };
   }
+  if (spec.open.kind === 'shots') {
+    return { enabled: true, hint: 'Storyboard options, the Hook lab and the shots' };
+  }
   if (spec.open.kind === 'scenes') {
     return { enabled: true, hint: 'Build progress, missing props and the sync report' };
   }
@@ -321,6 +324,14 @@ function openAction(spec: PipelineRowSpec, infos: readonly StageInfo[]): ActionV
   return has
     ? { enabled: true, hint: `Open ${spec.label.toLowerCase()} output` }
     : { enabled: false, hint: 'Nothing to open yet.' };
+}
+
+/**
+ * A click on a step opens it like its Open button (the inspector idea, docs/ux/redesign-2.4.md
+ * "Answers" 1), except a file output: that opens in another program, only on Open.
+ */
+export function opensOnClick(row: RowView): boolean {
+  return row.open.enabled && row.spec.open.kind !== 'artifact';
 }
 
 const LOADING_ACTION: ActionView = { enabled: false, hint: 'Reading the project…' };

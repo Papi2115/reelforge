@@ -1,6 +1,6 @@
 /**
  * Stage outputs the sidebar's Open button hands to the system (PLAN.md#6.8): the recording, the
- * cleaned audio, the scenes folder, the mix and the newest exported video. Main resolves the
+ * cleaned audio, the scenes folder, the mix, the newest exported video and the project folder. Main resolves the
  * path from the artifact name (the renderer never sends paths) and refuses anything that is
  * missing or links out of the project, so `shell.openPath` only ever sees these files.
  */
@@ -13,7 +13,7 @@ import { isInsideFolder } from '../project-files.js';
 
 const VIDEO_FILE = /\.mp4$/i;
 /** Artifacts that are folders (opened in Explorer). */
-const FOLDER_ARTIFACTS: ReadonlySet<StageArtifact> = new Set(['scenes', 'stems', 'out']);
+const FOLDER_ARTIFACTS: ReadonlySet<StageArtifact> = new Set(['scenes', 'stems', 'out', 'project']);
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -61,6 +61,8 @@ async function relativeOf(dir: string, artifact: StageArtifact): Promise<string 
       return FILES.stemsDir;
     case 'out':
       return 'out';
+    case 'project':
+      return '.';
     case 'video':
       return latestVideo(dir);
   }
@@ -74,6 +76,7 @@ const MISSING: Readonly<Record<StageArtifact, string>> = {
   stems: 'No stems yet: use Render mix + stems.',
   out: 'Nothing exported yet.',
   video: 'No exported video yet.',
+  project: 'The project folder is missing.',
 };
 
 /** Absolute (link-resolved) path of an artifact inside the project. */
@@ -85,7 +88,10 @@ export async function artifactPath(
   if (relative === undefined) return err(MISSING[artifact]);
   try {
     const [root, real] = await Promise.all([realpath(dir), realpath(inProject(dir, relative))]);
-    if (!isInsideFolder(root, real)) return err(`${relative} links outside the project folder.`);
+    // The project folder itself is the one path that is not *inside* the project.
+    const own = artifact === 'project' && real === root;
+    if (!own && !isInsideFolder(root, real))
+      return err(`${relative} links outside the project folder.`);
     const info = await stat(real);
     const folder = FOLDER_ARTIFACTS.has(artifact);
     const wanted = folder ? info.isDirectory() : info.isFile();

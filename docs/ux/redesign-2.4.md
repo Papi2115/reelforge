@@ -419,3 +419,18 @@ under the old layout.
 3. Taste and Characters move to Library? (Today: Settings → Taste, Project settings → Characters.)
 4. Ship U1, U2 and U4 first as 2.3.6 quick wins, or wait for the full 2.4?
 5. Try the pixel face for titles (U13), or keep system text everywhere?
+
+### Answers (Papi, 2026-10-06)
+
+1. **Keep the old-school Premiere-Pro vibe; rebuild lightly.** Layout stays roughly as it is; improvements by taste. Hard requirement:
+   **clicking any element (e.g. Sound) immediately opens everything it offers and everything that can be changed there** (inspector
+   / effect-controls idea) — every pipeline row/step gets one "all options" panel. The six-step bar (U6) is therefore reworked as a light
+   layer on the existing rows (statuses + clearer sentences), not a new layout.
+2. **Director = tab next to Chat (A).**
+3. **Taste and Characters do NOT go to a global Library**: they differ per animation style/world and per channel. Characters/heroes live
+   with the world (Style) settings; taste lives with the channel (13.13) and can be per world. Library keeps only material
+   (photos, your files, other projects). U10 changes accordingly.
+4. Quick fixes are not a separate 2.3.8; they ship inside 3.0 (U1, U2, U4 first).
+5. Pixel face for titles: Papi did not know what it is (today the UI text is system font; the pixel feel only comes from the brand mark,
+   square dots, mono timecodes). Try it last (U13) on step/section titles and dialog titles only, one CSS variable to switch off; Papi judges the screenshot.
+Also: publish helper postponed (13.11); the number of channels can change, so channels are a dynamic list, never a fixed 3 (13.13).

@@ -1,153 +1,85 @@
 /**
- * What the pipeline sidebar says about each step (PLAN.md#11.2): the status words ("Ready to run",
- * "Waiting for Voiceover", "Out of date — rebuild", …), the legend that explains them, the folding
- * of the finished steps at the top into one "steps done" line, and the one-line summary of a
- * collapsed pipeline. Same colour and dot shape per status everywhere. Pure.
+ * What the pipeline sidebar says around the steps (PLAN.md#11.2, docs/ux/redesign-2.4.md §3): the
+ * legend of the status words (stations-view.ts), the folding of the finished steps at the top into
+ * one "steps done" line, and the one-line summary of a collapsed pipeline. Same colour and square
+ * dot per status everywhere. Pure.
  */
 import { plural } from '../../shared/plural.js';
-import type { RowStatus, RowView } from './pipeline-view.js';
-
-/** Short step names for "Waiting for …" (the row labels are long for a chip). */
-export const SHORT_STEP_NAMES: Readonly<Record<string, string>> = {
-  script: 'Script',
-  voiceover: 'Voiceover',
-  clean: 'Cleanup',
-  words: 'Words',
-  storyboard: 'Storyboard',
-  assets: 'Assets',
-  scenes: 'Scenes',
-  sound: 'Sound mix',
-  export: 'Export',
-};
-
-function shortName(row: RowView): string {
-  return SHORT_STEP_NAMES[row.spec.id] ?? row.spec.label;
-}
-
-function clockTime(epochMs: number): string {
-  return new Date(epochMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-/** The nearest earlier step that is not done yet (what this one waits for). */
-export function blockingRow(row: RowView, rows: readonly RowView[]): RowView | undefined {
-  const index = rows.indexOf(row);
-  return rows
-    .slice(0, Math.max(index, 0))
-    .findLast((candidate) => candidate.status !== 'done' && candidate.status !== 'loading');
-}
-
-/** Stage titles in the gating reasons (STAGE_TITLES, @reelforge/stages) -> short step names. */
-const TITLE_STEPS: Readonly<Record<string, string>> = {
-  Script: 'Script',
-  'Script written': 'Script',
-  Voiceover: 'Voiceover',
-  'Audio cleaned': 'Cleanup',
-  'Words timed': 'Words',
-  Storyboard: 'Storyboard',
-  Assets: 'Assets',
-  'Scenes built': 'Scenes',
-  'Sound cues': 'Sound mix',
-  'Sound design mixed': 'Sound mix',
-  'Video exported': 'Export',
-};
-
-/** What one gating reason says the step waits for, when it is a known kind of reason. */
-function reasonText(reason: string): string | undefined {
-  if (reason.includes('asset package is waiting for your review')) {
-    return 'Waiting for your review of the asset package';
-  }
-  if (reason.startsWith('Approve the script first')) return 'Waiting for your script approval';
-  if (reason.startsWith('brief.json') || reason.startsWith('The brief')) {
-    return 'Waiting for the brief';
-  }
-  if (reason.startsWith('Assets: run it first')) return 'Waiting for Assets';
-  const step = (title: string | undefined): string | undefined =>
-    title === undefined ? undefined : TITLE_STEPS[title];
-  const stale = step(/^(.+?) is out of date\b/.exec(reason)?.[1]);
-  if (stale !== undefined) return `Waiting for ${stale} (out of date)`;
-  const busy = step(/^(.+?) is still running\./.exec(reason)?.[1]);
-  if (busy !== undefined) return `Waiting for ${busy}`;
-  const missing = step(/\brun (.+?) first\b/.exec(reason)?.[1]);
-  return missing === undefined ? undefined : `Waiting for ${missing}`;
-}
-
-function waitingText(row: RowView, rows: readonly RowView[]): string {
-  // The row's own gating first: a step can wait on a review or approval, not only on a step.
-  for (const reason of row.reasons) {
-    const text = reasonText(reason);
-    if (text !== undefined) return text;
-  }
-  const blocker = blockingRow(row, rows);
-  if (blocker !== undefined) return `Waiting for ${shortName(blocker)}`;
-  if (row.spec.id === 'script') return 'Waiting for the brief';
-  if (row.spec.id === 'voiceover') return 'Needs your recording';
-  return 'Not ready yet';
-}
-
-/** The status words of a row (the chip). */
-export function statusLabel(row: RowView, rows: readonly RowView[]): string {
-  switch (row.status) {
-    case 'loading':
-      return '…';
-    case 'done':
-      return 'Done';
-    case 'review':
-      return 'Review & approve';
-    case 'running':
-      return row.percent === null ? 'Running…' : `Running… ${String(Math.round(row.percent))} %`;
-    case 'paused':
-      return row.pausedUntil === null
-        ? 'Paused (usage limit)'
-        : `Paused (usage limit) — resumes ${clockTime(row.pausedUntil)}`;
-    case 'queued':
-      return 'Queued';
-    case 'ready':
-      return 'Ready to run';
-    case 'waiting':
-      return waitingText(row, rows);
-    case 'failed':
-      return 'Failed — see details';
-    case 'stale':
-      return 'Out of date — rebuild';
-    case 'interrupted':
-      return 'Interrupted — Resume';
-  }
-}
+import type { RowView } from './pipeline-view.js';
+import { STATION_GLYPHS, type StationStatus, type StationView } from './stations-view.js';
 
 /** The legend of the status words (the "?" next to the Pipeline heading). */
 export const STATUS_LEGEND: readonly {
-  readonly status: RowStatus;
+  readonly status: StationStatus | 'kept';
+  readonly glyph: string;
+  /** Colour class of the dot and the chip (`status-<css>`). */
+  readonly css: string;
   readonly label: string;
   readonly meaning: string;
 }[] = [
-  { status: 'done', label: 'Done', meaning: 'Finished; Redo runs it again.' },
-  { status: 'ready', label: 'Ready to run', meaning: 'Everything it needs is there: press Run.' },
-  { status: 'review', label: 'Review & approve', meaning: 'Read the result, then approve it.' },
-  { status: 'running', label: 'Running…', meaning: 'Working now; Stop is next to it.' },
   {
-    status: 'waiting',
-    label: 'Waiting for …',
-    meaning: 'An earlier step, or your review or approval, has to come first.',
+    status: 'not-started',
+    glyph: STATION_GLYPHS['not-started'],
+    css: 'waiting',
+    label: 'Not started',
+    meaning: 'Its turn has not come; hover for what it needs.',
   },
   {
-    status: 'stale',
-    label: 'Out of date — rebuild',
+    status: 'ready',
+    glyph: STATION_GLYPHS.ready,
+    css: 'ready',
+    label: 'Ready',
+    meaning: 'Everything it needs is there: press Run.',
+  },
+  {
+    status: 'working',
+    glyph: STATION_GLYPHS.working,
+    css: 'running',
+    label: 'Working',
+    meaning:
+      'Running now, queued, paused by your usage limit or stopped: Stop or Resume is next to it.',
+  },
+  {
+    status: 'needs-you',
+    glyph: STATION_GLYPHS['needs-you'],
+    css: 'review',
+    label: 'Needs you',
+    meaning: 'Your turn: approve, review or record.',
+  },
+  {
+    status: 'done',
+    glyph: STATION_GLYPHS.done,
+    css: 'done',
+    label: 'Done',
+    meaning: 'Finished; Redo runs it again.',
+  },
+  {
+    status: 'kept',
+    glyph: STATION_GLYPHS.done,
+    css: 'kept',
+    label: 'Kept from before',
+    meaning: 'Its result still plays; it updates after the earlier step that is not done.',
+  },
+  {
+    status: 'problems',
+    glyph: STATION_GLYPHS.problems,
+    css: 'problems',
+    label: 'Built with problems',
+    meaning: 'Most of it works; the sentence names what failed and the retry.',
+  },
+  {
+    status: 'out-of-date',
+    glyph: STATION_GLYPHS['out-of-date'],
+    css: 'stale',
+    label: 'Out of date',
     meaning: 'Something it uses changed: run it again.',
   },
   {
-    status: 'paused',
-    label: 'Paused (usage limit)',
-    meaning: 'Your Claude limit was reached; it resumes on its own.',
-  },
-  {
-    status: 'interrupted',
-    label: 'Interrupted — Resume',
-    meaning: 'The app closed while it ran: Resume continues.',
-  },
-  {
     status: 'failed',
-    label: 'Failed — see details',
-    meaning: 'Select it for the error, then Retry.',
+    glyph: STATION_GLYPHS.failed,
+    css: 'failed',
+    label: 'Failed',
+    meaning: 'Nothing usable came out: select it for the reason, then Retry.',
   },
 ];
 
@@ -174,15 +106,20 @@ export function foldText(done: readonly RowView[]): string {
 }
 
 /** One line for a collapsed pipeline: progress and what happens now. */
-export function pipelineSummary(rows: readonly RowView[]): string {
+export function pipelineSummary(
+  rows: readonly RowView[],
+  stations: readonly StationView[],
+): string {
   const done = rows.filter((row) => row.status === 'done').length;
   const progress = `${String(done)} of ${String(rows.length)} steps done`;
+  const wordOf = (row: RowView): string =>
+    stations.find((station) => station.rowId === row.spec.id)?.word ?? '';
   const busy = rows.find((row) => row.busy);
-  if (busy !== undefined) return `${progress} · ${busy.spec.label}: ${statusLabel(busy, rows)}`;
+  if (busy !== undefined) return `${progress} · ${busy.spec.label}: ${wordOf(busy)}`;
   const attention = rows.find((row) =>
     ['failed', 'interrupted', 'stale', 'review'].includes(row.status),
   );
   return attention === undefined
     ? progress
-    : `${progress} · ${attention.spec.label}: ${statusLabel(attention, rows)}`;
+    : `${progress} · ${attention.spec.label}: ${wordOf(attention)}`;
 }

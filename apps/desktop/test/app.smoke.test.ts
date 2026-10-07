@@ -26,6 +26,7 @@ import {
   waitForRenderedT,
 } from './support/electron-app.js';
 import { stageRow } from './support/pipeline-rows.js';
+import { projectMenu } from './support/project-menu.js';
 
 const LAYOUT_REGIONS = ['Pipeline', 'Shots', 'Preview', 'Claude', 'Timeline', 'Status'];
 
@@ -268,7 +269,7 @@ describe('desktop app', () => {
     await stubFolderPicker(app, parent);
     await page.getByLabel('Video title').fill('Smoke ż test');
     await page.getByRole('button', { name: 'New project…' }).click();
-    const badge = page.getByRole('button', { name: 'Saved locally · git history' });
+    const badge = page.getByRole('button', { name: 'History', exact: true });
     await badge.waitFor();
     const dir = path.join(parent, 'Smoke ż test');
     for (const file of ['.git', 'CLAUDE.md', 'project.json', '.gitignore']) {
@@ -312,15 +313,15 @@ describe('desktop app', () => {
     expect(existsSync(scene)).toBe(false);
     await page.screenshot({ path: path.join(screenshotDir, 'history-after-revert.png') });
     await page.getByRole('button', { name: 'Close', exact: true }).click();
-    // A fresh project has no storyboard: the preview falls back to the demo with a note.
-    await page.getByRole('status').filter({ hasText: 'No shots yet' }).waitFor();
+    // A fresh project has no storyboard: the preview shows the empty stage, not the demo.
+    await page.getByTestId('preview-empty').waitFor();
   });
 
   it('shows the open project in the main layout and follows the preview time', async () => {
     const page = await app.firstWindow();
     const dir = path.join(userDataDir, 'Fixture ż projekt');
     await cp(fixtureProject, dir, { recursive: true });
-    await page.getByRole('button', { name: 'Close project' }).click();
+    await projectMenu(page, 'Close project');
     await page.getByRole('region', { name: 'Start' }).waitFor();
     await stubFolderPicker(app, dir);
     await page.getByRole('button', { name: 'Open project…' }).click();
@@ -349,10 +350,11 @@ describe('desktop app', () => {
     expect(frame.distinctColours).toBeGreaterThan(4);
 
     for (const [label, status] of [
-      ['Script written', 'Review & approve'],
-      ['Voiceover added', 'Waiting for Script'],
-      ['Storyboard', 'Done'],
-      ['Video exported', 'Waiting for Sound mix'],
+      ['Script written', 'Needs you'],
+      ['Voiceover added', 'Not started'],
+      // Output under a step that is not done (no voiceover in the fixture).
+      ['Storyboard', 'Kept from before'],
+      ['Video exported', 'Not started'],
     ] as const) {
       expect(await stageRow(page, label).textContent()).toBe(`${label}${status}`);
     }

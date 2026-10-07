@@ -6,20 +6,29 @@
 import { availableParallelism } from 'node:os';
 import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { segmentCacheKey, sha256Hex, stableStringify } from './cache-key.js';
 import { buildChaptersTxt } from './chapters.js';
+import {
+  ENCODER_FALLBACK_MESSAGE,
+  isEncoderOpenFailure,
+  openFailureDetail,
+} from './encoder-fallback.js';
 import { describeUnknown, type ExportError } from './errors.js';
-import type { ExportResult, ExportVideoOptions } from './export-types.js';
-import { isSoftwareRenderer } from './frame-source.js';
+import type { ExportResult, ExportVideoOptions, ExportWarning } from './export-types.js';
+import type { ExportMedia } from './media.js';
 import { safeOutputName } from './output-name.js';
 import { DEFAULT_EXPORT_PRESET, resolveOutputScale } from './presets.js';
-import { renderShots, type ShotJob } from './render-shots.js';
+import { runRenderPass, type RenderPass, type RenderPassContext } from './render-pass.js';
 import { planShots } from './shot-plan.js';
-import { ExportStateWriter, exportPaths, fileExists, readExportState } from './state.js';
+import { exportPaths, fileExists } from './state.js';
 import { defaultThumbnailTime, renderThumbnail } from './thumbnail.js';
 import { err, ok, type Result } from '../result.js';
 
-export type { ExportProgress, ExportResult, ExportVideoOptions } from './export-types.js';
+export type {
+  ExportProgress,
+  ExportResult,
+  ExportVideoOptions,
+  ExportWarning,
+} from './export-types.js';
 
 export function defaultWorkerCount(): number {
   return Math.max(1, Math.floor(availableParallelism() / 2));
@@ -57,6 +66,38 @@ async function pruneSegments(segmentsDir: string, keep: ReadonlySet<string>): Pr
   );
 }
 
+/**
+ * Renders with `media`; when its hardware encoder cannot open even after the per-segment retry, the
+ * whole export restarts on its CPU fallback. A restart rather than switching only the remaining
+ * shots: segments are concat-copied, and NVENC and libx264 streams carry different SPS/PPS, so a
+ * mixed MP4 depends on every player handling a mid-stream parameter change (docs/export.md).
+ */
+async function renderWithFallback(
+  context: RenderPassContext,
+  media: ExportMedia,
+): Promise<Result<{ media: ExportMedia; pass: RenderPass }, ExportError>> {
+  const first = await runRenderPass(context, media);
+  if (first.ok) return ok({ media, pass: first.value });
+  const createFallback = media.fallback;
+  if (
+    createFallback === undefined ||
+    context.signal.aborted ||
+    !isEncoderOpenFailure(first.error)
+  ) {
+    return first;
+  }
+  const cpu = createFallback();
+  context.warn({
+    type: 'encoder-fallback',
+    from: media.encoderLabel,
+    to: cpu.encoderLabel,
+    detail: openFailureDetail(first.error),
+    message: ENCODER_FALLBACK_MESSAGE,
+  });
+  const second = await runRenderPass(context, cpu);
+  return second.ok ? ok({ media: cpu, pass: second.value }) : second;
+}
+
 function validate(options: ExportVideoOptions): Result<void, ExportError> {
   const { manifest, identity } = options;
   const size = `${String(identity.style.width)}x${String(identity.style.height)}`;
@@ -87,7 +128,7 @@ export async function exportVideo(
   const emit = options.onProgress ?? ((): void => undefined);
   const valid = validate(options);
   if (!valid.ok) return valid;
-  const { manifest, identity, media } = options;
+  const { manifest, identity } = options;
   const presetId = options.preset ?? DEFAULT_EXPORT_PRESET;
   const scale = resolveOutputScale(presetId, identity.style.width, identity.style.height);
   if (!scale.ok) return scale;
@@ -115,120 +156,27 @@ export async function exportVideo(
       path: paths.cacheDir,
     });
   }
-  const outputKey = stableStringify({
-    media: media.outputKey,
-    preset: presetId,
-    factor: scale.value.factor,
-  });
-  const jobs: ShotJob[] = plan.shots.map((planned) => {
-    const key = segmentCacheKey({
-      manifest,
-      planned,
-      identity,
-      outputKey,
-      resolveAnchor: options.resolveAnchor,
-    });
-    return {
-      planned,
-      key,
-      segment: path.join(paths.segmentsDir, `${key}${media.segmentExtension}`),
-    };
-  });
-  const jobKey = sha256Hex(stableStringify({ keys: jobs.map((job) => job.key), output }));
-  const previous = await readExportState(paths.stateFile);
-  const resumed =
-    previous.ok &&
-    previous.value !== null &&
-    previous.value.jobKey === jobKey &&
-    previous.value.status === 'running';
-
-  const cachedFlags = await Promise.all(jobs.map((job) => fileExists(job.segment)));
-  const toRender = jobs.filter((_, index) => cachedFlags[index] !== true);
-  const cached = jobs.filter((_, index) => cachedFlags[index] === true);
-  const shotEntry = (job: ShotJob): { id: string; key: string; frames: number } => ({
-    id: job.planned.shot.id,
-    key: job.key,
-    frames: job.planned.endFrame - job.planned.startFrame,
-  });
-  const state = new ExportStateWriter(paths.stateFile, {
-    version: 1,
-    jobKey,
-    status: 'running',
-    output,
-    preset: presetId,
-    encoder: media.encoderLabel,
-    totalShots: jobs.length,
-    finished: cached.map(shotEntry),
-  });
-  const initialWrite = await state.write();
-  if (!initialWrite.ok)
-    return err({ kind: 'io', message: initialWrite.error.message, path: paths.stateFile });
-
-  const framesToRender = toRender.reduce(
-    (sum, job) => sum + job.planned.endFrame - job.planned.startFrame,
-    0,
-  );
-  const workers = Math.max(1, Math.min(options.workers ?? defaultWorkerCount(), toRender.length));
-  emit({
-    type: 'plan',
-    shots: jobs.length,
-    cachedShots: cached.length,
-    totalFrames: plan.totalFrames,
-    framesToRender,
-    workers,
-    encoder: media.encoderLabel,
-    resumed,
-  });
-  for (const job of cached) emit({ type: 'shot-done', shotId: job.planned.shot.id, cached: true });
-
-  let renderedFrames = 0;
-  let gpu: string | null = null;
-  const announced = new Set<number>();
-  const renderStarted = now();
-  const rendered = await renderShots({
-    manifest,
-    jobs: toRender,
-    workers,
+  const warnings: ExportWarning[] = [];
+  const context: RenderPassContext = {
+    options,
+    plan,
     scale: scale.value,
-    media,
-    createFrameSource: options.createFrameSource,
+    presetId,
+    paths,
+    output,
+    workers: options.workers ?? defaultWorkerCount(),
     signal,
-    events: {
-      onSourceOpened(worker, info) {
-        if (announced.has(worker)) return;
-        announced.add(worker);
-        gpu ??= info.gpu;
-        emit({ type: 'source', worker, gpu: info.gpu, software: isSoftwareRenderer(info.gpu) });
-      },
-      onShotStart(job, worker) {
-        const frames = job.planned.endFrame - job.planned.startFrame;
-        emit({ type: 'shot-start', shotId: job.planned.shot.id, frames, worker });
-      },
-      onFrame(job, frameInShot) {
-        renderedFrames += 1;
-        const elapsedS = (now() - renderStarted) / 1000;
-        const fps = elapsedS > 0 ? renderedFrames / elapsedS : 0;
-        emit({
-          type: 'frame',
-          shotId: job.planned.shot.id,
-          frameInShot,
-          shotFrames: job.planned.endFrame - job.planned.startFrame,
-          renderedFrames,
-          framesToRender,
-          fps,
-          etaS: fps > 0 ? (framesToRender - renderedFrames) / fps : null,
-        });
-      },
-      async onShotDone(job) {
-        const saved = await state.markFinished(shotEntry(job));
-        if (!saved.ok)
-          return err({ kind: 'io', message: saved.error.message, path: paths.stateFile });
-        emit({ type: 'shot-done', shotId: job.planned.shot.id, cached: false });
-        return ok(undefined);
-      },
+    emit,
+    warn: (warning) => {
+      warnings.push(warning);
+      options.onWarning?.(warning);
     },
-  });
+    now,
+  };
+  const rendered = await renderWithFallback(context, options.media);
   if (!rendered.ok) return rendered;
+  const { media, pass } = rendered.value;
+  const { jobs, toRender, cached, resumed, gpu, state } = pass;
 
   emit({ type: 'mux' });
   const audio = await resolveAudio(options);
@@ -305,6 +253,7 @@ export async function exportVideo(
     width: scale.value.outputWidth,
     height: scale.value.outputHeight,
     encoder: media.encoderLabel,
+    warnings,
     audio,
     resumed,
     gpu,

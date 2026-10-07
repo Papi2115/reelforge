@@ -4,6 +4,7 @@ import type {
   LookSummary,
   ProjectSettings,
   ProjectSettingsPatch,
+  ProjectStyle,
 } from '../../shared/project-settings-contract.js';
 
 interface SettingRowProps {
@@ -27,9 +28,13 @@ export function SettingRow({ title, note, children }: SettingRowProps): JSX.Elem
   );
 }
 
-/** What every row gets: the effective settings, the kit's looks and the change callback. */
+/**
+ * What every row gets: the effective settings, the looks of the project's style, the style
+ * itself (undefined while loading) and the change callback.
+ */
 export interface RowProps {
   readonly settings: ProjectSettings;
   readonly looks: readonly LookSummary[];
+  readonly style?: ProjectStyle | undefined;
   readonly update: (patch: ProjectSettingsPatch) => void;
 }

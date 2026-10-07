@@ -1,6 +1,6 @@
 {
   "name": "@reelforge/desktop",
-  "version": "2.3.7",
+  "version": "3.0.0-beta.1",
   "private": true,
   "description": "Electron desktop app (main/preload/renderer).",
   "type": "module",

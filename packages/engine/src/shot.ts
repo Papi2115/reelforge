@@ -56,6 +56,8 @@ export interface ShotInput {
   readonly ambient?: AmbientVariation | undefined;
   /** The video's asset pictures (PLAN.md#12.11); absent = none. */
   readonly assets?: AssetLibrary | undefined;
+  /** Active style id: binds the looks of that world into ctx.kit (PLAN.md#13.1). */
+  readonly styleId?: string | undefined;
 }
 
 export interface BuiltShot {
@@ -188,6 +190,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     extraProps: input.kitExtensions,
     cast: input.cast,
     variation: input.ambient,
+    style: input.styleId,
   });
   const drift = input.ambient && createCameraDrift(camera, input.ambient.cameraDrift, duration);
   const library = input.assets ?? NO_ASSETS;

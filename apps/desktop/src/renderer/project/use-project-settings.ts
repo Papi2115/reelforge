@@ -1,19 +1,30 @@
-/** Settings of the open project in the renderer: loaded on open, changed through main. */
+/**
+ * Settings of the open project in the renderer: loaded on open, changed through main. Several
+ * controllers may be mounted at once (Project settings and a step's "All options" section): a
+ * change one of them saved is passed to the others, so every switch shows the file's state.
+ */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   LookSummary,
   ProjectSettings,
   ProjectSettingsPatch,
+  ProjectStyle,
 } from '../../shared/project-settings-contract.js';
 import { errorMessage, rendererLog } from '../log.js';
 import { withProjectSettingsPatch } from './project-settings-view.js';
 
 const log = rendererLog('project-settings');
 
+type SavedListener = (settings: ProjectSettings) => void;
+/** The mounted controllers, told about each other's saved changes. */
+const savedListeners = new Set<SavedListener>();
+
 export interface ProjectSettingsController {
   /** Undefined while loading. */
   readonly settings: ProjectSettings | undefined;
   readonly looks: readonly LookSummary[];
+  /** The project's style (PLAN.md#13.6); undefined while loading. */
+  readonly style: ProjectStyle | undefined;
   /** Load failure or the last failed change (shown in the dialog). */
   readonly error: string | undefined;
   /** Number of changes main has not answered yet. */
@@ -24,6 +35,7 @@ export interface ProjectSettingsController {
 export function useProjectSettings(): ProjectSettingsController {
   const [settings, setSettings] = useState<ProjectSettings | undefined>(undefined);
   const [looks, setLooks] = useState<readonly LookSummary[]>([]);
+  const [style, setStyle] = useState<ProjectStyle | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [pending, setPending] = useState(0);
   /** Number of the newest change: an older answer must not undo a newer optimistic change. */
@@ -38,6 +50,7 @@ export function useProjectSettings(): ProjectSettingsController {
         }
         setSettings(state.settings);
         setLooks(state.looks);
+        setStyle(state.style);
       },
       (reason: unknown) => {
         log.error(`getProjectSettings failed: ${errorMessage(reason)}`);
@@ -47,6 +60,18 @@ export function useProjectSettings(): ProjectSettingsController {
   }, []);
 
   useEffect(reload, [reload]);
+
+  /** This controller's listener (it does not hear its own changes). */
+  const listener = useRef<SavedListener>((next) => {
+    setSettings(next);
+  });
+  useEffect(() => {
+    const own = listener.current;
+    savedListeners.add(own);
+    return () => {
+      savedListeners.delete(own);
+    };
+  }, []);
 
   const update = useCallback(
     (patch: ProjectSettingsPatch): void => {
@@ -68,6 +93,9 @@ export function useProjectSettings(): ProjectSettingsController {
             }
             setError(undefined);
             if (change === latest.current) setSettings(result.settings);
+            for (const other of savedListeners) {
+              if (other !== listener.current) other(result.settings);
+            }
           },
           (reason: unknown) => {
             log.error(`updateProjectSettings failed: ${errorMessage(reason)}`);
@@ -82,5 +110,5 @@ export function useProjectSettings(): ProjectSettingsController {
     [reload],
   );
 
-  return { settings, looks, error, pending, update };
+  return { settings, looks, style, error, pending, update };
 }

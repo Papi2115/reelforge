@@ -72,6 +72,18 @@ describe('renderTemplate', () => {
     expect(render(template, { b: 1 })).toEqual({ ok: true, value: '' });
   });
 
+  it('renders an inverted section only for unset or empty values', () => {
+    const template = '[{{^world}}voxel{{/world}}{{#world}}{{world}}{{/world}}]';
+    expect(render(template, {})).toEqual({ ok: true, value: '[voxel]' });
+    for (const empty of [undefined, null, false, '', []]) {
+      expect(render(template, { world: empty })).toEqual({ ok: true, value: '[voxel]' });
+    }
+    expect(render(template, { world: 'Sketchbook' })).toEqual({ ok: true, value: '[Sketchbook]' });
+    const parsed = parseTemplate('{{^a}}{{b}}{{/a}}');
+    expect(parsed.ok && parsed.value.optional).toEqual(['a', 'b']);
+    expect(parseTemplate('{{^a}}x{{/b}}').ok).toBe(false);
+  });
+
   it('returns every missing required variable as a typed error', () => {
     expect(render('{{a}} {{b}} {{a}} {{c}}', { b: 'ok', c: null })).toEqual({
       ok: false,

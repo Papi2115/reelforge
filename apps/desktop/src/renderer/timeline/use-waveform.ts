@@ -14,7 +14,11 @@ export function useWaveform(file: string | undefined, revision: number): Wavefor
 
   useEffect(() => {
     if (file === undefined) {
-      setWaveform({ kind: 'message', text: 'No voiceover yet: add it in Voiceover added' });
+      setWaveform({
+        kind: 'message',
+        text: 'No voiceover yet: add it in Voiceover added',
+        missing: true,
+      });
       return undefined;
     }
     let active = true;

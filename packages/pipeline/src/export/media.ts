@@ -50,6 +50,12 @@ export interface ExportMedia {
   readonly encoderLabel: string;
   /** Extension of segment files, with the dot. */
   readonly segmentExtension: string;
+  /**
+   * Hardware encoders only: the CPU media an export switches to when this encoder cannot open a
+   * session (encoder-fallback.ts). Media with a fallback also get one open retry per segment and
+   * staggered first opens per worker.
+   */
+  readonly fallback?: () => ExportMedia;
   openSegment(spec: SegmentSpec, signal?: AbortSignal): SegmentWriter;
   concatAndMux(spec: MuxSpec, signal?: AbortSignal): Promise<Result<void, ExportError>>;
   writeThumbnail(

@@ -4,9 +4,16 @@
  * `compositeTransition` picks, per pixel, a pixel of A or B (masks from progress, an ordered-dither
  * threshold, geometry and a seed) or a palette tone, so the result stays in the style palette.
  * Preview and export both get their frames from `EngineRuntime.seek`, so they share this code.
- * Styles and their metadata come from `@reelforge/shared` (`TRANSITION_STYLES`).
+ * Styles and their metadata come from `@reelforge/shared` (`TRANSITION_STYLES`); the continuity
+ * links between shots (PLAN.md#13.2, `CONTINUITY_STYLES`) and the page-native transitions of the
+ * Sketchbook world (PLAN.md#13.6, `SKETCHBOOK_TRANSITION_STYLES`, world-scoped) are composited
+ * the same way.
  */
 import {
+  CONTINUITY_STYLE_IDS,
+  CONTINUITY_STYLES,
+  type ContinuityStyle,
+  type ContinuityStyleId,
   TRANSITION_STYLE_IDS,
   TRANSITION_STYLES,
   type TransitionFocus,
@@ -21,6 +28,7 @@ import {
   pixelWipe,
   scanlineSweep,
 } from './basic.js';
+import { carryEnvironment, sharedObject, zoomThrough } from './continuity.js';
 import { cubeSmash } from './cube-smash.js';
 import { diveIn, diveOut } from './dive.js';
 import { enterBinoculars, enterKeyhole, enterLens, enterWindow } from './enter.js';
@@ -36,15 +44,51 @@ import {
   type Tones,
 } from './pixels.js';
 import { shatter } from './shatter.js';
+import {
+  isSketchbookTransition,
+  SKETCHBOOK_COMPOSITORS,
+  SKETCHBOOK_TRANSITION_STYLES,
+  type SketchbookTransitionId,
+  type WorldTransitionStyle,
+} from './sketchbook/index.js';
 
 export { createTones, type TransitionFrame, type Tones } from './pixels.js';
+export {
+  isSketchbookTransition,
+  SKETCHBOOK_TRANSITION_IDS,
+  SKETCHBOOK_TRANSITION_STYLES,
+  type SketchbookTransitionId,
+  type WorldTransitionStyle,
+} from './sketchbook/index.js';
 
-/** A transition style with its compositor. */
-export interface EngineTransition extends TransitionStyle {
+/**
+ * Everything the engine composites: the transition-kit styles, the continuity links and the
+ * world-scoped page-native transitions.
+ */
+export type EngineTransitionId = TransitionStyleId | ContinuityStyleId | SketchbookTransitionId;
+
+/** A transition the engine can composite, with its compositor. */
+export interface EngineTransition {
+  readonly id: EngineTransitionId;
   readonly composite: Compositor;
 }
 
-const COMPOSITORS: Readonly<Record<TransitionStyleId, Compositor>> = {
+/** A transition-kit style with its compositor. */
+export interface KitTransition extends TransitionStyle {
+  readonly composite: Compositor;
+}
+
+/** A continuity link style (PLAN.md#13.2) with its compositor. */
+export interface ContinuityTransition extends ContinuityStyle {
+  readonly composite: Compositor;
+}
+
+/** A world's page-native transition (PLAN.md#13.6) with its compositor. */
+export interface WorldTransition extends WorldTransitionStyle {
+  readonly composite: Compositor;
+}
+
+const COMPOSITORS: Readonly<Record<EngineTransitionId, Compositor>> = {
   'pixel-wipe': pixelWipe,
   'dither-dissolve': ditherDissolve,
   'glitch-cut': glitchCut,
@@ -66,28 +110,55 @@ const COMPOSITORS: Readonly<Record<TransitionStyleId, Compositor>> = {
   shatter,
   'dive-in': diveIn,
   'dive-out': diveOut,
+  'continuity-zoom-through': zoomThrough,
+  'continuity-shared-object': sharedObject,
+  'continuity-carry-environment': carryEnvironment,
+  ...SKETCHBOOK_COMPOSITORS,
 };
 
-export const TRANSITIONS: Readonly<Record<TransitionStyleId, EngineTransition>> =
-  Object.fromEntries(
-    TRANSITION_STYLE_IDS.map((id) => [
-      id,
-      { ...TRANSITION_STYLES[id], composite: COMPOSITORS[id] },
-    ]),
-  ) as Record<TransitionStyleId, EngineTransition>;
+export const TRANSITIONS: Readonly<Record<TransitionStyleId, KitTransition>> = Object.fromEntries(
+  TRANSITION_STYLE_IDS.map((id) => [id, { ...TRANSITION_STYLES[id], composite: COMPOSITORS[id] }]),
+) as Record<TransitionStyleId, KitTransition>;
 
-/** The engine transition of a storyboard style id; undefined for unknown ids. */
+export const CONTINUITY_TRANSITIONS: Readonly<Record<ContinuityStyleId, ContinuityTransition>> =
+  Object.fromEntries(
+    CONTINUITY_STYLE_IDS.map((id) => [
+      id,
+      { ...CONTINUITY_STYLES[id], composite: COMPOSITORS[id] },
+    ]),
+  ) as Record<ContinuityStyleId, ContinuityTransition>;
+
+export const WORLD_TRANSITIONS: Readonly<Record<SketchbookTransitionId, WorldTransition>> =
+  Object.fromEntries(
+    Object.values(SKETCHBOOK_TRANSITION_STYLES).map((style) => [
+      style.id,
+      { ...style, composite: COMPOSITORS[style.id] },
+    ]),
+  ) as Record<SketchbookTransitionId, WorldTransition>;
+
+/**
+ * The engine transition of a storyboard style id (kit, continuity or a world's page-native one);
+ * undefined for unknown ids.
+ */
 export function findTransition(style: string | undefined): EngineTransition | undefined {
   if (style === undefined) return undefined;
-  return (TRANSITION_STYLE_IDS as readonly string[]).includes(style)
-    ? TRANSITIONS[style as TransitionStyleId]
-    : undefined;
+  if (isSketchbookTransition(style)) return WORLD_TRANSITIONS[style];
+  if ((TRANSITION_STYLE_IDS as readonly string[]).includes(style)) {
+    return TRANSITIONS[style as TransitionStyleId];
+  }
+  if ((CONTINUITY_STYLE_IDS as readonly string[]).includes(style)) {
+    return CONTINUITY_TRANSITIONS[style as ContinuityStyleId];
+  }
+  return undefined;
 }
 
 export interface TransitionParams {
   /** Style palette (0xRRGGBB, project overrides included): the tones a transition may draw. */
   readonly palette: readonly number[];
-  /** Subject point of a wow transition (storyboard `transitionIn.focus`); default the centre. */
+  /**
+   * Subject point of a wow transition or anchor of a continuity link (storyboard
+   * `transitionIn.focus`); default the centre.
+   */
   readonly focus?: TransitionFocus | undefined;
 }
 
@@ -107,7 +178,7 @@ function tonesOf(palette: readonly number[]): Tones {
  * the same inputs always give the same bytes.
  */
 export function compositeTransition(
-  style: TransitionStyleId,
+  style: EngineTransitionId,
   params: TransitionParams,
   a: TransitionFrame,
   b: TransitionFrame,

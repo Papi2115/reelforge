@@ -13,6 +13,7 @@ import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { PACK_IDS } from '@reelforge/kit';
 import {
+  CAST_ACCESSORIES_DIR,
   castRoleFile,
   castRoleId,
   type RoleBuildRecord,
@@ -249,7 +250,11 @@ export class RoleBuilder {
       this.record(request, previous, status, attempts, details),
     );
     if (!saved.ok) return saved;
-    await this.job.ctx.commit(`Role ${request.id} built ${status === 'built' ? '✓' : '⚠'}`);
+    // Only role + accessory files (roles build one at a time; parallel shots keep their scenes out).
+    await this.job.ctx.commit(`Role ${request.id} built ${status === 'built' ? '✓' : '⚠'}`, [
+      castRoleFile(request.id),
+      CAST_ACCESSORIES_DIR,
+    ]);
     if (status === 'warning') {
       this.job.ctx.warn(`role ${request.id} ⚠: ${details.findings.join(' | ')}`);
     }

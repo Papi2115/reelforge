@@ -16,6 +16,7 @@ import {
 } from '@reelforge/shared';
 import { useId, useState, type JSX } from 'react';
 import type { SettingsState } from '../../shared/settings-contract.js';
+import { ExperimentalWorlds } from './ExperimentalWorlds.js';
 import { NewProjectCharacters } from './NewProjectCharacters.js';
 import { NewProjectSceneCount } from './NewProjectSceneCount.js';
 
@@ -252,6 +253,7 @@ export function ProjectsPage({ state, update }: PageProps): JSX.Element {
           </select>
         </label>
       </div>
+      <ExperimentalWorlds state={state} update={update} />
       <NewProjectCharacters state={state} update={update} />
       <NewProjectSceneCount state={state} update={update} />
       <h3 className="settings-heading">Asset library</h3>

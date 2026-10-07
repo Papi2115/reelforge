@@ -81,6 +81,7 @@ export {
   type PropRequest,
 } from './props/builder.js';
 export { propQaRound, type PropQaResult } from './props/qa.js';
+export { fallbackLook, styleLookSummaries, styleLooks, type StyleLookSummary } from './looks.js';
 export { readPropsReport } from './props/report.js';
 export {
   MAX_NEW_ROLES,

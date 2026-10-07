@@ -109,12 +109,12 @@ const ROW_HEIGHTS: readonly (readonly [TrackId, string, number])[] = [
 /** Tracks the user can hide (the ruler always shows). */
 export type ToggleTrack = Exclude<TrackId, 'ruler'>;
 
+/** The Tracks menu (Cards is not offered: it never shows anything, track-visibility.ts). */
 export const TOGGLE_TRACKS: readonly { readonly id: ToggleTrack; readonly label: string }[] = [
   { id: 'shots', label: 'Shots' },
   { id: 'narration', label: 'Narration' },
   { id: 'cues', label: 'Cues (sound effects)' },
   { id: 'audio', label: 'Audio (waveform)' },
-  { id: 'cards', label: 'Cards' },
   { id: 'ambience', label: 'Ambience / Music' },
 ];
 

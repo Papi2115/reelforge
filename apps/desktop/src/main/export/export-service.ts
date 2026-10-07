@@ -27,7 +27,6 @@ import type {
   ExportOptions,
   ExportOutcome,
   ExportQueueState,
-  ExportStartRequest,
 } from '../../shared/export-contract.js';
 import { describeError, type Logger } from '../logger.js';
 import { readProjectJson } from '../project-files.js';
@@ -37,7 +36,7 @@ import { writeTextAtomic } from '../timeline-edit-service.js';
 import { projectRelative } from '../stages/export-stage.js';
 import { projectChapters } from './export-chapters.js';
 import { exportOptions, outputPath, validateJob } from './export-options.js';
-import { ExportQueue, type ExportExtras } from './export-queue.js';
+import { ExportQueue, type ExportExtras, type ExportStart } from './export-queue.js';
 import type { YoutubeMetaService } from './youtube-meta.js';
 
 export interface ExportServiceOptions {
@@ -45,11 +44,7 @@ export interface ExportServiceOptions {
   readonly settings: Pick<SettingsService, 'get' | 'update' | 'setExportFolder'>;
   readonly cores: number;
   /** The app's export (ExportController). */
-  readonly start: (
-    request: ExportStartRequest,
-    listener: (event: ExportProgress) => void,
-    output: string,
-  ) => Promise<ExportOutcome>;
+  readonly start: ExportStart;
   readonly cancel: () => void;
   readonly ffmpeg: () => Promise<Result<FfmpegManager, FfmpegError>>;
   readonly youtube: Pick<YoutubeMetaService, 'ensureTemplate'>;

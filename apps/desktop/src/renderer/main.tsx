@@ -11,6 +11,7 @@ import './layout/shots.css';
 import './layout/timeline.css';
 import './layout/chat.css';
 import './layout/chat-rail.css';
+import './layout/needs-you.css';
 import './preview/preview.css';
 import './direction/direction.css';
 import './settings/settings.css';
@@ -22,6 +23,7 @@ import './sound/sound.css';
 import './export/export.css';
 import './onboarding/onboarding.css';
 import './project/project-settings.css';
+import './project/style-choice.css';
 import './assets/assets.css';
 import './tension/tension.css';
 import './dramaturgy/dramaturgy.css';
@@ -29,6 +31,8 @@ import './editing/editing.css';
 import './publish/publish.css';
 import './hook-lab/hook-lab.css';
 import './settings/taste.css';
+import './options/options.css';
+import './director/director.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

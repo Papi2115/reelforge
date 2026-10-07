@@ -87,7 +87,7 @@ describe('claudeChip / subscriptionLabel', () => {
         authMethod: null,
         subscriptionType: null,
       }),
-    ).toEqual({ label: 'Claude: connected · 2.1.287', tone: 'ok' });
+    ).toEqual({ label: 'Claude: connected', tone: 'ok', detail: 'Claude Code 2.1.287' });
     expect(claudeChip({ state: 'error', reason: 'timeout', message: 'x' }).tone).toBe('error');
     expect(subscriptionLabel('pro')).toBe('Claude Pro');
     expect(subscriptionLabel('something')).toBe('something');

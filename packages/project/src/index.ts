@@ -18,6 +18,11 @@ export {
 } from './commit-message.js';
 export { createProject, type CreateProjectOptions } from './create.js';
 export {
+  WORLD_PROJECT_DEFAULTS,
+  worldProjectDefaults,
+  type WorldProjectDefaults,
+} from './world-defaults.js';
+export {
   countChanges,
   DEFAULT_HISTORY_LIMIT,
   diffSummary,

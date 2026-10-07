@@ -13,11 +13,10 @@ import { selectionText, toSelection } from '../chat/step-view.js';
 import { playbackAudioUrl } from '../preview/audio-source.js';
 import { PreviewPanel } from '../preview/PreviewPanel.js';
 import { usePlayer, usePlayerState } from '../preview/use-player.js';
-import type { OpenTarget } from '../stages/pipeline-view.js';
-import { exportPreflight } from '../stages/final-review-view.js';
 import { lockableOkShots, outOfSyncLocked } from '../stages/locks-view.js';
 import {
   buildProgress,
+  builtShotIds,
   fixPrompt,
   joinBanners,
   propsBanner,
@@ -26,17 +25,19 @@ import {
   shotBadges,
 } from '../stages/scenes-view.js';
 import { useShotLocks } from '../stages/use-shot-locks.js';
+import { emptyStageHint, stationFacts } from '../stages/stations-view.js';
 import { reportsKey, useStageReports } from '../stages/use-stage-reports.js';
 import { useStages } from '../stages/use-stages.js';
 import { useVariantsDock } from '../stages/use-variants-dock.js';
 import { CommandBar } from '../direction/CommandBar.js';
+import { DirectorTab } from '../director/DirectorTab.js';
+import { OpenDirectorContext, useSideTabs } from '../director/use-director-tab.js';
+import { directorRefreshKey } from '../director/director-view.js';
 import { directionSummary } from '../direction/direction-view.js';
 import { useDirection } from '../direction/use-direction.js';
 import { MAX_VARIANT_NOTE } from '../../shared/variants-contract.js';
 import { VariantsDockPanel } from '../stages/VariantsPanel.js';
-import { AssetsDialog } from '../assets/AssetsDialog.js';
 import { useAssets } from '../assets/use-assets.js';
-import { ExportDialog } from '../export/ExportDialog.js';
 import { useMixPreview } from '../sound/use-mix-preview.js';
 import { useSound } from '../sound/use-sound.js';
 import { useTimeline } from '../timeline/use-timeline.js';
@@ -44,7 +45,7 @@ import { TensionPanel } from '../tension/TensionPanel.js';
 import { useTensionMapOn } from '../tension/use-tension-map.js';
 import { useTension } from '../tension/use-tension.js';
 import { AppShell } from './AppShell.js';
-import { CenterDocument, type CenterDocumentKind } from './CenterDocument.js';
+import { CenterDocument, isDockedDocument, type CenterDocumentKind } from './CenterDocument.js';
 import { CHAT_RAIL_WIDTH } from './chat-dock.js';
 import { useChatDock } from './use-chat-dock.js';
 import { ChatPanel } from './ChatPanel.js';
@@ -52,27 +53,25 @@ import { PipelineSidebar } from './PipelineSidebar.js';
 import { ShotsPanel } from './ShotsPanel.js';
 import { TimelinePanel } from './TimelinePanel.js';
 import { FileProblemsBanner } from './FileProblemsBanner.js';
+import { NeedsYou } from './NeedsYou.js';
+import { openStageTarget } from './open-stage.js';
 import { useProjectSnapshot } from './use-project-snapshot.js';
+import { WorkspaceDialogs } from './WorkspaceDialogs.js';
 import { usePref } from './ui-prefs.js';
 
 export interface WorkspaceProps {
   readonly project: ProjectSummary;
   /** Settings → Tools (e.g. a whisper.cpp install problem in the pipeline sidebar). */
   readonly onOpenToolsSettings?: () => void;
+  /** Where the header's "Needs you" button renders (App.tsx). */
+  readonly headerSlot: HTMLElement | null;
 }
 
-/** Brings the Shots panel into view (Open of the Storyboard stage). */
 const TENSION_PREFS_KEY = 'reelforge.layout.tension.v1';
 const tensionPrefsSchema = z.object({ open: z.boolean() });
 
-function focusShots(): void {
-  const panel = document.querySelector<HTMLElement>('[aria-label="Shots"]');
-  const target = panel?.querySelector<HTMLElement>('button') ?? panel;
-  target?.scrollIntoView({ block: 'nearest' });
-  target?.focus();
-}
-
-export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX.Element {
+export function Workspace(props: WorkspaceProps): JSX.Element {
+  const { project, onOpenToolsSettings, headerSlot } = props;
   const { snapshot, error, previewRevision, audioRevision, reload } = useProjectSnapshot(
     project.dir,
   );
@@ -109,34 +108,15 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
     }
   }, [snapshot]);
 
-  const openStage = (target: Exclude<OpenTarget, { kind: 'artifact' }>): void => {
-    switch (target.kind) {
-      case 'script':
-        setCenterDocument({ kind: 'script', tab: 'script' });
-        return;
-      case 'words':
-        setCenterDocument({ kind: 'words' });
-        return;
-      case 'voiceover':
-        setCenterDocument({ kind: 'voiceover' });
-        return;
-      case 'scenes':
-        setCenterDocument({ kind: 'scenes' });
-        return;
-      case 'sound':
-        setCenterDocument({ kind: 'sound' });
-        return;
-      case 'export':
-        setExportOpen(true);
-        return;
-      case 'assets':
-        setAssetsOpen(true);
-        return;
-      case 'shots':
-        setCenterDocument(null);
-        focusShots();
-        return;
-    }
+  const sideTabs = useSideTabs(chatDock.show);
+  const openStageOpeners = {
+    document: setCenterDocument,
+    exportDialog: () => {
+      setExportOpen(true);
+    },
+    assetsDialog: () => {
+      setAssetsOpen(true);
+    },
   };
 
   const [selection, setSelection] = useState<ChatSelection | null>(null);
@@ -168,6 +148,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
 
   const running = stages.state?.running ?? null;
   const badges = shotBadges(reports?.scenes ?? null, running);
+  const built = builtShotIds(shots, files);
   const scenesBusy = running?.stage === 'scenes' || stages.state?.queue.includes('scenes') === true;
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | null>(null);
   const [shotNotice, setShotNotice] = useState<string | undefined>(undefined);
@@ -223,29 +204,23 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
   };
 
   return (
-    <>
-      {assetsOpen && (
-        <AssetsDialog
-          assets={assets}
-          onClose={() => {
-            setAssetsOpen(false);
-          }}
-        />
-      )}
-      {exportOpen && (
-        <ExportDialog
-          dir={project.dir}
-          playhead={time}
-          preflight={exportPreflight(reports?.finalReview ?? null, reports?.scenes ?? null, shots)}
-          onSeekShot={(shotId, t) => {
-            setExportOpen(false);
-            seekShot(shotId, t);
-          }}
-          onClose={() => {
-            setExportOpen(false);
-          }}
-        />
-      )}
+    <OpenDirectorContext value={sideTabs.openDirector}>
+      <WorkspaceDialogs
+        dir={project.dir}
+        playhead={time}
+        assets={assetsOpen ? assets : null}
+        onCloseAssets={setAssetsOpen}
+        exportOpen={exportOpen}
+        onCloseExport={setExportOpen}
+        project={{ reports, shots, built }}
+        onSeekShot={seekShot}
+      />
+      <NeedsYou
+        slot={headerSlot}
+        dir={project.dir}
+        project={{ snapshot, state: stages.state, reports, shots, built, assets: assets.state }}
+        open={{ ...openStageOpeners, shot: seekShot, director: sideTabs.openDirector }}
+      />
       <AppShell
         collapsedRight={chatDock.open ? undefined : CHAT_RAIL_WIDTH}
         left={
@@ -264,7 +239,10 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             />
             <PipelineSidebar
               stages={stages}
-              onOpen={openStage}
+              facts={stationFacts(reports?.scenes ?? null, shots, built)}
+              onOpen={(target) => {
+                openStageTarget(target, openStageOpeners);
+              }}
               {...(onOpenToolsSettings === undefined
                 ? {}
                 : { onOpenSettings: onOpenToolsSettings })}
@@ -283,6 +261,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
               time={time}
               onSelect={selectShot}
               badges={badges}
+              built={built}
               progress={buildProgress(running, shots.length)}
               propsBanner={joinBanners(
                 propsBanner(propsSummary(reports?.scenes ?? null, reports?.props ?? null)),
@@ -325,11 +304,12 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
         }
         center={
           <div
-            className={`center-stack${variantsOpen || centerDocument?.kind === 'scenes' || centerDocument?.kind === 'sound' ? ' has-dock' : ''}`}
+            className={`center-stack${variantsOpen || isDockedDocument(centerDocument) ? ' has-dock' : ''}`}
           >
             <PreviewPanel
               source={variants.source(previewRevision)}
               player={player}
+              emptyStage={{ hint: emptyStageHint(stages.state), audioS: timeline.audioDuration }}
               footer={
                 <CommandBar
                   controls={direction}
@@ -358,6 +338,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
                 reports={reports}
                 shots={shots}
                 words={snapshot?.words}
+                files={files}
                 sound={sound}
                 mixPreview={mixPreview}
                 onTab={(tab) => {
@@ -385,6 +366,28 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
             prefill={prefill}
             collapsed={!chatDock.open}
             onToggleCollapsed={chatDock.toggle}
+            tab={sideTabs.tab}
+            onTab={sideTabs.setTab}
+            onShowDirector={() => {
+              sideTabs.openDirector();
+            }}
+            director={
+              <DirectorTab
+                hasShots={shots.length > 0}
+                nextStep={emptyStageHint(stages.state)}
+                hasScript={files.includes('script.txt')}
+                refreshKey={directorRefreshKey(previewRevision, reports)}
+                tension={tension}
+                durationS={timeline.duration}
+                canEditCurve={words.length > 0}
+                onEditCurve={() => {
+                  setTensionPrefs({ open: true });
+                }}
+                direction={direction}
+                onSeekShot={seekShot}
+                focus={sideTabs.focus}
+              />
+            }
           />
         }
         bottom={
@@ -411,7 +414,7 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
                 setTensionPrefs((current) => ({ open: !current.open }));
               }}
             />
-            {tensionPrefs.open && (
+            {tensionPrefs.open && words.length > 0 && (
               <TensionPanel
                 tension={tension}
                 shots={shots}
@@ -431,6 +434,6 @@ export function Workspace({ project, onOpenToolsSettings }: WorkspaceProps): JSX
           </div>
         }
       />
-    </>
+    </OpenDirectorContext>
   );
 }

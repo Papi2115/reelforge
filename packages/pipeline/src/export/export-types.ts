@@ -47,6 +47,28 @@ export type ExportProgress =
   | { readonly type: 'thumbnail' }
   | { readonly type: 'done'; readonly output: string };
 
+/**
+ * Something the user should know about an export that still goes on (encoder-fallback.ts):
+ * `encoder-retry`: a hardware encoder failed to open for one segment, retried after a pause;
+ * `encoder-fallback`: it failed again, the whole export restarts on the CPU encoder (`message`
+ * is the line for the UI). `detail` is the ffmpeg line naming the failure.
+ */
+export type ExportWarning =
+  | {
+      readonly type: 'encoder-retry';
+      readonly encoder: string;
+      readonly shotId: string;
+      readonly detail: string;
+      readonly message: string;
+    }
+  | {
+      readonly type: 'encoder-fallback';
+      readonly from: string;
+      readonly to: string;
+      readonly detail: string;
+      readonly message: string;
+    };
+
 export interface ExportVideoOptions {
   readonly projectDir: string;
   /** Video title; the output is `out/<safe title>.mp4` unless `output` is set. */
@@ -72,6 +94,12 @@ export interface ExportVideoOptions {
   readonly pruneCache?: boolean;
   readonly signal?: AbortSignal;
   readonly onProgress?: (event: ExportProgress) => void;
+  /** Encoder retries / the switch to the CPU encoder, as they happen (also in the result). */
+  readonly onWarning?: (warning: ExportWarning) => void;
+  /** Pause before retrying a segment whose hardware encoder failed to open (default 1500 ms). */
+  readonly encoderRetryDelayMs?: number;
+  /** Hardware encoders: worker n opens its first segment n x this later (default 400 ms). */
+  readonly encoderStaggerMs?: number;
   /** Monotonic clock in ms (default performance.now), for ETA. */
   readonly now?: () => number;
 }
@@ -86,7 +114,9 @@ export interface ExportResult {
   readonly durationS: number;
   readonly width: number;
   readonly height: number;
+  /** The encoder of the final video (the CPU fallback after an `encoder-fallback`). */
   readonly encoder: string;
+  readonly warnings: readonly ExportWarning[];
   readonly audio: string | null;
   /** An interrupted export of the same job was found and continued. */
   readonly resumed: boolean;

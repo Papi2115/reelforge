@@ -2,6 +2,8 @@ import { useEffect, useState, type JSX } from 'react';
 import type { ShotsPerMinute } from '@reelforge/shared';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
+import { projectMeta } from './layout/header-view.js';
+import { ProjectMenu } from './layout/ProjectMenu.js';
 import { StatusBar } from './layout/StatusBar.js';
 import { useAppShortcut } from './layout/use-app-shortcut.js';
 import { Workspace } from './layout/Workspace.js';
@@ -30,11 +32,15 @@ function StartLayout({
   defaultLanguage,
   defaultShotsPerMinute,
   defaultFasterChecks,
+  defaultStyle,
+  experimentalWorlds,
 }: {
   readonly onOpened: (project: ProjectSummary) => void;
   readonly defaultLanguage: ProjectSummary['language'] | undefined;
   readonly defaultShotsPerMinute: ShotsPerMinute | null | undefined;
   readonly defaultFasterChecks: boolean | undefined;
+  readonly defaultStyle: string | undefined;
+  readonly experimentalWorlds: boolean | undefined;
 }): JSX.Element {
   // The demo has no audio: the player runs on the system clock.
   const player = usePlayer(undefined);
@@ -47,6 +53,8 @@ function StartLayout({
           defaultLanguage={defaultLanguage}
           defaultShotsPerMinute={defaultShotsPerMinute}
           defaultFasterChecks={defaultFasterChecks}
+          defaultStyle={defaultStyle}
+          experimentalWorlds={experimentalWorlds}
         />
       </div>
       <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
@@ -60,6 +68,8 @@ export function App(): JSX.Element {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
+  /** The header slot of the workspace's "Needs you" button (layout/NeedsYou.tsx). */
+  const [needsYouSlot, setNeedsYouSlot] = useState<HTMLElement | null>(null);
   const settings = useSettings();
   const claude = useClaudeStatus();
   const appSettings = settings.state?.settings;
@@ -117,32 +127,19 @@ export function App(): JSX.Element {
         </span>
         {project && (
           <>
-            <span className="project-title" title={project.dir}>
-              {project.title}
-            </span>
-            <span className="project-meta">
-              {project.language.toUpperCase()} · {project.style} · {project.fps} fps
-            </span>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => {
+            <ProjectMenu
+              title={project.title}
+              dir={project.dir}
+              onSettings={() => {
                 setProjectSettingsOpen(true);
               }}
-            >
-              Project settings
-            </button>
-            <button type="button" className="link-button" onClick={closeProject}>
-              Close project
-            </button>
+              onClose={closeProject}
+            />
+            <span className="project-meta">{projectMeta(project)}</span>
           </>
         )}
-        {info && (
-          <span className="app-meta">
-            Electron {info.electron} · Chrome {info.chrome}
-            {info.dev ? ' · dev' : ''}
-          </span>
-        )}
+        <span className="header-spacer" />
+        {project && <div className="needs-you-slot" ref={setNeedsYouSlot} />}
         <HelpMenu
           onTour={
             project === null
@@ -180,6 +177,8 @@ export function App(): JSX.Element {
             defaultLanguage={appSettings?.language}
             defaultShotsPerMinute={appSettings?.newProjectDefaults.shotsPerMinute}
             defaultFasterChecks={appSettings?.newProjectDefaults.fasterChecks}
+            defaultStyle={appSettings?.defaultStyle}
+            experimentalWorlds={appSettings?.experimental.worlds}
             onOpened={(opened) => {
               setProject(opened);
               setHistoryOpen(false);
@@ -189,6 +188,7 @@ export function App(): JSX.Element {
           <Workspace
             key={project.dir}
             project={project}
+            headerSlot={needsYouSlot}
             onOpenToolsSettings={() => {
               setSettingsTab('tools');
             }}

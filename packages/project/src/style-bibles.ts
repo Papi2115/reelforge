@@ -25,10 +25,13 @@ async function hasBible(file: string): Promise<boolean> {
   }
 }
 
-/** The bibles in `stylesDir`; fails when the folder is unreadable or `requiredStyle` has none. */
+/**
+ * The bibles in `stylesDir`; fails when the folder is unreadable or `requiredStyle` has none
+ * (undefined: none required, a world style before it ships).
+ */
 export async function findStyleBibles(
   stylesDir: string,
-  requiredStyle: string,
+  requiredStyle: string | undefined,
 ): Promise<Result<StyleBible[]>> {
   const bibles: StyleBible[] = [];
   try {
@@ -45,7 +48,7 @@ export async function findStyleBibles(
       }),
     );
   }
-  if (!bibles.some((bible) => bible.id === requiredStyle)) {
+  if (requiredStyle !== undefined && !bibles.some((bible) => bible.id === requiredStyle)) {
     const missing = path.join(stylesDir, requiredStyle, STYLE_BIBLE);
     return err(
       projectError('io', `the style bible of "${requiredStyle}" is missing (${missing})`, {

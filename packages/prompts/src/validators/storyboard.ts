@@ -7,12 +7,15 @@
  * the mascot and role checks (characters.ts, PLAN.md#12.20); with a shots-per-minute range
  * (ADR-027) shot lengths, the pattern window and the tempo targets follow the range, plus the
  * range and sentence-boundary checks (shot-range.ts); the wow-transition budget and order rules
- * (wow.ts, ADR-028) apply wherever a wow style is named.
+ * (wow.ts, ADR-028) apply wherever a wow style is named; continuity links (continuity.ts,
+ * PLAN.md#13.2) are checked with their transitions written from the links.
  */
 import {
+  applyContinuityTransitions,
   DEFAULT_LOOK_ID,
   describePairs,
   getTransitionStyle,
+  isContinuityStyle,
   shotLook,
   shotRangeRules,
   STANDARD_TEMPO,
@@ -29,6 +32,7 @@ import { z } from 'zod';
 import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
 import { checkAssetNeeds, checkShotAssets, type AssetNeedRules } from './asset-needs.js';
 import { checkCharacters, type CharacterCheckOptions } from './characters.js';
+import { checkContinuity } from './continuity.js';
 import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
 import {
   issue,
@@ -42,6 +46,10 @@ import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from
 import { checkShotRange } from './shot-range.js';
 import { checkTensionTempo } from './tension.js';
 import { checkWowTransitions } from './wow.js';
+import { checkWorldVariety, type WorldVarietyOptions } from './world-variety.js';
+import { worldTransitionIssues } from './world-transitions.js';
+import { WORLD_VARIETY_RULES } from '../worlds/variety.js';
+import type { WorldTransitionOption } from '../worlds/types.js';
 
 /** The storyboard file plus the prompt's optional top-level `missingProps` list. */
 export const storyboardOutputSchema = storyboardFileSchema.extend({
@@ -280,6 +288,7 @@ function styleIssues(
 function transitionIssues(
   shots: readonly StoryboardShot[],
   rules: StoryboardRules,
+  world: readonly WorldTransitionOption[] | undefined,
 ): ValidationIssue[] {
   return shots.flatMap((shot, index) => {
     const transition = shot.transitionIn;
@@ -289,6 +298,11 @@ function transitionIssues(
     if (previous === undefined)
       return [issue('error', 'first-transition', 'the first shot has no transition', where)];
     const { duration, style } = transition;
+    // A continuity link's transition comes from the link (continuity.ts checks it).
+    if (isContinuityStyle(style)) return [];
+    // A world names only its own page-native styles (world-transitions.ts, PLAN.md#13.6).
+    if (style !== undefined && world !== undefined)
+      return worldTransitionIssues(style, duration, world, where);
     if (style !== undefined) return styleIssues(shot, previous, style, duration, where);
     return durationIssue(
       transition.type,
@@ -370,6 +384,16 @@ export interface StoryboardCheckOptions {
    * exactly as before.
    */
   readonly shotsPerMinute?: ShotsPerMinute;
+  /**
+   * A world's page-native transitions (PLAN.md#13.6): the only styles its storyboard may name.
+   * Absent = the transition kit's styles (every built-in style).
+   */
+  readonly worldTransitions?: readonly WorldTransitionOption[];
+  /**
+   * A world's moment catalog and quota (world-variety.ts, real run Sketchbook 1): the variety
+   * checks and the world's look run limit. Absent = neither (every other project).
+   */
+  readonly worldVariety?: WorldVarietyOptions;
 }
 
 /** Storyboard rules of a range (`StoryboardCheckOptions.rules` still win over them). */
@@ -394,15 +418,19 @@ export function checkStoryboard(
   const rules = {
     ...DEFAULT_STORYBOARD_RULES,
     ...(range === undefined ? {} : shotRangeStoryboardRules(range)),
+    ...(options.worldVariety === undefined
+      ? {}
+      : { maxLookRun: options.worldVariety.rules?.maxLookRun ?? WORLD_VARIETY_RULES.maxLookRun }),
     ...options.rules,
   };
-  const { shots } = storyboard;
+  const { shots } = applyContinuityTransitions(storyboard.shots);
   return [
     ...timelineIssues(shots, rules),
     ...treatmentIssues(shots, rules, ranged),
     ...identityIssues(shots),
-    ...transitionIssues(shots, rules),
+    ...transitionIssues(shots, rules, options.worldTransitions),
     ...checkWowTransitions(shots),
+    ...checkContinuity(shots),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),
     ...checkAssetNeeds(shots, options.assetNeeds),
@@ -412,6 +440,9 @@ export function checkStoryboard(
           looks: options.looks ?? [DEFAULT_LOOK_ID],
           rules,
           ...(ranged ? { continuesExempt: true } : {}),
+          ...(options.worldTransitions === undefined
+            ? {}
+            : { pageNativeStyles: options.worldTransitions.map((option) => option.id) }),
         })
       : []),
     ...(options.tension === undefined
@@ -430,6 +461,7 @@ export function checkStoryboard(
           boundaryToleranceS: rules.boundaryToleranceS,
         })),
     ...(options.interrupts === undefined ? [] : checkInterrupts(shots, options.interrupts)),
+    ...(options.worldVariety === undefined ? [] : checkWorldVariety(shots, options.worldVariety)),
     ...(options.characters === undefined
       ? []
       : checkCharacters(storyboard, options.words, options.characters)),

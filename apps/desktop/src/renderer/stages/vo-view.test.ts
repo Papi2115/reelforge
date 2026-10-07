@@ -6,6 +6,7 @@ import {
   clock,
   cpuTranscriptionHint,
   voFit,
+  voiceoverFile,
 } from './vo-view.js';
 
 const REPORT: VoReport = {
@@ -63,6 +64,25 @@ describe('voice-over view', () => {
     ]);
     expect(alignmentView({ ...WORDS, coverage: 0.5 }).tone).toBe('bad');
     expect(alignmentView(null).mismatches).toEqual([]);
+  });
+
+  it('reads the recording and the words from the files when the reports are missing', () => {
+    expect(
+      voiceoverFile(['audio/vo.original.prev.wav', 'audio/vo.original.wav', 'audio/vo.clean.wav']),
+    ).toBe('audio/vo.original.wav');
+    expect(voiceoverFile(['audio/vo.original.prev.m4a', 'script.txt'])).toBeNull();
+    expect(voFit(null, true)).toEqual({
+      tone: 'none',
+      headline: 'Not compared with the script yet.',
+      details: [],
+    });
+    expect(voFit(null).headline).toBe('No voice-over yet: import a file or record one.');
+    expect(voFit(REPORT, true).headline).toBe('Recording 0:21: shorter than the script needs.');
+    const timed = alignmentView(null, true);
+    expect(timed.headline).toBe('Words are timed · not compared with the script word by word yet.');
+    expect(timed.headline).not.toContain('Run Words timed');
+    expect(alignmentView(null).headline).toContain('Run Words timed');
+    expect(alignmentView(WORDS, true).headline).toContain('Alignment fair');
   });
 
   it('offers the next larger whisper model', () => {

@@ -179,8 +179,8 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
       scenes: this.options.scenes,
       store: this.store,
       claudeConcurrency: () => this.options.guard?.concurrency ?? Number.POSITIVE_INFINITY,
-      commit: async (message) => {
-        await this.commit(stage, message, 'pipeline-step');
+      commit: async (message, paths) => {
+        await this.commit(stage, message, 'pipeline-step', paths);
       },
       shot: (shotId, state, status) => {
         this.emitEvent({ type: 'shot', stage, shotId, state, status });
@@ -382,12 +382,14 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
     stage: StageId,
     message: string,
     kind: AutocommitKind,
+    paths?: readonly string[],
   ): Promise<string | undefined> {
     if (this.options.autocommit === false) return undefined;
     const committed = await autocommit(this.projectDir, message, {
       kind,
       step: stage,
       ...(this.options.git === undefined ? {} : { git: this.options.git }),
+      ...(paths === undefined ? {} : { paths }),
     });
     if (!committed.ok) {
       this.emitEvent({

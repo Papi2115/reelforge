@@ -256,7 +256,8 @@ export class PropBuilder {
       this.record(request, previous, 'built', attempts, details),
     );
     if (!saved.ok) return saved;
-    await this.job.ctx.commit(`Prop ${request.name} built ✓`);
+    // Only the prop's module: shots building in parallel keep their scenes out of this commit.
+    await this.job.ctx.commit(`Prop ${request.name} built ✓`, [propExtensionFile(request.name)]);
     return ok({ name: request.name, status: 'built', reason: undefined });
   }
 

@@ -45,6 +45,8 @@ export const exportOutcomeSchema = z.discriminatedUnion('status', [
     gpu: z.string().nullable(),
     resumed: z.boolean(),
     wallMs: z.number(),
+    /** What the user should know about this export (the switch to the CPU encoder). */
+    warnings: z.array(z.string()),
   }),
   z.object({ status: z.literal('cancelled') }),
   z.object({ status: z.literal('busy') }),
@@ -203,6 +205,8 @@ export const exportJobSchema = z.object({
     fps: z.number().nullable(),
     totalShots: z.int(),
     shots: z.array(shotProgressSchema),
+    /** A warning of the running export for the status line (GPU encoder fell back to CPU). */
+    warning: z.string().nullable(),
   }),
   report: exportReportSchema.nullable(),
   /** What failed and what to do about it. */

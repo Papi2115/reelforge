@@ -27,7 +27,7 @@ import {
 } from '../src/main/whisper/test-hooks.js';
 import { writeFakeMirror } from '../src/main/whisper/testing/fake-mirror.js';
 import { appRoot, closeApp, launchApp, screenshotDir } from './support/electron-app.js';
-import { showStage } from './support/pipeline-rows.js';
+import { selectStage, showStage } from './support/pipeline-rows.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -135,7 +135,7 @@ async function openTools(): Promise<ReturnType<Page['getByRole']>> {
 }
 
 async function redoWords(): Promise<void> {
-  await (await showStage(page, 'Words timed')).click();
+  await selectStage(page, 'Words timed');
   await pipeline()
     .getByRole('group', { name: 'Words timed actions' })
     .getByRole('button', { name: 'Redo' })

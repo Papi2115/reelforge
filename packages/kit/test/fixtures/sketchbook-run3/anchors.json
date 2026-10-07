@@ -1,0 +1,78 @@
+{
+  "s03_wave_word": {
+    "duration": 3.42,
+    "anchors": {
+      "syrup#1": {
+        "t": 0.56,
+        "tEnd": 0.88
+      },
+      "down#1": {
+        "t": 1.12,
+        "tEnd": 1.3
+      },
+      "street#1": {
+        "t": 1.64,
+        "tEnd": 2.56
+      }
+    }
+  },
+  "s04_wave_ruler": {
+    "duration": 3.82,
+    "anchors": {
+      "fifteen#1": {
+        "t": 0,
+        "tEnd": 0.18
+      },
+      "fifty feet high#1": {
+        "t": 0.42,
+        "tEnd": 1.3
+      },
+      "maybe#1": {
+        "t": 1.56,
+        "tEnd": 1.84
+      },
+      "thirty-five miles an hour#1": {
+        "t": 1.84,
+        "tEnd": 3.82
+      }
+    }
+  },
+  "s09_four_months": {
+    "duration": 3.24,
+    "anchors": {
+      "four#1": {
+        "t": 1.44,
+        "tEnd": 1.72
+      },
+      "months#1": {
+        "t": 1.72,
+        "tEnd": 3.24
+      },
+      "victim#1": {
+        "t": 0.28,
+        "tEnd": 0.5
+      }
+    }
+  },
+  "s11_blame": {
+    "duration": 3.94,
+    "anchors": {
+      "blamed#1": {
+        "t": 0.6,
+        "tEnd": 0.92
+      },
+      "anarchists#1": {
+        "t": 0.92,
+        "tEnd": 2.16
+      },
+      "court-appointed#1": {
+        "t": 2.3,
+        "tEnd": 3.1
+      },
+      "auditor#1": {
+        "t": 3.1,
+        "tEnd": 3.42
+      }
+    }
+  }
+}

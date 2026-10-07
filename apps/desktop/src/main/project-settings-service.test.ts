@@ -1,12 +1,11 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { listLooks } from '@reelforge/kit';
 import type { ProjectFile } from '@reelforge/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ProjectSettings } from '../shared/project-settings-contract.js';
 import { createLogger } from './logger.js';
-import { lookSummaries } from './project-settings-ipc.js';
+import { projectStyle } from './project-settings-ipc.js';
 import {
   applyProjectSettingsPatch,
   describeSettingsChange,
@@ -42,6 +41,7 @@ beforeEach(async () => {
       return Promise.resolve(commitResult);
     },
     looks: () => LOOKS,
+    style: (style) => projectStyle(style, false),
     log: createLogger(() => undefined),
   });
 });
@@ -75,6 +75,7 @@ describe('effectiveProjectSettings', () => {
       mascot: 'none',
       shotsPerMinute: null,
       fasterChecks: false,
+      continuityLinks: false,
     });
     expect(
       effectiveProjectSettings({
@@ -97,6 +98,7 @@ describe('effectiveProjectSettings', () => {
       mascot: 'none',
       shotsPerMinute: null,
       fasterChecks: false,
+      continuityLinks: false,
     });
   });
 });
@@ -136,6 +138,7 @@ describe('describeSettingsChange', () => {
       mascot: 'none',
       shotsPerMinute: null,
       fasterChecks: false,
+      continuityLinks: false,
     };
     expect(
       describeSettingsChange(before, { ...before, lookMode: 'mixed', ambientVariation: true }),
@@ -170,6 +173,7 @@ describe('describeSettingsChange', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       }),
     ).toBe('Project settings: pattern interrupts on, reveal moments on');
     expect(
@@ -208,6 +212,20 @@ describe('describeSettingsChange', () => {
       'Project settings: scenes per minute no limit',
     );
   });
+
+  it('sets and removes the continuity links switch (PLAN.md#13.2)', () => {
+    const on = applyProjectSettingsPatch({ version: 1 }, { continuityLinks: true });
+    expect(on).toEqual({ version: 1, continuityLinks: true });
+    expect(applyProjectSettingsPatch(on, { continuityLinks: false })).toEqual({ version: 1 });
+    const before = effectiveProjectSettings(BASE_PROJECT);
+    expect(before.continuityLinks).toBe(false);
+    expect(
+      effectiveProjectSettings({ ...BASE_PROJECT, continuityLinks: true }).continuityLinks,
+    ).toBe(true);
+    expect(describeSettingsChange(before, { ...before, continuityLinks: true })).toBe(
+      'Project settings: continuity links on',
+    );
+  });
 });
 
 describe('ProjectSettingsService', () => {
@@ -230,8 +248,17 @@ describe('ProjectSettingsService', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       },
       looks: LOOKS,
+      style: {
+        id: 'voxel-pixel-crisp640',
+        label: 'Voxel Pixel · Crisp 640',
+        description: expect.stringContaining('voxel 3D') as unknown,
+        world: false,
+        preview: false,
+        enabled: true,
+      },
     });
   });
 
@@ -254,6 +281,7 @@ describe('ProjectSettingsService', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       },
       committed: true,
     });
@@ -290,6 +318,7 @@ describe('ProjectSettingsService', () => {
         mascot: 'none',
         shotsPerMinute: null,
         fasterChecks: false,
+        continuityLinks: false,
       },
       committed: false,
     });
@@ -394,14 +423,5 @@ describe('ProjectSettingsService', () => {
       status: 'error',
       message: 'no project is open',
     });
-  });
-});
-
-describe('lookSummaries', () => {
-  it('lists the available looks of the kit registry, voxel first', () => {
-    const summaries = lookSummaries();
-    expect(summaries.map((look) => look.id)).toEqual(listLooks().map((look) => look.id));
-    expect(summaries[0]?.id).toBe('voxel');
-    for (const look of summaries) expect(Object.keys(look)).toEqual(['id', 'label', 'description']);
   });
 });

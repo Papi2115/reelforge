@@ -152,6 +152,7 @@ function createShotBuilder(
       cast,
       ambient: shotAmbient(manifest, style, index),
       assets,
+      styleId: style.id,
     });
 }
 

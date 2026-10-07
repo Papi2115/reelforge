@@ -132,15 +132,18 @@ export function connectWizardView(status: ClaudeStatus | undefined, checking: bo
 }
 
 export interface ClaudeChip {
+  /** Plain words ("Claude: connected"); the version goes into the tooltip. */
   readonly label: string;
   readonly tone: WizardTone;
+  /** Tooltip detail, e.g. "Claude Code 2.1.287". */
+  readonly detail?: string;
 }
 
 export function claudeChip(status: ClaudeStatus | undefined): ClaudeChip {
   if (status === undefined) return { label: 'Claude: checking…', tone: 'checking' };
   switch (status.state) {
     case 'connected':
-      return { label: `Claude: connected · ${status.version}`, tone: 'ok' };
+      return { label: 'Claude: connected', tone: 'ok', detail: `Claude Code ${status.version}` };
     case 'not-installed':
       return { label: 'Claude: not installed', tone: 'action' };
     case 'not-logged-in':

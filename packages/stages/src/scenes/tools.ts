@@ -5,7 +5,7 @@
  */
 import type { CardDiagnostic, ResolvedAnchor, SfxCue } from '@reelforge/engine';
 import type { RgbaImage } from '@reelforge/engine/raster';
-import { kitCatalog } from '@reelforge/kit';
+import { kitCatalog, LOOKS, type LookScope } from '@reelforge/kit';
 import type { StoryboardShot } from '@reelforge/shared';
 
 export interface ShotRenderRequest {
@@ -126,8 +126,12 @@ export interface KitNames {
   readonly fx: ReadonlySet<string>;
 }
 
-export function kitNamesFromCatalog(): KitNames {
-  const catalog = kitCatalog();
+/**
+ * The kit names a scene of this scope may call (default: the built-in styles). A world's style
+ * (PLAN.md#13.6) has only its own looks' names (`kit.fx.sketchPage`, …), like its kit-docs.
+ */
+export function kitNamesFromCatalog(scope: LookScope = {}): KitNames {
+  const catalog = kitCatalog([], LOOKS, scope);
   const names = (entries: readonly { readonly name: string }[]): Set<string> =>
     new Set(entries.map((entry) => entry.name));
   return { env: names(catalog.env), props: names(catalog.props), fx: names(catalog.fx) };

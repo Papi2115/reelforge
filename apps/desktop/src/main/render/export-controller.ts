@@ -3,7 +3,7 @@
  * forwards progress to the renderer. Per-frame events are throttled (at most one every
  * FRAME_PUSH_INTERVAL_MS, plus the last frame) so a long export does not flood IPC.
  */
-import type { ExportProgress } from '@reelforge/pipeline';
+import type { ExportProgress, ExportWarning } from '@reelforge/pipeline';
 import type { AppSettings } from '@reelforge/shared';
 import type { ExportOutcome, ExportStartRequest } from '../../shared/export-contract.js';
 import type { Logger } from '../logger.js';
@@ -45,6 +45,7 @@ export function throttleFrames(
 
 export class ExportController {
   private running: AbortController | null = null;
+  private warn: ((warning: ExportWarning) => void) | null = null;
 
   constructor(private readonly options: ExportControllerOptions) {}
 
@@ -52,17 +53,25 @@ export class ExportController {
     return this.running !== null;
   }
 
-  /** `listener` also gets every (throttled) progress event (the Video exported stage). */
+  /**
+   * `listener` also gets every (throttled) progress event (the Video exported stage); `onWarning`
+   * the export's warnings (encoder retry, the switch to the CPU encoder).
+   */
   async start(
     request: ExportStartRequest,
     listener?: (event: ExportProgress) => void,
     output?: string,
+    onWarning?: (warning: ExportWarning) => void,
   ): Promise<ExportOutcome> {
     if (this.running !== null) return { status: 'busy' };
     const projectDir = this.options.currentProject();
     if (projectDir === undefined) return { status: 'no-project' };
     const controller = new AbortController();
     this.running = controller;
+    const warn = (warning: ExportWarning): void => {
+      onWarning?.(warning);
+    };
+    this.warn = warn;
     try {
       const prepared = await this.options.prepare();
       if ('error' in prepared)
@@ -79,11 +88,24 @@ export class ExportController {
           this.options.push(event);
           listener?.(event);
         }, this.options.now),
+        onWarning: warn,
         log: this.options.log,
       });
     } finally {
       this.running = null;
+      this.warn = null;
     }
+  }
+
+  /**
+   * Test hook (RenderTestHooks.exportWarning): hands `warning` to the running export's listener
+   * as if the pipeline had sent it; false when no export runs.
+   */
+  simulateWarning(warning: ExportWarning): boolean {
+    if (this.warn === null) return false;
+    this.options.log.warn(`simulated export warning (test hook): ${warning.message}`);
+    this.warn(warning);
+    return true;
   }
 
   cancel(): boolean {

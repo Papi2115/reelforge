@@ -14,6 +14,8 @@
   "revealMoments": "auto",
   "beatSync": "auto",
   "repetitionControl": "auto",
+  "continuityLinks": false,
+  "antiSlopGuards": false,
   "characters": "pack",
   "mascot": "none"
 }

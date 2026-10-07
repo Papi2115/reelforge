@@ -1,9 +1,10 @@
 /**
  * `reelforge looks`: the available looks (ADR-009) with their rolls, treatments, one-line
- * description and sound palette, the roll legend, and the project's look mode. Read-only; works
- * outside a project too (the look mode line then says so).
+ * description and sound palette, the roll legend, and the project's look mode. The project's style
+ * decides the looks (ADR-029: a world's style lists only its own). Read-only; works outside a
+ * project too (the look mode line then says so).
  */
-import { listLooks, type Look } from '@reelforge/kit';
+import { listLooks, LOOKS, VOXEL_LOOK_ID, type Look } from '@reelforge/kit';
 import {
   projectFileSchema,
   projectLookMode,
@@ -38,10 +39,14 @@ export interface LookSummary {
   readonly soundPalette: string;
 }
 
-/** The project's look mode, or undefined without a valid project.json. */
-async function readLookMode(root: string): Promise<LookMode | undefined> {
+/** The project's look mode and style; both undefined without a valid project.json. */
+async function readLookSettings(
+  root: string,
+): Promise<{ mode: LookMode | undefined; style: string | undefined }> {
   const project = await checkJsonFile(root, PROJECT_PATHS.project, projectFileSchema);
-  return project.status === 'ok' ? projectLookMode(project.data) : undefined;
+  return project.status === 'ok'
+    ? { mode: projectLookMode(project.data), style: project.data.style }
+    : { mode: undefined, style: undefined };
 }
 
 function summary(look: Look): LookSummary {
@@ -49,10 +54,25 @@ function summary(look: Look): LookSummary {
   return { id, label, description, rolls, treatments, soundPalette };
 }
 
-function lookModeLine(mode: LookMode | undefined): string {
+/** The looks a project of this style offers (no style: the built-in styles' looks). */
+export function styleLookSummaries(
+  style: string | undefined,
+  looks: readonly Look[] = LOOKS,
+): LookSummary[] {
+  return listLooks(looks, { style }).map(summary);
+}
+
+/** The look of a shot that names none: voxel where offered, else the first look (a world's). */
+function defaultLookId(looks: readonly LookSummary[]): string {
+  return looks.some((look) => look.id === VOXEL_LOOK_ID)
+    ? VOXEL_LOOK_ID
+    : (looks[0]?.id ?? VOXEL_LOOK_ID);
+}
+
+function lookModeLine(mode: LookMode | undefined, defaultLook: string): string {
   switch (mode) {
     case 'mixed':
-      return 'project look mode: mixed (build each shot in the look its storyboard entry names; absent = voxel)';
+      return `project look mode: mixed (build each shot in the look its storyboard entry names; absent = ${defaultLook})`;
     case 'voxel-only':
       return 'project look mode: voxel-only (every shot is built in the voxel look; the other looks are not used here)';
     case undefined:
@@ -61,7 +81,7 @@ function lookModeLine(mode: LookMode | undefined): string {
 }
 
 export function formatLooks(looks: readonly LookSummary[], mode: LookMode | undefined): string[] {
-  const width = Math.max(...looks.map((look) => look.id.length));
+  const width = Math.max(0, ...looks.map((look) => look.id.length));
   const indent = ' '.repeat(width + 4);
   return [
     `looks (${String(looks.length)} available; every look shares the style: palette, pixel fonts, dithering):`,
@@ -71,7 +91,7 @@ export function formatLooks(looks: readonly LookSummary[], mode: LookMode | unde
     ]),
     'rolls:',
     ...ROLLS.map((roll) => `  ${roll}  ${ROLL_MEANINGS[roll]}`),
-    lookModeLine(mode),
+    lookModeLine(mode, defaultLookId(looks)),
     'kit definitions per look: reelforge kit-docs (entries of looks other than voxel are marked "(look <id>)")',
     'result: ok',
   ];
@@ -83,8 +103,8 @@ export const looksCommand: Command = {
   usage: LOOKS_USAGE,
   async run(argv, context) {
     parseCommandArgs(argv, COMMON_OPTIONS, false);
-    const looks = listLooks().map(summary);
-    const mode = await readLookMode(context.root);
+    const { mode, style } = await readLookSettings(context.root);
+    const looks = styleLookSummaries(style);
     return result(0, formatLooks(looks, mode), {
       ok: true,
       lookMode: mode ?? null,

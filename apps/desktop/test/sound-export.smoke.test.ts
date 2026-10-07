@@ -28,7 +28,7 @@ import {
   waitForProjectPreview,
 } from './support/electron-app.js';
 import { ffprobe, synthesizeVoiceover } from './support/pipeline-film.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage } from './support/pipeline-rows.js';
 
 const VIDEO_SECONDS = 33;
 const SUGGESTION = {
@@ -78,16 +78,9 @@ async function poll<T>(
   }
 }
 
-function pipeline() {
-  return page.getByRole('region', { name: 'Pipeline' });
-}
-
+/** One click on a step opens its panel (or the export dialog). */
 async function openRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
-  await pipeline()
-    .getByRole('group', { name: `${label} actions` })
-    .getByRole('button', { name: 'Open' })
-    .click();
+  await openStage(page, label);
 }
 
 /** The CLI fixture as three 11 s shots (YouTube chapters need ≥ 3 × 10 s), script approved. */
@@ -352,7 +345,24 @@ describe('export dialog', () => {
     await second.getByRole('button', { name: 'Cancel' }).click();
     await second.getByText('Cancelled', { exact: true }).waitFor({ timeout: 60_000 });
     await second.getByRole('button', { name: 'Resume' }).click();
+    // The switch to the CPU encoder (simulated: no GPU failure on demand) shows under the status
+    // line while the job runs, then in the report.
+    await expect
+      .poll(
+        () =>
+          app.evaluate(
+            (_electron, name) =>
+              (Reflect.get(globalThis, name) as { exportWarning(): boolean }).exportWarning(),
+            '__reelforgeRenderTest',
+          ),
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+    const fallback = 'GPU encoder unavailable, using CPU for this export';
+    await second.getByText(fallback).waitFor({ timeout: 30_000 });
+    await shot('export-warning');
     await second.getByTestId('export-report').waitFor({ timeout: 300_000 });
+    await second.getByTestId('export-report').getByText(fallback).waitFor();
     const info = ffprobe(path.join(dir, 'out', 'Doom high.mp4'));
     expect(info.durationS).toBeGreaterThan(VIDEO_SECONDS - 0.5);
     await expect.poll(() => second.textContent()).toMatch(/Re-rendered \d of 3 shots/);

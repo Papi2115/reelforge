@@ -1,9 +1,11 @@
 /**
  * Sound palette registry and lookup (PLAN.md#12.24): a shot's palette is its look's `soundPalette`
  * (kit look registry). `voxel-only` projects, shots without a look, unknown or not-yet-available
- * looks and unknown palette ids all get `voxel`, whose rules are the 1.x sound design exactly.
+ * looks and unknown palette ids all get `voxel`, whose rules are the 1.x sound design exactly. In
+ * a world's style (PLAN.md#13.6) every shot sounds in a palette of that world: its look's, else the
+ * world's own (`World.soundPalette`), never voxel.
  */
-import { getLook, type Look } from '@reelforge/kit';
+import { getLook, WORLDS, type Look } from '@reelforge/kit';
 import { SFX_CATEGORY, type SfxRecipe } from '@reelforge/pipeline';
 import {
   shotLook,
@@ -17,6 +19,7 @@ import { DIORAMA_PALETTE } from './diorama.js';
 import { FLAT_2D_PALETTE } from './flat-2d.js';
 import { PAPER_CUTOUT_PALETTE } from './paper-cutout.js';
 import { RETRO_UI_PALETTE } from './retro-ui.js';
+import { SKETCHBOOK_PALETTE, WORLD_TRANSITION_SFX } from './sketchbook.js';
 import { WHITEBOARD_PALETTE } from './whiteboard.js';
 import {
   pick,
@@ -33,6 +36,7 @@ export { NO_HISTORY, pickRecipe, type RecipePickRequest } from './pick.js';
 export { dioramaKind } from './diorama.js';
 export { VOXEL_PALETTE };
 export { WOW_PALETTE_SFX, WOW_STYLE_SFX, wowSlot } from './wow-sfx.js';
+export { SKETCHBOOK_PALETTE, WORLD_TRANSITION_SFX };
 
 export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   voxel: VOXEL_PALETTE,
@@ -42,6 +46,7 @@ export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   'flat-2d': FLAT_2D_PALETTE,
   whiteboard: WHITEBOARD_PALETTE,
   'paper-cutout': PAPER_CUTOUT_PALETTE,
+  sketchbook: SKETCHBOOK_PALETTE,
 };
 
 /** A palette by id (undefined for unknown ids). */
@@ -54,6 +59,14 @@ export interface PaletteOptions {
   readonly lookMode?: LookMode | undefined;
   /** The kit's looks (tests pass their own). */
   readonly looks?: readonly Look[] | undefined;
+  /** The project's style: a world's style falls back to the world's palette. */
+  readonly style?: string | undefined;
+}
+
+/** The sound palette of a world's style (undefined for the built-in styles). */
+export function worldPalette(style: string | undefined): SoundPalette | undefined {
+  const world = WORLDS.find((entry) => entry.id === style);
+  return world === undefined ? undefined : getSoundPalette(world.soundPalette);
 }
 
 /** The palette a shot sounds in (see the module comment). */
@@ -61,9 +74,14 @@ export function paletteForShot(
   shot: Pick<StoryboardShot, 'look'>,
   options: PaletteOptions = {},
 ): SoundPalette {
-  if ((options.lookMode ?? 'voxel-only') === 'voxel-only') return VOXEL_PALETTE;
+  const world = worldPalette(options.style);
+  if (world === undefined && (options.lookMode ?? 'voxel-only') === 'voxel-only') {
+    return VOXEL_PALETTE;
+  }
   const look = getLook(shotLook(shot), options.looks);
-  return getSoundPalette(look?.soundPalette) ?? VOXEL_PALETTE;
+  const own = getSoundPalette(look?.soundPalette);
+  if (world === undefined) return own ?? VOXEL_PALETTE;
+  return own !== undefined && own.world === world.world ? own : world;
 }
 
 /** Palette per shot id. */
@@ -97,10 +115,10 @@ export const TRANSITION_STYLE_SFX: Readonly<Partial<Record<TransitionStyleId, Pa
 
 /**
  * The slot of a transition into a shot of palette `to` from a shot of palette `from` (PLAN.md
- * #12.15): a wow style (ADR-028) always sounds like itself in `to`'s voice (`wow-sfx.ts`), look
- * or no look change; when the look changes, the transition style's own sound
- * (TRANSITION_STYLE_SFX), else `to`'s accents; no look change = none (the palette's usual
- * transition sound).
+ * #12.15): a world's page-native transition (PLAN.md#13.6, `WORLD_TRANSITION_SFX`) and a wow style
+ * (ADR-028) always sound like themselves (`wow-sfx.ts` in `to`'s voice), look or no look change;
+ * when the look changes, the transition style's own sound (TRANSITION_STYLE_SFX), else `to`'s
+ * accents; no look change = none (the palette's usual transition sound).
  */
 export function lookChangeSlot(
   from: SoundPalette,
@@ -110,6 +128,8 @@ export function lookChangeSlot(
   const transition = toShot.transitionIn;
   const style =
     transition === undefined || transition.type === 'cut' ? undefined : transition.style;
+  const world = worldTransitionSlot(style);
+  if (world !== undefined) return world;
   const wow = wowSlot(to.id, style);
   if (wow !== undefined) return wow;
   if (from.id === to.id) return undefined;
@@ -117,6 +137,12 @@ export function lookChangeSlot(
   if (styled !== undefined) return styled;
   const slot = to.accents[to.ambience.key(toShot)] ?? to.accents[''];
   return slot !== undefined && slot.length > 0 ? slot : undefined;
+}
+
+/** The sound of a world's page-native transition style (undefined: not one). */
+export function worldTransitionSlot(style: string | undefined): PaletteSlot | undefined {
+  if (style === undefined || !Object.hasOwn(WORLD_TRANSITION_SFX, style)) return undefined;
+  return WORLD_TRANSITION_SFX[style as keyof typeof WORLD_TRANSITION_SFX];
 }
 
 const recipeSets = new WeakMap<SoundPalette, ReadonlySet<SfxRecipe>>();

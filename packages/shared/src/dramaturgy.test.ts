@@ -18,6 +18,7 @@ import {
   momentMixEffects,
   momentRenderEffects,
   momentsFileSchema,
+  PAGE_CAMERA_HINTS,
   proposeMoments,
   tensionPeaks,
   type Moment,
@@ -270,6 +271,19 @@ describe('reveal moments', () => {
       ],
     });
     expect(moment).toMatchObject({ kind: 'slow-motion', from: 51.6, to: 53.15, rate: 0.4 });
+    expect(moment?.cameraHint).toContain('orbit around');
+    const [page] = proposeMoments({
+      shots: SHOTS,
+      tension: CURVE,
+      words: tight,
+      anchors: [
+        { shotId: 's02', t: 51.6 },
+        { shotId: 's02', t: 53.2 },
+      ],
+      cameraHints: PAGE_CAMERA_HINTS,
+    });
+    expect(page?.cameraHint).toBe(PAGE_CAMERA_HINTS['slow-motion']);
+    expect(page?.cameraHint).not.toMatch(/orbit around|dolly/);
   });
 
   it('merges stored decisions and turns accepted moments into effects', () => {

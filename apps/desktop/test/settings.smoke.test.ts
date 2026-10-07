@@ -161,7 +161,7 @@ describe('settings', () => {
     page = await open({ hook: true });
     await page.getByRole('region', { name: 'Start' }).waitFor();
     expect(await page.getByRole('dialog', { name: 'Connect Claude' }).count()).toBe(0);
-    await page.getByText('Economy mode · Usage').waitFor();
+    await page.getByText('Economy mode: Sonnet only').waitFor();
     await expect
       .poll(() => page.getByRole('region', { name: 'Start' }).getByLabel('Language').inputValue())
       .toBe('pl');
@@ -180,7 +180,7 @@ describe('settings', () => {
       const version = realClaude.state === 'ok' ? realClaude.version : '';
       await page
         .getByRole('contentinfo', { name: 'Status' })
-        .getByRole('button', { name: `Claude: connected · ${version}` })
+        .getByRole('button', { name: 'Claude: connected' })
         .waitFor({ timeout: 30_000 });
       await page.getByRole('button', { name: 'Settings', exact: true }).click();
       const dialog = page.getByRole('dialog', { name: 'Settings' });

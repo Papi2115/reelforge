@@ -1,7 +1,7 @@
 /*
  * Live co-direction command bar under the preview (PLAN.md#12.14). One line of fixed height, so
  * the picture keeps its integer scale (a 1280x720 window still shows the 640x360 frame at 1x):
- * the hint chips or the status share the line with the input, the history opens above the bar.
+ * the hint chips or the status share the line with the input. The history is in the Director tab.
  */
 .command-bar {
   position: relative;
@@ -11,7 +11,7 @@
   gap: 6px;
   height: 28px;
   padding: 0 10px;
-  /* Very narrow previews cut the line's end; the history popover above stays visible. */
+  /* Very narrow previews cut the line's end. */
   overflow-x: clip;
   border-top: 1px solid var(--border-soft);
   background: var(--panel);
@@ -110,38 +110,10 @@
   color: var(--warn);
 }
 
-/* Opens above the bar, over the transport and the picture, like a menu. */
-.command-history {
-  position: absolute;
-  right: 10px;
-  bottom: calc(100% + 4px);
-  z-index: 5;
-  width: min(420px, calc(100% - 20px));
-  max-height: 180px;
-  margin: 0;
-  padding: 6px 10px 6px 28px;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: rgb(13 14 18 / 96%);
-  font-size: 12px;
-}
-
-.command-history .undone {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-.command-history-shot {
-  font-family: var(--font-mono);
-  color: var(--accent-text);
-}
-
-.command-history-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 4px;
-  list-style: none;
+/* "History (N)": opens the Director tab on its Directions section. */
+.command-history-link {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .shot-direction-badge {

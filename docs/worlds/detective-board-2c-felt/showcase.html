@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ReelForge world showcase - detective-board 2c felt - D. B. Cooper (1971)</title>
+    <link rel="stylesheet" href="showcase.css" />
+  </head>
+  <body>
+    <main>
+      <h1>REELFORGE WORLD &middot; <b>DETECTIVE-BOARD 2c &middot; THE ENDLESS BOARD (FELT)</b> &middot; D. B. Cooper, 1971</h1>
+      <canvas id="frame" width="960" height="540"></canvas>
+      <div id="caption"></div>
+      <div class="bar" id="shots"></div>
+      <div class="bar">
+        <button id="playAll">play all</button>
+        <button id="playShot">play shot</button>
+        <button id="pause">pause</button>
+        <label><input id="loop" type="checkbox" checked /> loop shot</label>
+        <label><input id="showCaption" type="checkbox" checked /> dev caption</label>
+        <span id="time"></span>
+        <span id="perf"></span>
+      </div>
+      <div class="scrubwrap">
+        <div id="marks"></div>
+        <input id="scrub" type="range" min="0" max="65" step="0.0333333" value="0" />
+      </div>
+      <div id="note"></div>
+      <div class="keys">keys: 1-8 shot &middot; A play all &middot; space play/pause &middot; &larr;/&rarr; one frame &middot; url ?shot=&amp;t=&amp;paused=1</div>
+    </main>
+    <script src="palette.js"></script>
+    <script src="raster.js"></script>
+    <script src="pieces.js"></script>
+    <script src="strokes.js"></script>
+    <script src="fonts.js"></script>
+    <script src="kit.js"></script>
+    <script src="layout.js"></script>
+    <script src="art-a.js"></script>
+    <script src="art-b.js"></script>
+    <script src="threads.js"></script>
+    <script src="world.js"></script>
+    <script src="film.js"></script>
+    <script src="player.js"></script>
+  </body>
+</html>

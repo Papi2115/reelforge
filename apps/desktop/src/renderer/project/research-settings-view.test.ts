@@ -24,6 +24,7 @@ const SETTINGS: ProjectSettings = {
   mascot: 'none',
   shotsPerMinute: null,
   fasterChecks: false,
+  continuityLinks: false,
 };
 
 describe('research settings view', () => {

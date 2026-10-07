@@ -4,7 +4,7 @@
  * sheet of the frames and answers `blank | clipped | overlap | off-intent | ok` as JSON.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
-import { validateCriticReply } from '@reelforge/prompts';
+import { isCraftNote, validateCriticReply } from '@reelforge/prompts';
 import type { CriticVerdictRecord, QaFinding } from '@reelforge/shared';
 import type { ClaudeTurnResult } from '../claude.js';
 import { render } from '../stages/repair.js';
@@ -30,6 +30,11 @@ export interface CritiqueInput {
   readonly render: ShotRenderOk;
   /** Project-relative PNG the critic reads (written here). */
   readonly sheetFile: string;
+  /**
+   * A world's craft check (PLAN.md#13.6): an `ok` frame whose note does not name the focal point
+   * and three human traces fails like an `off-intent` one.
+   */
+  readonly craft?: boolean | undefined;
 }
 
 export interface Critique {
@@ -38,6 +43,18 @@ export interface Critique {
   /** Project-relative contact sheet, when one was written. */
   readonly sheet: string | undefined;
   readonly notes: readonly string[];
+}
+
+/** A world critic's `ok` without the focal point and the traces is a `craft:` failure. */
+export function craftVerdicts(verdicts: readonly CriticVerdictRecord[]): CriticVerdictRecord[] {
+  return verdicts.map((entry) =>
+    entry.verdict !== 'ok' || isCraftNote(entry.note)
+      ? entry
+      : {
+          verdict: 'off-intent',
+          note: `craft: no focal point and three human traces named (${entry.note})`,
+        },
+  );
 }
 
 /** The code layer: no Claude, deterministic. */
@@ -81,15 +98,14 @@ async function askCritic(
     if (turn.error.kind !== 'claude') return turn;
     return ok({ verdicts: [], notes: [`the frame critic failed: ${turn.error.message}`] });
   }
-  const reply = validateCriticReply(turn.value.reply, { expectedPaths: [input.sheetFile] });
+  const craft = input.craft === true;
+  const reply = validateCriticReply(turn.value.reply, { expectedPaths: [input.sheetFile], craft });
   if (reply.value === undefined) {
     const why = reply.issues.map((entry) => entry.message).join('; ');
     return ok({ verdicts: [], notes: [`the frame critic's reply was not valid JSON (${why})`] });
   }
-  return ok({
-    verdicts: reply.value.frames.map(({ verdict, note }) => ({ verdict, note })),
-    notes: [],
-  });
+  const verdicts = reply.value.frames.map(({ verdict, note }) => ({ verdict, note }));
+  return ok({ verdicts: craft ? craftVerdicts(verdicts) : verdicts, notes: [] });
 }
 
 /**

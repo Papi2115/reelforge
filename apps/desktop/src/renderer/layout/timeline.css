@@ -8,13 +8,13 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
   height: 28px;
-  padding: 0 8px;
+  padding: 0 var(--space-3);
   border-bottom: 1px solid var(--border-soft);
   background: var(--panel-raised);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .tool-button {
@@ -22,12 +22,12 @@
   min-width: 24px;
   height: 20px;
   padding: 0 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-2);
   color: var(--text);
   background: var(--panel);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 18px;
   cursor: pointer;
 }
@@ -37,17 +37,19 @@
 }
 
 .tool-button:disabled {
-  color: var(--muted);
+  color: var(--text-disabled);
   cursor: default;
-  opacity: 0.5;
+  border-style: dashed;
+  border-color: var(--border);
+  background: none;
 }
 
 .timeline-zoom {
   flex: none;
   min-width: 64px;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .toolbar-gap {
@@ -59,7 +61,7 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   margin-left: 6px;
   color: var(--muted);
 }
@@ -67,22 +69,22 @@
 .timeline-gain input {
   width: 56px;
   height: 20px;
-  padding: 0 4px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-2);
   color: var(--text);
   background: var(--bg);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .timeline-status {
   flex: 1;
   min-width: 0;
-  margin-left: 8px;
+  margin-left: var(--space-3);
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -117,7 +119,7 @@
   overflow: hidden;
   border-bottom: 1px solid var(--border-soft);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -125,11 +127,11 @@
 .track-label.ruler {
   color: var(--text);
   background: var(--panel-raised);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .track-label .sub {
-  font-size: 10px;
+  font-size: var(--text-xs);
   opacity: 0.8;
 }
 
@@ -167,23 +169,23 @@
   top: 40px;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-2);
   width: 196px;
   padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-3);
   background: var(--panel-raised);
   box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
 }
 
 .sfx-picker button {
-  padding: 2px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-2);
   color: var(--text);
   background: var(--panel);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 
@@ -199,7 +201,7 @@
 
 .track-menu-button {
   width: auto;
-  padding: 0 8px;
+  padding: 0 var(--space-3);
 }
 
 .track-menu-list {
@@ -209,12 +211,12 @@
   z-index: 15;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 200px;
   margin: 0;
-  padding: 6px 8px;
+  padding: 6px var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-3);
   background: var(--panel-raised);
   box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
 }
@@ -222,9 +224,9 @@
 .track-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 2px;
-  font-size: 13px;
+  gap: var(--space-3);
+  padding: 3px var(--space-1);
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 

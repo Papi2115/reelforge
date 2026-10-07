@@ -31,6 +31,8 @@ export const qaFindingSourceSchema = z.enum([
   'critic',
   'missing-prop',
   'claude',
+  /** Anti-slop guards (PLAN.md#13.7): always a warning, never a fix turn. */
+  'slop',
 ]);
 export type QaFindingSource = z.infer<typeof qaFindingSourceSchema>;
 

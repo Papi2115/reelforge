@@ -12,6 +12,7 @@ import path from 'node:path';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { projectMenu, projectMenuButton } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -67,7 +68,7 @@ describe('scenes per minute and faster checks', () => {
     await stubFolderPicker(app, parent);
     await start.getByLabel('Video title').fill('Calm film');
     await start.getByRole('button', { name: 'New project…' }).click();
-    await page.getByRole('button', { name: 'Project settings' }).waitFor({ timeout: 30_000 });
+    await projectMenuButton(page).waitFor({ timeout: 30_000 });
     expect(await projectJson()).toMatchObject({
       shotsPerMinute: { min: 3, max: 5 },
       fasterChecks: true,
@@ -75,7 +76,7 @@ describe('scenes per minute and faster checks', () => {
   });
 
   it('edits the range in Project settings: custom, then Standard', async () => {
-    await page.getByRole('button', { name: 'Project settings' }).click();
+    await projectMenu(page, 'Project settings');
     const dialog = page.getByRole('dialog', { name: 'Project settings' });
     const region = dialog.getByRole('region', { name: 'Scenes and checks' });
     await region.waitFor();

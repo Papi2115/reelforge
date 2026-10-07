@@ -39,4 +39,10 @@ describe('stage artifacts', () => {
     mkdirSync(path.join(dir, 'audio', 'mixdir'));
     expect((await artifactPath(dir, 'mix')).ok).toBe(true);
   });
+
+  it('opens the project folder itself', async () => {
+    const dir = projects.create({ 'project.json': '{}' });
+    const folder = await artifactPath(dir, 'project');
+    expect(folder.ok && path.basename(folder.value)).toBe(path.basename(dir));
+  });
 });

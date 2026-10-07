@@ -4,7 +4,7 @@
  * (`voxel`, `retro-ui`, ...) — one line per entry, or every param with `--full`. A text over
  * OUTPUT_BUDGET is split into pages, so no output is ever cut off by the Bash output limit.
  */
-import { listLooks, VOXEL_LOOK_ID, type KitCatalog, type KitCatalogEntry } from '@reelforge/kit';
+import { LOOKS, VOXEL_LOOK_ID, type KitCatalog, type KitCatalogEntry } from '@reelforge/kit';
 import type { LookMode } from '@reelforge/shared';
 import { UsageError } from '../errors.js';
 import { OUTPUT_BUDGET, isListed, KIT_DOCS_CATEGORIES } from './kit-docs-index.js';
@@ -29,10 +29,13 @@ interface Slice {
   readonly note?: string;
 }
 
-/** Names of the look templates (whole-shot definitions of the available looks). */
-function templateNames(): Set<string> {
+/** Names of the look templates (whole-shot definitions of the catalog's looks). */
+function templateNames(catalog: KitCatalog): Set<string> {
+  const ids = new Set(catalog.looks.map((look) => look.id));
   return new Set(
-    listLooks().flatMap((look) => (look.kit.templates ?? []).map((template) => template.name)),
+    LOOKS.filter((look) => ids.has(look.id)).flatMap((look) =>
+      (look.kit.templates ?? []).map((template) => template.name),
+    ),
   );
 }
 
@@ -82,7 +85,7 @@ function findSlice(catalog: KitCatalog, name: string, mode: LookMode): Slice | u
         empty: '  (none yet)',
       };
     case 'templates': {
-      const names = templateNames();
+      const names = templateNames(catalog);
       const entries = allEntries(catalog).filter(
         (entry) => entry.origin !== 'project' && names.has(entry.name),
       );

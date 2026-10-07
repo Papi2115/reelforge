@@ -4,6 +4,7 @@
  * a settings change applies to the next stage run without rebuilding anything).
  */
 import type { CleanPreset, WhisperModelId } from '@reelforge/pipeline';
+import type { WorldQuotaOverride } from '@reelforge/prompts';
 import type { AppSettings, SettingsModel, SettingsStage } from '@reelforge/shared';
 
 export interface CleanSettings {
@@ -63,6 +64,18 @@ export interface StageSettings {
   readonly scenes: SceneSettings;
   /** Generated background music per act in the sound-cues stage (default on). */
   readonly music: { readonly enabled: boolean };
+  /**
+   * Treat experimental worlds as shipped (PLAN.md#13.6, worlds.ts): a project in such a world's
+   * style gets the world's looks, prompts and checks. Absent = only shipped worlds. Shipping a
+   * world (`experimental: false` on it and its looks) needs no setting.
+   */
+  readonly experimentalWorlds?: boolean;
+  /**
+   * Test drivers only (never a project field, never a default): raises the breakthrough floor of a
+   * world's storyboard, e.g. `{ minBreakthroughs: 2 }` to see both a pop-up and a strip in a short
+   * test film (`@reelforge/prompts` worlds/variety.ts). Absent = the film's length decides.
+   */
+  readonly worldQuotaOverride?: WorldQuotaOverride;
 }
 
 export const DEFAULT_SCENE_SETTINGS: SceneSettings = {

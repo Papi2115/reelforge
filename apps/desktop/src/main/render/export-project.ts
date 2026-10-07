@@ -11,6 +11,7 @@ import {
   exportVideo,
   FfmpegManager,
   type ExportProgress,
+  type ExportWarning,
   type FfmpegError,
   type Result,
 } from '@reelforge/pipeline';
@@ -22,6 +23,7 @@ import { readProjectJson } from '../project-files.js';
 import { buildProjectManifest } from '../project-manifest.js';
 import { exportSettings, ffmpegLocateOptions } from '../settings-consumers.js';
 import { electronFrameSourceFactory } from './electron-frame-source.js';
+import { userWarnings, warningLogLine } from './export-warnings.js';
 import { renderIdentity } from './render-identity.js';
 import { RenderPool } from './render-pool.js';
 import type { OpenRenderTarget } from './render-target.js';
@@ -38,6 +40,8 @@ export interface ExportProjectOptions {
   readonly engineVersion: string;
   readonly signal: AbortSignal;
   readonly onProgress: (event: ExportProgress) => void;
+  /** Encoder retries / the switch to the CPU encoder, as they happen (also logged here). */
+  readonly onWarning?: (warning: ExportWarning) => void;
   readonly log: Logger;
   /** Test seam; default `FfmpegManager.create` with the settings' ffmpeg path. */
   readonly createFfmpeg?: () => Promise<Result<FfmpegManager, FfmpegError>>;
@@ -112,6 +116,10 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
         }
         options.onProgress(event);
       },
+      onWarning: (warning) => {
+        log.warn(warningLogLine(warning));
+        options.onWarning?.(warning);
+      },
     });
     if (!result.ok) {
       if (result.error.kind === 'cancelled') return { status: 'cancelled' };
@@ -120,7 +128,7 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
     }
     const value = result.value;
     log.info(
-      `exported ${value.output} (${String(value.totalFrames)} frames, ${String(Math.round(value.wallMs))} ms)`,
+      `exported ${value.output} with ${value.encoder} (${String(value.totalFrames)} frames, ${String(Math.round(value.wallMs))} ms)`,
     );
     return {
       status: 'done',
@@ -136,6 +144,7 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
       gpu: value.gpu,
       resumed: value.resumed,
       wallMs: value.wallMs,
+      warnings: userWarnings(value.warnings),
     };
   } catch (error) {
     log.error(`export crashed: ${describeError(error)}`);

@@ -34,7 +34,7 @@
   align-items: center;
   gap: 10px;
   height: 100%;
-  padding: 8px 0;
+  padding: var(--space-3) 0;
 }
 
 .chat-rail-button {
@@ -54,11 +54,11 @@
   right: -6px;
   min-width: 16px;
   height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-1);
   color: var(--on-accent);
   background: var(--accent);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   line-height: 16px;
 }
@@ -82,17 +82,17 @@
 
 .chat-rail-queue {
   min-width: 20px;
-  padding: 0 4px;
-  border-radius: 999px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-1);
   color: var(--accent-text);
   background: var(--accent-soft);
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-align: center;
 }
 
 .chat-rail-label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   writing-mode: vertical-rl;

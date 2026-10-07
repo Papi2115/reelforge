@@ -3,8 +3,9 @@
  * (no tensionMap = off): the timeline's Tension button opens the curve editor under the
  * timeline; a preset writes tension.json and commits it (`Tension: …`, step `tension`); keyboard
  * edits of a point (ArrowUp, Delete) and Undo are saved and committed; locking the curve disables
- * the presets; the panel says the map is off until Project settings → Direction turns it on.
- * No Claude involved. Screenshot at 1280x720: out/test-app/tension-1280.png.
+ * the presets; the panel says the map is off until Project settings → Direction turns it on. The
+ * Director tab sums the curve up ("Drawn by you · 6 points …") and its switch follows Project
+ * settings. No Claude involved. Screenshot at 1280x720: out/test-app/tension-1280.png.
  */
 import { spawnSync } from 'node:child_process';
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -19,6 +20,8 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
+import { showDirector } from './support/pipeline-rows.js';
+import { projectMenu } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -91,6 +94,14 @@ describe('tension panel', () => {
     expect(preset.points).toHaveLength(6);
     await expect.poll(() => point(1).count()).toBe(1);
     await page.screenshot({ path: path.join(screenshotDir, 'tension-1280.png') });
+    const director = await showDirector(page);
+    const summary = director.getByRole('region', { name: 'Tension curve' });
+    await summary.getByText(/^Drawn by you · 6 points · peak /).waitFor({ timeout: 15_000 });
+    await summary.getByRole('img', { name: 'Tension curve of the film' }).waitFor();
+    const directorSwitch = summary.getByRole('checkbox', {
+      name: /^Steer the film by a tension curve/,
+    });
+    expect(await directorSwitch.isChecked()).toBe(false);
 
     // Keyboard: ArrowUp raises point 2 by 0.05 (saved once the keys rest).
     const before = preset.points[1]?.v ?? 0;
@@ -117,7 +128,7 @@ describe('tension panel', () => {
     );
 
     // Project settings → Direction turns the map on; the panel's note goes away.
-    await page.getByRole('button', { name: 'Project settings' }).click();
+    await projectMenu(page, 'Project settings');
     const dialog = page.getByRole('dialog', { name: 'Project settings' });
     await dialog.getByRole('region', { name: 'Direction' }).waitFor();
     await dialog.getByRole('checkbox', { name: /^Steer the film by a tension curve/ }).check();
@@ -125,6 +136,7 @@ describe('tension panel', () => {
       .poll(() => git(['log', '-1', '--format=%s']), { timeout: 15_000 })
       .toBe('Project settings: tension map on');
     await page.keyboard.press('Escape');
+    await expect.poll(() => directorSwitch.isChecked(), { timeout: 15_000 }).toBe(true);
     await expect
       .poll(() =>
         panel()

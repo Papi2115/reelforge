@@ -14,6 +14,7 @@ import {
   toProjectRelative,
 } from './paths.js';
 import { createGitSandbox, type GitSandbox } from './testing/git-sandbox.js';
+import { WORLD_PROJECT_DEFAULTS, worldProjectDefaults } from './world-defaults.js';
 
 // Every case spawns git a dozen times; Windows CI runners are slow at process creation.
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
@@ -93,6 +94,8 @@ describe('createProject', () => {
   it('starts with the pack and no mascot, or the characters asked for (PLAN.md#12.20)', async () => {
     const created = await create(projectDir('characters template'));
     expect(created.project).toMatchObject({ characters: 'pack', mascot: 'none' });
+    // New projects plan continuity links (PLAN.md#13.2); absent (older projects) = off.
+    expect(created.project).toMatchObject({ continuityLinks: false });
     const chosen = await createProject({
       dir: projectDir('characters fox'),
       title: 'Fox',
@@ -102,6 +105,30 @@ describe('createProject', () => {
     });
     if (!chosen.ok) throw new Error(chosen.error.message);
     expect(chosen.value.project).toMatchObject({ characters: 'pack', mascot: 'fox' });
+  });
+
+  it('gives a world style its defaults: continuity on, mixed looks, no pack (PLAN.md#13.6)', async () => {
+    const world = await createProject({
+      dir: projectDir('sketchbook world'),
+      title: 'Leap year',
+      style: 'sketchbook',
+      characters: 'pack',
+      mascot: 'fox',
+      git: sandbox.git,
+    });
+    if (!world.ok) throw new Error(world.error.message);
+    expect(world.value.project).toMatchObject({
+      style: 'sketchbook',
+      lookMode: 'mixed',
+      continuityLinks: true,
+      characters: 'classic',
+      mascot: 'none',
+    });
+    // No bible until the world ships; the built-in bibles are copied as for any project.
+    expect(existsSync(path.join(world.value.dir, 'styles', 'sketchbook'))).toBe(false);
+    expect(existsSync(path.join(world.value.dir, 'styles', 'noir-voxel', 'STYLE.md'))).toBe(true);
+    expect(worldProjectDefaults('voxel-pixel-crisp640')).toBeUndefined();
+    expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toEqual(['sketchbook']);
   });
 
   it('writes the scenes per minute and faster checks only when chosen (ADR-027)', async () => {

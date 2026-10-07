@@ -27,6 +27,8 @@ export interface TimelineState {
   readonly model: TimelineModel;
   readonly waveform: WaveformView;
   readonly duration: number;
+  /** Length of the playing audio (s; 0 while there is none or it is being read). */
+  readonly audioDuration: number;
 }
 
 function itemExists(model: TimelineModel, item: TimelineItem): boolean {
@@ -80,5 +82,6 @@ export function useTimeline(
     model,
     waveform,
     duration: Math.max(videoDuration, contentEnd(model), audioEnd),
+    audioDuration: audioEnd,
   };
 }

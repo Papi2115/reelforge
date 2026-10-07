@@ -1,8 +1,9 @@
 /**
- * Editing (PLAN.md#12.21, #12.23) under the final review in Scenes built: the beat-sync line and
+ * Editing (PLAN.md#12.21, #12.23) in the Director tab, under its switches: the beat-sync line and
  * the film's repetitions — each with Apply (swap the sound, re-pick the transition, build
  * variants of the shot) and Ignore / Reopen; click the text to go to the first occurrence.
- * Real buttons only (keyboard reachable). Hidden while both switches are off.
+ * Real buttons only (keyboard reachable). Hidden while both switches are off; the Director
+ * section gives the title.
  */
 import type { JSX } from 'react';
 import { beatSyncLine, editingVisible, repetitionRows, repetitionSummary } from './editing-view.js';
@@ -18,8 +19,7 @@ export function EditingSection(props: {
   if (!editingVisible(state)) return null;
   const rows = repetitionRows(state.repetitions);
   return (
-    <section className="editing" aria-label="Editing" data-testid="editing">
-      <h3 className="section-title">Editing</h3>
+    <div className="editing" data-testid="editing">
       {state.switches.beatSync === 'auto' && (
         <p className="editing-line" data-testid="beat-sync-line">
           {beatSyncLine(state.beatSync)}
@@ -76,6 +76,6 @@ export function EditingSection(props: {
           </ul>
         </div>
       )}
-    </section>
+    </div>
   );
 }

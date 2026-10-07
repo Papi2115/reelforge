@@ -129,6 +129,8 @@ export const STAGE_ARTIFACTS = [
   'stems',
   'video',
   'out',
+  /** The project folder itself (header → project menu → Open folder). */
+  'project',
 ] as const;
 export const stageArtifactSchema = z.enum(STAGE_ARTIFACTS);
 export type StageArtifact = z.infer<typeof stageArtifactSchema>;

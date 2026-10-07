@@ -71,8 +71,9 @@ describe('look registry', () => {
       'blueprint',
     ]);
     expect(LOOKS.map((look) => look.id)).toContain('whiteboard');
+    // World looks (scoped to their style) are never listed without one.
     expect(listLooks().map((look) => look.id)).toEqual(
-      LOOKS.filter((look) => look.available).map((look) => look.id),
+      LOOKS.filter((look) => look.available && look.styles === undefined).map((look) => look.id),
     );
     expect(listLooks()[0]?.id).toBe(VOXEL_LOOK_ID);
     expect(getLook('voxel')).toBe(voxelLook);
@@ -87,7 +88,9 @@ describe('look registry', () => {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
-    expect(folders).toEqual(LOOKS.map((look) => look.id).sort());
+    // World looks live in their world's folder (worlds/<id>/, PLAN.md#13.1).
+    const builtIn = LOOKS.filter((look) => look.styles === undefined);
+    expect(folders).toEqual(builtIn.map((look) => look.id).sort());
   });
 
   it('makes the voxel look exactly the existing kit', () => {

@@ -4,7 +4,9 @@
  * the look mode (click and arrow keys) and ambient variation writes project.json and commits it
  * (`Project settings: …`); research assets (2.1: no researchMode = Off) shows the full-auto ⚠
  * warning and the allowlist sources; the choices persist when the dialog and the project are
- * opened again. No Claude involved. Screenshots at 1280x720: out/test-app/project-settings-*.png.
+ * opened again; a step's panel (Sound design, Storyboard) shows "All options" with the same rows,
+ * one commit per switch and the same state as the dialog. No Claude involved. Screenshots at
+ * 1280x720: out/test-app/project-settings-*.png.
  */
 import { spawnSync } from 'node:child_process';
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -19,6 +21,8 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
+import { openStage, selectStage } from './support/pipeline-rows.js';
+import { projectMenu, projectMenuButton } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -48,14 +52,19 @@ async function openProject(): Promise<void> {
   if (app === undefined) throw new Error('the app is not running');
   await stubFolderPicker(app, dir);
   await page.getByRole('button', { name: 'Open project…' }).click();
-  await page.getByRole('button', { name: 'Project settings' }).waitFor({ timeout: 30_000 });
+  await projectMenuButton(page).waitFor({ timeout: 30_000 });
 }
 
 async function openDialog(): Promise<Locator> {
-  await page.getByRole('button', { name: 'Project settings' }).click();
+  await projectMenu(page, 'Project settings');
   const dialog = page.getByRole('dialog', { name: 'Project settings' });
   await dialog.getByRole('region', { name: 'Visuals' }).waitFor();
   return dialog;
+}
+
+/** One click on a pipeline step opens its panel with all its options. */
+async function openStep(label: string): Promise<void> {
+  await openStage(page, label);
 }
 
 function voxelOnly(dialog: Locator): Locator {
@@ -203,7 +212,7 @@ describe('project settings', () => {
     await dialog.getByRole('button', { name: 'Close' }).click();
     await dialog.waitFor({ state: 'detached' });
 
-    await page.getByRole('button', { name: 'Close project' }).click();
+    await projectMenu(page, 'Close project');
     await page.getByRole('region', { name: 'Start' }).waitFor();
     await openProject();
     dialog = await openDialog();
@@ -214,5 +223,71 @@ describe('project settings', () => {
     expect(await projectJson()).toMatchObject({ lookMode: 'mixed', ambientVariation: false });
     await page.keyboard.press('Escape');
     await dialog.waitFor({ state: 'detached' });
+  });
+
+  it('shows all options of a step in its panel, saved like Project settings', async () => {
+    await openStep('Sound design mixed');
+    const panel = page.getByRole('region', { name: 'Sound design' });
+    const options = panel.getByRole('region', { name: 'All options' });
+    await options.waitFor();
+    expect(
+      await options.getByRole('button', { name: /^All options/ }).getAttribute('aria-expanded'),
+    ).toBe('true');
+    await options.getByText(/^Mixed looks: every shot takes its effects and ambience/).waitFor();
+    const beat = options.getByRole('checkbox', { name: /^Cut on the beat/ });
+    expect(await beat.isChecked()).toBe(false);
+    const commits = Number(git(['rev-list', '--count', 'HEAD']));
+    await beat.check();
+    await expectCommit('Project settings: beat sync on');
+    expect(Number(git(['rev-list', '--count', 'HEAD']))).toBe(commits + 1);
+    expect(await projectJson()).toMatchObject({ beatSync: 'auto' });
+    await options.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: path.join(screenshotDir, 'project-settings-sound-options-1280.png'),
+    });
+
+    // Project settings shows the same state; a change there reaches the open panel.
+    const dialog = await openDialog();
+    const dialogBeat = dialog.getByRole('checkbox', { name: /^Cut on the beat/ });
+    expect(await dialogBeat.isChecked()).toBe(true);
+    await dialogBeat.uncheck();
+    await expectCommit('Project settings: beat sync off');
+    await dialog.getByRole('checkbox', { name: /^Continuity links between shots/ }).check();
+    await expectCommit('Project settings: continuity links on');
+    expect(await projectJson()).toMatchObject({ beatSync: 'off', continuityLinks: true });
+    await expectFits();
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
+    await expect.poll(() => beat.isChecked()).toBe(false);
+
+    // Storyboard opens its own panel with the planning switches.
+    await openStep('Storyboard');
+    const storyboard = page.getByRole('region', { name: 'Storyboard', exact: true });
+    const planning = storyboard.getByRole('region', { name: 'All options' });
+    await planning.waitFor();
+    expect(
+      await planning.getByRole('checkbox', { name: /^Continuity links between shots/ }).isChecked(),
+    ).toBe(true);
+    await planning.getByRole('checkbox', { name: /^Open and close loops/ }).waitFor();
+    await page.screenshot({
+      path: path.join(screenshotDir, 'project-settings-storyboard-options-1280.png'),
+    });
+    // The keyboard focus only selects a step: its panel does not replace the open one.
+    await selectStage(page, 'Sound design mixed');
+    expect(await page.getByRole('region', { name: 'Sound design' }).count()).toBe(0);
+    await storyboard.waitFor();
+    await storyboard.getByRole('button', { name: 'Back to preview' }).click();
+
+    // Scenes built keeps its reports on the left and All options in a column on the right.
+    await openStep('Scenes built');
+    const scenes = page.getByRole('region', { name: 'Scenes built' });
+    await scenes
+      .getByRole('region', { name: 'All options' })
+      .getByRole('checkbox', { name: /^Continuity links between shots/ })
+      .waitFor();
+    await page.screenshot({
+      path: path.join(screenshotDir, 'project-settings-scenes-options-1280.png'),
+    });
+    await scenes.getByRole('button', { name: 'Back to preview' }).click();
   });
 });

@@ -42,3 +42,6 @@ desktop.ini
 
 # Packaged app and installers (pnpm package / pnpm dist)
 release/
+
+# throwaway tooling of concept/showcase work
+scratch/

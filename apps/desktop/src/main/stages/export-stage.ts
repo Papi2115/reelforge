@@ -85,7 +85,8 @@ export function projectRelative(dir: string, file: string): string {
 }
 
 export type ExportStageResult =
-  | { readonly status: 'done'; readonly message: string }
+  /** `warnings`: what the user should know (the switch to the CPU encoder). */
+  | { readonly status: 'done'; readonly message: string; readonly warnings: readonly string[] }
   | { readonly status: 'cancelled' }
   | { readonly status: 'failed'; readonly error: StageErrorInfo };
 
@@ -108,6 +109,7 @@ function resultOf(dir: string, outcome: ExportOutcome): ExportStageResult {
       return {
         status: 'done',
         message: `${projectRelative(dir, outcome.output)} (${String(outcome.height)}p, ${outcome.durationS.toFixed(1)} s, ${outcome.encoder}${cached > 0 ? `, ${plural(cached, 'shot')} cached` : ''})`,
+        warnings: outcome.warnings,
       };
     }
     case 'cancelled':

@@ -17,3 +17,7 @@ packages/prompts/prompts/
 spikes/**/fixtures/
 styles/**/*.md
 templates/**/*.md
+
+# standalone showcase pages (hand-written browser scripts)
+docs/worlds/
+scratch/

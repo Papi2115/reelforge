@@ -3,13 +3,14 @@
  * (percent and label as in the sidebar, ETA, render fps, per-shot frames), its final report and
  * actionable messages for failures.
  */
-import type { ExportProgress } from '@reelforge/pipeline';
+import type { ExportProgress, ExportWarning } from '@reelforge/pipeline';
 import type {
   ExportJob,
   ExportOutcome,
   ExportReport,
   ShotProgress,
 } from '../../shared/export-contract.js';
+import { userWarning } from '../render/export-warnings.js';
 import { exportStep } from '../stages/export-stage.js';
 
 export type JobProgress = ExportJob['progress'];
@@ -21,6 +22,7 @@ export const EMPTY_PROGRESS: JobProgress = {
   fps: null,
   totalShots: 0,
   shots: [],
+  warning: null,
 };
 
 function upsertShot(
@@ -86,6 +88,15 @@ export function applyProgress(progress: JobProgress, event: ExportProgress): Job
   }
 }
 
+/**
+ * The progress after a warning: the switch to the CPU encoder shows under the status line (and
+ * stays through the restarted pass); a segment retry changes nothing.
+ */
+export function applyWarning(progress: JobProgress, warning: ExportWarning): JobProgress {
+  const line = userWarning(warning);
+  return line === null ? progress : { ...progress, warning: line };
+}
+
 /** The final report of a finished export. */
 export function exportReport(
   outcome: Extract<ExportOutcome, { status: 'done' }>,
@@ -109,7 +120,13 @@ export function exportReport(
     width: outcome.width,
     height: outcome.height,
     extras: [...extras.files],
-    warnings: [...extras.warnings],
+    warnings: [
+      ...new Set([
+        ...outcome.warnings,
+        ...(progress.warning === null ? [] : [progress.warning]),
+        ...extras.warnings,
+      ]),
+    ],
   };
 }
 

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ReelForge world showcase - detective-board 2b (neon noir 3D) - D. B. Cooper, 1971</title>
+    <link rel="stylesheet" href="showcase.css" />
+  </head>
+  <body>
+    <main>
+      <h1>REELFORGE WORLD &middot; <b>DETECTIVE-BOARD 2b &middot; NEON NOIR 3D</b> &middot; D. B. Cooper, 1971</h1>
+      <div id="wrap">
+        <canvas id="view" width="960" height="540"></canvas>
+        <div class="scrubber">
+          <input id="scrub" type="range" min="0" max="1919" step="1" value="0" />
+          <div id="marks"></div>
+        </div>
+        <div id="caption"></div>
+        <div class="bar" id="shots"></div>
+        <div class="bar">
+          <button id="playAll">play all</button>
+          <button id="playShot">play shot</button>
+          <button id="loop">loop shot</button>
+          <button id="pause">pause</button>
+          <span id="time"></span>
+          <label><input id="capOn" type="checkbox" checked /> dev caption</label>
+        </div>
+        <div id="note"></div>
+        <div class="bar keys">keys: 1-8 shot &middot; A play all &middot; space play/pause &middot; Left/Right frame step &middot; url: ?shot=3&amp;t=1.5&amp;paused=1</div>
+      </div>
+    </main>
+    <script src="js/core.js"></script>
+    <script src="js/raster.js"></script>
+    <script src="js/fonts.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/art.js"></script>
+    <script src="js/cards.js"></script>
+    <script src="js/story.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/desk.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/player.js"></script>
+  </body>
+</html>

@@ -22,7 +22,7 @@ import {
   type PaletteLut,
   type Rgb,
 } from './palette.js';
-import { DEFAULT_STYLE_ID, findStylePreset, STYLE_PRESET_IDS } from './presets/index.js';
+import { DEFAULT_STYLE_ID, STYLE_REGISTRY, type StyleRegistry } from './presets/index.js';
 
 /** `ctx.palette`: every swatch by name plus every semantic token, as hex strings. */
 export type ScenePalette = Readonly<NamedPalette> & Readonly<Record<PaletteToken, string>>;
@@ -120,11 +120,18 @@ function checkSize(preset: StylePreset, request: StyleRequest): void {
   }
 }
 
-export function resolveStyle(request: StyleRequest): ResolvedStyle {
+/**
+ * `registry` defaults to the built-in and world styles (STYLE_REGISTRY); tests pass their own.
+ * Experimental world styles resolve too: showcase renders are gated by their callers.
+ */
+export function resolveStyle(
+  request: StyleRequest,
+  registry: StyleRegistry = STYLE_REGISTRY,
+): ResolvedStyle {
   const id = request.style ?? DEFAULT_STYLE_ID;
-  const preset = findStylePreset(id);
+  const preset = registry.find(id);
   if (!preset) {
-    throw invalid(`style "${id}" is unknown; available: ${STYLE_PRESET_IDS.join(', ')}`);
+    throw invalid(`style "${id}" is unknown; available: ${registry.ids.join(', ')}`);
   }
   checkSize(preset, request);
   const swatches = Object.freeze(mergeSwatches(preset, request.palette));

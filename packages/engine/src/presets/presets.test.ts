@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { CRISP_PALETTE } from '../../../kit/src/testing/palettes.js';
 import { hexToRgb, type Rgb } from '../palette.js';
 import { resolveStyle } from '../style.js';
-import { DEFAULT_STYLE_ID, findStylePreset, STYLE_PRESET_IDS } from './index.js';
+import { DEFAULT_STYLE_ID, findStylePreset, STYLE_PRESET_IDS, STYLE_REGISTRY } from './index.js';
 
 const STYLES_DIR = path.resolve(import.meta.dirname, '..', '..', '..', '..', 'styles');
 /** WCAG AA for normal text. */
@@ -25,8 +25,9 @@ const MIN_DIM_TEXT_CONTRAST = 3;
 const MIN_PLATE_DISTANCE = 0.075;
 const MAX_PALETTE_COLOURS = 32;
 
+/** Every registered preset, experimental world styles included (they must pass the same checks). */
 function presets(): StylePreset[] {
-  return STYLE_PRESET_IDS.map((id) => {
+  return STYLE_REGISTRY.allIds.map((id) => {
     const preset = findStylePreset(id);
     if (!preset) throw new Error(`missing preset ${id}`);
     return preset;

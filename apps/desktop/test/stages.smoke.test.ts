@@ -18,7 +18,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
-import { stageRow } from './support/pipeline-rows.js';
+import { selectStage, stageRow } from './support/pipeline-rows.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const GOLDEN = path.join(
@@ -124,7 +124,21 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     await brief.waitFor();
     await expect
       .poll(() => stageRow(page, 'Script written').textContent())
-      .toBe('Script writtenWaiting for the brief');
+      .toBe('Script writtenNeeds you');
+    // A new project shows the empty stage, never the demo scene, and no direction bar yet.
+    const empty = page.getByTestId('preview-empty');
+    await empty.waitFor();
+    expect(await empty.textContent()).toContain('Nothing to show yet — Describe the video');
+    expect(await page.locator('canvas.preview-canvas[data-rendered-t]').count()).toBe(0);
+    expect(await page.getByRole('region', { name: 'Direct the shot' }).count()).toBe(0);
+    await page.getByRole('button', { name: 'Back to preview' }).click();
+    await empty.waitFor();
+    await shot('empty-stage');
+    await page
+      .getByRole('region', { name: 'Pipeline' })
+      .getByRole('button', { name: 'Brief', exact: true })
+      .click();
+    await brief.waitFor();
     await brief
       .getByLabel('What is the video about?')
       .fill(
@@ -141,7 +155,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     await progress.locator('.step-tool').first().waitFor({ timeout: 15_000 });
     await expect
       .poll(() => stageRow(page, 'Script written').textContent())
-      .toMatch(/^Script writtenRunning…/);
+      .toMatch(/^Script writtenWorking/);
     await shot('progress');
 
     const editor = page.getByRole('textbox', { name: 'Script' });
@@ -159,7 +173,7 @@ describe('Brief -> Script and the pipeline sidebar', () => {
       .toEqual(expect.arrayContaining(['Claude turn: research', 'Claude turn: script']));
     await expect
       .poll(() => stageRow(page, 'Script written').textContent())
-      .toBe('Script writtenReview & approve');
+      .toBe('Script writtenNeeds you');
     await shot('script');
 
     const view = page.getByRole('region', { name: 'Script' });
@@ -194,16 +208,17 @@ describe('Brief -> Script and the pipeline sidebar', () => {
   it('explains a blocked stage and asks before Redo', async () => {
     const pipeline = page.getByRole('region', { name: 'Pipeline' });
     await page.getByRole('button', { name: 'Back to preview' }).click();
-    await stageRow(page, 'Storyboard').click();
+    await selectStage(page, 'Storyboard');
     const actions = pipeline.getByRole('group', { name: 'Storyboard actions' });
     const run = actions.getByRole('button', { name: 'Run' });
     expect(await run.getAttribute('aria-disabled')).toBe('true');
     expect(await run.getAttribute('title')).toContain('run Words timed first');
-    await pipeline.getByText('timing/words.json is missing: run Words timed first.').waitFor();
+    // The detail line translates the requirement; the raw reason stays in the Run tooltip.
+    await pipeline.getByText('Needs: timed words.').waitFor();
     await run.hover();
     await shot('gating');
 
-    await stageRow(page, 'Script written').click();
+    await selectStage(page, 'Script written');
     await pipeline
       .getByRole('group', { name: 'Script written actions' })
       .getByRole('button', { name: 'Redo' })
@@ -219,4 +234,39 @@ describe('Brief -> Script and the pipeline sidebar', () => {
       1280,
     );
   });
+
+  it('plays an imported voiceover on the empty stage before the storyboard exists', async () => {
+    await mkdir(path.join(projectDir, 'audio'), { recursive: true });
+    await writeFile(path.join(projectDir, 'audio', 'vo.original.wav'), silentWav(2));
+    const preview = page.getByRole('region', { name: 'Preview' });
+    await page.getByTestId('preview-empty').waitFor();
+    const play = preview.getByRole('button', { name: 'Play', exact: true });
+    await expect.poll(() => play.isEnabled(), { timeout: 30_000 }).toBe(true);
+    await play.click();
+    await expect
+      .poll(() => preview.getByLabel('Current time').textContent(), { timeout: 10_000 })
+      .not.toMatch(/^0:00\.00/);
+    await shot('empty-stage-voiceover');
+    await preview.getByRole('button', { name: 'Pause', exact: true }).click();
+  });
 });
+
+/** A silent 16-bit mono 16 kHz WAV of `seconds` (a voiceover stand-in). */
+function silentWav(seconds: number): Buffer {
+  const rate = 16_000;
+  const data = rate * seconds * 2;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + data, 4);
+  header.write('WAVEfmt ', 8, 'ascii');
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(data, 40);
+  return Buffer.concat([header, Buffer.alloc(data)]);
+}

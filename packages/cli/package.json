@@ -39,6 +39,7 @@
     "@reelforge/engine": "workspace:*",
     "@reelforge/kit": "workspace:*",
     "@reelforge/pipeline": "workspace:*",
+    "@reelforge/prompts": "workspace:*",
     "@reelforge/shared": "workspace:*",
     "esbuild": "0.28.2",
     "playwright": "1.63.0",

@@ -4,7 +4,8 @@
  * (fake-claude, one read-only turn) writes three openings shown next to the current one; key 2
  * asks to replace the opening and lists the locked shot; confirming rewrites script.txt's opening,
  * commits `Hook lab: opening 2 (Question)` (step `script`) and leaves the locked scene and
- * locks.json untouched. Settings → Taste shows the switch (off: the seeded settings predate it),
+ * locks.json untouched; the Director's Opening shows the new first line and its own Hook lab
+ * entry. Settings → Taste shows the switch (off: the seeded settings predate it),
  * the profile status, turns learning on (saved to settings.json) and offers Forget everything. fake-claude only;
  * screenshots at 1280×720 in out/test-app/hook-lab-*.png.
  */
@@ -24,7 +25,7 @@ import {
   stubFolderPicker,
   waitForProjectPreview,
 } from './support/electron-app.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage, showDirector } from './support/pipeline-rows.js';
 
 const RESEARCH = [
   '# Research: Doom on a calculator',
@@ -142,12 +143,7 @@ afterAll(async () => {
 
 describe('Hook lab', () => {
   it('writes three openings, compares them and replaces the opening on confirm', async () => {
-    await (await showStage(page, 'Script written')).click();
-    await page
-      .getByRole('region', { name: 'Pipeline' })
-      .getByRole('group', { name: 'Script written actions' })
-      .getByRole('button', { name: 'Open' })
-      .click();
+    await openStage(page, 'Script written');
     const view = page.getByRole('region', { name: 'Script' });
     await view.getByRole('button', { name: 'Hook lab…' }).click();
     const lab = page.getByRole('dialog', { name: 'Hook lab' });
@@ -184,6 +180,14 @@ describe('Hook lab', () => {
     ) as { decision?: { kind: string; index: number } };
     expect(stored.decision).toMatchObject({ kind: 'pick', index: 2 });
     await shot('picked');
+    await lab.getByRole('button', { name: 'Close' }).click();
+    await lab.waitFor({ state: 'detached' });
+
+    const opening = (await showDirector(page)).getByRole('region', { name: 'Opening' });
+    await opening.getByText(/^“Why can a game that once needed a whole computer/).waitFor();
+    await opening.getByRole('button', { name: 'Hook lab…' }).click();
+    await lab.getByRole('heading', { name: 'Hook lab' }).waitFor();
+    await shot('director');
     await lab.getByRole('button', { name: 'Close' }).click();
     await lab.waitFor({ state: 'detached' });
   });

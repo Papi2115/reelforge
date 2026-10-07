@@ -11,6 +11,7 @@ import {
   type MascotId,
   type ShotMascot,
 } from './characters.js';
+import { continuityLinkSchema } from './continuity.js';
 import { interruptSchema } from './interrupts.js';
 
 export const STORYBOARD_FILE_VERSION = 1;
@@ -172,6 +173,11 @@ export const lookIdSchema = z
   .string()
   .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, 'look id must be kebab case, e.g. retro-ui');
 
+/** A world moment id: lower-case kebab case, e.g. `popup`, `sticky-slap`. */
+export const worldMomentIdSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, 'world moment must be kebab case, e.g. sticky-slap');
+
 export const storyboardShotSchema = z
   .object({
     id: shotIdSchema,
@@ -218,6 +224,17 @@ export const storyboardShotSchema = z
      * / `dive-out` may chain over consecutive shots marked so. Optional.
      */
     scaleSequence: z.boolean().optional(),
+    /**
+     * Continuity link from the previous shot (PLAN.md#13.2, continuity.ts): a shared object the
+     * camera or the action carries across the cut. Optional; the first shot never has one.
+     */
+    continuity: continuityLinkSchema.optional(),
+    /**
+     * A world's planned page moment (real run Sketchbook 1; e.g. `popup`, `strip`): one id of the
+     * world's catalog (`@reelforge/prompts` worlds), checked by the world's storyboard validator.
+     * Optional; absent = plain. Projects outside a world never write it.
+     */
+    worldMoment: worldMomentIdSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

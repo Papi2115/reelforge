@@ -1,0 +1,94 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0d0c;
+  --panel: #151a17;
+  --text: #c7b897;
+  --dim: #6f6656;
+  --hi: #d9f2bd;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 16px 24px 32px;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.5 Consolas, 'Courier New', monospace;
+}
+h1 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--hi);
+  letter-spacing: 0.04em;
+}
+h1 span {
+  color: var(--dim);
+  font-weight: normal;
+}
+.subject {
+  margin: 2px 0 12px;
+  color: var(--dim);
+}
+.stage {
+  display: inline-block;
+  padding: 10px;
+  background: #050605;
+  border: 1px solid #222a24;
+}
+canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.caption {
+  max-width: 900px;
+  margin: 10px 0 8px;
+  padding: 6px 10px;
+  background: var(--panel);
+  border-left: 3px solid #5d7556;
+  color: #efe6cf;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.shots {
+  display: flex;
+  gap: 4px;
+}
+button {
+  padding: 4px 10px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #2c362f;
+  font: inherit;
+  cursor: pointer;
+}
+button.active {
+  background: #253228;
+  color: var(--hi);
+  border-color: #5d7556;
+}
+#scrub {
+  width: 260px;
+}
+.time {
+  min-width: 110px;
+  color: var(--dim);
+}
+.note-label {
+  margin: 14px 0 0;
+  color: var(--dim);
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.note {
+  max-width: 900px;
+  margin: 2px 0 0;
+}
+.hint {
+  color: var(--dim);
+  font-size: 11px;
+}

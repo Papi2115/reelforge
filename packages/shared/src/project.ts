@@ -106,6 +106,18 @@ export const projectFileSchema = z.object({
   shotsPerMinute: shotsPerMinuteSchema.optional(),
   /** Faster checks (ADR-027): lighter scene QA, a small quality trade-off. Absent = off. */
   fasterChecks: z.boolean().optional(),
+  /**
+   * Continuity links (PLAN.md#13.2, continuity.ts): the storyboard may link shots through a shared
+   * object. Absent = off (the storyboard prompt is exactly as before).
+   */
+  continuityLinks: z.boolean().optional(),
+  /**
+   * Anti-slop guards (PLAN.md#13.7, docs/worlds/QUALITY.md §8): ⚠ findings for invented text,
+   * clutter, symmetry, uniform timing, missing human traces and repeated compositions. Warnings
+   * only. Absent = on for a world's style, off for the built-in styles (existing projects are
+   * unchanged); the template writes `false`, a world's project defaults `true`.
+   */
+  antiSlopGuards: z.boolean().optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 
@@ -115,6 +127,14 @@ export function projectResearchMode(project: Pick<ProjectFile, 'researchMode'>):
 
 export function projectLookMode(project: Pick<ProjectFile, 'lookMode'>): LookMode {
   return project.lookMode ?? DEFAULT_LOOK_MODE;
+}
+
+/** Whether the anti-slop guards run; `worldStyle`: the project's style is a world's. */
+export function projectAntiSlopGuards(
+  project: Pick<ProjectFile, 'antiSlopGuards'>,
+  worldStyle: boolean,
+): boolean {
+  return project.antiSlopGuards ?? worldStyle;
 }
 
 export function projectAmbientVariation(project: Pick<ProjectFile, 'ambientVariation'>): boolean {

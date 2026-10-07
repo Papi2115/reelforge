@@ -13,6 +13,7 @@ import {
   type StoryboardShot,
 } from '@reelforge/shared';
 import type { StageRunView } from '../../shared/stages-contract.js';
+import { findingLabel } from './scenes-view.js';
 
 /** Findings that mean the scene does not render at all (the export would fail). */
 const UNRENDERABLE = new Set<QaFinding['source']>(['scene', 'runtime']);
@@ -88,14 +89,19 @@ function shotResults(
 function itemText(result: ShotResult): string {
   const first = result.findings[0];
   const more = result.findings.length > 1 ? ` (+${String(result.findings.length - 1)} more)` : '';
-  if (first !== undefined) return `${first.source}: ${first.message}${more}`;
+  if (first !== undefined) return `${findingLabel(first.source)}: ${first.message}${more}`;
   return result.outOfSync ? 'locked, may be out of sync with the voice-over' : 'needs a look';
 }
 
+/**
+ * `built`: shots whose scene file is on disk (scenes-view.ts builtShotIds), so a project with
+ * scenes but no scenes report reads "not checked", not "not built".
+ */
 export function exportPreflight(
   review: FinalReview | null,
   scenes: ScenesReport | null,
   shots: readonly StoryboardShot[],
+  built: ReadonlySet<string> = new Set(),
 ): Preflight {
   const results = shotResults(review, scenes);
   const items = shots.flatMap((shot): PreflightItem[] => {
@@ -125,8 +131,8 @@ export function exportPreflight(
         : `${blocked.join(', ')} cannot render: rebuild or fix ${blocked.length === 1 ? 'it' : 'them'} first.`,
     summary:
       finalReviewSummary(review) ??
-      (scenes === null
+      (scenes === null && built.size === 0
         ? 'Scenes are not built yet.'
-        : 'No final review yet: open Scenes built and press Run final review.'),
+        : 'Not checked yet: press Run final review.'),
   };
 }

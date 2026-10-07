@@ -1,0 +1,8 @@
+Fix or change an existing scene according to the request. Follow `CLAUDE.md` (contract, determinism, self-QA).
+
+Scope: Shot (Selection | Shot | Whole video) · Shot(s): s02_glass
+Selected object in the preview: glass (mesh at 0.42, 0.55)
+Request: QA fix 1/2 for shot s02_glass (`scenes/s02_glass.js`): make every finding below go away. Keep what the shot must communicate: A glass of water.
+Critic findings to address: error clipped: title cut at the right edge
+
+Make the smallest edit that satisfies the request in the given scope. Re-run lint, re-render the affected frames, Read them and confirm the problem is gone and nothing else broke. Max 2 iterations. Reply in ≤4 lines: what changed, what you verified.

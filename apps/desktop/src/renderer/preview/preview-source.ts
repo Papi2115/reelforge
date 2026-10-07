@@ -1,7 +1,7 @@
 /**
  * What the preview shows (PLAN.md#6.3): the demo video on the start screen; the open project's
  * video once its storyboard can be built (shots without a scene yet as placeholder cards, with a
- * note), otherwise the demo with a note saying why.
+ * note), otherwise the empty stage, never the demo inside a project (docs/ux/redesign-2.4.md §5).
  */
 import type { RenderManifest } from '@reelforge/shared';
 import type { ProjectChangedEvent, ProjectManifestResult } from '../../shared/snapshot-contract.js';
@@ -19,13 +19,15 @@ export type PreviewSource =
       readonly key: VariantKey;
     };
 
-export interface ResolvedPreview {
-  readonly manifest: RenderManifest;
-  /** Shown over the preview when it is not (all of) the project's own video. */
-  readonly note: string | undefined;
-}
-
-export const NO_STORYBOARD_NOTE = 'No shots yet · the demo scene plays until Storyboard has run';
+export type ResolvedPreview =
+  | {
+      readonly kind: 'video';
+      readonly manifest: RenderManifest;
+      /** Shown over the preview when it is not (all of) the project's own video. */
+      readonly note: string | undefined;
+    }
+  /** A project without a video to show yet: the empty-stage card instead of a frame. */
+  | { readonly kind: 'empty'; readonly problem: string | undefined };
 
 /** Note of a project video in which some shots are placeholders (scenes not built yet). */
 export function placeholderNote(placeholders: number, total: number): string {
@@ -33,14 +35,35 @@ export function placeholderNote(placeholders: number, total: number): string {
 }
 
 export function previewNote(result: ProjectManifestResult): string | undefined {
-  if (result.status === 'ready') {
-    const placeholders = result.placeholderShots?.length ?? 0;
-    return placeholders > 0
-      ? placeholderNote(placeholders, result.manifest.shots.length)
-      : undefined;
-  }
-  if (result.status === 'no-storyboard') return NO_STORYBOARD_NOTE;
-  return `Project preview unavailable (${result.reason}) · showing the demo scene`;
+  if (result.status !== 'ready') return undefined;
+  const placeholders = result.placeholderShots?.length ?? 0;
+  return placeholders > 0 ? placeholderNote(placeholders, result.manifest.shots.length) : undefined;
+}
+
+/** What the empty stage of a project shows and plays. */
+export interface EmptyStageInfo {
+  /** The next action ("Record or import your voiceover."). */
+  readonly hint: string | undefined;
+  /** Length of the project's audio (s; 0 = none yet). */
+  readonly audioS: number;
+}
+
+/**
+ * Player length while the empty stage shows: the voiceover's, so an imported recording plays
+ * before the storyboard exists (0 without audio). Null when the player already has it.
+ */
+export function emptyStagePlayback(
+  audioS: number,
+  player: { readonly duration: number },
+): { readonly duration: number } | null {
+  const duration = Number.isFinite(audioS) && audioS > 0 ? audioS : 0;
+  return player.duration === duration ? null : { duration };
+}
+
+/** The empty stage's title line: "Nothing to show yet — <next action>". */
+export function emptyStageTitle(hint: string | undefined): string {
+  const next = hint ?? 'Your video plays here once its shots are planned.';
+  return `Nothing to show yet — ${next}`;
 }
 
 export interface PreviewApi {
@@ -57,16 +80,25 @@ export async function resolvePreview(
   source: PreviewSource,
   api: PreviewApi,
 ): Promise<ResolvedPreview> {
-  if (source.kind === 'demo') return { manifest: await api.getDemoManifest(), note: undefined };
+  if (source.kind === 'demo') {
+    return { kind: 'video', manifest: await api.getDemoManifest(), note: undefined };
+  }
   if (source.kind === 'variant') {
     const variant = await api.getVariantManifest(source.shotId, source.key);
     if (variant.status === 'ready') {
-      return { manifest: variant.manifest, note: variantNote(source.shotId, source.key) };
+      return {
+        kind: 'video',
+        manifest: variant.manifest,
+        note: variantNote(source.shotId, source.key),
+      };
     }
   }
   const result = await api.getProjectManifest();
-  if (result.status === 'ready') return { manifest: result.manifest, note: previewNote(result) };
-  return { manifest: await api.getDemoManifest(), note: previewNote(result) };
+  if (result.status === 'ready') {
+    return { kind: 'video', manifest: result.manifest, note: previewNote(result) };
+  }
+  if (result.status === 'no-storyboard') return { kind: 'empty', problem: undefined };
+  return { kind: 'empty', problem: `The preview cannot be built: ${result.reason}` };
 }
 
 /**

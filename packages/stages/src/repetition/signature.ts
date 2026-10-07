@@ -3,7 +3,9 @@
  * scene calls (a cheap static scan of `kit.<namespace>.<name>(` calls in the scene source — scene
  * QA records no template signature) and the visual signature look + treatment + definitions.
  * Definitions every scene calls (lights, sky, plain rooms) do not count; chart / UI / map
- * templates are what the "same template N times a minute" rule looks at.
+ * templates are what the "same template N times a minute" rule looks at. In a world every shot
+ * calls the same page template, so its signature is the planned moment + look + paper stock and a
+ * plain page has none (real run Sketchbook 1: 8 noise findings per film).
  */
 import { shotLook, type StoryboardShot } from '@reelforge/shared';
 
@@ -39,6 +41,19 @@ export interface ShotVisual {
   readonly shot: StoryboardShot;
   /** Scanned definitions; undefined when the scene source is unknown or a placeholder. */
   readonly definitions: readonly string[] | undefined;
+}
+
+const STOCK = /\bstock\s*:\s*['"]([a-z-]+)['"]/;
+
+/** A world shot's "look · moment · paper" (undefined for a plain page: the page is the world). */
+export function worldVisualSignature(
+  shot: StoryboardShot,
+  source: string | undefined,
+): string | undefined {
+  const moment = shot.worldMoment;
+  if (moment === undefined || moment === 'plain') return undefined;
+  const paper = source === undefined ? undefined : STOCK.exec(source)?.[1];
+  return `${shotLook(shot)} · ${moment} · ${paper ?? 'page'}`;
 }
 
 /** "look · treatment · defs" (undefined without definitions: too little to call a repeat). */

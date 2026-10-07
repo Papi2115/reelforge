@@ -1,6 +1,7 @@
 /**
  * Tiny, safe template engine for stage prompts: `{{name}}` inserts a value, `{{#name}}…{{/name}}`
- * renders its body only when `name` is set (not undefined/null/false/''/[]). Templates are parsed
+ * renders its body only when `name` is set (not undefined/null/false/''/[]), `{{^name}}…{{/name}}`
+ * only when it is not (the text a world variant replaces, PLAN.md#13.6). Templates are parsed
  * once into nodes and values are inserted afterwards, so braces inside values are never
  * re-interpreted. Strings go in verbatim, numbers/booleans via String(), objects/arrays as JSON.
  * Variables outside any section are required; a missing one is a typed error, never "undefined".
@@ -10,7 +11,13 @@ import { err, ok, type Result } from '@reelforge/claude-bridge';
 export type TemplateNode =
   | { readonly kind: 'text'; readonly text: string }
   | { readonly kind: 'var'; readonly name: string }
-  | { readonly kind: 'section'; readonly name: string; readonly children: readonly TemplateNode[] };
+  | {
+      readonly kind: 'section';
+      readonly name: string;
+      readonly children: readonly TemplateNode[];
+      /** `{{^name}}`: rendered only when `name` is not set. */
+      readonly inverted?: true;
+    };
 
 export interface ParsedTemplate {
   readonly nodes: readonly TemplateNode[];
@@ -26,7 +33,7 @@ export type TemplateError =
 
 export type TemplateVars = Readonly<Record<string, unknown>>;
 
-const TAG = /^([#/]?)\s*([A-Za-z_][A-Za-z0-9_]*)\s*$/;
+const TAG = /^([#^/]?)\s*([A-Za-z_][A-Za-z0-9_]*)\s*$/;
 
 function lineAt(template: string, index: number): number {
   return template.slice(0, index).split('\n').length;
@@ -35,6 +42,7 @@ function lineAt(template: string, index: number): number {
 interface OpenSection {
   readonly name: string;
   readonly line: number;
+  readonly inverted: boolean;
   readonly children: TemplateNode[];
 }
 
@@ -56,8 +64,8 @@ export function parseTemplate(template: string): Result<ParsedTemplate, Template
       return err({ kind: 'template-syntax', message: `invalid tag ${inner}`, line });
     }
     const [, sigil, name = ''] = tag;
-    if (sigil === '#') {
-      stack.push({ name, line, children: [] });
+    if (sigil === '#' || sigil === '^') {
+      stack.push({ name, line, inverted: sigil === '^', children: [] });
     } else if (sigil === '/') {
       const section = stack.pop();
       if (section?.name !== name) {
@@ -68,7 +76,11 @@ export function parseTemplate(template: string): Result<ParsedTemplate, Template
           line,
         });
       }
-      current().push({ kind: 'section', name, children: section.children });
+      current().push(
+        section.inverted
+          ? { kind: 'section', name, children: section.children, inverted: true }
+          : { kind: 'section', name, children: section.children },
+      );
     } else {
       current().push({ kind: 'var', name });
     }
@@ -135,8 +147,10 @@ export function renderTemplate(
     nodes
       .map((node) => {
         if (node.kind === 'text') return node.text;
-        if (node.kind === 'section')
-          return isTruthy(lookup(node.name)) ? render(node.children) : '';
+        if (node.kind === 'section') {
+          const shown = isTruthy(lookup(node.name)) !== (node.inverted === true);
+          return shown ? render(node.children) : '';
+        }
         const value = lookup(node.name);
         if (!isPresent(value)) {
           missing.add(node.name);

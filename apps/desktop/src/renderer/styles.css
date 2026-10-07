@@ -16,11 +16,29 @@
   --ok-soft: rgb(94 224 143 / 14%);
   --warn: #f2c14e;
   --error: #ff8a8a;
+  /* Tokens v2 (docs/ux/redesign-2.4.md §7.2). Controls get a visible edge (≥ 3:1 on every surface);
+     --border stays for dividers. Disabled = dimmed text (≥ 4.5:1) + dashed outline, no opacity. */
+  --border-control: #646a80;
+  --text-disabled: #82869a;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --radius-1: 2px;
+  --radius-2: 4px;
+  --radius-3: 6px;
   --font-ui: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono:
     ui-monospace, 'Cascadia Mono', 'Cascadia Code', Consolas, 'Liberation Mono', monospace;
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.4;
   background: var(--bg);
   color: var(--text);
@@ -73,8 +91,8 @@ textarea {
   font: inherit;
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-2);
   padding: 6px 10px;
 }
 
@@ -83,15 +101,21 @@ button {
 }
 
 button:hover:not(:disabled, [aria-disabled='true']) {
-  border-color: #3d4152;
+  border-color: var(--muted);
   background: var(--panel-raised);
 }
 
-button:disabled,
-button[aria-disabled='true'],
-textarea:disabled {
+/* Disabled: no fill, dimmed text, a dashed outline, no hover. Zero-specificity element part, so
+   borderless controls (link buttons, menu items) stay borderless. */
+:where(button, input, select, textarea):is(:disabled, [aria-disabled='true']) {
   cursor: default;
-  opacity: 0.55;
+  color: var(--text-disabled);
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+:where(button):is(:disabled, [aria-disabled='true']) {
+  background: none;
 }
 
 button.primary {
@@ -101,7 +125,7 @@ button.primary {
   border-color: var(--accent);
 }
 
-button.primary:hover:not(:disabled) {
+button.primary:hover:not(:disabled, [aria-disabled='true']) {
   background: #ff9d5c;
   border-color: #ff9d5c;
 }
@@ -109,6 +133,14 @@ button.primary:hover:not(:disabled) {
 button.danger {
   background: #b91c1c;
   border-color: #b91c1c;
+}
+
+/* A disabled primary / danger button turns neutral: it must not read as the next action. */
+button:is(.primary, .danger):is(:disabled, [aria-disabled='true']) {
+  color: var(--text-disabled);
+  background: none;
+  border-style: dashed;
+  border-color: var(--border);
 }
 
 /* App frame */
@@ -121,7 +153,7 @@ button.danger {
 .app-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-4);
   min-width: 0;
   height: 40px;
   padding: 0 14px;
@@ -132,7 +164,7 @@ button.danger {
 .app-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -148,37 +180,106 @@ button.danger {
     linear-gradient(#b85a1c, #b85a1c) 0 6px / 6px 6px no-repeat;
 }
 
-.project-title {
+/* The project menu: the title is its button (Project settings / Open folder / Close project). */
+.app-header .project-menu {
+  flex-shrink: 1;
   min-width: 0;
-  overflow: hidden;
+}
+
+.project-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border-color: transparent;
+  background: none;
   font-weight: 600;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.project-meta,
-.app-meta {
-  flex-shrink: 0;
-  color: var(--muted);
-  font-size: 12px;
+.project-title:hover:not(:disabled),
+.project-title[aria-expanded='true'] {
+  border-color: var(--border-control);
 }
 
-.app-header .app-meta {
+.project-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-menu-caret {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.project-meta {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.header-spacer {
   margin-left: auto;
 }
 
 .link-button {
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   border: none;
   background: none;
   color: var(--muted);
-  padding: 2px 4px;
+  padding: var(--space-1) var(--space-2);
 }
 
-.link-button:hover {
+.link-button:hover:not(:disabled, [aria-disabled='true']) {
   color: var(--text);
   text-decoration: underline;
+}
+
+.link-button:is(:disabled, [aria-disabled='true']) {
+  color: var(--text-disabled);
+}
+
+/* Header menus (layout/MenuButton.tsx): Help, the project menu. */
+.menu-root {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: var(--space-2);
+  background: var(--panel-raised);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-3);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.help-menu .menu-list {
+  right: 0;
+  left: auto;
+}
+
+.menu-list [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: left;
+  border: none;
+  background: none;
+}
+
+.menu-list [role='menuitem']:hover:not(:disabled),
+.menu-list [role='menuitem']:focus-visible {
+  background: var(--panel);
 }
 
 .app-main {
@@ -188,9 +289,9 @@ button.danger {
 }
 
 .saved-badge {
-  font-size: 12px;
+  font-size: var(--text-xs);
   padding: 1px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-1);
   color: var(--ok);
   border-color: #1d5c37;
   background: #0b2416;
@@ -199,9 +300,9 @@ button.danger {
 /* Start screen (PLAN.md#6.2) next to the demo preview */
 .start-layout {
   display: flex;
-  gap: 16px;
+  gap: var(--space-5);
   height: 100%;
-  padding: 16px;
+  padding: var(--space-5);
 }
 
 .start-screen {
@@ -209,23 +310,23 @@ button.danger {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-4);
+  padding: var(--space-5);
   overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-3);
 }
 
 .start-heading,
 .start-subheading {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 
 .start-subheading {
-  margin-top: 8px;
-  font-size: 14px;
+  margin-top: var(--space-3);
+  font-size: var(--text-md);
 }
 
 .start-new {
@@ -237,8 +338,8 @@ button.danger {
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
@@ -247,35 +348,35 @@ button.danger {
   /* A fieldset is min-content wide by default: the long option labels overflowed the column. */
   min-width: 0;
   margin: 0;
-  padding: 8px 10px;
+  padding: var(--space-3) 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-3);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .start-scene-count legend {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
 .start-scene-count p,
 .scene-count-estimate {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .scene-count-fields {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .scene-count-custom {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
@@ -288,8 +389,8 @@ button.danger {
 }
 
 .start-scene-count .settings-toggle {
-  padding: 6px 8px;
-  font-size: 12px;
+  padding: 6px var(--space-3);
+  font-size: var(--text-xs);
 }
 
 .start-error {
@@ -313,12 +414,12 @@ button.danger {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--space-1);
   text-align: left;
 }
 
 .recent-item .muted {
-  font-size: 11px;
+  font-size: var(--text-xs);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -336,8 +437,8 @@ button.danger {
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+  gap: var(--space-3);
+  padding: var(--space-5);
   overflow-y: auto;
   background: var(--panel);
   border-left: 1px solid var(--border);
@@ -352,40 +453,40 @@ button.danger {
 
 .history-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 
 .history-note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .history-entry {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-2);
 }
 
 .history-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
 }
 
 .history-subject {
-  font-size: 13px;
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
 }
 
 .history-kind {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: var(--text-xs);
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-1);
   background: var(--border);
 }
 
@@ -399,8 +500,8 @@ button.danger {
 
 .history-revert {
   margin-left: auto;
-  padding: 2px 8px;
-  font-size: 12px;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
 }
 
 .history-current {
@@ -420,23 +521,23 @@ button.danger {
 
 .modal {
   width: 420px;
-  padding: 16px;
+  padding: var(--space-5);
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-3);
 }
 
 .modal-title {
-  margin: 0 0 8px;
-  font-size: 16px;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
 }
 
 .modal-body p {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-3);
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-3);
 }

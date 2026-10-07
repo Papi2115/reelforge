@@ -86,6 +86,20 @@ describe('final review view', () => {
     expect(preflight.blocker).toBe('s04 cannot render: rebuild or fix it first.');
   });
 
+  it('says an anti-slop finding in plain words', () => {
+    const slop: FinalReview = {
+      ...review,
+      shots: review.shots.map((shot) =>
+        shot.shotId === 's02'
+          ? { ...shot, findings: [finding('slop', 'the same composition as s01')] }
+          : shot,
+      ),
+    };
+    expect(exportPreflight(slop, null, shots).items[0]?.text).toBe(
+      'Looks generic: the same composition as s01',
+    );
+  });
+
   it('prefers a newer scenes-report result and works without a review', () => {
     const scenes: ScenesReport = {
       version: 1,
@@ -107,9 +121,16 @@ describe('final review view', () => {
     expect(exportPreflight(review, scenes, shots).blocker).toBeNull();
     const without = exportPreflight(null, scenes, shots);
     expect(without.items).toEqual([]);
-    expect(without.summary).toBe(
-      'No final review yet: open Scenes built and press Run final review.',
-    );
+    expect(without.summary).toBe('Not checked yet: press Run final review.');
+  });
+
+  it('reads scene files: built but without any report is "not checked", not "not built"', () => {
+    expect(exportPreflight(null, null, shots).summary).toBe('Scenes are not built yet.');
+    const built = new Set(['s01', 's02']);
+    const preflight = exportPreflight(null, null, shots, built);
+    expect(preflight.summary).toBe('Not checked yet: press Run final review.');
+    expect(preflight.items).toEqual([]);
+    expect(preflight.blocker).toBeNull();
   });
 });
 

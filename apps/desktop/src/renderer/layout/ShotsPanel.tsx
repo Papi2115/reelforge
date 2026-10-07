@@ -5,13 +5,13 @@
  * of each shot (PLAN.md#11.4, plus "Lock all ✓"), "Variants…" (PLAN.md#11.3; also in the
  * right-click menu and on V), the build progress and the missing-props banner. The heading counts
  * the badges; a filter (text, "only ⚠/✗") and compact one-line rows keep 16+ shots usable at
- * 1280x720. Clicking a shot selects it and moves the preview to its start.
+ * 1280x720. Detailed rows of a world's shots tag its planned page moment (`popup`, `strip`). Clicking a shot selects it and moves the preview to its start.
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import type { FileState } from '../../shared/snapshot-contract.js';
 import { plural } from '../../shared/plural.js';
-import type { ShotBadge } from '../stages/scenes-view.js';
+import { missingBadgeLabel, type ShotBadge } from '../stages/scenes-view.js';
 import { FilterIcon, LockIcon } from './icons.js';
 import { ShotContextMenu, type ShotMenuAnchor } from './ShotContextMenu.js';
 import { ShotDetails } from './ShotDetails.js';
@@ -26,6 +26,7 @@ import {
   SHOTS_PREFS_KEY,
   shotsPrefsSchema,
   type ShotFilter,
+  worldMomentTag,
 } from './shots-view.js';
 import { formatTime } from './timeline-scale.js';
 import { usePref } from './ui-prefs.js';
@@ -36,6 +37,8 @@ export interface ShotsPanelProps {
   readonly time: number;
   readonly onSelect: (shot: StoryboardShot) => void;
   readonly badges: ReadonlyMap<string, ShotBadge>;
+  /** Shots whose scene file is on disk: without a badge they read "Not checked". */
+  readonly built: ReadonlySet<string>;
   /** Build progress while Scenes built runs (scenes-view.ts). */
   readonly progress: string | null;
   readonly propsBanner: string | null;
@@ -241,10 +244,12 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
           {shown.map((shot) => {
             const playing = time >= shot.t0 && time < shot.t1;
             const badge = badges.get(shot.id);
+            const status = badge?.label ?? missingBadgeLabel(shot.id, props.built);
             const open = openId === shot.id;
             const locked = props.locked.has(shot.id);
             const offSync = props.outOfSync.has(shot.id);
             const range = `${formatTime(shot.t0)}–${formatTime(shot.t1)}`;
+            const moment = compact ? null : worldMomentTag(shot);
             return (
               <li key={shot.id} className="shot-entry">
                 <button
@@ -266,6 +271,11 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                     <span className="shot-id mono">{shot.id}</span>
                     {!compact && <span className="shot-time mono">{range}</span>}
                     <span className="chip">{shot.treatment}</span>
+                    {moment !== null && (
+                      <span className="chip mono" title={moment.title}>
+                        {moment.text}
+                      </span>
+                    )}
                     {props.withVariants.has(shot.id) && (
                       <span className="chip variants-chip" title="Variants wait for your pick">
                         variants
@@ -298,8 +308,8 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                   className={`shot-badge qa-${badge?.tone ?? 'none'}`}
                   aria-expanded={open}
                   aria-controls={`shot-qa-${shot.id}`}
-                  aria-label={`QA of ${shot.id}: ${badge?.label ?? 'not built yet'}`}
-                  title={`${badge?.label ?? 'Not built yet'}: click for details and actions`}
+                  aria-label={`QA of ${shot.id}: ${status}`}
+                  title={`${status}: click for details and actions`}
                   onClick={() => {
                     setOpenId(open ? null : shot.id);
                   }}
@@ -326,6 +336,7 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                   <ShotDetails
                     shotId={shot.id}
                     badge={badge}
+                    status={status}
                     blocked={props.actionsBlocked}
                     locked={locked}
                     outOfSync={offSync}

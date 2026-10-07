@@ -1,7 +1,14 @@
 import type { StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import type { ShotBadge } from '../stages/scenes-view.js';
-import { filterShots, filterSummary, isCompact, NO_FILTER, shotCounts } from './shots-view.js';
+import {
+  filterShots,
+  filterSummary,
+  isCompact,
+  NO_FILTER,
+  shotCounts,
+  worldMomentTag,
+} from './shots-view.js';
 
 function shot(id: string, intent: string, treatment = 'title-card'): StoryboardShot {
   return { id, t0: 0, t1: 1, intent, treatment, scene: `scenes/${id}.js` } as StoryboardShot;
@@ -72,5 +79,13 @@ describe('shot list helpers', () => {
   it('says how many shots a filter shows', () => {
     expect(filterSummary(3, 3)).toBeNull();
     expect(filterSummary(1, 16)).toBe('Showing 1 of 16');
+  });
+
+  it('tags the planned page moment of a world shot', () => {
+    expect(worldMomentTag({ worldMoment: 'popup' })).toEqual({
+      text: 'popup',
+      title: 'Page moment planned for this shot: popup',
+    });
+    expect(worldMomentTag({})).toBeNull();
   });
 });

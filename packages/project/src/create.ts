@@ -29,6 +29,7 @@ import {
 } from './paths.js';
 import { describeUnknown, err, errorCode, ok, projectError, tryIo, type Result } from './result.js';
 import { copyStyleBibles, findStyleBibles, type StyleBible } from './style-bibles.js';
+import { worldProjectDefaults } from './world-defaults.js';
 
 export interface CreateProjectOptions {
   /** Project folder; created if missing, must be empty if it exists. */
@@ -113,7 +114,11 @@ async function templateProject(
       : { shotsPerMinute: options.shotsPerMinute }),
     ...(options.fasterChecks === true ? { fasterChecks: true } : {}),
   };
-  const project = parseProjectFile({ ...base, ...choices });
+  // A world's style brings its film language (world-defaults.ts); built-in styles: nothing.
+  const merged: Record<string, unknown> = { ...base, ...choices };
+  const style = merged['style'];
+  const world = typeof style === 'string' ? worldProjectDefaults(style) : undefined;
+  const project = parseProjectFile({ ...merged, ...world });
   if (!project.ok) {
     return err({ ...project.error, kind: 'invalid-argument' });
   }
@@ -144,9 +149,10 @@ export async function createProject(options: CreateProjectOptions): Promise<Resu
   // Validate first: a bad title must not leave a half-created folder behind.
   const project = await templateProject(templateDir, options);
   if (!project.ok) return project;
+  // A world style has no bible until it ships (its prompts carry the world brief).
   const bibles = await findStyleBibles(
     options.stylesDir ?? DEFAULT_STYLES_DIR,
-    project.value.style,
+    worldProjectDefaults(project.value.style) === undefined ? project.value.style : undefined,
   );
   if (!bibles.ok) return bibles;
   const folder = await ensureEmptyFolder(dir);

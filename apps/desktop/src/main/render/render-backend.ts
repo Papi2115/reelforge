@@ -15,6 +15,7 @@ import { describeError, type Logger } from '../logger.js';
 import type { RendererSource } from '../navigation-policy.js';
 import { ExportController } from './export-controller.js';
 import { exportProject } from './export-project.js';
+import { simulatedFallbackWarning } from './export-warnings.js';
 import { PoolFrameRenderer } from './pool-frame-renderer.js';
 import { engineBundleVersion } from './render-identity.js';
 import { RenderPool } from './render-pool.js';
@@ -140,6 +141,8 @@ export const TEST_FAKE_MEDIA_ENV = 'REELFORGE_TEST_FAKE_MEDIA';
 export interface RenderTestHooks {
   /** The env the app would give Claude for the open project (render service URL + token). */
   serviceEnv(): ExtraEnv | undefined;
+  /** Sends a simulated "GPU encoder unavailable" warning to the running export (false: none). */
+  exportWarning(): boolean;
 }
 
 /** Lets the app smoke tests reach the render service like Claude's child processes do. */
@@ -152,6 +155,7 @@ export function installRenderTestHooks(
       const dir = currentProject();
       return dir === undefined ? undefined : backend.serviceEnv(dir);
     },
+    exportWarning: () => backend.exports.simulateWarning(simulatedFallbackWarning()),
   };
   Reflect.set(globalThis, RENDER_TEST_HOOKS_GLOBAL, hooks);
 }

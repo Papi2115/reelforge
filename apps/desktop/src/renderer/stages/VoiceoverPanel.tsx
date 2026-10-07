@@ -18,14 +18,30 @@ import { alignmentView, clock, voFit } from './vo-view.js';
 export interface VoiceoverPanelProps {
   readonly stages: StagesControls;
   readonly reports: StageReports | undefined;
+  /** The recording in the project listing (vo-view.ts voiceoverFile), with or without a record. */
+  readonly recordingFile: string | null;
+  /** timing/words.json has words. */
+  readonly timed: boolean;
   readonly onSeek: (t: number) => void;
   readonly onClose: () => void;
 }
 
-function Current({ reports }: { readonly reports: StageReports | undefined }): JSX.Element {
-  const record = reports?.voiceover ?? null;
-  if (record === null)
+function Current(props: {
+  readonly reports: StageReports | undefined;
+  readonly recordingFile: string | null;
+}): JSX.Element {
+  const record = props.reports?.voiceover ?? null;
+  if (record === null) {
+    if (props.recordingFile !== null) {
+      return (
+        <p className="vo-current">
+          <strong>{props.recordingFile.split('/').at(-1)}</strong>
+          <span className="muted"> · in the project</span>
+        </p>
+      );
+    }
     return <p className="muted">No recording yet. Record one here or import a file.</p>;
+  }
   const imported = new Date(record.importedAt).toLocaleString([], {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -44,10 +60,12 @@ function Current({ reports }: { readonly reports: StageReports | undefined }): J
 
 function FitReport(props: {
   readonly reports: StageReports | undefined;
+  readonly hasRecording: boolean;
+  readonly timed: boolean;
   readonly onSeek: (t: number) => void;
 }): JSX.Element {
-  const fit = voFit(props.reports?.voReport ?? null);
-  const alignment = alignmentView(props.reports?.words ?? null);
+  const fit = voFit(props.reports?.voReport ?? null, props.hasRecording);
+  const alignment = alignmentView(props.reports?.words ?? null, props.timed);
   return (
     <section className="vo-report" aria-label="Voice-over and script">
       <h3 className="section-title">Voice-over vs script</h3>
@@ -71,7 +89,7 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
   const state = props.stages.state;
   const running = state?.running?.stage === 'voiceover' ? state.running : null;
   const queued = state?.queue.includes('voiceover') === true;
-  const has = props.reports?.voiceover != null;
+  const has = props.reports?.voiceover != null || props.recordingFile !== null;
 
   const report = (result: StageCommandResult): void => {
     setNotice(result.status === 'error' ? (result.message ?? 'That did not work.') : null);
@@ -86,7 +104,7 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
         </button>
       </div>
       <div className="doc-body vo-body">
-        <Current reports={props.reports} />
+        <Current reports={props.reports} recordingFile={props.recordingFile} />
         <div className="vo-actions" role="group" aria-label="Voice-over actions">
           <button
             type="button"
@@ -139,7 +157,12 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
             }}
           />
         )}
-        <FitReport reports={props.reports} onSeek={props.onSeek} />
+        <FitReport
+          reports={props.reports}
+          hasRecording={has}
+          timed={props.timed}
+          onSeek={props.onSeek}
+        />
       </div>
     </section>
   );

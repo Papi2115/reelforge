@@ -251,6 +251,35 @@ describe('signatures and phrases', () => {
     ).toEqual(['fx.blueprintChart', 'props.bench']);
   });
 
+  it('signs a world shot by its planned moment, look and paper; a plain page has none', () => {
+    const page = (id: string, t0: number, worldMoment?: string): StoryboardShot => ({
+      id,
+      t0,
+      t1: t0 + 5,
+      treatment: 'character-scene',
+      intent: 'x',
+      scene: `scenes/${id}.js`,
+      look: 'sketch-story',
+      roll: 'A',
+      ...(worldMoment === undefined ? {} : { worldMoment }),
+    });
+    const source = "const page = kit.fx.sketchPage({ size, stock: 'cartridge' });";
+    const shots = [
+      page('s01', 0),
+      page('s02', 5),
+      page('s03', 10, 'sticky-slap'),
+      page('s04', 15, 'sticky-slap'),
+    ];
+    const sources = new Map(shots.map((entry) => [entry.id, source]));
+    const world = findRepetitions({ shots, sources, world: true });
+    expect(
+      world.items.filter((entry) => entry.kind === 'visual').map((entry) => entry.subject),
+    ).toEqual(['sketch-story · sticky-slap · cartridge']);
+    const legacy = findRepetitions({ shots, sources });
+    expect(legacy.items.filter((entry) => entry.kind === 'visual')).toHaveLength(1);
+    expect(legacy.items[0]?.subject).toBe('sketch-story · character-scene · fx.sketchPage');
+  });
+
   it('reports a longer repeated phrase once and skips quotations', () => {
     const phrase = (t: number) =>
       ['the', 'tiny', 'old', 'engine', 'ran'].map((text, index) => spoken(text, t + index * 0.3));

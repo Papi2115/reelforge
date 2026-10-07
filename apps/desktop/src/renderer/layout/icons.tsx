@@ -115,6 +115,16 @@ export function ChatIcon(): JSX.Element {
   );
 }
 
+/** A clapperboard on the pixel grid (the Director tab). */
+export function DirectorIcon(): JSX.Element {
+  return (
+    <Icon>
+      <path d="M2 7h12v6H2z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M2 3.5l11.5-1.5.4 3L2.4 6.5z" fill="currentColor" />
+    </Icon>
+  );
+}
+
 /** A chevron pointing `direction` (collapse / expand). */
 export function ChevronIcon({
   direction,

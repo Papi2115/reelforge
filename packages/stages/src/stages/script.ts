@@ -13,6 +13,7 @@ import {
 } from '@reelforge/prompts';
 import { SCRIPT_REPORT_VERSION, scriptReportSchema, type BriefFile } from '@reelforge/shared';
 import { scriptDramaturgyVars } from '../dramaturgy.js';
+import { activeWorld, scriptWorldPromptVars, worldScope } from '../worlds.js';
 import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES, REPORTS } from '../paths.js';
 import {
@@ -138,6 +139,12 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     // Surprise beats / open loops in beats.md (PLAN.md#12.25-12.26); nothing with the switches off.
     ...(ctx.snapshot.project.status === 'ok'
       ? scriptDramaturgyVars(ctx.snapshot.project.value)
+      : {}),
+    // A world's surprise beats are page moments, not camera moves (real run Sketchbook 1).
+    ...(ctx.snapshot.project.status === 'ok'
+      ? scriptWorldPromptVars(
+          activeWorld(ctx.snapshot.project.value.style, worldScope(ctx.settings)),
+        )
       : {}),
   });
   if (!prompt.ok) return prompt;

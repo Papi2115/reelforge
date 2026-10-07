@@ -7,12 +7,13 @@
 import { extractPropMeta } from '@reelforge/engine';
 import {
   kitCatalog,
+  LOOKS,
   propExtensionCatalogEntry,
   type KitCatalog,
   type KitCatalogEntry,
   type ProjectCast,
 } from '@reelforge/kit';
-import { projectFileSchema, projectLookMode, type LookMode } from '@reelforge/shared';
+import { projectFileSchema, type LookMode } from '@reelforge/shared';
 import { COMMON_OPTIONS, parseCommandArgs, parseInteger } from '../args.js';
 import { result, type Command } from '../command.js';
 import { UsageError } from '../errors.js';
@@ -24,6 +25,7 @@ import { projectCastOf } from './cast-preview.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
 import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
 import { formatCatalog } from './kit-docs-index.js';
+import { experimentalWorldsEnabled, kitDocsLookMode, kitDocsScope } from './kit-docs-world.js';
 import { callName, NAMESPACE, originNote } from './kit-docs-lines.js';
 import { describeSlice, sliceNames } from './kit-docs-slices.js';
 import { PROP_MODULE_TOPIC, propModuleDocs } from './prop-module-docs.js';
@@ -176,10 +178,18 @@ export async function projectProps(
   return { entries, problems };
 }
 
-/** The project's look mode; voxel-only without a valid project.json (the default). */
-async function readLookMode(root: string): Promise<LookMode> {
+/**
+ * The project's look mode (voxel-only without a valid project.json, the default; a world's style
+ * is always mixed, PLAN.md#13.6) and style (its world's looks join the catalog, PLAN.md#13.1; none
+ * without a project).
+ */
+async function readLookSettings(
+  root: string,
+): Promise<{ lookMode: LookMode; style: string | undefined }> {
   const project = await checkJsonFile(root, PROJECT_PATHS.project, projectFileSchema);
-  return project.status === 'ok' ? projectLookMode(project.data) : 'voxel-only';
+  return project.status === 'ok'
+    ? { lookMode: kitDocsLookMode(project.data), style: project.data.style }
+    : { lookMode: 'voxel-only', style: undefined };
 }
 
 export const kitDocsCommand: Command = {
@@ -192,8 +202,12 @@ export const kitDocsCommand: Command = {
     if (positionals.length > 1) throw new UsageError('kit-docs takes at most one name');
     const project = await projectProps(context.root);
     const { cast } = projectCastOf(await readCastRoles(context.root));
-    const catalog = kitCatalog(project.entries);
-    const lookMode = await readLookMode(context.root);
+    const { lookMode, style } = await readLookSettings(context.root);
+    const catalog = kitCatalog(
+      project.entries,
+      LOOKS,
+      kitDocsScope(style, experimentalWorldsEnabled()),
+    );
     const name = positionals[0];
     if (name === undefined && (values.full || values.page !== undefined)) {
       throw new UsageError(

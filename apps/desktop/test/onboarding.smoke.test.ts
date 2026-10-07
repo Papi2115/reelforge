@@ -29,7 +29,7 @@ import {
   screenshotDir,
 } from './support/electron-app.js';
 import { ffprobe } from './support/pipeline-film.js';
-import { showStage } from './support/pipeline-rows.js';
+import { openStage, selectStage, showStage } from './support/pipeline-rows.js';
 
 const DONE_ROWS = [
   'Script written',
@@ -92,12 +92,16 @@ async function waitDone(label: string, timeout: number): Promise<void> {
 }
 
 async function runRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
+  await selectStage(page, label);
   const run = pipeline()
     .getByRole('group', { name: `${label} actions` })
     .getByRole('button', { name: /^(Run|Retry|Resume)$/ });
   await expect.poll(() => run.getAttribute('aria-disabled')).toBe('false');
   await run.click();
+}
+
+async function openRow(label: string): Promise<void> {
+  await openStage(page, label);
 }
 
 async function openedPaths(): Promise<string[]> {
@@ -151,7 +155,7 @@ describe('first run', () => {
     await shot('tour-preview');
 
     for (const label of DONE_ROWS) await waitDone(label, 30_000);
-    expect(await rowText('Sound design mixed')).toMatch(/^Sound design mixedReady to run/);
+    expect(await rowText('Sound design mixed')).toMatch(/^Sound design mixedReady/);
     expect(await page.getByTestId('next-step').textContent()).toContain('Sound design mixed');
 
     const preview = page.getByRole('dialog', { name: 'Preview' });
@@ -167,6 +171,29 @@ describe('first run', () => {
     expect((await frameStats(page)).distinctColours).toBeGreaterThan(16);
     await shot('example-opened');
   }, 180_000);
+
+  it('reads the example’s files for its empty states (scenes, voiceover, words)', async () => {
+    await openRow('Scenes built');
+    const scenes = page.getByRole('region', { name: 'Scenes built' });
+    await expect
+      .poll(() => scenes.getByTestId('scenes-totals').textContent())
+      .toBe('7 scenes built · not checked yet');
+    await page.getByRole('button', { name: 'QA of s01: Not checked' }).waitFor();
+    await shot('scenes-not-checked');
+    await scenes.getByRole('button', { name: 'Back to preview' }).click();
+
+    await openRow('Voiceover added');
+    const voiceover = page.getByRole('region', { name: 'Voiceover' });
+    await voiceover.getByText('Not compared with the script yet.').waitFor();
+    expect(await voiceover.textContent()).not.toContain('No voice-over yet');
+    await voiceover.getByRole('button', { name: 'Back to preview' }).click();
+
+    await openRow('Words timed');
+    const words = page.getByRole('region', { name: 'Words timed' });
+    await words.locator('.words-list li').first().waitFor();
+    expect(await words.textContent()).not.toContain('Run Words timed');
+    await words.getByRole('button', { name: 'Back to preview' }).click();
+  }, 60_000);
 
   it('Help: shortcuts, About with the licences, Report a problem opens the logs folder', async () => {
     await app.evaluate(({ shell }) => {

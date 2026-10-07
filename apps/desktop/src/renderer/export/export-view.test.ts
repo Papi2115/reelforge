@@ -147,6 +147,7 @@ describe('export view', () => {
           { id: 's01', frames: 30, done: 30, state: 'cached' },
           { id: 's02', frames: 100, done: 50, state: 'rendering' },
         ],
+        warning: null,
       },
     };
     expect(progressLine(full)).toBe('Rendering s02 (50/100 frames) · 1:15 left · 24.5 fps');

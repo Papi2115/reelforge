@@ -1,0 +1,20 @@
+html, body { margin: 0; background: #1a120d; color: #efd9ae; font: 13px/1.4 Consolas, 'Courier New', monospace; }
+body { display: flex; justify-content: center; padding: 12px 0 24px; }
+#wrap { min-width: 640px; }
+header { display: flex; justify-content: space-between; gap: 16px; padding: 0 2px 8px; color: #bf8d57; }
+header .world { color: #eba73a; font-weight: bold; }
+canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; background: #0b090d; box-shadow: 0 0 0 6px #2c1a12, 0 0 0 7px #50301e; }
+.caption { margin: 12px 0 6px; padding: 6px 10px; min-height: 20px; background: #0b090d; color: #efd9ae; border-left: 3px solid #d9651f; font-size: 15px; }
+.timeline { position: relative; margin: 14px 0 4px; }
+#markers { position: relative; height: 14px; }
+.marker { position: absolute; top: 0; height: 30px; border-left: 1px solid #84522c; padding-left: 3px; font-size: 10px; color: #bf8d57; pointer-events: none; }
+#scrub { width: 100%; margin: 0; accent-color: #d9651f; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+button { background: #2c1a12; color: #efd9ae; border: 1px solid #84522c; padding: 4px 9px; font: inherit; cursor: pointer; }
+button:hover { background: #50301e; }
+button.primary { border-color: #eba73a; color: #eba73a; }
+.shots button.on { background: #84522c; color: #fff3dc; }
+.shots button b { color: #eba73a; }
+#mode { margin-left: auto; color: #eba73a; }
+.time { color: #8a8591; font-size: 12px; white-space: pre; }
+.help { color: #84522c; font-size: 11px; margin: 4px 0 0; }

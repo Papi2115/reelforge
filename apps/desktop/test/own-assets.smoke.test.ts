@@ -8,7 +8,8 @@
  *   description; "Save to library" is ticked with the keyboard; the Library tab shows the picture
  *   (served from the library folder) and stars it;
  * - project B (same profile): Library → "Use in project" copies it in, no request at all.
- * Screenshots at 1280×720 in out/test-app/own-assets-*.png.
+ * Screenshots at 1280×720 in out/test-app/own-assets-*.png; per attempt the window at the end
+ * (own-assets-1280-end-<n>.png) and main's log (own-assets-main-<n>.log) for CI failures.
  */
 import { spawnSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -24,7 +25,7 @@ import { fakeClaudeBinPath } from '@reelforge/fake-claude';
 import { assetLibraryFileSchema, assetsFileSchema } from '@reelforge/shared';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { TEST_ASSET_SERVER_ENV, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
+import { logFile, TEST_ASSET_SERVER_ENV, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import {
   closeApp,
   fixtureProject,
@@ -37,6 +38,9 @@ const STAMP = '2026-10-04T10:00:00.000Z';
 
 let server: AssetTestServer;
 let root: string;
+/** Folder of the running attempt (profile, projects, the user's files) and its number. */
+let attemptDir: string | undefined;
+let attempt = 0;
 let app: ElectronApplication | undefined;
 let page: Page;
 
@@ -140,9 +144,26 @@ beforeAll(async () => {
   await mkdir(screenshotDir, { recursive: true });
 });
 
+/**
+ * Evidence for CI (the artifact upload takes out/test-app/): the window as the test left it and
+ * main's log. A test failing mid-way leaves its app open, so the screenshot shows the failure.
+ */
 afterEach(async () => {
+  if (app !== undefined) {
+    await screenshot(`end-${String(attempt)}`).catch((error: unknown) => {
+      process.stderr.write(`own-assets: no end screenshot: ${String(error)}\n`);
+    });
+  }
   await closeApp(app);
   app = undefined;
+  if (attemptDir !== undefined) {
+    const log = logFile(path.join(attemptDir, 'profile'));
+    await cp(log, path.join(screenshotDir, `own-assets-main-${String(attempt)}.log`)).catch(
+      (error: unknown) => {
+        process.stderr.write(`own-assets: no main log: ${String(error)}\n`);
+      },
+    );
+  }
 });
 
 afterAll(async () => {
@@ -152,12 +173,15 @@ afterAll(async () => {
 
 describe('own assets and the asset library (research off)', () => {
   it('adds, describes and shares own files between projects without any request', async () => {
-    const profile = path.join(root, 'profile');
-    const projectA = path.join(root, 'Project A');
-    const projectB = path.join(root, 'Project B');
+    // Every attempt (CI retries) starts from fresh projects and a fresh profile.
+    attempt += 1;
+    attemptDir = await mkdtemp(path.join(root, 'attempt-'));
+    const profile = path.join(attemptDir, 'profile');
+    const projectA = path.join(attemptDir, 'Project A');
+    const projectB = path.join(attemptDir, 'Project B');
     await createProject(projectA);
     await createProject(projectB);
-    const inbox = path.join(root, 'my files');
+    const inbox = path.join(attemptDir, 'my files');
     await mkdir(inbox, { recursive: true });
     const photo = path.join(inbox, 'nokia_front.png');
     const clip = path.join(inbox, 'unboxing.mp4');
@@ -206,10 +230,17 @@ describe('own assets and the asset library (research off)', () => {
     await dialog.getByRole('button', { name: 'This project', exact: true }).click();
     await yours.getByRole('button', { name: 'Describe nokia_front' }).click();
     const form = yours.getByRole('form', { name: 'Describe nokia_front' });
-    await form.getByLabel('What it shows (Claude reads this)').fill('my Nokia 3310, front');
+    const description = form.getByLabel('What it shows (Claude reads this)');
+    await description.fill('my Nokia 3310, front');
+    // Each step is checked on its own, so a CI failure says which one did not happen.
+    expect(await description.inputValue()).toBe('my Nokia 3310, front');
     await form.getByRole('button', { name: 'Save' }).click();
+    await form.waitFor({ state: 'detached', timeout: 30_000 });
     await expect
-      .poll(() => catalogueIds(projectA), { timeout: 30_000 })
+      .poll(() => catalogueIds(projectA), {
+        timeout: 30_000,
+        message: 'the description is saved to assets.json (see own-assets-1280-end-<attempt>.png)',
+      })
       .toContain('own-nokia-front:my Nokia 3310, front');
 
     // Save to library with the keyboard.

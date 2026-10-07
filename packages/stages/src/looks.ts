@@ -3,7 +3,7 @@
  * prompt get from the project's `lookMode` and the kit's look registry. `voxel-only` (every
  * project made before 2.0) gets nothing, so its prompts and checks stay exactly as they were.
  */
-import { getLook, listLooks, voxelLook, type Look } from '@reelforge/kit';
+import { getLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
 import { DEFAULT_LOOK_RHYTHM_RULES, maxNonCutTransitions } from '@reelforge/prompts';
 import {
   describePairs,
@@ -15,6 +15,39 @@ import {
   type StoryboardShot,
   type TransitionStyle,
 } from '@reelforge/shared';
+
+/**
+ * The looks a project of this style offers (PLAN.md#13.1, ADR-029): for the built-in styles
+ * exactly `listLooks()`; a world's style is exclusive, only that world's looks (an experimental
+ * world's only with `scope.experimental`, worlds.ts).
+ */
+export function styleLooks(
+  style: string | undefined,
+  scope: { readonly experimental?: boolean | undefined } = {},
+): Look[] {
+  return listLooks(LOOKS, scope.experimental === true ? { style, experimental: true } : { style });
+}
+
+/** A look as the app's settings list it (`project-settings` dialog). */
+export interface StyleLookSummary {
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
+}
+
+/** The looks a project of this style offers, as the app lists them (voxel first; ADR-029). */
+export function styleLookSummaries(style: string | undefined): StyleLookSummary[] {
+  return styleLooks(style).map(({ id, label, description }) => ({ id, label, description }));
+}
+
+/**
+ * The look a shot builds and is judged in when its own is unknown or not offered: voxel wherever
+ * it is offered (every built-in style), otherwise the first offered look (a world's A-roll look).
+ */
+export function fallbackLook(looks: readonly Look[] | undefined): Look {
+  if (looks === undefined || looks.some((look) => look.id === voxelLook.id)) return voxelLook;
+  return looks[0] ?? voxelLook;
+}
 
 /** One line per look in the storyboard prompt. */
 export function lookLine(look: Look): string {
@@ -51,12 +84,14 @@ export function availableTransitionStyles(looks: readonly Look[]): TransitionSty
 /**
  * Storyboard prompt variables: none in `voxel-only`; transition styles and the wow transitions
  * (ADR-028) once 2+ looks exist, with the film's budget of non-cut and wow transitions when its
- * length (`durationS`) is known.
+ * length (`durationS`) is known. A world (`world`, PLAN.md#13.6) brings its own transitions
+ * (worlds.ts), so the transition kit's styles and the wow transitions are left out.
  */
 export function storyboardLookVars(
   mode: LookMode,
   looks: readonly Look[] = listLooks(),
   durationS?: number,
+  world = false,
 ): Readonly<Record<string, string | boolean>> {
   if (mode === 'voxel-only') return {};
   const budget =
@@ -73,8 +108,12 @@ export function storyboardLookVars(
     ...(looks.length >= 2
       ? {
           multiLook: true,
-          transitions: availableTransitionStyles(looks).map(transitionLine).join('\n'),
-          wowTransitions: WOW_STYLE_LIST.map(wowTransitionLine).join('\n'),
+          ...(world
+            ? {}
+            : {
+                transitions: availableTransitionStyles(looks).map(transitionLine).join('\n'),
+                wowTransitions: WOW_STYLE_LIST.map(wowTransitionLine).join('\n'),
+              }),
           ...budget,
         }
       : { singleLook: true }),
@@ -91,7 +130,8 @@ export function storyboardLookOptions(
 
 /**
  * Scene-build prompt variables: none in `voxel-only`; in `mixed` the shot's look and its docs (a
- * look that is unknown or not available, e.g. in a hand-edited storyboard, builds as voxel).
+ * look that is unknown or not offered, e.g. in a hand-edited storyboard, builds in `fallbackLook`:
+ * voxel, or a world's first look).
  */
 export function sceneLookVars(
   mode: LookMode,
@@ -99,7 +139,7 @@ export function sceneLookVars(
   looks?: readonly Look[],
 ): Readonly<Record<string, string>> {
   if (mode === 'voxel-only') return {};
-  const look = getLook(shotLook(shot), looks) ?? voxelLook;
+  const look = getLook(shotLook(shot), looks) ?? fallbackLook(looks);
   return { lookId: look.id, lookDocs: look.docs };
 }
 
@@ -121,14 +161,21 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
     'Flat 2D: clean flat motion graphics on a solid or patterned field (shapes, pixel icons on badges, cards, bars, gauges, bold pixel-caps words); at most ~6 elements, all inside the safe margin, nothing overlapping or cut off.',
   whiteboard:
     'Whiteboard: hand-drawn marker lines, doodles and handwritten pixel caps on a framed off-white whiteboard (a hand may be drawing); drawings stay inside the board clear of the tray, labels whole and not crossing each other.',
+  // Sketchbook (PLAN.md#13.6); the world's craft checklist comes with criticWorldVars.
+  'sketch-story':
+    'Sketch story: one notebook page drawn by a visible hand with a felt-tip: crude stick people with props and reacting faces, the named thing, coloured-pencil fills out of the lines, hand-lettered words, one red correction on the point; the hand never covers the subject.',
+  'sketch-graph':
+    'Sketch graph: blue ballpoint maths and evidence on graph paper, a kraft envelope back or a clipped index card: sums worked line by line, ruled charts with labelled axes, boxes that fill, one red result; numbers whole and readable.',
+  'sketch-loud':
+    'Sketch loud: one huge hand-lettered marker word or number on a lined page, crooked and off-centre with empty paper around it, the red pen correcting it, a flipbook riffled in the corner or a sticky note slapped on; never two loud words.',
   'paper-cutout':
     'Paper cut-out: flat paper pieces with torn or cut edges on layered depth strips (sky bands, hills, city, a toy-theatre room) with soft dithered drop shadows, a jointed paper puppet, pixel-caps signs and title strips; seen straight on, no perspective close-ups; text whole and not over the puppet.',
 };
 
 /**
  * Critic prompt variables: none in `voxel-only` (the prompt stays as before looks); in `mixed`
- * the shot's look (unknown looks judge as voxel), its roll when the storyboard gives one, and the
- * look's visual rules.
+ * the shot's look (unknown looks judge as `fallbackLook`), its roll when the storyboard gives one,
+ * and the look's visual rules.
  */
 export function criticLookVars(
   mode: LookMode,
@@ -136,7 +183,7 @@ export function criticLookVars(
   looks?: readonly Look[],
 ): Readonly<Record<string, string>> {
   if (mode === 'voxel-only') return {};
-  const look = getLook(shotLook(shot), looks) ?? voxelLook;
+  const look = getLook(shotLook(shot), looks) ?? fallbackLook(looks);
   const rules = CRITIC_LOOK_RULES[look.id] ?? `${look.label}: ${look.description}.`;
   // A planned source chip (PLAN.md#12.18) is not a watermark (real run 2.3: flagged off-intent).
   const chip = shot.annotations?.find((entry) => entry.kind === 'source-chip');

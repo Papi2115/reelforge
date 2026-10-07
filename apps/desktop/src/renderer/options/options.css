@@ -1,0 +1,103 @@
+/* "All options" of a pipeline step (OptionsSection.tsx): the Project settings rows, compact. */
+.options-section {
+  flex: none;
+  margin-top: var(--space-3);
+}
+
+/* A docked panel's own column for All options, at the panel's full height (Sound, Scenes). */
+.dock-options {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dock-options > .options-section {
+  margin-top: 0;
+}
+
+.dock-columns {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.dock-columns > .doc-body {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.dock-side-options {
+  flex: 0 0 min(42%, 440px);
+  padding: var(--space-3) var(--space-4);
+  border-left: 1px solid var(--border-soft);
+}
+
+.options-section > .disclosure-toggle {
+  color: var(--accent-text);
+}
+
+/* Narrow dock columns: section titles stay on one line, their summaries shorten. */
+.doc-panel.docked .disclosure-toggle {
+  white-space: nowrap;
+}
+
+.doc-panel.docked .disclosure-toggle .muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.options-section .disclosure-body {
+  gap: var(--space-4);
+}
+
+.options-section p {
+  margin: 0;
+}
+
+.options-section .project-setting-row {
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-soft);
+}
+
+.options-section .project-setting-row:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+.options-section .settings-toggle {
+  gap: var(--space-3);
+  padding: 6px 8px;
+  font-size: var(--text-sm);
+}
+
+.options-section .settings-toggle .muted,
+.options-section .project-setting-row > p,
+.options-section .project-setting-note,
+.options-section .project-setting-looks {
+  font-size: var(--text-xs);
+}
+
+.options-section .settings-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.options-section .project-setting-row > .option-readonly {
+  font-size: var(--text-sm);
+}
+
+.options-status {
+  font-size: var(--text-xs);
+}
+
+/* Storyboard step (StoryboardPanel.tsx), docked under the preview like Scenes built. */
+.storyboard-panel .doc-body {
+  gap: var(--space-3);
+}
+
+.storyboard-panel .doc-body > p {
+  margin: 0;
+}

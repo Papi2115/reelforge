@@ -22,6 +22,7 @@ import {
 } from './support/electron-app.js';
 import { perfBar } from './support/ci-mode.js';
 import { createLongProject, LONG_PROJECT } from './support/timeline-project.js';
+import { projectMenu, projectMenuButton } from './support/project-menu.js';
 
 /** Vertical centres of the lanes (CSS px from the canvas top; TRACK_ROWS in timeline-model.ts). */
 const ROW_Y = { ruler: 10, shots: 34, narration: 60, cues: 83, audio: 109, ambience: 147 };
@@ -74,9 +75,8 @@ async function waitForLanes(key: string, value: string): Promise<void> {
 }
 
 async function openProject(dir: string): Promise<void> {
-  const close = page.getByRole('button', { name: 'Close project' });
-  if (await close.isVisible()) {
-    await close.click();
+  if (await projectMenuButton(page).isVisible()) {
+    await projectMenu(page, 'Close project');
     await page.getByRole('region', { name: 'Start' }).waitFor();
   }
   await stubFolderPicker(app, dir);
@@ -288,13 +288,12 @@ describe('timeline editor', () => {
     // The Tracks menu hides rows (PLAN.md#11.2); the choice is kept.
     await page.getByRole('button', { name: /^Tracks/ }).click();
     await page.getByRole('checkbox', { name: 'Narration' }).uncheck();
-    await page.getByRole('checkbox', { name: 'Cards' }).uncheck();
     await waitForLanes('tracks', 'ruler,shots,cues,audio,ambience');
     await page.screenshot({ path: path.join(screenshotDir, 'timeline-tracks-1920x1080.png') });
     await page.getByRole('checkbox', { name: 'Narration' }).check();
-    await page.getByRole('checkbox', { name: 'Cards' }).check();
     await page.keyboard.press('Escape');
-    await waitForLanes('tracks', 'ruler,shots,narration,cues,audio,cards,ambience');
+    // The Cards row never shows (hide until usable, docs/ux/redesign-2.4.md §5).
+    await waitForLanes('tracks', 'ruler,shots,narration,cues,audio,ambience');
     expect(existsSync(path.join(dir, '.git'))).toBe(true);
   });
 });

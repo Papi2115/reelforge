@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ReelForge world showcase - comic-panels v2 - Apollo 11: the 1202 alarm (10 shots)</title>
+    <link rel="stylesheet" href="showcase.css" />
+  </head>
+  <body>
+    <main>
+      <h1>REELFORGE WORLD &middot; <b>COMIC-PANELS v2</b> &middot; Apollo 11: the 1202 alarm &middot; 10 shots, one timeline</h1>
+      <canvas id="frame" width="640" height="360"></canvas>
+      <div id="caption"></div>
+      <div class="bar" id="shots"></div>
+      <div class="bar">
+        <button id="playAll" title="key A">play all</button>
+        <button id="playShot">play shot</button>
+        <label><input id="loop" type="checkbox" checked /> loop shot</label>
+        <button id="toggle" title="space">pause</button>
+        <label><input id="showCaption" type="checkbox" checked /> dev caption</label>
+      </div>
+      <div class="scrubber">
+        <div id="markers"></div>
+        <input id="scrub" type="range" min="0" max="1" step="1" value="0" />
+        <span id="time">0.00 s</span>
+      </div>
+      <div id="note"></div>
+      <div id="keys">1-9, 0 = shot 10 &middot; space play/pause &middot; &larr; &rarr; one frame &middot; A play all &middot; ?shot=3&amp;t=2.5&amp;paused=1</div>
+    </main>
+    <script src="engine.js"></script>
+    <script src="fonts.js"></script>
+    <script src="lettering.js"></script>
+    <script src="marks.js"></script>
+    <script src="art.js"></script>
+    <script src="art-crew.js"></script>
+    <script src="art-1961.js"></script>
+    <script src="art-room.js"></script>
+    <script src="art-spread.js"></script>
+    <script src="page.js"></script>
+    <script src="transitions.js"></script>
+    <script src="shots-1-2.js"></script>
+    <script src="shots-3.js"></script>
+    <script src="shots-4.js"></script>
+    <script src="shots-5.js"></script>
+    <script src="shots-6-8.js"></script>
+    <script src="shots-7.js"></script>
+    <script src="shots-9.js"></script>
+    <script src="shots-10.js"></script>
+    <script src="timeline.js"></script>
+    <script src="player.js"></script>
+  </body>
+</html>

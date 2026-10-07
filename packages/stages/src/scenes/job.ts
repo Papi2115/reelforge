@@ -4,9 +4,9 @@
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { AnchorIndex } from '@reelforge/pipeline';
+import type { Look, World } from '@reelforge/kit';
 import {
   projectFasterChecks,
-  projectLookMode,
   projectResearchMode,
   storyboardFileSchema,
   type AssetRecord,
@@ -23,9 +23,11 @@ import { readLockedShots } from '../locks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
 import { RoleBuilder } from '../roles/builder.js';
+import { loadAntiSlop, type AntiSlopSetup } from '../slop/guards.js';
 import { sceneAssetCatalogue } from './shot-assets.js';
 import { fasterSceneSettings, type SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
+import { lookSetup, worldScope, type WorldScope } from '../worlds.js';
 import {
   kitNamesFromCatalog,
   type FrameRenderer,
@@ -48,6 +50,10 @@ export interface SceneJob {
   readonly styleId: string;
   /** Project look mode (ADR-009): `voxel-only` builds every shot as before looks. */
   readonly lookMode: LookMode;
+  /** The looks the project's style offers (worlds.ts `lookSetup`). */
+  readonly looks: readonly Look[];
+  /** The project's world when it is offered (PLAN.md#13.6); undefined for built-in styles. */
+  readonly world: World | undefined;
   readonly shots: readonly StoryboardShot[];
   readonly words: WordsFile | undefined;
   /** Fuzzy anchor resolver over the words (sync checks); undefined before "Words timed". */
@@ -62,9 +68,23 @@ export interface SceneJob {
   readonly dramaturgy?: SceneDramaturgy | undefined;
   /** Characters, mascot in effect and built roles (PLAN.md#12.20); classic + none = as before. */
   readonly characters: CharacterSettings;
+  /** Anti-slop guards (PLAN.md#13.7); undefined = off for this project (no ⚠ slop findings). */
+  readonly antiSlop?: AntiSlopSetup | undefined;
 }
 
-let defaultKitNames: KitNames | undefined;
+/** Installed kit names per style (and experimental scope); computed once each. */
+const kitNamesByScope = new Map<string, KitNames>();
+
+function installedKitNames(style: string, scope: WorldScope): KitNames {
+  const experimental = scope.experimental === true;
+  const key = `${style}|${String(experimental)}`;
+  let names = kitNamesByScope.get(key);
+  if (names === undefined) {
+    names = kitNamesFromCatalog(experimental ? { style, experimental } : { style });
+    kitNamesByScope.set(key, names);
+  }
+  return names;
+}
 
 async function readWords(projectDir: string): Promise<Result<WordsFile | undefined, StageError>> {
   const text = await readProjectText(projectDir, FILES.words);
@@ -89,13 +109,23 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   if (!words.ok) return words;
   const locked = await readLockedShots(ctx.projectDir);
   if (!locked.ok) return locked;
-  const kitNames = tools.kitNames ?? (defaultKitNames ??= kitNamesFromCatalog());
+  const scope = worldScope(ctx.settings);
+  const kitNames = tools.kitNames ?? installedKitNames(project.value.style, scope);
+  const setup = lookSetup(project.value, scope);
   // Faster checks (ADR-027): lighter QA for this project; off = the settings as they are.
   const settings = projectFasterChecks(project.value)
     ? fasterSceneSettings(ctx.settings.scenes)
     : ctx.settings.scenes;
   const styleId = project.value.style;
   const assets = await sceneAssetCatalogue(ctx.projectDir);
+  const antiSlop = await loadAntiSlop({
+    projectDir: ctx.projectDir,
+    project: project.value,
+    world: setup.world,
+    words: words.value,
+    assets,
+  });
+  if (!antiSlop.ok) return antiSlop;
   return ok({
     ctx,
     frames: tools.frames,
@@ -105,7 +135,9 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     kitNames,
     settings,
     styleId,
-    lookMode: projectLookMode(project.value),
+    lookMode: setup.lookMode,
+    looks: setup.looks,
+    world: setup.world,
     shots: storyboard.value.shots,
     words: words.value,
     anchorIndex:
@@ -117,6 +149,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     assets,
     dramaturgy: await loadSceneDramaturgy(ctx.projectDir, project.value),
     characters: await loadCharacterSettings(ctx.projectDir, project.value),
+    antiSlop: antiSlop.value,
   });
 }
 

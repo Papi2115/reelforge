@@ -1,0 +1,141 @@
+{
+  "s01_july_1518": {
+    "duration": 6.59,
+    "anchors": {
+      "1518#1": {
+        "t": 1.35,
+        "tEnd": 2.53
+      },
+      "stepped#1": {
+        "t": 2.97,
+        "tEnd": 3.27
+      },
+      "Strasbourg#1": {
+        "t": 4.01,
+        "tEnd": 4.49
+      },
+      "dance#1": {
+        "t": 5.17,
+        "tEnd": 6.59
+      }
+    }
+  },
+  "s03_four_hundred": {
+    "duration": 5.58,
+    "anchors": {
+      "dozens#1": {
+        "t": 0.74,
+        "tEnd": 1.02
+      },
+      "joined#1": {
+        "t": 1.3,
+        "tEnd": 1.56
+      },
+      "some estimates#1": {
+        "t": 2.5,
+        "tEnd": 3.26
+      },
+      "four hundred#1": {
+        "t": 3.98,
+        "tEnd": 4.64
+      }
+    }
+  },
+  "s07_popup_stage": {
+    "duration": 4.32,
+    "anchors": {
+      "stages#1": {
+        "t": 0.7,
+        "tEnd": 0.96
+      },
+      "musicians#1": {
+        "t": 1.68,
+        "tEnd": 2.74
+      },
+      "More people danced#1": {
+        "t": 2.74,
+        "tEnd": 4.32
+      }
+    }
+  },
+  "s09_fifteen_a_day": {
+    "duration": 4.5,
+    "anchors": {
+      "Fifteen#1": {
+        "t": 0,
+        "tEnd": 0.36
+      },
+      "day#1": {
+        "t": 0.68,
+        "tEnd": 0.9
+      },
+      "often claimed#1": {
+        "t": 1.16,
+        "tEnd": 2.48
+      },
+      "No record backs it#1": {
+        "t": 2.48,
+        "tEnd": 4.5
+      }
+    }
+  },
+  "s10_september": {
+    "duration": 3.36,
+    "anchors": {
+      "By September#1": {
+        "t": 0,
+        "tEnd": 0.82
+      },
+      "ended#1": {
+        "t": 1.1,
+        "tEnd": 2.2
+      },
+      "So why#2": {
+        "t": 2.2,
+        "tEnd": 3.36
+      }
+    }
+  },
+  "s11_best_guess": {
+    "duration": 4.34,
+    "anchors": {
+      "best guess#1": {
+        "t": 0.62,
+        "tEnd": 1.74
+      },
+      "Famine#1": {
+        "t": 1.74,
+        "tEnd": 2.36
+      },
+      "disease#1": {
+        "t": 2.36,
+        "tEnd": 2.8
+      },
+      "fear#1": {
+        "t": 3,
+        "tEnd": 3.18
+      }
+    }
+  },
+  "s08_shrine": {
+    "duration": 5.16,
+    "anchors": {
+      "banned music#1": {
+        "t": 0.38,
+        "tEnd": 0.86
+      },
+      "dancers#1": {
+        "t": 1.42,
+        "tEnd": 1.64
+      },
+      "Saint Vitus's#1": {
+        "t": 1.86,
+        "tEnd": 2.76
+      },
+      "thirty miles#1": {
+        "t": 3.16,
+        "tEnd": 3.76
+      }
+    }
+  }
+}

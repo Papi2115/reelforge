@@ -10,20 +10,17 @@ import { existsSync } from 'node:fs';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { CuesFileSchema, MUSIC_MOODS, type CuesFile } from '@reelforge/pipeline';
 import { validateCues } from '@reelforge/prompts';
-import {
-  projectLookMode,
-  storyboardFileSchema,
-  wordsFileSchema,
-  type StoryboardShot,
-} from '@reelforge/shared';
+import { storyboardFileSchema, wordsFileSchema, type StoryboardShot } from '@reelforge/shared';
 import { GridTimes } from '../beat-sync/grid.js';
 import { snapWhooshCues } from '../beat-sync/snap.js';
 import { activeBeatGrid, reportSoundSync } from '../beat-sync/stage.js';
 import { reviewRepetitions } from '../repetition/stage.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
 import { FILES, inProject } from '../paths.js';
+import { WORLD_MOODS } from '../sound/acts.js';
 import { applyMoodHint, designSound, type SoundDesign } from '../sound/design.js';
 import { activeTension } from '../tension.js';
+import { effectiveLookMode } from '../worlds.js';
 import {
   stageError,
   type StageContext,
@@ -75,6 +72,11 @@ function actLines(design: SoundDesign): string {
     .join('\n');
 }
 
+function worldMoodVars(styleId: string): Record<string, string> {
+  const moods = Object.hasOwn(WORLD_MOODS, styleId) ? WORLD_MOODS[styleId] : undefined;
+  return moods === undefined ? {} : { world: styleId, worldMoods: moods.join(', ') };
+}
+
 /** Claude's adjusted cues, or (a string) the reason to keep the default cues. */
 async function claudeCues(
   ctx: StageContext,
@@ -85,6 +87,8 @@ async function claudeCues(
     styleId,
     moodNames: MUSIC_MOODS.join(', '),
     acts: design.moods.length > 0 ? actLines(design) : undefined,
+    // A world names only its own moods (real run Sketchbook 1); built-in styles: nothing.
+    ...worldMoodVars(styleId),
   });
   if (!prompt.ok) return prompt;
   ctx.step('Claude: sound design', 30);
@@ -167,7 +171,7 @@ async function prepare(ctx: StageContext): Promise<Result<Prepared, StageError>>
     styleId,
     seed,
     musicEnabled: ctx.settings.music.enabled,
-    lookMode: projectLookMode(project.value),
+    lookMode: effectiveLookMode(project.value),
     tension: tension?.points,
     beats: beats.value,
     sceneSfx: ctx.sceneSfx,
@@ -190,6 +194,7 @@ async function withMoodHint(
   const hinted = await applyMoodHint(produced.cues, prepared.design, {
     projectDir: ctx.projectDir,
     seed: prepared.seed,
+    styleId: prepared.styleId,
   });
   if (!hinted.ok) return hinted;
   if (hinted.value === null) return ok(produced);

@@ -46,7 +46,8 @@ export function createExportBackend(options: ExportBackendOptions): ExportBacken
     currentProject,
     settings: options.settings,
     cores: options.cores,
-    start: (request, listener, output) => options.controller.start(request, listener, output),
+    start: (request, listener, output, onWarning) =>
+      options.controller.start(request, listener, output, onWarning),
     cancel: () => {
       options.controller.cancel();
     },

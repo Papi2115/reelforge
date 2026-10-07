@@ -4,7 +4,8 @@
  * selected shot, the lock button locks s02 (locks.json + commit); Scenes built then builds only
  * s01 and the quiet final review follows by itself ("Review done: 1 ✓, 1 ⚠; 1 locked" — the
  * locked s02 has a phone-legibility finding it may only report); the Scenes panel and the export
- * dialog list s02 ("Export anyway"); after a relaunch the lock is still there. fake-claude only.
+ * dialog list s02 ("Export anyway"), so does the header's "Needs you" inbox (Ctrl+Shift+N, its count
+ * = its items, Esc, "Show s02"); after a relaunch the lock is still there. fake-claude only.
  * Screenshots at 1280×720 in out/test-app/locks-*.png.
  */
 import { spawnSync } from 'node:child_process';
@@ -24,7 +25,7 @@ import {
   waitForProjectPreview,
 } from './support/electron-app.js';
 import { FINAL_REVIEW_CLEAN } from './support/pipeline-film.js';
-import { showStage, stageText } from './support/pipeline-rows.js';
+import { openStage, selectStage, stageText } from './support/pipeline-rows.js';
 
 const CRITIC_OK = JSON.stringify({
   frames: [{ path: 'sheet.png', verdict: 'ok', note: 'looks right' }],
@@ -62,11 +63,7 @@ async function rowText(label: string): Promise<string> {
 }
 
 async function openRow(label: string): Promise<void> {
-  await (await showStage(page, label)).click();
-  await pipeline()
-    .getByRole('group', { name: `${label} actions` })
-    .getByRole('button', { name: 'Open' })
-    .click();
+  await openStage(page, label);
 }
 
 async function lockedIds(): Promise<string[]> {
@@ -194,7 +191,7 @@ describe('shot locks and the final review', () => {
 
   it('builds only the unlocked shot, then the final review reports the locked one', async () => {
     // The fixture's scene files count as built: "Redo" rebuilds every unlocked shot.
-    await (await showStage(page, 'Scenes built')).click();
+    await selectStage(page, 'Scenes built');
     const redo = pipeline()
       .getByRole('group', { name: 'Scenes built actions' })
       .getByRole('button', { name: 'Redo' });
@@ -204,7 +201,8 @@ describe('shot locks and the final review', () => {
     await confirm.getByRole('button', { name: 'Redo' }).click();
     await expect
       .poll(() => rowText('Scenes built'), { timeout: 300_000, interval: 500 })
-      .toMatch(/^Scenes builtDone.*Review done: 1 ✓, 1 ⚠; 1 locked/);
+      // The fixture has no voiceover: the scenes are output kept from before.
+      .toMatch(/^Scenes builtKept from before.*Review done: 1 ✓, 1 ⚠; 1 locked/);
     await shot('reviewed');
     // s02 was never built (the fixture has no scenes report): only s01 has a build record.
     const scenes = JSON.parse(
@@ -241,6 +239,35 @@ describe('shot locks and the final review', () => {
     await shot('export-preflight');
     await preflight.getByRole('button', { name: /s02/ }).click();
     await dialog.waitFor({ state: 'detached' });
+    await expect
+      .poll(() =>
+        shots()
+          .getByRole('button', { name: /^Shot s02,/ })
+          .getAttribute('aria-pressed'),
+      )
+      .toBe('true');
+  }, 60_000);
+
+  it('lists the ⚠ shot in Needs you and goes to it', async () => {
+    await shots()
+      .getByRole('button', { name: /^Shot s01,/ })
+      .click();
+    const button = page.getByRole('button', { name: /^Needs you: / });
+    await page.keyboard.press('Control+Shift+N');
+    const inbox = page.getByRole('dialog', { name: 'Needs you' });
+    await inbox.getByText(/s02 \(locked\) needs a look/).waitFor();
+    // The count on the button is the number of items in the list.
+    const count = await inbox.getByRole('listitem').count();
+    expect(await button.getAttribute('aria-label')).toBe(
+      `Needs you: ${String(count)} item${count === 1 ? '' : 's'}`,
+    );
+    await shot('needs-you');
+    await page.keyboard.press('Escape');
+    await inbox.waitFor({ state: 'detached' });
+    expect(await button.evaluate((element) => element === document.activeElement)).toBe(true);
+    await button.click();
+    await inbox.getByRole('button', { name: 'Show s02' }).click();
+    await inbox.waitFor({ state: 'detached' });
     await expect
       .poll(() =>
         shots()

@@ -35,7 +35,7 @@ const TAG = /\{\{[#/]?\w+\}\}/;
 
 describe('script prompt', () => {
   it('renders exactly as script v1 with the switches off', () => {
-    expect(loadPrompt('script').version).toBe(2);
+    expect(loadPrompt('script').version).toBe(3);
     expect(rendered('script', SCRIPT_VARS)).toBe(fixture('script-dramaturgy-off.txt'));
   });
 
@@ -106,6 +106,6 @@ describe('storyboard and scene-build prompts', () => {
     expect(text).toContain('`ctx.camera.dollyZoom\nA camera interrupt must stay readable');
     expect(text).toContain('about unlabelled or stronger moves.\nOpen loop: reveal on "violet".\n');
     expect(text).not.toMatch(TAG);
-    expect(loadPrompt('scene-build').version).toBe(13);
+    expect(loadPrompt('scene-build').version).toBe(18);
   });
 });

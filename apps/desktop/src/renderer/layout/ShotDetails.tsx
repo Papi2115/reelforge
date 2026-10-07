@@ -32,6 +32,8 @@ function Lines({
 export function ShotDetails(props: {
   readonly shotId: string;
   readonly badge: ShotBadge | undefined;
+  /** Status shown without a badge ("Not checked" / "Not built yet"). */
+  readonly status: string;
   readonly blocked: string | null;
   readonly locked: boolean;
   readonly outOfSync: boolean;
@@ -48,7 +50,7 @@ export function ShotDetails(props: {
   return (
     <div className="shot-qa" id={`shot-qa-${props.shotId}`}>
       {badge === undefined ? (
-        <p className="muted">Not built yet.</p>
+        <p className="muted">{props.status}.</p>
       ) : (
         <>
           <p className="shot-qa-title">{badge.label}</p>

@@ -7,6 +7,7 @@
  * the preview right away (the manifest reads moments.json); silence hits at the next mix.
  */
 import path from 'node:path';
+import { isWorldStyle } from '@reelforge/kit';
 import { writeJsonAtomic } from '@reelforge/project';
 import {
   DRAMATURGY_REPORT_FILE,
@@ -16,6 +17,7 @@ import {
   MOMENTS_FILE,
   MOMENTS_FILE_VERSION,
   momentsFileSchema,
+  PAGE_CAMERA_HINTS,
   projectFileSchema,
   projectOpenLoops,
   projectPatternInterrupts,
@@ -74,6 +76,16 @@ const clock = (seconds: number): string => {
   const whole = Math.round(seconds);
   return `${String(Math.floor(whole / 60))}:${String(whole % 60).padStart(2, '0')}`;
 };
+
+/**
+ * Camera ideas of reveal moments: a world project (Sketchbook…) gets its page hints (its camera
+ * never orbits), every other style the default 3D hints (undefined).
+ */
+export function momentCameraHints(
+  style: string | undefined,
+): Readonly<Record<MomentKind, string>> | undefined {
+  return isWorldStyle(style) ? PAGE_CAMERA_HINTS : undefined;
+}
 
 /** Commit subject, e.g. `Moments: accepted slow motion at 0:51 (s02_glass)`. */
 export function describeDecision(
@@ -195,11 +207,13 @@ export class DramaturgyService {
     } else if (storyboard.status !== 'ok' || words.status !== 'ok') {
       momentsNote = 'Reveal moments need the storyboard and the timed words.';
     } else {
+      const cameraHints = momentCameraHints(project.data.style);
       proposals = proposeMoments({
         shots: storyboard.data.shots,
         tension: tension.data.points,
         words: words.data.words,
         anchors: syncAnchors(sync.status === 'ok' ? sync.data : undefined),
+        ...(cameraHints === undefined ? {} : { cameraHints }),
       });
       if (proposals.length === 0 && noDecisions(storedMoments)) {
         momentsNote = 'No tension peak is high enough for a reveal moment (0.6 or more).';

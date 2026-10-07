@@ -3,7 +3,7 @@
  * Failures are values (`status: 'error'`), so the renderer can show the typed error kind and
  * message instead of a rejected promise.
  */
-import { shotsPerMinuteSchema, videoLanguageSchema } from '@reelforge/shared';
+import { shotsPerMinuteSchema, stylePresetIdSchema, videoLanguageSchema } from '@reelforge/shared';
 import { z } from 'zod';
 
 export const projectSummarySchema = z.object({
@@ -52,6 +52,11 @@ export const newProjectRequestSchema = z.strictObject({
   shotsPerMinute: shotsPerMinuteSchema.nullable().optional(),
   /** Faster checks (ADR-027); omitted = the app's default. */
   fasterChecks: z.boolean().optional(),
+  /**
+   * Style of the new project (PLAN.md#13.6): one main offers (style-choices.ts; a preview world
+   * only with Settings → Experimental worlds); omitted = the app's default style.
+   */
+  style: stylePresetIdSchema.optional(),
 });
 export type NewProjectRequest = z.infer<typeof newProjectRequestSchema>;
 

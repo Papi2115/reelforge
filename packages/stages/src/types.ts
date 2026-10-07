@@ -242,8 +242,11 @@ export interface StageContext {
   readonly store: PipelineStateStore;
   /** Claude turns allowed at once now (LimitGuard concurrency, halved after a limit). */
   claudeConcurrency(): number;
-  /** `pipeline-step` autocommit with this subject (failures become warnings). */
-  commit(message: string): Promise<void>;
+  /**
+   * `pipeline-step` autocommit with this subject (failures become warnings). With `paths`
+   * (project-relative) only those are committed: parallel shot jobs commit their own files only.
+   */
+  commit(message: string, paths?: readonly string[]): Promise<void>;
   shot(shotId: string, state: ShotEventState, status?: ShotBuildStatus): void;
 }
 

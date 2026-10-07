@@ -1,13 +1,14 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { EXPORT_PRESET_IDS, type ExportProgress } from '@reelforge/pipeline';
+import { EXPORT_PRESET_IDS, type ExportProgress, type ExportWarning } from '@reelforge/pipeline';
 import { defaultAppSettings } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { EXPORT_PRESETS, exportProgressSchema } from '../../shared/export-contract.js';
 import { createLogger } from '../logger.js';
 import { ExportController, throttleFrames } from './export-controller.js';
 import type { ExportProjectOptions } from './export-project.js';
+import { simulatedFallbackWarning } from './export-warnings.js';
 import { engineBundleVersion, renderIdentity } from './render-identity.js';
 import { fakeTargets } from './testing/fake-render-target.js';
 
@@ -86,6 +87,29 @@ describe('ExportController', () => {
     });
     expect(exports.busy).toBe(false);
     expect(exports.cancel()).toBe(false);
+  });
+
+  it('forwards the export warnings and lets the test hook simulate one', async () => {
+    const { controller: exports, runs } = controller();
+    const fallback = simulatedFallbackWarning();
+    expect(exports.simulateWarning(fallback)).toBe(false);
+    const warnings: ExportWarning[] = [];
+    const running = exports.start({}, undefined, undefined, (warning) => warnings.push(warning));
+    await Promise.resolve();
+    await Promise.resolve();
+    const retry: ExportWarning = {
+      type: 'encoder-retry',
+      encoder: 'h264_nvenc',
+      shotId: 's01',
+      detail: 'InitializeEncoder failed',
+      message: 'GPU encoder failed to open for shot s01; retrying',
+    };
+    runs[0]?.onWarning?.(retry);
+    expect(exports.simulateWarning(fallback)).toBe(true);
+    expect(warnings).toEqual([retry, fallback]);
+    exports.cancel();
+    await running;
+    expect(exports.simulateWarning(fallback)).toBe(false);
   });
 
   it('needs an open project and a prepared renderer', async () => {

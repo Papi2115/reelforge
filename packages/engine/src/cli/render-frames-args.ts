@@ -14,7 +14,9 @@ the PNG paths, one per line.
                        the scene, else ../timing/words.json, else ../words.json)
   --duration <s>       shot length for --scene (default: max(5, last --at + 1))
   --seed <n>           project seed for --scene (default 2115)
-  --no-lint            render even when the determinism lint reports errors`;
+  --no-lint            render even when the determinism lint reports errors
+  --experimental       allow the style of an experimental world (showcase renders of a world
+                       being ported; docs/worlds/README.md)`;
 
 export interface RenderFramesArgs {
   readonly scene: string | undefined;
@@ -26,6 +28,8 @@ export interface RenderFramesArgs {
   readonly duration: number | undefined;
   readonly seed: number | undefined;
   readonly lint: boolean;
+  /** Allow experimental world styles (showcase renders). */
+  readonly experimental: boolean;
   readonly help: boolean;
 }
 
@@ -73,6 +77,7 @@ const OPTIONS = {
   duration: { type: 'string' },
   seed: { type: 'string' },
   'no-lint': { type: 'boolean', default: false },
+  experimental: { type: 'boolean', default: false },
   help: { type: 'boolean', default: false },
 } as const;
 
@@ -125,6 +130,7 @@ export function parseRenderFramesArgs(argv: readonly string[]): RenderFramesArgs
       (value) => Number.isInteger(value) && value >= 0 && value <= 0xffffffff,
     ),
     lint: !values['no-lint'],
+    experimental: values.experimental,
     help,
   };
 }

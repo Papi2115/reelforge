@@ -1,14 +1,19 @@
-import type { ScenesReport, SyncReport } from '@reelforge/shared';
+import type { ScenesReport, StoryboardShot, SyncReport } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import type { StageRunView } from '../../shared/stages-contract.js';
 import {
   buildProgress,
   buildProgressView,
+  builtShotIds,
+  findingLabel,
+  findingText,
   fixPrompt,
   joinBanners,
+  missingBadgeLabel,
   propsBanner,
   propsSummary,
   rolesBanner,
+  scenesTotals,
   shotBadges,
   stepText,
   syncProblemShots,
@@ -80,6 +85,59 @@ describe('scenes view', () => {
     expect(badges.get('s03')?.tone).toBe('running');
     expect(badges.get('s04')?.tone).toBe('pending');
     expect(shotBadges(null, null).size).toBe(0);
+  });
+
+  it('reads built scenes from the files when the scenes report is missing', () => {
+    const shots = ['s01', 's02', 's03'].map((id): StoryboardShot => ({
+      id,
+      t0: 0,
+      t1: 1,
+      treatment: 'title-card',
+      intent: 'x',
+      scene: `scenes/${id}.js`,
+    }));
+    const built = builtShotIds(shots, ['scenes/s01.js', 'scenes/s02.js', 'storyboard.json']);
+    expect([...built]).toEqual(['s01', 's02']);
+    expect(missingBadgeLabel('s01', built)).toBe('Not checked');
+    expect(missingBadgeLabel('s03', built)).toBe('Not built yet');
+    expect(scenesTotals(null, built)).toEqual({
+      kind: 'unchecked',
+      text: '2 scenes built · not checked yet',
+    });
+    expect(scenesTotals(null, new Set(['s01']))).toMatchObject({
+      text: '1 scene built · not checked yet',
+    });
+    expect(scenesTotals(null, new Set())).toEqual({ kind: 'none' });
+    expect(scenesTotals({ ...REPORT, shots: [] }, new Set())).toEqual({ kind: 'none' });
+  });
+
+  it('counts checked shots and the built ones the report does not know yet', () => {
+    expect(scenesTotals(REPORT, new Set(['s01', 's02', 's03']))).toEqual({
+      kind: 'checked',
+      ok: 1,
+      warning: 1,
+      failed: 0,
+      checked: 2,
+      unchecked: 1,
+    });
+    expect(scenesTotals(REPORT, new Set())).toMatchObject({ checked: 2, unchecked: 0 });
+  });
+
+  it('says anti-slop findings in plain words', () => {
+    const slop = {
+      source: 'slop',
+      severity: 'warning',
+      fatal: false,
+      message: 'invented text: "ZORP" (scenes/s01.js:4: zorp)',
+    } as const;
+    expect(findingText(slop)).toBe('Looks generic: invented text: "ZORP" (scenes/s01.js:4: zorp)');
+    expect(findingText({ ...slop, t: 2 })).toMatch(/^Looks generic @2.0 s: invented text/);
+    expect(findingLabel('lint')).toBe('lint');
+    const report: ScenesReport = {
+      ...REPORT,
+      shots: REPORT.shots.map((shot) => ({ ...shot, findings: [slop] })),
+    };
+    expect(shotBadges(report, null).get('s02')?.findings).toEqual([findingText(slop)]);
   });
 
   it('prefills the chat with the findings of a shot', () => {

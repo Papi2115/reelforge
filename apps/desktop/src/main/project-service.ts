@@ -43,6 +43,7 @@ import type {
   RepairableFile,
   RepairFileResult,
 } from '../shared/snapshot-contract.js';
+import { isOfferedStyle } from '../shared/style-choices.js';
 import { checkFileText, repairFile } from './file-repair.js';
 import { describeError, type Logger } from './logger.js';
 import { buildProjectManifest } from './project-manifest.js';
@@ -60,6 +61,11 @@ export interface ProjectServiceOptions {
   readonly pickFolder: (purpose: FolderPurpose) => Promise<string | undefined>;
   /** Style preset of new projects (app settings); the template's when omitted. */
   readonly defaultStyle?: () => string;
+  /**
+   * Settings → "Experimental worlds (preview)" (PLAN.md#13.6): a new project may then start in
+   * an experimental world's style. Off when omitted.
+   */
+  readonly experimentalWorlds?: () => boolean;
   /**
    * Characters and mascot (PLAN.md#12.20), scenes per minute and faster checks (ADR-027) of new
    * projects (app settings); the template's if omitted. The New project form may override the
@@ -114,14 +120,31 @@ export class ProjectService {
 
   constructor(private readonly options: ProjectServiceOptions) {}
 
+  /** Settings → "Experimental worlds (preview)" is on. */
+  experimentalWorlds(): boolean {
+    return this.options.experimentalWorlds?.() === true;
+  }
+
   async newProject(request: NewProjectRequest): Promise<ProjectOpenResult> {
+    // Checked before the picker: a style the app does not offer never creates a folder.
+    if (request.style !== undefined && !isOfferedStyle(request.style, this.experimentalWorlds())) {
+      return {
+        status: 'error',
+        error: {
+          kind: 'invalid-argument',
+          message: `style "${request.style}" is not offered (preview worlds need Settings → Projects → Experimental worlds)`,
+        },
+      };
+    }
+    const style = request.style ?? this.options.defaultStyle?.();
     const parent = await this.options.pickFolder('new-project-parent');
     if (parent === undefined) return { status: 'cancelled' };
+    // A world's style gets its own defaults over these (createProject, world-defaults.ts).
     const created = await createProject({
       dir: newProjectDir(parent, request.title),
       title: request.title,
       language: request.language,
-      ...(this.options.defaultStyle === undefined ? {} : { style: this.options.defaultStyle() }),
+      ...(style === undefined ? {} : { style }),
       ...this.options.newProjectDefaults?.(),
       ...(request.shotsPerMinute === undefined ? {} : { shotsPerMinute: request.shotsPerMinute }),
       ...(request.fasterChecks === undefined ? {} : { fasterChecks: request.fasterChecks }),

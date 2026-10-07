@@ -13,6 +13,7 @@ This page stays the design reference (look, proportions, palettes, poses).
   PNG export; `banner-v1..3.png` at 2560×1440; `shots/` = mobile-safe / desktop / TV crops). **Chosen: v1 (Lab diorama).**
 - `avatar/` — matching 800×800 avatar, 3 variants (Bulb / Brain / BB monogram) with circle previews 176→24 px on dark and
   light UI and a channel-header mock. Variant not chosen yet.
+- `voxplain/` — the channel was renamed to **Voxplain** (2026-10-06): banner v1 with VOX/PLAIN logotype + 3 avatars (Bulb, Brain, VP) in `voxplain.html`. **This is the current branding**; `banner/` and `avatar/` are the old BlockBrain versions.
 
 ## Decisions (Papi)
 - **Channel mascot: Bulb** (lightbulb head; "Eureka!" pose glows/flickers). Appears whenever a stand-in person is needed and recurs across a film.
