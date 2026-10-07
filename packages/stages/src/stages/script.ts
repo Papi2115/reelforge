@@ -11,7 +11,12 @@ import {
   validateResearch,
   validateScript,
 } from '@reelforge/prompts';
-import { SCRIPT_REPORT_VERSION, scriptReportSchema, type BriefFile } from '@reelforge/shared';
+import {
+  genrePresetScriptTone,
+  SCRIPT_REPORT_VERSION,
+  scriptReportSchema,
+  type BriefFile,
+} from '@reelforge/shared';
 import { scriptDramaturgyVars } from '../dramaturgy.js';
 import { activeWorld, scriptWorldPromptVars, worldScope } from '../worlds.js';
 import { readProjectText, writeProjectJson } from '../files.js';
@@ -26,6 +31,19 @@ import {
 import { checkWithRepair, errorLines, render, warningLines, type OutputCheck } from './repair.js';
 
 const NOT_SPECIFIED = 'not specified';
+
+/**
+ * The script prompt's `tone`: the brief's, with the genre preset's hint after it (PLAN.md#13.8).
+ * Without a preset exactly the brief's tone (or "not specified"), so older prompts are unchanged.
+ */
+export function scriptToneVar(
+  briefTone: string | undefined,
+  presetTone: string | undefined,
+): string {
+  if (presetTone === undefined) return briefTone ?? NOT_SPECIFIED;
+  const own = briefTone?.trim() ?? '';
+  return own === '' ? presetTone : `${own}; genre: ${presetTone}`;
+}
 
 export function formatDuration(seconds: number): string {
   const rounded = Math.round(seconds);
@@ -134,7 +152,12 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     language: brief.value.language,
     targetMinutes,
     targetWords,
-    tone: brief.value.tone ?? NOT_SPECIFIED,
+    tone: scriptToneVar(
+      brief.value.tone,
+      ctx.snapshot.project.status === 'ok'
+        ? genrePresetScriptTone(ctx.snapshot.project.value)
+        : undefined,
+    ),
     audience: brief.value.audience ?? NOT_SPECIFIED,
     // Surprise beats / open loops in beats.md (PLAN.md#12.25-12.26); nothing with the switches off.
     ...(ctx.snapshot.project.status === 'ok'

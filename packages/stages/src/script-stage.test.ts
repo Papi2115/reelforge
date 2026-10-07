@@ -2,12 +2,12 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { ECONOMY_HINT, PipelineStateStore } from '@reelforge/claude-bridge';
-import { scriptReportSchema } from '@reelforge/shared';
+import { genrePresetScriptTone, scriptReportSchema } from '@reelforge/shared';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { DEFAULT_STAGE_SETTINGS } from './settings.js';
 import { FakeClaudeHarness, writes, type Step } from './testing/fake-claude.js';
-import { TestProjects, goldenFile, readProject } from './testing/project.js';
+import { TestProjects, goldenFile, readProject, writeProject } from './testing/project.js';
 import type { StageEvent } from './types.js';
 
 const projects = new TestProjects();
@@ -121,6 +121,25 @@ describe('script stage', { timeout: 60_000 }, () => {
     expect((await custom.runner.run({ stage: 'script' })).ok).toBe(true);
     expect(custom.harness.models).toEqual(['haiku', 'opus']);
     expect(custom.harness.specs[0]?.appendSystemPrompt).toBeUndefined();
+  });
+
+  it("adds the genre preset's tone hint to the brief's tone (PLAN.md#13.8)", async () => {
+    const plain = await setup('script no preset', [RESEARCH, SCRIPT]);
+    expect((await plain.runner.run({ stage: 'script' })).ok).toBe(true);
+    expect(plain.harness.specs[1]?.prompt).toContain('Tone: friendly, hands-on ·');
+
+    const preset = await setup('script preset', [RESEARCH, SCRIPT]);
+    const project = JSON.parse(readProject(preset.dir, 'project.json')) as Record<string, unknown>;
+    writeProject(
+      preset.dir,
+      'project.json',
+      JSON.stringify({ ...project, genrePreset: 'finance' }, null, 2),
+    );
+    expect((await preset.runner.run({ stage: 'script' })).ok).toBe(true);
+    const hint = genrePresetScriptTone({ genrePreset: 'finance' }) ?? '';
+    expect(preset.harness.specs[1]?.prompt).toContain(`Tone: friendly, hands-on; genre: ${hint} ·`);
+    // The research prompt does not change.
+    expect(preset.harness.specs[0]?.prompt).toBe(plain.harness.specs[0]?.prompt);
   });
 
   it('refuses to start without a brief and says why', async () => {
