@@ -66,3 +66,9 @@ From [real run Game B1 1](real-run-game-b1-1.md) (Y2K bug, 56 s, mean 15.0/20; n
 - medium: calendar `mark` max 28 (no 31 DEC); a second boss card for a question (FALSE ALARM? ×2); glass notes illegible while the camera is in the room; big number on black in 10/12 shots, 29 % near-black frames. (#4–#7)
 - medium: locked score-table row prints its score; disputed $100B shown without its hedge; 4/7 fix turns on sfx sync (s10 deletes kit craft cues); critic misses the seams and flags beats before they happen. (#8–#11)
 - low: BOSS label over the HUD year; room-shake between TV-only shots; decorative FIG. 1 and a source URL as Dad's margin note; no `$`/`=` glyphs; sound-cues turn swaps the world's `board-tap`; engine harness stale after `tsc -b`/`build:cli` and built from live `kit/src` (a parallel coder's uncommitted kit work leaked into the export). (#12–#17)
+
+## Papi's verdict on the open-vocabulary test films (2026-10-07, after phase 3)
+- **Game B1 (space station): "a tragedy".** Lost its whole style: it no longer reads as a 2D game (no game elements), it is very illogical, with constant zoom in/out onto the TV. The mockup had creative transitions, sensible scenes and rooms, nice animations and variety. => B1 must be rebuilt toward the mockup's grammar: 2D game playfields/levels/rooms as the main content, TV/console seam rare and purposeful, creative link transitions, variety. TOP PRIORITY of the next round.
+- **Game B2 (forest): not bad, needs polish.** Script must be written differently for this world: B2 films will be "How <science/psychology/finance topic> works, explained as a game" — narration is written for the game framing (quests, levels, stats, bosses). => B2 needs a script/genre mode ("explained as a game"), not just visuals.
+- **Comic (ocean): quite good**, somewhat oddly built in places; drawing is okay. General polish later.
+- Sketchbook village (film 4): see docs/real-run-sketchbook-4.md.
