@@ -207,8 +207,14 @@ export function createSpread(ctx: ApiContext) {
         `${where}: until must leave the whole spread >= 0.5 s after it assembles (${assembled.toFixed(2)} s)`,
       );
     }
+    if (o.assemble === 'merge' && o.pieces === undefined) {
+      throw new KitError(
+        'invalid-params',
+        `${where}: assemble 'merge' needs pieces: 'grid' | 'columns' | 'halves' (the panels it starts as)`,
+      );
+    }
     const key = `spread${String(ctx.seed)}:${o.assemble}`;
-    const geometry = mergeGeometry(o.pieces, o.fold, key);
+    const geometry = mergeGeometry(o.pieces ?? 'columns', o.fold, key);
     const scratch = new Uint8Array(PAGE_WIDTH * PAGE_HEIGHT);
     const start = at + o.delay;
     const d: SpreadDraw = {

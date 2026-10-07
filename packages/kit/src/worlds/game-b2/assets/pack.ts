@@ -2,7 +2,7 @@
  * The Game B2 ASSET PACK: the film's own sprites, textures and item icons, defined per film in
  * the world's style grammar (PLAN.md#13.15, docs/worlds/DECISIONS.md "a world is a style
  * GRAMMAR"). One JSON-able object, the same in a scene (`kit.fx.b2View({ assets })`) and in a
- * project file `assets/b2/<name>.json` (`{ version: 1, world: 'game-b2', sprites, textures,
+ * project file `assets/game-b2/<name>.json` (`{ version: 1, world: 'game-b2', sprites, textures,
  * icons }`). Every entry is either pixel art (rows + a legend of the world's colours) or a call
  * of a seeded generator (`{ gen: 'plant', kind: 'conifer', seed: 4 }`). Ids are kebab case and
  * are used in levels exactly like the built-in names. Errors name the asset and the field.
@@ -16,6 +16,7 @@ import { finish } from './draw.js';
 import { compileArt, padded, tileTo64 } from './dsl.js';
 import { creatureProblems, creatureSchema, makeCreature } from './gen-creatures.js';
 import { iconGenSchema, makeIcon } from './gen-icons.js';
+import { iconSizeProblems } from './icon-size.js';
 import { makeObject, objectSchema } from './gen-objects.js';
 import { makePerson, personSchema } from './gen-people.js';
 import { makePlant, plantSchema } from './gen-plants.js';
@@ -72,7 +73,8 @@ export const textureArtSchema = z.strictObject({
 });
 export const iconArtSchema = z.strictObject({ rows: rowsParam, legend: legendParam });
 
-const SPRITE_GENS = {
+/** The sprite generators by `gen` name (also listed by `reelforge kit-docs generators`). */
+export const SPRITE_GENS = {
   plant: plantSchema,
   creature: creatureSchema,
   person: personSchema,
@@ -276,8 +278,10 @@ export function compileIcon(where: string, value: unknown): Compiled<Bmp> {
     const art = compileArt(parsed.data, where, { maxW: 16, maxH: 16 });
     if (!art.ok) return { ok: false, errors: art.errors };
     const bmp = art.frames[0];
-    return bmp === undefined
-      ? { ok: false, errors: [`${where}: no pixels`] }
+    if (bmp === undefined) return { ok: false, errors: [`${where}: no pixels`] };
+    const small = iconSizeProblems(where, bmp);
+    return small.length > 0
+      ? { ok: false, errors: small }
       : { ok: true, value: padded(bmp).outline(C.VOID) };
   });
 }

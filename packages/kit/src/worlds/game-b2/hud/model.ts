@@ -1,7 +1,7 @@
 /**
  * The Game B2 HUD as data over time: the scene registers its elements once (build time, seconds
  * already resolved) and `draw(t, cam, world)` paints them in a fixed order from scratch:
- * persistent elements (cleared where the automap covers the screen), menus, tallies, toasts,
+ * persistent elements (cleared where the automap covers the screen), menus, tallies, level cards, toasts,
  * dialogue, choices, damage numbers, stingers, then the HUD shake. The typewriter times are
  * seeded per line; the tally's still parts are memos of pure functions, so a frame is a pure
  * function of t.
@@ -35,6 +35,7 @@ import {
   type Toast,
 } from './boxes.js';
 import { drawInventory, type Inventory } from './inventory.js';
+import { drawLevelCard, type LevelCard } from './level-card.js';
 import { drawMinimap } from './map.js';
 import { drawMenu, type Menu } from './menu.js';
 import {
@@ -74,6 +75,7 @@ export class HudModel {
   private readonly stingers: Stinger[] = [];
   private readonly damages: Damage[] = [];
   private readonly shakes: Shake[] = [];
+  private readonly levelCards: LevelCard[] = [];
   private readonly tallyStill = new Map<TallyPlan, { base: Bmp; before?: Uint8Array }>();
   private work: Bmp | undefined;
 
@@ -151,6 +153,10 @@ export class HudModel {
 
   shake(element: Shake): void {
     this.shakes.push(element);
+  }
+
+  levelCard(element: LevelCard): void {
+    this.levelCards.push(element);
   }
 
   /** Where a damage number pops: the meter's current end or the boss bar's fill end. */
@@ -242,6 +248,7 @@ export class HudModel {
       this.work ??= new Bmp(SCREEN_W, SCREEN_H);
       drawTally(b, tally, t, still.base, still.before, this.work);
     }
+    for (const card of this.levelCards) drawLevelCard(b, card, t);
     drawToasts(b, this.toasts, t, this.progressEl === undefined ? 86 : 100);
     drawDialogue(b, this.lines, t, this.quietFrom(t));
     for (const choice of this.choices) drawChoice(b, choice, t);

@@ -14,7 +14,7 @@ export const meta = {
   treatment: 'metaphor-object',
 };
 
-/** What would live in assets/b1/reef.json. */
+/** What would live in assets/game-b1/reef.json. */
 const ASSETS = {
   version: 1,
   world: 'game-b1',

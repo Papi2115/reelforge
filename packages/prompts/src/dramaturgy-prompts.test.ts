@@ -35,7 +35,7 @@ const TAG = /\{\{[#/]?\w+\}\}/;
 
 describe('script prompt', () => {
   it('renders exactly as script v1 with the switches off', () => {
-    expect(loadPrompt('script').version).toBe(3);
+    expect(loadPrompt('script').version).toBe(4);
     expect(rendered('script', SCRIPT_VARS)).toBe(fixture('script-dramaturgy-off.txt'));
   });
 

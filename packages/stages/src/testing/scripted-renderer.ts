@@ -31,6 +31,15 @@ function frame(blank: boolean, t: number): Uint8Array {
   return data;
 }
 
+/** A sheet frame: the page background, with a 20x30 block where an asset is drawn. */
+function sheetFrame(t: number, withAsset: boolean): Uint8Array {
+  const data = frame(false, t);
+  if (!withAsset) return data;
+  for (let y = 30; y < 60; y += 1)
+    for (let x = 70; x < 90; x += 1) data.set([10, 10, 10, 255], (y * WIDTH + x) * 4);
+  return data;
+}
+
 function overlap(shotId: string): CardDiagnostic {
   return {
     rule: 'card-overlap',
@@ -68,7 +77,7 @@ export class ScriptedFrameRenderer implements FrameRenderer {
   private async renderTurntable(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
     const turntable = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
     // A world-assets contact sheet (PLAN.md#13.15) draws the project's asset files.
-    if (request.shotId === WORLD_ASSET_SHEET_SHOT_ID) return this.renderSheet(request);
+    if (request.shotId === WORLD_ASSET_SHEET_SHOT_ID) return this.renderSheet(request, turntable);
     const role = lineupRoleId(turntable);
     if (role !== undefined) return renderLineup(request, role);
     const name = /const NAME = "([A-Za-z0-9]+)"/.exec(turntable)?.[1] ?? '';
@@ -103,8 +112,11 @@ export class ScriptedFrameRenderer implements FrameRenderer {
     };
   }
 
-  /** A sheet renders when no asset file holds `render:fail` (a test's broken asset). */
-  private async renderSheet(request: ShotRenderRequest): Promise<ShotRender> {
+  /**
+   * A sheet renders when no asset file holds `render:fail` (a test's broken asset); a page with
+   * assets draws a dark block on the page background (the empty page: the background only).
+   */
+  private async renderSheet(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
     const world = (await readdir(path.join(request.projectDir, 'assets'), { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name);
@@ -122,7 +134,7 @@ export class ScriptedFrameRenderer implements FrameRenderer {
       height: HEIGHT,
       frames: request.times.map((t) => ({
         t,
-        image: { width: WIDTH, height: HEIGHT, data: frame(false, t) },
+        image: { width: WIDTH, height: HEIGHT, data: sheetFrame(t, !scene.includes('IDS = [];')) },
       })),
       cards: [],
       anchors: [],

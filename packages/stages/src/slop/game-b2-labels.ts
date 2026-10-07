@@ -29,9 +29,12 @@
  * open layer, once each: a fire light (`flicker: 'fire'`, a torch, a campfire), a crooked plant
  * (`lean`), one sprite turned the other way (`flip`), hand-drawn animation `frames`, a texture's
  * `wear` and a gait of the shot's own (`bob`); generator sway and the default head-bob never count
- * (the six open examples: 3-5 traces each). World check
- * (game-b2-showcase.ts): an unrequested showcase object per scene.
+ * (the six open examples: 3-5 traces each). World checks: an unrequested showcase object per
+ * scene (game-b2-showcase.ts); craft per scene and over the film (game-b2-craft.ts: numbers
+ * popping off nothing, a web address on screen, the same menu twice, a film ending on black, a
+ * linked item that blinks at the seam).
  */
+import { b2CraftFindings, b2FilmFindings } from './game-b2-craft.js';
 import { b2ShowcaseFindings } from './game-b2-showcase.js';
 import type { WorldSlopSpec } from './world-labels.js';
 
@@ -126,5 +129,9 @@ export const GAME_B2_SLOP: WorldSlopSpec = {
     tally: { backdrop: 'freeze', enter: 'melt', exit: 'dissolve' },
     throw: {},
   },
-  sourceChecks: b2ShowcaseFindings,
+  sourceChecks: (program, file, vocabulary) => [
+    ...b2ShowcaseFindings(program, file, vocabulary),
+    ...b2CraftFindings(program, file),
+  ],
+  filmChecks: b2FilmFindings,
 };

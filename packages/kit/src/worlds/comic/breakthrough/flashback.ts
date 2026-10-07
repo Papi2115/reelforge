@@ -116,8 +116,8 @@ function motion(o: FlashbackSpec, box: Box, time: Timing, key: string) {
   return { place, offset, strip };
 }
 
-/** Pixels inside `mask` re-inked through `table`. */
-function remapInside(item: ItemContext, pts: readonly number[], table: Uint8Array): void {
+/** Pixels inside `pts` (screen px) re-inked through `table` (also a sepia panel break). */
+export function remapInside(item: ItemContext, pts: readonly number[], table: Uint8Array): void {
   const { canvas } = item;
   const mask = canvas.maskPoly(pts);
   try {
@@ -283,14 +283,16 @@ export function createFlashback(ctx: ApiContext, lettering: Lettering) {
       at: captionAt(time.beats[0] ?? time.at),
       until,
       tilt,
-      type: 0.6,
+      type: o.type,
       width: 300,
     });
     o.beats.forEach((beat, i) => {
       if (beat.caption === undefined || i === 0) return;
       const [x, y] = corner(i);
       const at = captionAt(time.beats[i] ?? time.at);
-      lettering.caption(beat.caption, { x, y, at, until, tilt: -tilt, type: 0.45, width: 260 });
+      // Rounded to centiseconds, so `type: 0.6` letters the beats in exactly 0.45 s.
+      const type = Math.round(o.type * 75) / 100;
+      lettering.caption(beat.caption, { x, y, at, until, tilt: -tilt, type, width: 260 });
     });
     if (o.stamp !== undefined) {
       const first = place(quads[0] as Quad, rest);

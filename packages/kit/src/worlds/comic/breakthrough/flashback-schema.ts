@@ -48,13 +48,21 @@ export const flashbackSchema = z.object({
   when: caption.describe('The time-stamp caption that opens it (EIGHT YEARS EARLIER...)'),
   at: whenParam.default(0).describe('The past arrives'),
   until: whenParam.optional().describe('The past leaves (default: it holds to the end)'),
+  // No defaults: a default pair would replay the showcase's own flashback (PLAN.md#13.15).
   cover: z
     .enum(['page', 'strip'])
-    .default('page')
     .describe(
       "'page' = the whole page is the older print; 'strip' = a torn strip of it pasted over the present",
     ),
-  arrange: z.enum(FLASHBACK_ARRANGES).default('rows'),
+  arrange: z.enum(FLASHBACK_ARRANGES),
+  type: z
+    .number()
+    .min(0)
+    .max(3)
+    .default(0)
+    .describe(
+      'Seconds to letter `when` in, letter by letter (beat captions a bit faster); 0 = at once',
+    ),
   box: box.optional(),
   tilt: z.number().min(-4).max(4).optional().describe('Degrees a strip is pasted at'),
   enter: z.enum(['slide', 'drop', 'cut']).default('slide').describe('How a strip arrives'),

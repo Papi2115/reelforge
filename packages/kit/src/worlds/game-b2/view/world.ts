@@ -15,7 +15,7 @@ import { bulb, type Sprite } from '../ray/sprites-props.js';
 import type { Texture } from '../ray/texture.js';
 import type { Automap, MapCover } from '../map/automap.js';
 import { drawHand, HandTrack } from './hand.js';
-import { SCREEN_W } from './output.js';
+import { SCREEN_H, SCREEN_W } from './output.js';
 import { flinching, flinchOffset, throwSprites, type Flinch, type ThrowEvent } from './throw.js';
 
 export type NpcAct = 'talk' | 'no';
@@ -63,6 +63,8 @@ export class B2World {
   private readonly automaps: Automap[] = [];
   /** Spans an opaque HUD screen (a tally) covers: the 3D view need not render there. */
   private readonly occluded: { at: number; until: number }[] = [];
+  /** The view held at a time (an automap's frozen backdrop), rendered once per time. */
+  private readonly frozenViews = new Map<number, Uint8Array>();
   private readonly buffers = createWorldBuffers();
   private readonly doorOpen: Float32Array;
   private readonly glow: Float32Array;
@@ -310,6 +312,16 @@ export class B2World {
     this.renderView(t, cam, screen);
     automap?.paint(t, screen);
     return cam;
+  }
+
+  /** The bare view (no automap) at t, rendered once: what a `backdrop: 'freeze'` map holds. */
+  frozenView(t: number): Uint8Array {
+    const hit = this.frozenViews.get(t);
+    if (hit !== undefined) return hit;
+    const screen = new Uint8Array(SCREEN_W * SCREEN_H);
+    this.renderView(t, this.camera(t), screen);
+    this.frozenViews.set(t, screen);
+    return screen;
   }
 
   private renderView(t: number, cam: Camera, screen: Uint8Array): void {

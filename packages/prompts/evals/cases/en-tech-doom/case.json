@@ -167,6 +167,24 @@
       ]
     },
     "roles": "Built technician: darkSlate cap, slateGrey apron over a teal top, darkSlate legs, boots, badge, wrench; outfit colours 3.\ncast preview: all checks ok; the cap, apron and wrench read clearly.",
-    "world-assets": "Built 1 prop (calculator); new places: none.\nworld-assets check: 0 errors; the sheet reads at thumbnail size."
+    "world-assets": "Built 1 prop (calculator); new places: none.\nworld-assets check: 0 errors; the sheet reads at thumbnail size.",
+    "world-asset-critic": {
+      "assets": [
+        {
+          "tile": "A1",
+          "sees": "a glass prism",
+          "legible": true,
+          "style": "ok",
+          "note": "clear triangle with a beam"
+        },
+        {
+          "tile": "A2",
+          "sees": "a grey smudge",
+          "legible": false,
+          "style": "ok",
+          "note": "no defining shape at this size"
+        }
+      ]
+    }
   }
 }

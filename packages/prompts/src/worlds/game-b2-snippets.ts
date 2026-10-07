@@ -44,14 +44,16 @@ const ASSETS = `{
   icons: {
     chalk: {
       rows: [
-        '..........pp',
-        '.........ppP',
-        '........ppP.',
-        '.......ppP..',
-        '......ppP...',
-        '.....ppP....',
-        '....ppP.....',
-        '...ppP......',
+        '.........pPP',
+        '........pppP',
+        '.......pppP.',
+        '......pppP..',
+        '.....pppP...',
+        '....pppP....',
+        '...pppP.....',
+        '..pppP......',
+        '.pppP.......',
+        '.ppP........',
       ],
       legend: { p: 'paper', P: 'putty' },
     },
@@ -176,6 +178,8 @@ export const GAME_B2_SNIPPETS = {
   say: "hud.say('THE LAMP MUST NOT\\nGO OUT TONIGHT.', { speaker: 'KEEPER', at: 'lamp', until: 3.6 })",
   /** Film progress: this shot's t0 and t1 as shares of the film, the chapter flags. */
   progress: 'hud.progress({ at: 0.6, from: 0.2, to: 0.29, chapters: [0.2, 0.47, 0.71] })',
+  /** The level card's band (the shot after a `game-b2-level-card`): the new place typed into it. */
+  levelCard: "hud.levelCard({ place: 'THE RIVER FORD', sub: '1871', at: 0 })",
   /** A chapter starts: its flag pops on the progress strip and its name types under it. */
   checkpoint: "hud.checkpoint({ label: 'THE HARVEST', at: 0.4 })",
   toast: "hud.toast({ head: 'NEW QUEST', body: 'CROSS THE RIVER', at: 2.9 })",
@@ -212,7 +216,7 @@ export const GAME_B2_SNIPPETS = {
   menu: "hud.menu({ at: 0, until: 4.2, quest: { now: 'WINTER TERM', objective: 'KEEP THE SCHOOL OPEN.', done: ['AUTUMN · THE ROOF'], ahead: 2 }, inventory: { items: [{ icon: 'slate', label: 'SLATES', sub: 'ONE PER PUPIL' }, { icon: 'chalk', label: 'CHALK', sub: 'LAST BOX', band: 'pink' }], select: [{ at: 0.55, index: 0 }, { at: 2.6, index: 1 }] } })",
   /** The automap (one way of many): the map of this level, the next room dashed. */
   automap:
-    "view.automap({ intent: 'the cold corridor is behind us; the warm classroom where the lesson starts comes next', at: 1, until: 5.6, scale: 12, rooms: [{ cell: [4, 5], label: 'THE CORRIDOR' }, { cell: [15, 5], label: 'THE CLASSROOM', state: 'next', at: 2.2 }], marks: [{ kind: 'objective', pos: [17.5, 3.4], at: 2.6 }], note: { text: 'NEXT: THE LESSON', pos: [5.5, 8.6], to: [15.2, 5.2], at: 3.3 } })",
+    "view.automap({ intent: 'the cold corridor is behind us; the warm classroom where the lesson starts comes next', at: 1, until: 5.6, scale: 16, backdrop: 'freeze', rooms: [{ cell: [4, 5], label: 'THE CORRIDOR' }, { cell: [15, 5], label: 'THE CLASSROOM', state: 'next', at: 2.2 }], marks: [{ kind: 'objective', pos: [17.5, 3.4], at: 2.6 }], note: { text: 'NEXT: THE LESSON', pos: [5.5, 8.6], to: [15.2, 5.2], at: 3.3 } })",
   /** The tally (one way of many): a chapter in real numbers, a still beat, the stamp. */
   tally:
     "hud.tally({ intent: 'six years of digging for nine miles of tunnel', at: 0, until: 6, title: 'THE TUNNEL', sub: '1857 - 1863', rows: [{ label: 'LENGTH', value: 9, format: 'unit', unit: ['MILE', 'MILES'], approx: true }, { label: 'DIGGING', value: 6, format: 'unit', unit: ['YEAR', 'YEARS'], role: 'par', underline: true }], stamp: { text: 'OPEN' }, backdrop: 'live', enter: 'cut', exit: 'melt' })",

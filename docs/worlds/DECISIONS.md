@@ -73,3 +73,10 @@ Consequences: (1) every world needs an OPEN VOCABULARY: authoring DSLs and param
 style, not only built-in ids; (2) prompts teach the STYLE GRAMMAR and a design process (nouns of the narration → what each looks like in this style → build/define it),
 and must not bias towards the showcase topics; (3) project-local asset files built per film (like the voxel prop builder) with a critic that checks recognisability
 at thumbnail size; (4) validation = real films on topics far from the showcases (forest, ocean, space station, medieval village, desert, city…).
+
+## Comic breakthroughs are never a template; pages flow and carry things (2026-10-07)
+Real run Comic 2: the flashback was the kit example's own `strip + row`, the spread the same `pull-back` as Comic 1 (the prompt's snippet).
+- **Open toolkit** `page.panelBreak({ intent, panels, moves, gutters, drive, print, fold })`: the scene shapes 1-5 panels, how each arrives (swing, grow, unroll, drop…), what moves on which phrase (one panel dragging others with `lag`), what the gutters do (close / lift / tear), a camera inside a panel, `print: 'past'` for a look back. Needs a motion that shows the claim; `intent` required. Preferred over `flashback`/`spread`, which lost their defaults (`cover`/`arrange`, `assemble`/`pieces` must be chosen).
+- **Guards (⚠)**: a flashback/spread whose options ARE a showcase template (f1 page+rows, f2 strip+row, s1 merge+grid, s2 unfold), a panel break replaying a kit example's mechanism (b1-b3), the same mechanism twice in a film, a missing/generic intent.
+- **Flow and continuity** (Papi: "does not always FEEL like a comic, transitions are dry"): `page.flow({ intent, direction: 'down' | 'across' | 'diagonal' })` lays a long or narrow strip the camera reads; `page.thread({ intent, through: [3+ panels] })` carries one element over panels and gutters. Final-review ⚠: 4+ plain cuts in a row with no flowing page, the same page flow on 3 pages in a row, a film of 6+ shots that carries nothing across 3 panels or shots.
+- Lettering: the Inkhand W now ends in two points (read as N before); captions letter in only with an explicit `type`.

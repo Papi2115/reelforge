@@ -25,6 +25,11 @@ export const GAME_B1_SNIPPETS = {
   /** A person: one humanoid base + role, hat, tool. */
   generatePerson: "screen.generate('keeper', { kind: 'person', role: 'sailor', tool: 'lantern' })",
   generateVehicle: "screen.generate('boat', { kind: 'vehicle', type: 'boat', size: 2 })",
+  /** A small thing from a template (key, gem, coin, potion, document, flag, heart). */
+  generateItem: "screen.generate('oil', { kind: 'item', type: 'potion', size: 2 })",
+  /** Gameplay: the narration as a 2D level the hero runs (pit, obstacle, enemy, item, goal). */
+  level:
+    "screen.level({ intent: 'the keeper runs the cliff path to the light: a gap, the fox and a gull stand in the way', at: 0, width: 320, sky: [[0, 'night'], [40, 'dusk'], [64, 'blue']], ground: { y: 150, colour: 'grey', edge: 'greyDark', pits: [[150, 166]] }, hero: { sprite: 'keeper', run: [[0, 6], [2.2, 130], [3.4, 200], [5.2, 286]], jumps: [{ at: 0.9, dur: 0.7, height: 34 }, { at: 2.4, dur: 0.6, height: 24 }] }, things: [{ sprite: 'oil', x: 30, role: 'item', label: 'OIL' }, { sprite: 'fox', x: 72, role: 'obstacle' }, { sprite: 'gull', x: 210, y: 112, role: 'enemy', patrol: { to: 240, period: 1.4 } }, { sprite: 'lighthouse', x: 290, role: 'goal', label: 'THE LIGHT', labelAt: 4.4 }] })",
   /** The film's central problem as a boss from traits. */
   generateBoss:
     "screen.generate('storm', { kind: 'boss', body: 'cloud', eyes: 2, mouth: 'teeth', arms: true, colour: 'grey' })",
@@ -72,6 +77,14 @@ export const GAME_B1_SNIPPETS = {
   /** The manual page (one way of many): the mechanism as HOW TO PLAY, one red correction. */
   manual:
     "screen.manual({ intent: 'a bank run: the fear of a shortage empties the bank and makes the shortage real', at: 0, until: 5.8, steps: ['A RUMOUR SAYS\\nTHE BANK IS SHORT.', 'SAVERS QUEUE\\nFOR THEIR MONEY.', 'THE BANK SELLS\\nWHAT IT CAN, FAST.', 'SO THE RUMOUR\\nCOMES TRUE.'], figure: { caption: 'THE QUEUE', shape: 'person', layout: 'queue', count: 6, hit: 0, callouts: [{ item: 0, step: 2 }] }, ticks: [1.3, 2.1, 2.9], correction: { step: 4, strike: 'RUMOUR', write: 'FEAR', at: 3.9 }, enter: 'cut', exit: 'turn' })",
+  /** The inventory (one way of many): the narration's parts, two combine into the result. */
+  inventory:
+    "screen.inventory({ intent: 'the keeper and the oil make the light; the boat waits for morning', at: 0, until: 5.4, slots: [{ sprite: 'keeper', label: 'KEEPER' }, { sprite: 'oil', label: 'OIL' }, { sprite: 'boat', label: 'BOAT' }], cursor: [[1.1, 0], [1.6, 1]], craft: { a: 0, b: 1, at: 2.2, result: { sprite: 'lighthouse', label: 'THE LIGHT' } } })",
+  /** The shop (one way of many): what something costs; a buy the wallet cannot pay blinks. */
+  shop: "screen.shop({ intent: 'twelve pounds buy the oil for the lamp but never a boat of his own', at: 0, until: 5, wallet: { label: 'POUNDS', amount: 12 }, items: [{ sprite: 'oil', label: 'OIL', price: 3 }, { sprite: 'boat', label: 'BOAT', price: 40 }], buys: [{ item: 0, at: 1.4 }, { item: 1, at: 2.6 }], keeper: 'keeper' })",
+  /** The split timer (one way of many): a run of steps, the timer lands on each real value. */
+  splits:
+    "screen.splits({ intent: 'the lifeboat drill: crew aboard, boat out, at the wreck, a minute faster than last year', at: 0, until: 5.6, unit: 'clock', splits: [{ name: 'CREW', value: 130, at: 1 }, { name: 'BOAT OUT', value: 245, at: 2.2 }, { name: 'THE WRECK', value: 580, at: 3.6, delta: -60 }], runner: 'keeper' })",
   /** The camera pushes into the room's wall calendar; the next place is redrawn around its page. */
   calendarZoom:
     "screen.calendarZoom({ intent: 'the night of the storm: the calendar on the workshop wall becomes the point in the rain', at: 2.2, push: 0.9, wipe: 0.62 })",

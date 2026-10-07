@@ -148,6 +148,8 @@ function setup(): {
           props: null,
           roles: null,
           finalReview: null,
+          lookAssets: null,
+          voiceTiming: null,
         }),
       wordsRetry: (request) => record(request, { status: 'queued', message: null } as const),
       scenesRun: (request) => record(request, { status: 'queued', message: null } as const),

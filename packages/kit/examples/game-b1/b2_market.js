@@ -173,6 +173,7 @@ export function build(ctx) {
     action: 'insert',
     at: 0,
     label: 'XMAS 82',
+    art: 'showcase',
     enter: 'cut',
     hold: 0,
   });

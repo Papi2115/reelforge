@@ -21,6 +21,7 @@ export const LINT_RULES = [
   'prop-contract',
   'no-module-state-in-prop',
   'lettering-options',
+  'kit-page-not-added',
 ] as const;
 export type LintRule = (typeof LINT_RULES)[number];
 

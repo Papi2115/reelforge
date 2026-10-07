@@ -2,7 +2,7 @@
  * Panel-native transitions of the Comic world (PLAN.md#13.3): found by style id next to the kit,
  * continuity and Sketchbook styles but never a kit or continuity style (world-scoped), exact end
  * frames, deterministic, every pixel a comic palette colour, the incoming page taking over as the
- * transition runs, and the focus moving where the cut, the panel and the ink start.
+ * transition runs, and the focus moving where the cut, the panel, the ink and the slit start.
  */
 import { CONTINUITY_STYLE_IDS, TRANSITION_STYLE_IDS } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
@@ -113,4 +113,26 @@ describe('comic panel-native transitions', () => {
       expect(Buffer.from(left).equals(Buffer.from(right))).toBe(false);
     },
   );
+
+  it('comic-gutter-collapse: closes on the focus height', () => {
+    const high = composite('comic-gutter-collapse', 0.7, { x: 0.5, y: 0.3 });
+    const low = composite('comic-gutter-collapse', 0.7, { x: 0.5, y: 0.7 });
+    expect(Buffer.from(high).equals(Buffer.from(low))).toBe(false);
+  });
+
+  it('comic-page-slide and comic-page-scroll: the page leaves sideways or upward', () => {
+    // Halfway through, the slide's left edge column and the scroll's top row still show A, and
+    // B arrives on the opposite side.
+    const column = (data: Uint8Array, x: number): number[] =>
+      colours(data).filter((_, index) => index % WIDTH === x);
+    const row = (data: Uint8Array, y: number): number[] =>
+      colours(data).slice(y * WIDTH, (y + 1) * WIDTH);
+    const slide = composite('comic-page-slide', 0.3);
+    const scroll = composite('comic-page-scroll', 0.3);
+    const hasB = (pixels: number[]): boolean => pixels.some((colour) => B_INKS.includes(colour));
+    expect(hasB(column(slide, 0))).toBe(false);
+    expect(hasB(column(slide, WIDTH - 1))).toBe(true);
+    expect(hasB(row(scroll, 0))).toBe(false);
+    expect(hasB(row(scroll, HEIGHT - 1))).toBe(true);
+  });
 });

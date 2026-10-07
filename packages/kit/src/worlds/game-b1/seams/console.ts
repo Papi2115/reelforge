@@ -1,16 +1,20 @@
 /**
- * The console close-up of the Game B1 living room (the showcase's room.js `consoleCloseup`,
- * `cartFront` and `gripHand`): the same room seen low and close, shag carpet, the TV cabinet's
- * corner top left with its screen, the 2600 big across the frame with its slot, and a cartridge
- * held by Dad's hand in a knit sleeve. The cartridge is clipped at the slot (what has gone in is
- * hidden). Room units at the close-up camera (160, 90, zoom 2); pure functions of their inputs.
+ * The console close-up of the Game B1 room (the showcase's room.js `consoleCloseup`, `cartFront`
+ * and `gripHand`): the same room seen low and close, ITS floor (the living room's shag, or the
+ * film's interior floor), the TV cabinet's corner top left with its screen, the 2600 big across
+ * the frame with its slot, and a cartridge held by a hand in a knit sleeve. The label's art window
+ * is blank unless the scene gives one of the film's sprites (or the showcase's own art). The
+ * cartridge is clipped at the slot (what has gone in is hidden). Room units at the close-up camera
+ * (160, 90, zoom 2); pure functions of their inputs.
  */
 import { quad } from '../core/canvas.js';
 import { hand } from '../core/hand.js';
 import { hash } from '../core/math.js';
-import { C, SCAN } from '../palette.js';
+import { C, colorOfSwatch, SCAN } from '../palette.js';
 import { shag } from '../room/props.js';
+import { drawFloor, type FloorKind } from '../room/surfaces.js';
 import type { RoomPen } from '../room/view.js';
+import type { B1Sprite } from '../vocab/sprite.js';
 
 /** The close-up camera: the room point at the frame centre and the zoom. */
 export const CLOSEUP_VIEW = { fx: 160, fy: 90, s: 2, inTv: 0 } as const;
@@ -37,24 +41,26 @@ export interface CartPose {
   readonly handY: number | undefined;
 }
 
+/** The label's art window: blank, one of the film's sprites, or the showcase's moonlit art. */
+export type CartArt = B1Sprite | 'showcase' | undefined;
+
 export interface CartLook {
-  /** Dad's masking-tape label (1 line, his hand). */
+  /** The masking-tape label (1 line, a hand). */
   readonly label: string | undefined;
   /** Palette index of the label's stripe. */
   readonly stripe: number;
+  readonly art: CartArt;
 }
 
-/** The front of a cartridge: grip ridges, the label with its art window, Dad's tape. */
-function cartFront(p: RoomPen, x: number, y: number, look: CartLook): void {
-  const [w, h] = [CART_W, CART_H];
-  p.rr(x, y, w, h, C.GREY_D);
-  p.rr(x + 1, y, w - 2, 1, C.GREY);
-  for (let i = 0; i < 5; i += 1) p.rr(x + 3, y + 3 + i * 2.6, w - 6, 1, C.VOID);
-  p.rr(x, y + h - 2, w, 2, C.VOID);
-  const [lx, ly, lw, lh] = [x + 4, y + h * 0.27, w - 8, h * 0.66];
-  p.rr(lx, ly, lw, lh, C.CREAM);
-  // the art window, printed half a unit off-register to the right
-  const [ax, ay, aw, ah] = [lx + 3.5, ly + 2.5, lw - 6, lh * 0.48];
+/** The floor of the close-up: the room's floor kind and inks (undefined = the living room's shag). */
+export interface CloseupFloor {
+  readonly kind: FloorKind;
+  readonly inks: readonly number[];
+  readonly seed: number;
+}
+
+/** The showcase's label art: a night sky with a crescent moon and stars over a hill. */
+function moonlitArt(p: RoomPen, ax: number, ay: number, aw: number, ah: number): void {
   p.rr(ax, ay, aw, ah, C.NIGHT);
   p.rr(ax, ay + ah * 0.72, aw, ah * 0.28, C.OLIVE_D);
   for (let k = 0; k < aw; k += 3)
@@ -67,9 +73,42 @@ function cartFront(p: RoomPen, x: number, y: number, look: CartLook): void {
     [0.5, 0.15],
   ] as const)
     p.rr(ax + aw * px, ay + ah * py, 1, 1, C.CREAM);
+}
+
+/** One of the film's sprites printed in the art window on the tube's black (frame 0, fitted). */
+function spriteArt(p: RoomPen, sprite: B1Sprite, box: readonly [number, number, number, number]) {
+  const [ax, ay, aw, ah] = box;
+  p.rr(ax, ay, aw, ah, C.TUBE);
+  const rows = sprite.frames[0] ?? [];
+  const bitW = 2 * sprite.size;
+  const k = Math.min((aw - 4) / (sprite.width * bitW), (ah - 4) / (rows.length * sprite.rowH));
+  const [cw, ch] = [bitW * k, sprite.rowH * k];
+  const sx = ax + (aw - sprite.width * cw) / 2;
+  const sy = ay + (ah - rows.length * ch) / 2;
+  rows.forEach((row, r) => {
+    const ink = colorOfSwatch(sprite.colours[r] ?? '');
+    if (ink === undefined) return;
+    for (let b = 0; b < row.length; b += 1)
+      if (row[b] === '#') p.rr(sx + b * cw, sy + r * ch, cw, ch, ink);
+  });
+}
+
+/** The front of a cartridge: grip ridges, the label with its art window, the masking tape. */
+function cartFront(p: RoomPen, x: number, y: number, look: CartLook): void {
+  const [w, h] = [CART_W, CART_H];
+  p.rr(x, y, w, h, C.GREY_D);
+  p.rr(x + 1, y, w - 2, 1, C.GREY);
+  for (let i = 0; i < 5; i += 1) p.rr(x + 3, y + 3 + i * 2.6, w - 6, 1, C.VOID);
+  p.rr(x, y + h - 2, w, 2, C.VOID);
+  const [lx, ly, lw, lh] = [x + 4, y + h * 0.27, w - 8, h * 0.66];
+  p.rr(lx, ly, lw, lh, C.CREAM);
+  // the art window, printed half a unit off-register to the right
+  const [ax, ay, aw, ah] = [lx + 3.5, ly + 2.5, lw - 6, lh * 0.48];
+  if (look.art === 'showcase') moonlitArt(p, ax, ay, aw, ah);
+  else if (look.art !== undefined) spriteArt(p, look.art, [ax, ay, aw, ah]);
   p.rr(lx, ay + ah + 1.5, lw, 1.6, look.stripe);
   if (look.label === undefined) return;
-  // masking tape torn off the roll, stuck across the grip at a slant; Dad's marker on it
+  // masking tape torn off the roll, stuck across the grip at a slant; a marker on it
   const [tx, ty, tw, th] = [x + 3, y + 2.5, w - 5, h * 0.17];
   const angle = -0.045;
   const corners = quad(p.X(tx + tw / 2), p.Y(ty + th / 2), tw * p.s, th * p.s, angle);
@@ -95,7 +134,7 @@ function cartFront(p: RoomPen, x: number, y: number, look: CartLook): void {
   });
 }
 
-/** Dad's hand and knit sleeve holding a cartridge by its sides (palm above its top edge). */
+/** A hand and knit sleeve holding a cartridge by its sides (palm above its top edge). */
 function gripHand(p: RoomPen, cx: number, top: number, squeeze: boolean): void {
   const q = squeeze ? 1 : 0;
   p.rpoly([cx + 2, top - 16, cx + 24, top - 8, cx + 84, top - 84, cx + 52, top - 100], C.ORANGE);
@@ -123,9 +162,16 @@ function gripHand(p: RoomPen, cx: number, top: number, squeeze: boolean): void {
   }
 }
 
+/** The close-up's floor over the whole frame (the cabinet and the console stand on it). */
+function closeupFloor(p: RoomPen, floor: CloseupFloor | undefined): void {
+  if (floor === undefined || floor.kind === 'shag') shag(p, 0, 181, 31, 2600);
+  else drawFloor(p, floor.kind, floor.inks, floor.seed, [0, 181]);
+}
+
 /**
  * The close-up set. `screen(rect)` is called at the TV screen's place in the z order (the model
- * fills it with the picture and its CRT); `glow` = the screen colour on the console top (-1 off).
+ * fills it with the picture and its CRT); `glow` = the screen colour on the console top (-1 off);
+ * `floor` = the room's floor (undefined = the living room's shag).
  */
 export function consoleCloseup(
   p: RoomPen,
@@ -133,8 +179,9 @@ export function consoleCloseup(
   look: CartLook,
   glow: number,
   screen: () => void,
+  floor?: CloseupFloor,
 ): void {
-  shag(p, 0, 181, 31, 2600);
+  closeupFloor(p, floor);
   p.rmap(-40, 0, 400, 30, SCAN, 0.5);
   p.rr(-10, -10, 112, 64, C.TEAK);
   p.rr(-10, 52, 112, 2, C.WALNUT_D);

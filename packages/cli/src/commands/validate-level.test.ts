@@ -109,6 +109,8 @@ describe('reelforge validate level', () => {
     const none = await runCli(project.root, 'validate', 'level', 'scenes/s01_title.js');
     expect(none.code).toBe(1);
     expect(none.stdout).toContain('no level found: write `const LEVEL = {');
+    expect(none.stdout).toContain("design the level from this shot's narration");
+    expect(none.stdout).not.toMatch(/office|warehouse/);
     await project.write(
       'scenes/s02_open.js',
       RETURNS.replaceAll("'#############',", "'.............',"),

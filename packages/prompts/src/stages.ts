@@ -45,6 +45,8 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   // A world film's own assets (PLAN.md#13.15) are built like project props: Opus, project edits
   // (the stage puts back anything outside assets/) + reelforge.
   'world-assets': 'scene-build',
+  // The world-assets critic (PLAN.md#13.15) names each asset crop: the critic's Haiku, read-only.
+  'world-asset-critic': 'critic',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

@@ -1,6 +1,6 @@
 ---
 id: critic
-version: 10
+version: 11
 model: haiku
 tools: [Read]
 output: json
@@ -20,7 +20,8 @@ Judge facts (numbers, directions, who did what) against these research notes, no
 - `off-intent` — clearly does not match the shot intent
 - `ok`
 
-{{^world}}Vibe check (every look of the film must feel like one film): the same limited palette, the same chunky pixel fonts, the same ordered (Bayer) dithering, hard pixel edges. Smooth gradients, anti-aliased or blurry edges, photo-realistic textures or a non-pixel font break the style: answer `off-intent` with a note starting `vibe:`.{{/world}}{{#world}}{{worldVibe}}{{/world}}
+{{^world}}Vibe check (every look of the film must feel like one film): the same limited palette, the same chunky pixel fonts, the same ordered (Bayer) dithering, hard pixel edges. Smooth gradients, anti-aliased or blurry edges, photo-realistic textures or a non-pixel font break the style: answer `off-intent` with a note starting `vibe:`.{{/world}}{{#world}}{{worldVibe}}
+Text in progress: frames are sampled while words are still being typed, hand-lettered, slammed in or revealed, so a line may stop mid-word or before its last words. A partly written line is not a defect: never answer `clipped`, `overlap` or `off-intent` for it and never ask to remove or reword it; judge text (spelling, wording, invented words, clipping) only where it is complete and settled, and never read a partial word as another word.{{/world}}
 
 {{#lookId}}Look of this shot: `{{lookId}}`{{#roll}} (roll {{roll}}){{/roll}}. The film mixes looks: judge the frame against this look, not against {{^world}}voxel{{/world}}{{#world}}the other looks of this world{{/world}}. {{lookRules}}
 Look checks: text, a window title or a headline cut by the frame edge or by a camera push-in → `clipped`; labels, pins or captions colliding with each other or sitting on busy detail where they cannot be read → `overlap`; an element of another look faking this one{{^world}} (e.g. voxel boxes standing in for a retro-UI window, a chart or a map){{/world}} → `off-intent` with a note starting `look:`.

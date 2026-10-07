@@ -63,7 +63,7 @@ describe('world sections off (script, sound-cues)', () => {
 
   it('bumps the versions of the prompts with world variety wording', () => {
     const ids = ['storyboard', 'scene-build', 'scene-fix', 'critic', 'script', 'sound-cues'];
-    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([19, 18, 7, 10, 3, 6]);
+    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([19, 18, 7, 11, 4, 6]);
   });
 });
 
@@ -94,9 +94,11 @@ describe('sketchbook moment wording', () => {
     }
     expect(storyboard).toContain('- `ruler-graph` (moment; look `sketch-graph`): use when');
     expect(storyboard).toContain(
-      '- `popup` (breakthrough; look `sketch-loud`): use when the narration turns on a reveal',
+      '- `popup` (breakthrough; look `sketch-loud`; a shot of at least 4.5 s): use when the narration turns on a reveal',
     );
-    expect(storyboard).toContain('- `strip` (breakthrough; look `sketch-graph`): use when');
+    expect(storyboard).toContain(
+      '- `strip` (breakthrough; look `sketch-graph`; a shot of at least 4.5 s): use when',
+    );
     expect(storyboard).toContain('- `torn-page` (moment; any look)');
     expect(storyboard).toContain(
       'this film (about 155 s) needs at least 2 and at most 5, of at least 2 different kinds; never in adjacent shots.',

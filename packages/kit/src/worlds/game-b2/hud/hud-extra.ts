@@ -2,7 +2,8 @@
  * The methods of `kit.fx.b2Hud` added for looks B and C and the tally breakthrough (PLAN.md#13.4
  * part b): `tally(spec)` (the intermission screen, `intent` required), `menu(spec)` (quest log,
  * stat sheet, inventory grid), `stinger(text, opts)` (big slam-in word), `damage(opts)` (a number
- * popping off the meter or the boss bar) and `shake(opts)` (the HUD shakes with decay). Each
+ * popping off the meter or the boss bar), `levelCard(opts)` (the new place typed into the level
+ * card's band) and `shake(opts)` (the HUD shakes with decay). Each
  * validates with readable errors and returns its times (and sound cues where it has some).
  */
 import { z } from 'zod';
@@ -12,6 +13,7 @@ import { artOf } from '../view/view-assets.js';
 import type { B2World } from '../view/world.js';
 import { checkText, parseWith, time } from './hud-schemas.js';
 import { ICONS, isIconName } from './inventory.js';
+import { levelCardSchema, planLevelCard } from './level-card.js';
 import { createMenu, menuSchema } from './menu.js';
 import type { HudModel, Span } from './model.js';
 import { stingerLands } from './stinger.js';
@@ -147,6 +149,21 @@ export function hudExtras({ model, world, seed, at, fail }: Context) {
         colour,
       });
       return { at: from, end: from + 0.95 };
+    },
+    levelCard(options: unknown): Span {
+      const o = parseWith(levelCardSchema, options, 'levelCard()');
+      checkText('levelCard.place', o.place, 1, 560, 3);
+      if (o.sub !== '') checkText('levelCard.sub', o.sub, 1, 560, 2);
+      const from = at(o.at);
+      const card = planLevelCard(
+        o,
+        from,
+        o.until === undefined ? undefined : at(o.until),
+        seed,
+        fail,
+      );
+      model.levelCard(card);
+      return { at: from, end: card.until };
     },
     shake(options: unknown): Span {
       const o = parseWith(shakeSchema, options, 'shake()');

@@ -218,6 +218,9 @@ function itemLook(value: unknown, assets: ViewAssets): ItemLook {
   return { kind: item.kind, label: item.label, band, dirty: item.dirty, art };
 }
 
+/** A take (reach and swing back) settles at least this long before the shot ends. */
+const TAKE_SETTLE_S = 0.3;
+
 function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2ViewObject {
   const resolve = createResolver(params.anchor, CALL);
   const seed = params.seed ?? Math.floor(tools.rng() * 2_147_483_647) % 100_000;
@@ -289,13 +292,19 @@ function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2Vi
       const timing = parse(timeSchema, { at: options.at, until: options.until }, 'take()');
       const from = parse(point3, options.from, 'take(from)');
       const until = timing.until === undefined ? forever : time(timing.until, 'take');
-      return world.hand.add({
+      const span = world.hand.add({
         kind: 'take',
         at: time(timing.at, 'take'),
         until,
         item: look(item),
         from,
       });
+      // Real run Game B2 2: a take that lands after the cut blinks the item out at the seam.
+      if (timing.until === undefined && span.end > forever - TAKE_SETTLE_S)
+        fail(
+          `take(): the hand is still swinging back at the end of the shot (back at ${span.end.toFixed(2)} s, the shot ends at ${forever.toFixed(2)} s); start it by ${(forever - TAKE_SETTLE_S - (span.end - span.at)).toFixed(2)} s so the item is held still when the shot cuts (the next shot may carry it on)`,
+        );
+      return span;
     },
     hold(item: unknown, options: { at: number | string; until?: number | string }) {
       const until = options.until === undefined ? forever : time(options.until, 'hold');
@@ -320,7 +329,16 @@ function buildView(params: z.output<typeof b2ViewParams>, tools: KitTools): B2Vi
       defineAsset(assets, 'icons', id, spec, fail);
     },
     cameraAt: (t: number) => world.camera(t),
-    ...viewExtras({ world, compiled, seed, time, fail, parse, itemLook: look }),
+    ...viewExtras({
+      world,
+      compiled,
+      seed,
+      duration: params.duration,
+      time,
+      fail,
+      parse,
+      itemLook: look,
+    }),
   };
   const fx = asFx(output.object, (t) => {
     world.render(t, screen);
@@ -355,8 +373,8 @@ export const b2View = defineFx({
     'defineIcon(id, spec)':
       "Defines an item icon ({ gen: 'icon', kind: 'book' } or 12x12 rows) for take/hold/throw ({ icon: id }) and the HUD inventory",
     'cameraAt(t)': 'The camera { x, y, yaw, pitch, eye } at t',
-    'automap({ intent, at, until, enter, exit, scale, rooms, replay, marks, note, camera, legend })':
-      'Breakthrough: the level from above, generated from its grid (walls, doors, walked / next / ahead rooms, footprints, the arrow). Unfolds out of the HUD minimap and folds back (continuity). Returns { at, end, open, fold, cues }',
+    'automap({ intent, at, until, enter, exit, scale, backdrop, rooms, replay, marks, note, camera, legend })':
+      "Breakthrough: the level from above, generated from its grid (walls, doors, walked / next / ahead rooms, footprints, the arrow). Unfolds out of the HUD minimap and folds back (continuity); the rooms span >= half the frame (scale up to 24); backdrop: 'freeze' holds the level dimmed behind it (a map held to the shot's end needs it or exit 'fold'). Returns { at, end, open, fold, cues }",
     'throw(item, { intent, at, to: [x, y] | target: spriteId, z, arc, dur, windup, stay, shake })':
       'The held item is thrown (dip, swing, release at `at`) along an arc; it tumbles, lands with dust; the target sprite flinches. Returns { at, release, land, end, cues }',
     'fog({ at, until, amount })': 'A fog bank rolls in and clears: time passes between two beats',

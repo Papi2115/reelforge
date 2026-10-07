@@ -2,7 +2,7 @@
  * Contact-sheet scenes of a film's world assets (PLAN.md#13.15 phase 2): generated standalone
  * scenes that draw each asset alone in a grid cell through the world's own scene API and
  * `ctx.worldAssets`, rendered like any scene (preview = export = sheet). One scene per page of
- * a kind: Sketchbook figures/props 8 per page, Comic characters/props 8 (backdrops 4, one panel
+ * a kind: Sketchbook figures/props 8 per page, Comic characters/props 5 (backdrops 4, one panel
  * each), Game B2 sprites / textures 3 in an outdoor gallery (icons 6 in the inventory), Game B1
  * sprites 4 inside the TV (2 per scanline band), playfields 3, rooms 1.
  */
@@ -75,7 +75,8 @@ ${UPDATE_ONE('page')}`,
 };
 
 const COMIC: Template = {
-  perPage: 8,
+  // One panel per asset, and a comic page shows at most 5 panels at once (kit MAX_PANELS_AT_ONCE).
+  perPage: 5,
   columns: 4,
   duration: 2,
   body: () => `
@@ -195,25 +196,65 @@ const KINDS: Readonly<Record<WorldAssetWorld, readonly (readonly [string, number
   'game-b1': [['sprites'], ['playfields', 3], ['rooms', 1]],
 };
 
+function sheetPage(
+  world: WorldAssetWorld,
+  kind: string,
+  ids: readonly string[],
+  page: number,
+  perPage: number,
+): SheetPage {
+  const template = TEMPLATES[world];
+  return {
+    page,
+    kind,
+    ids,
+    columns: Math.min(template.columns, perPage),
+    duration: template.duration,
+    time: template.time ?? template.duration - 0.1,
+    source: `${header(world, kind, ids)}${template.body(kind, ids)}`,
+  };
+}
+
 /** The sheet pages of a set (no page for a kind without assets). */
 export function worldAssetSheetPages(set: WorldAssetSet): SheetPage[] {
-  const template = TEMPLATES[set.world];
   const pages: SheetPage[] = [];
   for (const [kind, size] of KINDS[set.world]) {
     const ids = set.ids.byKind[kind] ?? [];
-    const perPage = size ?? template.perPage;
+    const perPage = size ?? TEMPLATES[set.world].perPage;
     for (let start = 0; start < ids.length; start += perPage) {
       const chunk = ids.slice(start, start + perPage);
-      pages.push({
-        page: pages.length + 1,
-        kind,
-        ids: chunk,
-        columns: Math.min(template.columns, perPage),
-        duration: template.duration,
-        time: template.time ?? template.duration - 0.1,
-        source: `${header(set.world, kind, chunk)}${template.body(kind, chunk)}`,
-      });
+      pages.push(sheetPage(set.world, kind, chunk, pages.length + 1, perPage));
     }
   }
   return pages;
+}
+
+/** One kind's solo renders: the page without any asset, then each asset alone in the first cell. */
+export interface SoloKind {
+  readonly kind: string;
+  readonly empty: SheetPage;
+  readonly solos: readonly SheetPage[];
+}
+
+/**
+ * Pages that draw each asset ALONE (the first cell of its kind's page), plus the same page with
+ * nothing on it: the difference of the two is where the asset is, cropped at film size for the
+ * critic (world-assets step, per-asset legibility). Page numbers continue after `first`.
+ */
+export function worldAssetSoloPages(set: WorldAssetSet, first = 1): SoloKind[] {
+  const kinds: SoloKind[] = [];
+  let page = first;
+  for (const [kind, size] of KINDS[set.world]) {
+    const ids = set.ids.byKind[kind] ?? [];
+    if (ids.length === 0) continue;
+    const perPage = size ?? TEMPLATES[set.world].perPage;
+    const empty = sheetPage(set.world, kind, [], page, perPage);
+    page += 1;
+    const solos = ids.map((id) => {
+      page += 1;
+      return sheetPage(set.world, kind, [id], page - 1, perPage);
+    });
+    kinds.push({ kind, empty, solos });
+  }
+  return kinds;
 }

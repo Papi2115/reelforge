@@ -215,6 +215,28 @@ const BUILT_IN_GENRE_PRESETS: readonly GenrePreset[] = [
     preferredLooks: ['retro-ui', 'flat-2d'],
     wowTransitionBudget: 1.5,
   },
+  {
+    id: 'explained-as-a-game',
+    name: 'Explained as a game',
+    description:
+      'How something works, told as a first-person game run: levels, stats, bosses and power-ups.',
+    // Game B2 writes the script as a game run (its world prompts, PLAN.md#13.15); crisp voxel with
+    // retro UI screens when the world is not offered (the tone hint still frames the script).
+    styles: ['game-b2', 'voxel-pixel-crisp640'],
+    lookMode: 'mixed',
+    // Steady: each level needs time to explain before the next screen.
+    shotsPerMinute: SHOT_RANGE_PRESETS.balanced,
+    direction: ALL_AUTO,
+    ambientVariation: true,
+    researchMode: 'ask',
+    // The run carries its items from level to level (the held thing, the map).
+    continuityLinks: true,
+    scriptTone:
+      'a game run in the second person: levels as chapters, real stats, misconceptions as bosses, insights as power-ups; every game term a true fact',
+    musicMoodsPreferred: ['retro-wave', 'bright-explainer', 'tense-investigation'],
+    preferredLooks: ['retro-ui', 'blueprint', 'flat-2d'],
+    wowTransitionBudget: 1,
+  },
 ];
 
 /** The built-in presets (validated once at load: a typo in the table fails every test). */

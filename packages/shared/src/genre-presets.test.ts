@@ -32,7 +32,7 @@ const PROJECT: ProjectFile = projectFileSchema.parse({
 });
 
 describe('genre preset table', () => {
-  it('lists the six genres, each valid and with a distinct id', () => {
+  it('lists the seven genres, each valid and with a distinct id', () => {
     expect(GENRE_PRESET_IDS).toEqual([
       'true-crime',
       'tech-explainer',
@@ -40,6 +40,7 @@ describe('genre preset table', () => {
       'finance',
       'science',
       'pop-culture',
+      'explained-as-a-game',
     ]);
     for (const preset of GENRE_PRESETS) expect(genrePresetSchema.parse(preset)).toEqual(preset);
     expect(Object.isFrozen(GENRE_PRESETS)).toBe(true);
@@ -69,6 +70,16 @@ describe('genre preset table', () => {
     expect(genrePresetScriptTone({ genrePreset: 'retired-genre' })).toBeUndefined();
     expect(genrePresetScriptTone({ genrePreset: 'true-crime' })).toMatch(/^investigative/);
   });
+
+  it('frames the game-run preset for Game B2 with a voxel fallback and a game tone', () => {
+    const game = findGenrePreset('explained-as-a-game');
+    expect(game?.name).toBe('Explained as a game');
+    expect(game?.styles).toEqual(['game-b2', 'voxel-pixel-crisp640']);
+    expect(game?.continuityLinks).toBe(true);
+    expect(genrePresetScriptTone({ genrePreset: 'explained-as-a-game' })).toMatch(
+      /^a game run in the second person: levels as chapters.*every game term a true fact$/,
+    );
+  });
 });
 
 describe('resolveGenrePreset: style fallback by availability', () => {
@@ -83,6 +94,8 @@ describe('resolveGenrePreset: style fallback by availability', () => {
     ['science', withSketchbook, 'sketchbook', []],
     ['pop-culture', withSketchbook, 'voxel-pixel-crisp640', ['game-b2']],
     ['pop-culture', everyWorld, 'game-b2', []],
+    ['explained-as-a-game', withSketchbook, 'voxel-pixel-crisp640', ['game-b2']],
+    ['explained-as-a-game', everyWorld, 'game-b2', []],
   ];
   it.each(cases)('%s → first offered style', (id, available, style, skipped) => {
     const resolution = resolveGenrePreset(id, { isStyleAvailable: available });

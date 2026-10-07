@@ -3,7 +3,7 @@
  * world is a style GRAMMAR"): the real run Game B2 1 replayed the showcase (a literal cartridge in a
  * film about the Great Stink, a ledger drawn as a cartridge, every person the same clerk). Every
  * text the runtime Claude gets in a Game B2 project (storyboard, scene-build / scene-fix / critic
- * for every planned moment and for a plain shot, the script's surprise wording, every world field
+ * for every planned moment and for a plain shot, the script with its game framing, every world field
  * and every quoted kit call) is scanned for the showcase's nouns; they may appear only in the
  * allowlisted sentences below.
  */
@@ -22,6 +22,7 @@ import {
   type WorldTransitionOption,
 } from './worlds/index.js';
 import { GAME_B2_PITFALLS } from './worlds/game-b2.js';
+import { GAME_B2_STRUCTURE } from './worlds/game-b2-script.js';
 
 /** The only sentences that may name the showcase's things (changing them is deliberate). */
 const ALLOWED_SENTENCES: readonly string[] = [
@@ -95,6 +96,20 @@ function texts(): [string, string][] {
       }),
     ],
     ['script surprise', scriptWorldVars(GAME)['worldSurprise'] ?? ''],
+    [
+      'script',
+      rendered('script', {
+        brief: { version: 1, topic: 'How a thing works', language: 'en', targetMinutes: 6 },
+        language: 'en',
+        targetMinutes: 6,
+        targetWords: 900,
+        tone: 'friendly',
+        audience: 'not specified',
+        surpriseBeats: true,
+        interruptsPerMinute: '1–2',
+        ...scriptWorldVars(GAME),
+      }),
+    ],
     ['world fields', JSON.stringify(text)],
     ['snippets', JSON.stringify(GAME_B2_SNIPPETS)],
   ];
@@ -153,8 +168,16 @@ function showcaseHits(name: string, value: string): string[] {
 describe('Game B2 prompts are free of the showcase topic', () => {
   it('name no showcase noun outside the allowlisted sentences', () => {
     const all = texts();
-    expect(all.length).toBe(4 + MOMENTS.length * 3);
+    expect(all.length).toBe(5 + MOMENTS.length * 3);
     expect(all.flatMap(([name, value]) => showcaseHits(name, value))).toEqual([]);
+  });
+
+  it('keep the game framing free of the real-run topics (forest film, compound interest)', () => {
+    const framing = [text.script ?? '', GAME_B2_STRUCTURE].join('\n');
+    expect(framing.length).toBeGreaterThan(1_000);
+    expect(framing).not.toMatch(
+      /forest|\boaks?\b|acorn|\btrees?\b|ecosystem|interest|\bstink\b|sewer|thames|london/i,
+    );
   });
 
   it('would catch a planted showcase noun (the scan is live)', () => {

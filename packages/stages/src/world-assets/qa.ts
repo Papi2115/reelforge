@@ -1,10 +1,10 @@
 /**
  * QA of the film's world assets by code (PLAN.md#13.15 phase 2; Claude's self-report is not
  * trusted): the files in the world's format (the engine's own parse: left-out files are
- * findings), `assets/cast.json` valid and pointing at defined ids, every asset drawn alone through
- * the world's scene API into contact sheets (1x + thumbnail, the CLI's sheet scenes rendered by
- * the same engine as preview and export), then the Haiku critic on the sheets: recognisable at
- * thumbnail size, in style and palette, distinct from its siblings.
+ * findings), `assets/cast.json` valid and pointing at defined ids, the contact sheets (1x +
+ * thumbnail, the CLI's sheet scenes rendered by the same engine as preview and export), no person
+ * the narration does not name (names.ts), then each asset alone at film size and the blind Haiku
+ * critic naming each crop (legibility.ts).
  */
 import {
   composeWorldAssetSheet,
@@ -21,21 +21,21 @@ import { err, ok, type Result } from '@reelforge/claude-bridge';
 import type { WorldAssetSet } from '@reelforge/engine';
 import { encodePng } from '@reelforge/engine/raster';
 import type { World } from '@reelforge/kit';
-import { validateCriticReply } from '@reelforge/prompts';
 import { writeAtomic } from '@reelforge/project';
 import {
   WORLD_CAST_FILE,
   worldAssetsDir,
   worldCastFileSchema,
   type WorldAssetWorld,
+  type WorldCastEntry,
 } from '@reelforge/shared';
 import { readProjectText, writeProjectText } from '../files.js';
-import { inProject } from '../paths.js';
+import { FILES, inProject } from '../paths.js';
 import type { SceneJob } from '../scenes/job.js';
 import { renderShot } from '../scenes/render.js';
-import { render } from '../stages/repair.js';
 import { stageError, type StageError } from '../types.js';
-import { criticWorldPromptVars } from '../worlds.js';
+import { legibilityQa } from './legibility.js';
+import { assetFacts, inventedPeopleFindings, type AssetFacts } from './names.js';
 
 /** What a world-assets QA round needs from the scene job. */
 export type WorldAssetsJob = Pick<SceneJob, 'ctx' | 'frames' | 'settings' | 'styleId'> & {
@@ -53,9 +53,6 @@ export interface WorldAssetsQa {
   readonly set: WorldAssetSet;
 }
 
-/** Critic variables that judge a shot, not an asset sheet. */
-const SHOT_ONLY = new Set(['worldChecklist', 'worldMoment', 'worldMomentCheck']);
-
 const describe = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -72,35 +69,44 @@ export async function readAssetFiles(
   }
 }
 
-/** cast.json findings and the names it gives the ids (for the critic). */
+/** cast.json findings and its entries (the names and kinds of the ids). */
 async function castCheck(
   projectDir: string,
   set: WorldAssetSet,
-): Promise<Result<{ findings: string[]; names: Map<string, string> }, StageError>> {
+): Promise<Result<{ findings: string[]; entries: WorldCastEntry[] }, StageError>> {
   const text = await readProjectText(projectDir, WORLD_CAST_FILE);
   if (!text.ok) return text;
-  const names = new Map<string, string>();
   if (text.value === undefined)
-    return ok({ findings: [`${WORLD_CAST_FILE} was not written`], names });
+    return ok({ findings: [`${WORLD_CAST_FILE} was not written`], entries: [] });
   let value: unknown;
   try {
     value = JSON.parse(text.value);
   } catch (error) {
-    return ok({ findings: [`${WORLD_CAST_FILE} is not valid JSON: ${describe(error)}`], names });
+    const finding = `${WORLD_CAST_FILE} is not valid JSON: ${describe(error)}`;
+    return ok({ findings: [finding], entries: [] });
   }
   const parsed = worldCastFileSchema.safeParse(value);
   if (!parsed.success) {
     const issues = parsed.error.issues.map(
       (issue) => `${issue.path.join('.') || '(file)'}: ${issue.message}`,
     );
-    return ok({ findings: [`${WORLD_CAST_FILE} is invalid: ${issues.join('; ')}`], names });
+    return ok({ findings: [`${WORLD_CAST_FILE} is invalid: ${issues.join('; ')}`], entries: [] });
   }
   const known = new Set(set.ids.all);
-  for (const entry of parsed.data.entries) names.set(entry.id, entry.name);
   const findings = parsed.data.entries
     .filter((entry) => !known.has(entry.id))
     .map((entry) => `${WORLD_CAST_FILE}: "${entry.id}" is not defined by any asset file`);
-  return ok({ findings, names });
+  return ok({ findings, entries: parsed.data.entries });
+}
+
+/** People the narration does not name (no script yet: nothing to check against). */
+async function peopleCheck(
+  projectDir: string,
+  facts: readonly AssetFacts[],
+): Promise<Result<string[], StageError>> {
+  const script = await readProjectText(projectDir, FILES.script);
+  if (!script.ok) return script;
+  return ok(script.value === undefined ? [] : inventedPeopleFindings(script.value, facts));
 }
 
 /** Renders one sheet page and writes its PNG; a string = why it did not render. */
@@ -139,60 +145,6 @@ async function sheetPage(
   return ok({ sheet: paths.sheet, failure });
 }
 
-function criticIntent(
-  job: WorldAssetsJob,
-  pages: readonly WorldAssetSheetPage[],
-  names: ReadonlyMap<string, string>,
-): string {
-  const listed = pages
-    .map(
-      (page) =>
-        `sheet ${String(page.page)} (${page.kind}): ${page.ids.map((id) => (names.has(id) ? `${id} = ${names.get(id) ?? ''}` : id)).join(', ')}`,
-    )
-    .join('; ');
-  return `contact sheets of this film's own ${job.world.label} assets, each thing drawn alone by the world's kit (top: 1x; bottom: the same frame with each thing at most 64 px wide). ${listed}. ok = every thing reads as what its name says at the small size, in the world's style and palette, and siblings are distinct (two people never identical unless intended); off-intent = name the thing that fails and why (unrecognisable, off-palette, a twin of another); blank/clipped as usual`;
-}
-
-async function critique(
-  job: WorldAssetsJob,
-  pages: readonly WorldAssetSheetPage[],
-  sheets: readonly string[],
-  names: ReadonlyMap<string, string>,
-): Promise<Result<{ findings: string[]; notes: string[] }, StageError>> {
-  // The world's medium, style and vibe; not the shot checklist (focal point, traces, moments).
-  const world = Object.fromEntries(
-    Object.entries(criticWorldPromptVars(job.world)).filter(([key]) => !SHOT_ONLY.has(key)),
-  );
-  const prompt = render('critic', {
-    imagePaths: sheets.join(', '),
-    intent: criticIntent(job, pages, names),
-    styleId: job.styleId,
-    ...world,
-  });
-  if (!prompt.ok) return prompt;
-  const turn = await job.ctx.claude({
-    prompt: 'critic',
-    text: prompt.value,
-    purpose: 'qa',
-    newSession: true,
-    label: 'critic world assets',
-    commit: false,
-    detached: true,
-  });
-  if (!turn.ok) {
-    if (turn.error.kind !== 'claude') return turn;
-    return ok({ findings: [], notes: [`the world-assets critic failed: ${turn.error.message}`] });
-  }
-  const reply = validateCriticReply(turn.value.reply, { expectedPaths: [...sheets] });
-  if (reply.value === undefined) {
-    return ok({ findings: [], notes: ["the world-assets critic's reply was not valid JSON"] });
-  }
-  const findings = reply.value.frames
-    .filter((frame) => frame.verdict !== 'ok')
-    .map((frame) => `${frame.path}: the critic says "${frame.verdict}": ${frame.note}`);
-  return ok({ findings, notes: [] });
-}
-
 /** One QA round of `assets/<world>/` as it is on disk. */
 export async function worldAssetsQaRound(
   job: WorldAssetsJob,
@@ -223,10 +175,18 @@ export async function worldAssetsQaRound(
       );
     }
   }
-  if (findings.length > 0 || sheets.length === 0 || !job.settings.critic || !ctx.hasClaude) {
-    return ok({ findings, sheets, notes: [], set });
+  const facts = assetFacts(files.value, set, cast.value.entries);
+  const people = await peopleCheck(ctx.projectDir, facts);
+  if (!people.ok) return people;
+  if (findings.length > 0 || sheets.length === 0) {
+    return ok({ findings: [...findings, ...people.value], sheets, notes: [], set });
   }
-  const judged = await critique(job, pages, sheets, cast.value.names);
-  if (!judged.ok) return judged;
-  return ok({ findings: judged.value.findings, sheets, notes: judged.value.notes, set });
+  const legible = await legibilityQa(job, set, facts);
+  if (!legible.ok) return legible;
+  return ok({
+    findings: [...legible.value.findings, ...people.value],
+    sheets,
+    notes: legible.value.notes,
+    set,
+  });
 }

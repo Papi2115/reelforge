@@ -121,6 +121,7 @@ export function build(ctx) {
     until: BACK_T,
     cover: 'strip',
     arrange: 'row',
+    type: 0.6,
     enter: 'slide',
     beats: [
       { at: MACHINE_T, draw: machine, weight: 1.1 },

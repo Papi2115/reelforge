@@ -653,7 +653,7 @@ Prompts / stages / CLI are phase 2 (not touched).
   the cartridge `sand-pile`; no dunes, palms, camels), **city** (no streets, facades, cars, skyline). Every person was the
   clerk, every object the cartridge shell.
 - **Asset pack** (`kit.fx.b2View({ assets })`, one pack or a list of up to 4; the same JSON as a project file
-  `assets/b2/<name>.json`: `{ version: 1, world: 'game-b2', sprites, textures, icons }`). Ids are kebab case, unique across
+  `assets/game-b2/<name>.json`: `{ version: 1, world: 'game-b2', sprites, textures, icons }`). Ids are kebab case, unique across
   packs, never a built-in name; caps 48 sprites / 24 textures / 24 icons per view. Each entry is **pixel art** or a
   **generator call**; errors name the asset, frame, row and column (`sprites.fern.rows[1]: "X" at x=1 is not in the legend`).
   Delivering project files to scenes (inline or injected) is phase 2; `checkAssets(pack)` is exported for the CLI.
@@ -805,7 +805,7 @@ inks), not the set of things a film may contain (DECISIONS.md "PRINCIPLE"). Code
   workbench, boxes, instrument (guitar, drum). The TV cabinet, console and joystick are drawn exactly as in the living room
   (the identity; the TV glass is pixel-identical in every shell, tested) and the calendar stays where the calendar zoom
   lands. `room()` is unchanged (all part a/b goldens pass as committed).
-- **Asset files** `assets/b1/<name>.json` = `{ version: 1, world: "game-b1", describe, sprites, playfields, generated, rooms }`,
+- **Asset files** `assets/game-b1/<name>.json` = `{ version: 1, world: "game-b1", describe, sprites, playfields, generated, rooms }`,
   loaded with `screen.assets(file)`. `checkB1Assets(files, { used, known })` (exported from the world) validates a whole
   project at once without throwing: every message names the file and the id, ids are unique across files and kinds, room
   posters must name a defined sprite, ids a scene uses that nobody defines get a did-you-mean; `b1SceneRefs(source)`

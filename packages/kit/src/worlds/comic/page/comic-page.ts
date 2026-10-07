@@ -14,12 +14,14 @@ import { createQuad } from '../../../looks/whiteboard/quad.js';
 import { createKitObject } from '../../../object.js';
 import { createArt } from '../art/api.js';
 import { defineFx, type KitTools } from '../../../registry.js';
+import { createPanelBreak } from '../breakthrough/break.js';
 import { createFlashback } from '../breakthrough/flashback.js';
 import { createSpread } from '../breakthrough/spread.js';
 import { ComicCanvas } from '../draw/canvas.js';
 import { INK_TABLE } from '../inks.js';
 import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
 import { createStructureApi } from './api.js';
+import { createFlowApi } from './flow.js';
 import { createLetteringApi } from './api-lettering.js';
 import { ComicPageModel } from './model.js';
 import { misFor } from './panel.js';
@@ -62,9 +64,15 @@ const PAGE_METHODS = {
   "stamp(text, { x, y, at, angle, color: 'red', size, wear, inner })":
     'A rubber stamp slammed on the page (worn frame + letters, dropouts where the rubber missed, a small page hit): a code, a date, a verdict',
   "flashback({ intent, when, at, until, cover: 'page' | 'strip', arrange: 'rows' | 'row' | 'stair' | 'pile', box, tilt, enter, beats: [{ at, draw: (g, t, [w, h]) => ..., weight, caption, enter }], stamp: { text, at, x, y } })":
-    'Breakthrough: the past as an older sepia print job (palette remap, coarser screen); 1-5 narrated beats revealed panel by panel, the time-stamp caption `when` lettered in; cover page = the whole page re-inked, strip = a torn strip pasted over the present; intent (required) = the claim; returns { panels, at, end, until, box }',
+    'Breakthrough: the past as an older sepia print job (palette remap, coarser screen); 1-5 narrated beats revealed panel by panel, the time-stamp caption `when` lettered in; cover page = the whole page re-inked, strip = a torn strip pasted over the present (cover and arrange required, no defaults); type = seconds to letter the captions in (0 = at once); intent (required) = the claim; returns { panels, at, end, until, box }',
   "spread({ intent, art, at, until, assemble: 'merge' | 'unfold' | 'pull-back', pieces: 'grid' | 'columns' | 'halves', delay, dur, focus, fold, insets: [{ box, at, until, draw, kind }], beats })":
-    'Breakthrough: a double-page spread, one picture `art` (g, t) across both pages and the fold; merge = panels that turn out to be one picture, unfold = the book opens from the spine, pull-back = a small panel on `focus` whose camera pulls back; <= 3 insets after it is whole; holds <= 4 s between beats (beats = narration landing); intent required; returns { at, assembled, until, insets }',
+    'Breakthrough: a double-page spread, one picture `art` (g, t) across both pages and the fold; merge = panels that turn out to be one picture, unfold = the book opens from the spine, pull-back = a small panel on `focus` whose camera pulls back (assemble required; merge needs pieces); <= 3 insets after it is whole; holds <= 4 s between beats (beats = narration landing); intent required; returns { at, assembled, until, insets }',
+  "flow({ intent, direction: 'across' | 'down' | 'diagonal', beats: [{ at, weight, draw: (g, t, [w, h]) => ... }], breadth, gutter, travel, camera: 'read' | 'still', reveal: 'page' | 'beats', seed })":
+    'Page flow: 2-5 panels as a strip that runs ACROSS (a long band read sideways), DOWN (a tall narrow column read downward) or DIAGONAL (a stair), longer than the page if it must; the page camera reads it (hold, travel to the next panel just before its beat, hold); panel length = weight; intent (required) = why the page reads this way; vary the direction page to page; returns { panels, boxes } (page px, for captions)',
+  'thread({ intent, through: [panel, panel, panel], draw: (g, t) => ..., at, until })':
+    'Continuity on the page: one element (a rope, a road, a river, a colour band, a gesture, a thing in flight) drawn in page px OVER 3-5 panels and the gutters between them, carried from panel to panel; intent (required) = what the carried thing means',
+  "panelBreak({ intent, at, until, print: 'present' | 'past', when, type, fold, gutters: { kind: 'keep' | 'close' | 'lift' | 'tear', at, dur }, panels: [{ id, box: [x, y, w, h] | quad, shape: 'rect' | 'lean' | 'wedge' | 'shard', lean, draw: (g, t, [w, h]) => ..., at, until, enter: 'cut' | 'slide' | 'slam' | 'pop' | 'drop' | 'swing' | 'grow' | 'unroll', from, dur, border, camera: [{ at, x, y, zoom }] }], moves: [{ target: id | [ids], at, dur, ease, lag, to: { x, y, rotate, scale, box, border } }], drive: (t) => ({ id: { x, y, rotate, scale } }) })":
+    'Breakthrough toolkit: INVENT the mechanism whose motion shows the claim (intent, required). 1-5 panels you shape and place (panel-local painters, 0,0 = its top-left); how each arrives (swing on a hinge side, grow from a side, unroll, drop...); moves on the narration beats (x, y = px from its rest place, rotate <= 12 deg, scale, a new box to rearrange or grow to the bleed; several targets with lag = one panel pulls the others after it) or a pure drive(t); gutters close (borders melt into one picture), lift (panels come off the page as loose pieces), tear; the camera inside a panel; print past = the older sepia job of a look back; fold = a spine crease. Needs moves or drive; never the same mechanism twice in a film; returns { at, until, panels: { id: panel } }',
   'note(text, { x, y, at, dur }) / arrow(from, to, opts) / loop(x, y, rx, ry, opts) / tick / strike / highlight':
     'Pencil margin note written letter by letter; two-stroke arrow, loop, tick, strike-through, highlighter (opts { at, dur, color, w })',
   'thumbprint(x, y) / smudge(x, y, { length, angle }) / coffeeRing(x, y, r)':
@@ -97,7 +105,8 @@ export type ComicPageObject = FxObject &
     readonly size: readonly [number, number];
     readonly flashback: ReturnType<typeof createFlashback>;
     readonly spread: ReturnType<typeof createSpread>;
-  };
+    readonly panelBreak: ReturnType<typeof createPanelBreak>;
+  } & ReturnType<typeof createFlowApi>;
 
 function buildPage(params: z.output<typeof comicPageParams>, tools: KitTools): ComicPageObject {
   const seed = params.seed ?? Math.floor(tools.rng() * 2_147_483_647) % 100_000;
@@ -131,10 +140,22 @@ function buildPage(params: z.output<typeof comicPageParams>, tools: KitTools): C
   building = false;
   const size = [PAGE_WIDTH, PAGE_HEIGHT] as const;
   const lettering = createLetteringApi(ctx);
-  const breakthroughs = { flashback: createFlashback(ctx, lettering), spread: createSpread(ctx) };
+  const breakthroughs = {
+    flashback: createFlashback(ctx, lettering),
+    spread: createSpread(ctx),
+    panelBreak: createPanelBreak(ctx, lettering),
+  };
   const structure = createStructureApi(ctx);
   const open = createArt(ctx, (layout, options) => structure.panels(layout, options));
-  return Object.assign(fx, { ...structure, ...lettering, ...breakthroughs, ...open, size });
+  const flow = createFlowApi(ctx);
+  return Object.assign(fx, {
+    ...structure,
+    ...lettering,
+    ...breakthroughs,
+    ...open,
+    ...flow,
+    size,
+  });
 }
 
 export const comicPage = defineFx({

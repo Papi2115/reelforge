@@ -8,8 +8,8 @@
  * pure function of t: every frame is composed from scratch.
  */
 import { Bmp } from '../core/bitmap.js';
-import { EASES, hash3, lerp, seg } from '../core/rand.js';
-import { C } from '../palette.js';
+import { bayer, EASES, hash3, lerp, seg } from '../core/rand.js';
+import { C, dimMap } from '../palette.js';
 import type { CameraPath } from '../ray/camera.js';
 import { SCREEN_H, SCREEN_W } from '../view/output.js';
 import {
@@ -54,6 +54,9 @@ const LOOK: Readonly<Record<RoomPlan['state'], readonly [number, number, PenStyl
   next: [C.GREY, C.SLATE, 'dashed'],
   ahead: [C.SLATE, C.SLATE, 'dashed'],
 };
+/** The frozen level behind a `backdrop: 'freeze'` map: dimmed, half screened by the void. */
+const GHOST = dimMap(0.4, [0.9, 0.95, 1.1]);
+
 const LABEL_COLOURS: Readonly<Record<RoomPlan['state'], readonly [number, number]>> = {
   done: [C.SAGE, C.GREEN],
   next: [C.SAND, C.WOOD],
@@ -67,11 +70,14 @@ export class Automap {
   private readonly scratch = new Bmp(SCREEN_W, SCREEN_H, C.VOID);
   private readonly ordered = new Map<number, Ordered>();
   private frozen: Bmp | undefined;
+  /** The level frame at `at` (640x360 indices) for `backdrop: 'freeze'`; absent = black. */
+  private readonly backdrop: (() => Uint8Array) | undefined;
 
-  constructor(plan: AutomapPlan, path: CameraPath, seed: number) {
+  constructor(plan: AutomapPlan, path: CameraPath, seed: number, backdrop?: () => Uint8Array) {
     this.plan = plan;
     this.path = path;
     this.seed = seed;
+    this.backdrop = plan.backdrop === 'freeze' ? backdrop : undefined;
     const { geometry } = plan;
     for (const room of plan.rooms)
       this.ordered.set(room.room, pencilOrder(geometry.lines[room.room] ?? [], room.entry));
@@ -216,8 +222,22 @@ export class Automap {
   }
 
   /** The whole map at t for a camera origin and scale; `detail` = labels, note and legend. */
+  /** The map's ground: black, or the frozen level dimmed and screened (`backdrop: 'freeze'`). */
+  private ground(b: Bmp): void {
+    const view = this.backdrop?.();
+    if (view === undefined) {
+      b.d.fill(C.VOID);
+      return;
+    }
+    for (let y = 0; y < SCREEN_H; y += 1)
+      for (let x = 0; x < SCREEN_W; x += 1) {
+        const i = y * SCREEN_W + x;
+        b.d[i] = bayer(x, y) < 0.5 ? C.VOID : (GHOST[view[i] ?? C.VOID] ?? C.VOID);
+      }
+  }
+
   private compose(b: Bmp, t: number, ox: number, oy: number, s: number, detail: boolean): void {
-    b.d.fill(C.VOID);
+    this.ground(b);
     const frame = this.frame(ox, oy, s);
     const grid = 2 * s;
     const gx = ((Math.round(ox) % grid) + grid) % grid;

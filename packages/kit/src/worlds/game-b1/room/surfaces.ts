@@ -81,23 +81,29 @@ export function drawWall(p: RoomPen, kind: WallKind, inks: readonly number[], se
   p.rr(-40, WALL_BOTTOM, 400, 1, C.TAN);
 }
 
+/**
+ * The floor between y0 and y1 (default: the room's floor band). A taller band (the console
+ * close-up, seen low) keeps the same density of specks; the room's band draws exactly as before.
+ */
 export function drawFloor(
   p: RoomPen,
   kind: FloorKind,
   inks: readonly number[],
   seed: number,
+  band: readonly [number, number] = [FLOOR_TOP, FLOOR_BOTTOM],
 ): void {
-  const y0 = FLOOR_TOP;
-  const h = FLOOR_BOTTOM - y0;
+  const [y0, y1] = band;
+  const h = y1 - y0;
+  const density = h / (FLOOR_BOTTOM - FLOOR_TOP);
   if (kind === 'shag') {
-    shag(p, y0, FLOOR_BOTTOM, 77, 1500);
+    shag(p, y0, y1, 77, Math.round(1500 * density));
     return;
   }
   const [a, b] = [inks[0] ?? C.TEAK, inks[1] ?? C.WALNUT];
   p.rr(-40, y0, 400, h, a);
   if (kind === 'carpet') {
     p.rd(-40, y0, 400, h, b, 0.25);
-    for (let i = 0; i < 300; i += 1)
+    for (let i = 0; i < Math.round(300 * density); i += 1)
       p.rr(-20 + hash(seed, i, 4) * 350, y0 + hash(seed, i, 5) * h, 1, 1, b);
   } else if (kind === 'boards') {
     for (let row = 0; row * 7 < h; row += 1) {
@@ -111,7 +117,7 @@ export function drawFloor(
         if ((row + col) % 2 === 0) p.rr(col * 10, y0 + row * 8, 10, 8, b);
     p.rd(150, y0 + 10, 40, 18, C.WALNUT_D, 0.2); // a worn patch where people stand
   } else {
-    for (let i = 0; i < 200; i += 1)
+    for (let i = 0; i < Math.round(200 * density); i += 1)
       p.rr(-20 + hash(seed, i, 7) * 350, y0 + hash(seed, i, 8) * h, 1, 1, b);
     p.rd(230, y0 + 20, 30, 12, C.TUBE, 0.35); // an oil stain
   }

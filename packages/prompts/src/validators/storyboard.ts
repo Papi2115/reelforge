@@ -46,6 +46,8 @@ import {
 } from './storyboard-shots.js';
 import { checkTensionTempo } from './tension.js';
 import { checkWowTransitions } from './wow.js';
+import { checkWorldPace } from './world-pace.js';
+import { checkWorldSpeakers } from './world-speakers.js';
 import { checkWorldVariety, type WorldVarietyOptions } from './world-variety.js';
 import { WORLD_VARIETY_RULES } from '../worlds/variety.js';
 import type { WorldTransitionOption } from '../worlds/types.js';
@@ -163,7 +165,17 @@ export function checkStoryboard(
     ...(range === undefined ? {} : shotRangeStoryboardRules(range)),
     ...(options.worldVariety === undefined
       ? {}
-      : { maxLookRun: options.worldVariety.rules?.maxLookRun ?? WORLD_VARIETY_RULES.maxLookRun }),
+      : {
+          maxLookRun: options.worldVariety.rules?.maxLookRun ?? WORLD_VARIETY_RULES.maxLookRun,
+          // a world with a film grammar links more shots with game-native transitions (B1 rework)
+          ...(options.worldVariety.grammar === undefined
+            ? {}
+            : { transitionEveryS: options.worldVariety.grammar.transitionEveryS }),
+          // a world whose pages flow into each other (Comic) links more shots (world-pace.ts)
+          ...(options.worldVariety.pace === undefined
+            ? {}
+            : { transitionEveryS: options.worldVariety.pace.transitionEveryS }),
+        }),
     ...options.rules,
   };
   const { shots } = applyContinuityTransitions(storyboard.shots);
@@ -173,7 +185,7 @@ export function checkStoryboard(
     ...identityIssues(shots),
     ...transitionIssues(shots, rules, options.worldTransitions),
     ...checkWowTransitions(shots, options.wowScale),
-    ...checkContinuity(shots),
+    ...checkContinuity(shots, options.worldVariety?.pace?.continuityEveryS),
     ...(options.words === undefined ? [] : wordIssues(shots, options.words, rules)),
     ...checkAnnotationPlans(shots, options.words, options.annotationRules),
     ...checkAssetNeeds(shots, options.assetNeeds),
@@ -205,6 +217,10 @@ export function checkStoryboard(
         })),
     ...(options.interrupts === undefined ? [] : checkInterrupts(shots, options.interrupts)),
     ...(options.worldVariety === undefined ? [] : checkWorldVariety(shots, options.worldVariety)),
+    ...(options.worldVariety === undefined
+      ? []
+      : checkWorldSpeakers(shots, options.words, options.worldVariety.moments)),
+    ...checkWorldPace(shots, options.worldVariety?.pace),
     ...(options.characters === undefined
       ? []
       : checkCharacters(storyboard, options.words, options.characters)),

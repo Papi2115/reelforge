@@ -8,8 +8,10 @@ import type { AnyNode } from 'acorn';
 import type { QaFinding } from '@reelforge/shared';
 import type { BreakthroughKinds } from './breakthrough-intent.js';
 import { comicShowcaseFindings, panelBreakMechanism } from './comic-breakthroughs.js';
+import { comicFlowFilmFindings, comicFlowSourceFindings } from './comic-flow.js';
 import { GAME_B1_SLOP } from './game-b1-labels.js';
 import { GAME_B2_SLOP } from './game-b2-labels.js';
+import { sketchbookSourceChecks } from '../slop-sketchbook/index.js';
 import type { Vocabulary } from './vocabulary.js';
 
 /** A source option that is a human trace when present on a call (jittered lettering, red pen). */
@@ -25,6 +27,8 @@ export interface WorldSlopSpec {
   readonly traceMethods: Readonly<Record<string, number>>;
   /** At most this many traces from one helper (seeded jitter counts once, not per call). */
   readonly traceCaps?: Readonly<Record<string, number>> | undefined;
+  /** Trace methods counted only as a member call (`screen.level(…)`), not a local `level(t)`. */
+  readonly memberTraces?: readonly string[] | undefined;
   readonly traceOptions: readonly TraceOption[];
   /** Words that are real labels of the world's objects ("p." on a notebook page). */
   readonly labels: readonly string[];
@@ -60,10 +64,15 @@ export interface WorldSlopSpec {
   readonly filmChecks?: ((shots: readonly ShotProgram[]) => Map<string, QaFinding[]>) | undefined;
 }
 
+/** How a shot enters: a plain cut, a continuity link or a page-native transition. */
+export type ShotEntry = 'cut' | 'link' | 'page';
+
 /** One shot's parsed scene, in film order (the final review's film checks). */
 export interface ShotProgram {
   readonly shotId: string;
   readonly program: AnyNode;
+  /** How the shot enters (from the storyboard), when known. */
+  readonly entry?: ShotEntry | undefined;
 }
 
 /** Labels of real things in every film: months, weekdays, eras, units and short marks. */
@@ -108,6 +117,7 @@ const SKETCHBOOK: WorldSlopSpec = {
   labels: ['p', 'pp', 'fig', 'nb', 'ps', 'eg', 'ie', 'etc', 'note', 'notes', 'now', 'today'],
   labelPatterns: [/\bp{1,2}\.\s?\d+(?:\s?[-–]\s?\d+)?/giu, /\bfig\.\s?\d+/giu],
   textCallKeys: { diagram: ['from', 'to', 'both'] },
+  sourceChecks: sketchbookSourceChecks,
 };
 
 /**
@@ -199,7 +209,11 @@ const COMIC: WorldSlopSpec = {
     spread: { assemble: 'merge', pieces: 'grid' },
     panelBreak: panelBreakMechanism,
   },
-  sourceChecks: (program, file) => comicShowcaseFindings(program, file),
+  sourceChecks: (program, file) => [
+    ...comicShowcaseFindings(program, file),
+    ...comicFlowSourceFindings(program, file),
+  ],
+  filmChecks: comicFlowFilmFindings,
 };
 
 const SPECS: Readonly<Record<string, WorldSlopSpec>> = {

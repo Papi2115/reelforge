@@ -60,6 +60,11 @@ export const COMIC_SNIPPETS = {
   /** Gutters closing: a panel morphs to a tighter quad. */
   squeeze:
     "page.panels('strip')[1].morph([250, 40, 390, 44, 386, 320, 254, 316], { at: 'ten minutes', dur: 1.5 })",
+  /** A page that unfolds downward: a tall narrow column the camera reads (one flow of many). */
+  flow: "page.flow({ intent: 'the page reads downward the way the rain runs off the roof into the street', direction: 'down', breadth: 320, beats: [{ at: 0.2, draw: (g, t, [w, h]) => page.art.backdrop(g, { preset: 'village', box: [0, 0, w, h] }) }, { at: 'the street', weight: 1.4, draw: (g, t, [w, h]) => page.art.backdrop(g, { preset: 'city', time: 'night', box: [0, 0, w, h] }) }] })",
+  /** One element carried over three panels and the gutters between them (page px). */
+  thread:
+    "page.thread({ intent: 'one kite string runs from the hand on the ground across the panels to the kite', through: page.panels('strip'), draw: (g, t) => g.line(60, 300, 600, 40, 'ink', 1) })",
   /** The outline of a torn cutaway opening (points to ink and clip to). */
   torn: "page.util.torn(112, 124, 300, 308, 'cut')",
   /** Checklist marks: a pencil tick, a strike-through, the highlighter on the answer. */
@@ -71,9 +76,15 @@ export const COMIC_SNIPPETS = {
   /** A flashback: the page re-inked as an old print, two beats on a stair (one of many). */
   flashback:
     "page.flashback({ intent: 'the dam was built because the flood of 1927 drowned the lower town', when: 'IN 1927...', at: 0.3, cover: 'page', arrange: 'stair', beats: [{ at: 0.9, draw: (g, t, [w, h]) => page.art.backdrop(g, { preset: 'village', time: 'dusk', box: [0, 0, w, h] }), weight: 1.3 }, { at: 'the flood', draw: (g, t, [w, h]) => page.art.effect(g, { kind: 'rain', box: [0, 0, w, h], t }), caption: 'THE LOWER TOWN.' }], stamp: { text: '1927', at: 3.4 } })",
-  /** A spread: a small panel pulls back to the one picture across the fold (one of many). */
+  /** A spread: three columns that turn out to be one picture across the fold (one of many). */
   spread:
-    "page.spread({ intent: 'the whole herd crosses the plain at once, thousands of animals', art: (g, t) => { page.art.backdrop(g, { preset: 'meadow', box: [-20, -20, 680, 400] }); page.art.animal(g, { x: 420, y: 300, size: 90, species: 'cow', pose: 'run', t }); }, assemble: 'pull-back', focus: [420, 260], delay: 0.3, dur: 1.6, beats: [3.6, 'the river'] })",
+    "page.spread({ intent: 'the whole herd crosses the plain at once, thousands of animals', art: (g, t) => { page.art.backdrop(g, { preset: 'meadow', box: [-20, -20, 680, 400] }); page.art.animal(g, { x: 420, y: 300, size: 90, species: 'cow', pose: 'run', t }); }, assemble: 'merge', pieces: 'columns', delay: 0.3, dur: 1.6, beats: [3.6, 'the river'] })",
+  /**
+   * The open breakthrough toolkit: two panels the scene shapes, the second swinging in on its
+   * phrase, then the first drags the second down after it (one mechanism of endless ones).
+   */
+  panelBreak:
+    "page.panelBreak({ intent: 'when the tide went out the moored boats sank down onto the harbour mud', at: 0.4, panels: [{ id: 'quay', box: [24, 30, 360, 300], draw: (g, t, [w, h]) => page.art.backdrop(g, { preset: 'ocean', box: [0, 0, w, h] }) }, { id: 'mud', box: [396, 40, 220, 280], shape: 'lean', at: 'the tide', enter: 'swing', from: 'top', draw: (g, t, [w, h]) => page.art.backdrop(g, { preset: 'ocean', time: 'dusk', horizon: 0.3, box: [0, 0, w, h] }) }], moves: [{ target: ['quay', 'mud'], at: 3.2, dur: 0.9, lag: 0.25, to: { y: 36, rotate: -3 } }], gutters: { kind: 'lift' } })",
 } as const;
 
 export type ComicSnippet = keyof typeof COMIC_SNIPPETS;

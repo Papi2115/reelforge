@@ -2,9 +2,10 @@
  * The instruction-manual page (`screen.manual(spec)`, the showcase's shot 8, generalised): the
  * film's mechanism as the "HOW TO PLAY" page of a cheap two-colour game manual. A toolkit, not a
  * template: the scene says what the page claims (`intent`, required), the numbered rules (words
- * of the narration, <= 5), FIG. 1 drawn from the world's shapes (cartridges on a shelf, people in
- * a queue, a pile of boxes, houses in a row; one `hit` printed in colour), Dad's pencil ticks
- * that follow the narrator, one red correction (a word struck, his word written and circled) and
+ * of the narration, <= 5), FIG. 1 drawn from the world's shapes (people in a queue, a pile of
+ * boxes, houses in a row) or from one of the film's own sprites (`figure.sprite`); one `hit`
+ * printed in colour), pencil ticks that follow the narrator, at most one red correction (a word
+ * of the narration struck, the narration's word written and circled) and
  * a pencil note in the margin; the page slides in over the frame and / or turns away. At most six
  * blocks (rules + the figure). Schema, layout and the checks zod cannot say.
  */
@@ -13,7 +14,9 @@ import { KitError } from '../../../errors.js';
 import { whenParam } from '../../../looks/blueprint/timing.js';
 import { missingHandGlyphs } from '../core/hand.js';
 import { hash, sid } from '../core/math.js';
-import { LAYOUTS, SHAPES, type Layout, type Shape } from './figure.js';
+import type { B1Sprite } from '../vocab/sprite.js';
+import { LAYOUTS, SHAPES, type Layout } from './figure.js';
+import type { FigureThing } from './figure-thing.js';
 import { missingPrintGlyphs, printWidth } from './print-font.js';
 
 export const manualSchema = z.strictObject({
@@ -32,7 +35,13 @@ export const manualSchema = z.strictObject({
     .describe("The numbered rules in narration words; '\\n' breaks a rule (<= 2 lines)"),
   figure: z.strictObject({
     caption: z.string().min(1).max(18).describe('Printed after "FIG. 1"'),
-    shape: z.enum(SHAPES),
+    shape: z.enum(SHAPES).optional().describe('A plain shape of the world (or give sprite)'),
+    sprite: z
+      .string()
+      .min(1)
+      .max(32)
+      .optional()
+      .describe('A sprite id of the film (its assets or defineSprite), instead of shape'),
     layout: z.enum(LAYOUTS).default('shelf'),
     count: z.int().min(2).max(12).default(6),
     hit: z.int().min(0).max(11).optional().describe('The one item printed in colour'),
@@ -50,12 +59,16 @@ export const manualSchema = z.strictObject({
   correction: z
     .strictObject({
       step: z.int().min(1).max(5),
-      strike: z.string().min(1).max(16).describe('Printed word(s) of that rule he strikes'),
-      write: z.string().min(1).max(8).describe('His word above it, circled (narration word)'),
+      strike: z.string().min(1).max(16).describe('Printed word(s) of that rule, struck'),
+      write: z
+        .string()
+        .min(1)
+        .max(8)
+        .describe('The word the NARRATION says instead, circled above it (never invented)'),
       at: whenParam,
     })
     .optional()
-    .describe('The one red-pen correction: the point of the page'),
+    .describe('At most one red-pen correction, only when the narration replaces a word'),
   note: z
     .strictObject({ text: z.string().min(1).max(12), at: whenParam })
     .optional()
@@ -81,7 +94,7 @@ export interface ManualPlan {
   readonly steps: readonly StepPlan[];
   readonly figure: {
     readonly caption: string;
-    readonly shape: Shape;
+    readonly thing: FigureThing;
     readonly layout: Layout;
     readonly count: number;
     readonly hit: number | undefined;
@@ -194,7 +207,23 @@ function correctionPlace(steps: readonly StepPlan[], index: number, strike: stri
   );
 }
 
-export function planManual(spec: Spec, at: (when: number | string) => number): ManualPlan {
+/** FIG. 1's thing: exactly one of `shape` and `sprite` (a sprite id resolves through `sprite`). */
+function figureThing(f: Spec['figure'], sprite: (id: string) => B1Sprite): FigureThing {
+  if (f.shape !== undefined && f.sprite !== undefined)
+    fail('figure: give shape OR sprite (one of the film`s sprite ids), not both');
+  if (f.sprite !== undefined) return { kind: 'sprite', sprite: sprite(f.sprite) };
+  if (f.shape === undefined)
+    fail(
+      "figure: give sprite (one of the film's sprite ids) or shape ('box' | 'person' | 'house')",
+    );
+  return { kind: 'shape', shape: f.shape };
+}
+
+export function planManual(
+  spec: Spec,
+  at: (when: number | string) => number,
+  sprite: (id: string) => B1Sprite,
+): ManualPlan {
   const start = at(spec.at);
   const until = at(spec.until);
   const need = (spec.enter === 'slide' ? SLIDE : 0) + (spec.exit === 'turn' ? TURN : 0) + 1;
@@ -207,6 +236,7 @@ export function planManual(spec: Spec, at: (when: number | string) => number): M
   if (printWidth(title, 3) > 280) fail(`title "${spec.title}" is too wide for the page`);
   const steps = layoutSteps(spec.steps, seed);
   const f = spec.figure;
+  const thing = figureThing(f, sprite);
   const caption = printable('figure.caption', f.caption);
   if (printWidth(`FIG. 1 ${caption}`, 2) > 240) fail(`figure.caption "${f.caption}" is too long`);
   if (f.hit !== undefined && f.hit >= f.count)
@@ -253,7 +283,7 @@ export function planManual(spec: Spec, at: (when: number | string) => number): M
     steps,
     figure: {
       caption,
-      shape: f.shape,
+      thing,
       layout: f.layout,
       count: f.count,
       hit: f.hit,

@@ -57,6 +57,13 @@ export {
   type SketchAssetFinding,
 } from './sketchbook/index.js';
 
+export {
+  worldGeneratorDocs,
+  type JsonSchemaObject,
+  type WorldGenerator,
+  type WorldGeneratorDocs,
+} from './generator-docs.js';
+
 /** Every world module, in delivery order. */
 export const WORLDS: readonly World[] = Object.freeze([SKETCHBOOK, COMIC, GAME_B2, GAME_B1]);
 

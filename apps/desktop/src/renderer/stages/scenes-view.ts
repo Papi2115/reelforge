@@ -185,7 +185,7 @@ export interface BuildProgressView {
   readonly title: string;
   /** What happens now, in plain words. */
   readonly step: string;
-  /** Building / reviewing / final review. */
+  /** Building / reviewing / final review / designing (look assets). */
   readonly what: string;
   /** Finished share of the run's shots, 0..100. */
   readonly percent: number;
@@ -206,6 +206,15 @@ export function buildProgressView(
       percent: running.percent ?? 0,
     };
   }
+  // A world film's look assets (PLAN.md#13.15): one set for the film, no shots to count.
+  if (running.action === 'world-assets') {
+    return {
+      title: 'Designing look assets',
+      step: stepText(running.label),
+      what: 'Designing',
+      percent: running.percent ?? 0,
+    };
+  }
   const total = Math.max(running.targets?.length ?? totalShots, 1);
   const states = Object.values(running.shots);
   const finished = states.filter((state) => state !== 'running' && state !== 'requeued').length;
@@ -222,7 +231,9 @@ export function buildProgressView(
 export function buildProgress(running: StageRunView | null, totalShots: number): string | null {
   const view = buildProgressView(running, totalShots);
   if (view === null) return null;
-  if (view.what === 'Final review') return `Final review · ${view.step}`;
+  if (view.what === 'Final review' || view.what === 'Designing') {
+    return `${view.title} · ${view.step}`;
+  }
   return `${view.what} · ${view.title.toLowerCase()} · ${view.step}`;
 }
 

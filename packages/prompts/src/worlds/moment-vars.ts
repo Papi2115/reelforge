@@ -27,7 +27,10 @@ function momentLine(option: WorldMomentOption): string {
   const kind = option.breakthrough ? 'breakthrough' : 'moment';
   const host =
     option.looks.length === 0 ? 'any look' : `look ${option.looks.map(quote).join(' or ')}`;
-  return `- ${quote(option.id)} (${kind}; ${host}): use when the narration ${option.useWhen}.`;
+  const length =
+    option.minShotS === undefined ? '' : `; a shot of at least ${String(option.minShotS)} s`;
+  const again = option.repeatable === true ? '; may recur' : '';
+  return `- ${quote(option.id)} (${kind}; ${host}${length}${again}): use when the narration ${option.useWhen}.`;
 }
 
 function quotaSentence(
@@ -58,7 +61,7 @@ export function storyboardMomentVars(
       : '';
   const rulesText = [
     breakthroughs.length > 0 ? quotaSentence(breakthroughs, durationS, rules, override) : '',
-    `The same moment kind at most once per ${String(rules.momentRepeatS)} s; never ${String(rules.maxMomentRun + 1)} shots in a row with the same moment (or none) in the same roll; never more than ${String(rules.maxLookRun)} shots in a row in one look.${transitions}`,
+    `The same moment kind at most once per ${String(rules.momentRepeatS)} s${text.moments.some((entry) => entry.repeatable === true) ? ' (except the ones that may recur)' : ''}; never ${String(rules.maxMomentRun + 1)} shots in a row with the same moment (or none) in the same roll; never more than ${String(rules.maxLookRun)} shots in a row in one look.${transitions}`,
   ]
     .filter((part) => part !== '')
     .join(' ');

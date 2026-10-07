@@ -20,6 +20,13 @@ describe('kit-docs world assets', () => {
     expect(describeWorldAssets('noir-voxel', undefined)).toContain('only world projects');
   });
 
+  it('gives Game B2 its drawing lessons (silhouettes, sizes, icons), not the other worlds', () => {
+    const b2 = describeWorldAssets('game-b2', undefined);
+    expect(b2).toMatch(/drawing that reads: prefer a generator/);
+    expect(b2).toMatch(/icons: one bold silhouette filling the 12 x 12 grid/);
+    expect(describeWorldAssets('comic', undefined)).not.toContain('drawing that reads');
+  });
+
   it("adds the section to a world look's slice only", () => {
     const world = kitCatalog([], LOOKS, kitDocsScope('comic', true));
     const comic = describeKitName(world, 'comic-story', { lookMode: 'mixed' });

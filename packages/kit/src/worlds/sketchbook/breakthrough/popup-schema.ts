@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { whenParam } from '../../../looks/blueprint/timing.js';
 import { EASE_NAMES } from '../draw/math.js';
 import { SWATCH_NAMES, type SwatchName } from '../inks.js';
+import { ASSET_ID } from '../vocab/library.js';
 
 export const POPUP_LIMITS = { elements: 8, arms: 2, motions: 8 } as const;
 /** Height of the arm pivot above the fold (card px). */
@@ -25,6 +26,13 @@ const id = z
   .optional()
   .describe('Name of the piece, for pull motions (letters, digits, - or _)');
 const rises = whenParam.optional().describe('Stands up at this time (default: with the card)');
+const asset = z
+  .string()
+  .regex(ASSET_ID)
+  .optional()
+  .describe(
+    "A film asset id (ctx.worldAssets figure or prop, or defineFigure / defineProp) drawn on the piece instead of draw: the film's own subject moves with the pull",
+  );
 const v = z.number().min(0).describe('Height up the backdrop from the fold (card px)');
 
 const block = z.object({
@@ -47,6 +55,7 @@ const cutout = z.object({
   h: z.number().min(50).max(160).default(110),
   depth: z.number().min(10).max(140).default(60),
   draw: z.enum(['figure', 'sun', 'none']).default('figure').describe('Felt drawing on the card'),
+  asset,
   pose: z.enum(['stand', 'cheer', 'point']).default('stand'),
   text: text(12).optional().describe('Hand-lettered word under the drawing'),
   at: rises,
@@ -74,6 +83,7 @@ const card = z.object({
   h: z.number().min(24).max(160).default(60),
   text: text(14).optional().describe('Printed on it'),
   draw: z.enum(['none', 'figure', 'sun']).default('none'),
+  asset,
   paper,
   deg: z.number().min(-30).max(30).default(0),
 });

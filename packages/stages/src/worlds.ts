@@ -139,7 +139,8 @@ export function storyboardWorldOptions(
 } {
   if (setup.world === undefined) return {};
   const transitions = worldTransitionOptions(setup.world);
-  const moments = promptWorld(setup.world)?.text.moments ?? [];
+  const text = promptWorld(setup.world)?.text;
+  const moments = text?.moments ?? [];
   return {
     worldTransitions: transitions,
     ...(moments.length === 0
@@ -148,6 +149,10 @@ export function storyboardWorldOptions(
           worldVariety: {
             moments,
             transitions,
+            // the world's film grammar (Game B1 rework); other worlds have none
+            ...(text?.grammar === undefined ? {} : { grammar: text.grammar }),
+            // the world's transition pace (Comic: pages flow into each other); others have none
+            ...(text?.pace === undefined ? {} : { pace: text.pace }),
             ...(override === undefined ? {} : { override }),
             ...(continuityLinks ? { continuityLinks } : {}),
           },

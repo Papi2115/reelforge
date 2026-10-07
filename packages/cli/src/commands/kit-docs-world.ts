@@ -43,6 +43,8 @@ interface WorldAssetDocs {
   readonly load: string;
   readonly use: string;
   readonly format: string;
+  /** How to draw things that read in this world (real-run lessons); absent = none. */
+  readonly drawing?: string;
 }
 
 const WORLD_ASSET_DOCS: Readonly<Record<WorldAssetWorld, WorldAssetDocs>> = {
@@ -63,6 +65,8 @@ const WORLD_ASSET_DOCS: Readonly<Record<WorldAssetWorld, WorldAssetDocs>> = {
     use: "their ids work in the level like built-in names (sprites, walls, floors, ceilings), view.take({ icon: 'acorn' }), hud.inventory({ items: [{ icon }] })",
     format:
       'assets/game-b2/<name>.json = { "version": 1, "world": "game-b2", "sprites": {...}, "textures": {...}, "icons": {...} }; each entry pixel art (rows + legend of ramp steps) or a generator call { "gen": "plant", "kind": "conifer" }; <= 48 sprites, 24 textures, 24 icons',
+    drawing:
+      'prefer a generator and vary its options (an animal: creature with its kind, form, coat, belly, pattern); pixel art only at the size it stands in the level (16-32 rows for a person or an animal, 24-48 for a tree), side on, its 2-3 defining features (head shape, a wing or face patch, the tail, legs apart), a 1 px dark outline, 2-3 steps of one ramp per part; never a symmetric blob or a regular pattern (checker, stripes) for a living thing; thin things (roots, threads, wires) as lines >= 2 px on a contrasting ground; icons: one bold silhouette filling the 12 x 12 grid (>= 10 px one way, >= 20 pixels; the kit refuses a dot), 2 colours, pink only on THE item; then look at the sheet: if you cannot name a thing at 64 px, redraw it',
   },
   'game-b1': {
     load: 'const screen = ctx.kit.fx.b1Screen({ ... }); screen.assets(ctx.worldAssets)',
@@ -98,7 +102,9 @@ export function describeWorldAssets(
     `load (one line in build): ${docs.load}`,
     `use: ${docs.use}`,
     `file format: ${docs.format}`,
+    ...(docs.drawing === undefined ? [] : [`drawing that reads: ${docs.drawing}`]),
     'rules: name the ids, never copy an asset into a scene; a thing used in one shot only may be defined in that scene; an id nobody defines fails QA',
+    "generators: reelforge kit-docs generators lists every generator with each option's allowed values (enums, ranges, defaults); read it before writing a generator call, never guess a value",
     'check: reelforge world-assets check (files, ids, problems); look: reelforge world-assets sheet (contact sheets to Read)',
     listed.length === 0
       ? 'this project: no assets yet'

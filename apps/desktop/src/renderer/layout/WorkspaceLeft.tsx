@@ -1,6 +1,7 @@
 /**
  * The workspace's left column (Workspace.tsx): file problems, the pipeline sidebar, the shot
- * notice and the Shots panel with its badges, locks, variants and directions.
+ * notice and the Shots panel with its badges, locks, variants, directions and the voice timing a
+ * sentence redo left out of date ("Re-time").
  */
 import type { StoryboardShot } from '@reelforge/shared';
 import type { JSX } from 'react';
@@ -21,6 +22,8 @@ import { stationFacts } from '../stages/stations-view.js';
 import type { ShotLocks } from '../stages/use-shot-locks.js';
 import type { StagesControls } from '../stages/use-stages.js';
 import type { VariantsDock } from '../stages/use-variants-dock.js';
+import { voiceChangedShots } from '../stages/voice-timing-view.js';
+import { VoiceTimingNotice } from '../stages/VoiceTimingNotice.js';
 import { FileProblemsBanner } from './FileProblemsBanner.js';
 import { openStageTarget, type StageOpeners } from './open-stage.js';
 import { PipelineSidebar } from './PipelineSidebar.js';
@@ -116,6 +119,14 @@ export function WorkspaceLeft(props: WorkspaceLeftProps): JSX.Element {
         withVariants={variants.withVariants}
         directed={direction.directed}
         directionSummary={(shotId) => directionSummary(direction.directions?.shots[shotId])}
+        voiceChanged={voiceChangedShots(reports?.voiceTiming)}
+        voiceNotice={
+          <VoiceTimingNotice
+            timing={reports?.voiceTiming}
+            stages={stages}
+            className="shots-banner"
+          />
+        }
         onUnlockAndFix={(shotId) => {
           void locks.setLocked([shotId], false).then((unlocked) => {
             if (unlocked) runScenes('sync-check', shotId);

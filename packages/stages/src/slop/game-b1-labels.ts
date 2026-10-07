@@ -16,7 +16,10 @@
  * with a squash, an uneven blink: 3), and the breakthroughs (the high-score table: uneven rows,
  * 2600 flicker, the silent beat, the slam, Dad's ring; the manual: the off-register plate, the
  * crooked feed, coffee rings, pencil ticks, the red correction: 3 each) plus their pencil options
- * (`ring`, `ticks`, `correction`, a margin `note`). Repeats are capped (several shakes on one hit
+ * (`ring`, `ticks`, `correction`, a margin `note`), and the play screens (`level`: held-step
+ * running, the hit-stop, the landing squash, patrols off the run's beat, typed labels; `inventory`,
+ * `shop`, `splits`: uneven printing, the cursor's uneven hops, arcs, the silent beat: 3 each;
+ * breakthroughs too, the menus by their entrance, a level by its intent). Repeats are capped (several shakes on one hit
  * are one gesture). The CRT, the scanlines, the HUD year and the narration box's typewriter run in
  * every shot and never count.
  *
@@ -24,8 +27,10 @@
  * and `score` digits, the HUD `year`, Dad's `note` lines and the cartridge's tape `label`, a gift
  * `tag`, the calendar `month`, a boss card's `name` (read only inside `boss`), the high-score rows
  * (`who`, a `score` number or string), the manual's `steps` and its correction (`strike`,
- * `write`, labels: any unknown word is invented). Game words (HIGH SCORES, HOW TO PLAY, FIG., INSERT COIN, PRESS START, BOSS, WEAK POINT,
- * CONTINUE?, GAME OVER, INVENTORY FULL) and time units are labels; a two-digit year (XMAS 82) is
+ * `write`, labels: any unknown word is invented), a split's `name` (read only inside `splits`).
+ * Game words (HIGH SCORES, HOW TO PLAY, FIG., INSERT COIN, PRESS START, BOSS, WEAK POINT,
+ * CONTINUE?, GAME OVER, INVENTORY FULL, SHOP, SPLITS, SOLD, NOT ENOUGH, COINS) and time units are
+ * labels; a two-digit year (XMAS 82) is
  * the full year of the sources.
  *
  * Open vocabulary (PLAN.md#13.15): sprite, playfield, generator and room ids (`defineSprite`,
@@ -36,6 +41,7 @@
  * once). World checks
  * (game-b1-showcase.ts): an unrequested showcase object per scene, number-only monotony per film.
  */
+import { mechanismOf, optionAt, type MechanismReader } from './breakthrough-intent.js';
 import { b1NumberOnlyFindings, b1ShowcaseFindings } from './game-b1-showcase.js';
 import type { WorldSlopSpec } from './world-labels.js';
 
@@ -48,9 +54,25 @@ const PHASE = "phase (sprites off each other's beat)";
 const GAME_LABELS =
   'high score scores how play fig insert coin press start player game games over continue boss ' +
   'weak point level select inventory full menu manual ' +
+  // The play screens' own words: titles, a bought item, a purse too thin, the shop's coins.
+  'shop splits sold not enough coins ' +
   'day days week weeks month months year years hour hours minute minutes ' +
   // The room DSL's shelf items (`{ kind: 'shelf', items }`), an enum read as a text option.
   'cartridges books boxes papers tools jars trophies records';
+
+/**
+ * A manual's mechanism: its entrance and exit, what FIG. 1 shows (the film's sprite by id, else a
+ * plain shape; the kit requires one of them) and how the copies stand.
+ */
+const manualMechanism: MechanismReader = (options) => {
+  const thing = optionAt(options, 'figure.sprite') === undefined ? 'figure.shape' : 'figure.sprite';
+  return mechanismOf(options, {
+    enter: 'slide',
+    exit: 'cut',
+    [thing]: 'none',
+    'figure.layout': 'shelf',
+  });
+};
 
 export const GAME_B1_SLOP: WorldSlopSpec = {
   traceMethods: {
@@ -69,7 +91,13 @@ export const GAME_B1_SLOP: WorldSlopSpec = {
     scoreTable: 3,
     manual: 3,
     path: 1,
+    level: 3,
+    inventory: 3,
+    shop: 3,
+    splits: 3,
   },
+  // Scenes that paint their own menu or flood name local helpers so (b2_market, c1_flood).
+  memberTraces: ['level', 'inventory', 'shop', 'splits'],
   traceCaps: {
     path: 1,
     [PHASE]: 1,
@@ -101,17 +129,22 @@ export const GAME_B1_SLOP: WorldSlopSpec = {
   labelPatterns: [],
   textMethods: ['narrate', 'say', 'text', 'score', 'note', 'year'],
   textKeys: ['speaker', 'who', 'score', 'steps', 'strike', 'write', 'tag', 'month'],
-  textCallKeys: { boss: ['name'] },
+  textCallKeys: { boss: ['name'], splits: ['name'] },
   numberKeys: ['score', 'year'],
   keyedNumbers: { counter: 'keys' },
   correctionKeys: ['strike', 'write'],
   shortYears: true,
   breakthroughs: {
     scoreTable: { enter: 'draw-in', initials: 'arcade' },
-    manual: { enter: 'slide', exit: 'cut', 'figure.shape': 'cartridge', 'figure.layout': 'shelf' },
+    manual: manualMechanism,
     calendarZoom: {},
     cartridge: {},
     levelSelect: {},
+    // Gameplay: a film is mostly levels, so only their intents must differ.
+    level: {},
+    inventory: { enter: 'blinds' },
+    shop: { enter: 'blinds' },
+    splits: { enter: 'blinds' },
   },
   sourceChecks: b1ShowcaseFindings,
   filmChecks: b1NumberOnlyFindings,

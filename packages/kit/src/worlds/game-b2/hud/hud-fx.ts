@@ -55,6 +55,7 @@ export type B2HudObject = FxObject & {
   menu(spec: unknown): Span;
   stinger(text: string, options: unknown): Span & { cues: readonly HudCue[] };
   damage(options: unknown): Span;
+  levelCard(options: unknown): Span;
   shake(options: unknown): Span;
 };
 
@@ -257,6 +258,8 @@ export const b2Hud = defineFx({
       'Look C: one big word slams in letter by letter on uneven beats and falls out at until',
     "damage({ text, at, on: 'meter' | 'boss', pos, colour })":
       'Look C: a number pops off the meter or the boss bar, rises and dissolves (call after meter / boss)',
+    'levelCard({ place, sub, at, until })':
+      "The new place typed in big letters into a black ribbed band across the frame (the band the 'game-b2-level-card' transition leaves), its year or chapter under it; it holds and sweeps off right",
     'shake({ at, amp })': 'The whole HUD shakes with decay (pair it with view.shake)',
   },
   build: buildHud,

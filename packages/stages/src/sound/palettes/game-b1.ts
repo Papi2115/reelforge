@@ -120,4 +120,5 @@ export const GAME_B1_TRANSITION_SFX: Readonly<Record<GameB1TransitionId, Palette
   'game-b1-page-slide': [pick('paper-slide', ['in'], { leadS: 0.15 })],
   'game-b1-page-turn': [pick('page-flip', ['turn'], ON_CUT)],
   'game-b1-room-shake': [pick('board-tap', ['knock'], ON_CUT)],
+  'game-b1-screen-flip': [pick('measure-blip', ['low'], { leadS: 0.05 })],
 };

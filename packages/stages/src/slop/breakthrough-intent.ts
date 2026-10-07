@@ -66,11 +66,12 @@ function property(node: AnyNode | undefined, key: string): AnyNode | undefined {
 }
 
 /** A nested option by its dotted path (`figure.layout`). */
-function optionAt(node: AnyNode | undefined, path: string): AnyNode | undefined {
+export function optionAt(node: AnyNode | undefined, path: string): AnyNode | undefined {
   return path.split('.').reduce<AnyNode | undefined>((at, key) => property(at, key), node);
 }
 
-function mechanismOf(
+/** `enter slide + exit cut`: the call's mechanism options, the kit's defaults where absent. */
+export function mechanismOf(
   options: AnyNode | undefined,
   defaults: Readonly<Record<string, string>> | MechanismReader,
 ): string | undefined {
@@ -97,15 +98,17 @@ export function optionsOf(call: AnyNode): AnyNode | undefined {
   return objects.find((arg) => property(arg, 'intent') !== undefined) ?? objects.at(-1) ?? args[0];
 }
 
-/** The breakthrough calls of a scene source. */
+/**
+ * The breakthrough calls of a scene source: kit methods (`screen.level(…)`), never a local helper
+ * of the same name (`level(t)`, `inventory(g, t)` in a scene that paints its own menu).
+ */
 export function breakthroughSpecs(program: AnyNode, kinds: BreakthroughKinds): BreakthroughSpec[] {
   const constants = constantStrings(program);
   const specs: BreakthroughSpec[] = [];
   visit(program, (node) => {
     const kind = calleeName(node);
-    if (node.type !== 'CallExpression' || kind === undefined || !Object.hasOwn(kinds, kind)) {
-      return;
-    }
+    if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') return;
+    if (kind === undefined || !Object.hasOwn(kinds, kind)) return;
     const options = optionsOf(node);
     const intent = property(options, 'intent');
     specs.push({

@@ -54,6 +54,10 @@ const BEFORE: Partial<Record<GameB1Snippet, readonly GameB1Snippet[]>> = {
   tv: ['defineSprite', 'spriteFrames', 'generatePerson', 'scenery'],
   interiorPoster: ['defineSprite'],
   calendarZoom: ['interior'],
+  level: ['defineSprite', 'spriteFrames', 'generatePerson', 'generateAnimal', 'generateItem'],
+  inventory: ['defineSprite', 'generatePerson', 'generateItem', 'generateVehicle'],
+  shop: ['generatePerson', 'generateItem', 'generateVehicle'],
+  splits: ['generatePerson'],
 };
 
 /** Runs `code` on a fresh screen and repaints it. */
@@ -113,6 +117,11 @@ describe('Game B1 snippets of the prompts', () => {
     for (const code of [s.scoreTable, s.manual, s.calendarZoom, s.cartridge, s.levelSelect]) {
       expect(() => run(`${s.interior};\n${noIntent(code)}`)).toThrow(/intent/);
     }
+    for (const name of ['level', 'inventory', 'shop', 'splits'] as const) {
+      expect(() => run(noIntent(joined([...(BEFORE[name] ?? []), name])))).toThrow(/intent/);
+    }
+    const level = joined([...(BEFORE.level ?? []), 'level']);
+    expect(() => run(level.replace(', { at: 2.4, dur: 0.6, height: 24 }', ''))).toThrow(/pit/);
     expect(() => run(s.calendarZoom)).toThrow(/room\(/);
     expect(() => run(s.scoreTable.replace('hero: 0', "hero: 0, initials: 'roman'"))).toThrow(
       /initials/,

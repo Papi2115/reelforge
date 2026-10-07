@@ -12,7 +12,7 @@ export const meta = {
   treatment: 'character-scene',
 };
 
-/** The film's own assets (the same object could live in assets/b2/forest.json). */
+/** The film's own assets (the same object could live in assets/game-b2/forest.json). */
 const ASSETS = {
   version: 1,
   world: 'game-b2',

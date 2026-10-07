@@ -173,7 +173,7 @@ describe('Comic breakthrough originality (planted)', () => {
     const shot = (shotId: string, intent: string, moves: string) => ({
       shotId,
       specs: breakthroughSpecs(
-        program(page(`page.panelBreak({ ${`intent: '${intent}'`}, ${PANELS}, ${moves} });`)),
+        program(page(`page.panelBreak({ intent: '${intent}', ${PANELS}, ${moves} });`)),
         KINDS,
       ),
     });

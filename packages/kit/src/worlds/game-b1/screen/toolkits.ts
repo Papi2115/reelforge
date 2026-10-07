@@ -21,6 +21,8 @@ import {
   levelSelectSchema,
   planLevelSelect,
 } from '../select/level-select.js';
+import type { CartArt } from '../seams/console.js';
+import type { B1Sprite } from '../vocab/sprite.js';
 import { whenParam } from '../../../looks/blueprint/timing.js';
 import type { ScreenModel } from './model.js';
 
@@ -53,6 +55,10 @@ export function toolkits(model: ScreenModel, at: (when: number | string) => numb
     intent,
     cues: [...cues].sort((a, b) => a.t - b.t),
   });
+  /** One of the film's sprites by id (an unknown id fails with the defined ids and a hint). */
+  const sprite = (id: string): B1Sprite => model.vocab.sprite(id);
+  /** 'showcase' = the showcase films' own label art; anything else is a sprite id of the film. */
+  const cartArt = (id: string): CartArt => (id === 'showcase' ? 'showcase' : sprite(id));
   return {
     scoreTable(spec: unknown): Breakthrough {
       const plan = planScoreTable(parse(scoreTableSchema, spec, 'scoreTable()'), at);
@@ -62,7 +68,7 @@ export function toolkits(model: ScreenModel, at: (when: number | string) => numb
       return span(plan.at, plan.until, plan.intent, table.cues());
     },
     manual(spec: unknown): Breakthrough {
-      const plan = planManual(parse(manualSchema, spec, 'manual()'), at);
+      const plan = planManual(parse(manualSchema, spec, 'manual()'), at, sprite);
       const layer = new ManualLayer(plan);
       model.papers.push(layer);
       return span(plan.at, plan.until, plan.intent, layer.cues());
@@ -85,7 +91,8 @@ export function toolkits(model: ScreenModel, at: (when: number | string) => numb
       const stripe = colorOfSwatch(o.stripe);
       if (stripe === undefined) fail(`cartridge(): stripe "${o.stripe}" is not a game-b1 colour`);
       const label = o.label === undefined ? undefined : checkHand('cartridge.label', o.label);
-      const plan = planCartridge(o, at(o.at), { label, stripe });
+      const art = o.art === undefined ? undefined : cartArt(o.art);
+      const plan = planCartridge(o, at(o.at), { label, stripe, art });
       for (const other of model.cartridges)
         if (plan.at < other.end && other.at < plan.end)
           fail('cartridge(): two cartridge swaps overlap in time');
@@ -93,7 +100,7 @@ export function toolkits(model: ScreenModel, at: (when: number | string) => numb
       return span(plan.at, plan.end, o.intent, cartridgeCues(plan));
     },
     levelSelect(spec: unknown): Breakthrough {
-      const plan = planLevelSelect(parse(levelSelectSchema, spec, 'levelSelect()'), at);
+      const plan = planLevelSelect(parse(levelSelectSchema, spec, 'levelSelect()'), at, sprite);
       model.overlays.push((cv, t) => {
         drawLevelSelect(cv, plan, t);
       });

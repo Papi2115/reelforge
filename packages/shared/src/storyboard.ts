@@ -235,6 +235,12 @@ export const storyboardShotSchema = z
      * Optional; absent = plain. Projects outside a world never write it.
      */
     worldMoment: worldMomentIdSchema.optional(),
+    /**
+     * A world's framing of the shot (Game B1 rework: `screen`, `room`, `push-in`, `pull-out`,
+     * `room-visit`), checked by the world's grammar (prompts validators/world-grammar.ts).
+     * Optional; absent in every other project.
+     */
+    worldView: worldMomentIdSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

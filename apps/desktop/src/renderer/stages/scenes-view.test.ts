@@ -157,6 +157,17 @@ describe('scenes view', () => {
     expect(buildProgress(null, 8)).toBeNull();
   });
 
+  it('shows a look-assets run as one design step, not as shots', () => {
+    const designing = run({ action: 'world-assets', label: 'Claude: world assets', percent: 40 });
+    expect(buildProgressView(designing, 8)).toEqual({
+      title: 'Designing look assets',
+      step: 'Claude: world assets',
+      what: 'Designing',
+      percent: 40,
+    });
+    expect(buildProgress(designing, 8)).toBe('Designing look assets · Claude: world assets');
+  });
+
   it('keeps the step out of the title, so the progress never says it twice', () => {
     const view = buildProgressView(
       run({ shots: { s01: 'ok', s02: 'ok', s03: 'running' }, label: 'Claude: critic s03' }),

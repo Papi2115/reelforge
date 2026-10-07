@@ -63,7 +63,9 @@ async function forestFilm(world: WorldAssetWorld, name: string) {
   const dir = await projects.create(name, [], { style: world });
   const shots = filmShots(2);
   writeFilm(dir, shots);
-  writeProject(dir, 'script.txt', shots.map((shot) => shot.phrase).join('. '));
+  // The narration names the ranger: the film's person is not invented.
+  const phrases = shots.map((shot) => shot.phrase).join('. ');
+  writeProject(dir, 'script.txt', `${phrases}. The park ranger walks the forest.`);
   expect((await autocommit(dir, 'Storyboard', { kind: 'manual', git: projects.git })).ok).toBe(
     true,
   );
@@ -185,6 +187,43 @@ describe('world assets QA', { timeout: 180_000 }, () => {
       JSON.parse(readProject(dir, '.reelforge/world-assets.json')),
     );
     expect(report.status).toBe('failed');
+  });
+
+  it('removes the probe files the turn leaves and reports them (real run Game B2 #2)', async () => {
+    const { dir } = await forestFilm('game-b2', 'probe files');
+    const harness = new FakeClaudeHarness({
+      version: 1,
+      rules: [
+        {
+          ...writes({
+            ...FOREST_FILES['game-b2'],
+            'assets/cast.json': forestCast('game-b2', ['s01', 's02']),
+            'assets/game-b2/probe.json': '',
+            'assets/game-b2/Probe_Options.json': '{ "version": 1 }',
+          }),
+          promptIncludes: 'production designer',
+        },
+      ],
+      default: { scenario: 'tools-write', reply: CRAFT_OK },
+    });
+    harnesses.push(harness);
+    const done = await runner(dir, harness).run({ stage: 'scenes', action: 'world-assets' });
+    if (!done.ok) throw new Error(JSON.stringify(done.error));
+    expect(done.value.warnings).toEqual(
+      expect.arrayContaining([
+        'world assets: removed assets/game-b2/probe.json (empty file); it is not part of the set',
+        'world assets: removed assets/game-b2/Probe_Options.json (not an asset file name (kebab-case .json), never loaded); it is not part of the set',
+      ]),
+    );
+    expect(existsSync(path.join(dir, 'assets', 'game-b2', 'probe.json'))).toBe(false);
+    expect(existsSync(path.join(dir, 'assets', 'game-b2', 'Probe_Options.json'))).toBe(false);
+    const report = worldAssetsReportSchema.parse(
+      JSON.parse(readProject(dir, '.reelforge/world-assets.json')),
+    );
+    expect(report.files).toEqual([
+      ...Object.keys(FOREST_FILES['game-b2']).sort(),
+      'assets/cast.json',
+    ]);
   });
 
   it('never runs for a voxel film (no turn, no files, nothing in the manifest)', async () => {

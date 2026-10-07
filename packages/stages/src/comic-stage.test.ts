@@ -226,7 +226,8 @@ describe('a comic film on fake-claude', { timeout: 180_000 }, () => {
       ['C', 'spread', 'page-turn'],
       ['A'],
       ['B'],
-      ['A', 'big-line'],
+      // never 4 plain cuts in a row in a comic film (the comic pace's dry-run check)
+      ['A', 'big-line', 'page-slide'],
       ['C'],
       ['A'],
       ['B'],

@@ -12,6 +12,7 @@
 import type { ContinuityKind } from '@reelforge/shared';
 import type { Compositor } from '../pixels.js';
 import { attractCycle } from './attract.js';
+import { screenFlip } from './flip.js';
 import { cartridgeIn, cartridgeOut, roomShake } from './impact.js';
 import { pageSlide, pageTurn } from './paper.js';
 import { calendarZoom, scanlineWipe } from './scan.js';
@@ -25,6 +26,7 @@ export const GAME_B1_TRANSITION_IDS = [
   'game-b1-page-slide',
   'game-b1-page-turn',
   'game-b1-room-shake',
+  'game-b1-screen-flip',
 ] as const;
 export type GameB1TransitionId = (typeof GAME_B1_TRANSITION_IDS)[number];
 
@@ -113,6 +115,12 @@ export const GAME_B1_TRANSITION_STYLES: Readonly<
     'a slam: the frame jolts with a decaying shake, one frame of the hit flash, the next shot shakes and settles',
     0.5,
   ),
+  'game-b1-screen-flip': style(
+    'game-b1-screen-flip',
+    'Next screen',
+    'the hero walks off the edge and the next screen of the level slides in, in whole playfield blocks (focus.x < 0.5 = off the left edge); between two gameplay shots of one journey',
+    0.6,
+  ),
 };
 
 export const GAME_B1_COMPOSITORS: Readonly<Record<GameB1TransitionId, Compositor>> = {
@@ -124,6 +132,7 @@ export const GAME_B1_COMPOSITORS: Readonly<Record<GameB1TransitionId, Compositor
   'game-b1-page-slide': pageSlide,
   'game-b1-page-turn': pageTurn,
   'game-b1-room-shake': roomShake,
+  'game-b1-screen-flip': screenFlip,
 };
 
 export function isGameB1Transition(style: string | undefined): style is GameB1TransitionId {

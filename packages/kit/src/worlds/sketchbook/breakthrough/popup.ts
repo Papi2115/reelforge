@@ -16,7 +16,9 @@ import { ease, lerp, seg } from '../draw/math.js';
 import type { Point } from '../draw/paths.js';
 import { INK } from '../inks.js';
 import type { SketchPage } from '../page/model.js';
+import type { SketchLibrary } from '../vocab/library.js';
 import { Lens } from './camera.js';
+import { popupAssetArt } from './popup-assets.js';
 import { calloutMarks } from './popup-callout.js';
 import { checkPopup } from './popup-check.js';
 import { flatMarks, isFlat } from './popup-flats.js';
@@ -56,6 +58,8 @@ export interface PopupDeps {
   readonly resolve: Resolver;
   readonly seed: number;
   readonly call: string;
+  /** The page's figures and props (`asset` on a cutout or card). */
+  readonly library?: SketchLibrary | undefined;
 }
 
 const rad = (deg: number): number => (deg * Math.PI) / 180;
@@ -189,6 +193,7 @@ export function addPopup(o: PopupOptions, deps: PopupDeps): PopupHandle {
   const problem = drive && press !== undefined ? driveProblem(o, drive, press) : null;
   if (problem) fail(call, problem);
   const card = cardOf(o);
+  const assets = deps.library === undefined ? undefined : popupAssetArt(deps.library, call);
   const rises = o.elements.map((e, index) =>
     riseAt(e, index, 'at' in e && e.at !== undefined ? resolve(e.at, open) : undefined, seed),
   );
@@ -200,7 +205,7 @@ export function addPopup(o: PopupOptions, deps: PopupDeps): PopupHandle {
     seed,
     baseMarks: baseMarks(o, card, seed),
     backMarks: backMarks(o, card, seed),
-    frontMarks: frontMarks(o, seed),
+    frontMarks: frontMarks(o, seed, assets),
     discMarks: discMarks(o, seed),
     tag: tagArt(o, card, seed),
     smear: smearOf(o, card, seed),
@@ -216,7 +221,7 @@ export function addPopup(o: PopupOptions, deps: PopupDeps): PopupHandle {
     travel: (t) => (times.pull ? pullAt(o, times.pull, t) * TAB_TRAVEL : null),
     flats: new Map(
       o.elements.flatMap((e, index) =>
-        isFlat(e) ? [[index, flatMarks(e, seed + 600 + index * 13)] as const] : [],
+        isFlat(e) ? [[index, flatMarks(e, seed + 600 + index * 13, assets)] as const] : [],
       ),
     ),
     counter: counterMarks(o, seed),

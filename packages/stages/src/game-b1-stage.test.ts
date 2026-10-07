@@ -5,7 +5,8 @@
  * by the world's own link transitions), the scene builds with the game craft brief and the critic
  * check, no slop finding on clean game shots built from the open vocabulary; then a long game
  * storyboard without breakthroughs gets the quota repair turn and passes once it plans a
- * high-score table and a manual page. No real Claude call.
+ * high-score table, an inventory and a shop. Both films follow the B1 film grammar (framing per
+ * shot, mostly gameplay, few room crossings, game-native transitions). No real Claude call.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -43,22 +44,34 @@ const DURATION: Readonly<Record<string, number>> = {
   'page-turn': 0.5,
   'attract-cycle': 1,
   'cartridge-out': 0.9,
+  'scanline-wipe': 0.62,
+  'screen-flip': 0.6,
 };
 
 /** A shot plan: roll, then optional moment, game transition and continuity link. */
 type Plan = readonly [Roll, (string | undefined)?, (string | undefined)?, (string | undefined)?];
 
 const SHORT: readonly Plan[] = [
-  ['A'],
-  ['B'],
-  ['C', undefined, 'room-shake'],
-  ['A', undefined, undefined, 'zoom-through'],
+  ['A', 'level'],
+  ['B', 'level-select'],
+  ['C', 'boss-card', 'room-shake'],
+  ['A', 'level', undefined, 'zoom-through'],
   ['B', undefined, 'cartridge-out', 'carry-environment'],
-  ['A', undefined, 'page-turn'],
+  ['A', 'dialogue', 'page-turn'],
 ];
 
+/** The framing of shot `index` (B1 grammar): in from the room, the game, back out at the end. */
+function viewOf(index: number, count: number, pushes: readonly number[]): string {
+  if (index === count - 1) return 'pull-out';
+  return index === 0 || pushes.includes(index) ? 'push-in' : 'screen';
+}
+
 /** A storyboard of `plans`; `t0`/`t1` of shot i from `edges(i)`. */
-function storyboard(plans: readonly Plan[], edges: (index: number) => [number, number]): string {
+function storyboard(
+  plans: readonly Plan[],
+  edges: (index: number) => [number, number],
+  pushes: readonly number[] = [],
+): string {
   const shots = plans.map(([roll, moment, style, link], index) => {
     const id = `s${String(index + 1).padStart(2, '0')}`;
     const [t0, t1] = edges(index);
@@ -71,6 +84,7 @@ function storyboard(plans: readonly Plan[], edges: (index: number) => [number, n
       scene: `scenes/${id}.js`,
       roll,
       look: LOOK[roll],
+      worldView: viewOf(index, plans.length, pushes),
       ...(style === undefined || index === 0
         ? {}
         : {
@@ -232,32 +246,33 @@ describe('a game-b1 film on fake-claude', { timeout: 180_000 }, () => {
     );
   });
 
-  it('repairs a game storyboard without breakthroughs into a score table and a manual', async () => {
+  it('repairs a game storyboard without breakthroughs into a score table, an inventory and a shop', async () => {
     const plans: readonly Plan[] = [
-      ['A'],
-      ['B', 'level-select'],
-      ['A', 'calendar-zoom'],
+      ['A', 'level'],
+      ['B', 'level-select', 'scanline-wipe'],
+      ['A', 'level', 'screen-flip'],
       ['C', 'boss-card', 'room-shake'],
       ['B', 'score-table', 'attract-cycle'],
-      ['A', 'cartridge', 'cartridge-in', 'carry-environment'],
+      ['A', 'level', 'cartridge-in', 'carry-environment'],
       ['C', 'glass-note'],
-      ['A', 'dialogue'],
+      ['A', 'dialogue', 'scanline-wipe'],
       ['B'],
-      ['A', 'tv-push'],
-      ['C'],
-      ['A'],
-      ['B', 'manual', 'page-slide'],
-      ['A', undefined, 'page-turn'],
-      ['C', 'game-over'],
-      ['A', undefined, undefined, 'zoom-through'],
-      ['B'],
-      ['A'],
-      ['C'],
+      ['A', 'level', 'screen-flip'],
+      ['C', 'game-over', 'room-shake'],
+      ['A', 'level', 'scanline-wipe'],
+      ['B', 'inventory', 'attract-cycle'],
+      ['A', 'calendar-zoom'],
+      ['C', undefined, 'room-shake'],
+      ['A', 'level', undefined, 'zoom-through'],
+      ['B', 'shop', 'screen-flip'],
+      ['A', 'level'],
+      ['C', undefined, 'attract-cycle'],
       ['A'],
     ];
+    const breakthroughs = ['score-table', 'inventory', 'shop'];
     const plain = plans.map(([roll, moment, style, link]): Plan => [
       roll,
-      moment === 'score-table' || moment === 'manual' ? undefined : moment,
+      moment !== undefined && breakthroughs.includes(moment) ? undefined : moment,
       style,
       link,
     ]);
@@ -272,8 +287,8 @@ describe('a game-b1 film on fake-claude', { timeout: 180_000 }, () => {
       index + 1 < plans.length ? (index + 1) * 6 + 0.2 : last,
     ];
     const harness = new FakeClaudeHarness([
-      writes({ 'storyboard.json': storyboard(plain, edges) }),
-      writes({ 'storyboard.json': storyboard(plans, edges) }),
+      writes({ 'storyboard.json': storyboard(plain, edges, [13]) }),
+      writes({ 'storyboard.json': storyboard(plans, edges, [13]) }),
     ]);
     harnesses.push(harness);
     const result = await runner(dir, harness).run({ stage: 'storyboard' });
@@ -285,18 +300,13 @@ describe('a game-b1 film on fake-claude', { timeout: 180_000 }, () => {
     expect(repair?.prompt).toContain('moment-quota');
     expect(repair?.prompt).toContain('how something works, step by step → manual');
     const written = storyboardFileSchema.parse(JSON.parse(readProject(dir, 'storyboard.json')));
-    expect(written.shots.flatMap((shot) => shot.worldMoment ?? [])).toEqual([
-      'level-select',
-      'calendar-zoom',
-      'boss-card',
-      'score-table',
-      'cartridge',
-      'glass-note',
-      'dialogue',
-      'tv-push',
-      'manual',
-      'game-over',
-    ]);
+    expect(written.shots.filter((shot) => shot.worldMoment === 'level')).toHaveLength(7);
+    expect(written.shots.flatMap((shot) => shot.worldMoment ?? [])).toEqual(
+      expect.arrayContaining(['score-table', 'inventory', 'shop', 'boss-card', 'game-over']),
+    );
+    expect(written.shots.map((shot) => shot.worldView)).toEqual(
+      plans.map((_, index) => viewOf(index, plans.length, [13])),
+    );
     const linked = written.shots.flatMap((shot) =>
       shot.continuity === undefined || shot.transitionIn?.type === 'cut'
         ? []

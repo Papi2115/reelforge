@@ -53,9 +53,12 @@ export function countTraces(program: AnyNode, spec: WorldSlopSpec): TraceCount {
     const cap = spec.traceCaps?.[name];
     if (cap === undefined || seen < cap) total += weight;
   };
+  const memberOnly = new Set(spec.memberTraces ?? []);
   visit(program, (node) => {
     const name = calleeName(node);
     const weight = name === undefined ? undefined : spec.traceMethods[name];
+    const local = node.type === 'CallExpression' && node.callee.type !== 'MemberExpression';
+    if (name !== undefined && local && memberOnly.has(name)) return;
     if (name !== undefined && weight !== undefined && Object.hasOwn(spec.traceMethods, name)) {
       add(name, weight);
     }

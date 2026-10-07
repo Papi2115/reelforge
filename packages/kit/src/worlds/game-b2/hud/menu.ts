@@ -133,13 +133,21 @@ export function menuOpen(menu: Menu, t: number): number {
   );
 }
 
+/**
+ * Seconds from the menu's typing base to its quest title: after the DONE ticks, or at once when
+ * nothing is done (real run Game B2 2: a log with no DONE lines sat empty for 1.7 s).
+ */
+function titleDelay(done: readonly string[]): number {
+  return done.length === 0 ? 0.15 : 1.1;
+}
+
 function quest(b: Bmp, menu: Menu, t: number, y: number): void {
   const q = menu.spec.quest;
   if (q === undefined) return;
   const lx = 50;
   const base = menu.at + 0.35;
   drawText(b, 'NOW', lx, y + 34, C.SAND);
-  const titleAt = base + 1.1;
+  const titleAt = base + titleDelay(q.done);
   drawText(
     b,
     q.now.slice(0, Math.floor(seg(t, titleAt, titleAt + 0.4) * q.now.length)),
@@ -306,7 +314,7 @@ export function createMenu(
   seed: number,
   arts: Menu['arts'] = [],
 ): Menu {
-  const objectiveAt = at + 0.35 + 1.1 + 0.5;
+  const objectiveAt = at + 0.35 + titleDelay(spec.quest?.done ?? []) + 0.5;
   const objectiveTimes = typeTimes(spec.quest?.objective ?? '', 4242 + seed, objectiveAt, 0.045);
   return { spec, at, until, select, objectiveTimes, seed, arts };
 }

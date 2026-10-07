@@ -9,8 +9,11 @@ import { resolveStyle } from '@reelforge/engine';
 import { describe, expect, it } from 'vitest';
 import {
   GAME_B1_NARRATION,
+  GAME_B1_PLAY_NARRATION,
+  GAME_B1_PLAY_RESEARCH,
   GAME_B1_RESEARCH,
   gameB1Examples,
+  gameB1PlayExamples,
 } from '../testing/game-b1-slop-fixtures.js';
 import { goldenFrames } from '../testing/slop-fixtures.js';
 import {
@@ -160,5 +163,83 @@ describe('Game B1 guards on the approved goldens', () => {
       return scene(GOLDENS[index - 1]?.[0]) !== scene(id);
     });
     expect(flagged).toEqual([]);
+  });
+});
+
+const PLAY = [...gameB1PlayExamples()];
+const playSetup = (name: string) => ({
+  ...SETUP,
+  vocabulary: buildVocabulary([GAME_B1_PLAY_NARRATION[name] ?? '', GAME_B1_PLAY_RESEARCH]),
+});
+const specsOf = (body: string) =>
+  breakthroughSpecs(
+    program(`export function build(ctx) {
+${body}
+}`),
+    KINDS,
+  );
+const MANUAL = (figure: string, intent = 'a hit sells and everyone copies it'): string =>
+  `screen.manual({ intent: '${intent}', at: 0, until: 6, steps: ['A HIT SELLS.'], figure: { caption: 'THE SHELF', ${figure} } });`;
+
+describe('Game B1 guards on the play screens (level, inventory, shop, splits)', () => {
+  it('reports nothing on the play examples, each with its own narration', () => {
+    expect(PLAY.map(([name]) => name)).toEqual(Object.keys(GAME_B1_PLAY_NARRATION));
+    const findings = PLAY.flatMap(([name, source]) =>
+      slopSourceFindings(playSetup(name), source, name).map((entry) => `${name}: ${entry.message}`),
+    );
+    expect(findings).toEqual([]);
+  });
+
+  it('counts each play screen as human traces', () => {
+    for (const kind of ['level', 'inventory', 'shop', 'splits']) {
+      const traces = countTraces(program(`screen.${kind}({ intent: 'x', at: 0 });`), GAME);
+      expect(traces.total, kind).toBe(3);
+    }
+  });
+
+  it("reads a split's name as text and the screens' own words as labels", () => {
+    const texts = onScreenTexts(
+      program(
+        `screen.splits({ intent: 'x', at: 0, until: 6, unit: 'DAYS', splits: [{ name: 'SUMMIT', value: 23, at: 4 }] });`,
+      ),
+      GAME,
+    );
+    expect(texts.map((entry) => entry.text)).toEqual(['SUMMIT']);
+    const own = ['SHOP', 'SPLITS', 'SOLD', 'NOT ENOUGH', 'COINS', 'INVENTORY'].map((text) => ({
+      text,
+      line: 1,
+    }));
+    expect(inventedTexts(own, buildVocabulary(['A sailor in port.']), GAME)).toEqual([]);
+  });
+
+  it('knows the play screens as breakthroughs and a manual by its sprite', () => {
+    const specs = specsOf(
+      `screen.level({ intent: 'a', at: 0 }); screen.inventory({ intent: 'b' }); screen.shop({ intent: 'c', enter: 'cut' }); screen.splits({ intent: 'd' });
+${MANUAL("sprite: 'weights'")} ${MANUAL("sprite: 'tray', layout: 'pile'")} ${MANUAL("shape: 'box'")}`,
+    );
+    expect(specs.map((spec) => `${spec.kind}: ${String(spec.mechanism)}`)).toEqual([
+      'level: undefined',
+      'inventory: enter blinds',
+      'shop: enter cut',
+      'splits: enter blinds',
+      'manual: enter slide + exit cut + figure.sprite weights + figure.layout shelf',
+      'manual: enter slide + exit cut + figure.sprite tray + figure.layout pile',
+      'manual: enter slide + exit cut + figure.shape box + figure.layout shelf',
+    ]);
+  });
+
+  it('flags a second shop with the same entrance, not two manuals of different sprites', () => {
+    const shop = (intent: string) =>
+      `screen.shop({ intent: '${intent}', at: 0, until: 6, wallet: { label: 'COINS', amount: 50 } });`;
+    const film = [
+      { shotId: 's1', specs: specsOf(shop('fifty coins buy the sail')) },
+      { shotId: 's2', specs: specsOf(shop('the harbour fee eats the catch')) },
+      { shotId: 's3', specs: specsOf(MANUAL("sprite: 'weights'")) },
+      {
+        shotId: 's4',
+        specs: specsOf(MANUAL("sprite: 'tray'", 'breakfast in bed costs the hotel')),
+      },
+    ];
+    expect([...repeatedBreakthroughFindings(film).keys()]).toEqual(['s2']);
   });
 });

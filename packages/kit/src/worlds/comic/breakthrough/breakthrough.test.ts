@@ -73,6 +73,8 @@ describe('page.flashback', () => {
       intent,
       when: 'EIGHT YEARS EARLIER...',
       at: 0.2,
+      cover: 'page',
+      arrange: 'rows',
       beats: beats(3),
       stamp: { text: '1961', at: 1.2 },
     });
@@ -103,7 +105,13 @@ describe('page.flashback', () => {
 
   it('reveals the beats panel by panel and is a pure function of t in any seek order', () => {
     const { page, frame } = testPage();
-    page.flashback({ intent, when: 'MEANWHILE...', arrange: 'stair', beats: beats(4) });
+    page.flashback({
+      intent,
+      when: 'MEANWHILE...',
+      cover: 'page',
+      arrange: 'stair',
+      beats: beats(4),
+    });
     const times = [0.4, 1.2, 1.8, 2.6];
     const forward = times.map((t) => Buffer.from(frame(t)).toString('base64'));
     const backward = [...times].reverse().map((t) => Buffer.from(frame(t)).toString('base64'));
@@ -128,7 +136,13 @@ describe('page.flashback', () => {
 
   it('rejects specs a scene author can fix, with readable errors', () => {
     const { page } = testPage();
-    const base = { intent, when: 'EIGHT YEARS EARLIER...', beats: beats(2) };
+    const base = {
+      intent,
+      when: 'EIGHT YEARS EARLIER...',
+      cover: 'page',
+      arrange: 'rows',
+      beats: beats(2),
+    } as const;
     expect(() => page.flashback({ ...base, intent: '' })).toThrow(/intent is required/);
     expect(() => page.flashback({ ...base, beats: beats(6) })).toThrow(/at most 5 beats/);
     const swapped = [
@@ -139,6 +153,9 @@ describe('page.flashback', () => {
     expect(() => page.flashback({ ...base, until: 1.0 })).toThrow(/until/);
     expect(() => page.flashback({ ...base, box: [0, 0, 50, 50] })).toThrow(/box/);
     expect(() => page.flashback({ ...base, intent: 'EIGHT YEARS EARLIER...' })).toThrow(/claim/);
+    // No default cover or arrangement: a default would replay the showcase's own flashback.
+    const noCover = { intent, when: base.when, arrange: base.arrange, beats: base.beats };
+    expect(() => page.flashback(noCover as typeof base)).toThrow(/cover/);
   });
 });
 
@@ -149,7 +166,7 @@ describe('page.spread', () => {
     '%s: assembles into one picture with a crease, pure in t',
     (assemble) => {
       const { page, frame } = testPage(6);
-      page.spread({ intent, art: scenery, assemble, beats: [3.5] });
+      page.spread({ intent, art: scenery, assemble, pieces: 'columns', beats: [3.5] });
       const mid = frame(0.7);
       const end = frame(3);
       expect(Buffer.from(frame(0.7)).equals(Buffer.from(mid))).toBe(true);
@@ -162,18 +179,21 @@ describe('page.spread', () => {
 
   it('holds at most 4 s without a new beat; insets, notes and declared beats count', () => {
     const silent = testPage(9);
-    silent.page.spread({ intent, art: scenery });
+    silent.page.spread({ intent, art: scenery, assemble: 'unfold' });
     expect(() => silent.frame(1)).toThrow(/holds still for 7\.6 s .*at most 4 s/);
     const voiced = testPage(9);
-    voiced.page.spread({ intent, art: scenery, beats: [4.5] });
+    voiced.page.spread({ intent, art: scenery, assemble: 'unfold', beats: [4.5] });
     voiced.page.note('SEA OF TRANQUILITY', { x: 334, y: 40, at: 7 });
     expect(() => voiced.frame(1)).not.toThrow();
   });
 
   it('rejects specs a scene author can fix, with readable errors', () => {
     const { page } = testPage();
-    const base = { intent, art: scenery, until: 6 };
-    expect(() => page.spread({ intent, art: scenery })).toThrow(/give until/);
+    const base = { intent, art: scenery, until: 6, assemble: 'unfold' } as const;
+    expect(() => page.spread({ intent, art: scenery, assemble: 'unfold' })).toThrow(/give until/);
+    expect(() => page.spread({ ...base, assemble: 'merge' })).toThrow(/needs pieces/);
+    const noAssembly = { intent, art: scenery, until: 6 };
+    expect(() => page.spread(noAssembly as typeof base)).toThrow(/assemble/);
     expect(() => page.spread({ ...base, intent: 'x' })).toThrow(/intent is required/);
     const inset = {
       box: [400, 40, 160, 100] as [number, number, number, number],

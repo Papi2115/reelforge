@@ -181,7 +181,9 @@ describe('sketchbook project', () => {
   it("plans moments: the catalog and quota for the storyboard, the shot's moment for its turns", () => {
     expect(storyboardWorldPromptVars(setup)).not.toHaveProperty('worldMoments');
     const vars = storyboardWorldPromptVars(setup, 156);
-    expect(vars['worldMoments']).toContain('- `popup` (breakthrough; look `sketch-loud`)');
+    expect(vars['worldMoments']).toContain(
+      '- `popup` (breakthrough; look `sketch-loud`; a shot of at least 4.5 s)',
+    );
     expect(vars['worldMomentRules']).toContain('needs at least 2 and at most 5');
     const override = storyboardWorldPromptVars(setup, 50, { minBreakthroughs: 2 });
     expect(override['worldMomentRules']).toContain('needs at least 2 and at most 2');
@@ -216,6 +218,10 @@ describe('comic project', () => {
       'comic-panel-zoom',
       'comic-panel-slam',
       'comic-ink-bleed',
+      'comic-page-slide',
+      'comic-page-scroll',
+      'comic-panel-push',
+      'comic-gutter-collapse',
     ]);
     expect(storyboardWorldPromptVars(setup)).toMatchObject({
       world: 'Comic',
@@ -306,6 +312,10 @@ describe('game-b2 project', () => {
     );
     expect(criticWorldPromptVars(setup.world, tally)['worldMomentCheck']).toContain('tally:');
     expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('a sudden game moment');
+    expect(scriptWorldPromptVars(setup.world)['worldScript']).toContain(
+      'ONE first-person game run',
+    );
+    expect(storyboardWorldPromptVars(setup)['worldRolls']).toContain('`## Game map` of `beats.md`');
     expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
   });
 });
@@ -328,6 +338,7 @@ describe('game-b1 project', () => {
       ['game-b1-page-slide', undefined],
       ['game-b1-page-turn', undefined],
       ['game-b1-room-shake', undefined],
+      ['game-b1-screen-flip', undefined],
     ]);
     expect(storyboardWorldPromptVars(setup)).toMatchObject({
       world: 'Game B1: Atari boss montage',
@@ -354,7 +365,9 @@ describe('game-b1 project', () => {
   it('plans score tables and manual pages and gives the shot its moment', () => {
     const vars = storyboardWorldPromptVars(setup, 120);
     expect(vars['worldMoments']).toContain('- `score-table` (breakthrough; look `atari-menu`)');
-    expect(vars['worldMomentRules']).toContain('Breakthroughs (`score-table`, `manual`)');
+    expect(vars['worldMomentRules']).toContain(
+      'Breakthroughs (`inventory`, `shop`, `splits`, `score-table`, `manual`)',
+    );
     const options = storyboardWorldOptions(setup, undefined, true);
     expect(options.worldVariety?.moments.map((moment) => moment.id)).toContain('manual');
     expect(options.worldVariety?.transitions?.[0]?.link).toBe('zoom-through');
@@ -364,6 +377,7 @@ describe('game-b1 project', () => {
     );
     expect(criticWorldPromptVars(setup.world, manual)['worldMomentCheck']).toContain('manual:');
     expect(scriptWorldPromptVars(setup.world)['worldSurprise']).toContain('attract mode');
+    expect(scriptWorldPromptVars(setup.world)).not.toHaveProperty('worldScript');
     expect(worldMomentCameraHints(setup.world)?.['slow-motion']).not.toMatch(/orbit around/);
   });
 
@@ -384,6 +398,7 @@ describe('game-b1 project', () => {
       'game-b1-page-turn',
       'game-b1-room-shake',
       'game-b1-scanline-wipe',
+      'game-b1-screen-flip',
     ]);
   });
 });

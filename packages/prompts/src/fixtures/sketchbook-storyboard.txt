@@ -41,8 +41,8 @@ Transition styles of this world (the engine draws them; the only styles a non-cu
 - `sketchbook-torn-strip` (wipe, about 0.8 s): torn out.
 
 Page moments (`"worldMoment"` per shot; the variety of this world, checked by the validator): read the script and give a shot the moment its words call for, e.g. `{ "id": "s07_popup", …, "look": "sketch-loud", "worldMoment": "popup" }`; every other shot is plain (leave the field out). Moments:
-- `popup` (breakthrough; look `sketch-loud`): use when the narration turns on a reveal, a twist, the answer to an open question or the one fact the film is about (a C-roll page); say in the intent which mechanism the pulled ribbon drives and the claim its motion shows, never the same mechanism twice in a film.
-- `strip` (breakthrough; look `sketch-graph`): use when the narration runs through a sequence of dates or steps (a chronology, a campaign day by day, a before-and-after in stages; a B-roll page, treatment `node-graph/timeline`).
+- `popup` (breakthrough; look `sketch-loud`; a shot of at least 4.5 s): use when the narration turns on a reveal, a twist, the answer to an open question or the one fact the film is about (a C-roll page); say in the intent which mechanism the pulled ribbon drives and the claim its motion shows, never the same mechanism twice in a film.
+- `strip` (breakthrough; look `sketch-graph`; a shot of at least 4.5 s): use when the narration runs through a sequence of dates or steps (a chronology, a campaign day by day, a before-and-after in stages; a B-roll page, treatment `node-graph/timeline`).
 - `flipbook` (moment; look `sketch-loud`): use when the narration counts or races through years, numbers or a change over time in one breath ("over the next decade…").
 - `envelope` (moment; look `sketch-graph`): use when the narration stacks several facts or a calculation into one result (a sum, a subtraction, a ratio worked out).
 - `sticky-slap` (moment; look `sketch-loud` or `sketch-story`): use when the narration lands a short verdict, a label or a scoreline the narration says outright ("REFUSED", "a draw").

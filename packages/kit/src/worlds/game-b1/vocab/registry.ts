@@ -1,7 +1,7 @@
 /**
  * The film's own vocabulary for one `b1Screen` (PLAN.md#13.15): sprites and playfields defined by
  * hand (the DSLs), by the seeded generators, or loaded from the project's asset files
- * (`assets/b1/*.json`), plus named room interiors. Ids are unique across kinds; an unknown id
+ * (`assets/game-b1/*.json`), plus named room interiors. Ids are unique across kinds; an unknown id
  * answers with the ids that exist and a did-you-mean.
  */
 import { compilePlayfield, type B1Playfield } from './playfield.js';
@@ -89,7 +89,7 @@ export class Vocab {
     const hint = near.length > 0 ? ` Did you mean ${near.map((n) => `"${n}"`).join(', ')}?` : '';
     const defined = list.length > 0 ? `defined: ${list.join(', ')}` : 'none defined yet';
     this.fail(
-      `no ${kind} "${id}" (${defined}).${hint} Define it with screen.define${kind === 'sprite' ? 'Sprite' : 'Playfield'}(), screen.generate() or in an assets/b1/*.json file`,
+      `no ${kind} "${id}" (${defined}).${hint} Define it with screen.define${kind === 'sprite' ? 'Sprite' : 'Playfield'}(), screen.generate() or in an assets/game-b1/*.json file`,
     );
   }
 

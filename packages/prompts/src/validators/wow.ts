@@ -4,7 +4,8 @@
  * error closer than 25 s or above one per 25 s, warning closer than 40 s or above one per 40 s),
  * never two in a row unless the dives continue a `scaleSequence` (`wow-in-a-row`, chains of at
  * most `maxScaleSteps`), the same style not twice within 90 s (`wow-repeat`), the transition not
- * longer than its shot, and `focus` only where the style uses it. Storyboards without wow styles
+ * longer than its shot, and `focus` only where a kit style uses it (a world's own styles are
+ * exempt: their prompts ask for a focus and several read it). Storyboards without wow styles
  * get no issue. A genre preset's multiplier (`wowScale`, ADR-035) scales the warning gap and the
  * budget (`wowPacing`); 1 or absent = exactly the rules above.
  */
@@ -158,9 +159,14 @@ function shotIssues(
     if (transition === undefined || transition.type === 'cut' || transition.focus === undefined) {
       return;
     }
-    if (getTransitionStyle(transition.style)?.wow?.focus === true) return;
+    const kitStyle = getTransitionStyle(transition.style);
+    if (kitStyle?.wow?.focus === true) return;
     // A continuity link renders with its anchor as the focus (ADR-030, `continuityTransition`).
     if (isContinuityStyle(transition.style)) return;
+    // A world's own style (comic-*, game-b1-*, ...) is not a kit style: its world prompt asks for
+    // a focus ("the thing it goes through") and some of them read it (game-b1-screen-flip,
+    // comic-gutter-collapse); an unknown style is flagged by the world-transition check.
+    if (transition.style !== undefined && kitStyle === undefined) return;
     issues.push(
       issue(
         'warning',

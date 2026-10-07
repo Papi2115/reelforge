@@ -16,13 +16,24 @@ const SNIP_FLIPBOOK = SKETCHBOOK_SNIPPETS.flipbook;
 const SNIP_ENVELOPE = SKETCHBOOK_SNIPPETS.envelope;
 const SNIP_STICKY = SKETCHBOOK_SNIPPETS.sticky;
 
-const POPUP_BUILD = `\`page.popup({ intent, x, y, w, depth, at, elements, pull })\` (look \`sketch-loud\`), a toolkit, never a template. The shape of a call (one mechanism of many; never copy it): ${snippet('popup')}; another mechanism: ${snippet('popupFlap')}. Every pop-up is original: invent the paper mechanism that visualises THIS shot's claim and play with it: the ribbon pulled at the side must trigger a motion that MEANS something in the narration. Mechanisms are metaphors for any topic, each a different one: a \`gauge\` (thermometer or water level, \`level\`) rising for any quantity that grows, a \`flap\` (door) opening on the answer for any reveal (\`open\`), a \`window\` sliding to the next item (\`index\`), a \`wheel\` or gear (\`teeth: true\`, \`angle\`) turning a \`counter\` (\`value\`) for a cause that drives a number, a \`card\` drawn aside like a curtain (\`x\`, \`show\`), a \`scale\` pointer tipping between two ends (\`value\`); blocks and cutouts \`rise\`/\`slide\`, an \`arm\` swings (\`angle\`). Never the same mechanism twice in one film. \`intent\` (required, 12-160 characters) names the claim the motion shows (\`the queue doubles every week\`), never a generic \`reveal\`. Give every moving piece an \`id\`; \`pull\`: \`tab\` (tab, ribbon, knob, lever), \`side\` (left, right, bottom), \`motions\` (\`target\` id, \`to\` its values, \`span\` share of the pull, \`ease\`) or a pure \`drive: (p, t) => ({ id: { prop: n } })\`, \`focus\` = the id the red pen loops, \`callout\` (loop, trail, notch for an arm, none). At most 8 pieces (block, cutout, arm, card, flap, gauge, wheel, counter, window, scale, tag, note); a piece may rise on its own word (\`at\`). Every element, and above all every element that moves, is something the narration names (no decorative disc or arm); every word from the narration; nothing else is written on the card while it opens. Make the card the shot: open it within the first second, hold it standing for at least 1.5 s, pull on the spoken claim. Every piece and option: \`reelforge kit-docs sketchPage\`.`;
+/**
+ * The shortest shots that fit the breakthroughs (kit timings, real run Sketchbook 4). Pop-up: the
+ * cover lifts and the card lands ~1.5 s after it opens, the pull plays ~1.1 s, the red loop and a
+ * read beat follow and the hand clears 0.4 s before the end. Strip: two dated events take
+ * 2.4-4.6 s at the kit's natural pace (`until` squeezes it to 0.7x at most), plus the held beat
+ * before the red note and the 0.4 s clear.
+ */
+const POPUP_MIN_SHOT_S = 4.5;
+const STRIP_MIN_SHOT_S = 4.5;
+
+const POPUP_BUILD = `\`page.popup({ intent, x, y, w, depth, at, elements, pull })\` (look \`sketch-loud\`), a toolkit, never a template. The shape of a call (one mechanism of many; never copy it): ${snippet('popup')}; another mechanism: ${snippet('popupFlap')}. Every pop-up is original: invent the paper mechanism that visualises THIS shot's claim and play with it: the ribbon pulled at the side must trigger a motion that MEANS something in the narration. Mechanisms are metaphors for any topic, each a different one: a \`gauge\` (thermometer or water level, \`level\`) rising for any quantity that grows, a \`flap\` (door) opening on the answer for any reveal (\`open\`), a \`window\` sliding to the next item (\`index\`), a \`wheel\` or gear (\`teeth: true\`, \`angle\`) turning a \`counter\` (\`value\`) for a cause that drives a number, a \`card\` drawn aside like a curtain (\`x\`, \`show\`), a \`scale\` pointer tipping between two ends (\`value\`); blocks and cutouts \`rise\`/\`slide\`, an \`arm\` swings (\`angle\`). Never the same mechanism twice in one film. \`intent\` (required, 12-160 characters) names the claim the motion shows (\`the queue doubles every week\`), never a generic \`reveal\`. Give every moving piece an \`id\`; \`pull\`: \`tab\` (tab, ribbon, knob, lever), \`side\` (left, right, bottom), \`motions\` (\`target\` id, \`to\` its values, \`span\` share of the pull, \`ease\`) or a pure \`drive: (p, t) => ({ id: { prop: n } })\`, \`focus\` = the id the red pen loops, \`callout\` (loop, trail, notch for an arm, none). At most 8 pieces (block, cutout, arm, card, flap, gauge, wheel, counter, window, scale, tag, note); a piece may rise on its own word (\`at\`); a \`cutout\` or \`card\` carries the film's own figure or prop with \`asset: '<id>'\` (the cast drawing, so the subject itself moves). Every element, and above all every element that moves, is something the narration names (no decorative disc or arm); every word from the narration; nothing else is written on the card while it opens. Make the card the shot: open it within the first second, hold it standing for at least 1.5 s, pull on the spoken claim. Every piece and option: \`reelforge kit-docs sketchPage\`.`;
 
 export const SKETCHBOOK_MOMENTS: readonly WorldMomentOption[] = [
   {
     id: 'popup',
     breakthrough: true,
     looks: [LOUD],
+    minShotS: POPUP_MIN_SHOT_S,
     cue: 'a reveal or twist',
     useWhen:
       'turns on a reveal, a twist, the answer to an open question or the one fact the film is about (a C-roll page); say in the intent which mechanism the pulled ribbon drives and the claim its motion shows, never the same mechanism twice in a film',
@@ -34,6 +45,7 @@ export const SKETCHBOOK_MOMENTS: readonly WorldMomentOption[] = [
     id: 'strip',
     breakthrough: true,
     looks: [GRAPH],
+    minShotS: STRIP_MIN_SHOT_S,
     cue: 'a sequence of dates',
     useWhen:
       'runs through a sequence of dates or steps (a chronology, a campaign day by day, a before-and-after in stages; a B-roll page, treatment `node-graph/timeline`)',

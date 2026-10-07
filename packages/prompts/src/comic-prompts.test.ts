@@ -39,6 +39,10 @@ const TRANSITIONS: readonly WorldTransitionOption[] = [
   ['panel-zoom', 1],
   ['panel-slam', 0.55],
   ['ink-bleed', 0.9],
+  ['page-slide', 0.8],
+  ['page-scroll', 0.7],
+  ['panel-push', 0.6],
+  ['gutter-collapse', 0.5],
 ].map(([name, duration]) => ({
   id: `comic-${String(name)}`,
   type: 'wipe',
@@ -122,6 +126,14 @@ describe('comic prompts', () => {
     expect(storyboard).toContain('"worldMoment": "flashback" }');
     expect(storyboard).toContain('`zoom-through` into a panel or a drawn object');
     expect(storyboard).not.toContain('sketch');
+    // The comic pace (worlds/pace.ts): pages flow into each other, links carry the story.
+    expect(storyboard).toContain('Pages flow into each other in this world (checked): up to 20');
+    expect(storyboard).toContain(
+      'reading on to the next step, place or person = `comic-page-slide`',
+    );
+    expect(storyboard).not.toContain('Transitions stay mostly hard cuts');
+    expect(storyboard).toContain('at most 8 links in this film, about one per 18 s');
+    expect(storyboard).not.toContain('about one per 45 s');
   });
 
   it('give scene-build and scene-fix the style grammar and the toolkit, never a template', () => {
@@ -171,7 +183,13 @@ describe('comic prompts', () => {
     expect(build).not.toContain('MISSING: <prop names>');
     const fix = prompts['scene-fix'];
     expect(fix).toContain('this shot is in look `comic-loud`');
-    expect(fix).toContain('Keep the planned page moment (`spread`) in the shot: `page.spread(');
+    expect(fix).toContain('Keep the planned page moment (`spread`) in the shot: The big picture');
+    expect(fix).toContain('`page.spread({ intent, art, assemble');
+    // The open toolkit (PLAN.md#13.15): the breakthroughs invent their mechanism.
+    expect(fix).toContain(`\`${COMIC_SNIPPETS.panelBreak}\``);
+    expect(build).toContain(`\`${COMIC_SNIPPETS.panelBreak}\``);
+    expect(build).toContain('The MOTION is the point');
+    expect(build).toContain("the showcase's own pairs (page + rows, strip + row) are never yours");
     expect(fix).toContain('never > 4 s without a new beat');
   });
 

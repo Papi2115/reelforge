@@ -117,7 +117,7 @@ describe('world sections off', () => {
   });
 
   it('bumps the versions of the prompts with world wording', () => {
-    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([19, 18, 7, 10]);
+    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([19, 18, 7, 11]);
   });
 });
 
@@ -171,6 +171,10 @@ describe('sketchbook prompts', () => {
     expect(prompts['scene-build']).toContain(`${brief}\n`);
     expect(prompts['scene-build']).toContain('draw each by hand on the page (`page.write`');
     expect(prompts['scene-build']).toContain('Design the page before the code');
+    // Real film 4: C and B pages built without scene.add rendered blank frames.
+    expect(prompts['scene-build']).toContain(
+      'Build ONE page per shot: `scene.add(page)` in build() and `page.update(t)` in update(t)',
+    );
     expect(prompts['scene-build']).toContain("layout: 'landscape', library: ctx.worldAssets })");
     expect(prompts['scene-build']).toContain("`page.use('fire-tower', { x: 120");
     expect(prompts['scene-build']).toContain('never end your reply with a `MISSING:` line');

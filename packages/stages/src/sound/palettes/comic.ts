@@ -17,6 +17,8 @@ import { only, pick, type PaletteSlot, type SoundPalette } from './types.js';
 const ON_CUT = { leadS: 0.03 } as const;
 /** The slammed panel lands ~0.15 s into its transition. */
 const SLAM_DELAY_S = -0.15;
+/** The gutters slam shut at the end of their 0.5 s collapse. */
+const COLLAPSE_DELAY_S = -0.42;
 
 export const COMIC_PALETTE: SoundPalette = {
   id: 'comic',
@@ -117,4 +119,17 @@ export const COMIC_TRANSITION_SFX: Readonly<Record<ComicTransitionId, PaletteSlo
     pick('paper-pop', ['low'], { leadS: SLAM_DELAY_S, weight: 0.5 }),
   ],
   'comic-ink-bleed': [pick('marker-stroke', ['long'], { leadS: 0.05 })],
+  'comic-page-slide': [
+    pick('paper-slide', ['long'], { leadS: 0.1 }),
+    pick('paper-rustle', ['soft'], { weight: 0.5 }),
+  ],
+  'comic-page-scroll': [pick('paper-slide', ['short', 'in'], { leadS: 0.1 })],
+  'comic-panel-push': [
+    pick('paper-slide', ['in'], { leadS: 0.05 }),
+    pick('paper-pop', ['low'], { weight: 0.5 }),
+  ],
+  'comic-gutter-collapse': [
+    pick('board-tap', ['knock'], { leadS: COLLAPSE_DELAY_S }),
+    pick('paper-pop', ['low'], { leadS: COLLAPSE_DELAY_S, weight: 0.5 }),
+  ],
 };

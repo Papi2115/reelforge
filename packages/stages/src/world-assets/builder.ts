@@ -4,19 +4,27 @@
  * narration (characters, key props, sprites, textures, icons, a place for every place of the
  * narration) as `assets/<world>/*.json` + `assets/cast.json`; QA by code and the Haiku critic on
  * contact sheets (world-assets/qa.ts) with one fix turn; anything the turn wrote outside those
- * files is put back; the set is committed path-limited ("World assets built ✓"). Runs once per
- * storyboard (`.reelforge/world-assets.json` keeps its hash); a set with findings is kept (⚠: the
- * scene QA still catches undefined ids), a step that cannot run never fails the scenes.
+ * files is put back, junk in the asset folder (an empty probe, a file defining nothing, a
+ * misnamed file) is removed (junk.ts); the set is committed path-limited ("World assets built
+ * ✓"). Runs once per storyboard (`.reelforge/world-assets.json` keeps its hash); a set with
+ * findings is kept (⚠: the scene QA still catches undefined ids), a step that cannot run never
+ * fails the scenes.
  */
 import { existsSync } from 'node:fs';
-import { worldAssetSet } from '@reelforge/cli/service';
+import { readSheetRounds, startSheetRounds, worldAssetSet } from '@reelforge/cli/service';
 import { ok, type Result } from '@reelforge/claude-bridge';
-import { isWorldAssetWorld, WORLD_CAST_FILE, worldAssetsDir } from '@reelforge/shared';
+import {
+  isWorldAssetWorld,
+  MAX_WORLD_ASSET_SHEET_ROUNDS,
+  WORLD_CAST_FILE,
+  worldAssetsDir,
+} from '@reelforge/shared';
 import { inProject } from '../paths.js';
 import type { SceneJob } from '../scenes/job.js';
 import { render } from '../stages/repair.js';
 import type { StageError } from '../types.js';
 import { discardOutsideWrites, snapshotProject } from './guard.js';
+import { droppedNote, dropJunkAssetFiles } from './junk.js';
 import { worldAssetsPromptVars } from './prompt.js';
 import {
   readAssetFiles,
@@ -66,6 +74,26 @@ export function worldAssetsJob(job: SceneJob): WorldAssetsJob | undefined {
   };
 }
 
+const describe = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+/**
+ * How many `world-assets sheet` rounds the turn ran (the CLI counts them in a session file the
+ * step starts before the turn; best effort: a counter that cannot be read is a note, never an
+ * error). More than the prompt's 2 is a note in the stage summary (real run Comic 2: ~20).
+ */
+async function sheetRoundsNote(projectDir: string, attempt: number): Promise<string[]> {
+  try {
+    const rounds = (await readSheetRounds(projectDir))?.rounds ?? 0;
+    if (rounds <= MAX_WORLD_ASSET_SHEET_ROUNDS) return [];
+    return [
+      `world-assets turn ${String(attempt)} ran ${String(rounds)} sheet rounds (the prompt allows ${String(MAX_WORLD_ASSET_SHEET_ROUNDS)})`,
+    ];
+  } catch (error) {
+    return [`world-assets turn ${String(attempt)}: sheet rounds not counted (${describe(error)})`];
+  }
+}
+
 /** undefined = the turn ran; a string = it failed for this step only. */
 async function designTurn(
   job: WorldAssetsJob,
@@ -86,6 +114,11 @@ async function designTurn(
   if (!prompt.ok) return prompt;
   const snapshot = await snapshotProject(ctx.projectDir, job.id);
   if (!snapshot.ok) return snapshot;
+  try {
+    await startSheetRounds(ctx.projectDir, ctx.now());
+  } catch (error) {
+    ctx.warn(`world assets: cannot start the sheet round counter: ${describe(error)}`);
+  }
   const turn = await ctx.claude({
     prompt: 'world-assets',
     text: prompt.value,
@@ -175,6 +208,10 @@ export async function ensureWorldAssets(
     if (!turn.ok) return turn;
     if (turn.value !== undefined)
       notes.push(`world-assets turn ${String(attempt)} failed: ${turn.value}`);
+    notes.push(...(await sheetRoundsNote(ctx.projectDir, attempt)));
+    const junk = await dropJunkAssetFiles(ctx.projectDir, world.id, { badNames: false });
+    if (!junk.ok) return junk;
+    notes.push(...junk.value.map(droppedNote));
     ctx.step(`world assets: QA ${String(attempt)}`);
     const round = await worldAssetsQaRound(world);
     if (!round.ok) return round;
@@ -183,6 +220,9 @@ export async function ensureWorldAssets(
     findings = turn.value === undefined ? qa.findings : [turn.value, ...qa.findings];
     if (findings.length === 0) break;
   }
+  const misnamed = await dropJunkAssetFiles(ctx.projectDir, world.id, { badNames: true });
+  if (!misnamed.ok) return misnamed;
+  notes.push(...misnamed.value.map(droppedNote));
   const outcome = outcomeOf(world, qa, findings);
   const saved = await saveWorldAssetsReport(ctx.projectDir, {
     version: 1,

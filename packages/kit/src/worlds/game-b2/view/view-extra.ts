@@ -10,6 +10,7 @@ import { whenParam } from '../../../looks/blueprint/timing.js';
 import { clamp } from '../core/rand.js';
 import type { CompiledLevel } from '../level/compile.js';
 import { Automap } from '../map/automap.js';
+import { checkMapEnding } from '../map/automap-checks.js';
 import { planAutomap, type Time } from '../map/automap-plan.js';
 import { automapSchema } from '../map/automap-spec.js';
 import { roomAt } from '../ray/raycast.js';
@@ -63,6 +64,8 @@ interface Context {
   readonly world: B2World;
   readonly compiled: CompiledLevel;
   readonly seed: number;
+  /** The shot's length when the scene gave it (`b2View({ duration })`). */
+  readonly duration: number | undefined;
   readonly time: Time;
   readonly fail: (message: string) => never;
   readonly parse: <S extends z.ZodType>(schema: S, value: unknown, what: string) => z.output<S>;
@@ -107,9 +110,10 @@ export function viewExtras(ctx: Context) {
     automap(spec: unknown): Timed & { open: number; fold: number; intent: string } {
       const parsed = parse(automapSchema, spec, 'automap()');
       const plan = planAutomap(parsed, compiled, world.path, time, fail);
+      checkMapEnding(plan, ctx.duration, fail);
       for (let t = plan.at; t < plan.until; t += 0.1)
         if (world.mapCover(t) !== null) fail('automap(): two automaps overlap in time');
-      world.addAutomap(new Automap(plan, world.path, seed));
+      world.addAutomap(new Automap(plan, world.path, seed, () => world.frozenView(plan.at)));
       const cues: Cue[] = [{ t: plan.at, name: 'blip-up' }];
       if (plan.exit === 'fold') cues.push({ t: plan.foldAt + 0.1, name: 'blip-down' });
       return {

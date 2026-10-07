@@ -9,7 +9,7 @@ import { defineLook } from '../../../../looks/types.js';
 import { sketchPage } from '../../page/sketch-page.js';
 import { SKETCHBOOK_ID } from '../../style.js';
 
-const DOCS = `Look \`sketch-graph\` (world Sketchbook, B roll): the maths and the evidence, worked by hand. ONE \`kit.fx.sketchPage({ size: [ctx.shot.width, ctx.shot.height], duration: ctx.shot.duration, stock: 'graph', page: N, pageTool: 'bic', boilFps: 8, anchor: ctx.anchor })\`; draw in build(), \`page.update(t)\` in update(t). Page coordinates 960x540; ink inside x 60-900, y 40-500.
+const DOCS = `Look \`sketch-graph\` (world Sketchbook, B roll): the maths and the evidence, worked by hand. ONE \`kit.fx.sketchPage({ size: [ctx.shot.width, ctx.shot.height], duration: ctx.shot.duration, stock: 'graph', page: N, pageTool: 'bic', boilFps: 8, anchor: ctx.anchor })\`, \`scene.add(page)\` in build() (a page never added renders a blank frame), draw on it in build(), \`page.update(t)\` in update(t). Page coordinates 960x540; ink inside x 60-900, y 40-500.
 - Pen: \`tool: 'bic'\` (blue ballpoint, neat \`hand: 'print'\`, size 16-26), the result ONCE in \`tool: 'red'\`; a highlighter sweep \`page.stroke(pts, { tool: 'hi' })\` behind the number that matters.
 - Proofs: column sums (align the decimal points with \`page.textWidth\`), \`page.ruled(...)\` lines and chart axes with hand ticks, boxes that fill with \`page.fill(..., { color: 'bicLight', dir: -1 })\`, \`page.ruler(x, y, { at, until })\` slid in under a line.
 - Inserts: \`page.sheet({ ..., paper: 'kraft', envelope: true })\` (maths on an envelope back, write with \`attach: sheet.frame()\` or \`sheet.point(u, v)\`), an index card \`sheet.rule(...)\` + \`page.clip(...)\`, tape at two angles, a coffee ring, \`torn: true\` stubs.

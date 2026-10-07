@@ -84,6 +84,19 @@ const prompts = {
     critic: 'error critic: tally: the card holds 6 s after the stamp',
     ...fixWorldVars(GAME, 'rpg-menu', 'tally'),
   }),
+  script: rendered('script', {
+    brief: { version: 1, topic: 'How compound interest works', language: 'en', targetMinutes: 6 },
+    language: 'en',
+    targetMinutes: 6,
+    targetWords: 900,
+    tone: 'friendly',
+    audience: 'not specified',
+    surpriseBeats: true,
+    interruptsPerMinute: '1–2',
+    openLoops: true,
+    openLoopsStep: 4,
+    ...scriptWorldVars(GAME),
+  }),
   critic: rendered('critic', {
     styleId: 'game-b2',
     imagePaths: '.reelforge/qa/s09_net/build-1.png',
@@ -201,6 +214,44 @@ describe('game-b2 prompts', () => {
 
   it('give the script game surprises', () => {
     expect(scriptWorldVars(GAME)['worldSurprise']).toContain('a sudden game moment');
+  });
+
+  it('write the script as one game run with a game map in the beat sheet', () => {
+    const script = prompts.script;
+    expect(script).toContain('from sources you verify.\n\nGame framing (binding for this world)');
+    for (const part of [
+      'explains how its topic works as ONE first-person game run',
+      'the narrator guides the player in the second person ("you")',
+      'Levels = the chapters of the explanation',
+      'Stats = the key quantities of the topic',
+      'the final boss is the core question of the film',
+      'Power-ups and items = the insights',
+      'no gag that bends a fact or invents one',
+      'add a section `## Game map`',
+      'the surprise — a sudden game moment',
+      'Never invent facts.',
+    ]) {
+      expect(script).toContain(part);
+    }
+  });
+
+  it('map the game map onto moments of the catalog in the storyboard', () => {
+    const storyboard = prompts.storyboard;
+    const start = storyboard.indexOf('Game structure: the film is one game run');
+    expect(start).toBeGreaterThan(0);
+    const structure = storyboard.slice(start, storyboard.indexOf('Available looks', start));
+    const catalog = new Set(text.moments.map((entry) => entry.id));
+    const named = [...structure.matchAll(/`([a-z]+(?:-[a-z]+)*)`/g)].map((match) => match[1]);
+    expect(named).toEqual(expect.arrayContaining(['level-card', 'boss-card', 'automap', 'tally']));
+    expect(named.filter((id) => id !== undefined && !catalog.has(id))).toEqual([]);
+  });
+
+  it('keep the game framing out of the other worlds', () => {
+    for (const id of ['sketchbook', 'comic', 'game-b1']) {
+      const other = worldPromptText(id);
+      if (other === undefined) throw new Error(`no ${id} prompt text`);
+      expect(scriptWorldVars({ label: id, text: other })).not.toHaveProperty('worldScript');
+    }
   });
 });
 

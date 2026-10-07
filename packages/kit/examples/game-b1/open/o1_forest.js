@@ -14,7 +14,7 @@ export const meta = {
   treatment: 'character-scene',
 };
 
-/** What would live in assets/b1/forest.json: this film's own things. */
+/** What would live in assets/game-b1/forest.json: this film's own things. */
 const ASSETS = {
   version: 1,
   world: 'game-b1',

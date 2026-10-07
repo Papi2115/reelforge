@@ -27,6 +27,19 @@ export { unknownWorldAssetRefs, type WorldAssetRef } from '../project/world-asse
 export {
   SHEET_SHOT_ID as WORLD_ASSET_SHEET_SHOT_ID,
   worldAssetSheetPages,
+  worldAssetSoloPages,
   type SheetPage as WorldAssetSheetPage,
+  type SoloKind as WorldAssetSoloKind,
 } from '../world-assets/sheet-scenes.js';
 export { composeWorldAssetSheet, worldAssetSheetPaths } from '../world-assets/sheet.js';
+export {
+  assetBounds,
+  composeCropSheet,
+  CROPS_PER_IMAGE,
+  cropTileCode,
+  filmSizeCrop,
+  worldAssetCropSheet,
+  worldAssetSoloScene,
+  type CropTile,
+} from '../world-assets/crops.js';
+export { readSheetRounds, startSheetRounds } from '../world-assets/rounds.js';

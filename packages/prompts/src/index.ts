@@ -40,6 +40,7 @@ export * from './validators/roles.js';
 export * from './validators/script.js';
 export * from './validators/offensive.js';
 export * from './validators/critic.js';
+export * from './validators/world-asset-critic.js';
 export * from './validators/cues.js';
 export * from './validators/review.js';
 export * from './validators/text-outputs.js';

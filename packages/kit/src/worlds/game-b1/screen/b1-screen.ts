@@ -34,6 +34,7 @@ import {
 } from './schemas.js';
 import { SCREEN_METHODS } from './methods.js';
 import { toolkits, type Breakthrough, type Cue } from './toolkits.js';
+import { playToolkits, type LevelResult } from './play-toolkits.js';
 import { vocabApi, type VocabInfo } from '../vocab/api.js';
 import type { B1AssetIds } from '../vocab/assets.js';
 
@@ -61,6 +62,10 @@ export type B1ScreenObject = FxObject & {
   cartridge(spec: unknown): Breakthrough;
   levelSelect(spec: unknown): Breakthrough;
   gameOver(spec: unknown): Span & { cues: readonly Cue[] };
+  level(spec: unknown): LevelResult;
+  inventory(spec: unknown): Breakthrough;
+  shop(spec: unknown): Breakthrough;
+  splits(spec: unknown): Breakthrough;
   defineSprite(id: string, spec: unknown): VocabInfo;
   definePlayfield(id: string, spec: unknown): VocabInfo;
   generate(id: string, spec: unknown): VocabInfo;
@@ -230,13 +235,14 @@ function buildScreen(params: z.output<typeof screenParams>, tools: KitTools): B1
   const fx = asFx(output.object, (t) => {
     output.present(model.render(t));
   });
-  return Object.assign(fx, api, toolkits(model, at, end), vocabApi(model, at));
+  const kits = { ...toolkits(model, at, end), ...playToolkits(model, at, end) };
+  return Object.assign(fx, api, kits, vocabApi(model, at));
 }
 
 export const b1Screen = defineFx({
   name: 'b1Screen',
   description:
-    'Game B1 world (Atari-era boss montage): one frame of two worlds. Inside the TV the scene paints with Atari 2600 rules (wide pixels, one colour per sprite row, flicker on crowded lines, playfield, CRT); around it the room in square pixels (a plain living room or the film`s own interior) with a camera that pushes into the TV and back. Sticky notes on the glass, boss cards, a film HUD (year, score, progress slots, checkpoint, lives, dialogue), the high-score table and manual page toolkits, the calendar zoom, the cartridge insert / pull, the level-select map and the game-over screen. Build once, call update(t) every frame.',
+    'Game B1 world (Atari-era boss montage): one frame of two worlds. Inside the TV the scene paints with Atari 2600 rules (wide pixels, one colour per sprite row, flicker on crowded lines, playfield, CRT); around it the room in square pixels (a plain living room or the film`s own interior) with a camera that pushes into the TV and back. Sticky notes on the glass, boss cards, a film HUD (year, score, progress slots, checkpoint, lives, dialogue), 2D levels the hero plays through (run, jump, collect, hit, stomp, goal), the high-score table, manual page, inventory, shop and split-timer toolkits, the calendar zoom, the cartridge insert / pull, the level-select map and the game-over screen. Build once, call update(t) every frame.',
   params: screenParams,
   methods: SCREEN_METHODS,
   build: buildScreen,

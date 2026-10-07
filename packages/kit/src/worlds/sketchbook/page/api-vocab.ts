@@ -136,6 +136,38 @@ function pageBox(ops: readonly Op[], frame: PageFrame | undefined): Box {
   );
 }
 
+/** What a person holds (`holds`): a defined prop, else a tool/object/instrument type. */
+export function heldDrawing(
+  library: SketchLibrary,
+  id: string,
+  size: number | undefined,
+  call: string,
+): { spec: DoodleSpec; size: number } {
+  if (library.hasProp(id)) {
+    const entry = library.prop(id, call);
+    return { spec: entry.drawing(1), size: size ?? 0.35 };
+  }
+  const entry = itemFamily(id);
+  if (!entry) {
+    throw new KitError(
+      'invalid-params',
+      `${call}: holds "${id}" is neither a defined prop nor a tool/object/instrument type`,
+    );
+  }
+  const knobs = {
+    type: id,
+    color: undefined,
+    action: undefined,
+    count: undefined,
+    w: undefined,
+    h: undefined,
+  };
+  return {
+    spec: makeDrawing(entry, knobs, idSeed(id), { plain: false, bold: false }, call),
+    size: size ?? HOLD_SIZE[entry.group],
+  };
+}
+
 export function vocabulary(deps: VocabDeps) {
   const { page, resolve, begin, library } = deps;
 
@@ -196,35 +228,8 @@ export function vocabulary(deps: VocabDeps) {
     return place(drawing((h / bh) * unitOf(o.attach)), { ...o, h }, undefined, seed);
   };
 
-  const held = (
-    id: string,
-    size: number | undefined,
-    call: string,
-  ): { spec: DoodleSpec; size: number } => {
-    if (library.hasProp(id)) {
-      const entry = library.prop(id, call);
-      return { spec: entry.drawing(1), size: size ?? 0.35 };
-    }
-    const entry = itemFamily(id);
-    if (!entry) {
-      throw new KitError(
-        'invalid-params',
-        `${call}: holds "${id}" is neither a defined prop nor a tool/object/instrument type`,
-      );
-    }
-    const knobs = {
-      type: id,
-      color: undefined,
-      action: undefined,
-      count: undefined,
-      w: undefined,
-      h: undefined,
-    };
-    return {
-      spec: makeDrawing(entry, knobs, idSeed(id), { plain: false, bold: false }, call),
-      size: size ?? HOLD_SIZE[entry.group],
-    };
-  };
+  const held = (id: string, size: number | undefined, call: string) =>
+    heldDrawing(library, id, size, call);
 
   return {
     doodle(spec: unknown, options?: unknown): Drawing {

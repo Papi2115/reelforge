@@ -1,9 +1,10 @@
 /**
  * Cartridge insert / pull (the showcase's shots 4 -> 5 and 7, "the environment stays
  * continuous"): the camera pulls back from the TV picture into the console close-up of the same
- * room, Dad's hand brings a cartridge down, it resists the slot, clicks in (the frame shakes, the
- * TV shows the garbage frame of a cartridge rocking in its slot) and the hand lets go; or the hand
- * comes down, squeezes, pushes, and pulls the cartridge out (garbage, then the TV goes dark). The
+ * room (its own floor), a hand brings a cartridge down, it resists the slot, clicks in (the frame
+ * shakes, the TV shows the garbage frame of a cartridge rocking in its slot) and the hand lets
+ * go; or the hand comes down, squeezes, pushes, and pulls the cartridge out (garbage, then the TV
+ * goes dark). The
  * camera may push back INTO the TV at the end. The pull-back's first frame and the push's last
  * frame are exactly the TV-only frame, so the move is one continuous camera.
  */
@@ -30,8 +31,14 @@ export const cartridgeSchema = z.strictObject({
     .describe('What the swap means (the claim: e.g. "the new game goes in: everyone wanted in")'),
   action: z.enum(['insert', 'pull']),
   at: whenParam.describe('The close-up begins (the pull-back from the picture starts)'),
-  label: z.string().min(1).max(10).optional().describe("Dad's masking tape on it, in his hand"),
+  label: z.string().min(1).max(10).optional().describe('Masking tape on it, hand-written'),
   stripe: z.string().default('orange').describe('Colour of the label stripe'),
+  art: z
+    .string()
+    .min(1)
+    .max(32)
+    .optional()
+    .describe("The label's art window: a sprite id of the film (default: blank)"),
   enter: z
     .enum(['pull-back', 'cut'])
     .default('pull-back')
@@ -157,9 +164,19 @@ export function paintCartridge(model: ScreenModel, plan: CartridgePlan, t: numbe
   const screen: GlassRect = closeupScreen(model.pen);
   const glow = tv === 'garbage' ? (GLOW[frame % 3] ?? C.TEAL) : tv === 'off' ? -1 : C.TEAL_D;
   const pose = plan.action === 'insert' ? insertPose(u) : pullPose(u);
-  consoleCloseup(model.pen, pose, plan.look, glow, () => {
-    model.finishGlass(screen, t, 10, false, true);
-  });
+  const room = model.interior;
+  const floor =
+    room === undefined ? undefined : { kind: room.floor, inks: room.floorInks, seed: room.seed };
+  consoleCloseup(
+    model.pen,
+    pose,
+    plan.look,
+    glow,
+    () => {
+      model.finishGlass(screen, t, 10, false, true);
+    },
+    floor,
+  );
   if (plan.pullBack && t < plan.act) {
     const e = EASES.inOut(seg(t, plan.at, plan.act));
     const rect: GlassRect = [

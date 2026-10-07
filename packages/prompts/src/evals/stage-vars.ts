@@ -199,6 +199,12 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         naming: 'one file per thing, <id>.json',
         budget: '24 things',
       });
+    case 'world-asset-critic':
+      return ok({
+        worldLabel: 'Sketchbook',
+        imagePaths: '.reelforge/frames/world-assets/crops-A.png',
+        tiles: 'crops-A.png: A1, A2',
+      });
     case 'brief':
       return ok({
         topic: brief.topic,

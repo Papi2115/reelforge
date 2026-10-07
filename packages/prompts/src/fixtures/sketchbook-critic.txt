@@ -10,6 +10,7 @@ For each image decide exactly one verdict:
 - `ok`
 
 Vibe check (every look of the film must feel like one notebook): paper, hand-drawn strokes with a slight wobble, hand lettering, the same few inks. Clean vector shapes, glossy gradients, rendered 3D, pixel-art fonts or software windows break the world: answer `off-intent` with a note starting `vibe:`.
+Text in progress: frames are sampled while words are still being typed, hand-lettered, slammed in or revealed, so a line may stop mid-word or before its last words. A partly written line is not a defect: never answer `clipped`, `overlap` or `off-intent` for it and never ask to remove or reword it; judge text (spelling, wording, invented words, clipping) only where it is complete and settled, and never read a partial word as another word.
 
 Look of this shot: `sketch-story` (roll A). The film mixes looks: judge the frame against this look, not against the other looks of this world. Sketch story: a felt-tip notebook page.
 Look checks: text, a window title or a headline cut by the frame edge or by a camera push-in → `clipped`; labels, pins or captions colliding with each other or sitting on busy detail where they cannot be read → `overlap`; an element of another look faking this one → `off-intent` with a note starting `look:`.

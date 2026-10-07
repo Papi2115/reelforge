@@ -18,7 +18,7 @@ import { worldAssetSet } from '../project/world-assets.js';
 
 export const VALIDATE_LEVEL_USAGE = `usage: reelforge validate level <scenes/<shot>.js | level.json> [--json]
 Checks the Game B2 levels of a scene (every object with a \`grid\` and a \`legend\`, read from the
-source, and every built-in 'office' / 'warehouse' it names) or a level JSON file against the
+source, and every built-in level name it uses) or a level JSON file against the
 level format: grid <= 32x32 with walls all round the border, one legend entry per character, doors
 between two walls, <= 12 lights, <= 40 sprites inside open cells, labels the pixel face can draw.
 Every error names the grid row or the field.
@@ -114,7 +114,7 @@ function sceneLevels(text: string, known: KnownAssets | undefined): LevelReport[
         level: 'scene',
         severity: 'error',
         messages: [
-          "no level found: write `const LEVEL = { name, mood, floor, ceiling, grid, legend, lights, sprites }` and pass it to kit.fx.b2View({ level: LEVEL }) (or a built-in level: 'office' | 'warehouse')",
+          "no level found: write `const LEVEL = { name, mood, floor, ceiling, grid, legend, lights, sprites }` and pass it to kit.fx.b2View({ level: LEVEL }); design the level from this shot's narration (its places, objects and labels)",
         ],
       },
     ];

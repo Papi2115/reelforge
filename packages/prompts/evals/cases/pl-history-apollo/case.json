@@ -159,6 +159,24 @@
       ]
     },
     "roles": "Zbudowany pilot: czapka z daszkiem, granatowa marynarka z krawatem, plakietka, podkładka; 3 kolory stroju.\ncast preview: wszystkie testy ok; od frontu i z boku czytelny jako pilot.",
-    "world-assets": "Zbudowany 1 rekwizyt (lunar-module); nowe miejsca: brak.\nworld-assets check: 0 błędów; arkusz czytelny w miniaturze."
+    "world-assets": "Zbudowany 1 rekwizyt (lunar-module); nowe miejsca: brak.\nworld-assets check: 0 błędów; arkusz czytelny w miniaturze.",
+    "world-asset-critic": {
+      "assets": [
+        {
+          "tile": "A1",
+          "sees": "a glass prism",
+          "legible": true,
+          "style": "ok",
+          "note": "clear triangle with a beam"
+        },
+        {
+          "tile": "A2",
+          "sees": "a grey smudge",
+          "legible": false,
+          "style": "ok",
+          "note": "no defining shape at this size"
+        }
+      ]
+    }
   }
 }

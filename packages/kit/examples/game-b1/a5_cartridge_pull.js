@@ -38,6 +38,7 @@ export function build(ctx) {
     action: 'pull',
     at: 0.6,
     label: 'XMAS 82',
+    art: 'showcase',
     enter: 'pull-back',
     hold: 1.2,
   });

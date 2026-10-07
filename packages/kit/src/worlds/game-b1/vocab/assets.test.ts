@@ -1,6 +1,6 @@
 /**
  * Project asset files of the Game B1 world and the room DSL (PLAN.md#13.15): a project's
- * `assets/b1/*.json` validate together (readable sentences naming the file and the id), the
+ * `assets/game-b1/*.json` validate together (readable sentences naming the file and the id), the
  * validator knows the project's ids and flags unknown ones a scene uses; interiors keep the
  * world's identity (the TV picture lands in the same glass in every shell) and the calendar zoom
  * still works on an interior's calendar.
@@ -31,7 +31,7 @@ const FOREST = {
 
 describe('asset files', () => {
   it('validates a project and lists its ids by kind', () => {
-    const report = checkB1Assets([{ name: 'assets/b1/forest.json', content: FOREST }]);
+    const report = checkB1Assets([{ name: 'assets/game-b1/forest.json', content: FOREST }]);
     expect(report.errors).toEqual([]);
     expect(report.ids).toEqual({
       sprites: ['stump', 'oak', 'ranger'],
@@ -49,14 +49,14 @@ describe('asset files', () => {
       rooms: { hut: { shell: 'castle' }, den: { props: [{ kind: 'poster', x: 1, sprite: 'nope' }] } },
     };
     const report = checkB1Assets([
-      { name: 'assets/b1/forest.json', content: FOREST },
-      { name: 'assets/b1/more.json', content: bad },
-      { name: 'assets/b1/old.json', content: { version: 2, world: 'game-b1' } },
+      { name: 'assets/game-b1/forest.json', content: FOREST },
+      { name: 'assets/game-b1/more.json', content: bad },
+      { name: 'assets/game-b1/old.json', content: { version: 2, world: 'game-b1' } },
     ]);
     const text = report.errors.join('\n');
     expect(text).toMatch(/more\.json: sprite "oak" row 0 is 9 bits wide/);
     expect(text).toMatch(/more\.json: sprite "oak" colours: "green" is not a game-b1 ink.*try avocado/);
-    expect(text).toMatch(/more\.json: "oak" is already defined in assets\/b1\/forest\.json/);
+    expect(text).toMatch(/more\.json: "oak" is already defined in assets\/game-b1\/forest\.json/);
     expect(text).toMatch(/more\.json: generated "deer": like/);
     expect(text).toMatch(/more\.json: room "hut": shell/);
     expect(text).toMatch(/more\.json: room "den": poster sprite "nope" is not defined/);
@@ -79,7 +79,7 @@ describe('asset files', () => {
       known: { sprites: refs.defines },
     });
     expect(report.errors).toEqual([
-      'unknown sprite "rangr" (did you mean "ranger"?): define it in assets/b1/*.json or in the scene',
+      'unknown sprite "rangr" (did you mean "ranger"?): define it in assets/game-b1/*.json or in the scene',
     ]);
   });
 });

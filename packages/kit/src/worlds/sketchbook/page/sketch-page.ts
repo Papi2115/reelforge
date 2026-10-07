@@ -249,7 +249,7 @@ function buildPage(params: z.output<typeof sketchPageParams>, tools: KitTools): 
 export const sketchPage = defineFx({
   name: 'sketchPage',
   description:
-    'A Sketchbook notebook page (world sketchbook): cartridge, lined or graph paper with the spiral binding; a visible hand draws hand-lettered text, crude stick figures, arrows, loops and pencil fills with line boil. Full-frame 2D page: build it once, draw on it in build(), call update(t) every frame.',
+    'A Sketchbook notebook page (world sketchbook): cartridge, lined or graph paper with the spiral binding; a visible hand draws hand-lettered text, crude stick figures, arrows, loops and pencil fills with line boil. Full-frame 2D page: build it once, scene.add(page) in build() (a page never added renders a blank frame), draw on it in build(), call update(t) every frame.',
   params: sketchPageParams,
   methods: PAGE_METHODS,
   build: buildPage,

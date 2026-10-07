@@ -16,7 +16,7 @@ export const meta = {
   treatment: 'character-scene',
 };
 
-/** What would live in assets/b1/caravan.json. */
+/** What would live in assets/game-b1/caravan.json. */
 const ASSETS = {
   version: 1,
   world: 'game-b1',

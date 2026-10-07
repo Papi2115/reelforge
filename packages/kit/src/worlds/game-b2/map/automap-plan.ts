@@ -10,6 +10,7 @@ import { hash3 } from '../core/rand.js';
 import type { CompiledLevel } from '../level/compile.js';
 import type { CameraPath } from '../ray/camera.js';
 import { handTextWidth, labelSize } from './automap-draw.js';
+import { checkMapSpan } from './automap-checks.js';
 import type { AutomapSpec, RoomState } from './automap-spec.js';
 import { mapGeometry, roomOfPoint, type MapGeometry } from './rooms.js';
 
@@ -48,6 +49,7 @@ export interface AutomapPlan {
   readonly foldAt: number;
   readonly enter: AutomapSpec['enter'];
   readonly exit: AutomapSpec['exit'];
+  readonly backdrop: AutomapSpec['backdrop'];
   readonly scale: number;
   readonly geometry: MapGeometry;
   readonly rooms: readonly RoomPlan[];
@@ -269,6 +271,7 @@ export function planAutomap(
     foldAt,
     enter: spec.enter,
     exit: spec.exit,
+    backdrop: spec.backdrop,
     scale: s,
     geometry,
     rooms: withLabels,
@@ -279,6 +282,7 @@ export function planAutomap(
     ...(note === undefined ? {} : { note }),
   };
   checkLayout(plan, fail);
+  checkMapSpan(plan, fail);
   return plan;
 }
 

@@ -383,7 +383,7 @@ export function createPageApi(context: PageContext) {
         return made.api;
       },
     }),
-    ...breakthroughs({ page, resolve, begin, seedOf }),
+    ...breakthroughs({ page, resolve, begin, seedOf, library }),
     ...vocabulary({ ...vocab, host: (): DiagramHost => api }),
   };
   return {

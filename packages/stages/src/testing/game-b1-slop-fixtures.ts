@@ -95,9 +95,35 @@ export const GAME_B1_OPEN_NARRATION: Readonly<Record<string, string>> = {
     "On Monday, October 19, 1987, the Dow Jones fell from 2246 to 1738 in a single day. By four o'clock, traders were running into the streets of New York.",
 };
 
-/** The kit's open-vocabulary examples (`examples/game-b1/open`): name -> source. */
-export function gameB1OpenExamples(): Map<string, string> {
-  const dir = path.join(KIT, 'examples', 'game-b1', 'open');
+function examplesIn(sub: string): Map<string, string> {
+  const dir = path.join(KIT, 'examples', 'game-b1', sub);
   const files = readdirSync(dir).filter((name) => name.endsWith('.js'));
   return new Map(files.map((name) => [name, readFileSync(path.join(dir, name), 'utf8')]));
+}
+
+/** The kit's open-vocabulary examples (`examples/game-b1/open`): name -> source. */
+export function gameB1OpenExamples(): Map<string, string> {
+  return examplesIn('open');
+}
+
+/** The narration of the play examples (their header comments): a level and three menu screens. */
+export const GAME_B1_PLAY_NARRATION: Readonly<Record<string, string>> = {
+  'p1_level.js':
+    'Every shift the miner walked two miles of tunnel. A shaft, a runaway cart, the rats. Two lamps lit the way to the lift.',
+  'p2_inventory.js': 'Flour, water, salt and yeast. Flour and water alone already make a dough.',
+  'p3_shop.js':
+    'Fifty coins. The sail cost forty. The chart cost twenty-five, and he could not have both.',
+  'p4_splits.js':
+    'Base camp on day one. Camp two by day nine. The summit on day twenty-three, four days faster than the year before.',
+};
+
+/**
+ * Research lines the play examples show but their narration does not say (the level's HUD year,
+ * the rope on the chandler's shelf).
+ */
+export const GAME_B1_PLAY_RESEARCH = 'The mine shift is set in 1911. The chandler also sells rope.';
+
+/** The kit's play examples (`examples/game-b1/play`: level, inventory, shop, splits). */
+export function gameB1PlayExamples(): Map<string, string> {
+  return examplesIn('play');
 }

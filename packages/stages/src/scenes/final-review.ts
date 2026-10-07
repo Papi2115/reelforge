@@ -19,6 +19,7 @@ import {
   type SyncReport,
 } from '@reelforge/shared';
 import { continuityReviewNotes } from '../continuity.js';
+import { shotEntry } from '../slop/comic-flow.js';
 import { finalReviewDramaturgy } from '../dramaturgy.js';
 import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
@@ -114,7 +115,7 @@ async function addRepeatedPopups(
     if (program === undefined) continue;
     shots.push({ shotId: shot.id, popups: popupSpecs(program) });
     breakthroughs.push({ shotId: shot.id, specs: breakthroughSpecs(program, kinds) });
-    programs.push({ shotId: shot.id, program });
+    programs.push({ shotId: shot.id, program, entry: shotEntry(shot) });
   }
   const film = job.antiSlop?.spec?.filmChecks?.(programs) ?? new Map<string, QaFinding[]>();
   for (const found of [

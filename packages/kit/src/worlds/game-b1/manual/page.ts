@@ -10,17 +10,8 @@
 import { IndexCanvas } from '../core/canvas.js';
 import { hash } from '../core/math.js';
 import { C } from '../palette.js';
-import {
-  drawItem,
-  HALF_WIDTH,
-  HEIGHT,
-  PANEL,
-  SOLID,
-  tone,
-  variation,
-  type Item,
-  type Shape,
-} from './figure.js';
+import { PANEL, SOLID, tone, variation, type Item } from './figure.js';
+import { drawThing, thingSize } from './figure-thing.js';
 import { LINE_PITCH, STEP_X, strikeIndex, strikeLine, type ManualPlan } from './manual-plan.js';
 import { paper } from './paper.js';
 import { print, printWidth, type Skew } from './print-font.js';
@@ -64,8 +55,8 @@ export interface Page {
 }
 
 function items(plan: ManualPlan): Item[] {
-  const { shape, layout, count, hit } = plan.figure;
-  const half = HALF_WIDTH[shape];
+  const { thing, layout, count, hit } = plan.figure;
+  const { half, height } = thingSize(thing);
   const out: Item[] = [];
   const make = (i: number, x: number, base: number, s: number, lean?: number): Item => {
     const v = variation(plan.seed, i, i === hit);
@@ -99,17 +90,13 @@ function items(plan: ManualPlan): Item[] {
   let rows = 1;
   while ((rows * (rows + 1)) / 2 < count) rows += 1;
   const width = Math.max(2 * half, 26);
-  const s = Math.min(
-    1.15,
-    250 / (rows * width * 1.15),
-    148 / (HEIGHT[shape] * (1 + (rows - 1) * 0.82)),
-  );
+  const s = Math.min(1.15, 250 / (rows * width * 1.15), 148 / (height * (1 + (rows - 1) * 0.82)));
   const pitch = width * s * 1.15;
   for (let i = 0; i < count; i += 1) {
     let row = 0;
     while (((row + 1) * (row + 2)) / 2 <= i) row += 1;
     const k = i - (row * (row + 1)) / 2;
-    const base = GROUND - (rows - 1 - row) * HEIGHT[shape] * s * 0.82;
+    const base = GROUND - (rows - 1 - row) * height * s * 0.82;
     const lean = i === hit ? 0 : (hash(plan.seed, i, 21) - 0.5) * 0.08;
     out.push(make(i, 139 + (k - row / 2) * pitch, base, s, lean));
   }
@@ -168,15 +155,21 @@ function badge(
  * A callout badge's centre: above its item when there is room (a shelf, a queue), else beside
  * its row, outside the pile, on the item's side of the figure.
  */
-function callout(list: readonly Item[], item: Item, shape: Shape, layout: string, k: number) {
-  const top = item.base - HEIGHT[shape] * item.s;
+function callout(
+  list: readonly Item[],
+  item: Item,
+  size: { half: number; height: number },
+  layout: string,
+  k: number,
+) {
+  const top = item.base - size.height * item.s;
   if (layout !== 'pile' && top - 54 >= PANEL.y0 + 16)
     return [Math.min(PANEL.x1 - 14, Math.max(14, item.x + 11)), top - 54 + k * 4] as [
       number,
       number,
     ];
   const row = list.filter((other) => Math.abs(other.base - item.base) < 1);
-  const reach = HALF_WIDTH[shape] * item.s + 20;
+  const reach = size.half * item.s + 20;
   const right = item.x >= 139;
   const x = right
     ? Math.max(...row.map((other) => other.x)) + reach
@@ -187,19 +180,20 @@ function callout(list: readonly Item[], item: Item, shape: Shape, layout: string
 function figure(key: IndexCanvas, plate: IndexCanvas, plan: ManualPlan): void {
   const list = items(plan);
   backdrop(key, plan);
-  const { shape } = plan.figure;
+  const { thing } = plan.figure;
+  const size = thingSize(thing);
   const behind = plan.figure.layout === 'pile' ? [...list].reverse() : list;
-  for (const item of behind) drawItem(key, shape, item, false);
-  for (const item of list) drawItem(plate, shape, item, true);
+  for (const item of behind) drawThing(key, thing, item, false);
+  for (const item of list) drawThing(plate, thing, item, true);
   const placed: [number, number][] = [];
   plan.figure.callouts.forEach((c, k) => {
     const item = list[c.item];
     if (item === undefined) return;
-    const [bx, first] = callout(list, item, shape, plan.figure.layout, k);
+    const [bx, first] = callout(list, item, size, plan.figure.layout, k);
     let by = first;
     for (const [px, py] of placed) if (Math.hypot(px - bx, py - by) < 26) by += 26;
     placed.push([bx, by]);
-    const top = item.base - HEIGHT[shape] * item.s + 6;
+    const top = item.base - size.height * item.s + 6;
     const [tx, ty] = [item.x + 3, top];
     const d = Math.hypot(tx - bx, ty - by) || 1;
     key.line(bx + ((tx - bx) / d) * 11, by + ((ty - by) / d) * 11, tx, ty, SOLID);

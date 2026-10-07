@@ -252,7 +252,12 @@ describe('a game-b2 film on fake-claude', { timeout: 180_000 }, () => {
       link,
     ]);
     const dir = await projects.create('game variety', [], { style: 'game-b2' });
-    const words = sixSecondWords(plans.length);
+    // The dialogue shot (s07) lets someone speak: "… says …" (validators/world-speakers.ts).
+    const base = sixSecondWords(plans.length);
+    const words: WordsFile = {
+      ...base,
+      words: base.words.map((word) => (word.i === 61 ? { ...word, text: 'says' } : word)),
+    };
     mkdirSync(path.join(dir, 'timing'), { recursive: true });
     writeFileSync(path.join(dir, 'timing', 'words.json'), JSON.stringify(words, null, 2));
     writeFileSync(path.join(dir, 'script.txt'), words.words.map((word) => word.text).join(' '));

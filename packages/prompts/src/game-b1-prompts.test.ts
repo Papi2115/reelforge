@@ -122,7 +122,7 @@ describe('game-b1 prompts', () => {
     );
     expect(storyboard).toContain('list its nouns, places and actions');
     expect(storyboard).toContain('ONE boss card in the film, for the central problem');
-    expect(storyboard).toContain('- `A` = the story (`atari-story`');
+    expect(storyboard).toContain('- `A` = the story PLAYED (`atari-story`');
     expect(storyboard).toContain("- `B` = the console's screens (`atari-menu`");
     expect(storyboard).toContain('- `C` = the boss (`atari-boss`');
     for (const option of TRANSITIONS) expect(storyboard).toContain(`- \`${option.id}\` (wipe`);
@@ -138,9 +138,23 @@ describe('game-b1 prompts', () => {
     for (const id of ['calendar-zoom', 'cartridge', 'level-select', 'boss-card', 'game-over']) {
       expect(storyboard).toContain(`- \`${id}\` (moment; look`);
     }
-    expect(storyboard).toContain('Breakthroughs (`score-table`, `manual`)');
+    expect(storyboard).toContain(
+      'Breakthroughs (`inventory`, `shop`, `splits`, `score-table`, `manual`)',
+    );
+    for (const id of ['inventory', 'shop', 'splits'])
+      expect(storyboard).toContain(`- \`${id}\` (breakthrough; look`);
+    expect(storyboard).toContain(
+      '- `level` (moment; look `atari-story` or `atari-boss`; may recur): use when',
+    );
+    expect(storyboard).toContain(
+      'give every shot a `"worldView"`: `screen` (the game picture fills the frame',
+    );
+    expect(storyboard).toContain(
+      'Film grammar (checked): at least 60 % of the shots play a game moment',
+    );
+    expect(storyboard).toContain('never both `score-table` and `manual` in one film');
     expect(storyboard).toContain('needs at least 2 and at most 5, of at least 2 different kinds');
-    expect(storyboard).toContain('"worldMoment": "score-table" }');
+    expect(storyboard).toContain('"worldMoment": "inventory" }');
     expect(storyboard).toContain('Write the link as `"continuity"` AND name its transition');
     expect(storyboard).not.toMatch(/sketch|comic|rpg-/i);
   });
@@ -316,7 +330,8 @@ describe('game-b1 variety', () => {
     const [quota] = checkWorldVariety(film(plain), OPTIONS);
     expect(quota?.code).toBe('moment-quota');
     expect(quota?.message).toContain(
-      'plan them where the narration calls for them (facts or records ranked in the order they happened → score-table, how something works, step by step → manual)',
+      'a cost or a trade-off (what something costs in time, money or effort) → shop',
     );
+    expect(quota?.message).toContain('how something works, step by step → manual)');
   });
 });

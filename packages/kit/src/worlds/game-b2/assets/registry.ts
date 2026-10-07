@@ -1,5 +1,5 @@
 /**
- * Loads one or more Game B2 asset packs (a film-wide `assets/b2/*.json` plus the shot's own) into
+ * Loads one or more Game B2 asset packs (a film-wide `assets/game-b2/*.json` plus the shot's own) into
  * the set a view renders with: ids checked (kebab case, unique, never a built-in name), caps
  * (48 sprites, 24 textures, 24 icons), every entry compiled. All errors at once, each naming
  * the pack, the section and the id.

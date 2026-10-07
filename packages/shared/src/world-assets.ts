@@ -92,6 +92,23 @@ export const worldCastFileSchema = z.object({
 });
 export type WorldCastFile = z.infer<typeof worldCastFileSchema>;
 
+/**
+ * `.reelforge/world-assets-rounds.json`: how many `reelforge world-assets sheet` rounds the
+ * current design session ran (the prompt allows 2). The world-assets step starts a session before
+ * its turn; the CLI counts (best effort: without a fresh session it starts one itself).
+ */
+export const WORLD_ASSET_SHEET_ROUNDS_FILE = '.reelforge/world-assets-rounds.json';
+/** Self-QA rounds the world-assets prompt allows per design turn. */
+export const MAX_WORLD_ASSET_SHEET_ROUNDS = 2;
+
+export const worldAssetSheetRoundsSchema = z.object({
+  version: z.literal(1),
+  /** When the session started (a session older than a few hours is not the current one). */
+  startedAt: z.iso.datetime(),
+  rounds: z.int().min(0),
+});
+export type WorldAssetSheetRounds = z.infer<typeof worldAssetSheetRoundsSchema>;
+
 /** `.reelforge/world-assets.json`: the world-assets step's report (app state, not tracked). */
 export const WORLD_ASSETS_REPORT_FILE = '.reelforge/world-assets.json';
 

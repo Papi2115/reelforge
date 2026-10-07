@@ -1,5 +1,5 @@
 /**
- * Project asset files of the Game B1 world (PLAN.md#13.15): `assets/b1/<name>.json`, one stable,
+ * Project asset files of the Game B1 world (PLAN.md#13.15): `assets/game-b1/<name>.json`, one stable,
  * versioned format the runtime Claude writes per film (the forest film's ranger, deer, canopy and
  * cabin) and the scene loads with `screen.assets(file)`:
  *   { "version": 1, "world": "game-b1", "describe": "...",
@@ -121,7 +121,7 @@ export function checkB1Assets(
     for (const id of new Set(list ?? []))
       if (!known.includes(id)) {
         const near = nearIds(id, known);
-        errors.push(`unknown ${kind} "${id}"${near.length > 0 ? ` (did you mean "${near[0] ?? ''}"?)` : ''}: define it in assets/b1/*.json or in the scene`);
+        errors.push(`unknown ${kind} "${id}"${near.length > 0 ? ` (did you mean "${near[0] ?? ''}"?)` : ''}: define it in assets/game-b1/*.json or in the scene`);
       }
   };
   unknown('sprite', used.sprites, [...sprites, ...knownSprites]);

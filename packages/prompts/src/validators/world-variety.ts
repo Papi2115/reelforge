@@ -1,13 +1,15 @@
 /**
  * Variety of a world film (real run Sketchbook 1: no pop-up, no strip, a boring film), checked on
  * the storyboard of a world project only: every `worldMoment` is one of the world's catalog and
- * sits in a look that hosts it (and opens with its transition when it needs one); the film has
+ * sits in a look that hosts it (and opens with its transition when it needs one) in a shot long
+ * enough for it (`minShotS`, real run Sketchbook 4: a strip in a 3.9 s shot was dropped); the film has
  * its breakthrough quota (worlds/variety.ts) with at least two kinds once it needs two; no two
  * breakthroughs in adjacent shots; one moment kind at most once per 90 s; never three shots in a
  * row with the same moment (or plain) in the same roll; at least three distinct page transitions;
  * with continuity links on, at least one link in films of 45 s+ (the world's signature cut, real
  * run Sketchbook 2 planned none) and every world transition that renders a link (Game B1) on a
- * linked shot. The look run (at most two in a row) is the rhythm check with the world's limit (storyboard.ts).
+ * linked shot; a world with a film grammar (Game B1) also gets world-grammar.ts. The look run (at
+ * most two in a row) is the rhythm check with the world's limit (storyboard.ts).
  * Every finding is an error, so the storyboard's repair turn fixes it.
  */
 import { continuityKindOf, shotLook, type StoryboardShot } from '@reelforge/shared';
@@ -18,8 +20,14 @@ import {
   type WorldQuotaOverride,
   type WorldVarietyRules,
 } from '../worlds/variety.js';
-import type { WorldMomentOption, WorldTransitionOption } from '../worlds/types.js';
+import type {
+  WorldFilmGrammar,
+  WorldMomentOption,
+  WorldTransitionOption,
+} from '../worlds/types.js';
+import type { WorldPace } from '../worlds/pace.js';
 import { issue, type ValidationIssue } from './issues.js';
+import { checkWorldGrammar } from './world-grammar.js';
 
 export interface WorldVarietyOptions {
   /** The world's moment catalog (`WorldPromptText.moments`). */
@@ -31,6 +39,13 @@ export interface WorldVarietyOptions {
   /** Test drivers only: a higher breakthrough floor (StageSettings.worldQuotaOverride). */
   readonly override?: WorldQuotaOverride | undefined;
   readonly rules?: Partial<WorldVarietyRules>;
+  /** The world's film grammar (`WorldPromptText.grammar`, world-grammar.ts); absent = none. */
+  readonly grammar?: WorldFilmGrammar | undefined;
+  /**
+   * The world's transition pace (`WorldPromptText.pace`, Comic): the looser non-cut budget, the
+   * denser links and world-pace.ts (storyboard.ts applies them); absent = the defaults.
+   */
+  readonly pace?: WorldPace | undefined;
 }
 
 const PLAIN = 'plain';
@@ -63,6 +78,17 @@ function catalogIssues(
           'moment-look',
           `${shot.id}: ${id} is drawn in look ${option.looks.join(' or ')}, not ${shotLook(shot)}; move the moment or change the shot's look and roll`,
           where(index, 'look'),
+        ),
+      );
+    }
+    const length = shot.t1 - shot.t0;
+    if (option.minShotS !== undefined && length < option.minShotS) {
+      issues.push(
+        issue(
+          'error',
+          'moment-length',
+          `${shot.id}: ${id} needs a shot of at least ${String(option.minShotS)} s, this one is ${length.toFixed(1)} s (the scene cannot fit it and drops it); merge the shot with a neighbour so it lasts ${String(option.minShotS)} s or more, or move ${id} to a longer shot`,
+          where(index),
         ),
       );
     }
@@ -139,6 +165,7 @@ function spacingIssues(
   shots: readonly StoryboardShot[],
   breakthroughs: ReadonlySet<string>,
   rules: WorldVarietyRules,
+  repeatable: ReadonlySet<string> = new Set(),
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   let lastBreakthrough: number | undefined;
@@ -165,7 +192,11 @@ function spacingIssues(
       lastBreakthrough = index;
     }
     const earlier = lastOfKind.get(moment);
-    if (earlier !== undefined && shot.t0 - earlier.t0 < rules.momentRepeatS) {
+    if (
+      earlier !== undefined &&
+      !repeatable.has(moment) &&
+      shot.t0 - earlier.t0 < rules.momentRepeatS
+    ) {
       issues.push(
         issue(
           'error',
@@ -294,10 +325,16 @@ export function checkWorldVariety(
     ...(breakthroughs.size === 0
       ? []
       : quotaIssues(shots, breakthroughs, durationS, options, rules)),
-    ...spacingIssues(shots, breakthroughs, rules),
+    ...spacingIssues(
+      shots,
+      breakthroughs,
+      rules,
+      new Set(options.moments.filter((option) => option.repeatable === true).map((o) => o.id)),
+    ),
     ...runIssues(shots, rules),
     ...transitionVarietyIssues(shots, durationS, options, rules),
     ...(options.continuityLinks === true ? continuityQuotaIssues(shots, durationS, rules) : []),
     ...(options.continuityLinks === true ? linkTransitionIssues(shots, options) : []),
+    ...(options.grammar === undefined ? [] : checkWorldGrammar(shots, options.grammar, catalog)),
   ];
 }

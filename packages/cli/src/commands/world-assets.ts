@@ -20,6 +20,7 @@ import { worldAssetSet, type WorldAssetFiles } from '../project/world-assets.js'
 import { writePng } from '../render/output.js';
 import { renderShots } from '../render/run.js';
 import { SHEET_SHOT_ID, worldAssetSheetPages } from '../world-assets/sheet-scenes.js';
+import { countSheetRound, sheetRoundLine } from '../world-assets/rounds.js';
 import { composeWorldAssetSheet, worldAssetSheetPaths } from '../world-assets/sheet.js';
 
 export const WORLD_ASSETS_USAGE = `usage: reelforge world-assets [check | sheet] [--json]
@@ -32,7 +33,8 @@ them: reelforge kit-docs world-assets).
   sheet            draws every asset alone through the world's own scene API into contact
                    sheets (.reelforge/frames/world-assets/sheet-<n>.png, 1x + thumbnail): Read
                    them - is each one recognisable as what it is at thumbnail size, in the
-                   world's style, distinct from its siblings?
+                   world's style, distinct from its siblings? Counts its rounds per design
+                   session and warns after 2 (the world-assets turn allows 2)
 Exit code: 0 ok, 1 problems found, 2 usage error.`;
 
 function worldFiles(files: ProjectFiles): WorldAssetFiles {
@@ -83,10 +85,15 @@ async function writeScene(root: string, relative: string, source: string): Promi
 async function sheet(context: CommandContext): Promise<CommandResult> {
   const files = await readProjectFiles(context.root);
   const set = worldAssetSet(worldFiles(files));
+  const round = await countSheetRound(context.root, new Date());
   const pages = worldAssetSheetPages(set);
   if (pages.length === 0) {
-    const lines = ['no world assets to draw', verdictLine(0, 'write assets/<world>/*.json first')];
-    return result(0, lines, { sheets: [] });
+    const lines = [
+      'no world assets to draw',
+      sheetRoundLine(round),
+      verdictLine(0, 'write assets/<world>/*.json first'),
+    ];
+    return result(0, lines, { sheets: [], round });
   }
   const setup = renderSetup(files, { withoutWords: true });
   const plans: ShotPlan[] = [];
@@ -123,9 +130,10 @@ async function sheet(context: CommandContext): Promise<CommandResult> {
     `${plural(set.ids.all.length, 'asset')} of ${set.world} on ${plural(pages.length, 'sheet')} (Read each):`,
     ...sheets.map((file) => `  ${file}`),
     ...failures.map((failure) => `failed: ${failure}`),
+    sheetRoundLine(round),
     verdictLine(failures.length, 'fix the asset files and run reelforge world-assets sheet again'),
   ];
-  return result(failures.length, lines, { world: set.world, sheets, failures });
+  return result(failures.length, lines, { world: set.world, sheets, failures, round });
 }
 
 export const worldAssetsCommand: Command = {

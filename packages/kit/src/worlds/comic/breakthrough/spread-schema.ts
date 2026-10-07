@@ -45,12 +45,13 @@ export const spreadSchema = z.object({
   until: whenParam
     .optional()
     .describe('The spread ends (default: the page duration, kit.fx.comicPage({ duration }))'),
-  assemble: z.enum(SPREAD_ASSEMBLIES).default('merge'),
+  // No defaults: a default would replay the showcase's own spread (PLAN.md#13.15).
+  assemble: z.enum(SPREAD_ASSEMBLIES),
   pieces: z
     .enum(SPREAD_PIECES)
-    .default('grid')
+    .optional()
     .describe(
-      "merge: the panels it starts as ('grid' 4, 'columns' 3, 'halves' 3 split at the fold)",
+      "merge (required there): the panels it starts as ('grid' 4, 'columns' 3, 'halves' 3 split at the fold)",
     ),
   delay: z
     .number()

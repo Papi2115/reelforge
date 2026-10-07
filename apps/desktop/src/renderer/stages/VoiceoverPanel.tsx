@@ -4,7 +4,8 @@
  * anchors and follow the new timing), and the VO <-> script discrepancy report: the length
  * against the word-count estimate now, the alignment and its mismatch regions (click to seek)
  * after Words timed. With a voice and key for the project's channel, "Generate with ElevenLabs"
- * (PLAN.md#13.14) sits next to them, then the generated sentences with play and redo.
+ * (PLAN.md#13.14) sits next to them, then the generated sentences with play and redo; after a redo
+ * "Voice changed — timing out of date" names the shots under it, with "Re-time".
  */
 import { useState, type JSX } from 'react';
 import type { StageCommandResult } from '../../shared/stages-contract.js';
@@ -15,6 +16,8 @@ import { useRecorder } from './use-recorder.js';
 import { useVoice } from './use-voice.js';
 import { GenerateButton, GenerateStatus, useGenerateFlow } from './VoiceoverGenerate.js';
 import { VoiceSentences } from './VoiceSentences.js';
+import { staleSentenceIds } from './voice-timing-view.js';
+import { VoiceTimingNotice } from './VoiceTimingNotice.js';
 import type { StagesControls } from './use-stages.js';
 import { MismatchList } from './WordsPanel.js';
 import { alignmentView, clock, voFit } from './vo-view.js';
@@ -181,11 +184,18 @@ export function VoiceoverPanel(props: VoiceoverPanelProps): JSX.Element {
             }}
           />
         )}
+        <VoiceTimingNotice
+          timing={props.reports?.voiceTiming}
+          stages={props.stages}
+          voiceBusy={voiceBusy}
+          className="fit-line fit-warn"
+        />
         <VoiceSentences
           sentences={voice.state?.sentences ?? []}
           audioFile={voice.state?.audioFile ?? null}
           voice={voice}
           busy={busy}
+          staleSentences={staleSentenceIds(props.reports?.voiceTiming)}
         />
         <FitReport
           reports={props.reports}

@@ -9,6 +9,7 @@ import { addPopup, type PopupHandle } from '../breakthrough/popup.js';
 import { popupOptions } from '../breakthrough/popup-schema.js';
 import { addStrip, type StripHandle } from '../breakthrough/strip.js';
 import { stripOptions } from '../breakthrough/strip-schema.js';
+import type { SketchLibrary } from '../vocab/library.js';
 import type { SketchPage } from './model.js';
 import { parse } from './schemas.js';
 
@@ -18,15 +19,17 @@ export interface BreakthroughDeps {
   /** Starts a method call (fails once the page is sealed); returns its call name. */
   readonly begin: (method: string) => string;
   readonly seedOf: (own: number | undefined) => number;
+  /** The page's figures and props (a pop-up piece's `asset`). */
+  readonly library: SketchLibrary;
 }
 
 export function breakthroughs(deps: BreakthroughDeps) {
-  const { page, resolve, begin, seedOf } = deps;
+  const { page, resolve, begin, seedOf, library } = deps;
   return {
     popup(spec: unknown): PopupHandle {
       const call = begin('popup');
       const o = parse(popupOptions, spec, call);
-      return addPopup(o, { page, resolve, seed: seedOf(o.seed), call });
+      return addPopup(o, { page, resolve, seed: seedOf(o.seed), call, library });
     },
     strip(spec: unknown): StripHandle {
       const call = begin('strip');

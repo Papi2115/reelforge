@@ -1,6 +1,7 @@
 /**
  * The level-select map (`screen.levelSelect(spec)`, the showcase's trans.js map): the story's
- * places as nodes of a 2600 world map joined by hand-placed dotted paths, a cartridge as the
+ * places as nodes of a 2600 world map (a plain icon or one of the film's own sprites: `sprite`)
+ * joined by hand-placed dotted paths, a cartridge as the
  * cursor hopping from node to node in uneven hops (lift, squash on take-off and landing, a breath
  * at a node it passes), the chosen place blinking gold when it lands. Places the story has not
  * reached are locked '?' nodes (the same lock as the high-score table's ??? rows). For a change
@@ -12,7 +13,8 @@ import { whenParam } from '../../../looks/blueprint/timing.js';
 import type { IndexCanvas } from '../core/canvas.js';
 import { joy, joyWidth, missingGlyphs } from '../core/fonts.js';
 import { EASES, hash, sid } from '../core/math.js';
-import { C } from '../palette.js';
+import { C, colorOfSwatch } from '../palette.js';
+import type { B1Sprite } from '../vocab/sprite.js';
 
 const ICONS = {
   home: {
@@ -62,7 +64,16 @@ export const levelSelectSchema = z.strictObject({
     .array(
       z.strictObject({
         label: z.string().max(14).default('').describe('Place (and year) in narration words'),
-        icon: z.enum(ICON_NAMES as [Icon, ...Icon[]]).describe("lock = not reached yet ('?')"),
+        icon: z
+          .enum(ICON_NAMES as [Icon, ...Icon[]])
+          .optional()
+          .describe("A plain icon (or give sprite); lock = not reached yet ('?')"),
+        sprite: z
+          .string()
+          .min(1)
+          .max(32)
+          .optional()
+          .describe("A sprite id of the film (its assets or defineSprite) as the place's icon"),
         x: z.number().min(10).max(150).describe('TV units (160 wide)'),
         y: z.number().min(46).max(144).describe('TV units (180 high)'),
         above: z.boolean().default(false).describe('Label above the icon'),
@@ -82,9 +93,14 @@ export const levelSelectSchema = z.strictObject({
 export type LevelSelectInput = z.input<typeof levelSelectSchema>;
 type Spec = z.output<typeof levelSelectSchema>;
 
+/** A node's picture: a plain icon or one of the film's sprites. */
+type Mark =
+  | { readonly kind: 'icon'; readonly icon: Icon }
+  | { readonly kind: 'sprite'; readonly sprite: B1Sprite };
+
 interface Node {
   readonly label: string;
-  readonly icon: Icon;
+  readonly mark: Mark;
   readonly x: number;
   readonly y: number;
   readonly above: boolean;
@@ -139,7 +155,22 @@ function leg(a: Node, b: Node, seed: number, i: number): [number, number][] {
   return out;
 }
 
-export function planLevelSelect(spec: Spec, at: (when: number | string) => number): SelectPlan {
+function nodeMark(node: Spec['nodes'][number], i: number, sprite: (id: string) => B1Sprite): Mark {
+  if (node.icon !== undefined && node.sprite !== undefined)
+    fail(`nodes[${String(i)}]: give icon OR sprite, not both`);
+  if (node.sprite !== undefined) return { kind: 'sprite', sprite: sprite(node.sprite) };
+  if (node.icon === undefined)
+    fail(`nodes[${String(i)}]: give sprite (one of the film's sprite ids) or icon`);
+  return { kind: 'icon', icon: node.icon };
+}
+
+const isLock = (mark: Mark): boolean => mark.kind === 'icon' && mark.icon === 'lock';
+
+export function planLevelSelect(
+  spec: Spec,
+  at: (when: number | string) => number,
+  sprite: (id: string) => B1Sprite,
+): SelectPlan {
   const start = at(spec.at);
   const until = at(spec.until);
   if (until <= start) fail('until must come after at');
@@ -149,16 +180,19 @@ export function planLevelSelect(spec: Spec, at: (when: number | string) => numbe
     const missing = missingGlyphs(label, 'joy');
     if (missing.length > 0)
       fail(`nodes[${String(i)}].label "${node.label}": cannot draw ${missing.join(' ')}`);
-    if (node.icon === 'lock' && label !== '' && label !== '?')
+    const mark = nodeMark(node, i, sprite);
+    if (isLock(mark) && label !== '' && label !== '?')
       fail(`nodes[${String(i)}] is locked: a locked place has no name yet (label '')`);
-    if (node.icon !== 'lock' && label === '') fail(`nodes[${String(i)}]: give the place its label`);
+    if (!isLock(mark) && label === '') fail(`nodes[${String(i)}]: give the place its label`);
     if (joyWidth(label, 2) > 300) fail(`nodes[${String(i)}].label "${label}" is too long`);
-    return { label, icon: node.icon, x: node.x, y: node.y, above: node.above };
+    return { label, mark, x: node.x, y: node.y, above: node.above };
   });
   const { from, to } = spec.route;
   if (from >= nodes.length || to >= nodes.length) fail(`route: only ${String(nodes.length)} nodes`);
   if (from === to) fail('route: from and to are the same node');
-  if (nodes[to]?.icon === 'lock') fail('route.to is locked: the cursor cannot land on a ? node');
+  const target = nodes[to];
+  if (target !== undefined && isLock(target.mark))
+    fail('route.to is locked: the cursor cannot land on a ? node');
   const legs = nodes.slice(1).map((b, i) => leg(nodes[i] ?? b, b, seed, i));
   const path: [number, number][] = [];
   const step = to > from ? 1 : -1;
@@ -223,6 +257,32 @@ function sprite(
   });
 }
 
+/** Rows of a film sprite on the map: one TV line per row step, <= 28 lines tall (frame 0). */
+function spriteMark(cv: IndexCanvas, s: B1Sprite, x: number, bottom: number): number {
+  const rows = s.frames[0] ?? [];
+  const lineH = Math.max(1, Math.min(s.rowH, Math.floor(28 / rows.length)));
+  const top = bottom - rows.length * lineH;
+  const cols = rows.map((_, r) => colorOfSwatch(s.colours[r] ?? '') ?? -1);
+  rows.forEach((row, r) => {
+    const ink = cols[r] ?? -1;
+    if (ink < 0) return;
+    for (let k = 0; k < row.length; k += 1)
+      if (row[k] === '#')
+        cv.rect((x - s.width / 2 + k) * 4, (top + r * lineH) * 2, 4, lineH * 2, ink);
+  });
+  return top;
+}
+
+/** A node's icon or sprite standing on its place; returns its top (TV units). */
+function drawMark(cv: IndexCanvas, node: Node): number {
+  if (node.mark.kind === 'sprite') return spriteMark(cv, node.mark.sprite, node.x, node.y - 3);
+  const icon = ICONS[node.mark.icon];
+  const w = icon.rows[0].length;
+  const top = node.y - icon.rows.length * 2 - 3;
+  sprite(cv, icon.rows, icon.cols, node.x - w / 2, top);
+  return top;
+}
+
 function drawCursor(cv: IndexCanvas, x: number, y: number, squash: number): void {
   if (squash < 1) {
     const shown = Math.max(1, Math.round(CART.length * squash));
@@ -278,11 +338,8 @@ export function drawLevelSelect(cv: IndexCanvas, plan: SelectPlan, t: number): v
   plan.nodes.forEach((node, i) => {
     const pop = i === route.from ? 0 : 0.06 + hash(41 + plan.seed, i, 1) * 0.16;
     if (u < pop) return;
-    const icon = ICONS[node.icon];
-    const w = icon.rows[0].length;
-    const top = node.y - icon.rows.length * 2 - 3;
-    sprite(cv, icon.rows, icon.cols, node.x - w / 2, top);
-    if (node.icon === 'lock') return;
+    const top = drawMark(cv, node);
+    if (isLock(node.mark)) return;
     const since = t - arrive;
     const chosen = i === route.to && since > 0;
     const off = chosen && ((since > 0.07 && since < 0.14) || (since > 0.26 && since < 0.31));

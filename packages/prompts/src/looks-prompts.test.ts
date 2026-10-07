@@ -134,7 +134,22 @@ describe('mixed prompts', () => {
     const noRoll = rendered('critic', { ...CRITIC_VARS, lookId: 'voxel', lookRules: rules });
     expect(noRoll).toContain('Look of this shot: `voxel`. The film mixes looks');
     expect(noRoll).not.toMatch(TAG);
-    expect(loadPrompt('critic').version).toBe(10);
+    expect(loadPrompt('critic').version).toBe(11);
+  });
+
+  it('tell a world critic that text still being written is not a defect (real run Game B2 #2)', () => {
+    const world = rendered('critic', {
+      ...CRITIC_VARS,
+      world: 'Game B2',
+      worldMedium: 'first-person game',
+      worldCriticStyle: 'a raycast level',
+      worldVibe: 'Vibe check: one game.',
+    });
+    expect(world).toContain(
+      'Vibe check: one game.\nText in progress: frames are sampled while words are still being typed',
+    );
+    expect(world).toContain('judge text (spelling, wording, invented words, clipping) only where');
+    expect(rendered('critic', CRITIC_VARS)).not.toContain('Text in progress');
   });
 
   it('resolve the list-badge rule and the look camera rules for mixed storyboards', () => {

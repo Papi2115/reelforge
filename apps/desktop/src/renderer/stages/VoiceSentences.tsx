@@ -9,6 +9,7 @@ import type { VoiceSentence } from '../../shared/voice-contract.js';
 import { errorMessage, rendererLog } from '../log.js';
 import type { VoiceControls } from './use-voice.js';
 import { retakeSummary, sentenceRows } from './voice-view.js';
+import { VOICE_CHANGED_TITLE } from './voice-timing-view.js';
 
 const log = rendererLog('voice');
 
@@ -58,6 +59,8 @@ export interface VoiceSentencesProps {
   readonly audioFile: string | null;
   readonly voice: VoiceControls;
   readonly busy: boolean;
+  /** Sentences redone after Words timed (their timing is out of date until Re-time). */
+  readonly staleSentences?: ReadonlySet<string>;
 }
 
 export function VoiceSentences(props: VoiceSentencesProps): JSX.Element | null {
@@ -104,6 +107,12 @@ export function VoiceSentences(props: VoiceSentencesProps): JSX.Element | null {
               <span className="voice-sentence-text">
                 {row.text}
                 {row.takes !== null && <span className="muted"> · {row.takes}</span>}
+                {props.staleSentences?.has(row.id) === true && (
+                  <span className="voice-timing-chip" title={VOICE_CHANGED_TITLE}>
+                    {' '}
+                    · timing out of date
+                  </span>
+                )}
               </span>
               {asking === row.id ? (
                 <span className="voice-redo-confirm" role="group" aria-label={`Redo ${row.id}`}>

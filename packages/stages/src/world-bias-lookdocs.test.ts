@@ -3,15 +3,15 @@
  * world is a style GRAMMAR"). The prompts' own bias tests (packages/prompts/src/*-bias.test.ts)
  * scan the world wording with a stub for `lookDocs`; the prompts package cannot import the kit, so
  * this test scans what the kit really hands the runtime Claude for every look of every world: the
- * scene-build `lookDocs` (as `sceneLookVars` produces them) and the storyboard's look line. A
- * showcase noun may appear only in a world's one "Showcase pieces (…)" line, and no text may name
- * a showcase example file (the runtime Claude cannot read them). The noun lists follow the
- * prompts' bias tests of each world.
+ * scene-build `lookDocs` (as `sceneLookVars` produces them), the storyboard's look line and the
+ * critic's look rules (`CRITIC_LOOK_RULES`). A showcase noun may appear only in a world's one
+ * "Showcase pieces (…)" line, and no text may name a showcase example file (the runtime Claude
+ * cannot read them). The noun lists follow the prompts' bias tests of each world.
  */
 import type { Look } from '@reelforge/kit';
 import type { StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
-import { lookLine, sceneLookVars, styleLooks } from './looks.js';
+import { CRITIC_LOOK_RULES, lookLine, sceneLookVars, styleLooks } from './looks.js';
 
 /** The one allowed place for a showcase noun: the kit's showcase line (ends with the line). */
 const SHOWCASE_LINE = /Showcase pieces \(do not use unless the narration is about them\):[^\n]*/g;
@@ -135,6 +135,7 @@ function lookTexts(look: Look, looks: readonly Look[]): [string, string][] {
   return [
     [`${look.id} lookDocs`, vars['lookDocs'] ?? ''],
     [`${look.id} storyboard line`, lookLine(look)],
+    [`${look.id} critic rules`, CRITIC_LOOK_RULES[look.id] ?? ''],
   ];
 }
 

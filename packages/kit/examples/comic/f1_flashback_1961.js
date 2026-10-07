@@ -267,6 +267,7 @@ export function build(ctx) {
     when: 'EIGHT YEARS EARLIER...',
     cover: 'page',
     arrange: 'rows',
+    type: 0.6,
     beats: [
       { at: HALL_T, draw: hall, weight: 1 },
       { at: GOAL_T, draw: (g, t) => yearLine(g, t, xs), weight: 0.9 },

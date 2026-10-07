@@ -4,13 +4,15 @@
  * Sketchbook's page transitions: not transition-kit styles (`TRANSITION_STYLES`, the picker, wow
  * budgets and kit-docs of the built-in styles do not know them); a comic film's storyboard names
  * them in `transitionIn.style` (with `type: 'wipe'`, the plain fallback) and `transitionIn.focus`
- * (the panel to zoom into, the cut, the ink's origin). Pure functions of (A, B, progress, focus):
+ * (the panel to zoom into, the cut, the ink's origin, the slit's height). Pure functions of (A, B, progress, focus):
  * every pixel is a pixel of A or B or a comic ink, so the output stays in the palette.
  */
 import type { Compositor } from '../pixels.js';
 import { inkBleed } from './bleed.js';
 import { gutterWipe } from './gutter.js';
 import { panelSlam, panelZoom } from './panel.js';
+import { pageScroll, pageSlide } from './slide.js';
+import { gutterCollapse, panelPush } from './squeeze.js';
 import { pageBack, pageTurn } from './turn.js';
 
 export const COMIC_TRANSITION_IDS = [
@@ -20,6 +22,10 @@ export const COMIC_TRANSITION_IDS = [
   'comic-panel-zoom',
   'comic-panel-slam',
   'comic-ink-bleed',
+  'comic-page-slide',
+  'comic-page-scroll',
+  'comic-panel-push',
+  'comic-gutter-collapse',
 ] as const;
 export type ComicTransitionId = (typeof COMIC_TRANSITION_IDS)[number];
 
@@ -80,6 +86,30 @@ export const COMIC_TRANSITION_STYLES: Readonly<Record<ComicTransitionId, ComicTr
     'wet ink creeps out from the focus along the fibres and prints the next page (out of a flashback)',
     1.0,
   ),
+  'comic-page-slide': style(
+    'comic-page-slide',
+    'Page slide',
+    'the page slides off sideways and the next one follows it in over a strip of the table: reading on to the next step, place or person',
+    0.8,
+  ),
+  'comic-page-scroll': style(
+    'comic-page-scroll',
+    'Page slide down',
+    'the page slides up and the next one rises from below: going down, deeper or further (a fall, a descent, the next layer)',
+    0.7,
+  ),
+  'comic-panel-push': style(
+    'comic-panel-push',
+    'Panel push',
+    'the next page shoves in from the right as a new panel and squeezes this one into a narrowing strip: one thing crowds out another, pressure building',
+    0.6,
+  ),
+  'comic-gutter-collapse': style(
+    'comic-gutter-collapse',
+    'Gutter collapse',
+    'the gutters above and below slam shut and crush the page into a slit at the focus height, the next page around it: a sudden stop, a trap closing',
+    0.5,
+  ),
 };
 
 export const COMIC_COMPOSITORS: Readonly<Record<ComicTransitionId, Compositor>> = {
@@ -89,6 +119,10 @@ export const COMIC_COMPOSITORS: Readonly<Record<ComicTransitionId, Compositor>> 
   'comic-panel-zoom': panelZoom,
   'comic-panel-slam': panelSlam,
   'comic-ink-bleed': inkBleed,
+  'comic-page-slide': pageSlide,
+  'comic-page-scroll': pageScroll,
+  'comic-panel-push': panelPush,
+  'comic-gutter-collapse': gutterCollapse,
 };
 
 export function isComicTransition(id: string | undefined): id is ComicTransitionId {

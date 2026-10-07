@@ -25,6 +25,7 @@ import { PROJECT_PATHS } from '../project/paths.js';
 import { projectCastOf } from './cast-preview.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
 import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
+import { describeGenerators, generatorsTopic, GENERATORS_TOPIC } from './kit-docs-generators.js';
 import { formatCatalog } from './kit-docs-index.js';
 import {
   describeWorldAssets,
@@ -49,7 +50,8 @@ With a kind (props, env, fx, templates, project) or a look id (voxel, retro-ui, 
 one line per entry of that slice; --full adds every param (long slices come in pages: --page 2).
 The rest of the scene context: reelforge kit-docs ctx (or camera, text, annotate, anchor, sfx, rng, ease, shot).
 The character pack (kit.cast: mascots, cast, mannequin, role specs): reelforge kit-docs characters.
-A world project's own assets (assets/<world>/*.json, ctx.worldAssets): reelforge kit-docs world-assets.
+A world project's own assets (assets/<world>/*.json, ctx.worldAssets): reelforge kit-docs world-assets;
+their generators with every option's allowed values: reelforge kit-docs generators (one: generators.<name>).
 Project props (kit-ext/props/*.js) are listed as project-local; writing one: reelforge kit-docs prop-module.
 Exit code: 0 ok, 2 usage error (unknown name).`;
 
@@ -115,6 +117,7 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
     PROP_MODULE_TOPIC,
     CHARACTERS_TOPIC,
     WORLD_ASSETS_TOPIC,
+    GENERATORS_TOPIC,
   ];
   const bare = name.split('.').at(-1) ?? name;
   const guesses = suggestNames(bare, known);
@@ -143,6 +146,8 @@ export function describeKitName(
   if (input === PROP_MODULE_TOPIC) return propModuleDocs();
   if (input === WORLD_ASSETS_TOPIC)
     return describeWorldAssets(options.style, options.worldAssetIds);
+  const generators = generatorsTopic(input);
+  if (generators !== undefined) return describeGenerators(options.style, generators.name);
   const name = input.replace(/^kit\./, '');
   const slice = describeSlice(catalog, name, {
     lookMode: options.lookMode ?? 'voxel-only',

@@ -147,4 +147,15 @@ describe('game-b1 game-native transitions', () => {
       source.length * 0.4,
     );
   });
+
+  it('flips to the next screen sideways in whole blocks (the hero walks off the edge)', () => {
+    const right = colours(composite('game-b1-screen-flip', 0.5, 9, { x: 0.9, y: 0.5 }));
+    const a = colours(A.data);
+    const b = colours(B.data);
+    // half way A has moved left by half the frame (whole blocks); B's left edge follows it in
+    expect(right[10 * 160]).toBe(a[10 * 160 + 80]);
+    expect(right[10 * 160 + 80]).toBe(b[10 * 160]);
+    const left = colours(composite('game-b1-screen-flip', 0.5, 9, { x: 0.1, y: 0.5 }));
+    expect(left[10 * 160 + 80]).toBe(a[10 * 160]);
+  });
 });

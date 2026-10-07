@@ -14,6 +14,8 @@ export const GAME_B1_SHOWCASE = {
   painter: ['g.cart(x, y, stripe, { scale, body, label, tumble, phase })'],
   /** Manual figure shapes. */
   shapes: ['cartridge'],
+  /** cartridge() label art (the moonlit window of the mockup's cartridges). */
+  labelArt: ['showcase'],
 } as const;
 
 /** The one line that names them (kit-docs and the look docs). */
@@ -21,4 +23,5 @@ export const GAME_B1_SHOWCASE_LINE = showcaseLine({
   'room()': GAME_B1_SHOWCASE.room.join(', '),
   'in tv()': `${GAME_B1_SHOWCASE.painter.join(', ')} (a cartridge)`,
   'manual figure shape': GAME_B1_SHOWCASE.shapes.map((shape) => `'${shape}'`).join(' | '),
+  'cartridge() art': GAME_B1_SHOWCASE.labelArt.map((art) => `'${art}'`).join(' | '),
 });

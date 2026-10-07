@@ -4,8 +4,10 @@
  * (`intent`, required), which rooms are done / next / ahead and what they are called (words of
  * the narration), whether the arrow replays the walk, where the camera holds, which marks and
  * margin note make the point, and how the map opens (unfolds out of the HUD minimap, keeping the
- * player's position and heading) and closes (folds back into it). Schema here; resolution and
- * the checks zod cannot say (cells in rooms, labels on screen and apart) in automap-plan.ts.
+ * player's position and heading) and closes (folds back into it), and what lies behind it (black,
+ * or the level frozen and dimmed). Schema here; resolution and the checks zod cannot say (cells
+ * in rooms, labels on screen and apart) in automap-plan.ts; readability (the map spans half the
+ * frame, never held to the shot's end over black) in automap-checks.ts.
  */
 import { z } from 'zod';
 import { whenParam } from '../../../looks/blueprint/timing.js';
@@ -16,6 +18,9 @@ const caps = (max: number) =>
     .max(max)
     .transform((text) => text.toUpperCase());
 const cell = z.tuple([z.number(), z.number()]).describe('[x, y] in level cells');
+
+/** The largest map scale (pixels per cell): a small level still fills half the frame. */
+export const MAX_SCALE = 24;
 
 export const ROOM_STATES = ['done', 'next', 'ahead', 'hidden'] as const;
 export type RoomState = (typeof ROOM_STATES)[number];
@@ -35,7 +40,18 @@ export const automapSchema = z.strictObject({
       'unfold = grows out of the HUD minimap (same position and heading), wipe = dithers in from it',
     ),
   exit: z.enum(['fold', 'cut']).default('fold').describe('fold = shrinks back into the minimap'),
-  scale: z.int().min(4).max(14).default(8).describe('Pixels per cell on the 640x360 screen'),
+  scale: z
+    .int()
+    .min(4)
+    .max(MAX_SCALE)
+    .default(8)
+    .describe('Pixels per cell on the 640x360 screen (the map must span half the frame)'),
+  backdrop: z
+    .enum(['void', 'freeze'])
+    .default('void')
+    .describe(
+      'freeze = the level at `at` held dimmed behind the map (never a black screen), void = black',
+    ),
   rooms: z
     .array(
       z.strictObject({

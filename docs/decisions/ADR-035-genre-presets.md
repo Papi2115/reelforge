@@ -49,3 +49,16 @@ The mapping is to be tuned with Papi after real films, so it must live in one ta
   preset can replace app/channel defaults, and `isStyleAvailable = id => isOfferedStyle(id,
   experimentalWorlds)`.
 - Tuning = editing one table (`docs/genre-presets.md` lists the current values).
+
+## Amendment (2026-10-07): "Explained as a game" (PLAN.md#13.15)
+
+Papi's verdict on the Game B2 test film (docs/beta-feedback.md): B2 films are "how <topic> works,
+explained as a game", so the narration must be written for the game, not drawn as one afterwards.
+
+- A seventh preset `explained-as-a-game` (styles game-b2 → voxel-pixel-crisp640, balanced range,
+  continuity on, wow ×1) with a game-run script tone. Additive: the six earlier presets and
+  existing projects are unchanged; the UI lists it from the table like the others.
+- The game framing itself belongs to the WORLD, not the preset: `WorldPromptText.script` (optional)
+  reaches the script prompt as `{{#worldScript}}` (script v4) for Game B2 projects only, whichever
+  preset (or none) created them; other worlds and built-in styles render the script byte for byte
+  as before. The B2 storyboard text maps the script's `## Game map` onto existing B2 moments.

@@ -44,16 +44,22 @@ function resolved(overrides: Partial<GenreFormInput>, offered = offer) {
 }
 
 describe('genre options and labels', () => {
-  it('lists the six presets in table order with their one-line descriptions', () => {
+  it('lists the seven presets in table order with their one-line descriptions', () => {
     const options = genreOptions();
     expect(options.map((option) => option.id)).toEqual(GENRE_PRESETS.map((preset) => preset.id));
-    expect(options).toHaveLength(6);
+    expect(options).toHaveLength(7);
     expect(options[2]).toEqual({
       id: 'history',
       label: 'History',
       description: 'Hand-drawn notebook first, calmer pace, people and dates told as a story.',
     });
     expect(genreLabel('pop-culture')).toBe('Pop culture / gaming');
+    expect(options.at(-1)).toEqual({
+      id: 'explained-as-a-game',
+      label: 'Explained as a game',
+      description:
+        'How something works, told as a first-person game run: levels, stats, bosses and power-ups.',
+    });
     expect(genreLabel('retired-genre')).toBe('retired-genre');
   });
 
@@ -135,6 +141,9 @@ describe('genre preview and style note', () => {
     expect(
       genreStyleNote(resolved({ genre: 'pop-culture', experimentalWorlds: true }), true, offer),
     ).toMatch(/^Game B2.* is in development, using Voxel Pixel · Crisp 640\.$/);
+    expect(genreStyleNote(resolved({ genre: 'explained-as-a-game' }), false, offer)).toMatch(
+      /^Game B2.*, using Voxel Pixel · Crisp 640\.$/,
+    );
     // Comic wired: both worlds wait for the switch.
     const wired: StyleOffer = (id, experimental) =>
       BUILT_INS.has(id) || (experimental && (id === 'sketchbook' || id === 'comic'));
