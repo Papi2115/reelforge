@@ -413,9 +413,83 @@ World `game-b1` (experimental, unwired), code `packages/kit/src/worlds/game-b1/`
   happens); deadline 19 at t 2.6 / 6.3 (same as `s3-t2.6` / `s3-t6.3`), 17 at t 7.3 (dead boss, struck note, an emptier frame).
   Deliberate roughness kept (crude sprites, uneven grain). Files <= 400 lines (the showcase's room.js is split into
   `room/view.ts`, `room/props.ts`, `room/living-room.ts`).
-- Not yet (later parts): looks B/C, the high-score table and instruction-manual breakthroughs, the continuity transitions
-  (cartridge insert / pull with the hand, calendar scanline wipe, level-select map, attract draw-in, page slide / turn),
-  the world's own sound palette, prompts and wiring.
+- Part b (next section): looks B/C, the breakthroughs, the continuity helpers, the transitions, the sound palette. Not
+  yet: prompts and wiring (part c).
+
+## Game B1: breakthroughs, continuity, looks B/C, transitions, sound (PLAN.md#13.5 part b)
+The two showpieces (showcase shots 4 and 8) are **toolkits, never templates**: `intent` required, every word from the
+narration (game words allowed: HIGH SCORES, HOW TO PLAY, FIG., INSERT COIN, PRESS START), never the same mechanism twice in
+a film; errors are sentences that say what to change. All are methods of `kit.fx.b1Screen` and return `{ at, end, intent,
+cues }` (`for (const c of r.cues) ctx.sfx.at(c.t, c.name)`). The frame model gained layers (`screen/model.ts`): picture
+overlays (drawn over the painters and boss cards), glass painters (after the CRT, riding the glass), the console close-up,
+the calendar redraw and paper layers; the HUD prints in paper ink (`INK_FLIP`) where a page covers it. Part-a pixels are
+unchanged (the `look-atari-story` goldens of a1-a3 pass as committed).
+- **`scoreTable(spec)`** (`scores/`): the attract-mode high-score table. `{ intent, at, until, title, rows: [{ who, score,
+  locked }] (2-8), hero, print, slam: { at, shake }, initials: arcade | typed | none, ring: { at, note }, prompt: { text:
+  INSERT COIN | PRESS START | PLAYER 1 | GAME OVER, at } | false, enter: draw-in | cut }`. Rows = the story's facts in the
+  order of events, score = a real number / year; rows after the hero are locked `???` by default (the level map's lock).
+  The attract screen redraws top-down in nine uneven bursts over what the TV showed; rows print at uneven gaps with 2600
+  flicker, one a unit off the grid; the hero slot shows `----`, then empties for a beat of silence (checked: >= 0.4 s
+  after the last row), the gold score slams with a squash and a decaying shake, initials scroll arcade-style (A up, or A
+  then Z down, 1-2 frame steps) and blink with uneven holds; the prompt blinks at a machine's 0.6 s and is burned in.
+  Glass: Dad's egg-shaped grease-pencil ring round the hero score, his word beside it (right, else above), his thumbprint.
+  Checked: hero digits only (Score Block), widths <= 600 px, rows fit above the prompt (pitch squeezed to 15 px), every
+  beat inside the table, a hold of at most 4 s after the last beat. Examples: `b1_scores.js` (shot 4), `b4_scores_moon.js`
+  (the record mid-table under two done rows, typed name, hard shake, no pencil, PRESS START, cut in).
+- **`manual(spec)`** (`manual/`): the HOW TO PLAY page of a cheap two-colour manual. `{ intent, at, until, title, steps
+  (1-5, <= 2 lines), figure: { caption, shape: cartridge | box | person | house, layout: shelf | pile | queue, count, hit,
+  callouts: [{ item, step }] }, ticks: [t], correction: { step, strike, write, at }, note: { text, at }, enter: slide | cut,
+  exit: turn | cut }` (<= 6 blocks = rules + FIG. 1). The printed spread is built once per page (`page.ts`, `paper.ts`):
+  key ink as a 45-degree halftone with a starved band, type in **Rough Print** (own CC0 4x7 caps) on a sheet fed crooked,
+  the teal plate 3 / 2 px off-register and rotated differently (the hit, the badges, the header rule), copies that are
+  never quite the same (lean, mark, bar, tone seeded), yellowed edges, crease, staples, two coffee rings, a thumbprint.
+  Per frame (`marks.ts`): pencil ticks at uneven times, a pencil margin note, ONE red correction (tap, strike, the word,
+  a loose circle) written above the struck word or, when the line above is in the way, after its line (checked: else an
+  error). Slide = peek, hold, slide, overshoot, settle with a cast shadow; turn = from the bottom-right corner, the flap
+  shows the print through. Examples: `b3_manual.js` (shot 8, turning onto the level map), `b5_manual_pyramid.js` (a
+  pyramid of people, slides in over the living room, WHO PAYS? in the margin, NEW -> MOST).
+- **Continuity helpers** (`seams/`): `calendarZoom({ intent, at, push, wipe })` pushes the room camera into the wall
+  calendar until its page stands where the next place's page stands (`landing` = { x: 96, y: 22, w: 46, h: 130 } TV
+  units), then redraws the frame line by line, interlaced, as the TV picture (the shot 2 -> 3 match cut in one shot,
+  `a4_calendar_zoom.js`); `wipe: false` ends on the page. `cartridge({ intent, action: insert | pull, at, label, stripe,
+  enter: pull-back | cut, exit: push | cut, hold })`: the console close-up of the same room (`console.ts`, ported from
+  room.js), Dad's hand and knit sleeve, the cartridge clipped at the slot, resist / click / garbage / release or squeeze
+  / push-down / pull / garbage / dark; the pull-back starts and the push ends **exactly** on the TV-only frame (tested
+  pixel for pixel), so the room stays continuous (`b2_market.js` head, `a5_cartridge_pull.js`). `levelSelect({ intent,
+  at, until, nodes: [{ label, icon: home | store | pit | office | factory | lock, x, y, above }], route: { from, to, at,
+  dur } })`: dotted hand-placed paths, the cartridge cursor in uneven hops with lift and squash, the chosen place blinks
+  gold; `lock` = '?' with no name, never a route target (`b6_level_select.js`).
+- **Look B `atari-menu`** (rolls B): the console's screens (menus painted in `tv()`, the level map) and the two
+  breakthroughs; templates b1-b6. **Look C `atari-boss`** (rolls C): boss slam and bar (a boss that IS an amount may gain
+  segments), hit-stop + `g.remap('flash')`, the crash `g.remap('drain', level, [y0, y1])` line by line, lights out row
+  by row, `gameOver({ text: CONTINUE? | GAME OVER, at, until, count, ghost })` as the TV's backdrop with the winning boss
+  card burned in (`g.rectPx` only for a newer console's thing); templates `c1_flood.js` (shot 6), `c2_landfill.js`
+  (shot 9), `c3_continue.js` (shot 10 head). Painter additions: `remap(name, level, rows)`, `rectPx`; note lines <= 16.
+- **Game-native transitions** (`packages/engine/src/transitions/game-b1/`, world-scoped, `type: 'wipe'` fallback):
+  `game-b1-calendar-zoom` (link `zoom-through`: A pushes into the focus, which drifts to the centre, then the interlaced
+  redraw; for the exact showcase seam end the shot on the calendar and use `game-b1-scanline-wipe`),
+  `game-b1-cartridge-in` / `-out` (link `carry-environment`: roll + garbage + click jolt; garbage + collapse to a line and
+  a dot + dark beat + power-on), `game-b1-attract-cycle` (three uneven colour-cycle steps, then the burst redraw),
+  `game-b1-scanline-wipe`, `game-b1-page-slide`, `game-b1-page-turn`, `game-b1-room-shake` (held decaying jolts, one flash
+  frame, the next shot settles). The style metadata carries `link` for the three continuity ones (the stage does not
+  read it yet: part c). Goldens `transition-game-b1-*` (`packages/kit/test/render/transition-game-b1.test.ts`).
+- **Sound** (`packages/stages/src/sound/palettes/game-b1.ts`, now the world's and every look's palette): no cartridge,
+  coin or slam recipes exist, so it reuses built-in ones: the cartridge click = `relay-click` latch, garbage = `crt-zap`
+  static, the coin-up (INSERT COIN, a chosen level) = `chime-up`, the slam = `board-tap` knock, blips = `measure-blip` /
+  `led-blip` / `terminal-tick`, the page = `paper-slide` / `page-flip`, Dad's pencil = `pencil-scratch`, typing =
+  `key-click` / `keyboard` (terminal); bed: `crt-hum`. Each `game-b1-*` transition sounds like itself
+  (`GAME_B1_TRANSITION_SFX`); the toolkits' cue names map onto these (tested).
+- **Measured** (plain Node, best batch of 30 frames incl. output, 640x360; `screen/budget.test.ts`): calendar zoom 2.1,
+  cartridge pull 1.7, scores 1.7, market 1.9, manual 4.1, Moon board 1.7, pyramid manual 3.6, level select 1.9, flood
+  3.2, landfill 1.6, continue 3.5 ms/frame. The manual's printed page is built once on its first frame (warm-up).
+- **QUALITY §7 self-scores vs the showcase stills** (/20, PNGs viewed): scores `b1` 18 at t 5.6 (the same frame as
+  `s4-t5.6`; same weakness, the empty bottom right), Moon board `b4` 15 (focal clear, plainer: no hand on the glass);
+  manual `b3` 17 at t 7.4 (close to `s8-t7.4`; no back row of copies on the shelf), pyramid `b5` 15 (small figures, the
+  red circle crowds rule 4); market `b2` 17 (the close-up matches `s5-t0.5`); level select `b6` 16 (the cursor sits on
+  the node icon when it lands, as in the showcase); flood `c1` 18 (`s6-t5.6` without the tape strip), landfill `c2` 17
+  (`s9-t2.5`; the boss card stays lit through the drain), continue `c3` 18 (`s10-t1.5`); calendar zoom `a4` 17 (the
+  seam reads; the office is plainer than a3), cartridge pull `a5` 17. Transitions: page turn 17, page slide 16, attract
+  16, scanline 16, calendar zoom 15, cartridge in / out 15, room shake 14.
 
 ## Game B2: wiring (PLAN.md#13.4 part c)
 Game B2 is **wired** (`wired: true`): offered with Settings → Experimental worlds on, like Sketchbook and Comic.

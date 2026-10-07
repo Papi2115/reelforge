@@ -23,7 +23,7 @@ export const atariStoryLook = defineLook({
   rolls: ['A'],
   treatments: ['character-scene', 'metaphor-object', 'title-card'],
   docs: DOCS,
-  soundPalette: 'game-b2',
+  soundPalette: 'game-b1',
   variationBudget: GAME_B1_ID,
   available: true,
   styles: [GAME_B1_ID],

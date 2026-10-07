@@ -131,6 +131,25 @@ export function joy(
   return cx - s - x;
 }
 
+/** Calls `cell(x, y, s, s)` for every painted cell of Joy text (burn-in ghosts, masks). */
+export function joyCells(
+  text: string,
+  x: number,
+  y: number,
+  s: number,
+  cell: (x: number, y: number, w: number, h: number) => void,
+): void {
+  let cx = Math.round(x);
+  for (const ch of text) {
+    const g = joyGlyph(ch);
+    for (let r = 0; r < 6; r += 1) {
+      const row = g[r] ?? '';
+      for (let k = 0; k < row.length; k += 1) if (row[k] === '#') cell(cx + k * s, y + r * s, s, s);
+    }
+    cx += ((g[0]?.length ?? 2) + 1) * s;
+  }
+}
+
 function hashLite(seed: number, i: number): number {
   let h = Math.imul(seed ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(i + 11, 0xc2b2ae35);
   h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);

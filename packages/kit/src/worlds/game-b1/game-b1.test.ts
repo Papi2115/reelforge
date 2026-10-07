@@ -10,7 +10,14 @@ import { createKit, kitCatalog } from '../../kit.js';
 import { getLook, isWorldStyle, listLooks, LOOKS } from '../../looks/index.js';
 import { testRng } from '../../testing/rng.js';
 import { isUnwiredWorldStyle, WORLDS } from '../index.js';
-import { atariStoryLook, GAME_B1, GAME_B1_ID, GAME_B1_STYLE } from './index.js';
+import {
+  atariBossLook,
+  atariMenuLook,
+  atariStoryLook,
+  GAME_B1,
+  GAME_B1_ID,
+  GAME_B1_STYLE,
+} from './index.js';
 import { B1_SWATCHES, B1_TABLE } from './palette.js';
 
 const PALETTE: Readonly<Record<string, string>> = Object.fromEntries(
@@ -49,19 +56,23 @@ function screen(params: Record<string, unknown> = {}): Screen {
 }
 
 describe('world game-b1', () => {
-  it('is registered last, experimental and unwired, with look A on a placeholder palette', () => {
+  it('is registered last, experimental and unwired, with looks A, B, C on its own palette', () => {
     expect(WORLDS.at(-1)).toBe(GAME_B1);
     expect(GAME_B1.experimental).toBe(true);
     expect(GAME_B1.wired).toBe(false);
     expect(isUnwiredWorldStyle(GAME_B1_ID)).toBe(true);
-    expect(GAME_B1.looks).toEqual([atariStoryLook]);
-    expect(atariStoryLook.rolls).toEqual(['A']);
-    expect(atariStoryLook.styles).toEqual([GAME_B1_ID]);
-    expect(atariStoryLook.experimental).toBe(true);
-    expect(atariStoryLook.soundPalette).toBe(GAME_B1.soundPalette);
-    expect(atariStoryLook.variationBudget).toBe(GAME_B1_ID);
-    expect(atariStoryLook.docs).toMatch(/focal point and three human traces/);
-    expect(atariStoryLook.docs.length).toBeLessThan(2600);
+    expect(GAME_B1.soundPalette).toBe('game-b1');
+    expect(GAME_B1.looks).toEqual([atariStoryLook, atariMenuLook, atariBossLook]);
+    expect(GAME_B1.looks.map((look) => look.rolls)).toEqual([['A'], ['B'], ['C']]);
+    for (const look of GAME_B1.looks) {
+      expect(look.styles, look.id).toEqual([GAME_B1_ID]);
+      expect(look.experimental, look.id).toBe(true);
+      expect(look.soundPalette, look.id).toBe(GAME_B1.soundPalette);
+      expect(look.variationBudget, look.id).toBe(GAME_B1_ID);
+      expect(look.docs, look.id).toMatch(/focal point and three human traces/);
+      expect(look.docs.length, look.id).toBeLessThan(2600);
+    }
+    expect(atariMenuLook.docs).toMatch(/never the same mechanism twice/);
   });
 
   it('has the 23 showcase inks, every token mapped, no token-named swatch', () => {
@@ -84,7 +95,8 @@ describe('world game-b1', () => {
     expect(listLooks(LOOKS, { style: GAME_B1_ID })).toEqual([]);
     expect(listLooks(LOOKS, { style: GAME_B1_ID, experimental: true })).toEqual(GAME_B1.looks);
     for (const style of [...BUILT_IN, 'game-b2']) {
-      expect(getLook('atari-story', LOOKS, { style, experimental: true })).toBeUndefined();
+      for (const look of GAME_B1.looks)
+        expect(getLook(look.id, LOOKS, { style, experimental: true })).toBeUndefined();
       expect(Object.keys(fx(style))).not.toContain('b1Screen');
     }
     expect(Object.keys(fx(GAME_B1_ID))).toContain('b1Screen');

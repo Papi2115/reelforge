@@ -262,12 +262,17 @@ export class TvPainter {
     });
   }
 
-  /** Remaps everything painted so far (dim, flash, drain, ghost, cycle1-3 = attract mode). */
-  remap(name: string, level?: number): void {
+  /**
+   * Remaps everything painted so far (dim, flash, drain, ghost, cycle1-3 = attract mode); `rows`
+   * = [y0, y1) in TV units limits it to a band (lights going out line by line, a drain).
+   */
+  remap(name: string, level?: number, rows?: readonly [number, number]): void {
     if (!Object.hasOwn(REMAPS, name)) fail(`remap "${name}": use ${REMAP_NAMES.join(', ')}`);
     const table = REMAPS[name as RemapName];
+    const [y0, y1] = rows ?? [0, TV_H];
     this.push(() => {
-      this.cv.remap(0, 0, this.cv.w, this.cv.h, table, level);
+      const top = Math.round(y0 * UNIT_Y);
+      this.cv.remap(0, top, this.cv.w, Math.round(y1 * UNIT_Y) - top, table, level);
     });
   }
 
@@ -282,6 +287,17 @@ export class TvPainter {
   garbage(seed = 5): void {
     this.push(() => {
       garbage(this.cv, 0, 0, this.cv.w, this.cv.h, this.frame, seed);
+    });
+  }
+
+  /**
+   * A rect in square px of the 640x360 picture: ONLY for a thing that is not of the 2600 (a later
+   * console's cartridge drawn in finer pixels, a new generation); everything else stays wide.
+   */
+  rectPx(x: number, y: number, w: number, h: number, name: string): void {
+    const c = colour(name, 'rectPx');
+    this.push((ox, oy) => {
+      this.cv.rect(ox + x, oy + y, w, h, c);
     });
   }
 

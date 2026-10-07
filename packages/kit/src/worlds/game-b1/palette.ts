@@ -212,6 +212,28 @@ export const CYCLE: readonly Lut[] = [
   }),
 ];
 
+/**
+ * HUD ink on paper: where the instruction manual covers the frame the HUD prints in the paper's
+ * key ink instead of its light glass colours (the year and slots stay readable on cream).
+ */
+export const INK_FLIP = lut({
+  TAN: 'WALNUT_D',
+  CREAM: 'WALNUT_D',
+  WHITE: 'WALNUT_D',
+  GREY: 'WALNUT_D',
+  GREY_D: 'TEAK',
+  GOLD: 'RUST',
+  TUBE: 'TAN',
+});
+
+/** Paper ageing and stains of the printed manual (a step down the warm ramp). */
+export const AGE = lut({ CREAM: 'TAN', WHITE: 'CREAM' });
+export const STAIN = lut({ CREAM: 'TAN', WHITE: 'TAN', TAN: 'TEAK', TEAL: 'TEAL_D' });
+export const RIM = lut({ CREAM: 'TEAK', WHITE: 'TAN', TAN: 'TEAK', TEAL: 'TEAL_D' });
+
+/** The LUTs the engine's game-native transitions apply to whole frames (index -> index). */
+export const GAME_B1_LUTS = { scan: SCAN, flash: FLASH, cycle: CYCLE } as const;
+
 /** Named whole-picture remaps of the scene API (`g.remap(name)`). */
 export const REMAPS = {
   dim: SCAN,

@@ -47,6 +47,13 @@ import {
   type GameB2TransitionId,
   type GameB2TransitionStyle,
 } from './game-b2/index.js';
+import {
+  GAME_B1_COMPOSITORS,
+  GAME_B1_TRANSITION_STYLES,
+  isGameB1Transition,
+  type GameB1TransitionId,
+  type GameB1TransitionStyle,
+} from './game-b1/index.js';
 import { crtZoom, drawOver, pixelSortMelt, tileFlip } from './looks.js';
 import { pageTurn, paperRoll, spongeWipe } from './paper.js';
 import {
@@ -76,6 +83,13 @@ export {
   type ComicTransitionStyle,
 } from './comic/index.js';
 export {
+  GAME_B1_TRANSITION_IDS,
+  GAME_B1_TRANSITION_STYLES,
+  isGameB1Transition,
+  type GameB1TransitionId,
+  type GameB1TransitionStyle,
+} from './game-b1/index.js';
+export {
   GAME_B2_TRANSITION_IDS,
   GAME_B2_TRANSITION_STYLES,
   isGameB2Transition,
@@ -99,10 +113,12 @@ export type EngineTransitionId =
   | ContinuityStyleId
   | SketchbookTransitionId
   | ComicTransitionId
-  | GameB2TransitionId;
+  | GameB2TransitionId
+  | GameB1TransitionId;
 
-/** A world's page-native transition id (Sketchbook, Comic, Game B2). */
-export type WorldTransitionId = SketchbookTransitionId | ComicTransitionId | GameB2TransitionId;
+/** A world's page-native transition id (Sketchbook, Comic, Game B2, Game B1). */
+export type WorldTransitionId =
+  SketchbookTransitionId | ComicTransitionId | GameB2TransitionId | GameB1TransitionId;
 
 /** A transition the engine can composite, with its compositor. */
 export interface EngineTransition {
@@ -122,7 +138,7 @@ export interface ContinuityTransition extends ContinuityStyle {
 
 /** A world's page-native transition (PLAN.md#13.6, #13.3) with its compositor. */
 export type WorldTransition = (
-  WorldTransitionStyle | ComicTransitionStyle | GameB2TransitionStyle
+  WorldTransitionStyle | ComicTransitionStyle | GameB2TransitionStyle | GameB1TransitionStyle
 ) & {
   readonly composite: Compositor;
 };
@@ -155,6 +171,7 @@ const COMPOSITORS: Readonly<Record<EngineTransitionId, Compositor>> = {
   ...SKETCHBOOK_COMPOSITORS,
   ...COMIC_COMPOSITORS,
   ...GAME_B2_COMPOSITORS,
+  ...GAME_B1_COMPOSITORS,
 };
 
 export const TRANSITIONS: Readonly<Record<TransitionStyleId, KitTransition>> = Object.fromEntries(
@@ -175,6 +192,7 @@ export const WORLD_TRANSITIONS: Readonly<Record<WorldTransitionId, WorldTransiti
       ...Object.values(SKETCHBOOK_TRANSITION_STYLES),
       ...Object.values(COMIC_TRANSITION_STYLES),
       ...Object.values(GAME_B2_TRANSITION_STYLES),
+      ...Object.values(GAME_B1_TRANSITION_STYLES),
     ].map((style) => [style.id, { ...style, composite: COMPOSITORS[style.id] }]),
   ) as Record<WorldTransitionId, WorldTransition>;
 
@@ -184,7 +202,12 @@ export const WORLD_TRANSITIONS: Readonly<Record<WorldTransitionId, WorldTransiti
  */
 export function findTransition(style: string | undefined): EngineTransition | undefined {
   if (style === undefined) return undefined;
-  if (isSketchbookTransition(style) || isComicTransition(style) || isGameB2Transition(style))
+  if (
+    isSketchbookTransition(style) ||
+    isComicTransition(style) ||
+    isGameB2Transition(style) ||
+    isGameB1Transition(style)
+  )
     return WORLD_TRANSITIONS[style];
   if ((TRANSITION_STYLE_IDS as readonly string[]).includes(style)) {
     return TRANSITIONS[style as TransitionStyleId];
