@@ -300,3 +300,10 @@
   max-width: 50%;
   font-size: 12px;
 }
+
+.vo-setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}

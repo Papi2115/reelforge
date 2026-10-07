@@ -22,14 +22,26 @@ function plural(count: number, word: string): string {
   return `${groupDigits(count)} ${word}${count === 1 ? '' : 's'}`;
 }
 
-/** One line pointing to Settings → Channels; null when the channel is ready. */
-export function setupPointer(setup: VoiceSetup): string | null {
+export interface SetupPointer {
+  /** "To generate the voice with ElevenLabs, add a voice and key for this channel." */
+  readonly text: string;
+  /** The project's channel: "Open Channels" selects it in Settings → Channels. */
+  readonly channelId: string;
+}
+
+export const OPEN_CHANNELS_LABEL = 'Open Channels';
+
+/** What the project's channel still lacks (next to "Open Channels"); null when it is ready. */
+export function setupPointer(setup: VoiceSetup): SetupPointer | null {
   if (setup.status === 'ready') return null;
   if (setup.status === 'unavailable') return null;
   const voice = setup.missing.includes('voice');
   const key = setup.missing.includes('key');
   const what = voice && key ? 'a voice and key' : voice ? 'a voice' : 'a key';
-  return `To generate the voice with ElevenLabs, add ${what} for this channel in Settings → Channels.`;
+  return {
+    text: `To generate the voice with ElevenLabs, add ${what} for this channel.`,
+    channelId: setup.channelId,
+  };
 }
 
 export interface EstimateView {

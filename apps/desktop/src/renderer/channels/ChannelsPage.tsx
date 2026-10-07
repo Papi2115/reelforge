@@ -15,14 +15,20 @@ export interface ChannelsPageProps {
   readonly controller: ChannelsController;
   /** Settings → Projects → "Experimental worlds (preview)": offers preview worlds as a style. */
   readonly experimentalWorlds: boolean;
+  /** The channel selected when the page opens (e.g. the open project's); default channel if absent. */
+  readonly initialChannelId?: string | undefined;
 }
 
 export const CHANNELS_INTRO =
   'Each channel has its own voice, API key, style and publishing defaults. New projects start with the settings of their channel.';
 
-export function ChannelsPage({ controller, experimentalWorlds }: ChannelsPageProps): JSX.Element {
+export function ChannelsPage({
+  controller,
+  experimentalWorlds,
+  initialChannelId,
+}: ChannelsPageProps): JSX.Element {
   const { list } = controller;
-  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [selectedId, setSelectedId] = useState<string | undefined>(initialChannelId);
   const [error, setError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);

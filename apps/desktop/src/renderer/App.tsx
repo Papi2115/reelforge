@@ -22,7 +22,8 @@ import { OpenRecovery } from './project/OpenRecovery.js';
 import { ProjectSettingsDialog } from './project/ProjectSettingsDialog.js';
 import { StartScreen } from './project/StartScreen.js';
 import { FirstRunGate } from './settings/FirstRunGate.js';
-import { SettingsDialog, type SettingsTab } from './settings/SettingsDialog.js';
+import { OpenSettingsContext, type SettingsRequest } from './settings/open-settings.js';
+import { SettingsDialog } from './settings/SettingsDialog.js';
 import { useClaudeStatus } from './settings/use-claude-status.js';
 import { useSettings } from './settings/use-settings.js';
 
@@ -72,7 +73,8 @@ export function App(): JSX.Element {
   const [info, setInfo] = useState<AppInfo | undefined>(undefined);
   const [project, setProject] = useState<ProjectSummary | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  /** Open Settings: the tab and (Channels) the channel selected first; null = closed. */
+  const [settingsRequest, setSettingsRequest] = useState<SettingsRequest | null>(null);
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
   /** The header slot of the workspace's "Needs you" button (layout/NeedsYou.tsx). */
   const [needsYouSlot, setNeedsYouSlot] = useState<HTMLElement | null>(null);
@@ -168,7 +170,7 @@ export function App(): JSX.Element {
           type="button"
           className="link-button"
           onClick={() => {
-            setSettingsTab('claude');
+            setSettingsRequest({ tab: 'claude' });
           }}
         >
           Settings
@@ -200,14 +202,16 @@ export function App(): JSX.Element {
             }}
           />
         ) : (
-          <Workspace
-            key={project.dir}
-            project={project}
-            headerSlot={needsYouSlot}
-            onOpenToolsSettings={() => {
-              setSettingsTab('tools');
-            }}
-          />
+          <OpenSettingsContext value={setSettingsRequest}>
+            <Workspace
+              key={project.dir}
+              project={project}
+              headerSlot={needsYouSlot}
+              onOpenToolsSettings={() => {
+                setSettingsRequest({ tab: 'tools' });
+              }}
+            />
+          </OpenSettingsContext>
         )}
         {project !== null && historyOpen && (
           <HistoryDrawer
@@ -227,15 +231,18 @@ export function App(): JSX.Element {
             }}
           />
         )}
-        {settingsTab !== null && (
+        {settingsRequest !== null && (
           <SettingsDialog
-            tab={settingsTab}
-            onTab={setSettingsTab}
+            tab={settingsRequest.tab}
+            channelId={settingsRequest.channelId}
+            onTab={(tab) => {
+              setSettingsRequest({ ...settingsRequest, tab });
+            }}
             settings={settings}
             claude={claude}
             channels={channels}
             onClose={() => {
-              setSettingsTab(null);
+              setSettingsRequest(null);
             }}
           />
         )}
@@ -257,7 +264,7 @@ export function App(): JSX.Element {
             }}
           />
         )}
-        {firstRun && settingsTab === null && (
+        {firstRun && settingsRequest === null && (
           <FirstRunGate
             claude={claude}
             onDone={() => {
@@ -276,7 +283,7 @@ export function App(): JSX.Element {
         economy={appSettings?.economy}
         claude={claude.status}
         onOpenClaudeSettings={() => {
-          setSettingsTab('claude');
+          setSettingsRequest({ tab: 'claude' });
         }}
       />
     </div>

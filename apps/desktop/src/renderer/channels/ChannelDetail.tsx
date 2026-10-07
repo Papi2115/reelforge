@@ -145,6 +145,7 @@ export function ChannelDetail(props: ChannelDetailProps): JSX.Element {
         present={channel.secrets['elevenlabs-api-key']}
         onSet={(value) => controller.setKey(channel.id, value)}
         onRemove={() => controller.removeKey(channel.id)}
+        onTest={() => controller.testKey(channel.id)}
       />
       <ChannelVoiceFields voice={channel.voice} onSave={(voice) => patch({ voice })} />
 

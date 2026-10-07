@@ -43,13 +43,18 @@ describe('voice view', () => {
     expect(groupDigits(12)).toBe('12');
   });
 
-  it('points to Settings → Channels for what is missing', () => {
+  it('says what the channel lacks and which channel Open Channels selects', () => {
     const base = { status: 'missing', channelId: 'c', channelName: 'C' } as const;
-    expect(setupPointer({ ...base, missing: ['voice', 'key'] })).toBe(
-      'To generate the voice with ElevenLabs, add a voice and key for this channel in Settings → Channels.',
+    expect(setupPointer({ ...base, missing: ['voice', 'key'] })).toEqual({
+      text: 'To generate the voice with ElevenLabs, add a voice and key for this channel.',
+      channelId: 'c',
+    });
+    expect(setupPointer({ ...base, missing: ['key'] })?.text).toContain(
+      'add a key for this channel',
     );
-    expect(setupPointer({ ...base, missing: ['key'] })).toContain('add a key for this channel');
-    expect(setupPointer({ ...base, missing: ['voice'] })).toContain('add a voice for this channel');
+    expect(setupPointer({ ...base, missing: ['voice'] })?.text).toContain(
+      'add a voice for this channel',
+    );
     expect(
       setupPointer({ status: 'ready', channelId: 'c', channelName: 'C', voiceId: 'v', model: 'm' }),
     ).toBeNull();

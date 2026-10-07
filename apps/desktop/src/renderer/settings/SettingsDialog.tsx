@@ -37,6 +37,8 @@ const TAB_LABELS: Readonly<Record<SettingsTab, string>> = {
 export interface SettingsDialogProps {
   readonly tab: SettingsTab;
   readonly onTab: (tab: SettingsTab) => void;
+  /** Channels tab: the channel selected first (e.g. the open project's). */
+  readonly channelId?: string | undefined;
   readonly settings: SettingsController;
   readonly claude: ClaudeStatusController;
   readonly channels: ChannelsController;
@@ -129,6 +131,7 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
               <ChannelsPage
                 controller={props.channels}
                 experimentalWorlds={pageProps.state.settings.experimental.worlds}
+                initialChannelId={props.channelId}
               />
             )}
             {pageProps !== undefined && tab === 'taste' && <TastePage {...pageProps} />}

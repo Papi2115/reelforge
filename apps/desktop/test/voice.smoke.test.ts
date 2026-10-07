@@ -1,11 +1,14 @@
 /**
  * ElevenLabs voice generation in the built app (`pnpm test:app`, PLAN.md#13.14, ADR-033), against
  * the pipeline's local fake ElevenLabs server (test hook REELFORGE_TEST_ELEVENLABS_URL; no real
- * network, no real key): the example project's Voiceover panel first points to Settings → Channels;
+ * network, no real key): the example project's Voiceover panel first says what the channel lacks and
+ * "Open Channels" opens Settings → Channels on the project's channel;
  * with a voice and a (fake) key on the default channel it offers "Generate with ElevenLabs", shows
  * the estimate and asks before spending, generates the example script paragraph by paragraph, and
  * the Voiceover step imports the result like a manual file — takes, API word times and the import
- * record appear and the later steps become out of date. One sentence is redone. The key (a canary)
+ * record appear and the later steps become out of date. One sentence is redone. "Test key" in
+ * Settings → Channels shows the plan and the characters left, and a rejected key in plain words.
+ * The key (a canary)
  * never shows in the page, a log or a project file. Screenshots at 1280x720:
  * out/test-app/voice-*.png.
  */
@@ -26,6 +29,7 @@ import { closeApp, launchApp, screenshotDir } from './support/electron-app.js';
 import { openStage, stageText } from './support/pipeline-rows.js';
 
 const KEY = 'sk_canary_voice_smoke_2b7e91_do_not_leak';
+const WRONG_KEY = 'sk_wrong_voice_smoke_5d10c3_do_not_leak';
 
 /** The two channel calls of `window.reelforge` the test uses (preload validates them). */
 interface ChannelBridge {
@@ -120,14 +124,28 @@ describe('voice generation', () => {
       timeout: 60_000,
     });
     await reopenVoiceover();
-    await voiceover()
-      .getByText('add a voice and key for this channel in Settings → Channels.', { exact: false })
-      .waitFor();
+    const setup = voiceover().getByTestId('voice-setup');
+    await setup.getByText('add a voice and key for this channel.', { exact: false }).waitFor();
     expect(
       await voiceover()
         .getByRole('button', { name: /Generate/ })
         .count(),
     ).toBe(0);
+    await shot('setup');
+    await setup.getByRole('button', { name: 'Open Channels' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    expect(await dialog.getByRole('tab', { name: 'Channels' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+    await dialog.getByRole('region', { name: 'Channel Default', exact: true }).waitFor();
+    expect(
+      await dialog
+        .getByRole('listbox', { name: 'Channels' })
+        .getByRole('option', { selected: true })
+        .textContent(),
+    ).toContain('Default');
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
     expect(fake.requests).toHaveLength(0);
   }, 120_000);
 
@@ -210,11 +228,54 @@ describe('voice generation', () => {
     await shot('retake');
   }, 120_000);
 
+  it('tests the saved key in Settings → Channels: plan and characters, then a rejected key', async () => {
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    await dialog.getByRole('tab', { name: 'Channels' }).click();
+    const key = dialog
+      .getByRole('region', { name: 'Channel Default', exact: true })
+      .getByRole('form', { name: 'ElevenLabs API key' });
+    await key.scrollIntoViewIfNeeded();
+    // The key was stored through the bridge above, behind the page's list: save it in the row.
+    const saveInRow = async (value: string): Promise<void> => {
+      await key.getByLabel(/API key$/).fill(value);
+      await key.getByRole('button', { name: /^(Save|Replace) key$/ }).click();
+      await key.getByText('Key saved ✓').waitFor();
+      await key.getByRole('button', { name: 'Test key' }).and(page.locator(':enabled')).waitFor();
+    };
+    await saveInRow(KEY);
+    const reads = fake.requests.length;
+    await key.getByRole('button', { name: 'Test key' }).click();
+    const result = key.getByTestId('key-test-result');
+    await result.waitFor();
+    expect(await result.textContent()).toBe('Key works · Pro plan · 15,000 characters left');
+    expect(await result.getAttribute('role')).toBe('status');
+    expect(fake.requests.slice(reads).map((request) => request.path)).toEqual([
+      '/v1/user/subscription',
+    ]);
+    await shot('key-ok');
+
+    // A key ElevenLabs does not know: replacing the key clears the last result first.
+    await saveInRow(WRONG_KEY);
+    expect(await result.count()).toBe(0);
+    await key.getByRole('button', { name: 'Test key' }).click();
+    await result.waitFor();
+    expect(await result.textContent()).toBe(
+      'ElevenLabs rejected this key. Paste it again: it may be mistyped, deleted or expired.',
+    );
+    expect(await result.getAttribute('role')).toBe('alert');
+    await shot('key-rejected');
+    expect(await page.content()).not.toContain(WRONG_KEY);
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
+  }, 60_000);
+
   it('never shows or stores the key in plain text', async () => {
     expect(await page.content()).not.toContain(KEY);
     expect(await filesContaining(exampleDir(), KEY)).toEqual([]);
     const log = await readFile(logFile(userDataDir), 'utf8');
     expect(log).not.toContain(KEY);
+    expect(log).not.toContain(WRONG_KEY);
     expect(await filesContaining(userDataDir, KEY)).toEqual([]);
   });
 });

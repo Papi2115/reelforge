@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ChannelInput, ChannelPatch } from '@reelforge/shared';
 import type { ChannelsResult } from '../../shared/channels-contract.js';
+import type { VoiceTestKeyResult } from '../../shared/voice-contract.js';
 import { errorMessage, rendererLog } from '../log.js';
 import { channelErrorText, secretErrorText, type ChannelList } from './channel-view.js';
 
@@ -28,6 +29,21 @@ export interface ChannelsController {
   /** Stores the ElevenLabs API key of the channel; the caller forgets the value afterwards. */
   readonly setKey: (channelId: string, value: string) => Promise<ChannelOutcome>;
   readonly removeKey: (channelId: string) => Promise<ChannelOutcome>;
+  /** Asks ElevenLabs (through main) whether the channel's saved key works; never throws. */
+  readonly testKey: (channelId: string) => Promise<VoiceTestKeyResult>;
+}
+
+async function testVoiceKey(channelId: string): Promise<VoiceTestKeyResult> {
+  try {
+    return await window.reelforge.testVoiceKey(channelId);
+  } catch (reason) {
+    log.error(`testVoiceKey failed: ${errorMessage(reason)}`);
+    return {
+      status: 'error',
+      kind: 'failed',
+      message: 'The key could not be checked. See the log for details.',
+    };
+  }
 }
 
 const KEY_NAME = 'elevenlabs-api-key';
@@ -113,5 +129,6 @@ export function useChannels(): ChannelsController {
       keyCall('deleteChannelSecret', () =>
         window.reelforge.deleteChannelSecret({ channelId, name: KEY_NAME }),
       ),
+    testKey: testVoiceKey,
   };
 }

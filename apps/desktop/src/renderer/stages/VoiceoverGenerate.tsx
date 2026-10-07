@@ -3,13 +3,22 @@
  * Import / Record; a click first asks main for the cost (no characters spent), then a confirm step
  * shows "About 5,400 characters · 35% of your remaining 15,000" before anything is paid; while it
  * runs a progress bar with Cancel; afterwards the result line. Without a voice or key for the
- * project's channel only a one-line pointer to Settings → Channels is shown.
+ * project's channel only one line says what is missing, with "Open Channels" (Settings → Channels
+ * with the project's channel selected).
  */
 import { useState, type JSX } from 'react';
 import type { VoiceSetup } from '../../shared/voice-contract.js';
 import { StopIcon } from '../layout/icons.js';
+import { useOpenSettings } from '../settings/open-settings.js';
 import type { VoiceControls } from './use-voice.js';
-import { estimateView, progressView, setupPointer, type EstimateView } from './voice-view.js';
+import {
+  estimateView,
+  OPEN_CHANNELS_LABEL,
+  progressView,
+  setupPointer,
+  type EstimateView,
+  type SetupPointer,
+} from './voice-view.js';
 
 type Phase =
   | { readonly kind: 'idle' }
@@ -112,6 +121,32 @@ function Confirm(props: {
   );
 }
 
+function SetupLine({ pointer }: { readonly pointer: SetupPointer }): JSX.Element {
+  const openSettings = useOpenSettings();
+  if (openSettings === null) {
+    return (
+      <p className="muted vo-hint" data-testid="voice-setup">
+        {pointer.text} (Settings → Channels)
+      </p>
+    );
+  }
+  return (
+    <div className="vo-setup" data-testid="voice-setup">
+      <p className="muted vo-hint">{pointer.text}</p>
+      <button
+        type="button"
+        className="small-button"
+        title="Settings → Channels, with this project's channel selected"
+        onClick={() => {
+          openSettings({ tab: 'channels', channelId: pointer.channelId });
+        }}
+      >
+        {OPEN_CHANNELS_LABEL}
+      </button>
+    </div>
+  );
+}
+
 /** Estimate / confirm / progress / outcome below the action buttons. */
 export function GenerateStatus(props: {
   readonly setup: VoiceSetup | undefined;
@@ -121,13 +156,7 @@ export function GenerateStatus(props: {
   const { setup, voice, flow } = props;
   if (setup === undefined) return null;
   const pointer = setupPointer(setup);
-  if (pointer !== null) {
-    return (
-      <p className="muted vo-hint" data-testid="voice-setup">
-        {pointer}
-      </p>
-    );
-  }
+  if (pointer !== null) return <SetupLine pointer={pointer} />;
   if (setup.status !== 'ready') return null;
   const running = voice.progress;
   if (running !== null) {

@@ -236,6 +236,17 @@
   min-width: 0;
 }
 
+.channel-key-test {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.channel-key-test-line {
+  font-size: var(--text-xs);
+}
+
 .channel-key-hint {
   margin: 0;
   font-size: var(--text-xs);
