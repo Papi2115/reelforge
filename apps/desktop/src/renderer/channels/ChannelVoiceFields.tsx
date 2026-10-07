@@ -20,6 +20,7 @@ import {
   type VoiceSlider,
 } from './channel-view.js';
 import { CommitField } from './CommitField.js';
+import { pendingValue, showsSavedValue, valueToSend } from './slider-sync.js';
 import { useLatestValue } from './use-latest-value.js';
 
 export interface ChannelVoiceFieldsProps {
@@ -36,16 +37,22 @@ function VoiceSliderRow(props: {
   const { slider, saved, onCommit } = props;
   const id = useId();
   const [position, setPosition] = useState(sliderPosition(slider, saved));
-  // The value sent last: answers to earlier saves (arrow keys in a row) must not move the knob back.
+  // The value sent last and an unsent move: answers to earlier saves (arrow keys in a row) must
+  // not move the knob back (slider-sync.ts).
   const sent = useRef<number | undefined>(undefined);
+  const moved = useRef(false);
   useEffect(() => {
-    if (sent.current !== undefined && sent.current !== saved) return;
+    if (!showsSavedValue({ moved: moved.current, sent: sent.current }, saved)) return;
     sent.current = undefined;
     setPosition(sliderPosition(slider, saved));
   }, [slider, saved]);
   const value = sliderValue(slider, position);
   const commit = (): void => {
-    if (value === (sent.current ?? saved)) return;
+    // The answer to the value sent last may have come while the knob was moving.
+    sent.current = pendingValue(sent.current, saved);
+    const sync = { moved: moved.current, sent: sent.current };
+    moved.current = false;
+    if (valueToSend(sync, value, saved) === undefined) return;
     sent.current = value;
     void onCommit(value).then((message) => {
       if (message === undefined || sent.current !== value) return;
@@ -66,6 +73,7 @@ function VoiceSliderRow(props: {
         aria-valuetext={formatVoiceValue(slider, value)}
         aria-describedby={`${id}-hint`}
         onChange={(event) => {
+          moved.current = true;
           setPosition(Number(event.target.value));
         }}
         onPointerUp={commit}
