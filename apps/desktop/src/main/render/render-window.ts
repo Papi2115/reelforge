@@ -12,6 +12,7 @@ import { BrowserWindow } from 'electron';
 import { RENDER_HOST_CHANNELS, type RenderHostCall } from '../../shared/render-host-contract.js';
 import { describeError, type Logger } from '../logger.js';
 import { renderHostReplySchema, type ValidatedReply } from './host-replies.js';
+import { startCallDeadline, type RenderLoadGate } from './render-load-gate.js';
 import { closeRenderWindow } from './render-window-close.js';
 import type { RenderError, RenderTarget } from './render-target.js';
 
@@ -28,7 +29,15 @@ export interface RenderWindowOptions {
   readonly callTimeoutMs?: number;
   /** Limit for the page to become ready in ms; default 30 s. */
   readonly readyTimeoutMs?: number;
+  /**
+   * Shared by every window of the app (render-load-gate.ts): loads run one at a time and frame
+   * deadlines wait out loads of other windows (one shared renderer process).
+   */
+  readonly loadGate?: RenderLoadGate;
 }
+
+/** A frame / card check waiting behind other windows' loads gives up after 10x its own limit. */
+const MAX_WAIT_FACTOR = 10;
 
 /** Console errors kept per window between two takes (a broken scene can log every frame). */
 const MAX_CONSOLE_ERRORS = 50;
@@ -63,7 +72,10 @@ class RenderWindow implements RenderTarget {
       this.consoleErrors.push(details.message);
     });
     contents.on('render-process-gone', (_event, details) => {
-      this.fail({ kind: 'crashed', message: `renderer process gone: ${details.reason}` });
+      this.fail({
+        kind: 'crashed',
+        message: `the renderer process is gone: ${details.reason} (exit code ${String(details.exitCode)})`,
+      });
     });
     window.on('closed', () => {
       this.fail({ kind: 'closed', message: 'render window closed' });
@@ -75,10 +87,10 @@ class RenderWindow implements RenderTarget {
   }
 
   async load(manifest: RenderManifest): Promise<Result<LoadInfo, RenderError>> {
-    const reply = await this.call(
-      { method: 'load', manifest },
-      this.options.loadTimeoutMs ?? 120_000,
-    );
+    const run = (): Promise<Result<ValidatedReply, RenderError>> =>
+      this.call({ method: 'load', manifest }, this.options.loadTimeoutMs ?? 120_000);
+    const gate = this.options.loadGate;
+    const reply = await (gate === undefined ? run() : gate.run(run));
     if (!reply.ok) return reply;
     return reply.value.ok && 'info' in reply.value ? ok(reply.value.info) : err(unexpected('load'));
   }
@@ -123,17 +135,23 @@ class RenderWindow implements RenderTarget {
     const id = this.nextId;
     this.nextId += 1;
     return new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        // A renderer that misses a deadline is not reused (it may still be busy).
-        this.fail({
-          kind: 'timeout',
-          message: `${input.method} took longer than ${String(timeoutMs)} ms`,
-        });
-      }, timeoutMs);
+      const cancelDeadline = startCallDeadline({
+        timeoutMs,
+        // A load's own deadline starts when the gate runs it; frames wait out other loads.
+        gate: input.method === 'load' ? undefined : this.options.loadGate,
+        maxWaitMs: timeoutMs * MAX_WAIT_FACTOR,
+        onExpire: () => {
+          // A renderer that misses a deadline is not reused (it may still be busy).
+          this.fail({
+            kind: 'timeout',
+            message: `${input.method} took longer than ${String(timeoutMs)} ms`,
+          });
+        },
+      });
       this.pending.set(id, {
         method: input.method,
         settle: (result) => {
-          clearTimeout(timer);
+          cancelDeadline();
           resolve(result);
         },
       });
@@ -160,15 +178,21 @@ class RenderWindow implements RenderTarget {
     entry.settle(reply.method === entry.method ? ok(reply) : err(unexpected(entry.method)));
   }
 
-  /** Marks the window unusable and fails every call in flight. */
+  /**
+   * Marks the window unusable and fails every call in flight with `error`. The calls are settled
+   * before a timed-out window is closed: closing fails pending calls as 'render window closed',
+   * which used to hide the real reason (a frame deadline) from the export's error.
+   */
   private fail(error: RenderError): void {
-    if (this.gone === null) {
+    const pending = [...this.pending.values()];
+    this.pending.clear();
+    const first = this.gone === null;
+    if (first) {
       this.gone = error;
       if (error.kind !== 'closed') this.options.log.warn(`render window: ${error.message}`);
-      if (error.kind === 'timeout' || error.kind === 'protocol') void this.close();
     }
-    for (const entry of this.pending.values()) entry.settle(err(error));
-    this.pending.clear();
+    for (const entry of pending) entry.settle(err(error));
+    if (first && (error.kind === 'timeout' || error.kind === 'protocol')) void this.close();
   }
 }
 

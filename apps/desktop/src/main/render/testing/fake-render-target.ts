@@ -4,6 +4,8 @@
  * console error, `CRASH` -> the renderer dies, `OVERLAP` -> one card diagnostic, `FAIL_FRAME` -> an
  * engine error (update() threw) for frames at t >= 3, `TIMEOUT` -> the load times out in the first
  * window (`timeoutWindows` of fakeTargets: how many windows time out) and the window dies.
+ * `frameTimeoutWindows` of fakeTargets: the first N windows miss the deadline of their first frame
+ * and die (whatever the scene), like a render window starved in the shared renderer process.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import type { CardDiagnostic, LoadInfo } from '@reelforge/engine';
@@ -29,8 +31,11 @@ export class FakeRenderTarget implements RenderTarget {
   private dead = false;
   closed = 0;
 
-  /** `timesOut`: a TIMEOUT scene times out in this window. */
-  constructor(private readonly timesOut = false) {}
+  /** `timesOut`: a TIMEOUT scene times out in this window; `framesTimeOut`: every frame does. */
+  constructor(
+    private readonly timesOut = false,
+    private readonly framesTimeOut = false,
+  ) {}
 
   get alive(): boolean {
     return !this.dead;
@@ -80,6 +85,10 @@ export class FakeRenderTarget implements RenderTarget {
     if (this.dead) return Promise.resolve(err({ kind: 'closed', message: 'closed' }));
     if (this.loaded === null) {
       return Promise.resolve(err({ kind: 'engine', message: 'seek() before load()' }));
+    }
+    if (this.framesTimeOut) {
+      this.dead = true;
+      return Promise.resolve(err({ kind: 'timeout', message: 'frame took longer than 30000 ms' }));
     }
     const sources = this.loaded.shots.map((shot) => shot.scene.source).join('\n');
     if (sources.includes('FAIL_FRAME') && t >= 3) {
@@ -131,7 +140,10 @@ export class FakeRenderTarget implements RenderTarget {
 }
 
 /** An OpenRenderTarget that records every target it opened. */
-export function fakeTargets(timeoutWindows = 0): {
+export function fakeTargets(
+  timeoutWindows = 0,
+  frameTimeoutWindows = 0,
+): {
   open: OpenRenderTarget;
   opened: FakeRenderTarget[];
 } {
@@ -139,7 +151,10 @@ export function fakeTargets(timeoutWindows = 0): {
   return {
     opened,
     open: () => {
-      const target = new FakeRenderTarget(opened.length < timeoutWindows);
+      const target = new FakeRenderTarget(
+        opened.length < timeoutWindows,
+        opened.length < frameTimeoutWindows,
+      );
       opened.push(target);
       return Promise.resolve(ok(target));
     },

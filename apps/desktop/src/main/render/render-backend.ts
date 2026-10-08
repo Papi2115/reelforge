@@ -18,6 +18,7 @@ import { exportProject } from './export-project.js';
 import { simulatedFallbackWarning } from './export-warnings.js';
 import { PoolFrameRenderer } from './pool-frame-renderer.js';
 import { engineBundleVersion } from './render-identity.js';
+import { RenderLoadGate } from './render-load-gate.js';
 import { RenderPool } from './render-pool.js';
 import { createRenderServiceHandlers } from './render-service-handlers.js';
 import { startRenderService, type RenderService } from './render-service.js';
@@ -33,6 +34,12 @@ export interface RenderBackendOptions {
   readonly pushProgress: (event: ExportProgress) => void;
   readonly log: Logger;
 }
+
+/**
+ * One gate for every render window of the app (export, render service, smoke frames, the
+ * production line's own backend): their engine frames share one renderer process.
+ */
+const APP_LOAD_GATE = new RenderLoadGate();
 
 export class RenderBackend {
   readonly exports: ExportController;
@@ -52,7 +59,14 @@ export class RenderBackend {
     const hostUrl = new URL(`${ENGINE_ASSET_DIR}/${RENDER_HOST_HTML}`, source.url).href;
     const preloadFile = path.join(path.dirname(layout.preloadFile), RENDER_PRELOAD_FILE);
     const windowLog = log.child('window');
-    this.openTarget = () => openRenderWindow({ hostUrl, preloadFile, lint: true, log: windowLog });
+    this.openTarget = () =>
+      openRenderWindow({
+        hostUrl,
+        preloadFile,
+        lint: true,
+        log: windowLog,
+        loadGate: APP_LOAD_GATE,
+      });
     this.frames = new PoolFrameRenderer(this.openTarget);
     this.exports = new ExportController({
       currentProject: options.currentProject,

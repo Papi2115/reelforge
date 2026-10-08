@@ -141,6 +141,12 @@ function main(): void {
   app.on('window-all-closed', () => {
     app.quit();
   });
+  // A GPU process crash / driver reset stalls every render window: keep the reason in main.log.
+  app.on('child-process-gone', (_event, details) => {
+    log.warn(
+      `${details.type} process gone: ${details.reason} (exit code ${String(details.exitCode)})${details.name === undefined ? '' : ` [${details.name}]`}`,
+    );
+  });
   let childrenKilled = false;
   app.on('before-quit', (event) => {
     // A settings change made just before quitting (e.g. Welcome → Skip) must reach the disk.
