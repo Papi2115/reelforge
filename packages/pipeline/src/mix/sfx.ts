@@ -14,28 +14,13 @@ import type { FfmpegError } from '../ffmpeg/errors.js';
 import type { Result } from '../result.js';
 import { boom, hit, hitSoft, pop, snap, stamp } from './sfx/impact.js';
 import type { SfxCategory, SfxDefinition } from './sfx/layers.js';
-import { downer, riser, swooshIn, swooshOut, whoosh, whooshImpact } from './sfx/motion.js';
-import {
-  bubble,
-  bubbleUp,
-  cameraShutter,
-  glitch,
-  paper,
-  scribble,
-  typewriter,
-} from './sfx/texture.js';
+import { swooshIn, swooshOut, whoosh, whooshImpact } from './sfx/motion.js';
+import { downer, riser } from './sfx/risers.js';
+import { bubble, bubbleUp, glitch, typewriter } from './sfx/texture.js';
+import { cameraShutter, paper, scribble } from './sfx/texture-paper.js';
 import { chime, coin, ding, sparkle } from './sfx/tonal.js';
-import {
-  blip,
-  blipDown,
-  blipUp,
-  click,
-  errorBuzz,
-  notification,
-  success,
-  tick,
-  tock,
-} from './sfx/ui.js';
+import { blip, blipDown, blipUp, click, tick, tock } from './sfx/ui.js';
+import { errorBuzz, notification, success } from './sfx/ui-cues.js';
 import {
   dataPing,
   measureBlipSfx,
@@ -76,6 +61,7 @@ import {
   woodTick,
 } from './sfx/paper-cutout.js';
 import { glassCrack } from './sfx/glass.js';
+import { markerThump, paperTear, penClick } from './sfx/sketchbook.js';
 import { writeWavAtomic } from './wav.js';
 
 export type { SfxCategory } from './sfx/layers.js';
@@ -170,6 +156,10 @@ export const SFX_RECIPES = [
   'page-flip',
   // wow transitions (ADR-028)
   'glass-crack',
+  // sketchbook world
+  'pen-click',
+  'marker-thump',
+  'paper-tear',
 ] as const;
 export type SfxRecipe = (typeof SFX_RECIPES)[number];
 
@@ -252,6 +242,9 @@ const DEFINITIONS: Readonly<Record<SfxRecipe, SfxDefinition>> = {
   'wood-tick': woodTick,
   'page-flip': pageFlip,
   'glass-crack': glassCrack,
+  'pen-click': penClick,
+  'marker-thump': markerThump,
+  'paper-tear': paperTear,
 };
 
 const mapRecipes = <T>(pick: (definition: SfxDefinition) => T): Readonly<Record<SfxRecipe, T>> =>

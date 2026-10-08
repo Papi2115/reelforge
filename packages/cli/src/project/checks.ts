@@ -1,11 +1,12 @@
 /**
  * Cross-file checks the per-file schemas cannot see: shots contiguous from 0 (the engine renders
  * them back to back), scene files present inside the project, a known style (a world's style when
- * its world is registered and, if experimental, experimental worlds are on), words/cues that
- * fit the storyboard's time range and a world film's variety (world-checks.ts).
+ * its world is registered and wired and, if experimental, experimental worlds are on), words/cues
+ * that fit the storyboard's time range and a world film's variety (world-checks.ts).
  */
 import { existsSync } from 'node:fs';
 import { STYLE_REGISTRY, type StyleRegistry } from '@reelforge/engine';
+import { isUnwiredWorldStyle } from '@reelforge/kit';
 import type { StoryboardFile } from '@reelforge/shared';
 import { experimentalWorldsEnabled } from '../commands/kit-docs-world.js';
 import { UsageError } from '../errors.js';
@@ -120,8 +121,9 @@ export interface CrossFileOptions {
 }
 
 /**
- * A built-in style or a registered world's style is valid; an experimental world's style only
- * with experimental worlds on. Otherwise the fix tells Claude not to edit the style itself.
+ * A built-in style or a registered, wired world's style is valid; an experimental world's style
+ * only with experimental worlds on; a world that is not wired yet (render-only) never. Otherwise
+ * the fix tells Claude not to edit the style itself.
  */
 export function styleProblems(
   style: string,
@@ -132,8 +134,16 @@ export function styleProblems(
     { severity: 'error', file: PROJECT_PATHS.project, at: 'style', message, fix },
   ];
   if (styles.entry(style) === undefined) {
-    const known = experimentalWorlds ? styles.allIds : styles.ids;
+    const known = (experimentalWorlds ? styles.allIds : styles.ids).filter(
+      (id) => !isUnwiredWorldStyle(id),
+    );
     return problem(`unknown style preset "${style}"`, `use one of: ${known.join(', ')}`);
+  }
+  if (isUnwiredWorldStyle(style)) {
+    return problem(
+      `style "${style}" is a world still in development; it cannot be used for a project yet`,
+      'do not change the style yourself: ask the user to pick another style for this project',
+    );
   }
   if (styles.isExperimental(style) && !experimentalWorlds) {
     return problem(

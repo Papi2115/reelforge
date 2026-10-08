@@ -24,7 +24,7 @@ import { permissionStageFor, promptModel, promptToolNames } from './stages.js';
 
 const PROMPTS_DIR = path.join(import.meta.dirname, '..', 'prompts');
 /** Prompts that run on Sonnet under the critic's read-only permissions. */
-const SONNET_ON_CRITIC: readonly string[] = ['claims', 'hooks'];
+const SONNET_ON_CRITIC: readonly string[] = ['brief', 'claims', 'hooks'];
 
 describe('bundled prompts', () => {
   it('match prompts/*.md (run `pnpm --filter @reelforge/prompts generate` after editing)', () => {
@@ -44,6 +44,7 @@ describe('bundled prompts', () => {
     expect([...PROMPT_IDS].sort()).toEqual(
       [
         'assets',
+        'brief',
         'claims',
         'critic',
         'hooks',
@@ -58,6 +59,8 @@ describe('bundled prompts', () => {
         'sound-cues',
         'storyboard',
         'tension',
+        'world-assets',
+        'world-asset-critic',
         'youtube-meta',
       ].sort(),
     );
@@ -67,7 +70,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 18, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 19, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -101,17 +104,19 @@ describe('renderPrompt', () => {
       optional: [
         'selection',
         'critic',
+        'research',
         'craftBrief',
         'world',
         'lookId',
         'worldMomentDirective',
         'worldMoment',
         'continuityDirective',
+        'noQuestions',
       ],
     });
     expect(promptVariables('sound-cues')).toEqual({
       required: ['styleId'],
-      optional: ['acts', 'world', 'worldMoods'],
+      optional: ['acts', 'world', 'worldMoods', 'genreMoods', 'genreName'],
     });
   });
 
@@ -119,10 +124,13 @@ describe('renderPrompt', () => {
     const rendered = renderPrompt('sound-cues', { styleId: 'voxel-pixel-crisp640' });
     expect(rendered.ok).toBe(true);
     const text = rendered.ok ? rendered.value : '';
-    for (const name of [...SFX_RECIPES, ...MUSIC_MOODS]) {
+    // Sketchbook-world recipes are named by the world's palette and `reelforge kit-docs sfx`, not by
+    // the base prompt (which stays byte-identical for voxel/legacy projects).
+    const worldOnly = new Set<string>(['pen-click', 'marker-thump', 'paper-tear']);
+    for (const name of [...SFX_RECIPES, ...MUSIC_MOODS].filter((entry) => !worldOnly.has(entry))) {
       expect(text).toMatch(new RegExp(String.raw`(?:^|[\s,;(])${name}(?:[\s,;.)]|$)`));
     }
-    expect(loadPrompt('sound-cues').version).toBe(5);
+    expect(loadPrompt('sound-cues').version).toBe(6);
     expect(text).toContain("each shot's sound palette follows its `look`");
   });
 
@@ -216,6 +224,9 @@ describe('stages and models', () => {
       tension: 'storyboard',
       claims: 'critic',
       hooks: 'critic',
+      brief: 'critic',
+      'world-assets': 'scene-build',
+      'world-asset-critic': 'critic',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);
@@ -229,6 +240,7 @@ describe('stages and models', () => {
     // the app passes the declared model explicitly, so the stage default (Haiku) never applies.
     expect(loadPrompt('claims').model).toBe('sonnet');
     expect(loadPrompt('hooks').model).toBe('sonnet');
+    expect(loadPrompt('brief').model).toBe('sonnet');
     for (const id of PROMPT_IDS.filter((candidate) => !SONNET_ON_CRITIC.includes(candidate))) {
       expect(loadPrompt(id).model, id).toBe(DEFAULT_STAGE_MODELS[permissionStageFor(id)]);
     }

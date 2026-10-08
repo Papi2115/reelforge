@@ -175,7 +175,7 @@ export function PipelineSidebar({
       aria-label="Pipeline"
     >
       <h2 className="panel-heading">
-        Pipeline
+        <span className="panel-heading-text">Pipeline</span>
         <button
           type="button"
           className="info-button"
@@ -209,13 +209,9 @@ export function PipelineSidebar({
         <button
           type="button"
           className="icon-button pipeline-collapse"
-          aria-label={prefs.collapsed ? 'Show the pipeline steps' : 'Hide the pipeline steps'}
+          aria-label={prefs.collapsed ? 'Show the steps' : 'Hide the steps'}
           aria-expanded={!prefs.collapsed}
-          title={
-            prefs.collapsed
-              ? 'Show the pipeline steps'
-              : 'Hide the pipeline steps: more room for the shots'
-          }
+          title={prefs.collapsed ? 'Show the steps' : 'Hide the steps: more room for the shots'}
           onClick={() => {
             setPrefs({ ...prefs, collapsed: !prefs.collapsed });
           }}

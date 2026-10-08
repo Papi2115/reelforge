@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "world": "sketchbook",
+  "entries": [
+    {
+      "id": "lunar-module",
+      "kind": "prop",
+      "name": "moduł księżycowy",
+      "file": "assets/sketchbook/lunar-module.json",
+      "shots": ["s01_hook"],
+      "notes": "the same outline in every shot"
+    }
+  ]
+}

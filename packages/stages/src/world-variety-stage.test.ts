@@ -180,7 +180,9 @@ describe('world variety on fake-claude', { timeout: 120_000 }, () => {
     expect(result.value.metrics['repairs']).toBe(1);
     const [first, repair] = harness.specs.filter((spec) => spec.stage === 'storyboard');
     expect(first?.prompt).toContain('Page moments (`"worldMoment"` per shot');
-    expect(first?.prompt).toContain('- `popup` (breakthrough; look `sketch-loud`)');
+    expect(first?.prompt).toContain(
+      '- `popup` (breakthrough; look `sketch-loud`; a shot of at least 4.5 s)',
+    );
     expect(first?.prompt).toContain(
       'needs at least 2 and at most 5, of at least 2 different kinds',
     );

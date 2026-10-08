@@ -5,6 +5,7 @@ import { App } from './App.js';
 import { errorMessage, rendererLog } from './log.js';
 import './styles.css';
 import './ui.css';
+import './fonts/pixel-titles.css';
 import './layout/layout.css';
 import './layout/pipeline.css';
 import './layout/shots.css';
@@ -12,6 +13,7 @@ import './layout/timeline.css';
 import './layout/chat.css';
 import './layout/chat-rail.css';
 import './layout/needs-you.css';
+import './queue/production-line.css';
 import './preview/preview.css';
 import './direction/direction.css';
 import './settings/settings.css';
@@ -33,6 +35,7 @@ import './hook-lab/hook-lab.css';
 import './settings/taste.css';
 import './options/options.css';
 import './director/director.css';
+import './channels/channels.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

@@ -44,7 +44,7 @@ import { writeTextAtomic } from '../timeline-edit-service.js';
 export interface PublishServiceOptions {
   readonly currentProject: () => string | undefined;
   /** Commits the saved files (project autocommit, step `publish`); false when it failed. */
-  readonly commit: (dir: string, message: string) => Promise<boolean>;
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<boolean>;
   readonly openPath: (folder: string) => Promise<string>;
   readonly log: Logger;
 }
@@ -102,7 +102,7 @@ export class PublishService {
         await writeTextAtomic(path.join(dir, PUBLISH_DIR, name), built.kit.files[name]);
         files.push(`${PUBLISH_DIR}/${name}`);
       }
-      const committed = await this.options.commit(dir, 'Save the publish kit');
+      const committed = await this.options.commit(dir, 'Save the publish kit', files);
       this.options.log.info(`publish kit saved (${String(files.length)} files)`);
       return { status: 'saved', files, committed };
     } catch (error) {

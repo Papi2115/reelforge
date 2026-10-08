@@ -28,6 +28,17 @@
     "shotIds": ["s02_moon"]
   },
   "replies": {
+    "brief": {
+      "topic": "Historia komputera pokładowego Apollo: jak maszyna z kilkoma kilobajtami pamięci poprowadziła lądowanie na Księżycu w 1969 roku mimo alarmów.",
+      "hook": "Kilka minut przed lądowaniem komputer Apollo zaczął zgłaszać alarmy.",
+      "keyFacts": [
+        "Ile pamięci miał komputer AGC?",
+        "Potwierdź, co oznaczały alarmy 1202 i 1201",
+        "Jak szybki był procesor AGC?"
+      ],
+      "tone": "refleksyjny, z nutą podziwu",
+      "audience": "Widzowie zainteresowani historią techniki."
+    },
     "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Zapisano research.md: 9 faktów ze źródłami.\nGłówne źródła: Wikipedia (AGC, Apollo 11).\nNiepewne: porównanie mocy telefonu i AGC.",
     "script": "Liczba słów: 71. Szacowany czas: ok. 30 sekund.\nWszystkie fakty mają źródła w research.md.",
@@ -147,6 +158,25 @@
         }
       ]
     },
-    "roles": "Zbudowany pilot: czapka z daszkiem, granatowa marynarka z krawatem, plakietka, podkładka; 3 kolory stroju.\ncast preview: wszystkie testy ok; od frontu i z boku czytelny jako pilot."
+    "roles": "Zbudowany pilot: czapka z daszkiem, granatowa marynarka z krawatem, plakietka, podkładka; 3 kolory stroju.\ncast preview: wszystkie testy ok; od frontu i z boku czytelny jako pilot.",
+    "world-assets": "Zbudowany 1 rekwizyt (lunar-module); nowe miejsca: brak.\nworld-assets check: 0 błędów; arkusz czytelny w miniaturze.",
+    "world-asset-critic": {
+      "assets": [
+        {
+          "tile": "A1",
+          "sees": "a glass prism",
+          "legible": true,
+          "style": "ok",
+          "note": "clear triangle with a beam"
+        },
+        {
+          "tile": "A2",
+          "sees": "a grey smudge",
+          "legible": false,
+          "style": "ok",
+          "note": "no defining shape at this size"
+        }
+      ]
+    }
   }
 }

@@ -6,14 +6,16 @@
  *
  * What each step shows (panel controls · All options rows):
  * - Script: brief, script editor, sources, Hook lab, approve · none here
- * - Voiceover: import, record, replace, fit to the script · none
+ * - Voiceover: import, record, replace, fit to the script, generated sentences (redo; after a redo
+ *   "Voice changed — timing out of date" + Re-time) · none
  * - Audio cleaned: the cleaned file · none
  * - Words timed: the timed words · none
  * - Storyboard: Hook lab, the Shots panel · scenes per minute + faster checks, dramaturgy
  *   (interrupts, open loops, reveal moments), continuity links, tension map
  * - Assets: asset package review, your files, downloaded assets, library · none here (research
  *   mode stays in Project settings → Research)
- * - Scenes built: build progress, final review, a pointer to the Director (story beats and
+ * - Scenes built: build progress, look assets (world styles only: status, findings, designed
+ *   names, Design / Redo look assets), final review, a pointer to the Director (story beats and
  *   editing moved there), sync report ·
  *   look mode, ambient variation, continuity links, people and mascot, editing (beat sync,
  *   repetition control), scenes per minute + faster checks
@@ -74,5 +76,5 @@ export const OPTIONS_SUMMARY = 'same as Project settings';
 
 /** Footer line of the section: saving now, or where the last change went. */
 export function optionsStatus(pending: number): string {
-  return pending > 0 ? 'Saving…' : 'Saved automatically to project.json and the project history.';
+  return pending > 0 ? 'Saving…' : 'Saved automatically to the project and its history.';
 }

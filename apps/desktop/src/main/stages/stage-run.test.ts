@@ -50,6 +50,19 @@ describe('StageRun', () => {
     expect(run.snapshot().paused).toBeNull();
   });
 
+  it('lists the shots in progress (started or requeued, not finished)', () => {
+    const run = new StageRun('scenes', DIR, 0);
+    const shot = (shotId: string, state: 'started' | 'finished' | 'requeued') =>
+      run.apply({ type: 'shot', stage: 'scenes', shotId, state, status: undefined });
+    expect(run.shotsInProgress()).toEqual([]);
+    shot('s01', 'started');
+    shot('s02', 'started');
+    shot('s03', 'started');
+    shot('s02', 'finished');
+    shot('s03', 'requeued');
+    expect(run.shotsInProgress()).toEqual(['s01', 's03']);
+  });
+
   it('keeps only the newest steps', () => {
     const run = new StageRun('storyboard', DIR, 0);
     for (let turn = 0; turn < MAX_RUN_STEPS + 20; turn += 1) {

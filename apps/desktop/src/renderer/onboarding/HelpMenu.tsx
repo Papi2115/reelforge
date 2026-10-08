@@ -5,6 +5,7 @@
  */
 import type { JSX } from 'react';
 import { MenuButton, type MenuItem } from '../layout/MenuButton.js';
+import { appShortcutKeys } from '../layout/shortcut-table.js';
 import { errorMessage, rendererLog } from '../log.js';
 import type { HelpDialogKind } from './HelpDialogs.js';
 
@@ -25,7 +26,7 @@ export function HelpMenu({ onTour, onDialog }: HelpMenuProps): JSX.Element {
     },
     {
       label: 'Keyboard shortcuts',
-      keys: '?',
+      keys: appShortcutKeys('shortcuts'),
       run: () => {
         onDialog('shortcuts');
       },

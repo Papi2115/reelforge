@@ -26,6 +26,8 @@ import {
   gainPatch,
   loudnessReadout,
   QA_MARKS,
+  soundDockSizeSchema,
+  soundDockToggle,
   topSoundsText,
 } from './sound-view.js';
 import type { MixPreviewControls } from './use-mix-preview.js';
@@ -47,6 +49,7 @@ const sectionsSchema = z.object({
   ducking: z.boolean(),
 });
 const DEFAULT_SECTIONS = { levels: true, library: false, ducking: false };
+const SIZE_KEY = 'reelforge.layout.sound-size.v1';
 
 const ACTIONS: readonly {
   readonly action: SoundAction;
@@ -57,7 +60,7 @@ const ACTIONS: readonly {
   {
     action: 'generate-cues',
     label: 'Generate cues',
-    hint: 'Claude places sound effects, ambience and music from the storyboard (cues.json)',
+    hint: 'Claude places sound effects, ambience and music from the storyboard',
     kind: 'main',
   },
   {
@@ -69,7 +72,7 @@ const ACTIONS: readonly {
   {
     action: 'mix',
     label: 'Render mix',
-    hint: 'Mix everything into audio/mix.wav at −14 LUFS, true peak ≤ −1 dBTP',
+    hint: 'Mix voice, effects, ambience and music into one sound track at −14 LUFS, true peak ≤ −1 dBTP',
     kind: 'primary',
   },
   {
@@ -111,7 +114,7 @@ function MixReadout({
   return (
     <div className="mix-readout" data-testid="mix-readout">
       {readout === null ? (
-        <span className="muted">audio/mix.wav (no loudness report)</span>
+        <span className="muted">Mix rendered (no loudness report)</span>
       ) : (
         <>
           <span className={readout.lufsOk ? 'qa-ok' : 'qa-failed'}>
@@ -206,15 +209,31 @@ export function SoundPanel(props: SoundPanelProps): JSX.Element {
   const busy = busyText(props.stages);
   const status = previewText(preview);
   const [open, setOpen] = usePref(SECTIONS_KEY, sectionsSchema, DEFAULT_SECTIONS);
+  const [size, setSize] = usePref(SIZE_KEY, soundDockSizeSchema, 'normal');
+  const toggle = soundDockToggle(size);
   const library = state?.library ?? [];
   return (
-    <section className="doc-panel docked sound-panel" aria-label="Sound design">
+    <section
+      className={`doc-panel docked sound-panel${size === 'tall' ? ' tall' : ''}`}
+      aria-label="Sound design"
+    >
       <div className="doc-header">
         <h2 className="doc-title">Sound design</h2>
         <MonitorToggle preview={preview} />
         <span className="sound-status muted" role="status">
           {status}
         </span>
+        <button
+          type="button"
+          className="small-button"
+          aria-pressed={size === 'tall'}
+          title={toggle.hint}
+          onClick={() => {
+            setSize(toggle.next);
+          }}
+        >
+          {toggle.label}
+        </button>
         <button type="button" className="small-button" onClick={props.onClose}>
           Back to preview
         </button>

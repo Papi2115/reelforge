@@ -187,6 +187,23 @@ describe('segmentCacheKey', () => {
     expect(castRoleInputs("kit.cast.role({ id: 'x' });", castRoles)?.roles).toEqual([]);
   });
 
+  it('depends on the world asset files (PLAN.md#13.15) of every shot, not their order', () => {
+    const forest = { file: 'assets/comic/forest.json', source: '{"version":1}' };
+    const sea = { file: 'assets/comic/sea.json', source: '{"version":1,"x":1}' };
+    const m = manifest();
+    const withAssets = (files: (typeof forest)[]): RenderManifest => ({
+      ...m,
+      worldAssets: { world: 'comic', files },
+    });
+    const key = keyOf({ manifest: withAssets([forest, sea]) });
+    expect(key).not.toBe(base);
+    expect(keyOf({ manifest: withAssets([sea, forest]) })).toBe(key);
+    expect(keyOf({ manifest: withAssets([forest, { ...sea, source: '{}' }]) })).not.toBe(key);
+    expect(keyOf({ manifest: withAssets([forest, sea]) }, 1)).not.toBe(keyOf({ manifest: m }, 1));
+    // No world assets: the same keys as before the field existed.
+    expect(keyOf({ manifest: m })).toBe(base);
+  });
+
   it('with a resolver, depends on used anchor spans only', () => {
     const at = (t: number) => () => ({ t, tEnd: t + 0.3 });
     const m = manifest();

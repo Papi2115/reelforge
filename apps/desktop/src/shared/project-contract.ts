@@ -3,8 +3,23 @@
  * Failures are values (`status: 'error'`), so the renderer can show the typed error kind and
  * message instead of a rejected promise.
  */
-import { shotsPerMinuteSchema, stylePresetIdSchema, videoLanguageSchema } from '@reelforge/shared';
+import {
+  channelIdSchema,
+  genrePresetIdSchema,
+  shotsPerMinuteSchema,
+  stylePresetIdSchema,
+  videoLanguageSchema,
+  type GenrePresetField,
+} from '@reelforge/shared';
 import { z } from 'zod';
+
+/** The New project form's fields a genre preset also sets (PLAN.md#13.8). */
+export const NEW_PROJECT_FORM_FIELDS = [
+  'style',
+  'shotsPerMinute',
+  'fasterChecks',
+] as const satisfies readonly GenrePresetField[];
+export type NewProjectFormField = (typeof NEW_PROJECT_FORM_FIELDS)[number];
 
 export const projectSummarySchema = z.object({
   dir: z.string(),
@@ -12,6 +27,8 @@ export const projectSummarySchema = z.object({
   language: videoLanguageSchema,
   style: z.string(),
   fps: z.number(),
+  /** project.json#channelId (PLAN.md#13.13); absent = the default channel. */
+  channelId: z.string().optional(),
 });
 export type ProjectSummary = z.infer<typeof projectSummarySchema>;
 
@@ -57,6 +74,24 @@ export const newProjectRequestSchema = z.strictObject({
    * only with Settings → Experimental worlds); omitted = the app's default style.
    */
   style: stylePresetIdSchema.optional(),
+  /**
+   * Channel of the new project (PLAN.md#13.13); its default style applies when `style` is
+   * omitted. Omitted = the default channel.
+   */
+  channelId: channelIdSchema.optional(),
+  /**
+   * Genre preset (PLAN.md#13.8, ADR-035): null = none (not even the channel's); omitted = the
+   * channel's. An id the app does not know is refused.
+   */
+  genrePreset: genrePresetIdSchema.nullable().optional(),
+  /**
+   * The fields above the user actually chose in the form (they beat the genre preset); the others
+   * are only shown defaults the preset may replace. Omitted = every one of them the request has.
+   */
+  explicitFields: z
+    .array(z.enum(NEW_PROJECT_FORM_FIELDS))
+    .max(NEW_PROJECT_FORM_FIELDS.length)
+    .optional(),
 });
 export type NewProjectRequest = z.infer<typeof newProjectRequestSchema>;
 
@@ -67,6 +102,8 @@ export const recentProjectEntrySchema = z.object({
   title: z.string(),
   openedAt: z.string(),
   exists: z.boolean(),
+  /** The project's channel when it was last opened; absent = the default channel. */
+  channelId: z.string().optional(),
 });
 export type RecentProjectEntry = z.infer<typeof recentProjectEntrySchema>;
 

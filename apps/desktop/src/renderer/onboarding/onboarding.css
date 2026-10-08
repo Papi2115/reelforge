@@ -192,6 +192,17 @@ button.welcome-choice,
   font-size: 12px;
 }
 
+.shortcuts-dialog {
+  width: min(880px, calc(100vw - 48px));
+}
+
+/* Two columns of groups (Project · Playback | Panels · Claude) so the list fits 1280×720. */
+.shortcut-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+}
+
 .shortcut-group h3 {
   margin: 10px 0 4px;
   font-size: 13px;
@@ -204,7 +215,7 @@ button.welcome-choice,
 
 .shortcut-row {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 170px 1fr;
   gap: 8px;
   padding: 2px 0;
 }

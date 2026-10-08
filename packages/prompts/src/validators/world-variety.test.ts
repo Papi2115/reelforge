@@ -125,6 +125,21 @@ describe('checkWorldVariety', () => {
     expect(codes(film(plans))).toEqual(expected);
   });
 
+  it('rejects a breakthrough in a shot shorter than its minimum (real run Sketchbook 4)', () => {
+    const shots = film(VARIED).map((shot, index) =>
+      index === 13 ? { ...shot, t1: shot.t0 + 3.92 } : shot,
+    );
+    const found = checkWorldVariety(shots, OPTIONS);
+    expect(found.map((entry) => entry.code)).toEqual(['moment-length']);
+    expect(found[0]).toMatchObject({ severity: 'error', path: 'shots[13].worldMoment' });
+    expect(found[0]?.message).toBe(
+      's14: strip needs a shot of at least 4.5 s, this one is 3.9 s (the scene cannot fit it and drops it); merge the shot with a neighbour so it lasts 4.5 s or more, or move strip to a longer shot',
+    );
+    expect(text.moments.filter((option) => option.minShotS !== undefined).map((o) => o.id)).toEqual(
+      ['popup', 'strip'],
+    );
+  });
+
   it('never asks a short film for breakthroughs or transitions', () => {
     expect(codes(film([['A'], ['B'], ['C'], ['A']]))).toEqual([]);
   });

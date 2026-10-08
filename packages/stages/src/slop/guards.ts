@@ -30,13 +30,14 @@ import {
   signatureDistance,
   type FrameMetrics,
 } from './frame-guards.js';
+import { breakthroughIntentFindings } from './breakthrough-intent.js';
 import { popupIntentFindings } from './popup-intent.js';
 import { countTraces, MIN_HUMAN_TRACES, uniformTimings } from './source-guards.js';
 import { onScreenTexts, parseScene } from './source-text.js';
 import { strokeLettering, type StrokeLettering } from './stroke-text.js';
 import { inventedTexts } from './text-provenance.js';
 import { buildVocabulary, type Vocabulary } from './vocabulary.js';
-import { worldSlopSpec, type WorldSlopSpec } from './world-labels.js';
+import { worldSlopSpec, type ShotChecked, type WorldSlopSpec } from './world-labels.js';
 
 /** Competing elements per frame (QUALITY.md §3: 6 competing items). */
 export const ELEMENT_BUDGET = 6;
@@ -108,7 +109,7 @@ function textFindings(
   strokes: StrokeLettering,
   file: string,
 ): QaFinding[] {
-  const texts = [...onScreenTexts(program), ...strokes.texts];
+  const texts = [...onScreenTexts(program, setup.spec), ...strokes.texts];
   const invented = inventedTexts(texts, setup.vocabulary, setup.spec);
   if (invented.length === 0) return [];
   const named = invented
@@ -148,13 +149,15 @@ function traceFindings(spec: WorldSlopSpec, program: AnyNode, file: string): QaF
 }
 
 /**
- * Text provenance (with stroke-drawn letters), pop-up intents, human traces (world scenes) and
- * stagger variance of a scene's source.
+ * Text provenance (with stroke-drawn letters), pop-up and breakthrough intents, human traces
+ * (world scenes) and stagger variance of a scene's source; with its storyboard `shot`, also the
+ * world's checks of how the shot enters.
  */
 export function slopSourceFindings(
   setup: AntiSlopSetup,
   source: string,
   file: string,
+  shot?: ShotChecked,
 ): QaFinding[] {
   const program = parseScene(source);
   if (program === undefined) return [];
@@ -164,11 +167,17 @@ export function slopSourceFindings(
     ),
   );
   const strokes = strokeLettering(source, program);
+  const breakthroughs = setup.spec?.breakthroughs;
   return [
     ...textFindings(setup, program, strokes, file),
     ...strokeLetteringSlop(strokes, file),
     ...popupIntentFindings(program, file),
+    ...(breakthroughs === undefined
+      ? []
+      : breakthroughIntentFindings(program, file, breakthroughs, setup.vocabulary)),
     ...(setup.spec === undefined ? [] : traceFindings(setup.spec, program, file)),
+    ...(setup.spec?.sourceChecks?.(program, file, setup.vocabulary) ?? []),
+    ...(shot === undefined ? [] : (setup.spec?.shotChecks?.(program, file, shot) ?? [])),
     ...uniform,
   ];
 }
@@ -274,13 +283,13 @@ export function slopShotFindings(
   setup: AntiSlopSetup | undefined,
   input: {
     readonly source: string;
-    readonly shot: Pick<StoryboardShot, 'scene' | 'treatment'>;
+    readonly shot: Pick<StoryboardShot, 'scene' | 'treatment' | 'transitionIn'>;
     readonly frames: readonly TimedImage[];
   },
 ): QaFinding[] {
   if (setup === undefined) return [];
   return [
-    ...slopSourceFindings(setup, input.source, input.shot.scene),
+    ...slopSourceFindings(setup, input.source, input.shot.scene, input.shot),
     ...slopFrameFindings(setup, input.frames, input.shot),
   ];
 }

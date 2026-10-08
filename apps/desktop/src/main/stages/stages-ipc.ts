@@ -67,7 +67,7 @@ export function replacementDialogOptions(kind: ReplacePick): {
 }
 
 export interface StagesHandlerOptions {
-  readonly service: StageService;
+  readonly service: Pick<StageService, 'state' | 'run' | 'stop' | 'enqueue'>;
   readonly documents: ScriptDocuments;
   readonly currentProject: () => string | undefined;
   /** Native file picker; undefined when cancelled. */
@@ -78,8 +78,8 @@ export interface StagesHandlerOptions {
   readonly probe: AudioProbe;
   readonly hasWhisperModel: (model: WhisperModelId) => boolean;
   readonly mic: MicPermissionGate;
-  /** Autocommit of a project (shot locks). */
-  readonly commit: (dir: string, message: string) => Promise<void>;
+  /** Autocommit of `paths` in a project (shot locks). */
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<void>;
   /**
    * Taste learning (PLAN.md#12.13): a lock approves shots as they are, a rebuild sends them back;
    * the profile owner ignores both while learning is off.
@@ -185,11 +185,13 @@ export function stagesHandlers(options: StagesHandlerOptions): StagesHandlers {
       if (dir !== undefined && request.action === 'build' && request.shots !== null) {
         await options.taste?.recordShots(dir, request.shots, 'rebuild');
       }
+      // A world film's look assets are one set for the whole film: never per shot.
+      const shots = request.action === 'world-assets' ? null : request.shots;
       return service.enqueue([
         {
           stage: 'scenes',
           ...(request.action === 'build' ? {} : { action: request.action }),
-          ...(request.shots === null ? {} : { shots: request.shots }),
+          ...(shots === null ? {} : { shots }),
         },
       ]);
     },

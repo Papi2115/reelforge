@@ -7,82 +7,36 @@
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import path from 'node:path';
-import type { PendingTurn, SessionPurpose, SessionRecord } from '@reelforge/shared';
-import { buildTurnArgs, type ModelAlias, type TurnFlags } from './args.js';
+import type { SessionPurpose, SessionRecord } from '@reelforge/shared';
+import { buildTurnArgs, type TurnFlags } from './args.js';
 import { AsyncChannel } from './channel.js';
 import type { StreamEvent } from './events.js';
 import { resolveBashGuardHookPath } from './permissions.js';
 import { err, ok, type Result } from './result.js';
-import { SessionStore, type SessionMutator, type StoreError } from './session-store.js';
 import {
-  STAGES,
-  type InterruptedTurn,
-  type ResumeError,
-  type SessionManagerOptions,
-  type Stage,
-  type TurnHandle,
-  type TurnLifecycleBody,
-  type TurnLifecycleEvent,
-  type TurnRef,
-  type TurnRequest,
+  cancelledOutcome,
+  defaultContinuation,
+  FINAL_STATUSES,
+  isCancelled,
+  isStage,
+  withoutSessionId,
+  type Job,
+} from './session-jobs.js';
+import { SessionStore, type SessionMutator, type StoreError } from './session-store.js';
+import type {
+  InterruptedTurn,
+  ResumeError,
+  SessionManagerOptions,
+  TurnHandle,
+  TurnLifecycleBody,
+  TurnLifecycleEvent,
+  TurnRef,
+  TurnRequest,
 } from './session-types.js';
-import { initialTurnView } from './steps.js';
 import { startTurn, type RunningTurn, type TurnOutcome } from './turn.js';
 import { afterTurn, isAuditEvent } from './turn-hooks.js';
 import { usageSnapshotOf, withoutEarlierTurns } from './turn-usage.js';
 import { prepareTurn, resolveModel, type PreparedTurn } from './turn-request.js';
-
-interface Job extends TurnRef {
-  readonly request: TurnRequest;
-  readonly key: string;
-  readonly model: ModelAlias;
-  readonly channel: AsyncChannel<StreamEvent>;
-  readonly settle: (outcome: TurnOutcome) => void;
-  readonly done: Promise<void>;
-  readonly release: () => void;
-  running: RunningTurn | undefined;
-  cancelled: boolean;
-  /** Outcome delivered (the process may still be exiting). */
-  finished: boolean;
-}
-
-/** Statuses after which nothing is left to resume. */
-const FINAL_STATUSES = new Set<TurnOutcome['status']>(['completed', 'cancelled', 'billing-guard']);
-
-function isStage(value: string): value is Stage {
-  return (STAGES as readonly string[]).includes(value);
-}
-
-function defaultContinuation(pending: PendingTurn): string {
-  return `The previous turn was interrupted (${pending.reason ?? 'unknown reason'}). Check the current state of the project files, then continue and finish the original task:\n\n${pending.prompt}`;
-}
-
-function cancelledOutcome(): TurnOutcome {
-  return {
-    status: 'cancelled',
-    sessionId: undefined,
-    result: undefined,
-    view: initialTurnView(),
-    failure: undefined,
-    limit: undefined,
-    exitCode: null,
-    stderrTail: '',
-    message: 'turn cancelled before it started',
-    rawStream: [],
-  };
-}
-
-/** Read through a call: `cancel()` flips the flag while `run()` awaits (no stale narrowing). */
-function isCancelled(job: Job): boolean {
-  return job.cancelled;
-}
-
-function withoutSessionId(record: SessionRecord | undefined): SessionRecord | undefined {
-  if (record === undefined) return undefined;
-  const copy = { ...record };
-  delete copy.sessionId;
-  return copy;
-}
 
 export class SessionManager extends EventEmitter<{ turn: [TurnLifecycleEvent] }> {
   private readonly queue: Job[] = [];

@@ -3,7 +3,7 @@
  * is there an sfx cue on it, is it spoken inside the shot, and does the fuzzy resolver agree.
  * Pure, so it is unit-tested without a browser.
  */
-import type { ResolvedAnchor, SfxCue } from '@reelforge/engine';
+import { pickShotOccurrence, type ResolvedAnchor, type SfxCue } from '@reelforge/engine';
 import type { AnchorIndex } from '@reelforge/pipeline';
 import { seconds, signedSeconds, timeRange } from '../format.js';
 
@@ -72,9 +72,13 @@ export function checkAnchors(
         : distance <= NEAR_MISS_S
           ? 'misses'
           : 'no-cue';
-    const fuzzy = index?.resolve(anchor.phrase, anchor.nth);
+    // The occurrence the shot means (engine pickShotOccurrence), not the film's first.
+    const fuzzy =
+      index === undefined
+        ? undefined
+        : pickShotOccurrence(index.occurrences(anchor.phrase), anchor.nth, shot);
     const fuzzyT =
-      fuzzy?.ok && Math.abs(fuzzy.value.t - anchor.t) > RESOLVER_AGREEMENT_S ? fuzzy.value.t : null;
+      fuzzy !== undefined && Math.abs(fuzzy.t - anchor.t) > RESOLVER_AGREEMENT_S ? fuzzy.t : null;
     return {
       ...anchor,
       local: anchor.t - shot.t0,

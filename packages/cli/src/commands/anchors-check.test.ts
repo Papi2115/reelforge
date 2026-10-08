@@ -69,3 +69,14 @@ describe('checkCues', () => {
     expect(countSyncProblems(missing, cues)).toBe(2);
   });
 });
+
+describe('checkAnchors with a phrase spoken before and inside the shot', () => {
+  it('compares with the occurrence the shot means (no false fuzzy note)', () => {
+    const index = new AnchorIndex([
+      { text: 'in', t: 0.61, tEnd: 0.7 },
+      { text: 'in', t: 3.2, tEnd: 3.35 },
+    ]);
+    const [check] = checkAnchors(shot, [anchor('in', 3.2)], [], index);
+    expect(check).toMatchObject({ verdict: 'no-cue', fuzzyT: null });
+  });
+});

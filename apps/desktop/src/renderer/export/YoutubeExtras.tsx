@@ -1,45 +1,18 @@
 /**
- * YouTube extras of the export dialog (PLAN.md#9.2): the chapters that go into the description,
- * the suggested title options, description and tags from `out/metadata.json` with a Copy button
- * each, and "Suggest with Claude" (the template when Claude cannot help, saying why).
+ * "YouTube texts" of the export dialog (PLAN.md#9.2 + #12.17, U11 of docs/ux/redesign-2.4.md): one
+ * section with "Suggest with Claude" (the template when Claude cannot help, saying why), the title
+ * ideas from `out/metadata.json` with a Copy button each, then the publish kit's paste-ready texts
+ * (description, chapters, tags, credits; the description and tags carry the suggestion).
  */
 import { useState, type JSX } from 'react';
 import type { YoutubeMetaFile } from '@reelforge/shared';
 import { errorMessage } from '../log.js';
+import { PublishKit } from '../publish/PublishKit.js';
+import { CopyButton } from './CopyButton.js';
 
 export interface YoutubeExtrasProps {
   readonly meta: YoutubeMetaFile | null;
-  readonly chapters: { readonly text: string | null; readonly problem: string | null };
   readonly onMeta: (meta: YoutubeMetaFile) => void;
-}
-
-export function CopyButton({
-  text,
-  label,
-}: {
-  readonly text: string;
-  readonly label: string;
-}): JSX.Element {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
-  return (
-    <button
-      type="button"
-      className="small-button"
-      aria-label={`Copy ${label}`}
-      onClick={() => {
-        void window.reelforge.copyText(text).then(
-          (result) => {
-            setState(result.status === 'copied' ? 'copied' : 'failed');
-          },
-          () => {
-            setState('failed');
-          },
-        );
-      }}
-    >
-      {state === 'copied' ? 'Copied ✓' : state === 'failed' ? 'Copy failed' : 'Copy'}
-    </button>
-  );
 }
 
 export function YoutubeExtras(props: YoutubeExtrasProps): JSX.Element {
@@ -68,9 +41,11 @@ export function YoutubeExtras(props: YoutubeExtrasProps): JSX.Element {
   };
 
   return (
-    <section className="youtube-extras" aria-label="YouTube">
+    <section className="youtube-extras" aria-labelledby="youtube-texts-title">
       <div className="youtube-head">
-        <h3 className="section-title">YouTube</h3>
+        <h3 className="section-title" id="youtube-texts-title">
+          YouTube texts
+        </h3>
         <button
           type="button"
           className="small-button"
@@ -88,15 +63,13 @@ export function YoutubeExtras(props: YoutubeExtrasProps): JSX.Element {
         )}
       </div>
       {note !== null && <p className="muted youtube-note">{note}</p>}
-      <p className="muted youtube-chapters">
-        {props.chapters.text === null
-          ? `Chapters: ${props.chapters.problem ?? 'none'}`
-          : `Chapters: ${String(props.chapters.text.trim().split('\n').length)} (in the description)`}
-      </p>
-      {meta === null ? (
-        <p className="muted">Suggestions appear after an export, or ask Claude now.</p>
-      ) : (
-        <>
+      <div className="publish-file">
+        <span className="publish-file-label">Title ideas</span>
+        {meta === null ? (
+          <p className="muted youtube-note">
+            Title ideas appear after an export, or ask Claude now.
+          </p>
+        ) : (
           <ol className="youtube-titles" aria-label="Title options">
             {meta.titles.map((title, index) => (
               <li key={title}>
@@ -105,20 +78,9 @@ export function YoutubeExtras(props: YoutubeExtrasProps): JSX.Element {
               </li>
             ))}
           </ol>
-          <div className="youtube-field">
-            <pre className="youtube-description" aria-label="Description">
-              {meta.description}
-            </pre>
-            <CopyButton text={meta.description} label="description" />
-          </div>
-          <div className="youtube-field">
-            <p className="youtube-tags" aria-label="Tags">
-              {meta.tags.join(', ')}
-            </p>
-            <CopyButton text={meta.tags.join(', ')} label="tags" />
-          </div>
-        </>
-      )}
+        )}
+      </div>
+      <PublishKit revision={meta?.generatedAt ?? ''} />
     </section>
   );
 }

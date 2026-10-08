@@ -363,6 +363,7 @@ export {
   ENCODER_FALLBACK_MESSAGE,
   isEncoderOpenFailure,
 } from './export/encoder-fallback.js';
+export { EncoderSessionMemory } from './export/encoder-memory.js';
 export {
   MIN_CHAPTERS,
   MIN_CHAPTER_SECONDS,
@@ -413,6 +414,7 @@ export {
   type RasterImage,
 } from './assets/pixels.js';
 export { refAt, refId, refLiterals, referencedAssetRefs } from './assets/refs.js';
+export * from './voice/index.js';
 export {
   boundaryStrength,
   chapterLinesOf,

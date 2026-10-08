@@ -41,6 +41,12 @@ const EXAMPLE_DURATIONS: Readonly<Record<string, number>> = {
   c1_hook: 7,
   c2_flipbook: 6.7,
   c3_popup: 8,
+  o1_forest: 9,
+  o2_ocean: 9,
+  o3_space: 9,
+  o4_village: 9,
+  o5_desert: 9,
+  o6_city: 9,
 };
 
 interface Hit {
@@ -118,9 +124,15 @@ function summary(violations: readonly HandViolation[]): string[] {
 }
 
 describe('one hand: every example scene', () => {
-  const files = readdirSync(EXAMPLES).filter((name) => name.endsWith('.js'));
+  const OPEN = path.join(EXAMPLES, 'open');
+  const files = [
+    ...readdirSync(EXAMPLES).filter((name) => name.endsWith('.js')),
+    ...readdirSync(OPEN)
+      .filter((name) => name.endsWith('.js'))
+      .map((name) => path.join('open', name)),
+  ];
   it.each(files)('%s', async (name) => {
-    const duration = EXAMPLE_DURATIONS[name.replace('.js', '')] ?? 8;
+    const duration = EXAMPLE_DURATIONS[path.basename(name, '.js')] ?? 8;
     const pages = await buildScene(path.join(EXAMPLES, name), duration);
     expect(pages.length).toBeGreaterThan(0);
     for (const page of pages) expect(summary(checkHand(page, 0, duration))).toEqual([]);

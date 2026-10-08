@@ -5,7 +5,7 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { errorCode } from './result.js';
 
-const RENAME_RETRIES = 5;
+const RENAME_RETRIES = 10;
 const TRANSIENT_CODES = new Set(['EPERM', 'EBUSY', 'EACCES']);
 
 export async function writeAtomic(file: string, content: string | Uint8Array): Promise<void> {
@@ -23,7 +23,7 @@ export async function writeAtomic(file: string, content: string | Uint8Array): P
         await rm(tmp, { force: true });
         throw error;
       }
-      await sleep(20 * attempt);
+      await sleep(25 * attempt);
     }
   }
 }

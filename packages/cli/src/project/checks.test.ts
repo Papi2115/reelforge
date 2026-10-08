@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EXPERIMENTAL_WORLDS_ENV } from '../commands/kit-docs-world.js';
 import { copyFixtureProject, runCli } from '../testing/fixture.js';
 import { styleProblems } from './checks.js';
+import { WORLDS } from '@reelforge/kit';
 
 /** The same styles with Sketchbook shipped (no longer experimental). */
 const SHIPPED: StyleRegistry = {
@@ -21,6 +22,21 @@ describe('styleProblems', () => {
   });
 
   it('accepts an experimental world style only with experimental worlds on', () => {
+    expect(STYLE_REGISTRY.isExperimental('game-b1')).toBe(true);
+    expect(styleProblems('game-b1', STYLE_REGISTRY, true)).toEqual([]);
+    expect(styleProblems('game-b1', STYLE_REGISTRY, false)[0]?.message).toBe(
+      'style "game-b1" is an experimental world; turn on Experimental worlds in Settings',
+    );
+    expect(STYLE_REGISTRY.isExperimental('game-b2')).toBe(true);
+    expect(styleProblems('game-b2', STYLE_REGISTRY, true)).toEqual([]);
+    expect(styleProblems('game-b2', STYLE_REGISTRY, false)[0]?.message).toBe(
+      'style "game-b2" is an experimental world; turn on Experimental worlds in Settings',
+    );
+    expect(STYLE_REGISTRY.isExperimental('comic')).toBe(true);
+    expect(styleProblems('comic', STYLE_REGISTRY, true)).toEqual([]);
+    expect(styleProblems('comic', STYLE_REGISTRY, false)[0]?.message).toBe(
+      'style "comic" is an experimental world; turn on Experimental worlds in Settings',
+    );
     expect(STYLE_REGISTRY.isExperimental('sketchbook')).toBe(true);
     expect(styleProblems('sketchbook', STYLE_REGISTRY, true)).toEqual([]);
     expect(styleProblems('sketchbook', STYLE_REGISTRY, false)).toEqual([
@@ -44,7 +60,31 @@ describe('styleProblems', () => {
     expect(off?.message).toBe('unknown style preset "vaporwave"');
     expect(off?.fix).toBe('use one of: voxel-pixel-crisp640, noir-voxel, soft-480');
     const [on] = styleProblems('vaporwave', STYLE_REGISTRY, true);
-    expect(on?.fix).toBe('use one of: voxel-pixel-crisp640, noir-voxel, soft-480, sketchbook');
+    expect(on?.fix).toBe(
+      'use one of: voxel-pixel-crisp640, noir-voxel, soft-480, sketchbook, comic, game-b2, game-b1',
+    );
+  });
+
+  it('rejects a world that is not wired yet, switch or not, even when shipped', () => {
+    // Every registered world is wired today (Game B1 last, PLAN.md#13.5 part c).
+    const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
+    expect(unwired).toEqual([]);
+    for (const style of unwired) {
+      expect(STYLE_REGISTRY.entry(style)).toBeDefined();
+      for (const registry of [STYLE_REGISTRY, SHIPPED]) {
+        for (const experimental of [false, true]) {
+          expect(styleProblems(style, registry, experimental)).toEqual([
+            {
+              severity: 'error',
+              file: 'project.json',
+              at: 'style',
+              message: `style "${style}" is a world still in development; it cannot be used for a project yet`,
+              fix: 'do not change the style yourself: ask the user to pick another style for this project',
+            },
+          ]);
+        }
+      }
+    }
   });
 });
 

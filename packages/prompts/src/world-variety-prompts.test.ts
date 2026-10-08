@@ -22,7 +22,9 @@ import {
   type PromptWorld,
 } from './worlds/index.js';
 
-const WORLD_VARS = /^(world|craftBrief)/;
+/** World variables, and the genre preset's (ADR-035; genre-prompts.test.ts), stay unset. */
+// ...and the research and no-questions sections (real runs Comic 1, Game B2 1): unset for legacy.
+const WORLD_VARS = /^(world|craftBrief|genre|research|noQuestions)/;
 
 function fixture(name: string): string {
   return readFileSync(path.join(import.meta.dirname, 'fixtures', name), 'utf8').replaceAll(
@@ -61,7 +63,7 @@ describe('world sections off (script, sound-cues)', () => {
 
   it('bumps the versions of the prompts with world variety wording', () => {
     const ids = ['storyboard', 'scene-build', 'scene-fix', 'critic', 'script', 'sound-cues'];
-    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([18, 18, 6, 9, 3, 5]);
+    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([19, 18, 7, 11, 4, 6]);
   });
 });
 
@@ -92,9 +94,11 @@ describe('sketchbook moment wording', () => {
     }
     expect(storyboard).toContain('- `ruler-graph` (moment; look `sketch-graph`): use when');
     expect(storyboard).toContain(
-      '- `popup` (breakthrough; look `sketch-loud`): use when the narration turns on a reveal',
+      '- `popup` (breakthrough; look `sketch-loud`; a shot of at least 4.5 s): use when the narration turns on a reveal',
     );
-    expect(storyboard).toContain('- `strip` (breakthrough; look `sketch-graph`): use when');
+    expect(storyboard).toContain(
+      '- `strip` (breakthrough; look `sketch-graph`; a shot of at least 4.5 s): use when',
+    );
     expect(storyboard).toContain('- `torn-page` (moment; any look)');
     expect(storyboard).toContain(
       'this film (about 155 s) needs at least 2 and at most 5, of at least 2 different kinds; never in adjacent shots.',
@@ -141,7 +145,7 @@ describe('sketchbook moment wording', () => {
       ...sceneWorldVars(SKETCHBOOK, 'strip'),
     });
     expect(build).toContain('Page moment planned for this shot (`strip`;');
-    expect(build).toContain("build it with `page.strip({ y: 156, events: [{ label: '14 JULY'");
+    expect(build).toContain("build it with `page.strip({ y: 156, events: [{ label: 'SPRING'");
     expect(build).toContain('2-8 events in order');
     const popup = rendered('scene-build', {
       shotId: 's07',
@@ -153,7 +157,11 @@ describe('sketchbook moment wording', () => {
       ...sceneWorldVars(SKETCHBOOK, 'popup'),
     });
     expect(popup).toContain('`page.popup({ intent, x, y, w, depth, at, elements, pull })`');
-    expect(popup).toContain("`page.popup({ intent: 'the dancers grow from 1 to 400");
+    expect(popup).toContain("`page.popup({ intent: 'three days of rain lift the river");
+    expect(popup).toContain("another mechanism: `page.popup({ intent: 'behind the locked door");
+    expect(popup).toContain(
+      'a `gauge` (thermometer or water level, `level`) rising for any quantity',
+    );
     expect(popup).toContain('`focus` = the id the red pen loops');
     expect(popup).toContain('Every pop-up is original: invent the paper mechanism');
     expect(popup).toContain('Never the same mechanism twice in one film');
@@ -216,7 +224,8 @@ describe('sketchbook moment wording', () => {
     expect(text.motion).toContain("appear: 'bloom'");
     expect(text.motion).toContain('quick: true');
     expect(text.motion).toContain('hero: true');
-    expect(text.motion).toContain("layout: 'facing'");
+    expect(text.motion).toContain("layout: 'landscape'");
+    expect(text.motion).toContain("'top-down-map' a place from above");
     expect(text.motion).toContain('always create the page with `duration: ctx.shot.duration`');
   });
 });

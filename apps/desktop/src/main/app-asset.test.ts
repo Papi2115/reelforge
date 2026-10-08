@@ -51,6 +51,7 @@ describe('contentTypeFor', () => {
   it('knows the renderer asset types and falls back to octet-stream', () => {
     expect(contentTypeFor('a/index-3f2a.JS')).toBe('text/javascript; charset=utf-8');
     expect(contentTypeFor('a/style.css')).toBe('text/css; charset=utf-8');
+    expect(contentTypeFor('assets/reelforge-pixel-1a2b.ttf')).toBe('font/ttf');
     expect(contentTypeFor('a/blob.bin')).toBe('application/octet-stream');
   });
 });

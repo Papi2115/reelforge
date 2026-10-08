@@ -43,9 +43,10 @@ import type {
   RepairableFile,
   RepairFileResult,
 } from '../shared/snapshot-contract.js';
-import { isOfferedStyle } from '../shared/style-choices.js';
+import { newProjectChannel } from './channels/new-project-channel.js';
 import { checkFileText, repairFile } from './file-repair.js';
 import { describeError, type Logger } from './logger.js';
+import { newProjectChoices, refuseNewProjectRequest } from './new-project-options.js';
 import { buildProjectManifest } from './project-manifest.js';
 import { readProjectSnapshot } from './project-snapshot.js';
 
@@ -54,6 +55,11 @@ export type FolderPurpose = 'new-project-parent' | 'open-project';
 export interface ProjectServiceOptions {
   /** `<userData>/recent-projects.json` */
   readonly recentFile: string;
+  /**
+   * `<userData>/channels.json` (PLAN.md#13.13): new projects get a channel (the form's or the
+   * default) and its default style. Omitted = no channels (project.json gets no `channelId`).
+   */
+  readonly channelsFile?: string;
   readonly templateDir: string;
   /** Style presets whose `<id>/STYLE.md` bibles new projects get. */
   readonly stylesDir: string;
@@ -99,8 +105,15 @@ function errorInfo(error: ProjectError): ProjectErrorInfo {
 }
 
 function summary(opened: OpenedProject): ProjectSummary {
-  const { title, language, style, fps } = opened.project;
-  return { dir: opened.dir, title, language, style, fps };
+  const { title, language, style, fps, channelId } = opened.project;
+  return {
+    dir: opened.dir,
+    title,
+    language,
+    style,
+    fps,
+    ...(channelId === undefined ? {} : { channelId }),
+  };
 }
 
 /** `<parent>/<title>`, or `<title> 2`, `<title> 3`, … when that folder already exists. */
@@ -126,28 +139,26 @@ export class ProjectService {
   }
 
   async newProject(request: NewProjectRequest): Promise<ProjectOpenResult> {
-    // Checked before the picker: a style the app does not offer never creates a folder.
-    if (request.style !== undefined && !isOfferedStyle(request.style, this.experimentalWorlds())) {
-      return {
-        status: 'error',
-        error: {
-          kind: 'invalid-argument',
-          message: `style "${request.style}" is not offered (preview worlds need Settings → Projects → Experimental worlds)`,
-        },
-      };
-    }
-    const style = request.style ?? this.options.defaultStyle?.();
+    const experimental = this.experimentalWorlds();
+    // Checked before the picker: an unoffered style or unknown genre never creates a folder.
+    const refused = refuseNewProjectRequest(request, experimental);
+    if (refused !== undefined) return { status: 'error', error: refused };
+    const channel = await newProjectChannel(
+      this.options.channelsFile,
+      request.channelId,
+      experimental,
+      this.options.log,
+    );
+    if (!channel.ok) return { status: 'error', error: channel.error };
     const parent = await this.options.pickFolder('new-project-parent');
     if (parent === undefined) return { status: 'cancelled' };
     // A world's style gets its own defaults over these (createProject, world-defaults.ts).
     const created = await createProject({
       dir: newProjectDir(parent, request.title),
-      title: request.title,
-      language: request.language,
-      ...(style === undefined ? {} : { style }),
-      ...this.options.newProjectDefaults?.(),
-      ...(request.shotsPerMinute === undefined ? {} : { shotsPerMinute: request.shotsPerMinute }),
-      ...(request.fasterChecks === undefined ? {} : { fasterChecks: request.fasterChecks }),
+      ...newProjectChoices(request, channel.value, experimental, {
+        style: this.options.defaultStyle?.(),
+        ...this.options.newProjectDefaults?.(),
+      }),
       templateDir: this.options.templateDir,
       stylesDir: this.options.stylesDir,
       ...this.gitOption(),
@@ -187,6 +198,14 @@ export class ProjectService {
       };
     }
     return this.open(known.value.dir);
+  }
+
+  /**
+   * Opens a project main already knows (a film of the production line, PLAN.md#13.9); the folder
+   * comes from main's own queue files, never from the renderer.
+   */
+  openKnown(dir: string): Promise<ProjectOpenResult> {
+    return this.open(dir);
   }
 
   async recent(): Promise<RecentProjectEntry[]> {
@@ -298,11 +317,16 @@ export class ProjectService {
 
   /**
    * Hook for later stages (pipeline runner, Claude turns): commits the open project with a
-   * structured message (`ReelForge-Step` trailer). No-op result when nothing changed.
+   * structured message (`ReelForge-Step` trailer). No-op result when nothing changed. With
+   * `paths` only those project files are committed (other writers' work stays out).
    */
   autocommit(
     message: string,
-    options: { readonly kind: AutocommitKind; readonly step?: string },
+    options: {
+      readonly kind: AutocommitKind;
+      readonly step?: string;
+      readonly paths?: readonly string[];
+    },
   ): Promise<Result<CommitResult>> {
     const project = this.current;
     if (!project) return Promise.resolve(err({ ...noProject() }));
@@ -351,9 +375,11 @@ export class ProjectService {
     this.current = project;
     this.options.onCurrentChanged?.(project.dir);
     this.options.log.info(`${action === 'create' ? 'created' : 'opened'} project ${project.dir}`);
+    const { channelId } = project.project;
     const remembered = await rememberRecentProject(this.options.recentFile, {
       dir: project.dir,
       title: project.project.title,
+      ...(channelId === undefined ? {} : { channelId }),
     });
     if (!remembered.ok)
       this.options.log.warn(`recent projects not saved: ${remembered.error.message}`);

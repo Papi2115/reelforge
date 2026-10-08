@@ -18,8 +18,10 @@ describe('lockShots', () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'rf locks ż '));
     temps.push(dir);
     const commits: string[] = [];
-    const commit = (_dir: string, message: string): Promise<void> => {
+    const committedPaths: (readonly string[])[] = [];
+    const commit = (_dir: string, message: string, paths: readonly string[]): Promise<void> => {
       commits.push(message);
+      committedPaths.push(paths);
       return Promise.resolve();
     };
     expect(
@@ -33,6 +35,11 @@ describe('lockShots', () => {
     await lockShots({ dir, shotIds: ['s03'], locked: false, now: NOW, commit });
     expect(shotLocksFileSchema.parse(read()).shots.map((entry) => entry.shotId)).toEqual(['s01']);
     expect(commits).toEqual(['Lock shots s03, s01', 'Unlock shot s03']);
+    // A lock commits the locked scenes with locks.json (HEAD keeps them); an unlock only locks.json.
+    expect(committedPaths).toEqual([
+      ['locks.json', 'scenes/s01.js', 'scenes/s03.js'],
+      ['locks.json'],
+    ]);
     expect(lockCommitSubject(['s02'], true)).toBe('Lock shot s02');
   });
 

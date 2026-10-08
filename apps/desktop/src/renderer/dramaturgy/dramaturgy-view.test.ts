@@ -77,13 +77,13 @@ describe('dramaturgy view', () => {
       '0:20 enter-screen: into the CRT (transition crt-zoom)',
     );
     expect(interruptLine({ ...REPORT, source: 'storyboard' })).toContain('not built yet');
-    expect(interruptLine(null)).toContain('No interrupt report yet');
+    expect(interruptLine(null)).toBe('Not checked yet: run Storyboard or the final review.');
   });
 
   it('lists loop warnings or a reassuring line', () => {
     expect(loopLines(REPORT)).toEqual(REPORT.loops?.warnings);
     expect(loopLines({ ...REPORT, loops: { count: 2, open: 0, warnings: [] } })).toEqual([
-      '2 open loops, all closed with a foreshadow.',
+      '2 questions, all answered later in the film.',
     ]);
   });
 

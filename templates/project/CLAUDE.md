@@ -91,6 +91,7 @@ Read `styles/<style id>/STYLE.md` (path given in `project.json` → `style`). Sh
 3. `reelforge anchors --shot <shot id>` (the full id from `storyboard.json`, e.g. `s03_calc_desk`) — every key visual event must land within ±150 ms of its spoken word.
 4. Project props: `reelforge lint kit-ext/props/<name>.js` and `reelforge prop-preview <name>` (Read the sheet).
 5. `reelforge validate` after editing `storyboard.json` / `cues.json`.
+   World Game B2 (`project.json` → `style: "game-b2"`): every scene writes its level (`const LEVEL = { name, grid, legend, lights, sprites }`, from the narration's places and objects); check it with `reelforge validate level scenes/sNN_slug.js` before the frames (each error names the grid row or field).
 6. For a whole-video review: `reelforge contact-sheet --all` and Read the sheets.
 `reelforge status` shows what exists and what is missing.
 

@@ -15,8 +15,11 @@ import {
 } from '@reelforge/shared';
 import { CUE_RULES } from '../cue-rules.js';
 import { BLUEPRINT_PALETTE } from './blueprint.js';
+import { COMIC_PALETTE, COMIC_TRANSITION_SFX } from './comic.js';
 import { DIORAMA_PALETTE } from './diorama.js';
 import { FLAT_2D_PALETTE } from './flat-2d.js';
+import { GAME_B1_PALETTE, GAME_B1_TRANSITION_SFX } from './game-b1.js';
+import { GAME_B2_PALETTE, GAME_B2_TRANSITION_SFX } from './game-b2.js';
 import { PAPER_CUTOUT_PALETTE } from './paper-cutout.js';
 import { RETRO_UI_PALETTE } from './retro-ui.js';
 import { SKETCHBOOK_PALETTE, WORLD_TRANSITION_SFX } from './sketchbook.js';
@@ -37,6 +40,9 @@ export { dioramaKind } from './diorama.js';
 export { VOXEL_PALETTE };
 export { WOW_PALETTE_SFX, WOW_STYLE_SFX, wowSlot } from './wow-sfx.js';
 export { SKETCHBOOK_PALETTE, WORLD_TRANSITION_SFX };
+export { COMIC_PALETTE, COMIC_TRANSITION_SFX };
+export { GAME_B2_PALETTE, GAME_B2_TRANSITION_SFX };
+export { GAME_B1_PALETTE, GAME_B1_TRANSITION_SFX };
 
 export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   voxel: VOXEL_PALETTE,
@@ -47,6 +53,9 @@ export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   whiteboard: WHITEBOARD_PALETTE,
   'paper-cutout': PAPER_CUTOUT_PALETTE,
   sketchbook: SKETCHBOOK_PALETTE,
+  comic: COMIC_PALETTE,
+  'game-b2': GAME_B2_PALETTE,
+  'game-b1': GAME_B1_PALETTE,
 };
 
 /** A palette by id (undefined for unknown ids). */
@@ -141,8 +150,20 @@ export function lookChangeSlot(
 
 /** The sound of a world's page-native transition style (undefined: not one). */
 export function worldTransitionSlot(style: string | undefined): PaletteSlot | undefined {
-  if (style === undefined || !Object.hasOwn(WORLD_TRANSITION_SFX, style)) return undefined;
-  return WORLD_TRANSITION_SFX[style as keyof typeof WORLD_TRANSITION_SFX];
+  if (style === undefined) return undefined;
+  if (Object.hasOwn(WORLD_TRANSITION_SFX, style)) {
+    return WORLD_TRANSITION_SFX[style as keyof typeof WORLD_TRANSITION_SFX];
+  }
+  if (Object.hasOwn(COMIC_TRANSITION_SFX, style)) {
+    return COMIC_TRANSITION_SFX[style as keyof typeof COMIC_TRANSITION_SFX];
+  }
+  if (Object.hasOwn(GAME_B2_TRANSITION_SFX, style)) {
+    return GAME_B2_TRANSITION_SFX[style as keyof typeof GAME_B2_TRANSITION_SFX];
+  }
+  if (Object.hasOwn(GAME_B1_TRANSITION_SFX, style)) {
+    return GAME_B1_TRANSITION_SFX[style as keyof typeof GAME_B1_TRANSITION_SFX];
+  }
+  return undefined;
 }
 
 const recipeSets = new WeakMap<SoundPalette, ReadonlySet<SfxRecipe>>();

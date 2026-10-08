@@ -16,3 +16,30 @@ export * from '../props/turntable.js';
 export * from '../cast/checks.js';
 export * from '../cast/lineup.js';
 export { manifestCastRoles, readCastRoles, type CastRoleFiles } from '../project/cast-roles.js';
+export {
+  manifestWorldAssets,
+  readWorldAssetFiles,
+  worldAssetFileProblems,
+  worldAssetSet,
+  type WorldAssetFiles,
+} from '../project/world-assets.js';
+export { unknownWorldAssetRefs, type WorldAssetRef } from '../project/world-asset-refs.js';
+export {
+  SHEET_SHOT_ID as WORLD_ASSET_SHEET_SHOT_ID,
+  worldAssetSheetPages,
+  worldAssetSoloPages,
+  type SheetPage as WorldAssetSheetPage,
+  type SoloKind as WorldAssetSoloKind,
+} from '../world-assets/sheet-scenes.js';
+export { composeWorldAssetSheet, worldAssetSheetPaths } from '../world-assets/sheet.js';
+export {
+  assetBounds,
+  composeCropSheet,
+  CROPS_PER_IMAGE,
+  cropTileCode,
+  filmSizeCrop,
+  worldAssetCropSheet,
+  worldAssetSoloScene,
+  type CropTile,
+} from '../world-assets/crops.js';
+export { readSheetRounds, startSheetRounds } from '../world-assets/rounds.js';

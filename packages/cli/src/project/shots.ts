@@ -16,6 +16,7 @@ import {
   type AmbientVariationSettings,
   type KitExtensionSource,
   type ManifestCastRoles,
+  type ManifestWorldAssets,
   type NamedPalette,
   type ProjectFile,
   type RenderManifest,
@@ -26,6 +27,7 @@ import { describeUnknown, ProjectError } from '../errors.js';
 import { manifestCastRoles, NO_CAST_ROLES } from './cast-roles.js';
 import type { FileCheck, ProjectFiles } from './files.js';
 import { projectRelative, resolveInProject, samePath } from './paths.js';
+import { manifestWorldAssets } from './world-assets.js';
 
 export interface RenderSetup {
   /** Project folder. */
@@ -42,6 +44,8 @@ export interface RenderSetup {
   readonly castRoles?: ManifestCastRoles | undefined;
   /** Ambient variation switch (PLAN.md#12.8); absent when the project has it off. */
   readonly ambientVariation?: AmbientVariationSettings | undefined;
+  /** World asset files (PLAN.md#13.15); undefined outside a world or without any. */
+  readonly worldAssets?: ManifestWorldAssets | undefined;
 }
 
 export interface ShotPlan {
@@ -124,6 +128,7 @@ export function renderSetup(
     words,
     kitExtensions: files.kitExtensions.extensions,
     castRoles: manifestCastRoles(files.castRoles ?? NO_CAST_ROLES),
+    worldAssets: manifestWorldAssets(files.worldAssets),
     ...(projectAmbientVariation(project)
       ? { ambientVariation: { enabled: true, seed: project.seed } }
       : {}),
@@ -235,6 +240,7 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
     ...(setup.words ? { words: setup.words } : {}),
     ...(setup.kitExtensions.length > 0 ? { kitExtensions: [...setup.kitExtensions] } : {}),
     ...(setup.castRoles === undefined ? {} : { castRoles: setup.castRoles }),
+    ...(setup.worldAssets === undefined ? {} : { worldAssets: setup.worldAssets }),
     // Only storyboard shots vary: a standalone scene (a prop turntable, a draft the storyboard
     // does not list yet) has no storyboard position and renders neutral, so the camera drift
     // cannot make one view differ from itself at another time.

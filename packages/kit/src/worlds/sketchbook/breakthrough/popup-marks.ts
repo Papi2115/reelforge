@@ -12,6 +12,7 @@ import { fillMark, strokeMark, writeMarks, type Mark } from '../draw/marks.js';
 import { rnd } from '../draw/math.js';
 import { ellipsePts, placement, type Pts } from '../draw/paths.js';
 import { INK } from '../inks.js';
+import type { AssetArt } from './popup-assets.js';
 import { ARM_PIVOT, type PopupElement, type PopupOptions } from './popup-schema.js';
 import { sunRadius, type Card } from './popup-geometry.js';
 import type { TagArt } from './popup-paint.js';
@@ -131,10 +132,22 @@ function printCentred(
   });
 }
 
-function cutoutMarks(element: Extract<PopupElement, { kind: 'cutout' }>, seed: number): Mark[] {
+function cutoutMarks(
+  element: Extract<PopupElement, { kind: 'cutout' }>,
+  seed: number,
+  art: AssetArt | undefined,
+): Mark[] {
   const marks: Mark[] = [];
   const ground = element.text === undefined ? element.h - 8 : element.h - 30;
-  if (element.draw === 'figure') {
+  if (element.asset !== undefined && art !== undefined) {
+    const place = {
+      cx: element.w / 2,
+      ground,
+      h: Math.min(ground - 8, element.w * 1.5),
+      maxW: element.w - 8,
+    };
+    marks.push(...art(element.asset, place, POSES[element.pose]));
+  } else if (element.draw === 'figure') {
     const pose = { ...DEFAULT_POSE, ...POSES[element.pose] };
     const figure = figureMarks({
       x: element.w / 2,
@@ -182,7 +195,7 @@ function cutoutMarks(element: Extract<PopupElement, { kind: 'cutout' }>, seed: n
 }
 
 /** Marks on the fronts of blocks and cut-outs (uv: across, down from the top), by element. */
-export function frontMarks(o: PopupOptions, seed: number): Map<number, Mark[]> {
+export function frontMarks(o: PopupOptions, seed: number, art?: AssetArt): Map<number, Mark[]> {
   const out = new Map<number, Mark[]>();
   o.elements.forEach((element, index) => {
     const s = seed + 531 + index * 11;
@@ -203,7 +216,7 @@ export function frontMarks(o: PopupOptions, seed: number): Map<number, Mark[]> {
         width: 3,
       });
       out.set(index, marks);
-    } else if (element.kind === 'cutout') out.set(index, cutoutMarks(element, s));
+    } else if (element.kind === 'cutout') out.set(index, cutoutMarks(element, s, art));
   });
   return out;
 }

@@ -4,7 +4,8 @@
  * ("Check every visual lands on its spoken word": every event of every shot against its spoken
  * word, ±150 ms). Clicking a row seeks the preview there and selects the shot; "Fix sync issues"
  * runs the sync-check review on the shots that are off. The final review (PLAN.md#11.5) shows its
- * summary and the ⚠/✗ shots left; "Run final review" starts it by hand. Story beats and Editing
+ * summary and the ⚠/✗ shots left; "Run final review" starts it by hand. A world film shows its
+ * "Look assets" (PLAN.md#13.15, LookAssets.tsx) with "Design look assets". Story beats and Editing
  * moved to the Director tab (a pointer line links there). "All options" in a column on the right at
  * full height: the project.json switches that steer the scenes (OptionsSection.tsx).
  */
@@ -16,6 +17,7 @@ import { DirectorPointer } from '../director/DirectorPointer.js';
 import { SCENES_POINTER } from '../director/director-view.js';
 import { OptionsSection } from '../options/OptionsSection.js';
 import { FinalReviewSection } from './FinalReview.js';
+import { LookAssetsSection } from './LookAssets.js';
 import { exportPreflight, finalReviewProgress } from './final-review-view.js';
 import { StageProgress } from './StageProgress.js';
 import {
@@ -44,7 +46,7 @@ function Totals(props: {
 }): JSX.Element {
   const totals = scenesTotals(props.reports?.scenes ?? null, props.built);
   if (totals.kind === 'none') {
-    return <p className="muted">No shot is built yet. Run Scenes built in the pipeline.</p>;
+    return <p className="muted">No shot is built yet. Run the Scenes built step to build them.</p>;
   }
   if (totals.kind === 'unchecked') {
     return (
@@ -130,6 +132,8 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
     propsSummary(props.reports?.scenes ?? null, props.reports?.props ?? null),
   );
   const offShots = syncProblemShots(props.reports?.sync ?? null);
+  // World films only (null for voxel projects: the panel stays as it was).
+  const lookAssets = props.reports?.lookAssets;
 
   const start = (action: SceneActionKey, shots: readonly string[] | null): void => {
     setNotice(null);
@@ -202,6 +206,17 @@ export function ScenesPanel(props: ScenesPanelProps): JSX.Element {
             />
           )}
           <Totals reports={props.reports} built={props.built} />
+          {lookAssets != null && (
+            <LookAssetsSection
+              look={lookAssets}
+              running={running}
+              busy={busy}
+              hasShots={props.shots.length > 0}
+              onDesign={() => {
+                start('world-assets', null);
+              }}
+            />
+          )}
           <FinalReviewSection
             preflight={exportPreflight(
               props.reports?.finalReview ?? null,

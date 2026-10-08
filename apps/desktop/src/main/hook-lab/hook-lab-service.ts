@@ -10,6 +10,7 @@ import { promptModel } from '@reelforge/prompts';
 import { HOOK_STYLE_LABELS, type AppSettings } from '@reelforge/shared';
 import {
   discardHooks,
+  FILES,
   generateHooks,
   pickHook,
   readHookLabState,
@@ -32,8 +33,8 @@ export interface HookLabServiceOptions {
   readonly scriptBusy: (dir: string) => boolean;
   /** Commits the script editor's pending edits first (their own "Edit script" commit). */
   readonly flushScript: () => Promise<void>;
-  /** Autocommit (`manual`, step `script`); false when it failed (logged by the caller). */
-  readonly commit: (dir: string, message: string) => Promise<boolean>;
+  /** Autocommit of `paths` (`manual`, step `script`); false when it failed (logged by the caller). */
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<boolean>;
   /** Something changed on disk: the pipeline sidebar must be re-read. */
   readonly afterChange: () => void;
   readonly now: () => Date;
@@ -95,7 +96,8 @@ export class HookLabService {
       now: this.options.now,
     });
     if (!picked.ok) return { status: 'error', message: picked.error.message };
-    const committed = await this.options.commit(dir, picked.value.commitMessage);
+    // The hook sets live in git-ignored `.reelforge/hooks/`: only the script is committed.
+    const committed = await this.options.commit(dir, picked.value.commitMessage, [FILES.script]);
     const warnings = [...picked.value.warnings];
     if (!committed) warnings.push('The new opening is saved but was not committed.');
     this.options.afterChange();

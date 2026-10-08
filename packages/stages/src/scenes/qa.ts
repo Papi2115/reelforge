@@ -25,10 +25,13 @@ import {
 import { critiqueFrames, programmaticCritique, type TurnRunner } from './critic.js';
 import type { SceneJob } from './job.js';
 import { renderShot } from './render.js';
+import { researchExcerpt, shotFocus } from './research-excerpt.js';
 import { assetSizeFindings } from './source-checks.js';
 import { cameraInterruptFindings } from './source-checks-camera.js';
 import { characterSourceFindings } from './source-checks-characters.js';
+import { offensiveSourceFindings } from './source-checks-offensive.js';
 import { shotSyncEvents, syncFindings } from './sync.js';
+import { worldAssetRefFindings } from '../world-assets/refs.js';
 import type { ShotRender } from './tools.js';
 
 export interface QaResult {
@@ -94,6 +97,10 @@ export async function qaRound(
   }
   const lint = lintFindings(lintScene(source, { filename: shot.scene }), shot.scene);
   if (lint.length > 0) return ok(early(lint, source));
+  // World films (PLAN.md#13.15): an asset id nobody defines fails before any render.
+  const unknownAssets = await worldAssetRefFindings(job, source, shot.scene);
+  if (!unknownAssets.ok) return unknownAssets;
+  if (unknownAssets.value.length > 0) return ok(early(unknownAssets.value, source));
   const times = smokeTimes(shot.t1 - shot.t0);
   // A variant (PLAN.md#11.3) is checked from its own file at the storyboard shot's place.
   const own = job.shots.find((candidate) => candidate.id === shot.id)?.scene;
@@ -112,7 +119,7 @@ export async function qaRound(
   if (!rendered.ok) return rendered;
   const render = rendered.value;
   if (!render.ok && render.timedOut === true) {
-    return ok({ ...early([renderTimeoutFinding(render.error)], source), render });
+    return ok({ ...early([renderTimeoutFinding(render)], source), render });
   }
   if (!render.ok) {
     const runtime = finding('runtime', 'error', `the scene fails: ${render.error}`, {
@@ -127,6 +134,8 @@ export async function qaRound(
     ...assetSizeFindings(source, shot.scene),
     ...cameraInterruptFindings(source, shot.scene, shot.interrupt),
     ...characterSourceFindings(source, shot.scene, shot, job.characters),
+    // Slurs and profanity in any string (an error: the fix turn replaces the word).
+    ...offensiveSourceFindings(source, shot.scene),
   ];
   const sync = syncFindings(
     shotSyncEvents({
@@ -134,6 +143,7 @@ export async function qaRound(
       anchors: render.anchors,
       sceneCues: render.cues,
       words: job.anchorIndex,
+      source,
     }),
     shot,
   );
@@ -158,6 +168,7 @@ export async function qaRound(
         ...criticWorldPromptVars(job.world, shot),
       },
       craft: job.world !== undefined,
+      research: researchExcerpt(job.researchNotes, shotFocus(shot, job.words)),
       render,
       sheetFile: qaSheetFile(shot.id, label),
     },

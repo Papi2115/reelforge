@@ -20,6 +20,8 @@ export const LINT_RULES = [
   'camera-api',
   'prop-contract',
   'no-module-state-in-prop',
+  'lettering-options',
+  'kit-page-not-added',
 ] as const;
 export type LintRule = (typeof LINT_RULES)[number];
 

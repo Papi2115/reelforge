@@ -19,7 +19,7 @@ import {
   screenshotDir,
   stubFolderPicker,
 } from './support/electron-app.js';
-import { projectMenu, projectMenuButton } from './support/project-menu.js';
+import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -54,6 +54,7 @@ async function openProject(): Promise<void> {
 async function openDialog(): Promise<Locator> {
   await projectMenu(page, 'Project settings');
   const dialog = page.getByRole('dialog', { name: 'Project settings' });
+  await projectSettingsTab(dialog, 'Characters');
   await dialog.getByRole('region', { name: 'Characters' }).waitFor();
   return dialog;
 }

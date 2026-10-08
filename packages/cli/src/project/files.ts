@@ -25,6 +25,7 @@ import { describeUnknown } from '../errors.js';
 import { readCastRoles, type CastRoleFiles } from './cast-roles.js';
 import { readKitExtensions, type KitExtensionFiles } from './kit-ext.js';
 import { PROJECT_PATHS, projectPath } from './paths.js';
+import { readWorldAssetFiles, type WorldAssetFiles } from './world-assets.js';
 
 export type Severity = 'error' | 'warning';
 
@@ -118,6 +119,8 @@ export interface ProjectFiles {
   readonly kitExtensions: KitExtensionFiles;
   /** Project roles (`characters/`, ADR-026); absent in hand-made file sets = none. */
   readonly castRoles?: CastRoleFiles | undefined;
+  /** World asset files (`assets/<world>/`, PLAN.md#13.15); absent outside a world. */
+  readonly worldAssets?: WorldAssetFiles | undefined;
 }
 
 export async function readProjectFiles(root: string): Promise<ProjectFiles> {
@@ -132,7 +135,21 @@ export async function readProjectFiles(root: string): Promise<ProjectFiles> {
       readKitExtensions(root),
       readCastRoles(root),
     ]);
-  return { root, project, brief, storyboard, words, cues, tension, kitExtensions, castRoles };
+  // World assets (PLAN.md#13.15): only a world's style has an asset folder.
+  const worldAssets =
+    project.status === 'ok' ? await readWorldAssetFiles(root, project.data.style) : undefined;
+  return {
+    root,
+    project,
+    brief,
+    storyboard,
+    words,
+    cues,
+    tension,
+    kitExtensions,
+    castRoles,
+    ...(worldAssets === undefined ? {} : { worldAssets }),
+  };
 }
 
 /** Problems of the files that exist but do not validate. */

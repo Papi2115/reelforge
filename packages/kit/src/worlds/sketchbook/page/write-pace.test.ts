@@ -101,9 +101,13 @@ describe('letters drawn as strokes (source check)', () => {
 
   it('passes every example scene and the other real scenes', () => {
     const files = [
-      ...readdirSync(path.join(kitRoot, 'examples', 'sketchbook')).map((name) => [
+      ...readdirSync(path.join(kitRoot, 'examples', 'sketchbook'))
+        .filter((name) => name.endsWith('.js'))
+        .map((name) => ['examples', 'sketchbook', name]),
+      ...readdirSync(path.join(kitRoot, 'examples', 'sketchbook', 'open')).map((name) => [
         'examples',
         'sketchbook',
+        'open',
         name,
       ]),
       ...readdirSync(path.join(kitRoot, 'test', 'fixtures', 'sketchbook-run2'))

@@ -5,8 +5,9 @@
  * - "make the calculator bigger" -> fake claude "renders frames", looks at one and writes a bigger
  *   scene: the preview hot-reloads within 1 s, the step log shows the steps with a thumbnail and a
  *   "Claude turn: …" commit appears;
- * - queue two messages (+ remove a third), Stop mid-stream: the partial file stays and is
- *   committed as "Claude turn (stopped): …", the queued one runs afterwards;
+ * - queue two messages (+ remove a third); Esc in the message box does not stop the turn, Ctrl+.
+ *   stops it mid-stream: the partial file stays and is committed as "Claude turn (stopped): …",
+ *   the queued one runs afterwards;
  * - History tab lists the turns. Screenshots at 1280x720 in out/test-app/.
  */
 import { spawnSync } from 'node:child_process';
@@ -248,7 +249,13 @@ describe('Claude chat panel', () => {
 
     const partial = path.join(projectDir, 'notes', 'partial.md');
     await expect.poll(() => existsSync(partial), { timeout: 15_000 }).toBe(true);
-    await stop.click();
+    // Esc in the message box never stops Claude; Ctrl+. does (docs/ui-copy.md "Keys").
+    await chat.getByRole('textbox', { name: 'Message to Claude' }).focus();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+    expect(await chat.locator('[data-turn-status="stopped"]').count()).toBe(0);
+    expect(await stop.isEnabled()).toBe(true);
+    await page.keyboard.press('Control+.');
     await chat.locator('[data-turn-status="stopped"]').waitFor({ timeout: 15_000 });
     await expect
       .poll(() => chat.locator('[data-turn-status="done"]').count(), { timeout: 30_000 })

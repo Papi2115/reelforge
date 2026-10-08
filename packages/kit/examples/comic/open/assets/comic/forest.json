@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "world": "comic",
+  "characters": {
+    "ranger": {
+      "gen": "person",
+      "description": "the park ranger: brimmed hat, green shirt, binoculars",
+      "hat": "brim",
+      "hatColor": "sepiaMid",
+      "outfit": "shirt",
+      "top": "phosphor",
+      "bottom": "sepiaMid",
+      "skin": "tan",
+      "hair": "short",
+      "hairColor": "ink",
+      "tool": "binoculars",
+      "seed": 7
+    },
+    "red-deer": {
+      "gen": "animal",
+      "description": "a red deer stag",
+      "species": "deer",
+      "fill": "sepiaTan",
+      "belly": "shade",
+      "seed": 3
+    },
+    "woodpecker": {
+      "gen": "bird",
+      "description": "a great spotted woodpecker clinging to bark",
+      "species": "woodpecker",
+      "pose": "perch",
+      "angle": -1.25
+    }
+  },
+  "props": {
+    "fern": {
+      "description": "a fern clump: three fronds with a midrib each",
+      "height": 100,
+      "parts": [
+        {
+          "shape": "poly",
+          "pts": [0, 0, -48, -46, -70, -64, -40, -52, -6, -10],
+          "fill": "phosphor",
+          "shade": 0.5,
+          "shadeInk": "cyanDeep"
+        },
+        {
+          "shape": "poly",
+          "pts": [0, 0, 44, -50, 64, -74, 36, -58, 6, -12],
+          "fill": "phosphor",
+          "shade": 0.5,
+          "shadeInk": "cyanDeep"
+        },
+        {
+          "shape": "poly",
+          "pts": [-4, 0, -12, -60, 0, -100, 10, -62, 6, 0],
+          "fill": "phosphor",
+          "shade": 0.4,
+          "shadeInk": "cyanDeep"
+        },
+        { "shape": "line", "pts": [0, 0, -30, -36, -66, -62], "w": 1.4, "color": "cyanDeep" },
+        { "shape": "line", "pts": [0, 0, 30, -40, 60, -70], "w": 1.4, "color": "cyanDeep" },
+        { "shape": "line", "pts": [0, 0, -2, -50, 0, -96], "w": 1.4, "color": "cyanDeep" }
+      ]
+    },
+    "bark": {
+      "description": "a close-up of a pine trunk with furrowed bark",
+      "height": 360,
+      "parts": [
+        {
+          "shape": "rect",
+          "at": [-70, -380],
+          "size": [140, 380],
+          "fill": "sepiaMid",
+          "shade": 0.5,
+          "hatch": { "gap": 9, "angle": 1.5, "color": "sepiaInk" }
+        },
+        {
+          "shape": "line",
+          "pts": [-40, -380, -46, -240, -38, -120, -44, 0],
+          "w": 2,
+          "color": "ink"
+        },
+        { "shape": "line", "pts": [20, -380, 26, -260, 18, -140, 24, 0], "w": 2, "color": "ink" },
+        { "shape": "ellipse", "at": [-6, -200], "r": [9, 14], "fill": "ink", "outline": false }
+      ]
+    }
+  },
+  "backdrops": {
+    "pine-dawn": {
+      "description": "the old pine forest at first light",
+      "layers": [
+        { "gen": "sky", "kind": "dawn", "horizon": 0.7, "sun": true, "clouds": 1 },
+        { "gen": "hills", "horizon": 0.7, "layers": 1, "fill": "greyLight" },
+        { "gen": "forest", "horizon": 0.8, "rows": 2, "kind": "pine" },
+        { "gen": "land", "horizon": 0.8, "kind": "meadow" }
+      ]
+    }
+  }
+}

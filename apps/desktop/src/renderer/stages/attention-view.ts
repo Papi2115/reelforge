@@ -29,7 +29,9 @@ export type AttentionTarget =
   /** The step selected in the pipeline (its Retry / Run / Resume show under the list). */
   | { readonly kind: 'step'; readonly rowId: string }
   | { readonly kind: 'shot'; readonly shotId: string; readonly t: number }
-  | { readonly kind: 'director'; readonly section: 'beats' | 'editing' };
+  | { readonly kind: 'director'; readonly section: 'beats' | 'editing' }
+  /** A film of the production line, shown in the Production line dialog (PLAN.md#13.9). */
+  | { readonly kind: 'line'; readonly channelId: string; readonly itemId: string };
 
 export type AttentionGroup = 'decision' | 'problem' | 'check' | 'out-of-date';
 

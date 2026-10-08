@@ -9,6 +9,7 @@ import { useEffect, useRef, useState, type JSX } from 'react';
 import type { HookLabView } from '../../shared/hook-lab-contract.js';
 import { labPhase, openingCards, pickConsequences, type OpeningCard } from './hook-lab-view.js';
 import { useHookLab, type HookLabNotice } from './use-hook-lab.js';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 
 function Diff({ card }: { readonly card: OpeningCard }): JSX.Element {
   return (
@@ -215,13 +216,13 @@ export function HookLabDialog(props: { readonly onClose: () => void }): JSX.Elem
   useEffect(() => {
     dialog.current?.focus();
   }, []);
+  // Esc first leaves the confirm step, then closes the dialog (only while it is on top).
+  useEscapeToClose(() => {
+    if (selected === null) onClose();
+    else setSelected(null);
+  });
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        if (selected === null) onClose();
-        else setSelected(null);
-        return;
-      }
       const target = event.target;
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
       if (/^[1-3]$/.test(event.key) && lab.view !== undefined) {
@@ -232,7 +233,7 @@ export function HookLabDialog(props: { readonly onClose: () => void }): JSX.Elem
     return () => {
       window.removeEventListener('keydown', onKey);
     };
-  }, [lab.view, onClose, selected]);
+  }, [lab.view]);
 
   return (
     <div className="modal-backdrop">

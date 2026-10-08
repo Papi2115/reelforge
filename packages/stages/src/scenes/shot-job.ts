@@ -27,7 +27,9 @@ import { render } from '../stages/repair.js';
 import type { StageError } from '../types.js';
 import { fatalFindings, finding, fixableFindings, formatFinding } from './checks.js';
 import type { SceneJob } from './job.js';
+import { closingQuestion, questionFinding } from './fix-reply.js';
 import { qaRound, type QaResult } from './qa.js';
+import { researchExcerpt, shotFocus } from './research-excerpt.js';
 import { shotAssetVars } from './shot-assets.js';
 import { unknownKitCalls } from './source-checks.js';
 import { missingPropsOutcome } from './tools.js';
@@ -158,16 +160,20 @@ async function fixTurn(
   request: string,
   findings: readonly QaFinding[],
   label: string,
-): Promise<Result<string | undefined, StageError>> {
+): Promise<Result<{ failure?: string; question?: string }, StageError>> {
   const prompt = render('scene-fix', {
     scope: 'Shot',
     shotIds: shot.id,
     request,
     ...(findings.length === 0 ? {} : { critic: findings.map(formatFinding).join('\n') }),
+    // Facts come from the research notes, not a contradicting intent (real run Comic 1).
+    research: researchExcerpt(job.researchNotes, shotFocus(shot, job.words)),
     // A fix keeps the shot's continuity link intact (PLAN.md#13.2); no link = the v1 text.
     ...sceneContinuityVars(job.shots, shot),
     // ...and its world's craft (PLAN.md#13.6); built-in styles: nothing.
     ...fixWorldPromptVars(job.world, shot, job.looks),
+    // Nobody answers an unattended fix turn (real run Game B2 1); built-in styles: as before.
+    ...(job.world === undefined ? {} : { noQuestions: true }),
   });
   if (!prompt.ok) return prompt;
   const turn = await job.ctx.claude({
@@ -179,8 +185,11 @@ async function fixTurn(
     commit: false,
     detached: true,
   });
-  if (turn.ok) return ok(undefined);
-  return SHOT_LEVEL_FAILURES.has(turn.error.kind) ? ok(turn.error.message) : turn;
+  if (turn.ok) {
+    const question = closingQuestion(turn.value.reply);
+    return ok(question === undefined ? {} : { question });
+  }
+  return SHOT_LEVEL_FAILURES.has(turn.error.kind) ? ok({ failure: turn.error.message }) : turn;
 }
 
 export interface RefineOptions {
@@ -250,6 +259,7 @@ export async function refineShot(
 ): Promise<Result<ShotBuildRecord, StageError>> {
   const max = job.settings.maxFixIterations;
   const notes = [...(options.notes ?? [])];
+  const asked: QaFinding[] = [];
   let fixes = 0;
   if (options.request !== undefined && max > 0) {
     fixes += 1;
@@ -261,7 +271,8 @@ export async function refineShot(
       `${options.label} ${shot.id}`,
     );
     if (!failed.ok) return failed;
-    if (failed.value !== undefined) notes.push(`fix turn failed: ${failed.value}`);
+    if (failed.value.failure !== undefined) notes.push(`fix turn failed: ${failed.value.failure}`);
+    if (failed.value.question !== undefined) asked.push(questionFinding(failed.value.question));
   }
   for (let round = 0; ; round += 1) {
     job.ctx.step(`${shot.id}: QA ${options.label} round ${String(round + 1)}`);
@@ -269,7 +280,7 @@ export async function refineShot(
     if (!qa.ok) return qa;
     const errors = fixableFindings(qa.value.findings);
     if (errors.length === 0 || fixes >= max) {
-      return ok(record(job, shot, qa.value, fixes, { ...options, notes }));
+      return ok(record(job, shot, qa.value, fixes, { ...options, notes }, asked));
     }
     fixes += 1;
     const hint = options.fixHint === undefined ? '' : ` ${options.fixHint}`;
@@ -283,9 +294,10 @@ export async function refineShot(
       `scene-fix ${shot.id} ${tag}${String(fixes)}`,
     );
     if (!failed.ok) return failed;
-    if (failed.value !== undefined) {
-      notes.push(`fix turn failed: ${failed.value}`);
-      return ok(record(job, shot, qa.value, fixes, { ...options, notes }));
+    if (failed.value.question !== undefined) asked.push(questionFinding(failed.value.question));
+    if (failed.value.failure !== undefined) {
+      notes.push(`fix turn failed: ${failed.value.failure}`);
+      return ok(record(job, shot, qa.value, fixes, { ...options, notes }, asked));
     }
   }
 }

@@ -33,7 +33,9 @@ function rendered(id: PromptId, vars: TemplateVars): string {
   return result.value;
 }
 
-const WORLD_VARS = /^(world|craftBrief)/;
+/** World variables, and the genre preset's (ADR-035; genre-prompts.test.ts), stay unset. */
+// ...and the research and no-questions sections (real runs Comic 1, Game B2 1): unset for legacy.
+const WORLD_VARS = /^(world|craftBrief|genre|research|noQuestions)/;
 const WORLD_PROMPT_IDS = ['storyboard', 'scene-build', 'scene-fix', 'critic'] as const;
 const TAG = /\{\{[#^/]?\w+\}\}/;
 
@@ -79,30 +81,30 @@ const STORYBOARD_VARS = {
   continuityBudget: 2,
   ...storyboardWorldVars(SKETCHBOOK, 'sketch-story', TRANSITIONS, { durationS: 155 }),
 };
-const SHOT = { id: 's02_sun', t0: 3, t1: 7, treatment: 'metaphor-object', look: 'sketch-story' };
+const SHOT = { id: 's02_oak', t0: 3, t1: 7, treatment: 'metaphor-object', look: 'sketch-story' };
 const SCENE_VARS = {
   shotId: SHOT.id,
-  shotScene: 'scenes/s02_sun.js',
+  shotScene: 'scenes/s02_oak.js',
   shotJson: SHOT,
-  shotWords: [{ text: 'sun', t: 3.2, tEnd: 3.6 }],
+  shotWords: [{ text: 'oak', t: 3.2, tEnd: 3.6 }],
   neighbours: [],
   styleId: 'sketchbook',
   lookId: 'sketch-story',
   lookDocs: 'Look `sketch-story` (world Sketchbook, A roll): one notebook page per shot.',
-  annotationPlan: '- "the Sun" (name): pin on sun, text "SUN"',
+  annotationPlan: '- "the old oak" (name): pin on oak, text "OAK"',
   ...sceneWorldVars(SKETCHBOOK, 'sticky-slap'),
 };
 const FIX_VARS = {
   scope: 'Shot',
   shotIds: SHOT.id,
-  request: 'QA fix 1/2 for shot s02_sun.',
+  request: 'QA fix 1/2 for shot s02_oak.',
   critic: 'error critic: craft: no focal point',
   ...fixWorldVars(SKETCHBOOK, 'sketch-story', 'sticky-slap'),
 };
 const CRITIC_VARS = {
   styleId: 'sketchbook',
-  imagePaths: '.reelforge/qa/s02_sun/build-1.png',
-  intent: 'The farmer looks at the Sun.',
+  imagePaths: '.reelforge/qa/s02_oak/build-1.png',
+  intent: 'The ranger points at the old oak.',
   lookId: 'sketch-story',
   roll: 'A',
   lookRules: 'Sketch story: a felt-tip notebook page.',
@@ -115,7 +117,7 @@ describe('world sections off', () => {
   });
 
   it('bumps the versions of the prompts with world wording', () => {
-    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([18, 18, 6, 9]);
+    expect(WORLD_PROMPT_IDS.map((id) => loadPrompt(id).version)).toEqual([19, 18, 7, 11]);
   });
 });
 
@@ -155,17 +157,27 @@ describe('sketchbook prompts', () => {
     const brief = text.craftBrief;
     expect(Buffer.byteLength(brief, 'utf8')).toBeLessThanOrEqual(1536);
     for (const part of [
-      'write a comment: `// focal:',
+      'The notebook is the style; THIS narration is the content.',
+      'as a comment: `// nouns: <what it names> | drawn as:',
+      '| focal: <read first> | traces: <three>`',
       'ONE focal point, off-centre',
-      'Do: ',
+      'Inks: felt-tip = story, ballpoint = proof and numbers',
+      'red = only the correction on the point',
       "Don't: centred or symmetric layouts, decoration without meaning",
       'only words of the narration or research notes',
-      'docs/worlds/sketchbook-v2/shots/',
     ]) {
       expect(brief).toContain(part);
     }
     expect(prompts['scene-build']).toContain(`${brief}\n`);
     expect(prompts['scene-build']).toContain('draw each by hand on the page (`page.write`');
+    expect(prompts['scene-build']).toContain('Design the page before the code');
+    // Real film 4: C and B pages built without scene.add rendered blank frames.
+    expect(prompts['scene-build']).toContain(
+      'Build ONE page per shot: `scene.add(page)` in build() and `page.update(t)` in update(t)',
+    );
+    expect(prompts['scene-build']).toContain("layout: 'landscape', library: ctx.worldAssets })");
+    expect(prompts['scene-build']).toContain("`page.use('fire-tower', { x: 120");
+    expect(prompts['scene-build']).toContain('never end your reply with a `MISSING:` line');
     expect(prompts['scene-build']).not.toContain('Camera always moving');
     expect(prompts['scene-build']).not.toContain('MISSING: <prop names>');
     expect(prompts['scene-fix']).toContain('this shot is in look `sketch-story`');

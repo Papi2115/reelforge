@@ -47,6 +47,7 @@ describe('app settings', () => {
         outputDir: null,
       },
       experimental: { worlds: false },
+      ui: { pixelTitles: true },
       onboarding: { connectClaudeDone: false, welcomeDone: false, tourDone: false },
     });
   });
@@ -218,6 +219,18 @@ describe('app settings', () => {
     expect(appSettingsPatchSchema.safeParse({ experimental: { comics: true } }).success).toBe(
       false,
     );
+  });
+
+  it('starts with pixel titles on; the switch round-trips (PLAN.md#13.12, U13)', () => {
+    // A settings file from before the field: pixel titles on.
+    expect(appSettingsSchema.parse({ version: 1 }).ui).toEqual({ pixelTitles: true });
+    const off = applyAppSettingsPatch(defaultAppSettings(), { ui: { pixelTitles: false } });
+    expect(off.ui.pixelTitles).toBe(false);
+    expect(applyAppSettingsPatch(off, { economy: true }).ui.pixelTitles).toBe(false);
+    const reread = migrateAppSettings(JSON.parse(JSON.stringify(off)));
+    expect(reread.ok && reread.settings.ui.pixelTitles).toBe(false);
+    expect(appSettingsPatchSchema.safeParse({ ui: { pixelTitles: 'yes' } }).success).toBe(false);
+    expect(appSettingsPatchSchema.safeParse({ ui: { theme: 'light' } }).success).toBe(false);
   });
 
   it('keeps tool paths and unknown keys out of renderer patches', () => {

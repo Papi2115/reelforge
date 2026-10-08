@@ -128,8 +128,60 @@ describe('createProject', () => {
     expect(existsSync(path.join(world.value.dir, 'styles', 'sketchbook'))).toBe(false);
     expect(existsSync(path.join(world.value.dir, 'styles', 'noir-voxel', 'STYLE.md'))).toBe(true);
     expect(worldProjectDefaults('voxel-pixel-crisp640')).toBeUndefined();
-    expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toEqual(['sketchbook']);
+    expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toEqual([
+      'sketchbook',
+      'comic',
+      'game-b2',
+      'game-b1',
+    ]);
   });
+
+  it('gives the Comic world the same film language (PLAN.md#13.3 part c)', async () => {
+    const comic = await createProject({
+      dir: projectDir('comic world'),
+      title: 'The 1202 alarm',
+      style: 'comic',
+      git: sandbox.git,
+    });
+    if (!comic.ok) throw new Error(comic.error.message);
+    // 640x360 comes with the world's style preset; the template keeps 30 fps.
+    expect(comic.value.project).toMatchObject({
+      style: 'comic',
+      fps: 30,
+      lookMode: 'mixed',
+      continuityLinks: true,
+      antiSlopGuards: true,
+      characters: 'classic',
+      mascot: 'none',
+    });
+    expect(existsSync(path.join(comic.value.dir, 'styles', 'comic'))).toBe(false);
+  });
+
+  it.each([
+    ['game-b2', 'The E.T. cartridges'],
+    ['game-b1', 'The 1983 crash'],
+  ])(
+    'gives the %s world the same film language (PLAN.md#13.4, #13.5 part c)',
+    async (style, title) => {
+      const game = await createProject({
+        dir: projectDir(`${style} world`),
+        title,
+        style,
+        git: sandbox.git,
+      });
+      if (!game.ok) throw new Error(game.error.message);
+      expect(game.value.project).toMatchObject({
+        style,
+        fps: 30,
+        lookMode: 'mixed',
+        continuityLinks: true,
+        antiSlopGuards: true,
+        characters: 'classic',
+        mascot: 'none',
+      });
+      expect(existsSync(path.join(game.value.dir, 'styles', style))).toBe(false);
+    },
+  );
 
   it('writes the scenes per minute and faster checks only when chosen (ADR-027)', async () => {
     const plain = await createProject({

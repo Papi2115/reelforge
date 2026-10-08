@@ -1,0 +1,179 @@
+Build the scene module for ONE shot. Follow `CLAUDE.md` in this project exactly (scene contract, determinism, kit, self-QA).
+
+Shot: {"id":"s04_route","t0":24,"t1":32,"treatment":"map"}
+Narration during this shot (with word times): [{"text":"harbour","t":27.4,"tEnd":27.9}]
+World: Game B2: first-person RPG (style `game-b2`; its craft brief is below). Neighbouring shots (for continuity, do not edit): []
+Look of this shot: `rpg-menu`. In this world every look plays in the same game (a raycast level in the 32-colour palette, the woodgrain HUD with its own pixel face, pink only for THE item of the story): build in the look, never imitate other effects or bring outside colours. How to build in it:
+Look `rpg-menu` (world Game B2, B roll): the game's screens.
+Craft brief (Game B2; binding):
+- First, write a comment: `// focal: <the one thing read first> | traces: <three human traces>`; build toward it.
+- A style, not a catalogue: the places, people, animals and things are THIS film's (its assets or yours) in the style: 32-colour ramps, crude sprites with a 1 px outline lit from the upper left, dithered light and fog.
+- Do: ONE focal thing, off-centre, readable at 64 px (one big sprite or one strong wall feature); pink (the accent) only on THE item of the story; every HUD element MEANS something: progress = film progress, a checkpoint flag = a chapter, a meter only for a real threat, the boss bar only for the central problem; walk, then HOLD >= 0.4 s; every shot has a lit light or a sky; >= 3 traces: a stuttering light, a reach that overshoots, a struck option, a decaying shake, a dev note.
+- Don't: centred symmetric HUD spam, decorative HP or ammo with no real threat, icon rows, > 6 competing elements, the same room, palette and mood as the walk before, long dark stretches, constant walking, slick polished art: keep the sprites simple, slightly crude.
+- Text: only words of the narration or research notes (real numbers, names, dates; game words: QUEST LOG, NEW QUEST, + ITEM, EST.), all in the HUD; no invented labels or numbers; no `ctx.text` or `ctx.annotate`.
+- No slur-like words (chink): sound words CLINK, CLANG, TINK.
+- References for the light and the HUD only, never their things: docs/worlds/game-hud-b2-rpg-v2/shots/ s1-t3.5.png, s4-t30.4.png, s8-t62.6.png.
+Page moment planned for this shot (`automap`; the storyboard planned it from the narration and the critic checks that it shows): build it with `view.automap({ intent, at, until, enter, exit, scale, rooms, replay, marks, note, camera, legend })` (look `rpg-menu`), a toolkit, never a template. The shape of a call (one way of many; never copy it): `view.automap({ intent: 'the cold corridor is behind us; the warm classroom where the lesson starts comes next', at: 1, until: 5.6, scale: 16, backdrop: 'freeze', rooms: [{ cell: [4, 5], label: 'THE CORRIDOR' }, { cell: [15, 5], label: 'THE CLASSROOM', state: 'next', at: 2.2 }], marks: [{ kind: 'objective', pos: [17.5, 3.4], at: 2.6 }], note: { text: 'NEXT: THE LESSON', pos: [5.5, 8.6], to: [15.2, 5.2], at: 3.3 } })`. Every automap is original: the map IS this shot's level, so write a level of the film's route (one room per place of the narration, doors between) and decide what the map must SHOW (the claim) and how; size it so the rooms span at least half the frame (`scale` up to 24 px per cell: the kit names the scale to use) and give it `backdrop: 'freeze'` (the level held dimmed behind it), never a small map on a black screen; a map held to the end of the shot needs the freeze or `exit: 'fold'`, so the film never ends on black; `enter: 'unfold'` (grows out of the HUD minimap: keep `hud.minimap()`), `'wipe'` or `'cut'`; `exit: 'fold'` (back into the minimap) or `'cut'`; `replay: { from, to, dur }` (the arrow replays the walk and the rooms draw on as it enters them; `from` < 0 = the walk before the shot); rooms `{ cell, label, sub, state: 'done' | 'next' | 'ahead' | 'hidden', at, labelAt }`; `marks` (`objective` diamond, `item` = THE item, `cross`); a margin `note` with its two-stroke arrow; `camera` pans `[{ at, x, y }]`. Never the same opening and closing twice in one film. `intent` (required, 12-160 characters) names the claim (which places are done, which comes next, the one way out), never a generic "the map"; room names and the note are words of the narration (caps; labels <= 18, the note <= 24 characters); at most 10 rooms and 6 marks. The kit's errors say what to move (a label off screen, under the narration box, two labels colliding). Sounds: `const r = <the call>`, then `for (const c of r.cues) ctx.sfx.at(c.t, c.name)`. Mechanisms to vary (never copy one): the story so far (a replay, a pan to the places ahead, a margin note, a fold back); a dive into the map mid-walk (unfold, the one way out, fold, the walk goes on); a route across outdoor places. A neighbour shot may grow it out of its minimap with `game-b2-map-unfold` or take it back with `game-b2-map-fold` (keep the map centred on the player at that end).
+
+Annotation plan from the storyboard (hints, not orders): put each in the game, timed to its spoken phrase (`at: 'the phrase'`, with `anchor: ctx.anchor` on the view and the HUD): a name or place on the compass (`hud.compass({ place })`), a thing into the inventory as its own icon (`hud.inventory`) or a toast (`hud.toast`), a number on a meter or a tally row, a line in the narration box (`hud.narrate`); never with `ctx.annotate` or `ctx.text`. Adapt the form, or drop a mark, when it does not fit the picture (it would cover the subject or clutter the frame).
+- "the harbour" (place): pin "THE HARBOUR"
+
+
+
+
+Steps:
+1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.
+2. Write `scenes/s04_route.js`: `meta`, `build`, `update`. Sync key moments to words with `ctx.anchor("phrase")`; register matching `sfx.at(...)`. Design the shot before you write it, in this order: (i) list the narration's places, people, animals, objects and actions in this shot; (ii) each place: indoors (rooms with a mood, doors between them) or outdoors (a sky preset, a skyline, the ground), its textures, and its light by the moment's mood (tungsten = warm, home, safety; fluorescent = cold, work, threat; shop = bright and busy; backroom = dim and forgotten; dark = one lamp in the dark; dawn, dusk or night skies for beginnings and endings); (iii) each noun → a sprite or an icon: the film's asset by id (read `assets/game-b2/` for what exists) or a one-off of this shot (step 4); people differ by build, clothes, hat and tool, animals by kind and coat, plants by kind; the thing the narrator names is drawn as that thing (a book is a book), never a stand-in; (iv) write the level from those places (step 4), sized for the walk: a 3–6 s walk crosses 3–6 cells, the focal sprite stands 2–4 cells ahead at the held look; (v) vary: never the same room, palette and mood as the walk before; no long dark stretches: every shot has a lit light or a sky (a dark room only with a lit lamp or doorway), a menu, map or tally sits over the live or frozen level, never on black; (vi) thumbnail test: at 64 px wide the frame reads as one thing (one big lit sprite or one strong wall feature, off-centre).
+Then build ONE view and ONE HUD per shot: `const LEVEL = { … }` (this shot's level, step 4), `kit.fx.b2View({ size: [ctx.shot.width, ctx.shot.height], level: LEVEL, assets: ctx.worldAssets, duration: ctx.shot.duration, anchor: ctx.anchor, path: [{ at: 0, x: 2.2, y: 5.7, yaw: 4, ease: 'lin' }, { at: 1.6, x: 6.8, y: 5.5, yaw: 0, ease: 'out' }, { at: 2.4, x: 7.2, y: 5.5, yaw: -8, pitch: 4, ease: 'inOut' }] })`, `kit.fx.b2Hud({ size: [ctx.shot.width, ctx.shot.height], view, duration: ctx.shot.duration, anchor: ctx.anchor })`; `scene.add(view); scene.add(hud)` in build(), `view.update(t); hud.update(t)` in update(t). Walk, then HOLD: path keys `{ at, x, y, yaw, pitch, eye, ease }` in cells (walk in with 'in', stop with 'out', turn or look down with 'inOut'), uneven strides, a still look of at least 0.4 s; never constant walking. The HUD: `hud.compass({ at: 0.25, year: '1871', place: 'THE RIVER FORD', target: [17.5, 3.2] })`, `hud.minimap({ at: 0.45 })`, the narration box `hud.narrate('BEES KEEP THE HIVE WARM\nBY SHIVERING.', { at: 'bees', until: 4.4 })` (the shot's key line in the narration's words, CAPS, \n breaks, <= 3 lines; the level carries the shot, not the box), `hud.progress({ at: 0.6, from: 0.2, to: 0.29, chapters: [0.2, 0.47, 0.71] })` (this shot's t0 and t1 as shares of the film in storyboard.json) and `hud.checkpoint({ label: 'THE HARVEST', at: 0.4 })` when a chapter starts, `hud.toast({ head: 'NEW QUEST', body: 'CROSS THE RIVER', at: 2.9 })`, `hud.inventory({ at: 0.9, items: [{ icon: 'slate', label: 'SLATE', at: -3 }, { icon: 'chalk', label: '+ CHALK', at: 'chalk', band: 'pink' }] })` (the film's icons); a meter only for the real threat, a boss bar only for the central problem (`hud.damage` pops off one of them, never a number floating off a thing); every HUD element must say something in this shot, leave the rest out; never a web address or a source name on screen (sources go in the publish kit). In the level: `view.switchOn('lamp', { at: 0.42 })`, `view.open([9, 5], { at: 4.9, dur: 0.7 })`, `view.take({ icon: 'chalk' }, { at: 'chalk', from: [17.9, 3.0, 0.5] })` (take it from a pile of several or from a place with no sprite of it: the taken thing must not stay behind), `view.hold({ icon: 'slate' }, { at: -1 })`, `view.act('teacher', { act: 'talk', at: 'lesson', until: 3.6 })` (a person sprite of the level with that `id`), `view.defineSprite('sparrow', { gen: 'creature', kind: 'bird', form: 'perch', coat: 'earth', belly: 'paper', seed: 4, size: 0.22 })` then `view.place({ sprite: 'sparrow', pos: [19.7, 8.4], z: 0.7 }, { at: 'sparrow' })`, `view.fog({ at: 1, until: 3.2 })`. A `shared-object` link: the first shot ends with the item held (`hold`, not `present`), the next starts holding it (`at: -1`). The automap, the tally and the throw only in the shot the storyboard planned them for. Never cut content words from a line you show. Pitfalls seen in real films: a ledger drawn as a game cartridge (an item without an `icon` is drawn as one: give every taken, held or thrown thing its icon), every person the same shop clerk, a river walked as a brown corridor; never draw a cartridge or a clerk unless the narration is about one. Text inside the safe area.
+3. Self-QA loop: `reelforge lint` → `reelforge frames --at` (start, key anchor moments, end−0.1) → Read the PNGs → fix → `reelforge anchors --shot s04_route`. Max 2 fix iterations.
+4. The level is the set and the film's assets are its things: never end your reply with a `MISSING:` line, define what the narration needs. The film's pack is `ctx.worldAssets` (its recurring people, animals, plants, buildings, things, textures and item icons, designed for this film before the scenes in `assets/game-b2/*.json`; undefined when the film has none): use its ids. One-offs of this shot: a `SHOT_ASSETS` pack in the scene next to the film's (`kit.fx.b2View({ size: [ctx.shot.width, ctx.shot.height], level: OUTDOOR, assets: [].concat(ctx.worldAssets ?? [], SHOT_ASSETS), duration: ctx.shot.duration, anchor: ctx.anchor, path: [{ at: 0, x: 3.2, y: 5.5, yaw: -10, ease: 'lin' }, { at: 2.2, x: 7.4, y: 4.6, yaw: -20, ease: 'out' }, { at: 3.0, x: 7.6, y: 4.5, yaw: -38, pitch: -6, ease: 'inOut' }] })`), or after build `view.defineSprite('lantern', { rows: ['..oo..', '.oyyo.', 'oyYYyo', 'oyYYyo', '.oyyo.', '..oo..'], legend: { o: 'warm.1', y: 'tungsten', Y: 'bulb' }, glow: ['bulb'], size: [0.18, 0.24], z: 0.5 })` / `view.defineIcon('apple', { gen: 'icon', kind: 'apple' })` (for `place`, the hand and the HUD; textures only through `assets`). Ids are kebab case, unique, never a built-in name; at most 4 packs, 48 sprites, 24 textures and 24 icons per view.
+Every entry is a generator call (seeded, crude on purpose, shaded from the upper left; every call takes `seed` (two trees of one kind: two seeds or a `flip`), `fps` (0 = still) and `z`):
+- `{ gen: 'person', build: 'slim' | 'average' | 'stout' | 'child', skin: 0-3, hair: 'none' | 'short' | 'long' | 'bun', hairColour, beard, glasses, hat, outfit, clothes: <ramp>, trim, tool, height }`; hats none, top, cap, bowler, hood, helmet, crown, bonnet, straw, hardhat, wizard, turban, space; outfits suit, coat, robe, dress, tunic, overalls, uniform, spacesuit, apron, rags; tools none, staff, sword, spade, book, lantern, basket, cane, umbrella, clipboard, torch, pickaxe, bucket. Four frames: `view.act` drives it. Every person of a film looks different.
+- `{ gen: 'creature', kind, form, coat: <ramp>, belly, pattern: 'plain' | 'spots' | 'stripes', neck, legs, horns: 'none' | 'antlers' | 'horns' | 'tusks', hump, ears: 'none' | 'pointy' | 'long' | 'round', size, facing }`: bird (perch, fly), quadruped (grazer, dog, cat, bear, horse), fish (slim, round, eel), insect (bee, butterfly, beetle, ant), reptile (lizard, snake, croc, turtle).
+- `{ gen: 'plant', kind, height, width, leaf: <ramp>, trunk, bloom, lean }`: deciduous, conifer, palm, bush, grass, flowers, mushrooms, cactus, seaweed, reeds.
+- `{ gen: 'structure', kind, height, width, wall, roof, lit }`: hut, house, tower, castle-wall, ship, bridge, tent, ruins, pipe, well, windmill, lighthouse, skyscraper, dome, antenna, planet.
+- `{ gen: 'vehicle', kind, size, body, facing }`: car, truck, bus, cart, bicycle, rowboat, sailboat, rocket, satellite, train.
+- `{ gen: 'object', kind, size, ramp, accent }`: table, chair, bed, barrel, crate, chest, sack, pot, lamp, torch, campfire, rock, signpost, fence, console, bookshelf, anvil, cauldron, statue, column, tombstone, bench, streetlamp, hydrant, pile, flag, log.
+- textures `{ gen: 'texture', kind, ramp, wear, lit, window }`: grass, sand, mud, snow, rock, ice, foliage, water, lava, tile, planks, brick, stone, cobble, metal, hull, fabric, logs, thatch, adobe, facade, glass.
+- icons `{ gen: 'icon', kind, colour, accent }`: document, letter, book, map, scroll, key, coin, coins, bag, gem, bottle, potion, flask, bread, apple, fish, bone, wrench, hammer, brick, ticket, chip, phone, clock, compass, feather, leaf, star, heart, drop, medal, battery, shell, rope, ring, pill.
+Or pixel art when no generator fits a thing of this story: sprites `{ rows | frames (2-4), legend, size: [w, h] in cells, mirror, z, fps, glow, outline, person }`, textures `{ size: 16 | 32 | 64, rows | frames, legend }`, icons `{ rows (<= 16x16), legend }`; one character per pixel, '.' and space transparent; legend values are swatches (void, gloom, umber, brown, wood, tan, tungsten, bulb, mossDark, moss, green, sage, fluo, tube, nightDark, night, dusk, haze, moon, dirtDark, dirt, sand, sandLight, paper, char, slate, grey, putty, pink, wine, clay, plum) or ramp steps (warm 0-5, leaf 0-5, sky 0-4, earth 0-4, stone 0-5, rust 0-4, plum 0-3, accent 0-1: `leaf.2`), 'clear' = transparent, never hex; a silhouette that reads, two or three steps of one ramp. Pixel art that reads (real films: an animal drawn as a tan blob, roots as one arch, threads as a checker pattern): prefer a generator and vary its options; draw by hand only at the size the thing stands in the level (16-32 rows for a person or an animal, more for a tree), side on, its 2-3 defining features (the shape of the head, the wing patch, the tail, the legs apart), a dark outline, never a symmetric blob or a regular pattern for a living thing; thin things (roots, threads, wires) in lines >= 2 px against a contrasting ground. An icon is one bold silhouette filling the 12 x 12 grid (>= 10 px one way; the kit refuses a dot), two colours, the pink accent only on THE item. A film pack (its shape, not a design to copy):
+```js
+{
+  version: 1, world: 'game-b2',
+  sprites: {
+    teacher: { gen: 'person', seed: 3, hair: 'bun', glasses: true, outfit: 'dress', clothes: 'plum', tool: 'book' },
+    pupil: { gen: 'person', seed: 8, build: 'child', outfit: 'overalls', hairColour: 'tungsten' },
+    caretaker: { gen: 'person', seed: 5, build: 'stout', beard: true, hat: 'cap', outfit: 'apron', clothes: 'earth', tool: 'bucket' },
+    cat: { gen: 'creature', kind: 'quadruped', form: 'cat', coat: 'stone', pattern: 'stripes', seed: 2, size: 0.45 },
+    'school-desk': { gen: 'object', kind: 'table', seed: 4, size: 0.38 },
+    bookcase: { gen: 'object', kind: 'bookshelf', seed: 6 },
+    stove: {
+      rows: [
+        '...oo...',
+        '...oo...',
+        '.oooooo.',
+        '.oIIIIo.',
+        '.oIffIo.',
+        '.oIffIo.',
+        '.oIIIIo.',
+        '.o....o.',
+      ],
+      legend: { o: 'stone.1', I: 'stone.2', f: 'tungsten' },
+      glow: ['tungsten'], size: [0.5, 0.7],
+    },
+  },
+  textures: {
+    plaster: { gen: 'texture', kind: 'stone', seed: 3, ramp: 'earth', wear: 0.4 },
+    panelling: { gen: 'texture', kind: 'planks', seed: 7, ramp: 'warm', wear: 0.2 },
+    floorboards: { gen: 'texture', kind: 'planks', seed: 5 },
+    beams: { gen: 'texture', kind: 'logs', seed: 9 },
+  },
+  icons: {
+    chalk: {
+      rows: [
+        '.........pPP',
+        '........pppP',
+        '.......pppP.',
+        '......pppP..',
+        '.....pppP...',
+        '....pppP....',
+        '...pppP.....',
+        '..pppP......',
+        '.pppP.......',
+        '.ppP........',
+      ],
+      legend: { p: 'paper', P: 'putty' },
+    },
+    slate: { gen: 'icon', kind: 'book', colour: 'char', accent: 'paper' },
+  },
+}
+```
+Level format (the `level` of `kit.fx.b2View`): `{ name (kebab case), mood: 'dark' | 'tungsten' | 'fluorescent' | 'shop' | 'backroom', floor, ceiling, sky, grid, legend, lights, sprites }`. `grid` = rows of equal length, one character per 1x1 cell, at most 32x32. `legend` maps every other character to a wall `{ wall: <texture id>, height }`, a door `{ door: true }` (walls on two opposite sides) or an open cell `{ floor, ceiling, mood }` ('.' is open; a cell's `mood` makes a room: a dark corridor opening onto a tungsten room). Indoors the border is all walls and walls are at most 1 tall. Outdoors add `sky: { preset: 'day' | 'dawn' | 'dusk' | 'night' | 'overcast' | 'space' | 'underwater', skyline: 'none' | 'hills' | 'mountains' | 'trees' | 'dunes' | 'city' | 'sea' | 'mesa' | 'towers', skylineHeight, clouds: 0-1, sun: { az, el, moon } | 'none', stars, ground }`: no ceiling (a cell keeps a roof only with its own `ceiling`), the border may stay open, walls up to 4 tall, `'none'` floor or ceiling = the void. At most 12 `lights` `{ id, pos: [x, y], z, power, radius, flicker: 'none' | 'tube' | 'bulb' | 'fire', bulb }` (a light lights only its own room) and 40 `sprites` `{ id, sprite, pos: [x, y], z, scale, flip, w, h }`; positions in cells (x right, y down, 0.5 = the middle of cell 0), never inside a wall. Words go in the HUD, not on walls. The kit's built-in textures and sprites were drawn for another film: build this one from its own assets. Worked levels (their shape, not a design to copy): indoors,
+```js
+const LEVEL = {
+  name: 'village-school', mood: 'dark', floor: 'floorboards', ceiling: 'dark',
+  grid: [
+    'SSSSSSSSSSWWWWWWWWWWWS',
+    'SSSSSSSSSSoooooooooooS',
+    'SSSSSSSSSSoooooooooooS',
+    'SSSSSSSSSSoooooooooooS',
+    'SSSSSSSSSSoooooooooooS',
+    'S........DoooooooooooS',
+    'S........SoooooooooooS',
+    'SSSSSSSSSSoooooooooooS',
+    'SSSSSSSSSSoooooooooooS',
+    'SSSSSSSSSSoooooooooooS',
+    'SSSSSSSSSSSSSSSSSSSSSS',
+  ],
+  legend: {
+    S: { wall: 'plaster' },
+    W: { wall: 'panelling' },
+    D: { door: true },
+    o: { floor: 'floorboards', ceiling: 'beams', mood: 'tungsten' },
+  },
+  lights: [
+    { id: 'lamp', pos: [15.5, 4.5], z: 0.8, power: 1.2, radius: 4.5, flicker: 'bulb', bulb: true },
+    { pos: [12.5, 8.0], power: 0.6, radius: 3.5 },
+    { id: 'hall', pos: [4.5, 5.6], z: 0.9, power: 0.7, radius: 2.4, flicker: 'tube' },
+  ],
+  sprites: [
+    { id: 'teacher', sprite: 'teacher', pos: [17.5, 3.2] },
+    { sprite: 'school-desk', pos: [13.5, 6.1] },
+    { sprite: 'school-desk', pos: [16.0, 6.3] },
+    { sprite: 'pupil', pos: [13.4, 6.7] },
+    { sprite: 'pupil', pos: [16.1, 6.9], flip: true },
+    { sprite: 'stove', pos: [19.9, 8.7] },
+    { sprite: 'bookcase', pos: [10.6, 1.6] },
+    { id: 'cat', sprite: 'cat', pos: [11.3, 8.8] },
+    { id: 'caretaker', sprite: 'caretaker', pos: [6.5, 6.3] },
+  ],
+};
+```
+outdoors, with this shot's one-offs next to the film's pack:
+```js
+const SHOT_ASSETS = {
+  sprites: {
+    pine: { gen: 'plant', kind: 'conifer', seed: 4, height: 2.8 },
+    'pine-small': { gen: 'plant', kind: 'conifer', seed: 9, height: 1.5, lean: 0.2 },
+    goat: { gen: 'creature', kind: 'quadruped', form: 'grazer', horns: 'horns', coat: 'stone', seed: 5, size: 0.8 },
+    hut: { gen: 'structure', kind: 'hut', seed: 2, lit: 0.5 },
+    signpost: { gen: 'object', kind: 'signpost', seed: 1 },
+  },
+  textures: {
+    scree: { gen: 'texture', kind: 'rock', seed: 6, wear: 0.5 },
+    snowfield: { gen: 'texture', kind: 'snow', seed: 2 },
+    trail: { gen: 'texture', kind: 'mud', seed: 3, ramp: 'earth' },
+  },
+};
+const OUTDOOR = {
+  name: 'mountain-pass',
+  sky: { preset: 'dawn', skyline: 'mountains', skylineHeight: 0.14, clouds: 0.25, sun: { az: -20, el: 6 }, ground: 'snowfield' },
+  floor: 'snowfield',
+  grid: [
+    '..................',
+    '..RRR.......RRRR..',
+    '..RRR........RR...',
+    '......,,,,,,,.....',
+    '....,,,,,,,,,,,...',
+    '..,,,,,......,,,..',
+    '..................',
+    '...RR.......RRR...',
+    '..................',
+  ],
+  legend: { R: { wall: 'scree', height: 2.2 }, ',': { floor: 'trail' } },
+  lights: [{ pos: [9.5, 1.4], z: 0.5, power: 0.8, radius: 2.5, flicker: 'fire' }],
+  sprites: [
+    { sprite: 'hut', pos: [9.5, 1.2] },
+    { sprite: 'pine', pos: [1.4, 4.2] },
+    { sprite: 'pine', pos: [16.2, 3.6], flip: true },
+    { sprite: 'pine-small', pos: [6.5, 6.8] },
+    { sprite: 'pine-small', pos: [11.8, 6.4], flip: true },
+    { id: 'goat', sprite: 'goat', pos: [11.4, 2.6], flip: true },
+    { sprite: 'signpost', pos: [7.6, 5.2] },
+    { id: 'pupil', sprite: 'pupil', pos: [10.2, 4.4] },
+  ],
+};
+```
+Check it before the frames: `reelforge validate level <the scene file>` (each error names the grid row or the field), fix it and run it again.
+
+Reply in ≤5 lines: what the shot shows, QA result (lint/frames/anchors).

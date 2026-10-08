@@ -14,8 +14,8 @@ import { WaveformService } from './waveform-peaks.js';
 export function createTimelineEdits(projects: ProjectService, log: Logger): TimelineEditService {
   return new TimelineEditService({
     projectDir: () => projects.currentProject()?.dir,
-    commit: async (message) => {
-      const result = await projects.autocommit(message, { kind: 'manual' });
+    commit: async (message, paths) => {
+      const result = await projects.autocommit(message, { kind: 'manual', paths });
       if (!result.ok) log.warn(`timeline edit not committed: ${result.error.message}`);
       return result.ok && result.value.status === 'committed';
     },

@@ -17,17 +17,10 @@ import {
   reduceTurn,
   SessionManager,
   UsageLedger,
-  type ClaudeLauncher,
-  type Clock,
-  type ExtraEnv,
-  type ModelAlias,
   type Result,
-  type StagePermissionOptions,
   type TurnHandle,
   type TurnOutcome,
 } from '@reelforge/claude-bridge';
-import type { CommitResult, ProjectError } from '@reelforge/project';
-import type { AppSettings } from '@reelforge/shared';
 import {
   CHIP_LABELS,
   type ChatChip,
@@ -37,14 +30,14 @@ import {
   type ChatState,
   type ChatTurn,
 } from '../../shared/chat-contract.js';
-import type { Logger } from '../logger.js';
 import { chatTurnModel, usageBudgetFor } from '../settings-consumers.js';
-import { chatLocks, lockedShotsNote, lockSteps, startChatLockGuard } from './chat-locks.js';
-import { buildChatPrompt, findSourceHint, requestTitle, selectionLabel } from './chat-prompt.js';
+import { DEFAULT_CLAUDE_CONCURRENCY, type ClaudeServiceOptions } from './claude-service-options.js';
+import { lockSteps, startChatLockGuard } from './chat-locks.js';
+import { prepareChatTurn, type TurnRecord } from './chat-request.js';
 import { startChatTurn } from './chat-resume.js';
 import { toChatSteps } from './chat-steps.js';
 import { ChatTranscripts, projectKey } from './chat-transcripts.js';
-import { ReviewTurns, reviewRequest, type ReviewTurnsOptions } from './review-turns.js';
+import { ReviewTurns, reviewRequest } from './review-turns.js';
 import { createSessionManager } from './session-setup.js';
 import {
   commitSubject,
@@ -55,52 +48,6 @@ import {
   turnUsageOf,
 } from './turn-outcome.js';
 
-/** What the bridge needs to run `claude` in this app (resolved on the first message). */
-export interface ClaudeSetup {
-  readonly launcher: ClaudeLauncher;
-  /** Parent env of the claude children (sanitized by the bridge on every spawn). */
-  readonly env: NodeJS.ProcessEnv;
-  readonly permissions: StagePermissionOptions;
-}
-
-export interface ClaudeServiceOptions {
-  readonly setup: () => Promise<Result<ClaudeSetup, ChatError>>;
-  readonly settings: () => AppSettings;
-  readonly currentProject: () => string | undefined;
-  /** The render service env for a project (REELFORGE_RENDER_URL/TOKEN), passed as `extraEnv`. */
-  readonly renderEnv: (projectDir: string) => ExtraEnv | undefined;
-  /** Autocommit of a project (`kind: claude-turn`). */
-  readonly commit: (
-    projectDir: string,
-    message: string,
-  ) => Promise<Result<CommitResult, ProjectError>>;
-  readonly push: (state: ChatState) => void;
-  readonly log: Logger;
-  /** Limit-guard clock (tests drive a manual one). */
-  readonly clock?: Clock;
-  /** Epoch ms for the transcript. */
-  readonly now?: () => number;
-  readonly pushDelayMs?: number;
-  readonly exitGraceMs?: number;
-  /** Claude turns at once (chat + pipeline stages; scene building runs 2). Default 2. */
-  readonly maxConcurrency?: number;
-  /** Whole-video chips run the scene stage's review modes (PLAN.md#7.6); else a chat turn. */
-  readonly review?: Pick<ReviewTurnsOptions, 'run' | 'stop'>;
-}
-
-/** Scene building runs two shots at once (PLAN.md#7.4); the chat runs one turn at a time. */
-export const DEFAULT_CLAUDE_CONCURRENCY = 2;
-
-interface TurnRecord {
-  turn: ChatTurn;
-  readonly projectDir: string;
-  readonly prompt: string;
-  readonly model: ModelAlias;
-  readonly title: string;
-  /** Id of the interrupted turn this record resumes (runs via `resumeInterrupted`). */
-  readonly resumeOf?: string;
-}
-
 interface Current {
   readonly record: TurnRecord;
   handle: TurnHandle | undefined;
@@ -108,6 +55,11 @@ interface Current {
 }
 
 export { MAX_TRANSCRIPT_TURNS } from './chat-transcripts.js';
+export {
+  DEFAULT_CLAUDE_CONCURRENCY,
+  type ClaudeServiceOptions,
+  type ClaudeSetup,
+} from './claude-service-options.js';
 
 export class ClaudeService {
   readonly guard: LimitGuard;
@@ -198,42 +150,16 @@ export class ClaudeService {
     if (request.chip !== null && this.reviews !== undefined) {
       return this.sendReview(dir, request.chip, this.reviews);
     }
-    const scope = request.chip === null ? request.scope : 'video';
-    const selection = scope === 'selection' ? request.selection : null;
-    if (scope === 'selection' && selection === null) {
-      const message = 'nothing is selected: click an object in the preview first';
-      return { status: 'error', error: { kind: 'invalid-request', message } };
-    }
-    const locks = await chatLocks(dir, scope, request.shotIds, selection);
-    if (locks.refusal !== null) {
-      return { status: 'error', error: { kind: 'invalid-request', message: locks.refusal } };
-    }
-    const hint = selection === null ? undefined : await findSourceHint(dir, selection);
-    const built = buildChatPrompt({
-      request: { ...request, scope, selection },
-      hint,
-      lockedNote: lockedShotsNote(locks.locked),
-    });
-    if (!built.ok) {
-      return { status: 'error', error: { kind: 'invalid-request', message: built.message } };
-    }
-    const model = chatTurnModel(this.options.settings(), request.boost);
-    const record: TurnRecord = {
-      projectDir: dir,
-      prompt: built.prompt,
-      model,
-      title: requestTitle(request),
-      turn: queuedTurn(randomUUID(), this.now(), {
-        text: request.text,
-        chip: request.chip,
-        scope,
-        shotIds: scope === 'video' ? [] : [...request.shotIds],
-        selectionLabel: selection === null ? null : selectionLabel(selection),
-        model,
-      }),
-    };
+    const prepared = await prepareChatTurn(
+      dir,
+      request,
+      () => this.options.settings(),
+      () => this.now(),
+    );
+    if (prepared.status === 'error') return prepared;
+    const { record, scope } = prepared;
     this.queue.push(record);
-    this.options.log.info(`queued chat turn ${record.turn.id} (${model}, ${scope})`);
+    this.options.log.info(`queued chat turn ${record.turn.id} (${record.model}, ${scope})`);
     this.changed();
     this.pump();
     return { status: 'queued', turnId: record.turn.id };

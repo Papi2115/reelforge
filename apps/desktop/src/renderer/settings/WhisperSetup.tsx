@@ -89,7 +89,7 @@ export function DownloadConfirm({
   return (
     <ConfirmDialog
       title={pending.title}
-      confirmLabel="Download"
+      confirmLabel="Download the files"
       confirmClass="primary"
       busy={false}
       onConfirm={setup.confirm}

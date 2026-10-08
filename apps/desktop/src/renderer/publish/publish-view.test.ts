@@ -66,7 +66,17 @@ describe('publish kit view', () => {
     );
     expect(chaptersNote(kit())).toBeNull();
     expect(chaptersNote(kit({ chapterProblem: 'the video is too short' }))).toBe(
-      'No chapters: the video is too short.',
+      'Chapters skipped: the video is too short.',
+    );
+    expect(
+      chaptersNote(
+        kit({
+          chapterProblem:
+            'YouTube needs at least 3 chapters of 10 s or more; the video is too short or has too few shots',
+        }),
+      ),
+    ).toBe(
+      'Chapters skipped: needs 3 chapters of 10 s (the film is too short or has too few shots).',
     );
   });
 

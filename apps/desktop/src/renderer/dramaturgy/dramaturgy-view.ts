@@ -1,10 +1,12 @@
 /**
- * View model of the Dramaturgy section (PLAN.md#12.25–12.27) under the final review: the pattern
- * interrupts planned vs realised per minute, the open-loop ⚠ warnings and the reveal-moment rows
- * (Accept / Reject / Preview; a locked shot's moment shows disabled). Pure.
+ * View model of the Story beats section (PLAN.md#12.25–12.27) in the Director: the surprise
+ * moments (pattern interrupts in the code) planned vs realised per minute, the questions and
+ * answers (open loops) ⚠ warnings and the wow-moment rows (reveal moments; Accept / Reject /
+ * Preview; a locked shot's moment shows disabled). Pure.
  */
 import type { DramaturgyReport, MomentKind, MomentStatus } from '@reelforge/shared';
 import type { DramaturgyState, MomentView } from '../../shared/dramaturgy-contract.js';
+import { plural } from '../../shared/plural.js';
 
 type OkState = Extract<DramaturgyState, { status: 'ok' }>;
 
@@ -27,10 +29,9 @@ const clock = (seconds: number): string => {
 /** "4 planned, 3 in the frames (0:00 2/2 · 1:00 1/2)", or why there is no line. */
 export function interruptLine(report: DramaturgyReport | null): string {
   const interrupts = report?.interrupts;
-  if (interrupts === undefined)
-    return 'No interrupt report yet: run Storyboard or the final review.';
+  if (interrupts === undefined) return 'Not checked yet: run Storyboard or the final review.';
   if (interrupts.planned === 0) {
-    return `No interrupts planned (this length wants ${String(interrupts.range.min)}–${String(interrupts.range.max)}).`;
+    return `None planned (this length wants ${String(interrupts.range.min)}–${String(interrupts.range.max)}).`;
   }
   const minutes = interrupts.perMinute
     .map(
@@ -61,12 +62,12 @@ export function interruptRows(report: DramaturgyReport | null): InterruptRow[] {
   }));
 }
 
-/** The loop warnings, or a reassuring line. */
+/** The questions-and-answers warnings, or a reassuring line. */
 export function loopLines(report: DramaturgyReport | null): string[] {
   const loops = report?.loops;
-  if (loops === undefined) return ['No open-loop report yet: run Storyboard or the final review.'];
+  if (loops === undefined) return ['Not checked yet: run Storyboard or the final review.'];
   if (loops.warnings.length > 0) return loops.warnings;
-  return [`${String(loops.count)} open loops, all closed with a foreshadow.`];
+  return [`${plural(loops.count, 'question')}, all answered later in the film.`];
 }
 
 const KIND_LABELS: Readonly<Record<MomentKind, string>> = {

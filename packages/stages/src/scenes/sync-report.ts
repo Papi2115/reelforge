@@ -83,6 +83,7 @@ export async function syncReport(
       projectCues: cues.filter((cue) => cue.t >= shot.t0 && cue.t < shot.t1),
       words,
       cards: render.cards,
+      source: source.ok ? source.value : undefined,
     });
     results.push(shotSync(shot, events));
   }

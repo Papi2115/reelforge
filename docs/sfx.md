@@ -154,6 +154,14 @@ Wow transitions (ADR-028, any palette): the `shatter` and `cube-smash` transitio
 | --- | --- | --- | --- | --- |
 | `glass-crack` | texture | 0.7 | 0·crack, 1·shatter, 2·tinkle | Glass cracks or shatters (the shatter / cube-smash transitions, a break-in, a crash); tinkle = only shards falling. |
 
+Sketchbook world (PLAN.md#13.6): the notebook's own sounds (the rest of its palette reuses the paper and pen recipes).
+
+| Name | Category | Default s | Variants (`seed % n`) | Intended use |
+| --- | --- | --- | --- | --- |
+| `pen-click` | ui | 0.12 | 0·on, 1·off, 2·double | Sketchbook: a ballpoint clicked on (the hand starts writing) or off (done); double = a nervous click-click. |
+| `marker-thump` | impact | 0.2 | 0·thump, 1·slam, 2·tap | Sketchbook: a marker slammed onto the page for the one loud word or number (C page); tap = lighter, slam = harder with a felt squeak. |
+| `paper-tear` | texture | 0.6 | 0·tear, 1·rip, 2·out | Sketchbook: paper torn (the torn-strip page transition, a plan ripped up); rip = one fast tear, out = a page ripped out of the spiral in tugs. |
+
 ## How cues are chosen (the sound director)
 
 The **Sound design mixed** stage writes a deterministic `cues.json` first (no Claude; same inputs ->
@@ -251,15 +259,56 @@ density, transition handling); the shot's palette only decides **which recipe** 
 **paper-cutout** (look 12.6, light craft-table foley, no bass): cut `paper-slide` in / short, `tape-tear` stick (into UI-like) / `page-flip` flip, `paper-rustle` soft (into 3D); crossfade `paper-rustle` soft, glitch `scissor-snip` cut, wipe `paper-slide` long; into the look `page-flip` turn + `paper-rustle` soft; appear `paper-pop` / `paper-rustle` crinkle / `wood-tick` tick; list items `paper-pop` (low -> mid -> high); counter step `wood-tick` tick / tock, landing `paper-pop` high, `tape-tear` stick; number `wood-tick` double, big number `scissor-snip` double; text in `paper-slide` short / in, typed `scissor-snip` cut; emphasis riser `tape-tear` peel / hit `paper-pop` low; end card `page-flip` turn; ambience `room-tone` -32 / -36.
 
 **sketchbook** (world Sketchbook, PLAN.md#13.6, experimental; one notebook heard up close, no bass): a world palette
-(`world: 'sketchbook'`): the world's style is exclusive (ADR-029), so it reuses the built-in paper and pen recipes. Cut `cap-pop`
-click, `paper-rustle` soft (into UI-like) / `page-flip` flip (into 3D); crossfade `paper-rustle` soft, glitch `paper-rustle` crinkle,
-wipe `page-flip`; appear `pencil-scratch` line / `paper-pop` low (a marker thump) / `marker-stroke` short; list items `board-tick`
-(low -> mid -> high); counter step `ruler-tick` plastic / double, landing `paper-pop` mid, `tape-tear` stick; number `cap-pop`
-click (the ballpoint), big number `paper-pop` low + `marker-stroke` long; text in / typed `pencil-scratch`; emphasis riser
-`marker-stroke` long / hit `paper-pop` low; end card `page-flip` turn; ambience `room-tone` -33 / -36. The page-native
-transitions sound like themselves within the look too (`WORLD_TRANSITION_SFX`): page flip `page-flip` flip/turn, riffle
-`page-flip` riffle, crumple and toss `paper-rustle` crinkle/busy, tape peel `tape-tear` peel, torn strip `tape-tear` tear (no
-paper-tear recipe yet).
+(`world: 'sketchbook'`): three recipes of its own (`pen-click`, `marker-thump`, `paper-tear`); the world's style is exclusive
+(ADR-029), so the rest reuses the built-in paper and pen recipes. Cut `pen-click` off, `paper-rustle` soft (into UI-like) /
+`page-flip` flip (into 3D); crossfade `paper-rustle` soft, glitch `paper-rustle` crinkle / `paper-tear` rip, wipe `page-flip`;
+appear `pencil-scratch` line / `marker-thump` tap / `marker-stroke` short; list items `board-tick` (low -> mid -> high); counter step
+`ruler-tick` plastic / double, landing `paper-pop` mid, `tape-tear` stick; number `pen-click` on / double (the ballpoint), big
+number `marker-thump` thump + `marker-stroke` long; text in / typed `pencil-scratch`; emphasis riser `marker-stroke` long / hit
+`marker-thump` slam; end card `page-flip` turn + `pen-click` off; ambience `room-tone` -33 / -36. The page-native transitions
+sound like themselves within the look too (`WORLD_TRANSITION_SFX`): page flip `page-flip` flip/turn, riffle `page-flip` riffle,
+crumple and toss `paper-rustle` crinkle/busy, tape peel `tape-tear` peel, torn strip `paper-tear` tear.
+
+**comic** (world Comic, PLAN.md#13.3, experimental; a printed comic book heard up close, no bass): a world palette
+(`world: 'comic'`, `packages/stages/src/sound/palettes/comic.ts`) reusing the paper, pen and board recipes (no stamp or slam
+recipe of its own: both are the whiteboard's `board-tap` knock, the onomatopoeia's punch the `paper-pop` under it). Cut
+`paper-slide` short/in + `paper-pop` mid, or `page-flip` flip + `paper-rustle` soft; crossfade `paper-rustle` soft, glitch
+`scissor-snip` cut, wipe `page-flip` turn/flip; appear `paper-pop` mid/high, `marker-stroke` short or `pencil-scratch` line; list
+items `paper-pop` (low -> mid -> high); counter step `wood-tick` tick / tock, landing `board-tap` knock or `paper-pop` high; number
+`cap-pop` click, big number `board-tap` knock + `paper-pop` low; text in `marker-stroke` short + `paper-pop` high, typed
+`pencil-scratch` hatch; emphasis riser `paper-slide` long / hit `board-tap` knock/double + `paper-pop` low; end card `page-flip`
+turn + `paper-rustle` soft; ambience `room-tone` -33 / -36. Scene sfx: `stamp` and `hit` = `board-tap`, `snap` = `scissor-snip`,
+`pop`/`bubble` = `paper-pop`. Panel-native transitions (`COMIC_TRANSITION_SFX`): page turn `page-flip` turn/flip, page turned
+back `page-flip` turn + `paper-rustle`, gutter split `scissor-snip` cut + `paper-slide` long, into the panel `paper-slide`
+in/short, panel slam `board-tap` knock + `paper-pop` low 0.15 s into the transition, ink bleed `marker-stroke` long. Music
+moods of a comic film (`WORLD_MOODS`): `calm-tech`, `tense-investigation`, `lofi-chill` (no synth `retro-wave`, nothing too
+cheerful); default calm `calm-tech`, tense acts `tense-investigation`.
+
+**game-b2** (world Game B2, PLAN.md#13.4, experimental; a 1980s first-person game heard from inside): a world palette
+(`world: 'game-b2'`, `packages/stages/src/sound/palettes/game-b2.ts`) reusing built-in recipes (no footstep, door or pickup
+recipe of its own): footsteps `board-tap` / `wood-tick`, the door `servo` + `relay-click` latch, the pickup `chime-up`, HUD
+typing `key-click` / `keyboard`, blips `terminal-tick` / `measure-blip` / `led-blip`, the stamp and thumps `board-tap` knock,
+menus `window-open` / `window-close`, the CRT `crt-zap`; busy slots have two or three candidates; bed: the tungsten `hum`.
+Game-native transitions (`GAME_B2_TRANSITION_SFX`): melt `servo` down, fog `swoosh-soft`, darkness `relay-click` latch +
+`crt-zap` power-on, door `servo` up, level card `swoosh-soft` right, map unfold `chime-up` two, map fold `window-close` chirp;
+the kit's automap, tally, throw and stinger return their own cues (`for (const c of r.cues) ctx.sfx.at(c.t, c.name)`). Music
+moods of a game film (`WORLD_MOODS`, PLAN.md#13.4 part c): `lofi-chill`, `tense-investigation`, `retro-wave` (the one world
+where the synth fits, kept for the liveliest acts; nothing bright or cheerful); default calm `lofi-chill`, tense acts
+`tense-investigation`.
+
+**game-b1** (world Game B1, PLAN.md#13.5, experimental; an Atari 2600 in a 1982 living room): a world palette (`world:
+'game-b1'`, `packages/stages/src/sound/palettes/game-b1.ts`) reusing built-in recipes (no cartridge, coin or slam recipe of its
+own): the cartridge click `relay-click` latch, the garbage of a cartridge in the slot `crt-zap` static, the coin-up (INSERT COIN,
+a chosen level) `chime-up`, the slam of a boss name or a high score `board-tap` knock, blips `measure-blip` / `led-blip` /
+`terminal-tick`, the manual's page `paper-slide` / `page-flip`, Dad's pencil `pencil-scratch`, typing `key-click` /
+`keyboard` (terminal); busy slots have two or three candidates; bed: the CRT's `crt-hum`. Game-native transitions
+(`GAME_B1_TRANSITION_SFX`): calendar zoom `crt-zap` degauss, cartridge in `relay-click` latch + `crt-zap` static, cartridge out
+`crt-zap` static, attract cycle `measure-blip` low, scanline wipe `crt-zap` degauss, page slide `paper-slide` in, page turn
+`page-flip` turn, room shake `board-tap` knock; the kit's high-score table, manual page, calendar zoom, cartridge, level select
+and game-over screen return their own cues (`for (const c of r.cues) ctx.sfx.at(c.t, c.name)`). Music moods of an Atari film
+(`WORLD_MOODS`, PLAN.md#13.5 part c): `lofi-chill` (the room), `retro-wave` (the console's synth, for the livelier acts),
+`tense-investigation` (the boss fights); nothing bright or cheerful; default calm `lofi-chill`, tense acts
+`tense-investigation`.
 
 ## Beat sync and repetition (PLAN.md#12.21, #12.23)
 

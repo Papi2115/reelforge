@@ -78,6 +78,13 @@ export class StageRun {
     }
   }
 
+  /** Shots being built now (or waiting to be built again after an interrupted attempt). */
+  shotsInProgress(): string[] {
+    return [...this.shots]
+      .filter(([, state]) => state === 'running' || state === 'requeued')
+      .map(([shotId]) => shotId);
+  }
+
   snapshot(): StageRunView {
     const current = this.turnSteps();
     const steps = [...this.finishedSteps, ...current].slice(-MAX_RUN_STEPS);

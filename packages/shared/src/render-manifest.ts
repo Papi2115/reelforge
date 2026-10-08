@@ -18,6 +18,7 @@ import {
   paletteShiftWindowSchema,
   timeRemapWindowSchema,
 } from './time-remap.js';
+import { manifestWorldAssetsSchema } from './world-assets.js';
 import { wordsFileSchema } from './words.js';
 
 export const RENDER_MANIFEST_VERSION = 1;
@@ -122,6 +123,11 @@ export const renderManifestSchema = z
     ambientVariation: ambientVariationSettingsSchema.optional(),
     /** Decoded pictures the scenes reference (PLAN.md#12.11); absent = none. */
     assets: z.array(manifestAssetSchema).optional(),
+    /**
+     * The project's world asset files (`assets/<world>/*.json`, PLAN.md#13.15), parsed by the
+     * engine into `ctx.worldAssets`; absent = none (a world's scenes get its empty set).
+     */
+    worldAssets: manifestWorldAssetsSchema.optional(),
     shots: z.array(manifestShotSchema).min(1),
   })
   .superRefine((manifest, issues) => {

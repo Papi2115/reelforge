@@ -5,8 +5,9 @@
  * asks to replace the opening and lists the locked shot; confirming rewrites script.txt's opening,
  * commits `Hook lab: opening 2 (Question)` (step `script`) and leaves the locked scene and
  * locks.json untouched; the Director's Opening shows the new first line and its own Hook lab
- * entry. Settings → Taste shows the switch (off: the seeded settings predate it),
- * the profile status, turns learning on (saved to settings.json) and offers Forget everything. fake-claude only;
+ * entry. Settings → Taste names the open project's channel (Default), shows the switch (off: the
+ * seeded settings predate it), the profile status, turns learning on for that channel (saved to
+ * channels.json, the app setting untouched) and offers Forget everything. fake-claude only;
  * screenshots at 1280×720 in out/test-app/hook-lab-*.png.
  */
 import { spawnSync } from 'node:child_process';
@@ -198,6 +199,10 @@ describe('Settings → Taste', () => {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Settings' });
     await dialog.getByRole('tab', { name: 'Taste' }).click();
+    const scope = dialog.getByRole('group', { name: 'Taste profile' });
+    await scope.getByText('Profile: Default').waitFor();
+    await scope.getByRole('img', { name: 'Channel: Default' }).waitFor();
+    await scope.getByText(/The channel of the open project/).waitFor();
     const toggle = dialog.getByRole('checkbox', { name: /Learn my taste/ });
     // The seeded settings file has no taste field (an install from before 2.3): learning is off.
     expect(await toggle.isChecked()).toBe(false);
@@ -213,13 +218,17 @@ describe('Settings → Taste', () => {
       .poll(
         async () =>
           (
-            JSON.parse(await readFile(path.join(userDataDir, 'settings.json'), 'utf8')) as {
-              taste?: { learning?: string };
+            JSON.parse(await readFile(path.join(userDataDir, 'channels.json'), 'utf8')) as {
+              channels: { id: string; tasteLearning?: string }[];
             }
-          ).taste?.learning,
+          ).channels.find((channel) => channel.id === 'default')?.tasteLearning,
         { timeout: 10_000 },
       )
       .toBe('auto');
+    const saved = JSON.parse(await readFile(path.join(userDataDir, 'settings.json'), 'utf8')) as {
+      taste?: { learning?: string };
+    };
+    expect(saved.taste?.learning).not.toBe('auto');
     await dialog.getByRole('button', { name: 'Close' }).click();
   });
 });

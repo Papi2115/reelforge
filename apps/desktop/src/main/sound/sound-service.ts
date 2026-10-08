@@ -54,8 +54,8 @@ export interface SoundServiceOptions {
   readonly enqueue: (requests: readonly StageRequest[]) => Promise<StageCommandResult>;
   /** Runs a cues.json write in the timeline editor's queue. */
   readonly exclusive: <T>(task: () => Promise<T>) => Promise<T>;
-  /** Commits the project (`manual`); true when a commit was made. */
-  readonly commit: (dir: string, message: string) => Promise<boolean>;
+  /** Commits `paths` of the project (`manual`); true when a commit was made. */
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<boolean>;
   readonly log: Logger;
 }
 
@@ -288,7 +288,7 @@ export class SoundService {
     } catch (error) {
       return { status: 'error', message: `cannot write cues.json: ${describeError(error)}` };
     }
-    const committed = await this.options.commit(dir, message);
+    const committed = await this.options.commit(dir, message, [FILES.cues]);
     this.options.log.info(`${message}${committed ? '' : ' (not committed)'}`);
     return { status: 'ok', message, committed };
   }

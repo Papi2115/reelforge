@@ -18,7 +18,9 @@ import { useId, useState, type JSX } from 'react';
 import type { SettingsState } from '../../shared/settings-contract.js';
 import { ExperimentalWorlds } from './ExperimentalWorlds.js';
 import { NewProjectCharacters } from './NewProjectCharacters.js';
+import { PixelTitles } from './PixelTitles.js';
 import { NewProjectSceneCount } from './NewProjectSceneCount.js';
+import { LineSettings } from '../queue/LineSettings.js';
 
 export interface PageProps {
   readonly state: SettingsState;
@@ -292,6 +294,7 @@ export function ProjectsPage({ state, update }: PageProps): JSX.Element {
           </span>
         </span>
       </label>
+      <LineSettings />
     </div>
   );
 }
@@ -373,6 +376,7 @@ export function PerformancePage({ state, update }: PageProps): JSX.Element {
         A hardware encoder that fails its test encode falls back to the CPU. The GPU choice applies
         after restarting ReelForge.
       </p>
+      <PixelTitles state={state} update={update} />
     </div>
   );
 }

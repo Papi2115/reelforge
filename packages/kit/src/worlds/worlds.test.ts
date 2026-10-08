@@ -24,7 +24,14 @@ import {
 import { CRISP_PALETTE } from '../testing/palettes.js';
 import { testRng } from '../testing/rng.js';
 import { TEST_WORLD, TEST_WORLD_ID, testWorldLook } from '../testing/test-world.js';
-import { defineWorld, WORLDS, worldLooks, type World } from './index.js';
+import {
+  defineWorld,
+  isUnwiredWorldStyle,
+  WORLDS,
+  worldLooks,
+  type World,
+  type WorldDefinition,
+} from './index.js';
 
 /** The built-in styles (engine presets); the kit has no engine dependency. */
 const BUILT_IN_STYLES = ['voxel-pixel-crisp640', 'noir-voxel', 'soft-480'] as const;
@@ -191,14 +198,16 @@ describe('no harm to the built-in styles', () => {
   );
 
   it('ships only experimental worlds so far: LOOKS adds nothing outside their styles', () => {
-    expect(WORLDS.map((entry) => entry.id)).toEqual(['sketchbook']);
+    expect(WORLDS.map((entry) => entry.id)).toEqual(['sketchbook', 'comic', 'game-b2', 'game-b1']);
     expect(WORLDS.every((entry) => entry.experimental)).toBe(true);
     const builtIn = LOOKS.filter((look) => look.styles === undefined);
     expect(builtIn.every((look) => look.experimental !== true)).toBe(true);
     expect(LOOKS.slice(0, builtIn.length)).toEqual(builtIn);
+    const worldIds = WORLDS.map((entry) => entry.id);
     for (const look of LOOKS.slice(builtIn.length)) {
       expect(look.experimental, look.id).toBe(true);
-      expect(look.styles, look.id).toEqual(['sketchbook']);
+      expect(look.styles, look.id).toHaveLength(1);
+      expect(worldIds, look.id).toContain(look.styles?.[0]);
     }
   });
 });
@@ -222,5 +231,42 @@ describe('defineWorld', () => {
       /style\.id is "other"/,
     );
     expect(() => world({ fonts: { display: '', mono: 'mono' } })).toThrow(/fonts\.display/);
+    expect(() => world({ experimental: false, wired: false })).toThrow(
+      /not experimental must be wired/,
+    );
+  });
+
+  it('leaves a world unwired unless it says so', () => {
+    const { id, label, description, experimental, style, fonts, soundPalette, looks } = TEST_WORLD;
+    const definition: WorldDefinition = {
+      id,
+      label,
+      description,
+      experimental,
+      style,
+      fonts,
+      soundPalette,
+      looks,
+    };
+    expect(defineWorld(definition).wired).toBe(false);
+    expect(world({ wired: true }).wired).toBe(true);
+  });
+});
+
+describe('wired worlds (PLAN.md#13)', () => {
+  it('wires every registered world; an unwired one is render-only', () => {
+    expect(WORLDS.filter((entry) => entry.wired).map((entry) => entry.id)).toEqual([
+      'sketchbook',
+      'comic',
+      'game-b2',
+      'game-b1',
+    ]);
+    expect(isUnwiredWorldStyle('sketchbook')).toBe(false);
+    expect(isUnwiredWorldStyle('comic')).toBe(false);
+    expect(isUnwiredWorldStyle('game-b2')).toBe(false);
+    expect(isUnwiredWorldStyle('game-b1')).toBe(false);
+    for (const style of STYLES_OF_TODAY) expect(isUnwiredWorldStyle(style)).toBe(false);
+    expect(isUnwiredWorldStyle(TEST_WORLD_ID, [TEST_WORLD])).toBe(true);
+    expect(isUnwiredWorldStyle(TEST_WORLD_ID, [world({ wired: true })])).toBe(false);
   });
 });

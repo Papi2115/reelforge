@@ -34,6 +34,17 @@
     "shotIds": ["s06_red_violet"]
   },
   "replies": {
+    "brief": {
+      "topic": "A 30-second short that shows how a glass of water and a flashlight make a small rainbow, and why white light splits into colours.",
+      "hook": "A plain glass of water can paint a rainbow on your wall.",
+      "keyFacts": [
+        "Confirm that water refracts each colour by a slightly different angle",
+        "When did Newton describe dispersion with a prism?",
+        "Which colour bends the most?"
+      ],
+      "tone": "friendly, hands-on",
+      "audience": "Curious kids and parents, no physics background."
+    },
     "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 8 sourced facts.\nUncertain: best angle depends on the glass.",
     "script": "Word count: 84. Estimated duration: about 34 seconds.\nAll claims are sourced.",
@@ -150,6 +161,25 @@
         }
       ]
     },
-    "roles": "Built optician: short hair, labCoat (cream) over a brightTeal top, darkSlate legs, glassesRound, magnifier; outfit colours 3.\ncast preview: all checks ok; reads as an optician from the front and the side."
+    "roles": "Built optician: short hair, labCoat (cream) over a brightTeal top, darkSlate legs, glassesRound, magnifier; outfit colours 3.\ncast preview: all checks ok; reads as an optician from the front and the side.",
+    "world-assets": "Built 1 prop (prism); new places: none.\nworld-assets check: 0 errors; the sheet reads at thumbnail size.",
+    "world-asset-critic": {
+      "assets": [
+        {
+          "tile": "A1",
+          "sees": "a glass prism",
+          "legible": true,
+          "style": "ok",
+          "note": "clear triangle with a beam"
+        },
+        {
+          "tile": "A2",
+          "sees": "a grey smudge",
+          "legible": false,
+          "style": "ok",
+          "note": "no defining shape at this size"
+        }
+      ]
+    }
   }
 }

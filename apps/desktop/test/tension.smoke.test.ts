@@ -21,7 +21,7 @@ import {
   stubFolderPicker,
 } from './support/electron-app.js';
 import { showDirector } from './support/pipeline-rows.js';
-import { projectMenu } from './support/project-menu.js';
+import { projectMenu, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -130,6 +130,7 @@ describe('tension panel', () => {
     // Project settings → Direction turns the map on; the panel's note goes away.
     await projectMenu(page, 'Project settings');
     const dialog = page.getByRole('dialog', { name: 'Project settings' });
+    await projectSettingsTab(dialog, 'Direction');
     await dialog.getByRole('region', { name: 'Direction' }).waitFor();
     await dialog.getByRole('checkbox', { name: /^Steer the film by a tension curve/ }).check();
     await expect

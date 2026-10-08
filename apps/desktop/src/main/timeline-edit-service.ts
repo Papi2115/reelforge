@@ -61,8 +61,8 @@ type Applied =
 export interface TimelineEditServiceOptions {
   /** Folder of the open project (undefined: none open). */
   readonly projectDir: () => string | undefined;
-  /** Commits the open project; resolves true when a commit was made. */
-  readonly commit: (message: string) => Promise<boolean>;
+  /** Commits `paths` of the open project; resolves true when a commit was made. */
+  readonly commit: (message: string, paths: readonly string[]) => Promise<boolean>;
   readonly log: Logger;
 }
 
@@ -233,7 +233,7 @@ export class TimelineEditService {
       this.options.log.error(`cannot write ${relative}: ${describeError(error)}`);
       return { status: 'error', message: `cannot write ${relative}: ${describeError(error)}` };
     }
-    const committed = await this.options.commit(message);
+    const committed = await this.options.commit(message, [relative]);
     this.options.log.info(`timeline edit: ${message}${committed ? '' : ' (not committed)'}`);
     return { status: 'ok', inverse: applied.inverse, message, committed };
   }

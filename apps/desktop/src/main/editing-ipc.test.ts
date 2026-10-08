@@ -8,7 +8,7 @@ import { editingHandlers, REPETITION_STEP } from './editing-ipc.js';
 import { createLogger } from './logger.js';
 
 let dir: string;
-const commits: [string, string][] = [];
+const commits: [string, string, readonly string[]][] = [];
 const queued: StageRequest[][] = [];
 
 const shot = (index: number, extra: Record<string, unknown> = {}) => ({
@@ -59,8 +59,8 @@ afterEach(async () => {
 function handlers() {
   return editingHandlers({
     currentProject: () => dir,
-    commit: (_dir, message, step) => {
-      commits.push([message, step]);
+    commit: (_dir, message, step, paths) => {
+      commits.push([message, step, paths]);
       return Promise.resolve(true);
     },
     enqueue: (requests) => {
@@ -89,6 +89,8 @@ describe('editing handlers', () => {
     const applied = await editing.repetitionAction({ id: 'sfx:whoosh@2.00', action: 'apply' });
     expect(applied).toMatchObject({ status: 'ok', committed: true, queued: false });
     expect(commits[0]?.[1]).toBe(REPETITION_STEP);
+    // Only the file the repetition rewrote is committed.
+    expect(commits[0]?.[2]).toEqual(['cues.json']);
     const cues = JSON.parse(await readFile(path.join(dir, 'cues.json'), 'utf8')) as {
       sfx: { name: string }[];
     };

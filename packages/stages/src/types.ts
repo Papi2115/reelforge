@@ -75,8 +75,10 @@ export type ReviewMode = (typeof REVIEW_MODES)[number];
 /**
  * `final-review`: the quiet pass after a build (PLAN.md#11.5), one commit at the end.
  * `variants`: alternative versions of one shot to compare and pick from (PLAN.md#11.3).
+ * `world-assets`: design the world film's own assets again (PLAN.md#13.15; a build runs it by
+ * itself once per storyboard).
  */
-export type SceneAction = 'build' | ReviewMode | 'final-review' | 'variants';
+export type SceneAction = 'build' | ReviewMode | 'final-review' | 'variants' | 'world-assets';
 
 /**
  * Shot variants (PLAN.md#11.3): `generate` builds `count` variants (or rebuilds variant `only`

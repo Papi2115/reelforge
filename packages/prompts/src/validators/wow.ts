@@ -4,17 +4,21 @@
  * error closer than 25 s or above one per 25 s, warning closer than 40 s or above one per 40 s),
  * never two in a row unless the dives continue a `scaleSequence` (`wow-in-a-row`, chains of at
  * most `maxScaleSteps`), the same style not twice within 90 s (`wow-repeat`), the transition not
- * longer than its shot, and `focus` only where the style uses it. Storyboards without wow styles
- * get no issue.
+ * longer than its shot, and `focus` only where a kit style uses it (a world's own styles are
+ * exempt: their prompts ask for a focus and several read it). Storyboards without wow styles
+ * get no issue. A genre preset's multiplier (`wowScale`, ADR-035) scales the warning gap and the
+ * budget (`wowPacing`); 1 or absent = exactly the rules above.
  */
 import {
   getTransitionStyle,
   isContinuityStyle,
   WOW_RULES,
   wowOccurrences,
+  wowPacing,
   wowStyleOf,
   type StoryboardShot,
   type WowOccurrence,
+  type WowPacing,
 } from '@reelforge/shared';
 import { issue, type ValidationIssue } from './issues.js';
 
@@ -73,32 +77,36 @@ function rowIssues(
   return issues;
 }
 
-function spacingIssues(moments: readonly WowOccurrence[], durationS: number): ValidationIssue[] {
+function spacingIssues(
+  moments: readonly WowOccurrence[],
+  durationS: number,
+  pacing: WowPacing,
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const starts = moments.filter((moment) => !moment.chained);
   starts.forEach((moment, index) => {
     const before = starts[index - 1];
     if (before === undefined) return;
     const gap = moment.t - before.t;
-    if (gap >= WOW_RULES.warnSpacingS) return;
-    const severity = gap < WOW_RULES.errorSpacingS ? 'error' : 'warning';
+    if (gap >= pacing.warnSpacingS) return;
+    const severity = gap < pacing.errorSpacingS ? 'error' : 'warning';
     issues.push(
       issue(
         severity,
         'wow-spacing',
-        `wow transitions ${seconds(gap)} apart (${before.shotId} -> ${moment.shotId}); keep them about ${String(WOW_RULES.warnSpacingS)}–90 s apart`,
+        `wow transitions ${seconds(gap)} apart (${before.shotId} -> ${moment.shotId}); keep them about ${String(pacing.warnSpacingS)}–${String(pacing.maxSpacingS)} s apart`,
         `${where(moment.index)}.style`,
       ),
     );
   });
-  const errorBudget = Math.max(1, Math.floor(durationS / WOW_RULES.errorSpacingS));
-  const warnBudget = Math.max(1, Math.floor(durationS / WOW_RULES.warnSpacingS));
+  const errorBudget = Math.max(1, Math.floor(durationS / pacing.errorSpacingS));
+  const warnBudget = Math.max(1, Math.floor(durationS / pacing.warnSpacingS));
   if (starts.length > warnBudget) {
     issues.push(
       issue(
         starts.length > errorBudget ? 'error' : 'warning',
         'wow-budget',
-        `${String(starts.length)} wow transitions in ${seconds(durationS)}; at most ${String(warnBudget)} (about one per ${String(WOW_RULES.warnSpacingS)} s)`,
+        `${String(starts.length)} wow transitions in ${seconds(durationS)}; at most ${String(warnBudget)} (about one per ${String(pacing.warnSpacingS)} s)`,
       ),
     );
   }
@@ -151,9 +159,14 @@ function shotIssues(
     if (transition === undefined || transition.type === 'cut' || transition.focus === undefined) {
       return;
     }
-    if (getTransitionStyle(transition.style)?.wow?.focus === true) return;
+    const kitStyle = getTransitionStyle(transition.style);
+    if (kitStyle?.wow?.focus === true) return;
     // A continuity link renders with its anchor as the focus (ADR-030, `continuityTransition`).
     if (isContinuityStyle(transition.style)) return;
+    // A world's own style (comic-*, game-b1-*, ...) is not a kit style: its world prompt asks for
+    // a focus ("the thing it goes through") and some of them read it (game-b1-screen-flip,
+    // comic-gutter-collapse); an unknown style is flagged by the world-transition check.
+    if (transition.style !== undefined && kitStyle === undefined) return;
     issues.push(
       issue(
         'warning',
@@ -166,14 +179,20 @@ function shotIssues(
   return issues;
 }
 
-/** The wow-transition checks of a storyboard (see the module comment). */
-export function checkWowTransitions(shots: readonly StoryboardShot[]): ValidationIssue[] {
+/**
+ * The wow-transition checks of a storyboard (see the module comment); `wowScale` = the genre
+ * preset's multiplier (default 1).
+ */
+export function checkWowTransitions(
+  shots: readonly StoryboardShot[],
+  wowScale = 1,
+): ValidationIssue[] {
   const moments = wowOccurrences(shots);
   const durationS = shots.at(-1)?.t1 ?? 0;
   return [
     ...earlyIssues(shots, moments),
     ...rowIssues(shots, moments),
-    ...spacingIssues(moments, durationS),
+    ...spacingIssues(moments, durationS, wowPacing(wowScale)),
     ...repeatIssues(moments),
     ...shotIssues(shots, moments),
   ];

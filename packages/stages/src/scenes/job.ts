@@ -20,6 +20,7 @@ import { loadCharacterSettings } from '../characters.js';
 import { loadSceneDramaturgy, type SceneDramaturgy } from '../dramaturgy.js';
 import { readProjectText, requireProjectJson } from '../files.js';
 import { readLockedShots } from '../locks.js';
+import { styleLookScope } from '../looks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
 import { RoleBuilder } from '../roles/builder.js';
@@ -70,17 +71,22 @@ export interface SceneJob {
   readonly characters: CharacterSettings;
   /** Anti-slop guards (PLAN.md#13.7); undefined = off for this project (no ⚠ slop findings). */
   readonly antiSlop?: AntiSlopSetup | undefined;
+  /**
+   * `research.md` (real run Comic 1): the critic and the fix turn judge facts by it, not by the
+   * storyboard intent; undefined = no notes (the prompts as before).
+   */
+  readonly researchNotes?: string | undefined;
 }
 
 /** Installed kit names per style (and experimental scope); computed once each. */
 const kitNamesByScope = new Map<string, KitNames>();
 
 function installedKitNames(style: string, scope: WorldScope): KitNames {
-  const experimental = scope.experimental === true;
-  const key = `${style}|${String(experimental)}`;
+  const lookScope = styleLookScope(style, scope);
+  const key = `${style}|${String(lookScope.experimental === true)}`;
   let names = kitNamesByScope.get(key);
   if (names === undefined) {
-    names = kitNamesFromCatalog(experimental ? { style, experimental } : { style });
+    names = kitNamesFromCatalog(lookScope);
     kitNamesByScope.set(key, names);
   }
   return names;
@@ -126,6 +132,8 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     assets,
   });
   if (!antiSlop.ok) return antiSlop;
+  const researchNotes = await readProjectText(ctx.projectDir, FILES.research);
+  if (!researchNotes.ok) return researchNotes;
   return ok({
     ctx,
     frames: tools.frames,
@@ -150,6 +158,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     dramaturgy: await loadSceneDramaturgy(ctx.projectDir, project.value),
     characters: await loadCharacterSettings(ctx.projectDir, project.value),
     antiSlop: antiSlop.value,
+    researchNotes: researchNotes.value,
   });
 }
 

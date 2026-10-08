@@ -1,12 +1,15 @@
 /**
  * Variety of a world film (real run Sketchbook 1: no pop-up, no strip, a boring film), checked on
  * the storyboard of a world project only: every `worldMoment` is one of the world's catalog and
- * sits in a look that hosts it (and opens with its transition when it needs one); the film has
+ * sits in a look that hosts it (and opens with its transition when it needs one) in a shot long
+ * enough for it (`minShotS`, real run Sketchbook 4: a strip in a 3.9 s shot was dropped); the film has
  * its breakthrough quota (worlds/variety.ts) with at least two kinds once it needs two; no two
  * breakthroughs in adjacent shots; one moment kind at most once per 90 s; never three shots in a
  * row with the same moment (or plain) in the same roll; at least three distinct page transitions;
  * with continuity links on, at least one link in films of 45 s+ (the world's signature cut, real
- * run Sketchbook 2 planned none). The look run (at most two in a row) is the rhythm check with the world's limit (storyboard.ts).
+ * run Sketchbook 2 planned none) and every world transition that renders a link (Game B1) on a
+ * linked shot; a world with a film grammar (Game B1) also gets world-grammar.ts. The look run (at
+ * most two in a row) is the rhythm check with the world's limit (storyboard.ts).
  * Every finding is an error, so the storyboard's repair turn fixes it.
  */
 import { continuityKindOf, shotLook, type StoryboardShot } from '@reelforge/shared';
@@ -17,8 +20,14 @@ import {
   type WorldQuotaOverride,
   type WorldVarietyRules,
 } from '../worlds/variety.js';
-import type { WorldMomentOption, WorldTransitionOption } from '../worlds/types.js';
+import type {
+  WorldFilmGrammar,
+  WorldMomentOption,
+  WorldTransitionOption,
+} from '../worlds/types.js';
+import type { WorldPace } from '../worlds/pace.js';
 import { issue, type ValidationIssue } from './issues.js';
+import { checkWorldGrammar } from './world-grammar.js';
 
 export interface WorldVarietyOptions {
   /** The world's moment catalog (`WorldPromptText.moments`). */
@@ -30,6 +39,13 @@ export interface WorldVarietyOptions {
   /** Test drivers only: a higher breakthrough floor (StageSettings.worldQuotaOverride). */
   readonly override?: WorldQuotaOverride | undefined;
   readonly rules?: Partial<WorldVarietyRules>;
+  /** The world's film grammar (`WorldPromptText.grammar`, world-grammar.ts); absent = none. */
+  readonly grammar?: WorldFilmGrammar | undefined;
+  /**
+   * The world's transition pace (`WorldPromptText.pace`, Comic): the looser non-cut budget, the
+   * denser links and world-pace.ts (storyboard.ts applies them); absent = the defaults.
+   */
+  readonly pace?: WorldPace | undefined;
 }
 
 const PLAIN = 'plain';
@@ -65,6 +81,17 @@ function catalogIssues(
         ),
       );
     }
+    const length = shot.t1 - shot.t0;
+    if (option.minShotS !== undefined && length < option.minShotS) {
+      issues.push(
+        issue(
+          'error',
+          'moment-length',
+          `${shot.id}: ${id} needs a shot of at least ${String(option.minShotS)} s, this one is ${length.toFixed(1)} s (the scene cannot fit it and drops it); merge the shot with a neighbour so it lasts ${String(option.minShotS)} s or more, or move ${id} to a longer shot`,
+          where(index),
+        ),
+      );
+    }
     const style = shot.transitionIn?.type === 'cut' ? undefined : shot.transitionIn?.style;
     if (option.transition !== undefined && style !== option.transition) {
       issues.push(
@@ -78,6 +105,14 @@ function catalogIssues(
     }
     return issues;
   });
+}
+
+/** "(a reveal or twist → popup, a sequence of dates → strip)" from the catalog's cues. */
+function cueHint(options: WorldVarietyOptions): string {
+  const cues = options.moments.flatMap((option) =>
+    option.breakthrough && option.cue !== undefined ? [`${option.cue} → ${option.id}`] : [],
+  );
+  return cues.length === 0 ? '' : ` (${cues.join(', ')})`;
 }
 
 function quotaIssues(
@@ -98,7 +133,7 @@ function quotaIssues(
       issue(
         'error',
         'moment-quota',
-        `${String(planned.length)} breakthrough moments (${names}) in ${film}; this film needs at least ${String(quota.min)} (about one per ${String(rules.breakthroughTargetEveryS)} s): plan them where the narration calls for them (a reveal or twist → popup, a sequence of dates → strip)`,
+        `${String(planned.length)} breakthrough moments (${names}) in ${film}; this film needs at least ${String(quota.min)} (about one per ${String(rules.breakthroughTargetEveryS)} s): plan them where the narration calls for them${cueHint(options)}`,
         'shots',
       ),
     );
@@ -130,6 +165,7 @@ function spacingIssues(
   shots: readonly StoryboardShot[],
   breakthroughs: ReadonlySet<string>,
   rules: WorldVarietyRules,
+  repeatable: ReadonlySet<string> = new Set(),
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   let lastBreakthrough: number | undefined;
@@ -156,7 +192,11 @@ function spacingIssues(
       lastBreakthrough = index;
     }
     const earlier = lastOfKind.get(moment);
-    if (earlier !== undefined && shot.t0 - earlier.t0 < rules.momentRepeatS) {
+    if (
+      earlier !== undefined &&
+      !repeatable.has(moment) &&
+      shot.t0 - earlier.t0 < rules.momentRepeatS
+    ) {
       issues.push(
         issue(
           'error',
@@ -238,6 +278,37 @@ function continuityQuotaIssues(
   ];
 }
 
+/**
+ * With links on, a world transition that renders a continuity link (Game B1's calendar zoom and
+ * cartridge in / out, `WorldTransitionOption.link`) needs the shot's `continuity` (the object both
+ * shots build and the stage's link transition); without it the cut is a link nobody planned.
+ */
+function linkTransitionIssues(
+  shots: readonly StoryboardShot[],
+  options: WorldVarietyOptions,
+): ValidationIssue[] {
+  const kinds = new Map(
+    (options.transitions ?? []).flatMap((option) =>
+      option.link === undefined ? [] : [[option.id, option.link] as const],
+    ),
+  );
+  if (kinds.size === 0) return [];
+  return shots.flatMap((shot, index): ValidationIssue[] => {
+    const transition = shot.transitionIn;
+    if (index === 0 || shot.continuity !== undefined || transition?.type === 'cut') return [];
+    const kind = transition?.style === undefined ? undefined : kinds.get(transition.style);
+    if (kind === undefined) return [];
+    return [
+      issue(
+        'error',
+        'continuity-link',
+        `${shot.id}: ${transition?.style ?? ''} is a ${kind} link: add "continuity": { "kind": "${kind}", "object": "<the thing both shots show>" } and name the object in both intents, or use another transition`,
+        where(index, 'transitionIn'),
+      ),
+    ];
+  });
+}
+
 /** The variety checks of a world's storyboard (see the module comment). */
 export function checkWorldVariety(
   shots: readonly StoryboardShot[],
@@ -254,9 +325,16 @@ export function checkWorldVariety(
     ...(breakthroughs.size === 0
       ? []
       : quotaIssues(shots, breakthroughs, durationS, options, rules)),
-    ...spacingIssues(shots, breakthroughs, rules),
+    ...spacingIssues(
+      shots,
+      breakthroughs,
+      rules,
+      new Set(options.moments.filter((option) => option.repeatable === true).map((o) => o.id)),
+    ),
     ...runIssues(shots, rules),
     ...transitionVarietyIssues(shots, durationS, options, rules),
     ...(options.continuityLinks === true ? continuityQuotaIssues(shots, durationS, rules) : []),
+    ...(options.continuityLinks === true ? linkTransitionIssues(shots, options) : []),
+    ...(options.grammar === undefined ? [] : checkWorldGrammar(shots, options.grammar, catalog)),
   ];
 }

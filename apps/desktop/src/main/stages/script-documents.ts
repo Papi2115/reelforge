@@ -41,8 +41,13 @@ export interface ScriptDocumentsOptions {
   readonly currentProject: () => string | undefined;
   /** The script stage runs or waits in `dir` (its files must not be edited meanwhile). */
   readonly scriptBusy: (dir: string) => boolean;
-  /** Autocommit (`manual`) of `dir`; failures are logged by the caller. */
-  readonly commit: (dir: string, message: string, step: string) => Promise<void>;
+  /** Autocommit (`manual`) of `paths` in `dir`; failures are logged by the caller. */
+  readonly commit: (
+    dir: string,
+    message: string,
+    step: string,
+    paths: readonly string[],
+  ) => Promise<void>;
   /** Something changed on disk: the sidebar state must be re-read. */
   readonly afterChange: () => void;
   readonly log: Logger;
@@ -167,7 +172,7 @@ export class ScriptDocuments {
     } catch (error) {
       return failed(`brief.json not saved: ${describeError(error)}`);
     }
-    await this.options.commit(dir, `Brief: ${clip(brief.topic, 60)}`, 'brief');
+    await this.options.commit(dir, `Brief: ${clip(brief.topic, 60)}`, 'brief', [FILES.brief]);
     this.options.afterChange();
     return ok();
   }
@@ -238,7 +243,7 @@ export class ScriptDocuments {
     const written = await this.writeScript(dir, text, `imported from ${name}`, true);
     if (written.status === 'error') return written;
     await this.flush();
-    await this.options.commit(dir, `Import script from ${name}`, 'script');
+    await this.options.commit(dir, `Import script from ${name}`, 'script', [FILES.script]);
     this.options.afterChange();
     return ok(`Imported ${name}.`);
   }
@@ -277,7 +282,7 @@ export class ScriptDocuments {
     if (pending === undefined) return;
     clearTimeout(pending.timer);
     this.pending = undefined;
-    await this.options.commit(pending.dir, 'Edit script', 'script');
+    await this.options.commit(pending.dir, 'Edit script', 'script', [FILES.script]);
   }
 
   private stamp(): string {

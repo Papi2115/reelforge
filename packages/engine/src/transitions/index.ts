@@ -6,7 +6,8 @@
  * Preview and export both get their frames from `EngineRuntime.seek`, so they share this code.
  * Styles and their metadata come from `@reelforge/shared` (`TRANSITION_STYLES`); the continuity
  * links between shots (PLAN.md#13.2, `CONTINUITY_STYLES`) and the page-native transitions of the
- * Sketchbook world (PLAN.md#13.6, `SKETCHBOOK_TRANSITION_STYLES`, world-scoped) are composited
+ * Sketchbook world (PLAN.md#13.6, `SKETCHBOOK_TRANSITION_STYLES`) and the panel-native ones of
+ * the Comic world (PLAN.md#13.3, `COMIC_TRANSITION_STYLES`), both world-scoped, are composited
  * the same way.
  */
 import {
@@ -28,10 +29,31 @@ import {
   pixelWipe,
   scanlineSweep,
 } from './basic.js';
+import {
+  COMIC_COMPOSITORS,
+  COMIC_TRANSITION_STYLES,
+  isComicTransition,
+  type ComicTransitionId,
+  type ComicTransitionStyle,
+} from './comic/index.js';
 import { carryEnvironment, sharedObject, zoomThrough } from './continuity.js';
 import { cubeSmash } from './cube-smash.js';
 import { diveIn, diveOut } from './dive.js';
 import { enterBinoculars, enterKeyhole, enterLens, enterWindow } from './enter.js';
+import {
+  GAME_B2_COMPOSITORS,
+  GAME_B2_TRANSITION_STYLES,
+  isGameB2Transition,
+  type GameB2TransitionId,
+  type GameB2TransitionStyle,
+} from './game-b2/index.js';
+import {
+  GAME_B1_COMPOSITORS,
+  GAME_B1_TRANSITION_STYLES,
+  isGameB1Transition,
+  type GameB1TransitionId,
+  type GameB1TransitionStyle,
+} from './game-b1/index.js';
 import { crtZoom, drawOver, pixelSortMelt, tileFlip } from './looks.js';
 import { pageTurn, paperRoll, spongeWipe } from './paper.js';
 import {
@@ -54,6 +76,27 @@ import {
 
 export { createTones, type TransitionFrame, type Tones } from './pixels.js';
 export {
+  COMIC_TRANSITION_IDS,
+  COMIC_TRANSITION_STYLES,
+  isComicTransition,
+  type ComicTransitionId,
+  type ComicTransitionStyle,
+} from './comic/index.js';
+export {
+  GAME_B1_TRANSITION_IDS,
+  GAME_B1_TRANSITION_STYLES,
+  isGameB1Transition,
+  type GameB1TransitionId,
+  type GameB1TransitionStyle,
+} from './game-b1/index.js';
+export {
+  GAME_B2_TRANSITION_IDS,
+  GAME_B2_TRANSITION_STYLES,
+  isGameB2Transition,
+  type GameB2TransitionId,
+  type GameB2TransitionStyle,
+} from './game-b2/index.js';
+export {
   isSketchbookTransition,
   SKETCHBOOK_TRANSITION_IDS,
   SKETCHBOOK_TRANSITION_STYLES,
@@ -65,7 +108,17 @@ export {
  * Everything the engine composites: the transition-kit styles, the continuity links and the
  * world-scoped page-native transitions.
  */
-export type EngineTransitionId = TransitionStyleId | ContinuityStyleId | SketchbookTransitionId;
+export type EngineTransitionId =
+  | TransitionStyleId
+  | ContinuityStyleId
+  | SketchbookTransitionId
+  | ComicTransitionId
+  | GameB2TransitionId
+  | GameB1TransitionId;
+
+/** A world's page-native transition id (Sketchbook, Comic, Game B2, Game B1). */
+export type WorldTransitionId =
+  SketchbookTransitionId | ComicTransitionId | GameB2TransitionId | GameB1TransitionId;
 
 /** A transition the engine can composite, with its compositor. */
 export interface EngineTransition {
@@ -83,10 +136,12 @@ export interface ContinuityTransition extends ContinuityStyle {
   readonly composite: Compositor;
 }
 
-/** A world's page-native transition (PLAN.md#13.6) with its compositor. */
-export interface WorldTransition extends WorldTransitionStyle {
+/** A world's page-native transition (PLAN.md#13.6, #13.3) with its compositor. */
+export type WorldTransition = (
+  WorldTransitionStyle | ComicTransitionStyle | GameB2TransitionStyle | GameB1TransitionStyle
+) & {
   readonly composite: Compositor;
-}
+};
 
 const COMPOSITORS: Readonly<Record<EngineTransitionId, Compositor>> = {
   'pixel-wipe': pixelWipe,
@@ -114,6 +169,9 @@ const COMPOSITORS: Readonly<Record<EngineTransitionId, Compositor>> = {
   'continuity-shared-object': sharedObject,
   'continuity-carry-environment': carryEnvironment,
   ...SKETCHBOOK_COMPOSITORS,
+  ...COMIC_COMPOSITORS,
+  ...GAME_B2_COMPOSITORS,
+  ...GAME_B1_COMPOSITORS,
 };
 
 export const TRANSITIONS: Readonly<Record<TransitionStyleId, KitTransition>> = Object.fromEntries(
@@ -128,13 +186,15 @@ export const CONTINUITY_TRANSITIONS: Readonly<Record<ContinuityStyleId, Continui
     ]),
   ) as Record<ContinuityStyleId, ContinuityTransition>;
 
-export const WORLD_TRANSITIONS: Readonly<Record<SketchbookTransitionId, WorldTransition>> =
+export const WORLD_TRANSITIONS: Readonly<Record<WorldTransitionId, WorldTransition>> =
   Object.fromEntries(
-    Object.values(SKETCHBOOK_TRANSITION_STYLES).map((style) => [
-      style.id,
-      { ...style, composite: COMPOSITORS[style.id] },
-    ]),
-  ) as Record<SketchbookTransitionId, WorldTransition>;
+    [
+      ...Object.values(SKETCHBOOK_TRANSITION_STYLES),
+      ...Object.values(COMIC_TRANSITION_STYLES),
+      ...Object.values(GAME_B2_TRANSITION_STYLES),
+      ...Object.values(GAME_B1_TRANSITION_STYLES),
+    ].map((style) => [style.id, { ...style, composite: COMPOSITORS[style.id] }]),
+  ) as Record<WorldTransitionId, WorldTransition>;
 
 /**
  * The engine transition of a storyboard style id (kit, continuity or a world's page-native one);
@@ -142,7 +202,13 @@ export const WORLD_TRANSITIONS: Readonly<Record<SketchbookTransitionId, WorldTra
  */
 export function findTransition(style: string | undefined): EngineTransition | undefined {
   if (style === undefined) return undefined;
-  if (isSketchbookTransition(style)) return WORLD_TRANSITIONS[style];
+  if (
+    isSketchbookTransition(style) ||
+    isComicTransition(style) ||
+    isGameB2Transition(style) ||
+    isGameB1Transition(style)
+  )
+    return WORLD_TRANSITIONS[style];
   if ((TRANSITION_STYLE_IDS as readonly string[]).includes(style)) {
     return TRANSITIONS[style as TransitionStyleId];
   }

@@ -5,7 +5,8 @@
  * opens / closes it; Escape closes it and focus returns to the button; a click outside closes it.
  * A count change is announced politely (no sound). Rendered by the workspace into a slot of the
  * header (`slot`), from the data the workspace already holds (stage state, reports, shot plan,
- * assets) plus the dramaturgy / editing / claims reads of use-needs-you.ts.
+ * assets) plus the dramaturgy / editing / claims reads of use-needs-you.ts, and the production
+ * line's films that wait for you (their button opens the Production line dialog).
  */
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,6 +21,7 @@ import {
   type AttentionItem,
 } from '../stages/attention-view.js';
 import { stationFacts } from '../stages/stations-view.js';
+import { mergeAttention } from '../queue/line-attention.js';
 import { NEEDS_YOU_KEYS } from './app-keys.js';
 import { openAttentionTarget, type AttentionOpeners } from './open-stage.js';
 import { useAppShortcut } from './use-app-shortcut.js';
@@ -38,13 +40,21 @@ export interface NeedsYouProps {
   readonly slot: HTMLElement | null;
   readonly dir: string;
   readonly project: NeedsYouProject;
+  /** The production line's items (layout/../queue/line-attention.ts), after the project's. */
+  readonly lineItems: readonly AttentionItem[];
   readonly open: AttentionOpeners;
 }
 
-export function NeedsYou({ slot, dir, project, open }: NeedsYouProps): JSX.Element | null {
+export function NeedsYou({
+  slot,
+  dir,
+  project,
+  lineItems,
+  open,
+}: NeedsYouProps): JSX.Element | null {
   const sources = useAttentionSources(dir, project.snapshot);
   if (slot === null) return null;
-  const items = attentionItems({
+  const projectItems = attentionItems({
     ...sources,
     state: project.state,
     facts: stationFacts(project.reports?.scenes ?? null, project.shots, project.built),
@@ -52,6 +62,7 @@ export function NeedsYou({ slot, dir, project, open }: NeedsYouProps): JSX.Eleme
     words: project.reports?.words,
     assets: project.assets,
   });
+  const items = mergeAttention(projectItems, lineItems);
   return createPortal(<NeedsYouInbox items={items} openers={open} />, slot);
 }
 

@@ -1,0 +1,369 @@
+/**
+ * Channels in the built app (`pnpm test:app`, PLAN.md#13.13, ADR-031): Settings → Channels adds
+ * two channels, renames them, sets a style, a voice and an API key (the OS's real safeStorage in
+ * the test's own app data folder; where the OS cannot encrypt, the plain-words error instead),
+ * removes the key, reorders; the start screen then offers the channel (its style preselected),
+ * the project is created in channel 2 and the header and Project settings name it; the recent list
+ * shows its dot; deleting the channel is refused while it has the project; Settings → Taste picks
+ * a channel's own profile (Forget empties only that one) and follows the per-world switch. The key value (a
+ * canary) never shows in the page and is in no file under app data or the project. No Claude and
+ * no network. Screenshots at 1280x720: out/test-app/channels-*.png.
+ *
+ * Every test (and every CI retry of it) launches the app on a fresh profile and projects folder:
+ * the later tests start from a seeded channels.json instead of the first test's leftovers, so a
+ * failed attempt cannot poison the next one. Per attempt the window at the end
+ * (channels-end-<n>.png) and main's log (channels-main-<n>.log) are kept for CI failures.
+ */
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { CHANNELS_FILE, channelsFileSchema, emptyTasteProfile } from '@reelforge/shared';
+import type { ElectronApplication, Locator, Page } from 'playwright';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { logFile } from '../src/main/app-paths.js';
+import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
+
+const CANARY = 'sk_canary_7f3a9b1e_do_not_leak_4c2d';
+const SEEDED_AT = '2026-10-01T10:00:00.000Z';
+
+let root: string;
+let attempt = 0;
+/** Folder of the running attempt: the profile (app data) and the projects. */
+let attemptDir: string | undefined;
+let app: ElectronApplication | undefined;
+let page: Page;
+let userDataDir: string;
+let parent: string;
+
+beforeAll(async () => {
+  root = await mkdtemp(path.join(tmpdir(), 'reelforge channels ż-'));
+  await mkdir(screenshotDir, { recursive: true });
+});
+
+/** Evidence for CI (the artifact upload takes out/test-app/): the window as left and main's log. */
+afterEach(async () => {
+  if (app !== undefined) {
+    await shot(`end-${String(attempt)}`).catch((error: unknown) => {
+      process.stderr.write(`channels: no end screenshot: ${String(error)}\n`);
+    });
+  }
+  await closeApp(app);
+  app = undefined;
+  if (attemptDir !== undefined) {
+    const target = path.join(screenshotDir, `channels-main-${String(attempt)}.log`);
+    await cp(logFile(userDataDir), target).catch((error: unknown) => {
+      process.stderr.write(`channels: no main log: ${String(error)}\n`);
+    });
+  }
+});
+
+afterAll(async () => {
+  await rm(root, { recursive: true, force: true, maxRetries: 5 });
+});
+
+/** The channels the first test leaves behind: Voxplain, Default, Crime Desk (noir-voxel). */
+function seededChannels(): string {
+  const file = channelsFileSchema.parse({
+    version: 1,
+    defaultChannelId: 'default',
+    channels: [
+      { id: 'voxplain', name: 'Voxplain', tasteProfile: 'voxplain', createdAt: SEEDED_AT },
+      { id: 'default', name: 'Default', createdAt: SEEDED_AT },
+      {
+        id: 'crime',
+        name: 'Crime Desk',
+        color: '#4fb3ff',
+        defaultStyle: 'noir-voxel',
+        tasteProfile: 'crime',
+        voice: { provider: 'elevenlabs', voiceId: 'crimeVoice01', settings: { speed: 1.05 } },
+        createdAt: SEEDED_AT,
+      },
+    ],
+  });
+  return JSON.stringify(file, null, 2);
+}
+
+/**
+ * Starts this attempt's app on a fresh profile; `seed` writes files into it first (name →
+ * content). The window is 1280x720 for the screenshots.
+ */
+async function startAttempt(seed: Readonly<Record<string, string>> = {}): Promise<void> {
+  attempt += 1;
+  attemptDir = await mkdtemp(path.join(root, `attempt-${String(attempt)}-`));
+  userDataDir = path.join(attemptDir, 'profile');
+  parent = path.join(attemptDir, 'Projekty kanałów');
+  await mkdir(userDataDir, { recursive: true });
+  await mkdir(parent);
+  for (const [name, content] of Object.entries(seed)) {
+    await writeFile(path.join(userDataDir, name), content);
+  }
+  app = await launchApp(userDataDir);
+  await app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0]?.setContentSize(1280, 720);
+  });
+  page = await app.firstWindow();
+  await page.waitForFunction(() => window.innerWidth === 1280 && window.innerHeight === 720);
+}
+
+async function shot(name: string): Promise<void> {
+  await page.screenshot({ path: path.join(screenshotDir, `channels-${name}.png`) });
+}
+
+async function readJson(file: string): Promise<Record<string, unknown>> {
+  const raw: unknown = JSON.parse(await readFile(file, 'utf8'));
+  if (typeof raw !== 'object' || raw === null) throw new Error(`${file} is not an object`);
+  return raw as Record<string, unknown>;
+}
+
+async function savedChannels(): Promise<{ id: string; name: string; [key: string]: unknown }[]> {
+  const file = await readJson(path.join(userDataDir, CHANNELS_FILE));
+  return file['channels'] as { id: string; name: string }[];
+}
+
+/** Every file under `folder` (recursively) whose bytes contain `needle`. */
+async function filesContaining(folder: string, needle: string): Promise<string[]> {
+  const entries = await readdir(folder, { recursive: true, withFileTypes: true });
+  const hits: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const file = path.join(entry.parentPath, entry.name);
+    const bytes = await readFile(file).catch(() => Buffer.alloc(0));
+    if (bytes.includes(needle) || bytes.includes(Buffer.from(needle, 'utf16le'))) hits.push(file);
+  }
+  return hits;
+}
+
+/** Names in the channel list, top to bottom, as shown (not as saved). */
+function shownChannelNames(list: Locator): Promise<string[]> {
+  return list.locator('.channels-item-name').allTextContents();
+}
+
+async function openChannelsSettings(): Promise<Locator> {
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Settings' });
+  await dialog.getByRole('tab', { name: 'Channels' }).click();
+  await dialog.getByRole('listbox', { name: 'Channels' }).waitFor();
+  return dialog;
+}
+
+async function addChannel(dialog: Locator, name: string): Promise<void> {
+  await dialog.getByRole('button', { name: 'Add channel' }).click();
+  const form = dialog.getByRole('form', { name: 'New channel' });
+  await form.getByLabel('Name of the new channel').fill(name);
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await dialog.getByRole('region', { name: `Channel ${name}`, exact: true }).waitFor();
+}
+
+async function rename(dialog: Locator, from: string, to: string): Promise<void> {
+  const detail = dialog.getByRole('region', { name: `Channel ${from}`, exact: true });
+  const name = detail.getByLabel('Name', { exact: true });
+  await name.fill(to);
+  await name.press('Enter');
+  await dialog.getByRole('region', { name: `Channel ${to}`, exact: true }).waitFor();
+}
+
+describe('channels', () => {
+  it('adds, edits and reorders channels and stores a key without showing it', async () => {
+    await startAttempt();
+    const start = page.getByRole('region', { name: 'Start' });
+    await start.waitFor();
+    // One channel: the New project form does not ask.
+    expect(await start.getByLabel('Channel', { exact: true }).count()).toBe(0);
+
+    const dialog = await openChannelsSettings();
+    const list = dialog.getByRole('listbox', { name: 'Channels' });
+    await list.getByRole('option', { name: /Default/ }).waitFor();
+    await dialog.getByText('The default channel cannot be deleted.').waitFor();
+
+    await addChannel(dialog, 'Voxplain');
+    // A second channel with the same name is refused in plain words.
+    await dialog.getByRole('button', { name: 'Add channel' }).click();
+    const form = dialog.getByRole('form', { name: 'New channel' });
+    await form.getByLabel('Name of the new channel').fill('voxplain');
+    await form.getByRole('button', { name: 'Add', exact: true }).click();
+    await form.getByText('Another channel already has this name.').waitFor();
+    await form.getByRole('button', { name: 'Cancel' }).click();
+    await addChannel(dialog, 'Crime');
+    // Renaming keeps the id made from the first name.
+    await rename(dialog, 'Crime', 'Crime Desk');
+
+    const crime = dialog.getByRole('region', { name: 'Channel Crime Desk', exact: true });
+    await crime.getByLabel('Style of new projects').selectOption('noir-voxel');
+    const voiceId = crime.getByLabel('Voice ID');
+    await voiceId.fill('crimeVoice01');
+    await voiceId.press('Tab');
+    const speed = crime.getByRole('slider', { name: 'Speed' });
+    await speed.focus();
+    for (let step = 0; step < 5; step += 1) await speed.press('ArrowRight');
+    await crime.getByText('1.05×').waitFor();
+    await expect
+      .poll(async () => (await savedChannels()).find((channel) => channel.id === 'crime'))
+      .toMatchObject({
+        name: 'Crime Desk',
+        defaultStyle: 'noir-voxel',
+        voice: { provider: 'elevenlabs', voiceId: 'crimeVoice01', settings: { speed: 1.05 } },
+      });
+
+    const key = crime.getByRole('form', { name: 'ElevenLabs API key' });
+    await key.getByText('No key').waitFor();
+    await key.getByLabel('API key', { exact: true }).fill(CANARY);
+    await key.getByRole('button', { name: 'Save key' }).click();
+    await key.getByText(/^Key saved ✓$|cannot encrypt the key/).waitFor();
+    // The OS encrypted the key (false where safeStorage is unavailable, e.g. Linux basic_text).
+    const keyStored = (await key.getByText('Key saved ✓').count()) === 1;
+    await expect.poll(() => key.locator('input[type="password"]').inputValue()).toBe('');
+    expect(await page.content()).not.toContain(CANARY);
+    if (keyStored) {
+      await list.getByRole('option', { name: /Crime Desk.*key ✓/ }).waitFor();
+      await key.getByRole('button', { name: 'Remove key' }).click();
+      await key.getByText('No key').waitFor();
+      await key.getByLabel('API key', { exact: true }).fill(CANARY);
+      await key.getByRole('button', { name: 'Save key' }).click();
+      await key.getByText('Key saved ✓').waitFor();
+    }
+    expect(await page.content()).not.toContain(CANARY);
+    await shot('settings-voice');
+    await dialog.locator('.settings-panel').evaluate((panel) => {
+      panel.scrollTo(0, 0);
+    });
+    await shot('settings');
+
+    // Voxplain one place up: Default, Voxplain, Crime Desk → Voxplain, Default, Crime Desk.
+    await list.getByRole('option', { name: /Voxplain/ }).click();
+    await dialog.getByRole('button', { name: 'Move up' }).click();
+    await expect
+      .poll(async () => (await savedChannels()).map((channel) => channel.id))
+      .toEqual(['voxplain', 'default', 'crime']);
+    // Main saves before it answers: the list shows the new order a moment after the file has it.
+    await expect.poll(() => shownChannelNames(list)).toEqual(['Voxplain', 'Default', 'Crime Desk']);
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
+
+    // The ciphertext is base64 of an encrypted blob: never the plain text.
+    expect(await filesContaining(userDataDir, CANARY)).toEqual([]);
+    if (keyStored) {
+      const secrets = await readJson(path.join(userDataDir, 'channel-secrets.bin.json'));
+      expect(Object.keys(secrets['secrets'] as object)).toEqual(['crime']);
+    }
+  });
+
+  it('creates a project in the chosen channel; header, Project settings and recent name it', async () => {
+    await startAttempt({ [CHANNELS_FILE]: seededChannels() });
+    if (app === undefined) throw new Error('the app is not running');
+    // The channel's key, so the project folder can be checked for it too.
+    await page.evaluate(async (value) => {
+      const bridge = (
+        window as unknown as {
+          reelforge: { setChannelSecret(request: object): Promise<unknown> };
+        }
+      ).reelforge;
+      await bridge.setChannelSecret({ channelId: 'crime', name: 'elevenlabs-api-key', value });
+    }, CANARY);
+    const start = page.getByRole('region', { name: 'Start' });
+    const channel = start.getByLabel('Channel', { exact: true });
+    await expect.poll(() => channel.inputValue()).toBe('default');
+    await channel.selectOption('crime');
+    await expect
+      .poll(() => start.locator('input[type="radio"][value="noir-voxel"]').isChecked())
+      .toBe(true);
+    await start.getByLabel('Video title').fill('Heist night');
+    await shot('new-project');
+
+    await stubFolderPicker(app, parent);
+    await start.getByRole('button', { name: 'New project…' }).click();
+    await projectMenuButton(page).waitFor({ timeout: 30_000 });
+    await expect
+      .poll(() => page.locator('header .project-channel').textContent())
+      .toBe('Crime Desk');
+    const project = await readJson(path.join(parent, 'Heist night', 'project.json'));
+    expect(project).toMatchObject({ channelId: 'crime', style: 'noir-voxel' });
+    await shot('header');
+
+    await projectMenu(page, 'Project settings');
+    const settings = page.getByRole('dialog', { name: 'Project settings' });
+    await projectSettingsTab(settings, 'Channel & genre');
+    const row = settings.getByRole('region', { name: 'Channel', exact: true });
+    await expect.poll(() => row.textContent()).toContain('Crime Desk');
+    await settings.getByRole('button', { name: 'Close' }).click();
+    await projectMenu(page, 'Close project');
+
+    await start.waitFor();
+    await start.getByRole('img', { name: 'Channel: Crime Desk' }).waitFor();
+    // The last used channel comes first next time.
+    await expect
+      .poll(() => start.getByLabel('Channel', { exact: true }).inputValue())
+      .toBe('crime');
+
+    const dialog = await openChannelsSettings();
+    await dialog.getByRole('option', { name: /Crime Desk/ }).click();
+    const crime = dialog.getByRole('region', { name: 'Channel Crime Desk', exact: true });
+    await crime.getByRole('button', { name: 'Delete channel…' }).click();
+    await crime.getByRole('button', { name: 'Delete channel', exact: true }).click();
+    await crime
+      .getByRole('alert')
+      .filter({
+        hasText: '“Crime Desk” still has 1 project (Heist night), so it cannot be deleted.',
+      })
+      .waitFor();
+    expect((await savedChannels()).map((entry) => entry.id)).toContain('crime');
+    await page.keyboard.press('Escape');
+
+    // The key went neither to the page nor to any file of app data or the project.
+    expect(await page.content()).not.toContain(CANARY);
+    expect(await filesContaining(attemptDir ?? userDataDir, CANARY)).toEqual([]);
+  });
+
+  it('keeps a taste profile per channel: picker, Forget and the per-world switch', async () => {
+    // The Crime Desk channel learned three picks; the default channel nothing (taste.json absent).
+    await startAttempt({
+      [CHANNELS_FILE]: seededChannels(),
+      'taste-crime.json': JSON.stringify({
+        ...emptyTasteProfile(),
+        signals: { ...emptyTasteProfile().signals, pick: 3 },
+      }),
+    });
+    const crimeProfile = path.join(userDataDir, 'taste-crime.json');
+    const dialog = await openChannelsSettings();
+    await dialog.getByRole('tab', { name: 'Taste' }).click();
+    const scope = dialog.getByRole('group', { name: 'Taste profile' });
+    // No project open: the picker, starting with the default channel.
+    await scope.getByText(/No project is open: pick a channel/).waitFor();
+    const picker = dialog.getByLabel('Channel', { exact: true });
+    await expect.poll(() => picker.inputValue()).toBe('default');
+    await dialog.getByText(/^Recorded: 0 variant picks/).waitFor();
+    await picker.selectOption('crime');
+    await scope.getByText('Profile: Crime Desk').waitFor();
+    await scope.getByRole('img', { name: 'Channel: Crime Desk' }).waitFor();
+    await dialog.getByText(/^Recorded: 3 variant picks/).waitFor();
+    await shot('taste');
+    await dialog.getByRole('button', { name: 'Forget everything…' }).click();
+    await dialog.getByRole('button', { name: 'Forget everything', exact: true }).click();
+    await dialog.getByText('This taste profile was forgotten.').waitFor();
+    await dialog.getByText(/^Recorded: 0 variant picks/).waitFor();
+    const forgotten = await readJson(crimeProfile);
+    expect(forgotten['signals']).toMatchObject({ pick: 0 });
+    await expect(readFile(path.join(userDataDir, 'taste.json'))).rejects.toThrow();
+
+    // One profile per world: the channel's style of new projects until a film learns.
+    await dialog.getByRole('tab', { name: 'Channels' }).click();
+    await dialog.getByRole('option', { name: /Crime Desk/ }).click();
+    const crime = dialog.getByRole('region', { name: 'Channel Crime Desk', exact: true });
+    // Saved through main first, then shown checked (controlled by the saved list).
+    const perWorld = crime.getByRole('checkbox', {
+      name: /Keep a separate profile for each world/,
+    });
+    await perWorld.click();
+    await expect.poll(() => perWorld.isChecked()).toBe(true);
+    await expect
+      .poll(async () => (await savedChannels()).find((channel) => channel.id === 'crime'))
+      .toMatchObject({ tastePerWorld: true });
+    await dialog.getByRole('tab', { name: 'Taste' }).click();
+    await dialog.getByLabel('Channel', { exact: true }).selectOption('crime');
+    await scope.getByText(/^Profile: Crime Desk · /).waitFor();
+    await scope.getByText(/keeps a separate profile for each world/).waitFor();
+    await dialog.getByText(/taste-crime--noir-voxel\.json/).waitFor();
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'detached' });
+  });
+});

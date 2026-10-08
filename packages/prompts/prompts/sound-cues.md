@@ -1,6 +1,6 @@
 ---
 id: sound-cues
-version: 5
+version: 6
 model: sonnet
 tools: [Read, Write, Bash(reelforge *)]
 output: cues.json
@@ -20,6 +20,6 @@ Looks: each shot's sound palette follows its `look` in `storyboard.json` (absent
 
 Rules: roughly one sound moment per 3–6 s, never constant; no two cues within 150 ms unless they form one designed series (counter ticks, list pops); nothing in the first 0.3 s of a shot except transition sounds; SFX sit under the voice (gainDb about −8 to −20); ambience ≤ −20 dB. Never mask the narration.
 
-Music: the `audio/music/gen-*.wav` beds are rendered by the app. Do not change their `file`, `from` or `to`; to change the music's character set `moods` (one per act, in act order) to any of {{^world}}calm-tech, lofi-chill, tense-investigation, bright-explainer, retro-wave{{/world}}{{#world}}{{worldMoods}} (the moods of this world; no others){{/world}} — the app re-renders those beds. You may change a bed's `gainDb` or remove the music (`"music": []`) if the film should have none. Other music only from files that exist in `audio/music/`, ducked.
+Music: the `audio/music/gen-*.wav` beds are rendered by the app. Do not change their `file`, `from` or `to`; to change the music's character set `moods` (one per act, in act order) to any of {{^world}}calm-tech, lofi-chill, tense-investigation, bright-explainer, retro-wave{{/world}}{{#world}}{{worldMoods}} (the moods of this world; no others){{/world}} — the app re-renders those beds. You may change a bed's `gainDb` or remove the music (`"music": []`) if the film should have none. Other music only from files that exist in `audio/music/`, ducked.{{#genreMoods}} This film's genre ({{genreName}}) suits these moods, best first: {{genreMoods}}; prefer them where they fit an act (the other moods stay allowed).{{/genreMoods}}
 
 Run `reelforge validate` and fix errors. Reply with one line: what you changed.

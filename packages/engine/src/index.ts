@@ -44,3 +44,4 @@ export * from './text/index.js';
 export * from './timeline.js';
 export * from './transitions/index.js';
 export * from './vibe.js';
+export * from './world-assets/build.js';

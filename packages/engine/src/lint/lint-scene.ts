@@ -7,6 +7,8 @@ import { parse, type Program } from 'acorn';
 import { checkProgram } from './checker.js';
 import { checkContract, collectExports, resolveFunction } from './contract-rules.js';
 import { normalizeDiagnostics, type LintDiagnostic, type Report } from './diagnostics.js';
+import { checkLetteringOptions } from './lettering-rules.js';
+import { checkPagesAdded } from './page-rules.js';
 import { analyzeScopes } from './scope.js';
 
 export interface LintSceneOptions {
@@ -78,5 +80,7 @@ export function lintScene(source: string, options: LintSceneOptions): LintDiagno
     tree,
     updateFunction: resolveFunction(exports.named.get('update')?.value, tree),
   });
+  checkLetteringOptions(program, report);
+  checkPagesAdded(program, report);
   return normalizeDiagnostics(diagnostics);
 }

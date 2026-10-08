@@ -6,6 +6,7 @@
  * a new project may get) and the renderer (the New project form, Project settings, the header).
  */
 import { STYLE_REGISTRY, type StyleRegistry } from '@reelforge/engine';
+import { isUnwiredWorldStyle } from '@reelforge/kit';
 
 export interface StyleChoice {
   readonly id: string;
@@ -26,6 +27,9 @@ export const STYLE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   'noir-voxel': 'Low-key voxel 3D: mostly shadow, one hard light, red and amber accents.',
   'soft-480': 'Warm, friendly voxel 3D with bigger pixels: rose, plum, sage and peach.',
   sketchbook: 'Hand-drawn notebook: felt-tip pages, graph paper, pop-up and accordion moments.',
+  comic: 'Comic book pages: panels, halftone print, speech bubbles and onomatopoeia.',
+  'game-b2': 'First-person RPG: a corridor walk with a HUD, dialogue and inventory.',
+  'game-b1': 'Atari 2600 game in a 1982 living room: CRT picture, boss cards, sticky notes.',
 };
 
 /** How the app describes style `id`; undefined for a style this build does not ship. */
@@ -45,13 +49,16 @@ export function describeStyle(
   };
 }
 
-/** The styles a new project may start with, in registry order (built-ins first). */
+/**
+ * The styles a new project may start with, in registry order (built-ins first). A world that is not
+ * wired yet (no prompts or project defaults) is never offered, even with the preview switch on.
+ */
 export function styleChoices(
   experimentalWorlds: boolean,
   registry: StyleRegistry = STYLE_REGISTRY,
 ): StyleChoice[] {
   const ids = experimentalWorlds ? registry.allIds : registry.ids;
-  return ids.flatMap((id) => describeStyle(id, registry) ?? []);
+  return ids.flatMap((id) => (isUnwiredWorldStyle(id) ? [] : (describeStyle(id, registry) ?? [])));
 }
 
 /** True when a new project may get style `id` under the current experimental switch. */

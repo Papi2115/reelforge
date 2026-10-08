@@ -1,4 +1,5 @@
 import { STYLE_REGISTRY } from '@reelforge/engine';
+import { WORLDS } from '@reelforge/kit';
 import { describe, expect, it } from 'vitest';
 import {
   describeStyle,
@@ -15,13 +16,43 @@ describe('style choices (PLAN.md#13.6)', () => {
     expect(styleChoices(false).map((choice) => choice.id)).toEqual(BUILT_IN);
     expect(styleChoices(false).every((choice) => !choice.world && !choice.preview)).toBe(true);
     expect(isOfferedStyle('sketchbook', false)).toBe(false);
+    expect(isOfferedStyle('comic', false)).toBe(false);
+    expect(isOfferedStyle('game-b2', false)).toBe(false);
+    expect(isOfferedStyle('game-b1', false)).toBe(false);
     expect(isOfferedStyle('noir-voxel', false)).toBe(true);
   });
 
-  it('adds Sketchbook as a preview world with the switch on, built-ins first', () => {
+  it('adds Sketchbook, Comic, Game B2 and Game B1 as preview worlds with the switch on, built-ins first', () => {
     const choices = styleChoices(true);
-    expect(choices.map((choice) => choice.id)).toEqual([...BUILT_IN, 'sketchbook']);
+    expect(choices.map((choice) => choice.id)).toEqual([
+      ...BUILT_IN,
+      'sketchbook',
+      'comic',
+      'game-b2',
+      'game-b1',
+    ]);
     expect(choices.at(-1)).toEqual({
+      id: 'game-b1',
+      label: 'Game B1: Atari boss montage',
+      description: 'Atari 2600 game in a 1982 living room: CRT picture, boss cards, sticky notes.',
+      world: true,
+      preview: true,
+    });
+    expect(choices.at(-2)).toEqual({
+      id: 'game-b2',
+      label: 'Game B2: first-person RPG',
+      description: 'First-person RPG: a corridor walk with a HUD, dialogue and inventory.',
+      world: true,
+      preview: true,
+    });
+    expect(choices.at(-3)).toEqual({
+      id: 'comic',
+      label: 'Comic',
+      description: 'Comic book pages: panels, halftone print, speech bubbles and onomatopoeia.',
+      world: true,
+      preview: true,
+    });
+    expect(choices.at(-4)).toEqual({
       id: 'sketchbook',
       label: 'Sketchbook',
       description:
@@ -30,7 +61,23 @@ describe('style choices (PLAN.md#13.6)', () => {
       preview: true,
     });
     expect(isOfferedStyle('sketchbook', true)).toBe(true);
+    expect(isOfferedStyle('comic', true)).toBe(true);
+    expect(isOfferedStyle('game-b2', true)).toBe(true);
+    expect(isOfferedStyle('game-b1', true)).toBe(true);
     expect(isOfferedStyle('no-such-style', true)).toBe(false);
+  });
+
+  it('never offers a world that is not wired yet, switch or not', () => {
+    // Every registered world is wired today (Game B1 last, PLAN.md#13.5 part c).
+    const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
+    expect(unwired).toEqual([]);
+    for (const id of unwired) {
+      expect(STYLE_REGISTRY.allIds).toContain(id);
+      expect(isOfferedStyle(id, true)).toBe(false);
+      expect(isOfferedStyle(id, false)).toBe(false);
+      // Still described (the header names a hand-edited project's style).
+      expect(describeStyle(id)?.world).toBe(true);
+    }
   });
 
   it('has a one-line description for every registered style', () => {

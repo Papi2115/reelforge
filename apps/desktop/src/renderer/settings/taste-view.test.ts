@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { TasteState } from '../../shared/taste-contract.js';
-import { preferenceBar, profileStatus, signalSummary } from './taste-view.js';
+import {
+  preferenceBar,
+  profileStatus,
+  scopeNote,
+  scopeTitle,
+  signalSummary,
+  worldChoices,
+} from './taste-view.js';
 
 const STATE: Extract<TasteState, { status: 'ok' }> = {
   status: 'ok',
@@ -11,6 +18,17 @@ const STATE: Extract<TasteState, { status: 'ok' }> = {
   minSignals: 3,
   updatedAt: '2026-10-04T10:00:00.000Z',
   file: 'C:\\Users\\x\\AppData\\Roaming\\ReelForge\\taste.json',
+  scope: {
+    channelId: 'default',
+    channelName: 'Default',
+    color: null,
+    channelLearning: null,
+    fromProject: true,
+    perWorld: false,
+    world: null,
+    worlds: [],
+    channels: [{ id: 'default', name: 'Default', color: null }],
+  },
 };
 
 describe('taste view', () => {
@@ -46,5 +64,32 @@ describe('taste view', () => {
     };
     expect(profileStatus(few)).toBe('Learning: 1 decision so far, the profile is used from 3 on.');
     expect(profileStatus({ ...STATE, profile: null })).toContain('no clear preference');
+  });
+
+  it('names the profile shown and where it comes from', () => {
+    expect(scopeTitle(STATE.scope)).toBe('Default');
+    expect(scopeNote(STATE.scope)).toBe(
+      'The channel of the open project. Every film of this channel learns and uses this profile.',
+    );
+    const crime = {
+      ...STATE.scope,
+      channelId: 'crime',
+      channelName: 'Crime',
+      fromProject: false,
+      perWorld: true,
+      world: 'unknown-world',
+      worlds: ['unknown-world'],
+    };
+    expect(scopeTitle(crime)).toBe('Crime · unknown-world');
+    expect(scopeNote(crime)).toBe(
+      'No project is open: pick a channel. This channel keeps a separate profile for each world.',
+    );
+    expect(worldChoices(crime)).toEqual([{ id: 'unknown-world', label: 'unknown-world' }]);
+    expect(scopeNote({ ...STATE.scope, channelId: null, channelName: null })).toMatch(
+      /cannot be read/,
+    );
+    expect(scopeTitle({ ...STATE.scope, channelId: null, channelName: null })).toBe(
+      'Default channel',
+    );
   });
 });

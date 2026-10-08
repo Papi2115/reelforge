@@ -32,7 +32,7 @@ export interface ClaimsServiceOptions {
   readonly settings: () => AppSettings;
   readonly now: () => Date;
   /** Commits claims.json (project autocommit, step `sources`); false when it failed. */
-  readonly commit: (dir: string, message: string) => Promise<boolean>;
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<boolean>;
   readonly log: Logger;
 }
 
@@ -74,7 +74,7 @@ export class ClaimsService {
       this.options.log.info(
         `check sources: ${formatClaimsReport(checked.value.file).split('\n')[0] ?? ''}`,
       );
-      await this.options.commit(dir, 'Check sources');
+      await this.options.commit(dir, 'Check sources', [CLAIMS_FILE]);
       this.checking = null;
       return {
         status: 'ok',
@@ -109,7 +109,7 @@ export class ClaimsService {
     if (!edited.ok) return { status: 'error', message: edited.message };
     const written = await writeClaimsFile(dir, edited.file);
     if (!written.ok) return { status: 'error', message: written.error };
-    await this.options.commit(dir, `Sources: ${request.op} ${request.claimId}`);
+    await this.options.commit(dir, `Sources: ${request.op} ${request.claimId}`, [CLAIMS_FILE]);
     return { status: 'ok', state: await this.stateOf(dir) };
   }
 

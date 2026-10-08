@@ -45,6 +45,24 @@ describe('spokenChapterTitle', () => {
     ).toBe('Weaving Copper Wire');
   });
 
+  it('reads on past a sentence without a key phrase; hedges break runs (real run Comic 2)', () => {
+    expect(spokenChapterTitle(spoken('Why? Anglerfish dangle a lure.', 0), 0, 9, 5)).toBe(
+      'Anglerfish Dangle',
+    );
+    expect(
+      spokenChapterTitle(
+        spoken('Below roughly one thousand meters, the sun gives up.', 0),
+        0,
+        9,
+        5,
+      ),
+    ).toBe('One Thousand Meters');
+    expect(spokenChapterTitle(spoken('Why? Hold on. So what? Anglerfish.', 0), 0, 9, 5)).toBe(
+      'Hold',
+    );
+    expect(spokenChapterTitle(spoken('Why? So? Now? Anglerfish.', 0), 0, 9, 5)).toBeUndefined();
+  });
+
   it('reads Polish narration and ignores words of the next chapter', () => {
     expect(
       spokenChapterTitle(

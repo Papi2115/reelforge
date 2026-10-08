@@ -33,9 +33,15 @@ export function chosenStyle(
 export const STYLE_ROW_NOTE =
   'A project keeps the style it was created with. Choose another style for a new project.';
 
-/** The Style row's line for a preview world while the switch is off (undefined otherwise). */
+/**
+ * The Style row's line for a preview world while the switch is off, or for a world still in
+ * development (undefined otherwise).
+ */
 export function styleBlockedText(style: ProjectStyle): string | undefined {
   if (style.enabled) return undefined;
+  if (style.inDevelopment === true) {
+    return `${style.label} is a world still in development: it cannot be built yet. Choose another style for a new project.`;
+  }
   return `${style.label} is a preview world: turn on Settings → Projects → “Experimental worlds (preview)” to build this project in it.`;
 }
 

@@ -3,11 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   appLayout,
   assetLibraryDir,
+  channelSecretsFile,
+  channelsFile,
   defaultProjectsDir,
   logFile,
   recentProjectsFile,
   resolveUserDataDir,
-  tasteFile,
   TEST_PROJECTS_DIR_ENV,
   USER_DATA_ENV,
 } from './app-paths.js';
@@ -91,10 +92,11 @@ describe('assetLibraryDir', () => {
   });
 });
 
-describe('tasteFile', () => {
-  it('lives in the app data folder, outside every project (PLAN.md#12.13)', () => {
+describe('channel files', () => {
+  it('live in the app data folder, outside every project (PLAN.md#13.13)', () => {
     const userData = path.join(appData, 'ReelForge');
-    expect(tasteFile(userData)).toBe(path.join(appData, 'ReelForge', 'taste.json'));
+    expect(channelsFile(userData)).toBe(path.join(userData, 'channels.json'));
+    expect(channelSecretsFile(userData)).toBe(path.join(userData, 'channel-secrets.bin.json'));
   });
 });
 

@@ -44,6 +44,9 @@ export const STYLE_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
   'noir-voxel': ['tense-investigation', 'lofi-chill'],
   'soft-480': ['lofi-chill', 'calm-tech'],
   sketchbook: ['lofi-chill', 'calm-tech'],
+  comic: ['calm-tech', 'tense-investigation'],
+  'game-b2': ['lofi-chill', 'tense-investigation', 'retro-wave'],
+  'game-b1': ['lofi-chill', 'retro-wave', 'tense-investigation'],
 };
 export const DEFAULT_STYLE_MOODS: readonly MusicMood[] = ['calm-tech', 'bright-explainer'];
 
@@ -56,6 +59,9 @@ export const TENSION_STYLE_MOODS: Readonly<Record<string, readonly [MusicMood, M
   'noir-voxel': ['lofi-chill', 'tense-investigation'],
   'soft-480': ['lofi-chill', 'calm-tech'],
   sketchbook: ['lofi-chill', 'calm-tech'],
+  comic: ['calm-tech', 'tense-investigation'],
+  'game-b2': ['lofi-chill', 'tense-investigation'],
+  'game-b1': ['lofi-chill', 'tense-investigation'],
 };
 export const DEFAULT_TENSION_MOODS: readonly [MusicMood, MusicMood] = ['calm-tech', 'retro-wave'];
 /** A body act this tense (mean) gets the tense mood; intro and outro need TENSE_EDGE_ACT. */
@@ -176,6 +182,14 @@ export function defaultMood(act: FilmAct, styleId: string): MusicMood {
  */
 export const WORLD_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
   sketchbook: ['lofi-chill', 'calm-tech'],
+  // A printed adventure comic: calm under the story pages, tense where the page holds its breath.
+  comic: ['calm-tech', 'tense-investigation', 'lofi-chill'],
+  // A late-night game level: a low lo-fi bed in the rooms, tense at the boss, a retro synth for
+  // the liveliest acts (the one world where the synth fits); nothing bright or cheerful.
+  'game-b2': ['lofi-chill', 'tense-investigation', 'retro-wave'],
+  // A 1982 living room with the console on: a low lo-fi bed in the room, the console's own synth
+  // for the livelier acts, tense at the boss fights; nothing bright or cheerful.
+  'game-b1': ['lofi-chill', 'retro-wave', 'tense-investigation'],
 };
 
 /** Mood per act: Claude's hint where given (same length as the acts), else the style default. */

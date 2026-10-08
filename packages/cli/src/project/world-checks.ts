@@ -2,7 +2,8 @@
  * The world variety checks in `reelforge validate` (real run Sketchbook 2): the storyboard of a
  * world project gets the same checks as the Storyboard stage's validator (`checkWorldVariety`:
  * moment catalog and looks, breakthrough quota, spacing, runs, distinct page transitions and, with
- * continuity links on, the film's link quota), so Claude sees a quota error before its turn ends.
+ * continuity links on, the film's link quota; a world's film grammar), so Claude sees a quota
+ * error before its turn ends.
  * The stage's test-only quota override is not known here; the natural quota applies.
  */
 import { WORLD_TRANSITIONS } from '@reelforge/engine';
@@ -32,13 +33,16 @@ export function worldVarietyProblems(
   worlds: readonly World[] = WORLDS,
 ): Problem[] {
   const world = worlds.find((entry) => entry.id === project.style);
-  if (world === undefined || (world.experimental && !experimentalWorlds)) return [];
-  const moments = worldPromptText(world.id)?.moments ?? [];
+  if (world === undefined || !world.wired || (world.experimental && !experimentalWorlds)) return [];
+  const text = worldPromptText(world.id);
+  const moments = text?.moments ?? [];
   if (moments.length === 0) return [];
   const issues = checkWorldVariety(storyboard.shots, {
     moments,
     transitions: worldTransitions(world),
     continuityLinks: projectContinuityLinks(project),
+    // the world's film grammar (Game B1 rework: views, game share, crossings, transitions)
+    grammar: text?.grammar,
   });
   return issues.map((entry) => ({
     severity: entry.severity,

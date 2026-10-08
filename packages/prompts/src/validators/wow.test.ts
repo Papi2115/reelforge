@@ -154,6 +154,25 @@ describe('wow transition checks', () => {
     );
   });
 
+  it("accepts a focus on a world's own styles (their prompts ask for one; several read it)", () => {
+    const world = [
+      'game-b1-screen-flip',
+      'game-b1-page-slide',
+      'comic-page-slide',
+      'comic-page-scroll',
+      'comic-panel-push',
+      'comic-gutter-collapse',
+    ];
+    for (const style of world) {
+      expect(
+        codes(timeline(60, { 20: { style, duration: 0.6, focus: { x: 0.2, y: 0.5 } } })),
+      ).toEqual([]);
+    }
+    expect(codes(timeline(60, { 20: { focus: { x: 0.3, y: 0.3 } } }))).toEqual([
+      'warning:transition-focus',
+    ]);
+  });
+
   it('accepts the anchor focus of a continuity link (zoom-through in real test film 3)', () => {
     for (const style of CONTINUITY_STYLE_IDS) {
       expect(codes(timeline(60, { 20: { style, focus: { x: 0.7, y: 0.3 } } }))).toEqual([]);

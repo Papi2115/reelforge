@@ -4,7 +4,7 @@
  * banners, the transcript with Claude's step log, and the composer (scope, chips, "Think harder").
  * Talks to main's ClaudeService through `window.reelforge` (use-chat.ts). The Director tab shows
  * the workspace's `director` node. Collapsed, it is a slim rail (ChatRail.tsx); the transcript and
- * the draft stay mounted.
+ * the draft stay mounted. Ctrl+. stops the running turn (Stop); Esc never does.
  */
 import { useEffect, useState, type JSX, type ReactNode } from 'react';
 import type { ChatPause, ChatScope, ChatSelection } from '../../shared/chat-contract.js';
@@ -13,10 +13,11 @@ import { ChatHistory } from '../chat/ChatHistory.js';
 import { ChatTranscript } from '../chat/ChatTranscript.js';
 import { useChat } from '../chat/use-chat.js';
 import { SIDE_TAB_LABELS, SIDE_TABS, type SideTab } from '../director/director-view.js';
-import { TOGGLE_CHAT_KEYS } from './app-keys.js';
+import { STOP_CLAUDE_KEYS, TOGGLE_CHAT_KEYS } from './app-keys.js';
 import { unreadTurns } from './chat-dock.js';
 import { ChatRail } from './ChatRail.js';
 import { ChevronIcon, StopIcon } from './icons.js';
+import { useAppShortcut } from './use-app-shortcut.js';
 
 export interface ChatPanelProps {
   /** Shot targeted by the Shot scope (selected, else under the playhead). */
@@ -96,6 +97,10 @@ export function ChatPanel({
   const queue = state?.queue ?? [];
   const pause = state?.pause ?? null;
   const now = useMinuteTick(pause !== null);
+  // Ctrl+. stops the running turn from anywhere in the window (Esc never does).
+  useAppShortcut('stop-claude', () => {
+    if (running !== null) chat.stop();
+  });
   const finished = (state?.turns ?? []).filter((turn) => turn.finishedAt !== null).length;
   // Turns finished while the chat is collapsed count as unread until it opens again.
   const [seen, setSeen] = useState<number | null>(null);
@@ -170,7 +175,11 @@ export function ChatPanel({
             className="small-button"
             aria-label="Stop Claude"
             disabled={running === null}
-            title={running === null ? 'Nothing is running' : 'Stop the running turn (Esc)'}
+            title={
+              running === null
+                ? 'Nothing is running'
+                : `Stop the running turn (${STOP_CLAUDE_KEYS})`
+            }
             onClick={chat.stop}
           >
             <StopIcon /> Stop
@@ -221,7 +230,6 @@ export function ChatPanel({
               shotId={shotId}
               running={running !== null}
               onSend={chat.send}
-              onStop={chat.stop}
               prefill={prefill}
             />
           </div>

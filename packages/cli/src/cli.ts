@@ -16,6 +16,7 @@ import { propPreviewCommand } from './commands/prop-preview.js';
 import { renderShotCommand } from './commands/render-shot.js';
 import { statusCommand } from './commands/status.js';
 import { validateCommand } from './commands/validate.js';
+import { worldAssetsCommand } from './commands/world-assets.js';
 import { describeUnknown, ProjectError, UsageError } from './errors.js';
 
 export const COMMANDS: readonly Command[] = [
@@ -29,6 +30,7 @@ export const COMMANDS: readonly Command[] = [
   kitDocsCommand,
   looksCommand,
   propPreviewCommand,
+  worldAssetsCommand,
   castCommand,
   assetsCommand,
   fetchAssetCommand,

@@ -5,13 +5,16 @@
  * of each shot (PLAN.md#11.4, plus "Lock all ✓"), "Variants…" (PLAN.md#11.3; also in the
  * right-click menu and on V), the build progress and the missing-props banner. The heading counts
  * the badges; a filter (text, "only ⚠/✗") and compact one-line rows keep 16+ shots usable at
- * 1280x720. Detailed rows of a world's shots tag its planned page moment (`popup`, `strip`). Clicking a shot selects it and moves the preview to its start.
+ * 1280x720. Detailed rows of a world's shots tag its planned page moment (`popup`, `strip`); a
+ * shot whose generated voice was redone after Words timed reads "voice changed" (Re-time above).
+ * Clicking a shot selects it and moves the preview to its start.
  */
 import type { StoryboardShot } from '@reelforge/shared';
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import { useCallback, useEffect, useState, type JSX, type ReactNode } from 'react';
 import type { FileState } from '../../shared/snapshot-contract.js';
 import { plural } from '../../shared/plural.js';
 import { missingBadgeLabel, type ShotBadge } from '../stages/scenes-view.js';
+import { VOICE_CHANGED_CHIP, VOICE_CHANGED_TITLE } from '../stages/voice-timing-view.js';
 import { FilterIcon, LockIcon } from './icons.js';
 import { ShotContextMenu, type ShotMenuAnchor } from './ShotContextMenu.js';
 import { ShotDetails } from './ShotDetails.js';
@@ -61,6 +64,9 @@ export interface ShotsPanelProps {
   /** Shots carrying live directions (PLAN.md#12.14) and their summary for the tooltip. */
   readonly directed?: ReadonlySet<string>;
   readonly directionSummary?: (shotId: string) => string;
+  /** Shots whose generated voice changed after Words timed, and the notice with "Re-time". */
+  readonly voiceChanged?: ReadonlySet<string>;
+  readonly voiceNotice?: ReactNode;
 }
 
 function Placeholder({ storyboard }: Pick<ShotsPanelProps, 'storyboard'>): JSX.Element {
@@ -178,7 +184,8 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
   return (
     <section className={`panel shots-panel${compact ? ' compact' : ''}`} aria-label="Shots">
       <h2 className="panel-heading">
-        Shots {shots.length > 0 && <span className="count">{shots.length}</span>}
+        <span className="panel-heading-text">Shots</span>
+        {shots.length > 0 && <span className="count">{shots.length}</span>}
         <Counts shots={shots} badges={badges} locked={props.locked} />
         {props.lockable.length > 0 && (
           <button
@@ -217,6 +224,7 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
           {props.propsBanner}
         </p>
       )}
+      {props.voiceNotice}
       {shots.length >= FILTER_MIN_SHOTS && (
         <FilterBar
           filter={filter}
@@ -274,6 +282,11 @@ export function ShotsPanel(props: ShotsPanelProps): JSX.Element {
                     {moment !== null && (
                       <span className="chip mono" title={moment.title}>
                         {moment.text}
+                      </span>
+                    )}
+                    {props.voiceChanged?.has(shot.id) === true && (
+                      <span className="chip voice-timing-chip" title={VOICE_CHANGED_TITLE}>
+                        {VOICE_CHANGED_CHIP}
                       </span>
                     )}
                     {props.withVariants.has(shot.id) && (

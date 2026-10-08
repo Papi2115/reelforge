@@ -1,7 +1,10 @@
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import type { ShotsPerMinute } from '@reelforge/shared';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
+import { ChannelDot } from './channels/ChannelBadge.js';
+import { channelOf, showChannels, type ChannelList } from './channels/channel-view.js';
+import { useChannels } from './channels/use-channels.js';
 import { projectMeta } from './layout/header-view.js';
 import { ProjectMenu } from './layout/ProjectMenu.js';
 import { StatusBar } from './layout/StatusBar.js';
@@ -19,9 +22,17 @@ import { OpenRecovery } from './project/OpenRecovery.js';
 import { ProjectSettingsDialog } from './project/ProjectSettingsDialog.js';
 import { StartScreen } from './project/StartScreen.js';
 import { FirstRunGate } from './settings/FirstRunGate.js';
-import { SettingsDialog, type SettingsTab } from './settings/SettingsDialog.js';
+import { OpenSettingsContext, type SettingsRequest } from './settings/open-settings.js';
+import { useTitleFont } from './settings/PixelTitles.js';
+import { SettingsDialog } from './settings/SettingsDialog.js';
 import { useClaudeStatus } from './settings/use-claude-status.js';
 import { useSettings } from './settings/use-settings.js';
+import { LineButton } from './queue/LineButton.js';
+import { lineAttentionItems } from './queue/line-attention.js';
+import { ProductionLineDialog } from './queue/ProductionLineDialog.js';
+import type { OpenRequest } from './queue/use-open-request.js';
+import { useProductionLine } from './queue/use-production-line.js';
+import type { QueueItemRef, QueueOpenPanel } from '../shared/queue-contract.js';
 
 const log = rendererLog('app');
 const DEMO_SOURCE = { kind: 'demo' } as const;
@@ -34,6 +45,7 @@ function StartLayout({
   defaultFasterChecks,
   defaultStyle,
   experimentalWorlds,
+  channels,
 }: {
   readonly onOpened: (project: ProjectSummary) => void;
   readonly defaultLanguage: ProjectSummary['language'] | undefined;
@@ -41,6 +53,7 @@ function StartLayout({
   readonly defaultFasterChecks: boolean | undefined;
   readonly defaultStyle: string | undefined;
   readonly experimentalWorlds: boolean | undefined;
+  readonly channels: ChannelList | undefined;
 }): JSX.Element {
   // The demo has no audio: the player runs on the system clock.
   const player = usePlayer(undefined);
@@ -55,6 +68,7 @@ function StartLayout({
           defaultFasterChecks={defaultFasterChecks}
           defaultStyle={defaultStyle}
           experimentalWorlds={experimentalWorlds}
+          channels={channels}
         />
       </div>
       <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
@@ -66,14 +80,22 @@ export function App(): JSX.Element {
   const [info, setInfo] = useState<AppInfo | undefined>(undefined);
   const [project, setProject] = useState<ProjectSummary | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  /** Open Settings: the tab and (Channels) the channel selected first; null = closed. */
+  const [settingsRequest, setSettingsRequest] = useState<SettingsRequest | null>(null);
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
   /** The header slot of the workspace's "Needs you" button (layout/NeedsYou.tsx). */
   const [needsYouSlot, setNeedsYouSlot] = useState<HTMLElement | null>(null);
   const settings = useSettings();
   const claude = useClaudeStatus();
+  const channels = useChannels();
+  /** The production line (PLAN.md#13.9): its dialog, its films in the inbox. */
+  const line = useProductionLine();
+  const [openRequest, setOpenRequest] = useState<OpenRequest | null>(null);
+  const openNonce = useRef(0);
+  const projectChannel = project === null ? undefined : channelOf(channels.list, project.channelId);
   const appSettings = settings.state?.settings;
   const firstRun = appSettings !== undefined && !appSettings.onboarding.connectClaudeDone;
+  useTitleFont(appSettings?.ui.pixelTitles);
   const [helpDialog, setHelpDialog] = useState<HelpDialogKind | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
   /** Closed in this session without "Don't show again": it comes back after a restart. */
@@ -105,8 +127,33 @@ export function App(): JSX.Element {
     });
   };
 
+  const channelName = (channelId: string): string =>
+    channels.list?.channels.find((channel) => channel.id === channelId)?.name ?? channelId;
+
+  /** A film of the production line, opened at a panel; a problem in plain words, if any. */
+  const openFilm = async (
+    ref: QueueItemRef,
+    panel: QueueOpenPanel,
+  ): Promise<string | undefined> => {
+    try {
+      const result = await window.reelforge.openQueueProject(ref, panel);
+      if (result.status === 'error') return result.error.message;
+      if (result.status === 'cancelled') return undefined;
+      setProject(result.project);
+      setHistoryOpen(false);
+      openNonce.current += 1;
+      setOpenRequest({ panel, dir: result.project.dir, nonce: openNonce.current });
+      line.close();
+      return undefined;
+    } catch (error) {
+      log.error(`openQueueProject failed: ${errorMessage(error)}`);
+      return 'The project could not be opened. See the log for details.';
+    }
+  };
+
   const closeProject = (): void => {
     setHistoryOpen(false);
+    setOpenRequest(null);
     setProjectSettingsOpen(false);
     window.reelforge.closeProject().then(
       () => {
@@ -135,10 +182,17 @@ export function App(): JSX.Element {
               }}
               onClose={closeProject}
             />
+            {showChannels(channels.list) && projectChannel !== undefined && (
+              <span className="project-channel">
+                <ChannelDot channel={projectChannel} />
+                <span className="project-channel-name">{projectChannel.name}</span>
+              </span>
+            )}
             <span className="project-meta">{projectMeta(project)}</span>
           </>
         )}
         <span className="header-spacer" />
+        <LineButton controller={line} />
         {project && <div className="needs-you-slot" ref={setNeedsYouSlot} />}
         <HelpMenu
           onTour={
@@ -154,7 +208,7 @@ export function App(): JSX.Element {
           type="button"
           className="link-button"
           onClick={() => {
-            setSettingsTab('claude');
+            setSettingsRequest({ tab: 'claude' });
           }}
         >
           Settings
@@ -179,20 +233,28 @@ export function App(): JSX.Element {
             defaultFasterChecks={appSettings?.newProjectDefaults.fasterChecks}
             defaultStyle={appSettings?.defaultStyle}
             experimentalWorlds={appSettings?.experimental.worlds}
+            channels={channels.list}
             onOpened={(opened) => {
               setProject(opened);
               setHistoryOpen(false);
             }}
           />
         ) : (
-          <Workspace
-            key={project.dir}
-            project={project}
-            headerSlot={needsYouSlot}
-            onOpenToolsSettings={() => {
-              setSettingsTab('tools');
-            }}
-          />
+          <OpenSettingsContext value={setSettingsRequest}>
+            <Workspace
+              key={project.dir}
+              project={project}
+              headerSlot={needsYouSlot}
+              line={{
+                items: lineAttentionItems(line.state?.attention ?? [], channelName, project.dir),
+                show: line.show,
+                openRequest,
+              }}
+              onOpenToolsSettings={() => {
+                setSettingsRequest({ tab: 'tools' });
+              }}
+            />
+          </OpenSettingsContext>
         )}
         {project !== null && historyOpen && (
           <HistoryDrawer
@@ -206,21 +268,29 @@ export function App(): JSX.Element {
           <ProjectSettingsDialog
             key={project.dir}
             projectTitle={project.title}
+            channel={projectChannel}
             onClose={() => {
               setProjectSettingsOpen(false);
             }}
           />
         )}
-        {settingsTab !== null && (
+        {settingsRequest !== null && (
           <SettingsDialog
-            tab={settingsTab}
-            onTab={setSettingsTab}
+            tab={settingsRequest.tab}
+            channelId={settingsRequest.channelId}
+            onTab={(tab) => {
+              setSettingsRequest({ ...settingsRequest, tab });
+            }}
             settings={settings}
             claude={claude}
+            channels={channels}
             onClose={() => {
-              setSettingsTab(null);
+              setSettingsRequest(null);
             }}
           />
+        )}
+        {line.dialog.open && (
+          <ProductionLineDialog controller={line} channels={channels.list} onOpenFilm={openFilm} />
         )}
         {tourOpen && project !== null && (
           <GuidedTour
@@ -240,7 +310,7 @@ export function App(): JSX.Element {
             }}
           />
         )}
-        {firstRun && settingsTab === null && (
+        {firstRun && settingsRequest === null && (
           <FirstRunGate
             claude={claude}
             onDone={() => {
@@ -259,7 +329,7 @@ export function App(): JSX.Element {
         economy={appSettings?.economy}
         claude={claude.status}
         onOpenClaudeSettings={() => {
-          setSettingsTab('claude');
+          setSettingsRequest({ tab: 'claude' });
         }}
       />
     </div>

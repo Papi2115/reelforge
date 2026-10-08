@@ -50,8 +50,8 @@ export function createSoundBackend(options: SoundBackendOptions): SoundHandlers 
     pickFiles: options.pickFiles,
     enqueue: options.enqueue,
     exclusive: (task) => options.edits.exclusive(task),
-    commit: async (_dir, message) => {
-      const result = await projects.autocommit(message, { kind: 'manual' });
+    commit: async (_dir, message, paths) => {
+      const result = await projects.autocommit(message, { kind: 'manual', paths });
       if (!result.ok) log.warn(`sound change not committed: ${result.error.message}`);
       return result.ok && result.value.status === 'committed';
     },

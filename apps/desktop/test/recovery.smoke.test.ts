@@ -267,10 +267,11 @@ describe('the app is killed during an export', () => {
     await rowAction(first.page, 'Video exported', /^Open$/);
     const dialog = first.page.getByRole('dialog', { name: 'Export video' });
     await dialog.waitFor();
+    await dialog.getByRole('button', { name: 'Advanced' }).click();
     await dialog.getByRole('combobox', { name: 'Encoder' }).selectOption('cpu');
     await dialog.getByRole('radio', { name: 'Draft (fast)' }).check();
     await dialog.getByRole('textbox', { name: 'File name' }).fill('Crash test');
-    await dialog.getByRole('button', { name: 'Add to queue' }).click();
+    await dialog.getByRole('button', { name: 'Export video' }).click();
     await waitFor(() => (exportState(dir)?.finished.length ?? 0) >= 1, 240_000);
     await hardKill(first.app);
     const finished = exportState(dir)?.finished.length ?? 0;

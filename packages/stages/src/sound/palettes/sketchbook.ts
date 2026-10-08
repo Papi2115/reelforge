@@ -1,12 +1,12 @@
 /**
  * Palette `sketchbook` (world Sketchbook, PLAN.md#13.6): the desk of one notebook heard up close —
- * a pencil scratching, a ballpoint clicked on, soft thumps of a marker slammed onto the page,
- * paper rustling, tape ripped off the roll and pressed down, a clear ruler ticking on the page,
- * pages flipping and riffling. The page-native transitions sound like themselves
- * (WORLD_TRANSITION_SFX). Every sound is a built-in recipe synthesized in pure Node
- * (packages/pipeline sfx); there is no paper-tear recipe, so the torn strip rips like tape. A
- * world's style is exclusive (ADR-029): its films never mix with the built-in looks, so this
- * palette may reuse their paper and pen recipes (`world`). Bed: a quiet room.
+ * a pencil scratching, a ballpoint clicked on and off (`pen-click`), a marker slammed onto the page
+ * (`marker-thump`), paper rustling and torn (`paper-tear`), tape ripped off the roll and pressed
+ * down, a clear ruler ticking on the page, pages flipping and riffling. The page-native
+ * transitions sound like themselves (WORLD_TRANSITION_SFX). Every sound is a built-in recipe
+ * synthesized in pure Node (packages/pipeline sfx); the three named above are the world's own, the
+ * rest is shared: a world's style is exclusive (ADR-029), its films never mix with the built-in
+ * looks, so this palette may reuse their paper and pen recipes (`world`). Bed: a quiet room.
  */
 import type { SketchbookTransitionId } from '@reelforge/engine';
 import { only, pick, type PaletteSlot, type SoundPalette } from './types.js';
@@ -21,7 +21,7 @@ export const SKETCHBOOK_PALETTE: SoundPalette = {
   sfx: {
     'transition-cut': [
       [
-        pick('cap-pop', ['click'], ON_CUT),
+        pick('pen-click', ['off'], ON_CUT),
         pick('paper-rustle', ['soft'], { leadS: 0.1, weight: 0.5 }),
       ],
       [
@@ -30,25 +30,25 @@ export const SKETCHBOOK_PALETTE: SoundPalette = {
       ],
     ],
     'transition-crossfade': only('paper-rustle', 'soft'),
-    'transition-glitch': only('paper-rustle', 'crinkle'),
+    'transition-glitch': [[pick('paper-rustle', ['crinkle'])], [pick('paper-tear', ['rip'])]],
     'transition-wipe': [[pick('page-flip', ['flip', 'turn'], { leadS: 0.15 })]],
     appear: [
       [pick('pencil-scratch', ['line'])],
-      [pick('paper-pop', ['low'])],
+      [pick('marker-thump', ['tap'])],
       [pick('marker-stroke', ['short'])],
     ],
     'list-item': only('board-tick'),
     'counter-step': [[pick('ruler-tick', ['plastic'])], [pick('ruler-tick', ['double'])]],
     'counter-final': [[pick('paper-pop', ['mid'])], [pick('tape-tear', ['stick'])]],
-    number: only('cap-pop', 'click'),
+    number: [[pick('pen-click', ['on'])], [pick('pen-click', ['double'])]],
     'number-big': [
-      [pick('paper-pop', ['low'], ON_CUT), pick('marker-stroke', ['long'], { weight: 0.5 })],
+      [pick('marker-thump', ['thump'], ON_CUT), pick('marker-stroke', ['long'], { weight: 0.5 })],
     ],
     'text-in': only('pencil-scratch', 'line', 'circle'),
     'text-typed': only('pencil-scratch', 'hatch'),
     'emphasis-riser': only('marker-stroke', 'long'),
-    'emphasis-hit': only('paper-pop', 'low'),
-    'end-card': [[pick('page-flip', ['turn']), pick('cap-pop', ['on'], { weight: 0.5 })]],
+    'emphasis-hit': only('marker-thump', 'slam'),
+    'end-card': [[pick('page-flip', ['turn']), pick('pen-click', ['off'], { weight: 0.5 })]],
   },
   listPitch: ['low', 'mid', 'high'],
   scene: {
@@ -61,24 +61,24 @@ export const SKETCHBOOK_PALETTE: SoundPalette = {
       'swoosh-out': 'paper-rustle',
       pop: 'paper-pop',
       bubble: 'paper-pop',
-      blip: 'cap-pop',
-      click: 'cap-pop',
+      blip: 'pen-click',
+      click: 'pen-click',
       tick: 'ruler-tick',
       tock: 'ruler-tick',
-      stamp: 'paper-pop',
+      stamp: 'marker-thump',
       snap: 'tape-tear',
-      'camera-shutter': 'cap-pop',
+      'camera-shutter': 'pen-click',
     },
     byCategory: {
       motion: 'paper-rustle',
-      impact: 'paper-pop',
+      impact: 'marker-thump',
       texture: 'pencil-scratch',
-      ui: 'cap-pop',
+      ui: 'pen-click',
       tonal: 'page-flip',
     },
   },
   accents: {
-    '': [pick('page-flip', ['turn'], { leadS: 0.25 }), pick('cap-pop', ['click'], { weight: 0.5 })],
+    '': [pick('page-flip', ['turn'], { leadS: 0.25 }), pick('pen-click', ['on'], { weight: 0.5 })],
   },
   ambience: {
     key: () => '',
@@ -98,5 +98,5 @@ export const WORLD_TRANSITION_SFX: Readonly<Record<SketchbookTransitionId, Palet
     pick('paper-rustle', ['busy'], { weight: 0.5 }),
   ],
   'sketchbook-tape-peel': [pick('tape-tear', ['peel'], { leadS: 0.05 })],
-  'sketchbook-torn-strip': [pick('tape-tear', ['tear'], ON_CUT)],
+  'sketchbook-torn-strip': [pick('paper-tear', ['tear'], ON_CUT)],
 };

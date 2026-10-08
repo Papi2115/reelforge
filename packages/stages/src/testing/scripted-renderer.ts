@@ -8,10 +8,10 @@
  * (a part floats), otherwise a good prop. Rendering of real scenes is covered by the Playwright
  * tests.
  */
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { CardDiagnostic } from '@reelforge/engine';
-import { METRICS_CUE } from '@reelforge/cli/service';
+import { METRICS_CUE, WORLD_ASSET_SHEET_SHOT_ID } from '@reelforge/cli/service';
 import { propExtensionFile, storyboardFileSchema } from '@reelforge/shared';
 import type { FrameRenderer, ShotRender, ShotRenderRequest } from '../scenes/tools.js';
 import { lineupRoleId, renderLineup } from './scripted-lineup.js';
@@ -28,6 +28,15 @@ function frame(blank: boolean, t: number): Uint8Array {
     const value = blank ? [20, 20, 40] : [(x * 3 + t * 10) % 256, (y * 5) % 256, (x + y) % 256];
     data.set([...value, 255], offset);
   }
+  return data;
+}
+
+/** A sheet frame: the page background, with a 20x30 block where an asset is drawn. */
+function sheetFrame(t: number, withAsset: boolean): Uint8Array {
+  const data = frame(false, t);
+  if (!withAsset) return data;
+  for (let y = 30; y < 60; y += 1)
+    for (let x = 70; x < 90; x += 1) data.set([10, 10, 10, 255], (y * WIDTH + x) * 4);
   return data;
 }
 
@@ -67,6 +76,8 @@ export class ScriptedFrameRenderer implements FrameRenderer {
 
   private async renderTurntable(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
     const turntable = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
+    // A world-assets contact sheet (PLAN.md#13.15) draws the project's asset files.
+    if (request.shotId === WORLD_ASSET_SHEET_SHOT_ID) return this.renderSheet(request, turntable);
     const role = lineupRoleId(turntable);
     if (role !== undefined) return renderLineup(request, role);
     const name = /const NAME = "([A-Za-z0-9]+)"/.exec(turntable)?.[1] ?? '';
@@ -97,6 +108,37 @@ export class ScriptedFrameRenderer implements FrameRenderer {
       cards: [],
       anchors: [],
       cues: [{ t: 0, name: `${METRICS_CUE}${JSON.stringify(metrics)}`, shotId: request.shotId }],
+      errors: [],
+    };
+  }
+
+  /**
+   * A sheet renders when no asset file holds `render:fail` (a test's broken asset); a page with
+   * assets draws a dark block on the page background (the empty page: the background only).
+   */
+  private async renderSheet(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
+    const world = (await readdir(path.join(request.projectDir, 'assets'), { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+    for (const folder of world) {
+      const dir = path.join(request.projectDir, 'assets', folder);
+      for (const name of await readdir(dir)) {
+        if ((await readFile(path.join(dir, name), 'utf8')).includes('render:fail')) {
+          return { ok: false, error: `assets/${folder}/${name}: scripted failure`, errors: [] };
+        }
+      }
+    }
+    return {
+      ok: true,
+      width: WIDTH,
+      height: HEIGHT,
+      frames: request.times.map((t) => ({
+        t,
+        image: { width: WIDTH, height: HEIGHT, data: sheetFrame(t, !scene.includes('IDS = [];')) },
+      })),
+      cards: [],
+      anchors: [],
+      cues: [],
       errors: [],
     };
   }

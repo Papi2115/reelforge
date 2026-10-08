@@ -42,6 +42,7 @@ import {
 import { loadCharacterSettings, storyboardCharacterOptions } from '../characters.js';
 import { applyStoryboardContinuity, storyboardContinuityVars } from '../continuity.js';
 import { finishStoryboardDramaturgy, prepareStoryboardDramaturgy } from '../dramaturgy.js';
+import { storyboardGenreCheckOptions, storyboardGenrePromptVars } from '../genre.js';
 import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
 import { storyboardLookOptions, storyboardLookVars } from '../looks.js';
 import {
@@ -130,6 +131,8 @@ async function validateFile(
     ...(interrupts === undefined ? {} : { interrupts }),
     characters,
     ...(range === undefined ? {} : { shotsPerMinute: range }),
+    // The genre preset's wow pace (ADR-035); no preset = the checks as before.
+    ...(project.status === 'ok' ? storyboardGenreCheckOptions(project.value) : {}),
   });
   return fileCheck(report.value, report.issues);
 }
@@ -235,9 +238,17 @@ async function run(
   // Scenes per minute (ADR-027); no range = nothing changes.
   const range = projectShotsPerMinute(project.value);
   const narrationEnd = words.value.words.at(-1)?.tEnd ?? 0;
+  const lookVars = storyboardLookVars(
+    lookMode,
+    setup.looks,
+    narrationEnd + 0.5,
+    setup.world !== undefined,
+  );
   const prompt = render('storyboard', {
     styleId: project.value.style,
-    ...storyboardLookVars(lookMode, setup.looks, narrationEnd + 0.5, setup.world !== undefined),
+    ...lookVars,
+    // Genre preset (ADR-035): favoured looks, wow pace; no preset = nothing changes.
+    ...storyboardGenrePromptVars(project.value, lookVars, setup.looks, narrationEnd + 0.5),
     ...storyboardWorldPromptVars(setup, narrationEnd + 0.5, ctx.settings.worldQuotaOverride),
     ...storyboardTensionVars(
       curve,
@@ -294,8 +305,12 @@ async function run(
       ),
     );
   }
-  // Linked shots get their continuity transition (PLAN.md#13.2); no links = no-op.
-  const linked = await applyStoryboardContinuity(ctx, validated);
+  // Linked shots get their continuity transition (PLAN.md#13.2, #13.5); no links = no-op.
+  const linked = await applyStoryboardContinuity(
+    ctx,
+    validated,
+    worldTransitionOptions(setup.world),
+  );
   if (!linked.ok) return linked;
   const styled =
     lookMode === 'mixed'

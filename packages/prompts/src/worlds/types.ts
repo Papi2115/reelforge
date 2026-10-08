@@ -4,6 +4,9 @@
  * these instead when the stage passes a world's variables; every other project gets the prompts
  * byte for byte as before.
  */
+import type { ContinuityKind } from '@reelforge/shared';
+import type { WorldPace } from './pace.js';
+
 export interface WorldPromptText {
   /** Storyboard, first line: "the director/storyboard artist for <film>". */
   readonly film: string;
@@ -49,11 +52,61 @@ export interface WorldPromptText {
   /** Script (surprise beats on): what a surprise is in this world (replaces the voxel example). */
   readonly surprise: string;
   /**
+   * Script: how the narration itself is written for this world (Game B2: the topic told as one
+   * game run, PLAN.md#13.15); absent = the script prompt is the plain explainer's.
+   */
+  readonly script?: string;
+  /**
    * The world's moment catalog (worlds/variety.ts): a closed list the storyboard plans per shot
    * (`worldMoment`), the scene builds with the exact API and the critic looks for. `plain` is
    * the absence of a moment and is not listed.
    */
   readonly moments: readonly WorldMomentOption[];
+  /**
+   * The world's film grammar (Game B1 rework, docs/beta-feedback.md: "it no longer reads as a
+   * game"): the framing views a shot names (`worldView`) and the film-level rules of the
+   * storyboard validator (world-grammar.ts). Absent = no such rules (every other world).
+   */
+  readonly grammar?: WorldFilmGrammar;
+  /**
+   * The world's transition pace (worlds/pace.ts, Comic: pages flow into each other): a looser
+   * non-cut budget, denser continuity links, the dry-run check. Absent = the defaults.
+   */
+  readonly pace?: WorldPace;
+}
+
+/** One framing of a shot (storyboard `worldView`): where it starts and ends, room or screen. */
+export interface WorldViewOption {
+  readonly id: string;
+  readonly start: 'room' | 'screen';
+  readonly end: 'room' | 'screen';
+  /** Camera moves between the room and the screen inside the shot. */
+  readonly moves: number;
+  readonly description: string;
+}
+
+/** Film-level grammar rules of a world (validators/world-grammar.ts). */
+export interface WorldFilmGrammar {
+  /** The views every shot names in `worldView`. */
+  readonly views: readonly WorldViewOption[];
+  /** At least this share of the shots plays a game moment (`WorldMomentOption.game`). */
+  readonly minGameShare: number;
+  /** The gameplay moment: at least max(minGameplay, ceil(shots / gameplayEveryShots)) shots. */
+  readonly gameplayMoment: string;
+  readonly minGameplay: number;
+  readonly gameplayEveryShots: number;
+  /** Room <-> screen switches: at most max(maxSwitchesMin, floor(duration x perMinute / 60)). */
+  readonly maxSwitchesMin: number;
+  readonly switchesPerMinute: number;
+  /** The same moment (or plain) at most this many shots in a row, whatever the roll. */
+  readonly maxKindRun: number;
+  /** Game-native (non-cut) transitions: at least max(min, round(duration / everyS)). */
+  readonly minNativeTransitions: number;
+  readonly nativeTransitionEveryS: number;
+  /** The rhythm check's non-cut cap for this world: about one per this many seconds. */
+  readonly transitionEveryS: number;
+  /** Breakthroughs that never share one film (the pair every early film repeated). */
+  readonly exclusiveBreakthroughs: readonly string[];
 }
 
 /** One planned page moment of a world (storyboard `worldMoment`). */
@@ -64,6 +117,11 @@ export interface WorldMomentOption {
   readonly breakthrough: boolean;
   /** The looks that host it (the shot must be in one of them); empty = any look. */
   readonly looks: readonly string[];
+  /**
+   * Breakthroughs: what in the narration calls for it, a few words for the quota repair message
+   * ("a reveal or twist" → popup).
+   */
+  readonly cue?: string;
   /** Storyboard: "use when the narration …" (plain words, no full stop). */
   readonly useWhen: string;
   /** Scene-build / scene-fix: the exact call and its caps. */
@@ -72,6 +130,20 @@ export interface WorldMomentOption {
   readonly visible: string;
   /** The page-native transition style the shot must open with (e.g. a torn-out page). */
   readonly transition?: string;
+  /**
+   * The shortest shot that can host it, seconds (real run Sketchbook 4: a strip planned in a
+   * 3.9 s shot was silently dropped by the scene); the storyboard validator enforces it.
+   */
+  readonly minShotS?: number;
+  /** A game screen (gameplay, menus, bosses): counts for the grammar's game share. */
+  readonly game?: boolean;
+  /** May come back within the moment repeat window (the world's gameplay itself). */
+  readonly repeatable?: boolean;
+  /**
+   * Someone of the narration speaks in it (Game B2 `dialogue`): planned only where the shot's
+   * words quote someone or carry a speech verb (validators/world-speakers.ts).
+   */
+  readonly speaker?: boolean;
 }
 
 /** A page-native transition of a world, as the storyboard prompt and validator see it. */
@@ -82,4 +154,9 @@ export interface WorldTransitionOption {
   /** The style's own length, seconds. */
   readonly duration: number;
   readonly description: string;
+  /**
+   * The continuity link kind it renders (Game B1: the calendar zoom, the cartridge in / out):
+   * named on a shot, it needs the shot's `continuity` link (validators/world-variety.ts).
+   */
+  readonly link?: ContinuityKind | undefined;
 }

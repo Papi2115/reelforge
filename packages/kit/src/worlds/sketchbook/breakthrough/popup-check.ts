@@ -89,10 +89,10 @@ function checkMeaning(e: PopupElement, where: string, call: string): void {
   if (e.kind === 'arm' && e.piece === 'disc' && e.label === undefined) {
     fail(call, `${where}: a disc must say what it stands for (label), or use a sun / a card`);
   }
-  if (e.kind === 'card' && e.text === undefined && e.draw === 'none') {
+  if (e.kind === 'card' && e.text === undefined && e.draw === 'none' && e.asset === undefined) {
     fail(call, `${where}: a card needs text or a drawing (no blank decoration)`);
   }
-  if (e.kind === 'cutout' && e.text === undefined && e.draw === 'none') {
+  if (e.kind === 'cutout' && e.text === undefined && e.draw === 'none' && e.asset === undefined) {
     fail(call, `${where}: a cut-out needs a drawing or a word`);
   }
 }

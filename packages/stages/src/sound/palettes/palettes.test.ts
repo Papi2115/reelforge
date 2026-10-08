@@ -1,5 +1,5 @@
 import { AMBIENCE_RECIPES, SFX_RECIPES, SFX_VARIANTS, type SfxRecipe } from '@reelforge/pipeline';
-import { SKETCHBOOK_TRANSITION_IDS } from '@reelforge/engine';
+import { COMIC_TRANSITION_IDS, SKETCHBOOK_TRANSITION_IDS } from '@reelforge/engine';
 import { WOW_STYLE_IDS, type StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { directCues } from '../cue-director.js';
@@ -20,6 +20,7 @@ import {
   pickRecipe,
   sceneRecipe,
   shotPalettes,
+  COMIC_TRANSITION_SFX,
   TRANSITION_STYLE_SFX,
   WOW_PALETTE_SFX,
   WORLD_TRANSITION_SFX,
@@ -225,6 +226,40 @@ describe('sketchbook world palette (PLAN.md#13.6)', () => {
     expect(worldTransitionSlot('iris')).toBeUndefined();
     expect(worldTransitionSlot('toString')).toBeUndefined();
     expect(lookChangeSlot(sketchbook, sketchbook, into('iris'))).toBeUndefined();
+  });
+});
+
+describe('comic world palette (PLAN.md#13.3)', () => {
+  it('voices the comic looks and every panel-native transition with light print sounds', () => {
+    const comic = SOUND_PALETTES.comic;
+    expect(comic.world).toBe('comic');
+    const looks = ALL_LOOKS.filter((entry) => entry.styles?.includes('comic'));
+    expect(looks.map((look) => look.id).sort()).toEqual([
+      'comic-info',
+      'comic-loud',
+      'comic-story',
+    ]);
+    for (const look of looks) expect(look.soundPalette, look.id).toBe('comic');
+    expect(Object.keys(COMIC_TRANSITION_SFX).sort()).toEqual([...COMIC_TRANSITION_IDS].sort());
+    for (const [style, slot] of Object.entries(COMIC_TRANSITION_SFX)) {
+      expect(slot.length, style).toBeGreaterThan(0);
+      expect(worldTransitionSlot(style), style).toBe(slot);
+      for (const choice of slot) {
+        expect(paletteRecipes(comic)?.has(choice.recipe), `${style} ${choice.recipe}`).toBe(true);
+        for (const variant of choice.variants) {
+          expect(SFX_VARIANTS[choice.recipe], `${style}: ${variant}`).toContain(variant);
+          expect(HEAVY_VARIANTS[choice.recipe] ?? []).not.toContain(variant);
+        }
+      }
+    }
+    const into: StoryboardShot = {
+      ...shot('comic-loud'),
+      transitionIn: { type: 'wipe', duration: 0.55, style: 'comic-panel-slam' },
+    };
+    expect(lookChangeSlot(comic, comic, into)).toBe(COMIC_TRANSITION_SFX['comic-panel-slam']);
+    expect(paletteForShot(shot('comic-info'), { style: 'comic', looks: ALL_LOOKS }).id).toBe(
+      'comic',
+    );
   });
 });
 

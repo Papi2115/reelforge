@@ -16,6 +16,7 @@ import { ellipsePts, type Point, type Pts, type Xform } from '../draw/paths.js';
 import { INK, inkOfSwatch } from '../inks.js';
 import type { InkCanvas } from '../draw/canvas.js';
 import type { PopCamera, Plane, Vec3 } from './camera.js';
+import type { AssetArt } from './popup-assets.js';
 import type { PieceState } from './popup-motion.js';
 import type { PopupElement } from './popup-schema.js';
 import { recipeMarks } from './shapes.js';
@@ -86,17 +87,21 @@ function drawing(kind: 'figure' | 'sun', cx: number, ground: number, h: number, 
 }
 
 /** The words and drawings of a flat piece (piece-local px, y down), built once. */
-export function flatMarks(e: FlatElement, seed: number): Mark[][] {
+export function flatMarks(e: FlatElement, seed: number, art?: AssetArt): Mark[][] {
   switch (e.kind) {
     case 'card': {
       const marks: Mark[] = [];
-      const size = Math.min(26, e.h * (e.draw === 'none' ? 0.42 : 0.24));
-      if (e.draw !== 'none') {
-        const ground = e.text === undefined ? e.h / 2 - 6 : e.h / 2 - size - 8;
-        marks.push(...drawing(e.draw, 0, ground, Math.min(e.h * 0.6, ground + e.h / 2 - 6), seed));
+      const pictured = e.draw !== 'none' || (e.asset !== undefined && art !== undefined);
+      const size = Math.min(26, e.h * (pictured ? 0.24 : 0.42));
+      const ground = e.text === undefined ? e.h / 2 - 6 : e.h / 2 - size - 8;
+      const h = Math.min(e.h * 0.6, ground + e.h / 2 - 6);
+      if (e.asset !== undefined && art !== undefined) {
+        marks.push(...art(e.asset, { cx: 0, ground, h, maxW: e.w - 8 }));
+      } else if (e.draw !== 'none') {
+        marks.push(...drawing(e.draw, 0, ground, h, seed));
       }
       if (e.text !== undefined) {
-        const y = e.draw === 'none' ? size / 2 : e.h / 2 - 6;
+        const y = pictured ? e.h / 2 - 6 : size / 2;
         marks.push(...centred(e.text, 0, y, size, 'print', seed + 1));
       }
       return [marks];
@@ -230,7 +235,7 @@ export function paintFlat(f: FlatPaint, e: FlatElement, st: PieceState, marks: M
     }
     case 'gauge': {
       const level = Math.min(1, Math.max(0, st.level));
-      const color = inkOfSwatch(e.color) ?? INK.RED;
+      const color = inkOfSwatch(e.color) ?? INK.BIC;
       if (e.bulb) shape(ellipsePts(0, e.w * 0.3, e.w * 0.85, e.w * 0.85, 16), color, INK.GRAPHITE);
       shape(rect(e.w, e.h, 0, -e.h / 2), INK.PAPER, INK.GRAPHITE);
       if (level > 0)

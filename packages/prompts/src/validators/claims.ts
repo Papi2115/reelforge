@@ -133,9 +133,48 @@ export interface ClaimsFileInput extends ClaimsReplyOptions {
   readonly scriptFingerprint: string;
 }
 
+/** Approximators that hedge a number ("about six", "~7 ft"). */
+const HEDGES = new Set([
+  'about',
+  'around',
+  'roughly',
+  'nearly',
+  'almost',
+  'approximately',
+  'approx',
+  'circa',
+  'some',
+  'estimated',
+]);
+/** Words of the hedged number read before the claim's own words ("crews average about six"). */
+const HEDGE_LOOKBACK = 3;
+/** A dispute about a missing hedge (real run Game B1 2: "states it without a hedge"). */
+const HEDGE_DISPUTE = /\bhedg|\bunhedged\b|\bqualif|\bexact\b|\bprecise\b|\bapproximat/i;
+
+/** Whether the script hedges the claim: an approximator in or just before its words. */
+export function claimIsHedged(
+  sentences: readonly ScriptSentence[],
+  sentence: number,
+  words: readonly [number, number],
+): boolean {
+  const found = sentences[sentence];
+  if (found === undefined) return false;
+  const from = Math.max(0, words[0] - found.firstWord - HEDGE_LOOKBACK);
+  return found.text
+    .split(' ')
+    .slice(from, words[1] - found.firstWord + 1)
+    .some((word) => /^[~≈]/.test(word) || HEDGES.has(normalizeClaimText(word)));
+}
+
+/** `disputed` only for a missing hedge the script has is no dispute (the hedge is spoken). */
+function hedgedDispute(claim: ReplyClaim, hedged: boolean): boolean {
+  return claim.status === 'disputed' && hedged && HEDGE_DISPUTE.test(claim.note ?? '');
+}
+
 /**
  * claims.json from a parsed reply: claims that quote no sentence and duplicates are dropped,
- * unknown source ids are removed (a claim left without sources becomes `unsourced`).
+ * unknown source ids are removed (a claim left without sources becomes `unsourced`), and a claim
+ * disputed only for a missing hedge that the script speaks ("about six") is not disputed.
  */
 export function claimsFileFromReply(reply: ClaimsReply, input: ClaimsFileInput): ClaimsFile {
   const claims: Claim[] = [];
@@ -147,8 +186,9 @@ export function claimsFileFromReply(reply: ClaimsReply, input: ClaimsFileInput):
     if (words === undefined || seen.has(key)) continue;
     seen.add(key);
     const sourceIds = [...new Set(claim.sources.filter((id) => input.sourceIds.has(id)))];
-    const status =
-      claim.status === 'disputed' ? 'disputed' : sourceIds.length > 0 ? 'sourced' : 'unsourced';
+    const hedged = hedgedDispute(claim, claimIsHedged(input.sentences, sentence, words));
+    const disputed = claim.status === 'disputed' && !hedged;
+    const status = disputed ? 'disputed' : sourceIds.length > 0 ? 'sourced' : 'unsourced';
     claims.push({
       id: `c${String(claims.length + 1)}`,
       text: claim.text,
@@ -157,7 +197,7 @@ export function claimsFileFromReply(reply: ClaimsReply, input: ClaimsFileInput):
       kind: claim.kind,
       sourceIds,
       status,
-      ...(claim.note === undefined ? {} : { note: claim.note }),
+      ...(claim.note === undefined || hedged ? {} : { note: claim.note }),
     });
   }
   return claimsFileSchema.parse({

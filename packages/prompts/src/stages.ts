@@ -39,6 +39,14 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   // Hook lab openings (PLAN.md#12.16) are written from the script alone: read-only tools, no web
   // (the critic's permissions); the app asks for the prompt's own model (Sonnet) explicitly.
   hooks: 'critic',
+  // The production line's brief (PLAN.md#13.9) is written from the topic alone: read-only tools,
+  // no web (the critic's permissions); the line asks for the prompt's own model (Sonnet).
+  brief: 'critic',
+  // A world film's own assets (PLAN.md#13.15) are built like project props: Opus, project edits
+  // (the stage puts back anything outside assets/) + reelforge.
+  'world-assets': 'scene-build',
+  // The world-assets critic (PLAN.md#13.15) names each asset crop: the critic's Haiku, read-only.
+  'world-asset-critic': 'critic',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

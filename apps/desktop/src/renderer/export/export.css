@@ -36,6 +36,8 @@
   margin: 0;
   padding: 0;
   border: none;
+  /* A fieldset is min-content wide by default: a long folder path must ellipsize instead. */
+  min-width: 0;
 }
 
 .export-field legend,
@@ -44,6 +46,18 @@
   padding: 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Group titles of the form read like the panel headers (Premiere-style export settings). */
+.export-form > fieldset > legend {
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.export-label-fixed {
+  flex: none;
+  width: 96px;
 }
 
 .export-row {
@@ -119,6 +133,67 @@
 
 .export-check input {
   margin: 0;
+}
+
+.export-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-check.unavailable {
+  color: var(--text-disabled);
+}
+
+.export-chapters-note {
+  font-size: 12px;
+}
+
+.export-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.export-advanced-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.export-disclosure {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.export-disclosure:hover {
+  color: var(--accent-text);
+}
+
+.export-advanced-summary {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 14px;
+}
+
+.export-advanced-body[hidden] {
+  display: none;
 }
 
 .export-note {
@@ -248,22 +323,18 @@
 }
 
 .youtube-note,
-.youtube-chapters,
 .youtube-source {
   margin: 0;
   font-size: 12px;
 }
 
-.youtube-titles li,
-.youtube-field {
+.youtube-titles li {
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
 
-.youtube-titles li > span,
-.youtube-description,
-.youtube-tags {
+.youtube-titles li > span {
   flex: 1;
   min-width: 0;
   font-size: 12px;
@@ -271,22 +342,6 @@
 
 .youtube-titles li + li {
   margin-top: 4px;
-}
-
-.youtube-description {
-  max-height: 120px;
-  margin: 0;
-  padding: 4px 6px;
-  overflow-y: auto;
-  border: 1px solid var(--border-soft);
-  border-radius: 4px;
-  font-family: var(--font-ui);
-  white-space: pre-wrap;
-}
-
-.youtube-tags {
-  margin: 0;
-  color: var(--muted);
 }
 
 /* Pre-flight: shots the final review left ⚠/✗ (PLAN.md#11.5) */

@@ -130,7 +130,7 @@ export function labPhase(view: HookLabView): LabPhase {
 /** What "Use this opening" means, shown before the user confirms. */
 export function pickConsequences(view: HookLabView): string[] {
   const lines = [
-    'The opening paragraph of script.txt is replaced; the rest stays as it is (a commit you can revert).',
+    'The opening paragraph of the script is replaced; the rest stays as it is (a commit you can revert).',
     'Later steps that already ran (timed words, storyboard, scenes…) become out of date.',
   ];
   if (view.voiceover) {

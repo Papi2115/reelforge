@@ -156,6 +156,26 @@ const TRAILING_WORDS = new Set(
   ),
 );
 
+/**
+ * Storyboard wording that is no chapter title (real run Comic 2: "Story page"): pages, panels,
+ * beats, shots, layouts and camera moves of the intent.
+ */
+const STORYBOARD_JARGON = new Set(
+  (
+    'page pages panel panels beat beats shot shots spread splash gutter hook look looks layout ' +
+    'cutaway montage flashback close-up closeup camera frame frames transition roll ' +
+    'treatment b-roll title-card storyboard kinetic pull-back push-in zoom pan'
+  ).split(' '),
+);
+
+/** Whether a title carries storyboard wording (never a chapter title). */
+export function isStoryboardJargon(title: string): boolean {
+  return title
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}-]+/u)
+    .some((word) => STORYBOARD_JARGON.has(word));
+}
+
 /** A human chapter title (≤ 5 words) from a shot intent: its first clause, trimmed. */
 export function chapterTitle(intent: string): string {
   const clause = intent.split(/[.;:!?—–]|,\s|\s-\s/)[0] ?? intent;
@@ -185,8 +205,9 @@ export function chapterLinesOf(description: string): Map<number, string> {
 
 /**
  * Titled chapters: a suggested title (Claude's description) for the same second wins, else the key
- * phrase spoken at the chapter start (timed words), else the intent of the chapter's first shot; a
- * repeated title tries the chapter's later shots, then gets a number.
+ * phrase spoken at the chapter start (timed words) or at a later shot of the chapter, else the
+ * intent of the chapter's first shot without storyboard wording; a repeated title tries the
+ * chapter's later shots, then gets a number.
  */
 export function titleChapters(
   shots: readonly PlanShot[],
@@ -200,10 +221,16 @@ export function titleChapters(
     const t = index === 0 ? 0 : (shot?.t0 ?? 0);
     const until = starts[index + 1] ?? shots.length;
     const next = shots[until]?.t0 ?? Infinity;
+    const members = shots.slice(start, until);
     const candidates = [
       suggested.get(Math.floor(t)),
       spokenChapterTitle(words, t, next, MAX_TITLE_WORDS),
-      ...shots.slice(start, until).map((candidate) => chapterTitle(candidate.intent)),
+      ...members
+        .slice(1)
+        .map((member) => spokenChapterTitle(words, member.t0, next, MAX_TITLE_WORDS)),
+      ...members
+        .map((member) => chapterTitle(member.intent))
+        .filter((title) => !isStoryboardJargon(title)),
     ].filter((title): title is string => title !== undefined && title !== '');
     let title = candidates.find((candidate) => !used.has(candidate.toLowerCase())) ?? candidates[0];
     if (title === undefined) title = index === 0 ? 'Intro' : `Part ${String(index + 1)}`;

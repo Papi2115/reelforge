@@ -19,12 +19,19 @@ import {
   type SyncReport,
 } from '@reelforge/shared';
 import { continuityReviewNotes } from '../continuity.js';
+import { shotEntry } from '../slop/comic-flow.js';
 import { finalReviewDramaturgy } from '../dramaturgy.js';
 import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
 import type { StageError } from '../types.js';
 import { finding, fixableFindings, formatFinding } from './checks.js';
-import { checkShot, findingsStatus, legibilityCheck } from './final-checks.js';
+import {
+  checkShot,
+  FINAL_CRITIC_PREFIX,
+  findingsStatus,
+  legibilityCheck,
+  reviewedFindings,
+} from './final-checks.js';
 import type { SceneJob } from './job.js';
 import { readScenesReport, updateScenesReport } from './report.js';
 import { SHEET_ROWS, triage } from './review.js';
@@ -33,16 +40,20 @@ import { writeContactSheet, type SheetShot } from './sheet.js';
 import { refineShot } from './shot-job.js';
 import { syncReport } from './sync-report.js';
 import { reviewRepetitions } from '../repetition/stage.js';
+import {
+  breakthroughSpecs,
+  repeatedBreakthroughFindings,
+  type ShotBreakthroughs,
+} from '../slop/breakthrough-intent.js';
 import { sameCompositionFindings } from '../slop/guards.js';
 import { popupSpecs, repeatedPopupFindings, type ShotPopups } from '../slop/popup-intent.js';
 import { parseScene } from '../slop/source-text.js';
+import type { ShotProgram } from '../slop/world-labels.js';
 
 /** Work items of the final review's fixes in pipeline.json. */
 export const FINAL_REVIEW_QUEUE = 'scenes-final-review';
 /** Fix turns per shot in the automatic pass. */
 const AUTO_FIX_ITERATIONS = 1;
-/** Build findings the review cannot check again (kept as they are). */
-const CARRIED_SOURCES = new Set<QaFinding['source']>(['missing-prop']);
 
 export interface FinalReviewOutcome {
   readonly review: FinalReview;
@@ -84,20 +95,35 @@ async function checkAll(
   return ok({ findings, rows });
 }
 
-/** Pop-up originality guard: a pop-up repeating an earlier one's intent or mechanism (⚠). */
+/**
+ * Pop-up originality guard: a pop-up, or a world breakthrough with an intent (Comic: flashback,
+ * spread), repeating an earlier one's intent or mechanism (⚠); and the world's film checks (Game B1:
+ * number-only monotony).
+ */
 async function addRepeatedPopups(
   job: SceneJob,
   findings: Map<string, QaFinding[]>,
 ): Promise<Result<void, StageError>> {
   const shots: ShotPopups[] = [];
+  const breakthroughs: ShotBreakthroughs[] = [];
+  const programs: ShotProgram[] = [];
+  const kinds = job.antiSlop?.spec?.breakthroughs ?? {};
   for (const shot of job.shots) {
     const text = await readProjectText(job.ctx.projectDir, shot.scene);
     if (!text.ok) return text;
     const program = text.value === undefined ? undefined : parseScene(text.value);
-    if (program !== undefined) shots.push({ shotId: shot.id, popups: popupSpecs(program) });
+    if (program === undefined) continue;
+    shots.push({ shotId: shot.id, popups: popupSpecs(program) });
+    breakthroughs.push({ shotId: shot.id, specs: breakthroughSpecs(program, kinds) });
+    programs.push({ shotId: shot.id, program, entry: shotEntry(shot) });
   }
-  for (const [shotId, found] of repeatedPopupFindings(shots)) {
-    findings.get(shotId)?.push(...found);
+  const film = job.antiSlop?.spec?.filmChecks?.(programs) ?? new Map<string, QaFinding[]>();
+  for (const found of [
+    repeatedPopupFindings(shots),
+    repeatedBreakthroughFindings(breakthroughs),
+    film,
+  ]) {
+    for (const [shotId, entries] of found) findings.get(shotId)?.push(...entries);
   }
   return ok(undefined);
 }
@@ -151,7 +177,7 @@ async function critic(
   if (!suspects.ok) return suspects;
   for (const suspect of suspects.value) {
     const list = checked.findings.get(suspect.shot);
-    list?.push(finding('critic', 'error', `the frame critic flagged it: ${suspect.reason}`));
+    list?.push(finding('critic', 'error', `${FINAL_CRITIC_PREFIX}${suspect.reason}`));
   }
   return ok(undefined);
 }
@@ -224,13 +250,7 @@ function entryOf(
   sync: SyncReport | undefined,
 ): FinalReviewShot {
   const locked = job.locked.has(shot.id);
-  const findings =
-    fixed && record !== undefined
-      ? record.findings
-      : [
-          ...found,
-          ...(record?.findings ?? []).filter((entry) => CARRIED_SOURCES.has(entry.source)),
-        ];
+  const findings = reviewedFindings(found, record, fixed);
   const problems = sync?.shots.find((entry) => entry.shotId === shot.id)?.problems ?? 0;
   return {
     shotId: shot.id,

@@ -3,7 +3,15 @@
  * prompt get from the project's `lookMode` and the kit's look registry. `voxel-only` (every
  * project made before 2.0) gets nothing, so its prompts and checks stay exactly as they were.
  */
-import { getLook, listLooks, LOOKS, voxelLook, type Look } from '@reelforge/kit';
+import {
+  getLook,
+  isUnwiredWorldStyle,
+  listLooks,
+  LOOKS,
+  voxelLook,
+  type Look,
+  type LookScope,
+} from '@reelforge/kit';
 import { DEFAULT_LOOK_RHYTHM_RULES, maxNonCutTransitions } from '@reelforge/prompts';
 import {
   describePairs,
@@ -17,15 +25,28 @@ import {
 } from '@reelforge/shared';
 
 /**
+ * The kit scope of a project style: experimental looks only with `scope.experimental` and never
+ * for a world that is not wired yet (its looks are render-only until it has prompts).
+ */
+export function styleLookScope(
+  style: string | undefined,
+  scope: { readonly experimental?: boolean | undefined } = {},
+): LookScope {
+  return scope.experimental === true && !isUnwiredWorldStyle(style)
+    ? { style, experimental: true }
+    : { style };
+}
+
+/**
  * The looks a project of this style offers (PLAN.md#13.1, ADR-029): for the built-in styles
  * exactly `listLooks()`; a world's style is exclusive, only that world's looks (an experimental
- * world's only with `scope.experimental`, worlds.ts).
+ * world's only with `scope.experimental`, a wired one only, worlds.ts).
  */
 export function styleLooks(
   style: string | undefined,
   scope: { readonly experimental?: boolean | undefined } = {},
 ): Look[] {
-  return listLooks(LOOKS, scope.experimental === true ? { style, experimental: true } : { style });
+  return listLooks(LOOKS, styleLookScope(style, scope));
 }
 
 /** A look as the app's settings list it (`project-settings` dialog). */
@@ -168,6 +189,27 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
     'Sketch graph: blue ballpoint maths and evidence on graph paper, a kraft envelope back or a clipped index card: sums worked line by line, ruled charts with labelled axes, boxes that fill, one red result; numbers whole and readable.',
   'sketch-loud':
     'Sketch loud: one huge hand-lettered marker word or number on a lined page, crooked and off-centre with empty paper around it, the red pen correcting it, a flipbook riffled in the corner or a sticky note slapped on; never two loud words.',
+  // Comic (PLAN.md#13.3); the world's craft checklist comes with criticWorldVars.
+  'comic-story':
+    'Comic story: one printed comic page of 2-5 hand-ruled panels with uneven, leaning gutters (the panel that matters is the biggest), ink line art over off-register colour plates and halftone, speech balloons whose tails point at the speaker, yellow captions, at most one onomatopoeia; lettering whole and inside its balloon or caption.',
+  'comic-info':
+    'Comic info: an explainer that is still a comic page: a cutaway of the real object with its parts named by kinked leaders, a chart drawn as panel art with labelled axes, a hand-ticked checklist with a struck word and its correction, a worn stamp, a caption with the definition; one accent colour on the answer; numbers and labels whole and readable.',
+  'comic-loud':
+    'Comic loud: the page holds its breath, then hits: a near-empty pause panel with no lettering, ONE giant imperfect onomatopoeia breaking out of its panel, a slammed panel, or the one line lettered large with lots of empty paper; never two loud words at once.',
+  // Game B2 (PLAN.md#13.4); the world's craft checklist comes with criticWorldVars.
+  'rpg-explore':
+    'RPG explore: a first-person walk through a raycast room of the place the narrator names (chunky walls, dithered tungsten or fluorescent light and fog), the hand taking or holding THE item (pink band), crude sprites, a woodgrain HUD (year compass, minimap, the narration box); the focal thing off-centre, a held look after the walk; HUD words whole and readable.',
+  'rpg-menu':
+    "RPG menu: the game's own screens over the dimmed level: a paused quest log or stat sheet with the inventory grid, the automap (walked rooms solid, the next dashed, room names in caps) or the end-of-chapter tally (counters on a smoked plate, a still beat, one stamp); real numbers and the narration's names only; text whole and readable.",
+  'rpg-boss':
+    'RPG boss: one pressure moment: a boss bar only for the central problem, numbers popping off the thing in danger, ONE stinger phrase slammed letter by letter, a shake with decay, or the held item thrown and landing with dust; never two loud things at once; HUD words whole and readable.',
+  // Game B1 (PLAN.md#13.5); the world's craft checklist comes with criticWorldVars.
+  'atari-story':
+    "Atari story: the story inside the TV by 2600 rules (double-wide pixels, one colour per sprite row, flicker on a crowded line, colour bands, the CRT) or the room around the TV in square pixels (a room that fits the film), the camera pushing between them; a sticky note on the glass only with the narration's words; the focal thing off-centre, crimson only for the threat; HUD words and the narration box whole and readable.",
+  'atari-menu':
+    "Atari menu: the console's own screens: a menu painted in the TV with a cursor, the level-select map (the narration's places, dotted paths, a cursor), the attract-mode high-score table (rows in the order of events, one gold score, locked ??? rows) or the two-colour HOW TO PLAY manual page (numbered rules, FIG. 1, ONE red correction); real numbers and the narration's names only; text whole and readable.",
+  'atari-boss':
+    'Atari boss: one pressure moment: a boss card only for the central problem (BOSS n, the name slammed in, a bar in a real unit), a hit with hit-stop, a flash and a decaying shake, the crash draining the picture line by line, or the continue? screen with the card burned in; never two loud things at once; text whole and readable.',
   'paper-cutout':
     'Paper cut-out: flat paper pieces with torn or cut edges on layered depth strips (sky bands, hills, city, a toy-theatre room) with soft dithered drop shadows, a jointed paper puppet, pixel-caps signs and title strips; seen straight on, no perspective close-ups; text whole and not over the puppet.',
 };

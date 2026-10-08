@@ -15,6 +15,7 @@ import { paletteSchema } from './palette.js';
 import { shotsPerMinuteSchema } from './scene-count.js';
 import { stylePresetIdSchema } from './style-preset.js';
 import { beatSyncModeSchema } from './beat-sync.js';
+import { channelIdSchema } from './channels.js';
 import { characterModeSchema, mascotChoiceSchema } from './characters.js';
 import { repetitionControlModeSchema } from './repetition.js';
 import { dramaturgyModeSchema } from './dramaturgy.js';
@@ -37,6 +38,16 @@ export type LookMode = z.infer<typeof lookModeSchema>;
 
 /** Projects without the field (made before 2.0) keep their exact behaviour. */
 export const DEFAULT_LOOK_MODE: LookMode = 'voxel-only';
+
+/**
+ * Genre preset id (PLAN.md#13.8, genre-presets.ts). Not an enum: a project keeps its id after the
+ * built-in list changes (an unknown id simply has no effect).
+ */
+export const genrePresetIdSchema = z
+  .string()
+  .max(64)
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'genre preset ids are kebab-case, e.g. "true-crime"');
+export type GenrePresetId = z.infer<typeof genrePresetIdSchema>;
 
 export const projectFileSchema = z.object({
   version: z.literal(PROJECT_FILE_VERSION),
@@ -118,6 +129,17 @@ export const projectFileSchema = z.object({
    * unchanged); the template writes `false`, a world's project defaults `true`.
    */
   antiSlopGuards: z.boolean().optional(),
+  /**
+   * Channel of the project (PLAN.md#13.13, channels.ts). Absent = the default channel (projects
+   * made before 3.1 are unchanged; no rewrite needed).
+   */
+  channelId: channelIdSchema.optional(),
+  /**
+   * Genre preset the project was created with (PLAN.md#13.8, genre-presets.ts): its fields were
+   * written into this file at creation; the id is kept for display and the script's tone hint.
+   * Absent = none (projects made before 3.1 and projects without a preset are unchanged).
+   */
+  genrePreset: genrePresetIdSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

@@ -31,8 +31,8 @@ export const DIRECTION_STEP = 'direction';
 
 export interface DirectionsServiceOptions {
   readonly projectDir: () => string | undefined;
-  /** Commits the open project; resolves true when a commit was made. */
-  readonly commit: (message: string) => Promise<boolean>;
+  /** Commits `paths` of the open project; resolves true when a commit was made. */
+  readonly commit: (message: string, paths: readonly string[]) => Promise<boolean>;
   readonly log: Logger;
 }
 
@@ -91,7 +91,7 @@ export class DirectionsService {
       return { status: 'error', message };
     }
     const subject = directionCommitSubject(request.shotId, request.command);
-    const committed = await this.options.commit(subject);
+    const committed = await this.options.commit(subject, [DIRECTIONS_FILE]);
     this.options.log.info(`${subject}${committed ? '' : ' (not committed)'}`);
     return { status: 'ok', directions: next, committed };
   }

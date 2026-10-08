@@ -19,6 +19,7 @@ import {
   useLibraryEntry,
 } from '@reelforge/cli/assets';
 import type { LibraryEntry } from '@reelforge/shared';
+import { FILES } from '@reelforge/stages';
 import type {
   AssetActionResult,
   LibraryEditRequest,
@@ -31,8 +32,8 @@ import type { Logger } from '../logger.js';
 export interface LibraryServiceOptions {
   readonly libraryDir: string;
   readonly projectDir: () => string | undefined;
-  /** Autocommit of the open project after "Use in project". */
-  readonly commit: (dir: string, message: string) => Promise<void>;
+  /** Autocommit of `paths` (assets.json) of the open project after "Use in project". */
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<void>;
   readonly changed: () => void;
   readonly now?: () => Date;
   readonly log: Logger;
@@ -153,7 +154,9 @@ export class LibraryService {
       if (outcome.existing) {
         return { status: 'ok', message: `Already in this project as ${outcome.record.id}.` };
       }
-      await this.options.commit(dir, `Assets: ${outcome.record.id} from the library`);
+      await this.options.commit(dir, `Assets: ${outcome.record.id} from the library`, [
+        FILES.assets,
+      ]);
       this.options.changed();
       this.options.log.info(`library: ${outcome.record.id} copied into the project`);
       return { status: 'ok', message: `Added to this project as ${outcome.record.id}.` };

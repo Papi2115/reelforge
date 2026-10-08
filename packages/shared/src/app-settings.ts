@@ -168,6 +168,11 @@ export const appSettingsSchema = z.object({
    * CLI of Claude's turns (`REELFORGE_EXPERIMENTAL_WORLDS`). Off by default.
    */
   experimental: z.object({ worlds: z.boolean().default(false) }).prefault({}),
+  /**
+   * Look of the app itself (PLAN.md#13.12, U13): `pixelTitles` sets section and dialog titles in
+   * the pixel face made from the engine's display font; off = system text everywhere.
+   */
+  ui: z.object({ pixelTitles: z.boolean().default(true) }).prefault({}),
   onboarding: z
     .object({
       /** The first-run "Connect Claude" gate was completed or skipped. */
@@ -255,6 +260,7 @@ export const appSettingsPatchSchema = z.strictObject({
     .partial()
     .optional(),
   experimental: z.strictObject({ worlds: z.boolean() }).partial().optional(),
+  ui: z.strictObject({ pixelTitles: z.boolean() }).partial().optional(),
   onboarding: z
     .strictObject({
       connectClaudeDone: z.boolean(),
@@ -285,6 +291,7 @@ export function applyAppSettingsPatch(settings: AppSettings, patch: AppSettingsP
     taste: { ...settings.taste, ...patch.taste },
     export: { ...settings.export, ...patch.export },
     experimental: { ...settings.experimental, ...patch.experimental },
+    ui: { ...settings.ui, ...patch.ui },
     onboarding: { ...settings.onboarding, ...patch.onboarding },
   });
 }

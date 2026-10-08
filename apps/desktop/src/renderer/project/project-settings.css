@@ -1,8 +1,23 @@
-/* Project settings dialog (project.json options); shares the Settings dialog chrome (settings.css). */
+/*
+ * Project settings dialog (project.json options); shares the Settings dialog chrome and its
+ * section tabs (settings.css): tabs on the left, on top in a window under 1100 px.
+ */
 .project-settings-dialog {
-  width: min(640px, calc(100vw - 48px));
-  height: auto;
-  max-height: calc(100vh - 48px);
+  width: min(820px, calc(100vw - 48px));
+}
+
+@media (max-width: 1099px) {
+  .project-settings-dialog .settings-body {
+    flex-direction: column;
+  }
+
+  .project-settings-dialog .settings-tabs {
+    flex-direction: row;
+    width: auto;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
 }
 
 .project-settings-heading {

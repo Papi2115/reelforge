@@ -105,6 +105,8 @@ export const projectStyleSchema = z.object({
   preview: z.boolean(),
   /** False for a preview world while Settings → "Experimental worlds (preview)" is off. */
   enabled: z.boolean(),
+  /** A world that is not wired yet (render-only): never enabled, whatever the switch says. */
+  inDevelopment: z.boolean().optional(),
 });
 export type ProjectStyle = z.infer<typeof projectStyleSchema>;
 
@@ -115,6 +117,11 @@ export const projectSettingsStateSchema = z.discriminatedUnion('status', [
     /** Looks the project's style offers (voxel first; a world: its own A/B/C looks). */
     looks: z.array(lookSummarySchema),
     style: projectStyleSchema,
+    /**
+     * project.json#genrePreset (PLAN.md#13.8), read-only: the genre preset the project was
+     * created with; absent = none.
+     */
+    genrePreset: z.string().optional(),
   }),
   z.object({ status: z.literal('error'), message: z.string() }),
 ]);

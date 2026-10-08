@@ -20,12 +20,20 @@ import { UsageError } from '../errors.js';
 import { readCastRoles } from '../project/cast-roles.js';
 import { checkJsonFile } from '../project/files.js';
 import { readKitExtensions } from '../project/kit-ext.js';
+import { readWorldAssetFiles, worldAssetSet } from '../project/world-assets.js';
 import { PROJECT_PATHS } from '../project/paths.js';
 import { projectCastOf } from './cast-preview.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
 import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
+import { describeGenerators, generatorsTopic, GENERATORS_TOPIC } from './kit-docs-generators.js';
 import { formatCatalog } from './kit-docs-index.js';
-import { experimentalWorldsEnabled, kitDocsLookMode, kitDocsScope } from './kit-docs-world.js';
+import {
+  describeWorldAssets,
+  experimentalWorldsEnabled,
+  kitDocsLookMode,
+  kitDocsScope,
+  WORLD_ASSETS_TOPIC,
+} from './kit-docs-world.js';
 import { callName, NAMESPACE, originNote } from './kit-docs-lines.js';
 import { describeSlice, sliceNames } from './kit-docs-slices.js';
 import { PROP_MODULE_TOPIC, propModuleDocs } from './prop-module-docs.js';
@@ -42,6 +50,8 @@ With a kind (props, env, fx, templates, project) or a look id (voxel, retro-ui, 
 one line per entry of that slice; --full adds every param (long slices come in pages: --page 2).
 The rest of the scene context: reelforge kit-docs ctx (or camera, text, annotate, anchor, sfx, rng, ease, shot).
 The character pack (kit.cast: mascots, cast, mannequin, role specs): reelforge kit-docs characters.
+A world project's own assets (assets/<world>/*.json, ctx.worldAssets): reelforge kit-docs world-assets;
+their generators with every option's allowed values: reelforge kit-docs generators (one: generators.<name>).
 Project props (kit-ext/props/*.js) are listed as project-local; writing one: reelforge kit-docs prop-module.
 Exit code: 0 ok, 2 usage error (unknown name).`;
 
@@ -92,6 +102,9 @@ export interface DescribeOptions {
   readonly cast?: ProjectCast | undefined;
   readonly full?: boolean;
   readonly page?: number;
+  /** The project's style and world asset ids (kit-docs world-assets, PLAN.md#13.15). */
+  readonly style?: string | undefined;
+  readonly worldAssetIds?: Readonly<Record<string, readonly string[]>> | undefined;
 }
 
 function unknownName(catalog: KitCatalog, input: string, name: string): UsageError {
@@ -103,6 +116,8 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
     ...CTX_TOPICS,
     PROP_MODULE_TOPIC,
     CHARACTERS_TOPIC,
+    WORLD_ASSETS_TOPIC,
+    GENERATORS_TOPIC,
   ];
   const bare = name.split('.').at(-1) ?? name;
   const guesses = suggestNames(bare, known);
@@ -129,6 +144,10 @@ export function describeKitName(
   options: DescribeOptions = {},
 ): string {
   if (input === PROP_MODULE_TOPIC) return propModuleDocs();
+  if (input === WORLD_ASSETS_TOPIC)
+    return describeWorldAssets(options.style, options.worldAssetIds);
+  const generators = generatorsTopic(input);
+  if (generators !== undefined) return describeGenerators(options.style, generators.name);
   const name = input.replace(/^kit\./, '');
   const slice = describeSlice(catalog, name, {
     lookMode: options.lookMode ?? 'voxel-only',
@@ -192,6 +211,15 @@ async function readLookSettings(
     : { lookMode: 'voxel-only', style: undefined };
 }
 
+/** The project's world asset ids per kind (only for kit-docs world-assets). */
+async function worldAssetIds(
+  root: string,
+  style: string | undefined,
+): Promise<Readonly<Record<string, readonly string[]>> | undefined> {
+  const files = await readWorldAssetFiles(root, style);
+  return files === undefined ? undefined : worldAssetSet(files).ids.byKind;
+}
+
 export const kitDocsCommand: Command = {
   name: 'kit-docs',
   summary:
@@ -218,7 +246,16 @@ export const kitDocsCommand: Command = {
     const text =
       name === undefined
         ? formatCatalog(catalog, { lookMode, problems: project.problems })
-        : describeKitName(catalog, name, { lookMode, full: values.full, page, cast });
+        : describeKitName(catalog, name, {
+            lookMode,
+            full: values.full,
+            page,
+            cast,
+            style,
+            ...(name === WORLD_ASSETS_TOPIC
+              ? { worldAssetIds: await worldAssetIds(context.root, style) }
+              : {}),
+          });
     const json = name === undefined ? { ...catalog, problems: project.problems } : { name, text };
     return result(0, [text], json);
   },

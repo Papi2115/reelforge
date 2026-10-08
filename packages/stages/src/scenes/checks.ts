@@ -7,7 +7,7 @@ import { cardProblems, type CardDiagnostic, type LintDiagnostic } from '@reelfor
 import { computeFrameStats } from '@reelforge/engine/raster';
 import type { QaFinding, QaFindingSource } from '@reelforge/shared';
 import { contentShare } from './frame-content.js';
-import type { RenderedFrame } from './tools.js';
+import type { RenderedFrame, ShotRenderFailed } from './tools.js';
 
 /** A frame where one colour covers this share of the pixels counts as blank (as `reelforge frames`). */
 export const BLANK_DOMINANT_SHARE = 0.97;
@@ -92,14 +92,17 @@ export function consoleFindings(errors: readonly string[]): QaFinding[] {
 
 /**
  * A render that timed out twice (ShotRenderFailed.timedOut): a warning for the shot, never a fix
- * turn, so a stuck renderer cannot hang or loop the stage.
+ * turn, so a stuck renderer cannot hang or loop the stage. A render that never started
+ * (`notStarted`) is the renderer's problem only: no hint about a looping scene.
  */
-export function renderTimeoutFinding(error: string): QaFinding {
-  return finding(
-    'runtime',
-    'warning',
-    `the shot was not checked: ${error}. Look at it in the preview; a scene that loops forever in build()/update() needs a fix.`,
-  );
+export function renderTimeoutFinding(
+  render: Pick<ShotRenderFailed, 'error' | 'notStarted'>,
+): QaFinding {
+  const hint =
+    render.notStarted === true
+      ? 'Look at it in the preview; the scene itself never ran.'
+      : 'Look at it in the preview; a scene that loops forever in build()/update() needs a fix.';
+  return finding('runtime', 'warning', `the shot was not checked: ${render.error}. ${hint}`);
 }
 
 /** Findings that make the shot unrenderable (lint/runtime errors, no scene). */

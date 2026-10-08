@@ -9,7 +9,7 @@ import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { writeAtomic } from '@reelforge/project';
 import { inProject } from '../paths.js';
 import { stageError, type StageError } from '../types.js';
-import type { ShotRender } from './tools.js';
+import type { ShotRender, ShotRenderFailed } from './tools.js';
 
 export interface SheetShot {
   readonly shotId: string;
@@ -18,13 +18,19 @@ export interface SheetShot {
   readonly render: ShotRender;
 }
 
+/** The label of a failed render's tiles: a renderer that never started is not a stuck scene. */
+export function sheetFailure(render: ShotRenderFailed): string {
+  if (render.notStarted === true) return 'NOT STARTED';
+  return render.timedOut === true ? 'TIMED OUT' : 'FAILED TO LOAD';
+}
+
 export function sheetRow(shot: SheetShot): SheetRow {
   const label = (t: number): string => `${shot.shotId} ${t.toFixed(2)}s`;
   const { render } = shot;
   if (render.ok) {
     return { tiles: render.frames.map((frame) => ({ label: label(frame.t), frame: frame.image })) };
   }
-  const failure = render.timedOut === true ? 'TIMED OUT' : 'FAILED TO LOAD';
+  const failure = sheetFailure(render);
   return { tiles: shot.times.map((t) => ({ label: label(t), failure })) };
 }
 

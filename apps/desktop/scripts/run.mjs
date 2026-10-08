@@ -1,12 +1,12 @@
 // Runs an app build task (scripts/<task>.ts) without a prior `tsc` build: bundles it with esbuild
 // (workspace packages from their TypeScript sources), then imports it and calls its `run()`.
-// Usage: node scripts/run.mjs <dev|build|icon|package|dist>
+// Usage: node scripts/run.mjs <dev|build|icon|package|dist|pixel-face>
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 
-const TASKS = ['dev', 'build', 'icon', 'package', 'dist'];
+const TASKS = ['dev', 'build', 'icon', 'package', 'dist', 'pixel-face'];
 const [task = ''] = process.argv.slice(2);
 if (!TASKS.includes(task)) {
   process.stderr.write(`usage: node scripts/run.mjs <${TASKS.join('|')}>\n`);
@@ -37,6 +37,8 @@ await build({
   alias: {
     '@reelforge/engine/cli': packageSource('engine', 'src', 'cli', 'index.ts'),
     '@reelforge/engine/raster': packageSource('engine', 'src', 'raster', 'index.ts'),
+    // After the subpaths: esbuild maps a package alias onto its subpaths too.
+    '@reelforge/engine': packageSource('engine', 'src', 'index.ts'),
     '@reelforge/shared': packageSource('shared', 'src', 'index.ts'),
     '@reelforge/kit': packageSource('kit', 'src', 'index.ts'),
     '@reelforge/claude-bridge': packageSource('claude-bridge', 'src', 'index.ts'),

@@ -1,6 +1,6 @@
 {
   "name": "@reelforge/desktop",
-  "version": "3.0.0-beta.1",
+  "version": "3.3.0-beta.1",
   "private": true,
   "description": "Electron desktop app (main/preload/renderer).",
   "type": "module",
@@ -10,7 +10,8 @@
     "build": "node scripts/run.mjs build",
     "package": "node scripts/run.mjs package",
     "dist": "node scripts/run.mjs dist",
-    "icon": "node scripts/run.mjs icon"
+    "icon": "node scripts/run.mjs icon",
+    "pixel-face": "node scripts/run.mjs pixel-face"
   },
   "dependencies": {
     "@reelforge/claude-bridge": "workspace:*",

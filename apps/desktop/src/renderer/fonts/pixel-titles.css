@@ -1,0 +1,73 @@
+/*
+ * Pixel titles (PLAN.md#13.12, U13): the product name, panel, step, section and dialog titles in
+ * "ReelForge Pixel", the engine's CC0 display font as a real font (scripts/pixel-face.ts). Body
+ * text, buttons and inputs stay system text (panel headings style only their text span).
+ * Settings → Performance → "Pixel titles" off sets `data-title-font="system"` on <html>: every rule
+ * below stops applying and --font-title is the system face.
+ *
+ * The face's em is 10 font pixels (capitals 7, as tall as Segoe UI's at the same size). It is sharp
+ * only when a font pixel covers whole device pixels: settings/PixelTitles.tsx sets the two sizes
+ * for the display scaling (10 / 20 px at 100 %, 8 / 16 px at 125 %). Line heights keep the system
+ * title's box (1.4 x its normal size), so switching faces moves nothing around.
+ */
+@font-face {
+  font-family: 'ReelForge Pixel';
+  src: url('./reelforge-pixel.ttf') format('truetype');
+  /* One face for every weight: a synthetic bold would smear the pixels. */
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+:root {
+  --font-title: 'ReelForge Pixel', var(--font-ui);
+  --title-size-small: 10px;
+  --title-size-large: 20px;
+}
+
+:root[data-title-font='system'] {
+  --font-title: var(--font-ui);
+}
+
+:root:not([data-title-font='system'])
+  :is(
+    .app-title,
+    .modal-title,
+    .panel-heading-text,
+    .doc-title,
+    .section-title,
+    .director-section-title,
+    .options-section .disclosure-title
+  ) {
+  font-family: var(--font-title);
+  font-synthesis: none;
+  /* macOS only; Windows keeps its own smoothing. */
+  -webkit-font-smoothing: none;
+  /* The face has its own 1-pixel spacing; fractional extra spacing would blur the columns. */
+  letter-spacing: 0;
+}
+
+:root:not([data-title-font='system']) .app-title {
+  font-size: var(--title-size-large);
+  line-height: calc(var(--text-md) * 1.4);
+}
+
+:root:not([data-title-font='system']) .modal-title {
+  font-size: var(--title-size-large);
+  line-height: calc(var(--text-lg) * 1.4);
+}
+
+:root:not([data-title-font='system']) :is(.doc-title, .director-section-title) {
+  font-size: var(--title-size-small);
+  line-height: calc(var(--text-md) * 1.4);
+}
+
+:root:not([data-title-font='system']) .section-title {
+  font-size: var(--title-size-small);
+  line-height: calc(var(--text-sm) * 1.4);
+}
+
+/* Text spans inside a row with buttons: the row's own line box keeps its height. */
+:root:not([data-title-font='system']) :is(.panel-heading-text, .options-section .disclosure-title) {
+  font-size: var(--title-size-small);
+}

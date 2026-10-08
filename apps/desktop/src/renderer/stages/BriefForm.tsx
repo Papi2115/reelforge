@@ -251,7 +251,7 @@ export function BriefForm(props: BriefFormProps): JSX.Element {
       {confirmRewrite && (
         <ConfirmDialog
           title="Rewrite the script?"
-          confirmLabel="Rewrite"
+          confirmLabel="Rewrite the script"
           busy={false}
           onCancel={() => {
             setConfirmRewrite(false);
@@ -262,8 +262,8 @@ export function BriefForm(props: BriefFormProps): JSX.Element {
           }}
         >
           <p>
-            Claude researches the topic again and replaces research.md, beats.md and script.txt
-            (your edits too). The current version stays in the project history.
+            Claude researches the topic again and replaces the research, the story beats and the
+            script (your edits too). The current version stays in the project history.
           </p>
         </ConfirmDialog>
       )}

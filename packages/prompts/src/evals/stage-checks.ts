@@ -8,9 +8,12 @@ import {
   researchClaimSources,
   scriptOpening,
   scriptSentences,
+  WORLD_CAST_FILE,
+  worldCastFileSchema,
 } from '@reelforge/shared';
 import { validateClaimsReply } from '../validators/claims.js';
 import { validateCriticReply } from '../validators/critic.js';
+import { validateWorldAssetCriticReply } from '../validators/world-asset-critic.js';
 import { validateHooksReply } from '../validators/hooks.js';
 import { validateCues, type CuesLike, type CuesSchema } from '../validators/cues.js';
 import { issue, type ValidationIssue } from '../validators/issues.js';
@@ -51,6 +54,7 @@ const MAX_REPLY_LINES: Partial<Record<PromptId, number>> = {
   'prop-build': 4,
   roles: 4,
   tension: 3,
+  'world-assets': 4,
 };
 
 function readOutputs(
@@ -130,8 +134,31 @@ function fileIssues<T extends CuesLike>(
   if (file.startsWith('characters/roles/') && file.endsWith('.json')) {
     return validateRoleFile(text, { roleId: evalCase.file.roleBuild.id }).issues;
   }
+  if (file === WORLD_CAST_FILE) return worldCastIssues(text);
   if (file.endsWith('.js')) return validateSceneModule(text).issues;
   return [];
+}
+
+/** assets/cast.json of the world-assets turn (PLAN.md#13.15): valid JSON in the cast format. */
+function worldCastIssues(text: string): readonly ValidationIssue[] {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch (error) {
+    const why = error instanceof Error ? error.message : String(error);
+    return [issue('error', 'cast-json', `not valid JSON: ${why}`, WORLD_CAST_FILE)];
+  }
+  const parsed = worldCastFileSchema.safeParse(value);
+  return parsed.success
+    ? []
+    : parsed.error.issues.map((entry) =>
+        issue(
+          'error',
+          'cast-schema',
+          `${entry.path.join('.') || '(file)'}: ${entry.message}`,
+          WORLD_CAST_FILE,
+        ),
+      );
 }
 
 /** The hooks reply against the case's script opening and research.md (PLAN.md#12.16). */
@@ -161,6 +188,9 @@ export function checkStageOutput<T extends CuesLike>(input: StageCheckInput<T>):
     issues.push(
       ...validateCriticReply(reply, { expectedPaths: evalCase.file.critic.imagePaths }).issues,
     );
+  }
+  if (stage === 'world-asset-critic') {
+    issues.push(...validateWorldAssetCriticReply(reply, { expectedTiles: ['A1', 'A2'] }).issues);
   }
   const shotIds = evalCase.storyboard.shots.map((shot) => shot.id);
   if (stage === 'review-triage') issues.push(...validateTriageReply(reply, { shotIds }).issues);

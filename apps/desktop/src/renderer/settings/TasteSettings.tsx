@@ -2,13 +2,24 @@
  * Settings → Taste (PLAN.md#12.13): the on/off switch of taste learning, the condensed profile the
  * storyboard and scene prompts get, the strongest preferences with their lean (bars, read out as
  * text), the decisions recorded, "Export profile" (JSON, main's save dialog) and "Forget
- * everything" (with a confirm). Everything stays on this computer.
+ * everything" (with a confirm). Everything stays on this computer. Taste belongs to a channel
+ * (PLAN.md#13.13): the page shows the open project's channel (and world), or a channel picker
+ * when no project is open; the switch, Export and Forget act on that profile only.
  */
-import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
-import type { TasteState } from '../../shared/taste-contract.js';
+import { useCallback, useEffect, useId, useRef, useState, type JSX } from 'react';
+import type { TasteScopeRequest, TasteScopeView, TasteState } from '../../shared/taste-contract.js';
+import { ChannelDot } from '../channels/ChannelBadge.js';
 import { errorMessage, rendererLog } from '../log.js';
 import type { PageProps } from './GeneralSettings.js';
-import { preferenceBar, profileStatus, signalSummary, totalSignals } from './taste-view.js';
+import {
+  preferenceBar,
+  profileStatus,
+  scopeNote,
+  scopeTitle,
+  signalSummary,
+  totalSignals,
+  worldChoices,
+} from './taste-view.js';
 
 const log = rendererLog('taste');
 
@@ -36,18 +47,87 @@ function Preferences({ state }: { readonly state: OkState }): JSX.Element {
   );
 }
 
+/** Channel (and world) picker; only when no project is open. */
+function ScopePicker(props: {
+  readonly scope: TasteScopeView;
+  readonly onPick: (request: TasteScopeRequest) => void;
+}): JSX.Element | null {
+  const { scope, onPick } = props;
+  const id = useId();
+  const channelId = scope.channelId;
+  if (scope.fromProject || channelId === null) return null;
+  const worlds = worldChoices(scope);
+  return (
+    <div className="taste-pickers">
+      <div className="field">
+        <label htmlFor={`${id}-channel`}>Channel</label>
+        <select
+          id={`${id}-channel`}
+          value={channelId}
+          onChange={(event) => {
+            onPick({ channelId: event.target.value });
+          }}
+        >
+          {scope.channels.map((channel) => (
+            <option key={channel.id} value={channel.id}>
+              {channel.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      {scope.perWorld && worlds.length > 1 && (
+        <div className="field">
+          <label htmlFor={`${id}-world`}>World</label>
+          <select
+            id={`${id}-world`}
+            value={scope.world ?? ''}
+            onChange={(event) => {
+              onPick({ channelId, world: event.target.value });
+            }}
+          >
+            {worlds.map((world) => (
+              <option key={world.id} value={world.id}>
+                {world.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScopeHeader({ scope }: { readonly scope: TasteScopeView }): JSX.Element {
+  return (
+    <div className="taste-scope" role="group" aria-label="Taste profile">
+      <h3 className="settings-heading taste-scope-title">
+        {scope.channelName !== null && (
+          <ChannelDot
+            channel={{
+              name: scope.channelName,
+              ...(scope.color === null ? {} : { color: scope.color }),
+            }}
+          />
+        )}
+        <span>Profile: {scopeTitle(scope)}</span>
+      </h3>
+      <p className="muted">{scopeNote(scope)}</p>
+    </div>
+  );
+}
+
 export function TastePage({ state, update }: PageProps): JSX.Element {
   const [taste, setTaste] = useState<TasteState | undefined>(undefined);
+  const [pick, setPick] = useState<TasteScopeRequest>({});
   const [confirming, setConfirming] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const tasteSettings = state.settings.taste;
-  const learning = tasteSettings.learning;
   const request = useRef(0);
 
   const reload = useCallback(() => {
     request.current += 1;
     const current = request.current;
-    window.reelforge.getTasteState().then(
+    window.reelforge.getTasteState(pick).then(
       (next) => {
         // Only the newest answer counts (a slower, older one would show the old switch).
         if (current === request.current) setTaste(next);
@@ -56,18 +136,34 @@ export function TastePage({ state, update }: PageProps): JSX.Element {
         log.error(`getTasteState failed: ${errorMessage(reason)}`);
       },
     );
-  }, []);
-  // The switch changes what the profile says (off = nothing in the prompts). The settings change
-  // twice per click: optimistically, then main's saved copy; only the second one is certain to be
-  // what main's taste state reads, so both reload.
+  }, [pick]);
+  // Channels without their own switch follow the app setting, so a change of it reloads too.
   useEffect(reload, [reload, tasteSettings]);
 
+  const setLearning = (on: boolean, scope: TasteScopeView): void => {
+    const learning = on ? 'auto' : 'off';
+    if (scope.channelId === null) {
+      update({ taste: { learning } });
+      return;
+    }
+    // Shown at once; main's answer (reload) then says what was saved.
+    setTaste((current) => (current?.status === 'ok' ? { ...current, learning } : current));
+    window.reelforge.updateChannel(scope.channelId, { tasteLearning: learning }).then(
+      (result) => {
+        if (result.status === 'error') setMessage(result.error.message);
+        reload();
+      },
+      (reason: unknown) => {
+        setMessage(`Not saved: ${errorMessage(reason)}`);
+      },
+    );
+  };
   const reset = (): void => {
     setConfirming(false);
-    window.reelforge.resetTaste().then(
+    window.reelforge.resetTaste(pick).then(
       (next) => {
         setTaste(next);
-        setMessage('The taste profile was forgotten.');
+        setMessage('This taste profile was forgotten.');
       },
       (reason: unknown) => {
         setMessage(`Not reset: ${errorMessage(reason)}`);
@@ -75,7 +171,7 @@ export function TastePage({ state, update }: PageProps): JSX.Element {
     );
   };
   const exportProfile = (): void => {
-    window.reelforge.exportTaste().then(
+    window.reelforge.exportTaste(pick).then(
       (result) => {
         if (result.status === 'saved') setMessage(`Saved to ${result.file}`);
         else if (result.status === 'error') setMessage(result.message);
@@ -88,27 +184,37 @@ export function TastePage({ state, update }: PageProps): JSX.Element {
 
   return (
     <div className="settings-page">
-      <label className="settings-toggle">
-        <input
-          type="checkbox"
-          checked={learning === 'auto'}
-          onChange={(event) => {
-            update({ taste: { learning: event.target.checked ? 'auto' : 'off' } });
-          }}
-        />
-        <span>
-          Learn my taste from variant picks, locks and rebuilds
-          <span className="muted">
-            {' '}
-            — kept on this computer only; the storyboard and scene prompts get a short summary.
-          </span>
-        </span>
-      </label>
       {taste === undefined && <p className="muted">Loading…</p>}
       {taste?.status === 'error' && <p className="connect-error">{taste.message}</p>}
       {taste?.status === 'ok' && (
         <>
-          <h3 className="settings-heading">Profile</h3>
+          <ScopeHeader scope={taste.scope} />
+          <ScopePicker
+            scope={taste.scope}
+            onPick={(next) => {
+              setConfirming(false);
+              setMessage(null);
+              setPick(next);
+            }}
+          />
+          <label className="settings-toggle">
+            <input
+              type="checkbox"
+              checked={taste.learning === 'auto'}
+              onChange={(event) => {
+                setLearning(event.target.checked, taste.scope);
+              }}
+            />
+            <span>
+              Learn my taste for this channel from variant picks, locks and rebuilds
+              <span className="muted">
+                {' '}
+                — kept on this computer only; the storyboard and scene prompts of its films get a
+                short summary.
+              </span>
+            </span>
+          </label>
+          <h3 className="settings-heading">Summary</h3>
           {taste.profile === null ? null : <p className="taste-profile">{taste.profile}</p>}
           <p className="muted" role="status">
             {profileStatus(taste)}
@@ -122,7 +228,9 @@ export function TastePage({ state, update }: PageProps): JSX.Element {
             </button>
             {confirming ? (
               <>
-                <span>Forget all {totalSignals(taste.signals)} recorded decisions?</span>
+                <span>
+                  Forget all {totalSignals(taste.signals)} recorded decisions of this profile?
+                </span>
                 <button type="button" className="danger" autoFocus onClick={reset}>
                   Forget everything
                 </button>

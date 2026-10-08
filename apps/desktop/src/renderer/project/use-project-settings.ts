@@ -25,6 +25,8 @@ export interface ProjectSettingsController {
   readonly looks: readonly LookSummary[];
   /** The project's style (PLAN.md#13.6); undefined while loading. */
   readonly style: ProjectStyle | undefined;
+  /** project.json#genrePreset (PLAN.md#13.8): null = none; undefined while loading. */
+  readonly genrePreset: string | null | undefined;
   /** Load failure or the last failed change (shown in the dialog). */
   readonly error: string | undefined;
   /** Number of changes main has not answered yet. */
@@ -36,6 +38,7 @@ export function useProjectSettings(): ProjectSettingsController {
   const [settings, setSettings] = useState<ProjectSettings | undefined>(undefined);
   const [looks, setLooks] = useState<readonly LookSummary[]>([]);
   const [style, setStyle] = useState<ProjectStyle | undefined>(undefined);
+  const [genrePreset, setGenrePreset] = useState<string | null | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [pending, setPending] = useState(0);
   /** Number of the newest change: an older answer must not undo a newer optimistic change. */
@@ -51,6 +54,7 @@ export function useProjectSettings(): ProjectSettingsController {
         setSettings(state.settings);
         setLooks(state.looks);
         setStyle(state.style);
+        setGenrePreset(state.genrePreset ?? null);
       },
       (reason: unknown) => {
         log.error(`getProjectSettings failed: ${errorMessage(reason)}`);
@@ -110,5 +114,5 @@ export function useProjectSettings(): ProjectSettingsController {
     [reload],
   );
 
-  return { settings, looks, style, error, pending, update };
+  return { settings, looks, style, genrePreset, error, pending, update };
 }

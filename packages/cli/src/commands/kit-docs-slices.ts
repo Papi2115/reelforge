@@ -9,6 +9,7 @@ import type { LookMode } from '@reelforge/shared';
 import { UsageError } from '../errors.js';
 import { OUTPUT_BUDGET, isListed, KIT_DOCS_CATEGORIES } from './kit-docs-index.js';
 import { entryLine, entryLook } from './kit-docs-lines.js';
+import { projectAssetsSection } from './kit-docs-world.js';
 
 export interface SliceOptions {
   readonly lookMode: LookMode;
@@ -62,7 +63,8 @@ function lookSlice(catalog: KitCatalog, id: string, mode: LookMode): Slice | und
       ? Object.values(catalog.voxel).map(
           (doc) => `  kit.voxel.${doc.signature} — ${doc.description}`,
         )
-      : [],
+      : // A world's look: how its scenes load the film's own assets (PLAN.md#13.15).
+        projectAssetsSection(LOOKS.find((candidate) => candidate.id === id)?.styles?.[0]),
     entries: allEntries(catalog).filter(
       (entry) => entry.origin !== 'project' && entryLook(entry) === id,
     ),

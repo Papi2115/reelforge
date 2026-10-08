@@ -30,7 +30,7 @@ const VAGUE_WORDS = new Set(
   ),
 );
 /** Word overlap (Jaccard) from which two intents count as the same. */
-const SAME_INTENT = 0.6;
+export const SAME_INTENT = 0.6;
 
 const slop = (message: string): QaFinding => finding('slop', 'warning', message);
 
@@ -124,7 +124,8 @@ export function popupIntentFindings(program: AnyNode, file: string): QaFinding[]
   });
 }
 
-function overlap(first: string, second: string): number {
+/** Content-word overlap (Jaccard, stemmed) of two intents. */
+export function overlap(first: string, second: string): number {
   const a = new Set(words(first));
   const b = new Set(words(second));
   if (a.size === 0 || b.size === 0) return 0;

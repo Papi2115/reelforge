@@ -105,6 +105,11 @@ export interface DetectEncoderOptions {
   readonly width?: number;
   readonly height?: number;
   readonly signal?: AbortSignal;
+  /**
+   * Encoders not to try, with why (EncoderSessionMemory: a session that failed to open earlier);
+   * reported as failed probes without running ffmpeg. libx264 is never skipped.
+   */
+  readonly skip?: ReadonlyMap<VideoEncoderId, string>;
 }
 
 /** One real 1 s test encode (lavfi testsrc2): listing in `-encoders` does not prove a working GPU. */
@@ -162,6 +167,11 @@ export async function detectEncoder(
         : [prefer, 'libx264'];
   const probes: EncoderProbe[] = [];
   for (const encoder of order) {
+    const skipped = encoder === 'libx264' ? undefined : options.skip?.get(encoder);
+    if (skipped !== undefined) {
+      probes.push({ encoder, ok: false, detail: skipped });
+      continue;
+    }
     const probe = await probeEncoder(ffmpeg, encoder, quality, size, options.signal);
     if (!probe.ok) return probe;
     probes.push(probe.value);

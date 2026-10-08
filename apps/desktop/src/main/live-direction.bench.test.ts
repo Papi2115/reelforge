@@ -112,10 +112,11 @@ describe('live co-direction on the example project', () => {
   it('applies 10 commands with a median under 1 s and refuses a locked shot', async () => {
     const service = new DirectionsService({
       projectDir: () => dir,
-      commit: async (message) => {
+      commit: async (message, paths) => {
         const committed = await autocommit(dir, message, {
           kind: 'manual',
           step: DIRECTION_STEP,
+          paths,
           git,
         });
         return committed.ok && committed.value.status === 'committed';

@@ -49,7 +49,7 @@ export interface AssetsHandlerOptions {
   readonly libraryDir: string;
   readonly saveOwnToLibrary: () => boolean;
   readonly pickFiles: () => Promise<readonly string[] | undefined>;
-  readonly commit: (dir: string, message: string) => Promise<void>;
+  readonly commit: (dir: string, message: string, paths: readonly string[]) => Promise<void>;
   readonly log: Logger;
 }
 

@@ -1,214 +1,31 @@
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { IPC, IPC_EVENTS, type AppInfo, type RendererLogEntry } from '../shared/ipc-contract.js';
-import { registerIpc, type IpcMainLike, type IpcSenderEvent } from './ipc-router.js';
-import type { ProjectOpenResult } from '../shared/project-contract.js';
+import { IPC, IPC_EVENTS, type RendererLogEntry } from '../shared/ipc-contract.js';
+import { registerIpc } from './ipc-router.js';
 import { createLogger } from './logger.js';
-import { defaultAppSettings } from '@reelforge/shared';
-import type { ToolsStatus } from '../shared/settings-contract.js';
-import type { WhisperState } from '../shared/whisper-contract.js';
-import type { SettingsHandlers } from './settings-ipc.js';
-import type { SoundHandlers } from './sound/sound-ipc.js';
-import type { VariantsHandlers } from './stages/variants-ipc.js';
-import type { ExportHandlers } from './export/export-ipc.js';
-import type { AssetsHandlers } from './assets/assets-ipc.js';
-
-type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
-
-class FakeIpcMain implements IpcMainLike {
-  readonly handlers = new Map<string, Listener>();
-  readonly listeners = new Map<string, Listener>();
-  handle(channel: string, listener: Listener): void {
-    this.handlers.set(channel, listener);
-  }
-  on(channel: string, listener: Listener): void {
-    this.listeners.set(channel, listener);
-  }
-  invoke(channel: string, url: string, payload: unknown): unknown {
-    const handler = this.handlers.get(channel);
-    if (!handler) throw new Error(`no handler for ${channel}`);
-    return handler({ senderFrame: { url } }, payload);
-  }
-}
-
-const APP_URL = 'reelforge://app/index.html';
-const appInfo: AppInfo = {
-  name: 'ReelForge',
-  version: '0.0.0',
-  electron: '44.4.5',
-  chrome: '152',
-  platform: 'win32',
-  userDataDir: 'C:\\Users\\x\\AppData\\Roaming\\ReelForge',
-  dev: false,
-};
-
-const opened: ProjectOpenResult = {
-  status: 'opened',
-  project: {
-    dir: path.join('C:', 'Filmy', 'Mój film'),
-    title: 'Mój film',
-    language: 'pl',
-    style: 'voxel-pixel-crisp640',
-    fps: 30,
-  },
-};
-
-const WHISPER_STATE: WhisperState = {
-  engine: {
-    installs: [],
-    problem: 'whisper.cpp is not installed',
-    configured: false,
-    installBackends: ['blas'],
-    installBytes: 21_360_234,
-    existing: [],
-    root: 'C:\\w',
-  },
-  models: [],
-  vadInstalled: false,
-  vadBytes: 885_098,
-  modelsDir: 'C:\\w\\models',
-  recommended: 'large-v3-turbo-q5_0',
-  readiness: {
-    ready: false,
-    model: 'large-v3-turbo-q5_0',
-    missing: ['engine', 'vad', 'model'],
-    bytes: 596_286_527,
-  },
-  job: null,
-};
-
-/** Own-asset and library actions (PLAN.md#12.12, #12.19). */
-function assetActionStubs(
-  record: <T>(request: unknown, response: T) => Promise<T>,
-): Omit<AssetsHandlers, 'assetsState' | 'assetsReview' | 'libraryState'> {
-  const none = { status: 'error', message: 'No project is open.' } as const;
-  return {
-    assetsImport: (request) => record(request, none),
-    assetsEdit: (request) => record(request, none),
-    assetsRemove: (request) => record(request, none),
-    assetsLibrary: (request) => record(request, none),
-    libraryEdit: (request) => record(request, none),
-    libraryRemove: (request) => record(request, none),
-    libraryUse: (request) => record(request, none),
-  };
-}
-
-/** Settings channels (PLAN.md#6.7); their requests are checked in the test below. */
-function settingsStubs(record: <T>(request: unknown, response: T) => Promise<T>): SettingsHandlers {
-  const tools: ToolsStatus = {
-    ffmpeg: { status: 'missing', message: 'not found', configured: false },
-    whisper: { status: 'missing', message: 'not installed', configured: false },
-  };
-  return {
-    settingsGet: (request) =>
-      record(request, { settings: defaultAppSettings(), cores: 8, file: 'settings.json' }),
-    settingsUpdate: (request) =>
-      record(request, { status: 'ok', settings: defaultAppSettings() } as const),
-    claudeStatus: (request) =>
-      record(request, {
-        state: 'not-installed',
-        installCommand: 'npm install -g @anthropic-ai/claude-code',
-        searchedDirs: 3,
-      } as const),
-    claudeOpenLogin: (request) => record(request, { status: 'error', message: 'n/a' } as const),
-    toolsStatus: (request) => record(request, tools),
-    toolsBrowse: (request) => record(request, { status: 'cancelled' } as const),
-    toolsReset: (request) => record(request, tools),
-    whisperState: (request) => record(request, WHISPER_STATE),
-    whisperInstall: (request) => record(request, { status: 'started' } as const),
-    whisperCancel: (request) => record(request, null),
-    whisperDelete: (request) => record(request, { status: 'deleted' } as const),
-    whisperUseExisting: (request) =>
-      record(request, { status: 'invalid', message: 'not a detected install' } as const),
-  };
-}
-
-/** Export dialog + YouTube channels (PLAN.md#9.1, #9.2). */
-function exportStubs(
-  record: <T>(request: unknown, response: T) => Promise<T>,
-): Omit<ExportHandlers, 'exportStart' | 'exportCancel'> {
-  const queued = { status: 'queued', id: 'export-1' } as const;
-  return {
-    exportOptions: (request) =>
-      record(request, {
-        projectDir: null,
-        title: '',
-        defaultFileName: 'video.mp4',
-        outputDir: '',
-        customOutputDir: false,
-        render: null,
-        presets: [],
-        cores: 1,
-        defaults: {
-          preset: '1080p30',
-          encoder: 'auto',
-          quality: 'standard',
-          workers: 'auto',
-          includeChapters: true,
-          includeThumbnail: true,
-        },
-        chapters: { text: null, problem: null },
-        thumbnailDefaultS: null,
-        blockers: [],
-        warnings: [],
-      } as const),
-    exportQueue: (request) => record(request, { projectDir: null, jobs: [], interrupted: null }),
-    exportEnqueue: (request) => record(request, queued),
-    exportCancelJob: (request) => record(request, true),
-    exportResumeJob: (request) => record(request, queued),
-    exportResumeInterrupted: (request) => record(request, queued),
-    exportTestEncoder: (request) => record(request, { status: 'error', message: 'n/a' } as const),
-    exportPickFolder: (request) => record(request, { status: 'cancelled' } as const),
-    exportOpenFolder: (request) => record(request, { status: 'ok', message: null } as const),
-    youtubeMeta: (request) => record(request, null),
-    youtubeMetaGenerate: (request) => record(request, { status: 'error', message: 'n/a' } as const),
-    copyText: (request) => record(request, { status: 'copied' } as const),
-  };
-}
-
-/** Sound panel channels (PLAN.md#8.2). */
-function soundStubs(record: <T>(request: unknown, response: T) => Promise<T>): SoundHandlers {
-  return {
-    soundState: (request) =>
-      record(request, {
-        projectDir: null,
-        library: [],
-        gains: { voGainDb: 0, sfxGainDb: 0, ambienceGainDb: 0, musicGainDb: 0 },
-        ducking: null,
-        musicCues: 0,
-        cues: null,
-        cuesError: null,
-        mix: { exists: false, stale: false, result: null, qa: null },
-        stems: [],
-      }),
-    soundImport: (request) =>
-      record(request, { status: 'cancelled', message: null, files: [] } as const),
-    soundPreview: (request) => record(request, { status: 'ok', file: 'a.wav' } as const),
-    soundSetMix: (request) =>
-      record(request, { status: 'ok', message: 'Sound', committed: true } as const),
-    soundRun: (request) => record(request, { status: 'queued', message: null } as const),
-    mixPreview: (request) => record(request, { status: 'unavailable', reason: 'n/a' } as const),
-  };
-}
-
-/** Shot variant channels (PLAN.md#11.3). */
-function variantStubs(record: <T>(request: unknown, response: T) => Promise<T>): VariantsHandlers {
-  return {
-    variantsState: (request) => record(request, { projectDir: null, sets: [] }),
-    variantsEstimate: (request) =>
-      record(request, { text: '≈ 3 Opus turns', turns: 3, model: 'opus' }),
-    variantsRun: (request) => record(request, { status: 'queued', message: null } as const),
-    variantsClip: (request) => record(request, { status: 'error', message: 'n/a' } as const),
-    variantsManifest: (request) => record(request, { status: 'no-storyboard' } as const),
-  };
-}
+import { LINE_GATE_CHANNELS } from './queue/queue-ipc.js';
+import {
+  APP_URL,
+  appInfo,
+  assetActionStubs,
+  channelStubs,
+  exportStubs,
+  FakeIpcMain,
+  opened,
+  queueStubs,
+  settingsStubs,
+  soundStubs,
+  variantStubs,
+  voiceStubs,
+} from './ipc-router-test-stubs.js';
 
 function setup(): {
   ipc: FakeIpcMain;
   logs: RendererLogEntry[];
   lines: string[];
   calls: unknown[];
+  handled: string[];
 } {
+  const handled: string[] = [];
   const ipc = new FakeIpcMain();
   const logs: RendererLogEntry[] = [];
   const lines: string[] = [];
@@ -331,18 +148,24 @@ function setup(): {
           props: null,
           roles: null,
           finalReview: null,
+          lookAssets: null,
+          voiceTiming: null,
         }),
       wordsRetry: (request) => record(request, { status: 'queued', message: null } as const),
       scenesRun: (request) => record(request, { status: 'queued', message: null } as const),
       shotsLock: (request) => record(request, { status: 'ok', message: null } as const),
       ...soundStubs(record),
       ...variantStubs(record),
+      ...channelStubs(record),
+      ...voiceStubs(record),
+      ...queueStubs(record),
     },
+    onHandled: (channel) => handled.push(channel),
     onRendererLog: (entry) => logs.push(entry),
     isTrustedSender: (url) => url.startsWith('reelforge://app/'),
     log: createLogger((line) => lines.push(line)),
   });
-  return { ipc, logs, lines, calls };
+  return { ipc, logs, lines, calls, handled };
 }
 
 describe('registerIpc', () => {
@@ -358,6 +181,15 @@ describe('registerIpc', () => {
   it('answers trusted, valid requests', async () => {
     const { ipc } = setup();
     await expect(ipc.invoke(IPC.appInfo.name, APP_URL, null)).resolves.toEqual(appInfo);
+  });
+
+  it('reports each handled request by its channel (the production line listens)', async () => {
+    const { ipc, handled } = setup();
+    await ipc.invoke(IPC.appInfo.name, APP_URL, null);
+    await expect(ipc.invoke(IPC.appInfo.name, APP_URL, { extra: 1 })).rejects.toThrow();
+    expect(handled).toEqual([IPC.appInfo.name]);
+    expect(LINE_GATE_CHANNELS.has(IPC.scriptApprove.name)).toBe(true);
+    expect(LINE_GATE_CHANNELS.has(IPC.appInfo.name)).toBe(false);
   });
 
   it('rejects untrusted senders and invalid payloads', async () => {
@@ -513,6 +345,39 @@ describe('registerIpc', () => {
       );
     }
     expect(calls).toEqual([{ stages: ['sound-cues', 'mix'] }, { artifact: 'video' }]);
+  });
+
+  it('validates channel requests; a refused secret request never logs the value', async () => {
+    const { ipc, calls, lines } = setup();
+    const canary = 'sk-CANARY-ipc-7f3a9c';
+    const set = { channelId: 'crime', name: 'elevenlabs-api-key', value: canary };
+    await expect(ipc.invoke(IPC.channelSecretsSet.name, APP_URL, set)).resolves.toEqual({
+      status: 'ok',
+      present: true,
+    });
+    const refused = [
+      { ...set, channelId: '../evil' },
+      { ...set, name: 'claude-oauth-token' },
+      { ...set, extra: canary },
+      { ...set, value: `${canary}${'x'.repeat(5_000)}` },
+    ];
+    for (const payload of refused) {
+      await expect(ipc.invoke(IPC.channelSecretsSet.name, APP_URL, payload)).rejects.toThrow(
+        'invalid request',
+      );
+    }
+    await expect(
+      ipc.invoke(IPC.channelsCreate.name, APP_URL, { name: 'Crime', apiKey: canary }),
+    ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.channelsUpdate.name, APP_URL, { id: 'crime', patch: { apiKey: canary } }),
+    ).rejects.toThrow('invalid request');
+    await expect(
+      ipc.invoke(IPC.channelsReorder.name, APP_URL, { ids: ['a', 'B'] }),
+    ).rejects.toThrow('invalid request');
+    expect(calls).toEqual([set]);
+    expect(lines.join('')).not.toContain(canary);
+    expect(lines.join('')).toContain('invalid channel-secrets:set request');
   });
 
   it('forwards valid renderer log entries only', () => {

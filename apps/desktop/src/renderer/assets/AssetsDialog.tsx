@@ -23,6 +23,7 @@ import {
 import { LibraryPanel } from './LibraryPanel.js';
 import { LibraryToggle, OwnAssets } from './OwnAssets.js';
 import type { AssetsController } from './use-assets.js';
+import { useEscapeToClose } from '../layout/use-escape-to-close.js';
 
 type Run = (action: () => Promise<{ message: string | null }>) => void;
 
@@ -172,15 +173,7 @@ export function AssetsDialog({ assets, onClose }: AssetsDialogProps): JSX.Elemen
   useEffect(() => {
     closeRef.current?.focus();
   }, []);
-  useEffect(() => {
-    const onKey = (event: globalThis.KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
+  useEscapeToClose(onClose);
   const pending = state?.status === 'ok' ? state.pending[0] : undefined;
   const { own, downloaded } = splitAssets(state?.status === 'ok' ? state.assets : []);
   // "Downloading…" ends when the downloaded assets show up in the list.

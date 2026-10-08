@@ -64,7 +64,9 @@ function Thumbnails({ items }: { readonly items: readonly Thumbnail[] }): JSX.El
             setOpen(undefined);
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') setOpen(undefined);
+            if (event.key !== 'Escape') return;
+            event.stopPropagation();
+            setOpen(undefined);
           }}
         >
           <img src={open.url.replace(/\?w=\d+$/, '?w=1280')} alt={open.alt} />

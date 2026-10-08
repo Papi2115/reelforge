@@ -50,6 +50,9 @@ import { ASSETS_IPC, type AssetsApi } from './assets-contract.js';
 import { PUBLISH_IPC, type PublishApi } from './publish-contract.js';
 import { HOOK_LAB_IPC, type HookLabApi } from './hook-lab-contract.js';
 import { TASTE_IPC, type TasteApi } from './taste-contract.js';
+import { CHANNELS_IPC, type ChannelsApi } from './channels-contract.js';
+import { VOICE_IPC, VOICE_PUSH, type VoiceApi } from './voice-contract.js';
+import { QUEUE_IPC, QUEUE_PUSH, type QueueApi } from './queue-contract.js';
 import { CHAT_IPC, CHAT_PUSH, type ChatApi } from './chat-contract.js';
 import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
 import { ONBOARDING_IPC, type OnboardingApi } from './onboarding-contract.js';
@@ -255,6 +258,12 @@ export const IPC = {
   ...HOOK_LAB_IPC,
   /** Settings → Taste: the local taste profile, reset, export (PLAN.md#12.13). */
   ...TASTE_IPC,
+  /** Channels and their encrypted secrets (PLAN.md#13.13): list/create/update/delete/reorder. */
+  ...CHANNELS_IPC,
+  /** ElevenLabs voice generation in the Voiceover step (PLAN.md#13.14). */
+  ...VOICE_IPC,
+  /** The production line: per-channel queues of topics built into films (PLAN.md#13.9). */
+  ...QUEUE_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -271,6 +280,8 @@ export const IPC_PUSH = {
   ...EXPORT_PUSH,
   ...CHAT_PUSH,
   ...STAGES_PUSH,
+  ...VOICE_PUSH,
+  ...QUEUE_PUSH,
 } as const satisfies Record<string, SendChannel<z.ZodType>>;
 
 export type InvokeChannels = typeof IPC;
@@ -299,7 +310,10 @@ export interface ReelforgeApi
     AssetsApi,
     PublishApi,
     HookLabApi,
-    TasteApi {
+    TasteApi,
+    ChannelsApi,
+    VoiceApi,
+    QueueApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;
