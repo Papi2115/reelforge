@@ -56,7 +56,7 @@ export function strokeStyle(env: AnnotationEnv, thickness: number | undefined): 
   };
 }
 
-/** A share of the frame height in pixels. */
+/** A share of the frame's short edge in pixels (the height of a landscape frame). */
 export function px(env: AnnotationEnv, share: number): number {
-  return share * env.height;
+  return share * Math.min(env.width, env.height);
 }

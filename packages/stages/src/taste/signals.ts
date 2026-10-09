@@ -6,6 +6,7 @@
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
+  isEndCardShot,
   storyboardFileSchema,
   type ShotVariantSet,
   type StoryboardShot,
@@ -116,8 +117,10 @@ export async function shotTasteSignals(
   const wanted = new Set(shotIds);
   const signals: TasteSignal[] = [];
   for (const shot of storyboard.value.shots) {
-    // A locked shot is never rebuilt, so the request says nothing about it.
-    if (!wanted.has(shot.id) || (kind === 'rebuild' && locked.value.has(shot.id))) continue;
+    // A locked shot is never rebuilt, so the request says nothing about it; a short's end card is
+    // the app's template (PLAN.md#13.18), so it says nothing about the user's taste either.
+    if (!wanted.has(shot.id) || isEndCardShot(shot)) continue;
+    if (kind === 'rebuild' && locked.value.has(shot.id)) continue;
     const source = await sourceOf(projectDir, shot.scene);
     if (source === undefined) continue;
     const features = shotDecisionFeatures(shot, source);

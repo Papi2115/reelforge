@@ -95,6 +95,16 @@ describe('export options', () => {
     );
   });
 
+  it('offers the presets upright for a portrait render (PLAN.md#13.18)', () => {
+    expect(
+      presetOptions(360, 640).map((preset) => [preset.width, preset.height, preset.factor]),
+    ).toEqual([
+      [1080, 1920, 3],
+      [1440, 2560, 4],
+      [2160, 3840, 6],
+    ]);
+  });
+
   it('builds the options of the project and validates requests against them', async () => {
     const options = await exportOptions({
       dir,

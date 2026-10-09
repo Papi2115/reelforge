@@ -8,12 +8,6 @@
   background: var(--panel);
 }
 
-.start-layout .preview {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
 .preview-stage {
   position: relative;
   flex: 1;

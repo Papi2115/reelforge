@@ -47,6 +47,13 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   'world-assets': 'scene-build',
   // The world-assets critic (PLAN.md#13.15) names each asset crop: the critic's Haiku, read-only.
   'world-asset-critic': 'critic',
+  // The SEO tags and chapters (PLAN.md#13.17) are written from the project's texts alone:
+  // read-only tools, no web (the critic's permissions); the app asks for the prompt's own model
+  // (Sonnet) explicitly.
+  'publish-seo': 'critic',
+  // A short's teaser script (PLAN.md#13.18) is script work from the film's own texts: the script
+  // stage's Sonnet and permissions (the prompt declares no web tools).
+  'short-script': 'script',
 };
 
 export function permissionStageFor(id: PromptId): Stage {

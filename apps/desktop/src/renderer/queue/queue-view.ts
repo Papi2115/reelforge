@@ -61,6 +61,7 @@ export const STEP_WORDS: Readonly<Record<QueueStep, string>> = {
   'sound-cues': 'sound design',
   mix: 'mix',
   export: 'export',
+  seo: 'tags and timestamps',
   publish: 'publish kit',
 };
 
@@ -68,7 +69,7 @@ const PRE_APPROVAL: ReadonlySet<QueueStep> = new Set(['project', 'brief', 'scrip
 
 function verbOf(step: QueueStep): string {
   if (PRE_APPROVAL.has(step)) return 'Writing';
-  return step === 'export' || step === 'publish' ? 'Exporting' : 'Building';
+  return step === 'export' || step === 'seo' || step === 'publish' ? 'Exporting' : 'Building';
 }
 
 /** "14:05": local wall-clock time of an epoch. */

@@ -6,7 +6,7 @@
  */
 import type { Compositor } from '../pixels.js';
 import { endFrames, focusPixels } from '../wow.js';
-import { bayer4, comicInks, noise } from './inks.js';
+import { bayer4, comicInks, noise, inkScale } from './inks.js';
 
 const fields = new Map<string, Float32Array>();
 
@@ -14,7 +14,7 @@ function field(W: number, H: number, ox: number, oy: number): Float32Array {
   const key = `${String(W)}x${String(H)}:${String(Math.round(ox))},${String(Math.round(oy))}`;
   const cached = fields.get(key);
   if (cached !== undefined) return cached;
-  const s = W / 640;
+  const s = inkScale(W, H);
   const far = Math.max(
     Math.hypot(ox, oy),
     Math.hypot(W - ox, oy),

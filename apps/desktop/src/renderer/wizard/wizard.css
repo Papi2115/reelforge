@@ -1,0 +1,249 @@
+/* New project wizard (PLAN.md#13.16): step dots, the step's fields, style cards, review. */
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 980px;
+}
+
+.wizard-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.wizard-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wizard-step button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+
+.wizard-step button:is(:disabled) {
+  border-color: transparent;
+}
+
+.wizard-step-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border-control);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.step-done .wizard-step-dot {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--on-accent);
+}
+
+.step-done button:not(:disabled) {
+  color: var(--text);
+}
+
+.step-current button,
+.step-current button:is(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.step-current .wizard-step-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.wizard-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  background: var(--panel);
+}
+
+.wizard-step-title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.wizard-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 720px;
+}
+
+.wizard-fields .field {
+  font-size: var(--text-sm);
+}
+
+.wizard-fields .field > :is(input, select, textarea) {
+  font-size: var(--text-md);
+}
+
+.wizard-field-short {
+  max-width: 220px;
+}
+
+.wizard-note,
+.wizard-problem {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+/* Style cards */
+.wizard-styles {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.wizard-styles legend {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.wizard-styles > p {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.style-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.style-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-3);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.style-card:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.style-card:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The radio stays reachable by keyboard, drawn over the picture's corner. */
+.style-card input {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.style-card-picture {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-bottom: 1px solid var(--border);
+  image-rendering: pixelated;
+}
+
+.style-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* Voice and create */
+.wizard-voice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.wizard-voice legend {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.wizard-voice .settings-toggle:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.wizard-voice .settings-toggle[aria-disabled='true'] {
+  border-style: dashed;
+  cursor: default;
+}
+
+.wizard-more .disclosure-body {
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.wizard-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.wizard-review h3 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.wizard-review dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+}
+
+.wizard-review-row {
+  display: contents;
+}
+
+.wizard-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}

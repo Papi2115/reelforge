@@ -20,6 +20,8 @@ export const COMIC_SNIPPETS = {
   audit: 'page.audit({ until: ctx.shot.duration }).emptyPanels',
   /** Panels from a preset: the split weights make the panel that matters the biggest. */
   panels: "page.panels('3-up-l', { weights: [0.58, 0.4] })",
+  /** A portrait short's page (360x640): a tall splash over two small panels, stacked down. */
+  portrait: "page.panels('splash-strip', { weights: [0.62, 0.45] })",
   /** A figure with a pose and an expression (painter call: inside `panel.draw((g, t) => …)`). */
   person:
     "page.art.person(g, { x: 220, y: 330, size: 170, pose: 'point', expression: 'surprised', hat: 'hardhat', outfit: 'overalls', tool: 'clipboard' })",

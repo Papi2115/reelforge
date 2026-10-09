@@ -2,16 +2,18 @@
  * Cross-file checks the per-file schemas cannot see: shots contiguous from 0 (the engine renders
  * them back to back), scene files present inside the project, a known style (a world's style when
  * its world is registered and wired and, if experimental, experimental worlds are on), words/cues
- * that fit the storyboard's time range and a world film's variety (world-checks.ts).
+ * that fit the storyboard's time range, a world film's variety (world-checks.ts) and a short's cut
+ * rules (short-checks.ts).
  */
 import { existsSync } from 'node:fs';
 import { STYLE_REGISTRY, type StyleRegistry } from '@reelforge/engine';
 import { isUnwiredWorldStyle } from '@reelforge/kit';
-import type { StoryboardFile } from '@reelforge/shared';
+import type { ProjectFile, StoryboardFile } from '@reelforge/shared';
 import { experimentalWorldsEnabled } from '../commands/kit-docs-world.js';
 import { UsageError } from '../errors.js';
 import type { Problem, ProjectFiles } from './files.js';
 import { PROJECT_PATHS, resolveInProject } from './paths.js';
+import { appWrittenScene, shortCutProblems } from './short-checks.js';
 import { worldVarietyProblems } from './world-checks.js';
 
 /** Shot boundaries closer than this count as touching. */
@@ -55,7 +57,11 @@ function timelineProblems(storyboard: StoryboardFile): Problem[] {
   return problems;
 }
 
-function sceneFileProblems(root: string, storyboard: StoryboardFile): Problem[] {
+function sceneFileProblems(
+  root: string,
+  storyboard: StoryboardFile,
+  project: ProjectFile | undefined,
+): Problem[] {
   return storyboard.shots.flatMap((shot, index): Problem[] => {
     const at = `shots[${String(index)}].scene`;
     let file: string;
@@ -68,7 +74,8 @@ function sceneFileProblems(root: string, storyboard: StoryboardFile): Problem[] 
     if (!shot.scene.endsWith('.js')) {
       return [storyboardProblem(at, `"${shot.scene}" is not a .js module`, 'use scenes/<id>.js')];
     }
-    if (!existsSync(file)) {
+    // A short's end card is written by the app (PLAN.md#13.18): never a scene for Claude.
+    if (!existsSync(file) && !appWrittenScene(project, shot)) {
       return [
         {
           severity: 'warning',
@@ -167,8 +174,10 @@ export function crossFileProblems(files: ProjectFiles, options: CrossFileOptions
   return [
     ...problems,
     ...timelineProblems(storyboard),
-    ...sceneFileProblems(files.root, storyboard),
+    ...sceneFileProblems(files.root, storyboard, project),
     ...extentProblems(files, storyboard),
     ...(project === undefined ? [] : worldVarietyProblems(project, storyboard, experimentalWorlds)),
+    // A short's cut rules (PLAN.md#13.18); a film: none.
+    ...(project === undefined ? [] : shortCutProblems(project, storyboard)),
   ];
 }

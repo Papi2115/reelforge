@@ -1,0 +1,332 @@
+/* Home screen (PLAN.md#13.16): left rail, Projects / Channels / Shorts views. Cards and the step
+   strip: home/cards.css; the project overview and the Short wizard: home/overview.css. */
+.home {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  height: 100%;
+}
+
+/* Left rail */
+.home-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-3);
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.home-nav-item,
+.home-nav .line-button,
+.home-nav .help-menu > button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-2);
+  background: none;
+  color: var(--text);
+  font-size: var(--text-md);
+  text-align: left;
+}
+
+.home-nav-item:hover:not(:disabled),
+.home-nav .line-button:hover:not(:disabled),
+.home-nav .help-menu > button:hover:not(:disabled) {
+  background: var(--panel-raised);
+  text-decoration: none;
+}
+
+.home-nav-item[aria-current='page'] {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.home-nav-item .needs-you-count,
+.home-nav .line-button .needs-you-count {
+  margin-left: auto;
+}
+
+/* The line's own square; while it runs, the button's orange running dot takes its place. */
+.home-nav .line-button:not(:has(.line-running-dot))::before {
+  content: '';
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  background: #5ad1c8;
+}
+
+.home-nav .help-menu > button::before {
+  content: '';
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--border-control);
+}
+
+.home-nav .line-running-dot {
+  width: 10px;
+  height: 10px;
+}
+
+/* A 10 px pixel square per entry (the brand mark's language). */
+.home-nav-mark {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  background: var(--muted);
+}
+
+.mark-projects {
+  background: var(--accent);
+}
+
+.mark-channels {
+  background: #4fb3ff;
+}
+
+.mark-shorts {
+  background: #c792ea;
+}
+
+.mark-settings {
+  background: var(--border-control);
+}
+
+.home-nav-line,
+.home-nav-help {
+  display: flex;
+}
+
+.home-nav .menu-root {
+  width: 100%;
+}
+
+/* The rail's Help menu opens to the right, upwards. */
+.home-nav .help-menu .menu-list {
+  top: auto;
+  right: auto;
+  bottom: 0;
+  left: calc(100% + 6px);
+}
+
+.home-nav-spacer {
+  flex: 1;
+}
+
+/* Main area */
+.home-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-6) 32px;
+  overflow-y: auto;
+}
+
+.home-main > .open-recovery {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  background: var(--panel);
+}
+
+.home-projects {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.home-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.home-title {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.home-intro,
+.home-loading {
+  margin: 0;
+}
+
+.home-error {
+  margin: 0;
+  color: var(--error);
+  white-space: pre-wrap;
+}
+
+/* Filter bar */
+.home-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.home-search {
+  width: 260px;
+}
+
+.home-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.home-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-1);
+  font-size: var(--text-sm);
+}
+
+.home-chip[aria-pressed='true'],
+.segmented button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.segmented {
+  display: inline-flex;
+}
+
+.segmented button {
+  border-radius: 0;
+}
+
+.segmented button:first-child {
+  border-radius: var(--radius-2) 0 0 var(--radius-2);
+}
+
+.segmented button:last-child {
+  margin-left: -1px;
+  border-radius: 0 var(--radius-2) var(--radius-2) 0;
+}
+
+/* Sections (Continue, one per channel) */
+.home-section,
+.home-continue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.home-section-heading {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.home-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border: none;
+  background: none;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.home-section-toggle:hover:not(:disabled) {
+  background: none;
+}
+
+.home-section-count {
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.home-section-empty {
+  margin: 0;
+  grid-column: 1 / -1;
+}
+
+/* First run and empty states */
+.home-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 620px;
+  padding: var(--space-6);
+  border: 1px dashed var(--border-control);
+  border-radius: var(--radius-3);
+  background: var(--panel);
+}
+
+.home-empty p {
+  margin: 0;
+}
+
+.home-empty-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.home-empty-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* Channels view */
+.channel-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.channel-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  background: var(--panel);
+}
+
+.channel-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.channel-card-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.channel-card-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* The header's way back from a project */
+.back-to-projects {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}

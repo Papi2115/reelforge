@@ -76,6 +76,11 @@ import { readLockedShots } from '../locks.js';
 import { beatSyncCheckOptions, storyboardBeatSync } from '../beat-sync/storyboard-step.js';
 import { currentAssetIds, storyboardAssetVars } from './storyboard-assets.js';
 import { storyboardSourceChipVars } from '../claims/source-chips.js';
+import {
+  appendShortEndCard,
+  storyboardShortCheckOptions,
+  storyboardShortPromptVars,
+} from '../shorts/storyboard-step.js';
 
 /** Economy mode (PLAN.md §2.2): shorter storyboards. */
 export const ECONOMY_STORYBOARD_HINT =
@@ -133,6 +138,8 @@ async function validateFile(
     ...(range === undefined ? {} : { shotsPerMinute: range }),
     // The genre preset's wow pace (ADR-035); no preset = the checks as before.
     ...(project.status === 'ok' ? storyboardGenreCheckOptions(project.value) : {}),
+    // A short's cut rules (PLAN.md#13.18); a film: nothing changes.
+    ...(project.status === 'ok' ? storyboardShortCheckOptions(project.value) : {}),
   });
   return fileCheck(report.value, report.issues);
 }
@@ -265,6 +272,8 @@ async function run(
     ...storyboardContinuityVars(project.value, narrationEnd),
     // The user's taste profile (PLAN.md#12.13); absent = the prompt is exactly as without it.
     tasteProfile: ctx.taste?.profile(),
+    // A short (PLAN.md#13.18): retention editing, vertical framing; a film: nothing changes.
+    ...storyboardShortPromptVars(project.value),
   });
   if (!prompt.ok) return prompt;
   ctx.step('Writing the storyboard', 10);
@@ -336,7 +345,10 @@ async function run(
       ),
   );
   if (!synced.ok) return synced;
-  const storyboard = synced.value.storyboard;
+  // A short's fixed end card goes after the narration shots (PLAN.md#13.18); a film: no-op.
+  const finished = await appendShortEndCard(ctx, project.value, synced.value.storyboard);
+  if (!finished.ok) return finished;
+  const storyboard = finished.value;
   ctx.step('Creating scene placeholders', 90);
   const stubs = await writeSceneStubs(ctx.projectDir, storyboard.shots);
   if (!stubs.ok) return stubs;

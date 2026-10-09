@@ -1,6 +1,8 @@
 /**
  * Export presets: the output size is always an integer `neighbor` upscale of the render size
  * (PLAN D3), so pixel-art blocks stay crisp. Output fps is the manifest fps (no resampling).
+ * Presets are declared landscape; a portrait render (taller than wide, PLAN.md#13.18) gets the
+ * same preset turned upright (1080p = 1080x1920).
  */
 import type { ExportError } from './errors.js';
 import { err, ok, type Result } from '../result.js';
@@ -37,10 +39,21 @@ export interface OutputScale {
   readonly outputHeight: number;
 }
 
+/** The preset in the orientation of a `renderWidth`x`renderHeight` render. */
+export function orientedPreset(
+  presetId: ExportPresetId,
+  renderWidth: number,
+  renderHeight: number,
+): ExportPreset {
+  const preset = EXPORT_PRESETS[presetId];
+  if (renderHeight <= renderWidth) return preset;
+  return { ...preset, width: preset.height, height: preset.width };
+}
+
 /** Lists the presets that are an exact integer multiple of the render size. */
 function suggestPresets(width: number, height: number): string {
   const fits = EXPORT_PRESET_IDS.filter((id) => {
-    const preset = EXPORT_PRESETS[id];
+    const preset = orientedPreset(id, width, height);
     return preset.width % width === 0 && preset.width / width === preset.height / height;
   });
   return fits.length === 0
@@ -57,7 +70,6 @@ export function resolveOutputScale(
   renderWidth: number,
   renderHeight: number,
 ): Result<OutputScale, ExportError> {
-  const preset = EXPORT_PRESETS[presetId];
   if (
     !Number.isInteger(renderWidth) ||
     !Number.isInteger(renderHeight) ||
@@ -69,6 +81,7 @@ export function resolveOutputScale(
       message: `render size must be positive integers, got ${String(renderWidth)}x${String(renderHeight)}`,
     });
   }
+  const preset = orientedPreset(presetId, renderWidth, renderHeight);
   const factorX = preset.width / renderWidth;
   const factorY = preset.height / renderHeight;
   if (!Number.isInteger(factorX) || factorX !== factorY) {

@@ -19,23 +19,19 @@ import type { Quad } from '../page/layouts.js';
 import { paper, type ItemContext, type PageItem } from '../page/model.js';
 import { misFor, PanelModel } from '../page/panel.js';
 import { ComicPen } from '../page/pen.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import { isPortraitPage, type PageSize } from '../style.js';
 import { drawMergeFurniture, mergeGeometry } from './spread-merge.js';
 import { SPREAD_LIMITS, spreadSchema, type SpreadSpec } from './spread-schema.js';
 
 /** Inset panels sit above everything else on the page. */
 const INSET_Z = 950;
 /** The bleed rectangle of a finished spread (page px). */
-const BLEED: Quad = [
-  -4,
-  -4,
-  PAGE_WIDTH + 4,
-  -4,
-  PAGE_WIDTH + 4,
-  PAGE_HEIGHT + 4,
-  -4,
-  PAGE_HEIGHT + 4,
-];
+function bleedQuad({ width, height }: PageSize): Quad {
+  return [-4, -4, width + 4, -4, width + 4, height + 4, -4, height + 4];
+}
+
+/** Spine range on a landscape page and on a portrait one (PLAN.md#13.18). */
+const FOLD_RANGE = { landscape: [260, 380], portrait: [140, 220] } as const;
 
 export interface SpreadResult {
   readonly at: number;
@@ -54,6 +50,11 @@ interface SpreadDraw {
   readonly paperKey: string;
   readonly scratch: Uint8Array;
   readonly geometry: ReturnType<typeof mergeGeometry>;
+  readonly page: PageSize;
+  /** x of the spine (the book opens from it). */
+  readonly fold: number;
+  /** The spine crease shows (always in landscape; in portrait only when `fold` is given). */
+  readonly crease: boolean;
 }
 
 function art(item: ItemContext, d: SpreadDraw, place: Place, mis: readonly [number, number]): void {
@@ -61,8 +62,9 @@ function art(item: ItemContext, d: SpreadDraw, place: Place, mis: readonly [numb
 }
 
 /** The spine: the faintest crease down the fold. */
-function crease(item: ItemContext, fold: number): void {
-  const x = Math.round(item.page.x(fold));
+function crease(item: ItemContext, d: SpreadDraw): void {
+  if (!d.crease) return;
+  const x = Math.round(item.page.x(d.fold));
   item.canvas.rect(x, 0, 1, item.canvas.height, dither(-1, INK.GREY_D, 3 / 16));
 }
 
@@ -70,8 +72,9 @@ function drawMerge(item: ItemContext, d: SpreadDraw): void {
   const { canvas, page, t } = item;
   const m = seg(t, d.at, d.assembled, 'inOutSine');
   const mis: [number, number] = [Math.round(lerp(2, 1, m)), Math.round(lerp(1, -1, m))];
-  art(item, d, page.scaleAbout(320, 180, lerp(0.955, 1.03, m)), mis);
-  crease(item, d.o.fold);
+  const [cx, cy] = [d.page.width / 2, d.page.height / 2];
+  art(item, d, page.scaleAbout(cx, cy, lerp(0.955, 1.03, m)), mis);
+  crease(item, d);
   if (m >= 1) return;
   drawMergeFurniture(d.geometry, {
     canvas,
@@ -90,14 +93,15 @@ function drawMerge(item: ItemContext, d: SpreadDraw): void {
 function drawUnfold(item: ItemContext, d: SpreadDraw): void {
   const { canvas, page, t } = item;
   const k = seg(t, d.at, d.assembled, 'inOutCubic');
-  const fold = d.o.fold;
+  const { fold } = d;
+  const { width: W, height: H } = d.page;
   const left = fold - (fold + 6) * k;
-  const right = fold + (PAGE_WIDTH + 6 - fold) * k;
-  const open = page.map([left, -6, right, -6, right, PAGE_HEIGHT + 6, left, PAGE_HEIGHT + 6]);
+  const right = fold + (W + 6 - fold) * k;
+  const open = page.map([left, -6, right, -6, right, H + 6, left, H + 6]);
   const mask = canvas.maskPoly(open);
   try {
     canvas.withClip(mask, () => {
-      art(item, d, page.scaleAbout(fold, 180, lerp(1.06, 1, k)), [1, -1]);
+      art(item, d, page.scaleAbout(fold, H / 2, lerp(1.06, 1, k)), [1, -1]);
     });
   } finally {
     canvas.release(mask);
@@ -110,7 +114,7 @@ function drawUnfold(item: ItemContext, d: SpreadDraw): void {
       [right, 1],
     ] as const) {
       const outer = edge + dir * lift;
-      const strip = page.map([edge, -6, outer, -2, outer, PAGE_HEIGHT + 2, edge, PAGE_HEIGHT + 6]);
+      const strip = page.map([edge, -6, outer, -2, outer, H + 2, edge, H + 6]);
       canvas.poly(strip, dither(INK.PAPER, INK.SHADE, 0.35 + 0.4 * (1 - k)));
       canvas.line(strip[2] ?? 0, strip[3] ?? 0, strip[4] ?? 0, strip[5] ?? 0, INK.INK, 1);
     }
@@ -123,15 +127,17 @@ function drawUnfold(item: ItemContext, d: SpreadDraw): void {
       dither(-1, INK.GREY_D, 0.3),
     );
   }
-  crease(item, fold);
+  crease(item, d);
 }
 
 function drawPullBack(item: ItemContext, d: SpreadDraw): void {
   const { canvas, page, t } = item;
   const k = seg(t, d.at, d.assembled, 'inOutCubic');
-  const [fx, fy] = d.o.focus ?? [430, 200];
-  const cx0 = Math.min(PAGE_WIDTH - 120, Math.max(120, fx));
-  const cy0 = Math.min(PAGE_HEIGHT - 80, Math.max(80, fy));
+  const { width: W, height: H } = d.page;
+  const [fx, fy] = d.o.focus ?? (isPortraitPage(d.page) ? [210, 300] : [430, 200]);
+  const cx0 = Math.min(W - 120, Math.max(120, fx));
+  const cy0 = Math.min(H - 80, Math.max(80, fy));
+  const bleed = bleedQuad(d.page);
   const start: Quad = [
     cx0 - 104,
     cy0 - 64,
@@ -142,7 +148,7 @@ function drawPullBack(item: ItemContext, d: SpreadDraw): void {
     cx0 - 98,
     cy0 + 70,
   ];
-  const quad = start.map((value, i) => lerp(value, BLEED[i] ?? value, k));
+  const quad = start.map((value, i) => lerp(value, bleed[i] ?? value, k));
   const zoom = lerp(2.4, 1, k);
   const [cx, cy] = [lerp(cx0, fx, k), lerp(cy0, fy, k)];
   const place = new Place(page.s * zoom, page.x(cx - fx * zoom), page.y(cy - fy * zoom));
@@ -151,7 +157,7 @@ function drawPullBack(item: ItemContext, d: SpreadDraw): void {
   try {
     canvas.withClip(mask, () => {
       art(item, d, place, [1, -1]);
-      crease(item, d.o.fold);
+      crease(item, d);
     });
   } finally {
     canvas.release(mask);
@@ -214,8 +220,18 @@ export function createSpread(ctx: ApiContext) {
       );
     }
     const key = `spread${String(ctx.seed)}:${o.assemble}`;
-    const geometry = mergeGeometry(o.pieces ?? 'columns', o.fold, key);
-    const scratch = new Uint8Array(PAGE_WIDTH * PAGE_HEIGHT);
+    const { page } = model;
+    const portrait = isPortraitPage(page);
+    const [low, high] = FOLD_RANGE[portrait ? 'portrait' : 'landscape'];
+    if (o.fold !== undefined && (o.fold < low || o.fold > high)) {
+      throw new KitError(
+        'invalid-params',
+        `${where}: fold ${String(o.fold)} is off the spine; on a ${String(page.width)}x${String(page.height)} page the fold is ${String(low)}-${String(high)}`,
+      );
+    }
+    const fold = o.fold ?? (portrait ? page.width / 2 : 320);
+    const geometry = mergeGeometry(o.pieces ?? 'columns', fold, key, page);
+    const scratch = new Uint8Array(page.width * page.height);
     const start = at + o.delay;
     const d: SpreadDraw = {
       o,
@@ -225,6 +241,9 @@ export function createSpread(ctx: ApiContext) {
       paperKey: model.paperKey,
       scratch,
       geometry,
+      page,
+      fold,
+      crease: !portrait || o.fold !== undefined,
     };
     const own: PageItem = {
       at,
@@ -266,7 +285,7 @@ export function createSpread(ctx: ApiContext) {
         pencils: true,
         mis: misFor(`${key}inset${String(i)}`),
       };
-      const panel = new PanelModel(quad, style, INSET_Z + i);
+      const panel = new PanelModel(quad, style, INSET_Z + i, model.page);
       model.panels.push(panel);
       const handle = createHandle(ctx, panel, `${where} inset ${String(i + 1)}`);
       handle.draw(inset.draw).enter({ at: from, kind: inset.kind, from: inset.from }).exit(to);

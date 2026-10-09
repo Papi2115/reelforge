@@ -12,7 +12,6 @@ import { INK } from '../inks.js';
 import type { ComicPageModel } from '../page/model.js';
 import type { PanelModel } from '../page/panel.js';
 import { ComicPen } from '../page/pen.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
 
 export const auditSchema = z.strictObject({
   until: z.number().positive().max(120).describe('The shot length'),
@@ -79,7 +78,7 @@ export function emptyPanels(
   options: z.input<typeof auditSchema>,
 ): EmptyPanel[] {
   const o = auditSchema.parse(options);
-  const canvas = new ComicCanvas(PAGE_WIDTH, PAGE_HEIGHT);
+  const canvas = new ComicCanvas(model.page.width, model.page.height);
   const found: EmptyPanel[] = [];
   model.panels.forEach((panel, index) => {
     let start: number | undefined;

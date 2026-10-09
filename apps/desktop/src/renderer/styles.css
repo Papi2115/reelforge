@@ -297,44 +297,7 @@ button:is(.primary, .danger):is(:disabled, [aria-disabled='true']) {
   background: #0b2416;
 }
 
-/* Start screen (PLAN.md#6.2) next to the demo preview */
-.start-layout {
-  display: flex;
-  gap: var(--space-5);
-  height: 100%;
-  padding: var(--space-5);
-}
-
-.start-screen {
-  width: 340px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  overflow-y: auto;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-3);
-}
-
-.start-heading,
-.start-subheading {
-  margin: 0;
-  font-size: var(--text-lg);
-}
-
-.start-subheading {
-  margin-top: var(--space-3);
-  font-size: var(--text-md);
-}
-
-.start-new {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
+/* Form fields (New project wizard, settings, dialogs). */
 .field {
   display: flex;
   flex-direction: column;
@@ -399,7 +362,6 @@ button:is(.primary, .danger):is(:disabled, [aria-disabled='true']) {
   white-space: pre-wrap;
 }
 
-.recent-list,
 .history-list {
   list-style: none;
   margin: 0;
@@ -407,23 +369,6 @@ button:is(.primary, .danger):is(:disabled, [aria-disabled='true']) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.recent-item {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-1);
-  text-align: left;
-}
-
-.recent-item .muted {
-  font-size: var(--text-xs);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* History drawer, over the workspace */

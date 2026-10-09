@@ -46,6 +46,7 @@
     "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 9 sourced facts.\nMain sources: Wikipedia (Doom, Doom engine), Doom Wiki.\nUncertain: which pregnancy-test ports really ran the game.",
     "script": "Word count: 86. Estimated duration: about 35 seconds.\nAll claims are sourced in research.md.",
+    "short-script": "Word count: 72. Chosen hook: 1. Withheld: the two reasons Doom runs everywhere.",
     "storyboard": "8 shots. Treatments: title-card, metaphor-object, kinetic-text, 3d-reconstruction x2, montage/transition, node-graph/timeline, counter/odometer.\nMissing props: floppy-disk, pregnancy-test.",
     "scene-build": "Shows a voxel odometer rolling up to 4 MB, landing on \"4 megabytes\" with a tick.\nQA: lint 0 errors, frames checked at 0/1.8/3.6 s, anchors within 40 ms.\nMISSING: memory-chip",
     "scene-fix": "Counter now rolls in 60 % of the time and lands 0.2 s before the anchor.\nRe-ran lint and frames at 0/1.2/3.6 s; nothing else changed.",
@@ -183,6 +184,34 @@
           "legible": false,
           "style": "ok",
           "note": "no defining shape at this size"
+        }
+      ]
+    },
+    "publish-seo": {
+      "title": "Why Doom Runs on Everything",
+      "tags": {
+        "oneWord": ["doom", "gaming", "retro", "engine", "technology"],
+        "twoWord": ["doom engine", "tech explained", "doom ports", "game history", "id software"],
+        "threeWord": [
+          "doom runs everywhere",
+          "how doom works",
+          "video game history",
+          "doom source code",
+          "retro gaming explained"
+        ]
+      },
+      "chapters": [
+        {
+          "t": 0,
+          "title": "The 1993 Game on Four Floppy Disks"
+        },
+        {
+          "t": 12.31,
+          "title": "How the Doom Engine Faked 3D"
+        },
+        {
+          "t": 24.05,
+          "title": "Why Doom Runs on Calculators and Printers"
         }
       ]
     }

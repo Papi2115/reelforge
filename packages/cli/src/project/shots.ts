@@ -9,6 +9,7 @@ import path from 'node:path';
 import { loadManifestAssets, locateAssetFfmpeg } from '@reelforge/pipeline';
 import {
   ambientShotInputs,
+  captionsOn,
   projectAmbientVariation,
   projectTensionMap,
   withShotTension,
@@ -21,6 +22,7 @@ import {
   type ProjectFile,
   type RenderManifest,
   type StoryboardFile,
+  type VideoFormat,
   type WordsFile,
 } from '@reelforge/shared';
 import { describeUnknown, ProjectError } from '../errors.js';
@@ -33,6 +35,10 @@ export interface RenderSetup {
   /** Project folder. */
   readonly root: string;
   readonly style: string;
+  /** Video format (PLAN.md#13.18); absent = landscape. */
+  readonly format?: VideoFormat | undefined;
+  /** Word-by-word captions of a short (PLAN.md#13.18); absent = off. */
+  readonly captions?: true | undefined;
   readonly fps: number;
   readonly seed: number;
   readonly palette: NamedPalette | undefined;
@@ -122,6 +128,8 @@ export function renderSetup(
   return {
     root: files.root,
     style: project.style,
+    ...(project.format === undefined ? {} : { format: project.format }),
+    ...(captionsOn(project) ? { captions: true as const } : {}),
     fps: project.fps,
     seed: project.seed,
     palette: project.palette,
@@ -234,10 +242,12 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
   return {
     version: 1,
     style: setup.style,
+    ...(setup.format === undefined ? {} : { format: setup.format }),
     fps: setup.fps,
     seed: setup.seed,
     ...(setup.palette ? { palette: setup.palette } : {}),
     ...(setup.words ? { words: setup.words } : {}),
+    ...(setup.captions === true ? { captions: true } : {}),
     ...(setup.kitExtensions.length > 0 ? { kitExtensions: [...setup.kitExtensions] } : {}),
     ...(setup.castRoles === undefined ? {} : { castRoles: setup.castRoles }),
     ...(setup.worldAssets === undefined ? {} : { worldAssets: setup.worldAssets }),

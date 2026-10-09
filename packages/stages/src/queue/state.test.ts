@@ -20,6 +20,7 @@ import {
   resumeItem,
   retryItem,
   startStep,
+  stepFinished,
 } from './state.js';
 
 const AT = '2026-10-07T20:00:00.000Z';
@@ -39,6 +40,7 @@ const ORDER: readonly QueueStep[] = [
   'sound-cues',
   'mix',
   'export',
+  'seo',
   'publish',
 ];
 
@@ -79,6 +81,7 @@ describe('derived status', () => {
     ['scenes', 'running', 'building'],
     ['mix', undefined, 'building'],
     ['export', 'running', 'exporting'],
+    ['seo', 'running', 'exporting'],
     ['publish', undefined, 'exporting'],
     ['scenes', 'failed', 'failed'],
     ['finished', undefined, 'done'],
@@ -91,6 +94,18 @@ describe('derived status', () => {
     expect(currentStep(item)).toBe('scenes');
     expect(buildStarted(item)).toBe(true);
     expect(buildStarted(itemAt('voiceover'))).toBe(false);
+  });
+
+  it('a film finished before the tags and timestamps step existed stays done', () => {
+    const before3_4 = itemAt('finished');
+    delete before3_4.stageProgress.seo;
+    expect(currentStep(before3_4)).toBeUndefined();
+    expect(derivedStatus(before3_4.stageProgress)).toBe('done');
+    expect(stepFinished(before3_4.stageProgress, 'seo')).toBe(true);
+    // A film that has not reached the kit yet runs the new step.
+    const exported = itemAt('seo');
+    expect(currentStep(exported)).toBe('seo');
+    expect(stepFinished(exported.stageProgress, 'seo')).toBe(false);
   });
 });
 

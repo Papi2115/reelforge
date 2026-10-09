@@ -38,12 +38,19 @@ export function sceneSource(file: string): string {
 
 export function sceneManifest(
   file: string,
-  options: { readonly source?: string; readonly duration?: number; readonly style?: string } = {},
+  options: {
+    readonly source?: string;
+    readonly duration?: number;
+    readonly style?: string;
+    /** A portrait short (9:16, PLAN.md#13.18); absent = landscape. */
+    readonly format?: RenderManifest['format'];
+  } = {},
 ): RenderManifest {
   const id = path.basename(file, '.js').slice(0, 3);
   return {
     version: 1,
     ...(options.style === undefined ? { width: 640, height: 360 } : { style: options.style }),
+    ...(options.format === undefined ? {} : { format: options.format }),
     fps: 30,
     seed: 2115,
     shots: [

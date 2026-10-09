@@ -19,6 +19,7 @@ import { validateCues, type CuesLike, type CuesSchema } from '../validators/cues
 import { issue, type ValidationIssue } from '../validators/issues.js';
 import { validatePlanReply, validateTriageReply } from '../validators/review.js';
 import { targetWordsFor, validateScript } from '../validators/script.js';
+import { validateShortHooks, validateShortScript } from '../validators/short.js';
 import { validateStoryboard } from '../validators/storyboard.js';
 import { validateTension } from '../validators/tension.js';
 import { validateRoleFile } from '../validators/roles.js';
@@ -31,6 +32,7 @@ import {
   validateSceneModule,
 } from '../validators/text-outputs.js';
 import type { EvalCase } from './cases.js';
+import { seoEvalIssues } from './seo-eval.js';
 
 export interface StageCheckInput<T extends CuesLike> {
   readonly stage: PromptId;
@@ -107,6 +109,17 @@ function fileIssues<T extends CuesLike>(
 ): readonly ValidationIssue[] {
   const { evalCase, projectDir } = input;
   if (file === 'research.md') return validateResearch(text).issues;
+  // A short's teaser (PLAN.md#13.18): the eval asks for a 30 s short.
+  if (input.stage === 'short-script' && file === 'script.txt') {
+    return validateShortScript(text, { lengthS: 30 }).issues;
+  }
+  if (input.stage === 'short-script' && file === 'hooks.md') {
+    const script = path.join(projectDir, 'script.txt');
+    return validateShortHooks(
+      text,
+      existsSync(script) ? { script: readFileSync(script, 'utf8') } : {},
+    ).issues;
+  }
   if (file === 'script.txt') {
     const minutes = evalCase.brief.targetMinutes ?? 1;
     return validateScript(text, { targetWords: targetWordsFor(minutes) }).issues;
@@ -197,6 +210,7 @@ export function checkStageOutput<T extends CuesLike>(input: StageCheckInput<T>):
   if (stage === 'review-plan') issues.push(...validatePlanReply(reply, { shotIds }).issues);
   if (stage === 'claims') issues.push(...claimsIssues(evalCase, reply));
   if (stage === 'hooks') issues.push(...hooksIssues(evalCase, reply));
+  if (stage === 'publish-seo') issues.push(...seoEvalIssues(evalCase, reply));
   if (stage === 'youtube-meta') {
     const chapters = evalCase.file.youtubeMeta?.chapters ?? null;
     issues.push(...validateYoutubeMetaReply(reply, { chapters }).issues);

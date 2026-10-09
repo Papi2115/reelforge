@@ -311,6 +311,7 @@ export {
   EXPORT_PRESET_IDS,
   DEFAULT_EXPORT_PRESET,
   isExportPresetId,
+  orientedPreset,
   resolveOutputScale,
   type ExportPreset,
   type ExportPresetId,
@@ -422,10 +423,24 @@ export {
   MAX_TITLE_WORDS,
   planChapterStarts,
   titleChapters,
+  type ChapterCountBounds,
   type ChapterStarts,
   type PlanShot,
 } from './publish/chapter-plan.js';
-export { spokenChapterTitle } from './publish/chapter-titles.js';
+export { isFunctionWord, spokenChapterTitle } from './publish/chapter-titles.js';
+export {
+  fallbackSeoChapters,
+  MAX_SEO_CANDIDATES,
+  seoChapterCandidates,
+  type SeoChapterCandidate,
+} from './publish/seo-chapters.js';
+export {
+  fallbackPublishSeo,
+  fallbackSeoTags,
+  type FallbackSeoInput,
+  type FallbackSeoTagsInput,
+  type SeoChannelInfo,
+} from './publish/seo-fallback.js';
 export {
   buildPublishKit,
   hookParagraph,

@@ -5,7 +5,7 @@
  */
 import type { AmbientVariation, AssetCrop, AssetImage, KitApi } from '@reelforge/kit';
 import type { AnnotateApi } from './annotations/types.js';
-import type { Treatment } from '@reelforge/shared';
+import type { Treatment, VideoFormat } from '@reelforge/shared';
 import type * as THREE from 'three';
 import type { EaseFunction, EaseName } from './camera/easing.js';
 import type { WorldAssetsValue } from './world-assets/build.js';
@@ -162,6 +162,13 @@ export interface ShotInfo {
   readonly duration: number;
   readonly width: number;
   readonly height: number;
+  /** width / height (16:9 landscape ≈ 1.78, 9:16 portrait = 0.5625); the camera uses it. */
+  readonly aspect: number;
+  /**
+   * Video format (PLAN.md#13.18): `portrait` frames are taller than wide (a Short): stack the
+   * composition vertically and keep subjects near the centre column.
+   */
+  readonly format: VideoFormat;
   readonly fps: number;
 }
 

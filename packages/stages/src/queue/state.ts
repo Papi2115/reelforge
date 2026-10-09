@@ -23,15 +23,28 @@ export function isBuildStep(step: QueueStep): boolean {
   return !PRE_APPROVAL_STEPS.includes(step);
 }
 
-const EXPORT_STEPS: readonly QueueStep[] = ['export', 'publish'];
+const EXPORT_STEPS: readonly QueueStep[] = ['export', 'seo', 'publish'];
+
+/** Steps added after films were made, with the step after them (3.4: the tags and timestamps). */
+const ADDED_BEFORE: Partial<Record<QueueStep, QueueStep>> = { seo: 'publish' };
 
 function finished(state: QueueStepState | undefined): boolean {
   return state?.state === 'done' || state?.state === 'skipped';
 }
 
+/**
+ * The step is done or skipped. A step added later (`seo`) that a film never had counts as
+ * skipped when the step after it already finished: films made before it stay done.
+ */
+export function stepFinished(progress: Progress, step: QueueStep): boolean {
+  if (finished(progress[step])) return true;
+  const after = ADDED_BEFORE[step];
+  return after !== undefined && progress[step] === undefined && finished(progress[after]);
+}
+
 /** The first step that is not done or skipped; undefined = the film is finished. */
 export function currentStep(item: Pick<QueueItem, 'stageProgress'>): QueueStep | undefined {
-  return QUEUE_STEPS.find((step) => !finished(item.stageProgress[step]));
+  return QUEUE_STEPS.find((step) => !stepFinished(item.stageProgress, step));
 }
 
 /** Status from the step states (never `paused`). */

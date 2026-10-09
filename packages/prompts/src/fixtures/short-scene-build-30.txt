@@ -1,0 +1,24 @@
+Build the scene module for ONE shot. Follow `CLAUDE.md` in this project exactly (scene contract, determinism, kit, self-QA).
+
+Shot: {"id":"s01_hook","t0":0,"t1":2.2,"treatment":"metaphor-object","intent":"A bridge twists in the wind.","scene":"scenes/s01_hook.js","hook":true}
+Narration during this shot (with word times): [{"text":"bridge","t":0.4,"tEnd":0.8}]
+Style bible: `styles/voxel-pixel-crisp640/STYLE.md`. Neighbouring shots (for continuity, do not edit): [{"id":"s02_wind","treatment":"kinetic-text","intent":"Wind"}]
+
+
+
+This shot belongs to a vertical YouTube SHORT (9:16 portrait, about 30 s) that teases the full film "Why bridges sing in the wind", edited for retention. These rules win over the rest of this prompt:
+- Portrait frame: `ctx.shot.format` is `"portrait"` and `ctx.shot.aspect` 0.5625, so the view is about a third as wide as a 16:9 shot (`reelforge kit-docs portrait`). One big, simple subject, closer to the camera than in a film; stack things vertically.
+- Safe zones: the subject and every word stay inside the central 80 % of the width, below the top 12 % and above the bottom 20 % of the frame (the platform's buttons and title cover those).
+- Something visible happens at least every 1.5–3 s, each on a beat (`ctx.anchor` or `ctx.sfx.at`): a punch-in or pull-out, a whip-pan, an object swap, a count-up, a pop. Never a static hold. The hook shot (`"hook": true`) is the strongest image of the short and already moves in its first frame.
+- On-screen text big and short: at most 3 words, scale ≥ 3.
+- At most one pop-up or other showpiece per 30 s of the short, never a template.
+- Props and characters of the full film may be reused, its scenes never: do not copy or adapt a scene file of the film (the app rejects a copy); build this scene new.
+- The app draws word-by-word captions of the narration over the frame, centred at about 68 % of the height: keep your own text out of that band (headlines in the top third) and never repeat the spoken words as text.
+
+Steps:
+1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.
+2. Write `scenes/s01_hook.js`: `meta`, `build`, `update`. Sync key moments to words with `ctx.anchor("phrase")`; register matching `sfx.at(...)`. Camera always moving. Text inside the safe area.
+3. Self-QA loop: `reelforge lint` → `reelforge frames --at` (start, key anchor moments, end−0.1) → Read the PNGs → fix → `reelforge anchors --shot s01_hook`. Max 2 fix iterations.
+4. If an object the narration needs has no kit prop (kit and project-local props), do NOT fake it with loose boxes: build the best scene with what exists and end your reply with one line `MISSING: <prop names>` — short names only, comma-separated, no explanations (e.g. `MISSING: chip, file-icon`). The app then builds each as a project prop (`kit-ext/props/`) and asks you to build the shot again with it. Leave the line out when nothing is missing.
+
+Reply in ≤5 lines: what the shot shows, QA result (lint/frames/anchors), `MISSING:` if any.

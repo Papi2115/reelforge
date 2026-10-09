@@ -147,7 +147,7 @@ export function createStructureApi(ctx: ApiContext) {
       pencils: o.pencils,
       mis: o.mis ?? misFor(key),
     };
-    const panel = new PanelModel(shape, style, o.z ?? index);
+    const panel = new PanelModel(shape, style, o.z ?? index, model.page);
     model.panels.push(panel);
     return createHandle(ctx, panel, `${call}.panel #${String(index + 1)}`);
   };
@@ -158,7 +158,7 @@ export function createStructureApi(ctx: ApiContext) {
         throw new KitError('invalid-params', `${where}: layouts are ${LAYOUT_NAMES.join(', ')}`);
       }
       const o = parse(layoutOptionsSchema, options, where);
-      const quads = layoutQuads(layout, { ...o, seed: o.seed ?? ctx.seed });
+      const quads = layoutQuads(layout, { ...o, seed: o.seed ?? ctx.seed, page: model.page });
       return quads.map((quad) => addPanel(quad, {}, where));
     },
     panel(

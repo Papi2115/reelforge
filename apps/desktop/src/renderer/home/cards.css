@@ -1,0 +1,342 @@
+/* Home cards (PLAN.md#13.16): grid / list, "+ New project", badges, the eight-step strip, Shorts. */
+.home-cards.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: var(--space-5);
+}
+
+.home-cards.layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.project-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  background: var(--panel);
+}
+
+.project-card:hover,
+.project-card:focus-within {
+  border-color: var(--border-control);
+}
+
+.project-card.card-needs-you {
+  border-top: 2px solid var(--accent);
+}
+
+.project-card.card-missing {
+  border-style: dashed;
+  background: none;
+}
+
+.card-main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+}
+
+.card-main:hover:not(:disabled) {
+  background: none;
+}
+
+.card-main:is(:disabled) {
+  border-style: none;
+}
+
+.card-picture {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.card-placeholder {
+  display: grid;
+  place-items: center;
+}
+
+.card-initials {
+  font-family: var(--font-title);
+  font-size: 32px;
+  font-synthesis: none;
+  letter-spacing: 0.08em;
+}
+
+.card-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: 600;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card-channel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-badge {
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 18px;
+}
+
+.badge-needs-you {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.badge-working {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.badge-short {
+  border-color: #c792ea;
+  color: #c792ea;
+  text-transform: uppercase;
+}
+
+.card-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.card-sentence {
+  font-size: var(--text-sm);
+}
+
+.card-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
+}
+
+/* Quick actions over the picture: shown on hover and keyboard focus. */
+.card-actions {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  opacity: 0;
+}
+
+.project-card:hover .card-actions,
+.project-card:focus-within .card-actions {
+  opacity: 1;
+}
+
+.card-actions button {
+  padding: var(--space-1) var(--space-3);
+  background: rgb(13 14 18 / 88%);
+  font-size: var(--text-sm);
+}
+
+.card-menu .menu-list {
+  right: 0;
+  left: auto;
+}
+
+.rename-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.rename-form input {
+  flex: 1 1 100%;
+}
+
+.card-shorts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  list-style: none;
+}
+
+.short-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.short-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* List layout: one row per project. */
+.project-card.layout-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.project-card.layout-list .card-main {
+  flex-direction: row;
+  align-items: center;
+  width: auto;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.project-card.layout-list .card-picture {
+  width: 128px;
+  flex-shrink: 0;
+}
+
+.project-card.layout-list .card-text {
+  padding: var(--space-3) var(--space-4);
+}
+
+.project-card.layout-list .card-status {
+  flex: 0 1 320px;
+  padding: var(--space-3) var(--space-4);
+}
+
+.project-card.layout-list .card-actions {
+  position: static;
+  padding-right: var(--space-4);
+  opacity: 1;
+}
+
+.project-card.layout-list .card-shorts {
+  flex-basis: 100%;
+}
+
+/* "+ New project" (first in each channel) */
+.new-project-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 200px;
+  border: 1px dashed var(--border-control);
+  border-radius: var(--radius-3);
+  background: none;
+  color: var(--muted);
+  font-size: var(--text-md);
+}
+
+.new-project-card:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.new-project-plus {
+  font-family: var(--font-title);
+  font-size: 40px;
+  line-height: 1;
+}
+
+.layout-list .new-project-card {
+  flex-direction: row;
+  justify-content: flex-start;
+  min-height: 0;
+  padding: var(--space-3) var(--space-4);
+}
+
+.layout-list .new-project-plus {
+  font-size: var(--text-xl);
+}
+
+/* The eight steps: square dots in the step status colours (layout/pipeline.css). */
+.progress-strip {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.progress-dot {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--border-control);
+}
+
+.state-done .progress-dot {
+  border-color: var(--ok);
+  background: var(--ok);
+}
+
+.state-busy .progress-dot {
+  border-color: var(--accent);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.state-needs-you .progress-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  transform: rotate(45deg) scale(0.85);
+}
+
+.state-problem .progress-dot {
+  border-color: var(--error);
+  background: var(--error);
+}
+
+.progress-strip.with-labels {
+  gap: var(--space-4);
+}
+
+.progress-label {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}

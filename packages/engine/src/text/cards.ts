@@ -63,12 +63,20 @@ export function fontByName(name: FontName): BitmapFont {
   return name === 'mono' ? MONO_FONT : DISPLAY_FONT;
 }
 
-/** Default integer scale of titles and kinetic text (3 at 360 px high). */
+/**
+ * Short edge of the frame: default text and stroke sizes follow it, so a portrait frame (360x640)
+ * gets the same sizes as a landscape one (640x360).
+ */
+export function shortEdge(size: { readonly width: number; readonly height: number }): number {
+  return Math.min(size.width, size.height);
+}
+
+/** Default integer scale of titles and kinetic text (3 at a 360 px short edge). */
 export function defaultTitleScale(height: number): number {
   return Math.max(1, Math.round(height / 120));
 }
 
-/** Default scale of the lower-third primary line (2 at 360 px high). */
+/** Default scale of the lower-third primary line (2 at a 360 px short edge). */
 export function defaultLowerThirdScale(height: number): number {
   return Math.max(1, Math.round(height / 180));
 }
@@ -99,7 +107,7 @@ function union(first: PixelRect, second: PixelRect): PixelRect {
 
 export function renderTitle(env: CardEnv, text: string, options: ParsedTitleOptions): CardResult {
   const font = fontByName(options.font);
-  const scale = options.scale ?? defaultTitleScale(env.height);
+  const scale = options.scale ?? defaultTitleScale(shortEdge(env));
   const maxPixels = options.maxWidth === undefined ? env.safeArea.w : options.maxWidth * env.width;
   const layout = layoutText(font.normalize(text), font, maxUnits(maxPixels, scale));
   const color = env.color(options.color, 'color');
@@ -152,7 +160,7 @@ function lowerThirdGeometry(
   secondary: string,
   options: ParsedLowerThirdOptions,
 ): LowerThirdGeometry {
-  const scale = options.scale ?? defaultLowerThirdScale(env.height);
+  const scale = options.scale ?? defaultLowerThirdScale(shortEdge(env));
   const textWidth = Math.max(
     1,
     Math.round(options.maxWidth * env.width) - ACCENT_BAR - 2 * PLATE_PAD_X,
@@ -314,7 +322,7 @@ export function renderKinetic(
   options: ParsedKineticOptions,
 ): CardResult {
   const font = fontByName(options.font);
-  const scale = options.scale ?? defaultTitleScale(env.height);
+  const scale = options.scale ?? defaultTitleScale(shortEdge(env));
   const { text, starts } = kineticText(font, words, options);
   const maxPixels = options.maxWidth === undefined ? env.safeArea.w : options.maxWidth * env.width;
   const layout = layoutText(text, font, maxUnits(maxPixels, scale));

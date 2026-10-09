@@ -8,7 +8,7 @@
  */
 import type { Composition, Compositor } from '../pixels.js';
 import { endFrames, focusPixels, lerp, phase } from '../wow.js';
-import { bayer4, comicInks, inOutCubic, inOutSine } from './inks.js';
+import { bayer4, comicInks, inOutCubic, inOutSine, inkScale } from './inks.js';
 
 /** Keyframes [p, value] with an ease into each key. */
 function keys(
@@ -71,7 +71,7 @@ function panelOver(
 export const panelZoom: Compositor = (c) => {
   if (endFrames(c)) return;
   const { width: W, height: H, a, p } = c;
-  const s = W / 640;
+  const s = inkScale(W, H);
   const [fx, fy] = focusPixels(c);
   const pop = keys(p, [
     [0, 0, outQuad],
@@ -100,7 +100,7 @@ export const panelZoom: Compositor = (c) => {
 export const panelSlam: Compositor = (c) => {
   if (endFrames(c)) return;
   const { width: W, height: H, a, p, seed } = c;
-  const s = W / 640;
+  const s = inkScale(W, H);
   // B lands a little small (a panel on the page), holds, then settles to the full frame.
   const k = keys(p, [
     [0.12, 1.1, outQuad],

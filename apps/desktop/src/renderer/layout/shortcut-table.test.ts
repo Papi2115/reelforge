@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { VariantCard } from '../../shared/variants-contract.js';
 import { composerKeyAction } from '../chat/composer-keys.js';
 import { isCommandBarKey } from '../direction/direction-view.js';
+import { homeKeyAction } from '../home/home-keys.js';
 import { transportAction, type TransportKey } from '../preview/transport-keys.js';
 import { isLockShortcut } from '../stages/locks-view.js';
 import { cardKeyAction, isVariantsShortcut } from '../stages/variants-view.js';
@@ -65,6 +66,8 @@ const PROBES: Readonly<Record<LocalShortcut, (key: TransportKey) => boolean>> = 
   zoom: (key) => timelineKeyAction(key, true)?.kind === 'zoom',
   escape: (key) => timelineKeyAction(key, true)?.kind === 'clear-selection',
   'direct-shot': (key) => isCommandBarKey({ ...key, targetTag: 'BODY', targetEditable: false }),
+  'new-project': (key) => homeKeyAction(key) === 'new-project',
+  'search-projects': (key) => homeKeyAction(key) === 'search',
   send: (key) => composerKeyAction({ ...key, isComposing: false }) === 'send',
   'new-line': (key) =>
     key.shiftKey && composerKeyAction({ ...key, isComposing: false }) === undefined,

@@ -15,7 +15,9 @@ voice-over when the channel has no voice generator, an asset review, or a failur
 | voiceover | the channel's voice generator, else your recording | no voice generator and no recording |
 | clean … mix | the pipeline stages as in the app (assets only with research on) | asset package to review |
 | final-review | the quiet whole-video review (problems become ⚠, never a failure) | – |
-| export, publish | the app's export and publish kit | – |
+| export | the app's export ("Video exported") | – |
+| seo | tags and timestamps: `publish/seo.json` (15 tags, 5–8 chapters; one Sonnet turn, else the deterministic fallback and a ⚠), committed; skipped for shorts | – |
+| publish | the app's publish kit (its tags and chapters come from `publish/seo.json`) | – |
 
 Status of a film: `queued → brief → scripting → needs-approval → building (needs-voice) →
 exporting → done`, or `failed` (step + reason), or `paused` (on hold by you).
@@ -26,7 +28,10 @@ exporting → done`, or `failed` (step + reason), or `paused` (on hold by you).
   waiting for your approval), so you can approve a batch in the evening and the line builds
   overnight. A film that waits or fails never holds up the next one. Channels take turns.
 - **Usage limit.** The whole line pauses until the limit resets and goes on by itself; the pause
-  survives an app restart.
+  survives an app restart. A limit hit while writing the tags and timestamps never holds the
+  film: the fallback is written (⚠ "regenerate"), and the line pauses before its next step.
+- **Films from before 3.4** (publish kit already done) count the tags and timestamps step as
+  skipped and stay done.
 - **Claude not usable** (logged out, CLI missing): the line stops; no film is marked failed.
 - **Closing the app / crash.** The running step is aborted and runs again next time; nothing done
   is lost. Only one line runs per app (lock file).
@@ -69,10 +74,11 @@ notification (Settings → Projects → Production line) says when a film is rea
   `start({ runUntil? }) → Result<'idle' | 'time' | 'stopped' | 'blocked', string>`, `stop()`,
   `poke()` (after an approval/import done in the app), `approveScript(channelId, itemId)`,
   `isRunning`, `lineStatus`, `dispose()`. Events: `queue`, `step` (started/finished + outcome),
-  `stage` (StageEvent of the running stage), `progress` (brief/voice/export/publish lines),
+  `stage` (StageEvent of the running stage), `progress` (brief/voice/export/tags/publish lines),
   `line` (`running | waiting | limit | quiet | stopped`, `until`, current step).
 - `StageQueueExecutor({ runnerFor, pipelineStore?, claude?, briefModel?, voiceFor?, exportFilm?,
-  publishKit?, finalReview? })`; `createQueueProjectFactory({ channel, create? })`;
+  publishSeo?: { model?, channel?, commit? }, publishKit?, finalReview? })` (the `seo` step runs
+  `runQueueSeo`, also without `publishSeo`: prompt model, no channel, no commit); `createQueueProjectFactory({ channel, create? })`;
   `limitSignalFromGuard(guard)`; `queueAttention(queue)` for the "Needs you" inbox.
 - `VoiceProvider { generate({ projectDir, channelId, signal }) → Result<{ file, warnings? }> }`
   is implemented with 13.14; the file it returns is imported by the Voiceover stage.

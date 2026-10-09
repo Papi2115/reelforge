@@ -48,8 +48,13 @@ function bare(text: string): string {
   return text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 }
 
+/** A function or filler word (EN/PL) that never makes a title or a tag on its own. */
+export function isFunctionWord(word: string): boolean {
+  return STOP_WORDS.has(word.toLowerCase());
+}
+
 function isContent(word: string): boolean {
-  return word !== '' && !STOP_WORDS.has(word.toLowerCase());
+  return word !== '' && !isFunctionWord(word);
 }
 
 function endsSentence(text: string): boolean {

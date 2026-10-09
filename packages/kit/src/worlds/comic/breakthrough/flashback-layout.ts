@@ -7,19 +7,35 @@
 import { lerp, rndRange } from '../draw/math.js';
 import { rotPts } from '../draw/shapes.js';
 import type { Quad } from '../page/layouts.js';
+import { isPortraitPage, LANDSCAPE_PAGE, type PageSize } from '../style.js';
 import type { Box, FlashbackArrange } from './flashback-schema.js';
 
 const GUTTER = 12;
 
-/** Default box per arrangement: the whole page for a page flashback, a band for a strip. */
-export function defaultBox(arrange: FlashbackArrange, cover: 'page' | 'strip'): Box {
-  if (cover === 'page') return [26, 30, 614, 344];
-  const boxes: Readonly<Record<FlashbackArrange, Box>> = {
-    rows: [178, 34, 470, 330],
-    row: [40, 104, 600, 262],
-    stair: [48, 44, 592, 318],
-    pile: [44, 70, 598, 300],
-  };
+/**
+ * Default box per arrangement: the whole page for a page flashback, a band for a strip. On a
+ * portrait page (360x640) the boxes keep to the safe middle of the frame (PLAN.md#13.18).
+ */
+export function defaultBox(
+  arrange: FlashbackArrange,
+  cover: 'page' | 'strip',
+  page: PageSize = LANDSCAPE_PAGE,
+): Box {
+  const portrait = isPortraitPage(page);
+  if (cover === 'page') return portrait ? [22, 64, 338, 540] : [26, 30, 614, 344];
+  const boxes: Readonly<Record<FlashbackArrange, Box>> = portrait
+    ? {
+        rows: [30, 84, 330, 500],
+        row: [20, 190, 340, 420],
+        stair: [26, 80, 334, 500],
+        pile: [26, 130, 334, 470],
+      }
+    : {
+        rows: [178, 34, 470, 330],
+        row: [40, 104, 600, 262],
+        stair: [48, 44, 592, 318],
+        pile: [44, 70, 598, 300],
+      };
   return boxes[arrange];
 }
 

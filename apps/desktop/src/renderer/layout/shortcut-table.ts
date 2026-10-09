@@ -150,6 +150,16 @@ export const LOCAL_SHORTCUTS = {
     chords: [{ key: 'Escape' }],
     action: 'Close the menu or dialog on top; on the timeline, clear the selection',
   },
+  'new-project': {
+    group: 'project',
+    chords: [{ key: 'n', ctrl: true, shift: false }],
+    action: 'New project (Projects screen)',
+  },
+  'search-projects': {
+    group: 'panels',
+    chords: [{ key: '/' }],
+    action: 'Search your projects (Projects screen)',
+  },
   send: { group: 'claude', chords: [{ key: 'Enter' }], action: 'Send the message' },
   'new-line': { group: 'claude', chords: [{ key: 'Enter', shift: true }], action: 'New line' },
 } as const satisfies Record<string, Shortcut>;

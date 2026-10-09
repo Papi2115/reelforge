@@ -6,7 +6,7 @@
  * the camera inside it. The frame may tilt; its content stays level (keep tilts small).
  */
 import { lerp, rndRange, seg, track, type EaseName } from '../draw/math.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import type { PageSize } from '../style.js';
 import type {
   BreakBox,
   BreakDrive,
@@ -50,6 +50,8 @@ export interface PanelPlan {
   readonly from: BreakSide;
   readonly dur: number;
   readonly camera: readonly ResolvedCameraKey[];
+  /** The page (a slide starts just off it). */
+  readonly page: PageSize;
 }
 
 export interface PanelState {
@@ -211,9 +213,9 @@ function entrance(plan: PanelPlan, box: BreakBox, t: number): { ops: Op[]; revea
     case 'slide': {
       const off = {
         left: [-(x + w + 6), 0],
-        right: [PAGE_WIDTH - x + 6, 0],
+        right: [plan.page.width - x + 6, 0],
         top: [0, -(y + h + 6)],
-        bottom: [0, PAGE_HEIGHT - y + 6],
+        bottom: [0, plan.page.height - y + 6],
       }[from];
       const rest = 1 - p('outBack');
       return {

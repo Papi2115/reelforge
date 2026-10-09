@@ -6,6 +6,7 @@ export * from './lock.js';
 export * from './project-factory.js';
 export * from './runner.js';
 export * from './schedule.js';
+export * from './seo-step.js';
 export * from './stage-executor.js';
 export * from './state.js';
 export * from './store.js';

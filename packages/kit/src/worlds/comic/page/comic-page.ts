@@ -1,5 +1,6 @@
 /**
- * `kit.fx.comicPage`: one printed comic page per shot as a full-frame 640x360 index raster
+ * `kit.fx.comicPage`: one printed comic page per shot as a full-frame index raster (640x360; a
+ * portrait short's frame is taller than wide and gets a 360x640 page, PLAN.md#13.18)
  * (palette indices -> palette colours -> screen-space quad, through the same post pass as every
  * look; ADR-032). The scene lays out panels and lettering in build(), paints each panel's content
  * with a pure painter `(g, t) => ...`, and calls `page.update(t)` every frame; the page is
@@ -19,7 +20,7 @@ import { createFlashback } from '../breakthrough/flashback.js';
 import { createSpread } from '../breakthrough/spread.js';
 import { ComicCanvas } from '../draw/canvas.js';
 import { INK_TABLE } from '../inks.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import { isPortraitPage, pageSafeBox, pageSizeFor } from '../style.js';
 import { createStructureApi } from './api.js';
 import { createFlowApi } from './flow.js';
 import { createLetteringApi } from './api-lettering.js';
@@ -43,10 +44,14 @@ export const comicPageParams = z.object({
 
 const PAGE_METHODS = {
   'update(t)': 'Repaints the page for local time t: call it every frame',
+  'size / format / safe':
+    "page.size = [w, h] in page px = the frame: [640, 360], or [360, 640] when ctx.shot.format is 'portrait'; page.format; page.safe = [x, y, w, h] where key content goes (portrait: the central 80 % of the width, below the top 12 %, above the bottom 20 %; landscape: the whole page)",
+  portrait:
+    "A portrait short (9:16) gets a 360x640 page, read like a webtoon on a phone: stack panels DOWN the page. Presets: 'splash' = one tall panel (a hero, a fall, a tower); '2-stack' / '3-stack' = panels stacked (2-3 beats in reading order); 'splash-strip' = a tall splash over two small panels (the claim, then two details); 'stagger' = three offset panels zig-zagging down (a sequence, a journey); the landscape presets are stood upright (columns become rows: '2-up' = 2 stacked, 'strip' = 3, '3-up-l' = a wide panel over two). page.flow reads 'down' by default (the camera brings each panel's foot to 80 % of the frame); 'across' is a band at mid-height. Balloons and captions letter at size 2 with ~14 letters a line (<= 6 words a balloon) and stay in page.safe; keep sound words and the focal subject inside it too. Spreads become a tall splash (no spine unless fold 140-220 is given); flashback boxes default to the safe middle",
   'panels(layout, { weights, mirror, gutter, seed })':
-    "Panels from a preset with hand-ruled uneven gutters: 'splash', '2-up', 'strip' (3 columns), '3-up-l' (tall + 2 stacked), '4-grid' (2x2, rows offset), '4-l' (tall + wide + 2 small), 'splash-inset' (inset breaks the frame); weights = split fractions (panel size = importance); returns panel handles",
+    "Panels from a preset with hand-ruled uneven gutters: 'splash', '2-up', 'strip' (3 columns), '3-up-l' (tall + 2 stacked), '4-grid' (2x2, rows offset), '4-l' (tall + wide + 2 small), 'splash-inset' (inset breaks the frame), '2-stack' / '3-stack' (rows), 'splash-strip' (a splash over 2 small), 'stagger' (3 offset rows); weights = split fractions (panel size = importance); returns panel handles",
   'panel(quad | (t) => quad, { border, boil, pencils, mis, z })':
-    'A custom panel: 4 corners [x0, y0, ..., x3, y3] in page px (640x360), clockwise from top left; a function of t for gutters that move',
+    'A custom panel: 4 corners [x0, y0, ..., x3, y3] in page px (page.size: 640x360, portrait 360x640), clockwise from top left; a function of t for gutters that move',
   'panel.draw((g, t) => ...)':
     "Paints the panel's content, clipped to it; t = the panel's clock. g: plate = colour plate out of register (fills), g itself = key plate (ink): poly, rect, ellipse, line, polyline, ink(pts, { closed, w, boil }) boiled ink line, strokeOn, clip(pts, fn), blob(parts, fill) one-outline silhouette, tone(ink, level | (lx, ly) => level, { cell, angle, on }) halftone, dither(a, b, level), pencil(), layer(...), local(fn), speedLines({ x, y, dx, dy, gap }), trail(pts), text(str, x, y, { scale, bold, reveal, slant }), bigLetter(ch, x, y, { size }), standing(text, { x, y0, y1, h0, h1 }) block letters standing in the ground, ground, digits, at(x, y, k), rnd(key, i)",
   'panel.enter({ at, kind, from, dur, rough }) / panel.exit(at)':
@@ -103,6 +108,8 @@ export type ComicPageObject = FxObject &
   ReturnType<typeof createLetteringApi> &
   ReturnType<typeof createArt> & {
     readonly size: readonly [number, number];
+    readonly format: 'landscape' | 'portrait';
+    readonly safe: readonly [number, number, number, number];
     readonly flashback: ReturnType<typeof createFlashback>;
     readonly spread: ReturnType<typeof createSpread>;
     readonly panelBreak: ReturnType<typeof createPanelBreak>;
@@ -111,11 +118,13 @@ export type ComicPageObject = FxObject &
 function buildPage(params: z.output<typeof comicPageParams>, tools: KitTools): ComicPageObject {
   const seed = params.seed ?? Math.floor(tools.rng() * 2_147_483_647) % 100_000;
   const call = 'kit.fx.comicPage()';
-  const model = new ComicPageModel(seed, misFor(`page${String(seed)}`));
+  const pageSize = pageSizeFor(tools.frame);
+  const { width, height } = pageSize;
+  const model = new ComicPageModel(seed, misFor(`page${String(seed)}`), pageSize);
   const resolve = createResolver(params.anchor, call);
   const ctx = { model, resolve, call, seed, duration: params.duration };
-  const canvas = new ComicCanvas(PAGE_WIDTH, PAGE_HEIGHT);
-  const raster = new Raster(PAGE_WIDTH, PAGE_HEIGHT);
+  const canvas = new ComicCanvas(width, height);
+  const raster = new Raster(width, height);
   const pixels = new Uint32Array(raster.data.buffer);
   const colors = pixelTable(tools);
   const { mesh, texture } = createQuad(tools, raster, {
@@ -138,7 +147,9 @@ function buildPage(params: z.output<typeof comicPageParams>, tools: KitTools): C
     texture.needsUpdate = true;
   });
   building = false;
-  const size = [PAGE_WIDTH, PAGE_HEIGHT] as const;
+  const size = [width, height] as const;
+  const format = isPortraitPage(pageSize) ? ('portrait' as const) : ('landscape' as const);
+  const safe = pageSafeBox(pageSize);
   const lettering = createLetteringApi(ctx);
   const breakthroughs = {
     flashback: createFlashback(ctx, lettering),
@@ -155,6 +166,8 @@ function buildPage(params: z.output<typeof comicPageParams>, tools: KitTools): C
     ...open,
     ...flow,
     size,
+    format,
+    safe,
   });
 }
 

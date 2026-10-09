@@ -1,36 +1,5 @@
-/* Style and worlds (PLAN.md#13.6): New project → Style, Project settings → Style and world rows. */
-.start-style {
-  /* A fieldset is min-content wide by default (as .start-scene-count). */
-  min-width: 0;
-  margin: 0;
-  padding: var(--space-3) 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-3);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.start-style legend {
-  font-size: var(--text-xs);
-  color: var(--muted);
-}
-
-.start-style p {
-  margin: 0;
-  font-size: var(--text-xs);
-}
-
-.start-style .settings-toggle {
-  padding: 6px var(--space-3);
-  font-size: var(--text-xs);
-}
-
-.start-style .settings-toggle:has(input:checked) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
+/* Style and worlds (PLAN.md#13.6): the PREVIEW tag, Project settings → Style and world rows
+   (the wizard's style cards: wizard/wizard.css). */
 .style-preview-tag {
   margin-left: 2px;
   padding: 0 5px;

@@ -50,7 +50,9 @@ export type QueueItemStatus = z.infer<typeof queueItemStatusSchema>;
 /**
  * The steps of one film, in order. `project`: the project folder; `brief`: topic -> brief.json;
  * `approval`: the script acceptance gate; `final-review`: the quiet review after the scene build;
- * `publish`: the publish kit. The rest are the pipeline stages of the same name.
+ * `seo`: the tags and timestamps (`publish/seo.json`, PLAN.md#13.17; added in 3.4: a film whose
+ * `publish` finished before counts it as skipped); `publish`: the publish kit. The rest are the
+ * pipeline stages of the same name.
  */
 export const QUEUE_STEPS = [
   'project',
@@ -67,6 +69,7 @@ export const QUEUE_STEPS = [
   'sound-cues',
   'mix',
   'export',
+  'seo',
   'publish',
 ] as const;
 export const queueStepSchema = z.enum(QUEUE_STEPS);

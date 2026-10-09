@@ -8,7 +8,7 @@
  */
 import type { Composition, Compositor } from '../pixels.js';
 import { endFrames } from '../wow.js';
-import { bayer4, comicInks, inOutCubic, inOutSine } from './inks.js';
+import { bayer4, comicInks, inOutCubic, inOutSine, inkScale } from './inks.js';
 
 function slide(
   c: Composition,
@@ -18,7 +18,7 @@ function slide(
 ): void {
   const { width: W, height: H, a, b, out, p } = c;
   const { INK, AGED, SHADE } = comicInks(c.tones).ink;
-  const s = W / 640;
+  const s = inkScale(W, H);
   const length = vertical ? H : W;
   const gap = Math.max(2, Math.round(gutter * s));
   const edge = Math.max(1, Math.round(s));

@@ -9,7 +9,12 @@
 import { WORLD_TRANSITIONS } from '@reelforge/engine';
 import { WORLDS, type World } from '@reelforge/kit';
 import { checkWorldVariety, worldPromptText } from '@reelforge/prompts';
-import { projectContinuityLinks, type ProjectFile, type StoryboardFile } from '@reelforge/shared';
+import {
+  projectContinuityLinks,
+  withoutEndCard,
+  type ProjectFile,
+  type StoryboardFile,
+} from '@reelforge/shared';
 import type { Problem } from './files.js';
 import { PROJECT_PATHS } from './paths.js';
 
@@ -37,7 +42,8 @@ export function worldVarietyProblems(
   const text = worldPromptText(world.id);
   const moments = text?.moments ?? [];
   if (moments.length === 0) return [];
-  const issues = checkWorldVariety(storyboard.shots, {
+  // A short's end card (PLAN.md#13.18) is the app's; the stage's validator skips it too.
+  const issues = checkWorldVariety(withoutEndCard(storyboard.shots), {
     moments,
     transitions: worldTransitions(world),
     continuityLinks: projectContinuityLinks(project),

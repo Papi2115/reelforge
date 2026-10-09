@@ -110,6 +110,7 @@ export const FILM_STEPS: readonly QueueStep[] = [
   'sound-cues',
   'mix',
   'export',
+  'seo',
   'publish',
 ];
 

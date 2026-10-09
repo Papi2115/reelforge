@@ -234,10 +234,12 @@ describe('first run', () => {
   it('does not show the tour again after a relaunch', async () => {
     await app.close();
     await launch();
-    const recent = page.getByRole('region', { name: 'Start' }).getByRole('button', {
-      name: /Doom on a calculator/,
-    });
-    await recent.click();
+    // Home: the project's card (also in "Continue") → "Open editor".
+    const card = page
+      .getByRole('region', { name: 'Start' })
+      .getByRole('article', { name: 'Doom on a calculator' })
+      .first();
+    await card.getByRole('button', { name: 'Open editor' }).click();
     await page.locator('canvas.preview-canvas[data-rendered-t]').waitFor({ timeout: 60_000 });
     await page.waitForTimeout(1_500);
     expect(await page.getByRole('dialog', { name: 'The pipeline' }).count()).toBe(0);

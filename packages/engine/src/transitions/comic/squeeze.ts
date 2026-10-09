@@ -8,7 +8,7 @@
  */
 import type { Compositor } from '../pixels.js';
 import { endFrames, focusPixels, lerp } from '../wow.js';
-import { comicInks } from './inks.js';
+import { comicInks, inkScale } from './inks.js';
 
 const outCubic = (q: number): number => 1 - (1 - q) ** 3;
 const inCubic = (q: number): number => q * q * q;
@@ -17,7 +17,7 @@ export const panelPush: Compositor = (c) => {
   if (endFrames(c)) return;
   const { width: W, height: H, a, b, out, p } = c;
   const { INK, PAPER } = comicInks(c.tones).ink;
-  const s = W / 640;
+  const s = inkScale(W, H);
   const gutter = Math.max(2, Math.round(10 * s));
   const edge = Math.max(2, Math.round(2 * s));
   const split = Math.round((1 - outCubic(p)) * W);
@@ -46,7 +46,7 @@ export const gutterCollapse: Compositor = (c) => {
   if (endFrames(c)) return;
   const { width: W, height: H, a, b, out, p } = c;
   const { INK } = comicInks(c.tones).ink;
-  const s = W / 640;
+  const s = inkScale(W, H);
   const edge = Math.max(2, Math.round(2 * s));
   const [, middle] = focusPixels(c);
   const e = inCubic(p);

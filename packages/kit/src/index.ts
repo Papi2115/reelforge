@@ -83,6 +83,14 @@ export {
   type ScreenPixels,
 } from './fx/index.js';
 export {
+  END_CARD_CAMERA,
+  endCardLayout,
+  endCardNameScale,
+  splitEndCardText,
+  type EndCardFormat,
+  type EndCardLayout,
+} from './fx/end-card.js';
+export {
   CAST_DEFINITIONS,
   createKit,
   ENV_DEFINITIONS,

@@ -3,12 +3,14 @@
  * docs/ux/redesign-2.4.md): the four paste-ready texts of the finished film (description,
  * chapters, tags, credits) with a Copy button each, "Refresh", "Save to publish/" (tracked,
  * committed) and "Open folder". A banner warns while a used asset's licence is unverified.
+ * "Tags and timestamps" (PLAN.md#13.17) heads the section.
  * Nothing is uploaded: the user pastes the texts into YouTube Studio.
  */
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import type { PublishKitResult } from '../../shared/publish-contract.js';
 import { CopyButton } from '../export/CopyButton.js';
 import { errorMessage } from '../log.js';
+import { PublishSeoPanel } from './PublishSeoPanel.js';
 import {
   chaptersNote,
   kitSummary,
@@ -70,6 +72,7 @@ export function PublishKit({ revision }: PublishKitProps): JSX.Element {
   const chapters = kit === null ? null : chaptersNote(kit);
   return (
     <div className="publish-kit">
+      <PublishSeoPanel revision={revision} onChanged={load} />
       {result === undefined && <p className="muted">Reading the project…</p>}
       {result?.status === 'error' && <p className="muted">{result.message}</p>}
       {kit !== null && (

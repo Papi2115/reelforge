@@ -207,3 +207,22 @@
   margin: 0 0 6px;
   font-size: 13px;
 }
+
+/* Tags and timestamps (PLAN.md#13.17). */
+.publish-seo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.publish-seo-tags {
+  margin: 0;
+  font-size: 12px;
+}
+
+.publish-seo-chapters {
+  margin: 0;
+  white-space: pre-wrap;
+}

@@ -18,6 +18,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { createProjectNamed } from './support/new-project.js';
 import { selectStage, stageRow } from './support/pipeline-rows.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
@@ -116,15 +117,15 @@ describe('Brief -> Script and the pipeline sidebar', () => {
     const parent = path.join(userDataDir, 'Filmy');
     await mkdir(parent);
     await stubFolderPicker(app, parent);
-    await page.getByLabel('Video title').fill('Rainbow in a glass');
-    await page.getByRole('button', { name: 'New project…' }).click();
+    await createProjectNamed(page, 'Rainbow in a glass');
     projectDir = path.join(parent, 'Rainbow in a glass');
 
+    // The wizard saved a brief (the title, 8 minutes): the editor opens on it, ready to write.
     const brief = page.getByRole('form', { name: 'Brief' });
     await brief.waitFor();
     await expect
       .poll(() => stageRow(page, 'Script written').textContent())
-      .toBe('Script writtenNeeds you');
+      .toBe('Script writtenReady');
     // A new project shows the empty stage, never the demo scene, and no direction bar yet.
     const empty = page.getByTestId('preview-empty');
     await empty.waitFor();

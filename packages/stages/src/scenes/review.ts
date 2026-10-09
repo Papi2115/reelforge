@@ -11,7 +11,13 @@
 import { lintScene } from '@reelforge/engine';
 import { ok, type Result } from '@reelforge/claude-bridge';
 import { validatePlanReply, validateTriageReply } from '@reelforge/prompts';
-import type { QaFinding, ShotSync, StoryboardShot, SyncReport } from '@reelforge/shared';
+import {
+  isEndCardShot,
+  type QaFinding,
+  type ShotSync,
+  type StoryboardShot,
+  type SyncReport,
+} from '@reelforge/shared';
 import { readProjectText } from '../files.js';
 import { FILES } from '../paths.js';
 import { render } from '../stages/repair.js';
@@ -187,7 +193,8 @@ async function fixShots(
   requests: ReadonlyMap<string, { request: string; findings: readonly QaFinding[] }>,
   extraChecks?: (source: string, shot: StoryboardShot) => QaFinding[],
 ): Promise<Result<string[], StageError>> {
-  const shots = job.shots.filter((shot) => requests.has(shot.id));
+  // A short's end card (PLAN.md#13.18) is the app's: a plan naming it gets no fix turn.
+  const shots = job.shots.filter((shot) => requests.has(shot.id) && !isEndCardShot(shot));
   const ran = await runShotJobs(job, {
     queue: REVIEW_QUEUE,
     shots,

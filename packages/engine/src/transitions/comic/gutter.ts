@@ -6,7 +6,7 @@
  */
 import type { Compositor } from '../pixels.js';
 import { endFrames, focusPixels } from '../wow.js';
-import { bayer4, comicInks, inOutCubic } from './inks.js';
+import { bayer4, comicInks, inOutCubic, inkScale } from './inks.js';
 
 /** The pull: a recoil to -1.2 % by 0.18, then out with an ease. */
 function pull(p: number): number {
@@ -21,7 +21,7 @@ export const gutterWipe: Compositor = (c) => {
   if (endFrames(c)) return;
   const { width: W, height: H, a, b, out, p } = c;
   const { INK } = comicInks(c.tones).ink;
-  const s = W / 640;
+  const s = inkScale(W, H);
   const [fx] = focusPixels(c);
   const x0 = fx + 52 * s;
   const x1 = fx - 30 * s;

@@ -5,10 +5,13 @@
  * under `publish/` on demand. Nothing is uploaded anywhere.
  */
 import {
+  publishSeoIssues,
   scriptSentences,
+  seoTagList,
   tagsLength,
   YOUTUBE_DESCRIPTION_MAX,
   YOUTUBE_TAGS_TOTAL_MAX,
+  type PublishSeoFile,
   type StoryboardShot,
   type TimedWord,
   type YoutubeMetaFile,
@@ -52,6 +55,11 @@ export interface PublishKitInput {
   readonly credits: PublishCredits;
   /** `timing/words.json` words: chapter titles from the narration (absent: from shot intents). */
   readonly words?: readonly TimedWord[];
+  /**
+   * `publish/seo.json` (PLAN.md#13.17): its 15 tags and 5–8 chapters win over the suggestions and
+   * the plan while they still pass the rules for this video.
+   */
+  readonly seo?: PublishSeoFile | null;
 }
 
 export interface PublishKit {
@@ -96,9 +104,32 @@ export function hookParagraph(input: Pick<PublishKitInput, 'meta' | 'script' | '
   return opening === '' ? input.title.trim() || 'Untitled video' : opening;
 }
 
-/** Tags within YouTube's 500 characters: Claude's/the template's, else the fallback. */
-export function publishTags(input: Pick<PublishKitInput, 'meta' | 'fallbackTags'>): string[] {
-  const tags = [...(input.meta?.tags ?? input.fallbackTags)]
+/** Which parts of seo.json still pass the rules for a video of `durationS`. */
+export function usableSeo(
+  seo: PublishSeoFile | null | undefined,
+  durationS: number,
+): { tags: boolean; chapters: boolean } {
+  if (seo === null || seo === undefined) return { tags: false, chapters: false };
+  const issues = publishSeoIssues(seo, { durationS });
+  return {
+    tags: !issues.some((entry) => entry.path.startsWith('tags')),
+    chapters: !issues.some((entry) => entry.path.startsWith('chapters')),
+  };
+}
+
+/**
+ * Tags within YouTube's 500 characters: seo.json's 15, else Claude's/the template's, else the
+ * fallback.
+ */
+export function publishTags(
+  input: Pick<PublishKitInput, 'meta' | 'fallbackTags' | 'seo'> & { readonly durationS?: number },
+): string[] {
+  const seo = input.seo;
+  const fromSeo =
+    seo !== null && seo !== undefined && usableSeo(seo, input.durationS ?? 0).tags
+      ? seoTagList(seo.tags)
+      : undefined;
+  const tags = [...(fromSeo ?? input.meta?.tags ?? input.fallbackTags)]
     .map((tag) => tag.replace(/\s+/g, ' ').trim())
     .filter((tag, index, all) => tag !== '' && all.indexOf(tag) === index);
   while (tags.length > 0 && tagsLength(tags) > YOUTUBE_TAGS_TOTAL_MAX) tags.pop();
@@ -111,12 +142,20 @@ function hashtag(tag: string): string {
 
 /** Chapters of the storyboard (and their chapters.txt), or why there are none. */
 export function publishChapters(
-  input: Pick<PublishKitInput, 'shots' | 'durationS' | 'meta' | 'words'>,
+  input: Pick<PublishKitInput, 'shots' | 'durationS' | 'meta' | 'words' | 'seo'>,
 ): {
   chapters: Chapter[];
   text: string | null;
   problem: string | null;
 } {
+  const seo = input.seo;
+  if (seo !== null && seo !== undefined && seo.chapters.length > 0) {
+    if (usableSeo(seo, input.durationS).chapters) {
+      const chapters = seo.chapters.map((chapter) => ({ title: chapter.title, t: chapter.t }));
+      const built = buildChaptersTxt(chapters, input.durationS);
+      if (built.ok) return { chapters, text: built.value, problem: null };
+    }
+  }
   const starts = planChapterStarts(input.shots, input.durationS);
   if (!starts.ok) return { chapters: [], text: null, problem: starts.problem };
   const suggested =
@@ -149,6 +188,15 @@ export function buildPublishKit(input: PublishKitInput): PublishKit {
   if (warning !== null) {
     warnings.push(
       `${String(input.credits.unverified.length)} asset licence(s) unverified: confirm or replace before publishing.`,
+    );
+  }
+  const seo = usableSeo(input.seo, input.durationS);
+  if (input.seo !== null && input.seo !== undefined && (!seo.tags || !seo.chapters)) {
+    const stale = [seo.tags ? null : 'tags', seo.chapters ? null : 'chapters'].filter(
+      (part): part is string => part !== null,
+    );
+    warnings.push(
+      `publish/seo.json ${stale.join(' and ')} no longer fit this video: the kit uses its own; regenerate the tags and timestamps.`,
     );
   }
   if (description.length > YOUTUBE_DESCRIPTION_MAX) {

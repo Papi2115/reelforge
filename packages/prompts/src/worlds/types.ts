@@ -57,6 +57,12 @@ export interface WorldPromptText {
    */
   readonly script?: string;
   /**
+   * Scene-build in a portrait short (PLAN.md#13.18): how the world's page is laid out on a 9:16
+   * frame (one rule line of the prompt's short section); absent = the world has no portrait
+   * wording.
+   */
+  readonly short?: string;
+  /**
    * The world's moment catalog (worlds/variety.ts): a closed list the storyboard plans per shot
    * (`worldMoment`), the scene builds with the exact API and the critic looks for. `plain` is
    * the absence of a moment and is not listed.

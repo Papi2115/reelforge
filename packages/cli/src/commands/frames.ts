@@ -26,6 +26,8 @@ text-card QA (overlaps, safe area) and console errors.
                      t=0 when no shot uses it yet. With --shot: render that shot with this file
   --at <list>        local shot times in seconds (0 = shot start), default 5 points over the shot
   --duration <s>     length of a standalone scene (default max(5, last --at + 1))
+Frames are in the project's format: a portrait project (project.json "format": "portrait")
+renders 9:16, 360x640 in Crisp 640 (reelforge kit-docs portrait).
 Exit code: 0 ok, 1 problems (lint errors, scene failed, blank frames, card problems, console
 errors), 2 usage error.`;
 
@@ -59,7 +61,7 @@ export function defaultFrameTimes(plan: ShotPlan, fps: number): number[] {
 export function shotHeader(outcome: ShotOutcome): string {
   const { plan, render } = outcome;
   const size = render?.ok
-    ? ` · ${String(render.width)}x${String(render.height)} ${render.style}`
+    ? ` · ${String(render.width)}x${String(render.height)} ${render.style}${render.height > render.width ? ' portrait 9:16' : ''}`
     : '';
   const header = `shot ${plan.id} · ${plan.file} · global ${timeRange(plan.t0, plan.t1)} (${seconds(shotDuration(plan))})${size}`;
   return plan.standalone

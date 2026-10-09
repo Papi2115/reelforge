@@ -22,6 +22,7 @@ import type { ElectronApplication, Locator, Page } from 'playwright';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { logFile } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { finishNewProject, goToStep, openNewProject } from './support/new-project.js';
 import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 const CANARY = 'sk_canary_7f3a9b1e_do_not_leak_4c2d';
@@ -168,8 +169,13 @@ describe('channels', () => {
     await startAttempt();
     const start = page.getByRole('region', { name: 'Start' });
     await start.waitFor();
-    // One channel: the New project form does not ask.
-    expect(await start.getByLabel('Channel', { exact: true }).count()).toBe(0);
+    // One channel: the wizard still offers it, and a new one by name.
+    const wizard = await openNewProject(page);
+    await wizard.getByLabel('Video title').fill('Probe');
+    await goToStep(wizard, 'Channel and genre');
+    expect(await wizard.getByLabel('Channel', { exact: true }).inputValue()).toBe('default');
+    await wizard.getByRole('button', { name: 'Back', exact: true }).click();
+    await wizard.getByRole('button', { name: 'Back to projects' }).click();
 
     const dialog = await openChannelsSettings();
     const list = dialog.getByRole('listbox', { name: 'Channels' });
@@ -261,17 +267,20 @@ describe('channels', () => {
       await bridge.setChannelSecret({ channelId: 'crime', name: 'elevenlabs-api-key', value });
     }, CANARY);
     const start = page.getByRole('region', { name: 'Start' });
-    const channel = start.getByLabel('Channel', { exact: true });
+    let wizard = await openNewProject(page);
+    await wizard.getByLabel('Video title').fill('Heist night');
+    await goToStep(wizard, 'Channel and genre');
+    const channel = wizard.getByLabel('Channel', { exact: true });
     await expect.poll(() => channel.inputValue()).toBe('default');
     await channel.selectOption('crime');
+    await goToStep(wizard, 'Style');
     await expect
-      .poll(() => start.locator('input[type="radio"][value="noir-voxel"]').isChecked())
+      .poll(() => wizard.locator('input[type="radio"][value="noir-voxel"]').isChecked())
       .toBe(true);
-    await start.getByLabel('Video title').fill('Heist night');
     await shot('new-project');
 
     await stubFolderPicker(app, parent);
-    await start.getByRole('button', { name: 'New project…' }).click();
+    await finishNewProject(wizard);
     await projectMenuButton(page).waitFor({ timeout: 30_000 });
     await expect
       .poll(() => page.locator('header .project-channel').textContent())
@@ -289,11 +298,18 @@ describe('channels', () => {
     await projectMenu(page, 'Close project');
 
     await start.waitFor();
-    await start.getByRole('img', { name: 'Channel: Crime Desk' }).waitFor();
+    // Home: the channel's section and its dot on the card in "Continue".
+    await start.getByRole('region', { name: 'Channel Crime Desk' }).waitFor();
+    await start.getByRole('img', { name: 'Channel: Crime Desk' }).first().waitFor();
     // The last used channel comes first next time.
+    wizard = await openNewProject(page);
+    await wizard.getByLabel('Video title').fill('Probe');
+    await goToStep(wizard, 'Channel and genre');
     await expect
-      .poll(() => start.getByLabel('Channel', { exact: true }).inputValue())
+      .poll(() => wizard.getByLabel('Channel', { exact: true }).inputValue())
       .toBe('crime');
+    await wizard.getByRole('button', { name: 'Back', exact: true }).click();
+    await wizard.getByRole('button', { name: 'Back to projects' }).click();
 
     const dialog = await openChannelsSettings();
     await dialog.getByRole('option', { name: /Crime Desk/ }).click();

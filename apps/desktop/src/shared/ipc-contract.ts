@@ -53,6 +53,8 @@ import { TASTE_IPC, type TasteApi } from './taste-contract.js';
 import { CHANNELS_IPC, type ChannelsApi } from './channels-contract.js';
 import { VOICE_IPC, VOICE_PUSH, type VoiceApi } from './voice-contract.js';
 import { QUEUE_IPC, QUEUE_PUSH, type QueueApi } from './queue-contract.js';
+import { HOME_IPC, type HomeApi } from './home-contract.js';
+import { OVERVIEW_IPC, type OverviewApi } from './overview-contract.js';
 import { CHAT_IPC, CHAT_PUSH, type ChatApi } from './chat-contract.js';
 import { EXPORT_IPC, EXPORT_PUSH, type ExportApi } from './export-contract.js';
 import { ONBOARDING_IPC, type OnboardingApi } from './onboarding-contract.js';
@@ -264,6 +266,10 @@ export const IPC = {
   ...VOICE_IPC,
   /** The production line: per-channel queues of topics built into films (PLAN.md#13.9). */
   ...QUEUE_IPC,
+  /** The Home screen: project cards, open, show folder, rename (PLAN.md#13.16). */
+  ...HOME_IPC,
+  /** The project overview and the Shorts area (PLAN.md#13.16, #13.18). */
+  ...OVERVIEW_IPC,
 } as const satisfies Record<string, InvokeChannel<z.ZodType, z.ZodType>>;
 
 export const IPC_EVENTS = {
@@ -313,7 +319,9 @@ export interface ReelforgeApi
     TasteApi,
     ChannelsApi,
     VoiceApi,
-    QueueApi {
+    QueueApi,
+    HomeApi,
+    OverviewApi {
   getAppInfo(): Promise<AppInfo>;
   getDemoManifest(): Promise<RenderManifest>;
   newProject(request: NewProjectRequest): Promise<ProjectOpenResult>;

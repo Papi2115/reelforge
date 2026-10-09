@@ -1,6 +1,6 @@
 ---
 id: storyboard
-version: 19
+version: 20
 model: sonnet
 tools: [Read, Write, Glob, Grep, Bash(reelforge *)]
 output: storyboard.json
@@ -21,12 +21,18 @@ Write `storyboard.json`:
 ```
 Rules:
 - Shots are contiguous: first t0 = 0, each t0 = previous t1, last t1 = end of the last word (+0.5 s). Boundaries must fall on word boundaries from `words.json` (use a word's `t`, never mid-word); prefer sentence/clause boundaries.
-- Typical shot length 3–8 s; change the visual pattern at least every 6–8 s. Never use the same treatment more than 2 times in a row. Vary: {{^world}}title-card, metaphor-object, 3d-reconstruction, map, node-graph/timeline, data-chart-3d, counter/odometer, ui-mockup, character-scene, kinetic-text, montage/transition{{/world}}{{#world}}the treatments of the looks below{{/world}}.
+- {{^short}}Typical shot length 3–8 s; change the visual pattern at least every 6–8 s.{{/short}}{{#short}}Shot length 1.5–3 s (about 2 s on average, never over 3.5 s); a visual change (a cut, a zoom, an object swap) at least every 3 s.{{/short}} Never use the same treatment more than 2 times in a row. Vary: {{^world}}title-card, metaphor-object, 3d-reconstruction, map, node-graph/timeline, data-chart-3d, counter/odometer, ui-mockup, character-scene, kinetic-text, montage/transition{{/world}}{{#world}}the treatments of the looks below{{/world}}.
 - `intent` is plain words: what is shown, the key moment (quote the spoken phrase it must land on, e.g. lands on "61 KB"), the camera idea, the mood. One to three sentences.
 - {{^world}}Pick treatments from what the kit can actually do; if a needed prop/environment does not exist, still write the shot but list it under a top-level `"missingProps": ["calculator", …]` array.{{/world}}{{#world}}Pick treatments from what the looks can actually draw; anything else the hand draws on the page (no `missingProps` in this world).{{/world}}
 - `transitionIn`: mostly cut; {{^world}}crossfade/glitch/wipe (with `duration`, 0.2–0.6 s){{/world}}{{#world}}{{worldTransitionIn}}{{/world}} at act changes. First shot has no transition.
 - Every important fact or number in the narration should have a visual. Don't illustrate filler.
-{{#tension}}Tension map (`tension.json`, the film's dramatic curve; the user may have drawn it): pace the cuts and pick the shots by it. Segments:
+{{#short}}This is a vertical YouTube SHORT (9:16 portrait, about {{shortLengthS}} s): a teaser that sends the viewer to the full film "{{shortParentTitle}}", edited for retention. Every scene is new: never reuse or copy a scene of the full film (its props and characters are fine). These rules win over the rest of this prompt:
+- The first shot is the hook: at most {{shortHookS}} s, marked `"hook": true`, the strongest and most surprising image of the short, already moving in its first frame.
+- Motion in every shot (a camera move, an object entering, a swap, a counter ticking); never a static hold on a talking line.
+- Vertical framing: one subject per shot, big simple shapes, on-screen text big and short (at most 3 words). Keep the key content inside the central 80 % of the width, below the top 12 % and above the bottom 20 % of the frame (the platform's buttons and captions cover those).
+- At most one pop-up, page moment or other showpiece per 30 s, never the same mechanism twice, never a template.
+- Your shots cover the narration only (last t1 = end of the last word + up to 0.5 s). Do NOT write the end card: the app appends a fixed {{shortEndCardS}} s shot "{{shortEndCard}}" after your last shot.
+{{/short}}{{#tension}}Tension map (`tension.json`, the film's dramatic curve; the user may have drawn it): pace the cuts and pick the shots by it. Segments:
 {{tension}}
 - Shot length follows each segment's target: about 7.5 s at tension 0 down to about 3 s at tension 1. Calm segments let shots breathe (fewer, longer shots, wide and establishing cameras); high-tension segments cut faster (closer cameras, more motion). The validator measures the mean shot length per segment: much longer than the target in a high-tension segment, or much shorter in a calm one, is an error.
 {{#looks}}{{^world}}- Rolls and looks by tension: high tension → more C-roll (glitch, kinetic text, metaphors) and close A-roll cameras; calm → A-roll and wide views (diorama, establishing voxel shots); B-roll proof (documents, charts, maps) on plateaus where the narration explains or proves.{{/world}}{{#world}}{{worldTensionLooks}}{{/world}}

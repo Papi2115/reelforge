@@ -214,7 +214,17 @@ function shotContent(
     // World assets (PLAN.md#13.15): every shot of a world may draw any of them; undefined
     // (left out) without any, so old keys stay valid.
     worldAssets: worldAssetInputs(manifest.worldAssets),
+    // Word-by-word captions (PLAN.md#13.18): the words drawn over this shot; undefined (left out)
+    // with captions off, so old keys stay valid.
+    captions: manifest.captions === true ? captionInputs(shot, manifest) : undefined,
   };
+}
+
+/** The words a captioned shot draws (text and times of the ones starting inside it). */
+export function captionInputs(shot: ManifestShot, manifest: RenderManifest): TimedWord[] {
+  return (manifest.words?.words ?? [])
+    .filter((word) => word.t >= shot.t0 && word.t < shot.t1)
+    .map((word) => ({ text: word.text, t: word.t, tEnd: word.tEnd }));
 }
 
 /** The world asset files' hashes (sorted by file), or undefined without a `worldAssets` field. */

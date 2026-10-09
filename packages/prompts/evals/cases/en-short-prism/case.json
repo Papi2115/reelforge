@@ -48,6 +48,7 @@
     "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Saved research.md: 8 sourced facts.\nUncertain: best angle depends on the glass.",
     "script": "Word count: 84. Estimated duration: about 34 seconds.\nAll claims are sourced.",
+    "short-script": "Word count: 75. Chosen hook: 1. Withheld: which colour bends the most and why.",
     "storyboard": "7 shots. Treatments: title-card, metaphor-object, 3d-reconstruction x2, data-chart-3d, kinetic-text, character-scene.\nMissing props: none.",
     "scene-build": "RED and VIOLET bend apart, violet lands on \"most\" with a pop.\nQA: lint 0 errors, frames 0/1.8/3.5 s, anchors within 30 ms.\nMISSING: `prism`",
     "scene-fix": "Bend now eases over the whole shot and finishes on \"most\".\nLint, frames and anchors re-checked.",
@@ -178,6 +179,40 @@
           "legible": false,
           "style": "ok",
           "note": "no defining shape at this size"
+        }
+      ]
+    },
+    "publish-seo": {
+      "title": "Make a Rainbow With a Glass of Water and a Flashlight",
+      "tags": {
+        "oneWord": ["rainbow", "prism", "refraction", "light", "science"],
+        "twoWord": [
+          "rainbow experiment",
+          "science explained",
+          "white light",
+          "light refraction",
+          "science experiment"
+        ],
+        "threeWord": [
+          "rainbow at home",
+          "how rainbows form",
+          "isaac newton prism",
+          "easy science experiments",
+          "physics explained simply"
+        ]
+      },
+      "chapters": [
+        {
+          "t": 0,
+          "title": "A Rainbow Experiment You Can Try at Home"
+        },
+        {
+          "t": 11.68,
+          "title": "Where the Tiny Rainbow Appears"
+        },
+        {
+          "t": 26.75,
+          "title": "Why Red and Violet Bend Differently"
         }
       ]
     }

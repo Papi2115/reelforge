@@ -10,7 +10,7 @@ import type { ComicCanvas } from '../draw/canvas.js';
 import { lerp, rndRange, seg } from '../draw/math.js';
 import { boil } from '../draw/shapes.js';
 import type { Place } from '../draw/place.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import type { PageSize } from '../style.js';
 
 /** A gutter line: vertical (x at the top and bottom of [y0, y1]) or horizontal (y at x0, x1). */
 interface Line {
@@ -32,12 +32,11 @@ export interface MergeGeometry {
   /** Lines each panel borders. */
   readonly borders: readonly (readonly number[])[];
   readonly offsets: readonly (readonly [number, number])[];
+  /** The page it is ruled on. */
+  readonly page: PageSize;
 }
 
-const W = PAGE_WIDTH;
-const H = PAGE_HEIGHT;
-
-function vx(line: Line, y: number): number {
+function vx(line: Line, y: number, H: number): number {
   return lerp(line.a, line.b, y / H);
 }
 
@@ -49,7 +48,9 @@ export function mergeGeometry(
   pieces: 'grid' | 'columns' | 'halves',
   fold: number,
   key: string,
+  page: PageSize,
 ): MergeGeometry {
+  const { width: W, height: H } = page;
   const r = (i: number, min: number, max: number) => rndRange(key, i, min, max);
   const lean = (i: number) => r(i, 2, 4) * (r(i + 1, 0, 1) < 0.5 ? -1 : 1);
   const vertical = (
@@ -70,9 +71,10 @@ export function mergeGeometry(
     const v2 = vertical(W * r(41, 0.64, 0.69), 52, 9, [0.2, 1]);
     return {
       lines: [v1, v2],
-      piece: (x, y) => (x < vx(v1, y) ? 0 : x < vx(v2, y) ? 1 : 2),
+      piece: (x, y) => (x < vx(v1, y, H) ? 0 : x < vx(v2, y, H) ? 1 : 2),
       borders: [[0], [0, 1], [1]],
       offsets,
+      page,
     };
   }
   const v1 =
@@ -88,24 +90,26 @@ export function mergeGeometry(
     kind: 'h',
     a: yh - tilt,
     b: yh + tilt,
-    from: pieces === 'halves' ? left : vx(v1, yh),
-    to: pieces === 'halves' ? right : vx(v2, yh),
+    from: pieces === 'halves' ? left : vx(v1, yh, H),
+    to: pieces === 'halves' ? right : vx(v2, yh, H),
     width: 10,
     close: [0, 0.46],
   };
   if (pieces === 'halves') {
     return {
       lines: [h, v1],
-      piece: (x, y) => (x < vx(v1, y) ? 0 : y < hy(h, x) ? 1 : 2),
+      piece: (x, y) => (x < vx(v1, y, H) ? 0 : y < hy(h, x) ? 1 : 2),
       borders: [[1], [0, 1], [0, 1]],
       offsets,
+      page,
     };
   }
   return {
     lines: [h, v1, v2],
-    piece: (x, y) => (x < vx(v1, y) ? 0 : x >= vx(v2, y) ? 3 : y < hy(h, x) ? 1 : 2),
+    piece: (x, y) => (x < vx(v1, y, H) ? 0 : x >= vx(v2, y, H) ? 3 : y < hy(h, x) ? 1 : 2),
     borders: [[1], [0, 1, 2], [0, 1, 2], [2]],
     offsets,
+    page,
   };
 }
 
@@ -151,6 +155,7 @@ export function drawMergeFurniture(geometry: MergeGeometry, frame: MergeFrame): 
   const gutters = geometry.lines
     .map((line, i) => ({ line, g: line.width * (1 - (closed[i] ?? 1)) }))
     .filter(({ g }) => g > 1.2);
+  const { width: W, height: H } = geometry.page;
   const [x0, y0, x1, y1] = [margin, margin, W - margin, H - margin];
   const band = (line: Line, g: number): number[] =>
     line.kind === 'v'

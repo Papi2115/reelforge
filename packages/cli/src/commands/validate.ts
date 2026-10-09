@@ -25,6 +25,8 @@ version) and checks them against each other (contiguous shots, scene files, styl
 asset ids the shots assign exist in assets.json). A world project (sketchbook, comic, game-b2,
 game-b1) also gets its world assets checked: assets/<world>/*.json in the world's format, ids
 unique, every asset id a scene uses defined (reelforge world-assets check lists them).
+A short also gets its cut rules checked (shot lengths, hook shot, cut rate, overall length); its
+end card (end_card) is added and written by the app.
 Exit code: 0 valid (warnings allowed), 1 errors found, 2 usage error.
 
 ${VALIDATE_LEVEL_USAGE}`;

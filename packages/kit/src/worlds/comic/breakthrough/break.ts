@@ -17,7 +17,7 @@ import type { createLetteringApi } from '../page/api-lettering.js';
 import type { Quad } from '../page/layouts.js';
 import type { ItemContext } from '../page/model.js';
 import { misFor, PanelModel } from '../page/panel.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import type { PageSize } from '../style.js';
 import { ENTER_DUR, poseAt, type PanelPlan, type ResolvedMove } from './break-motion.js';
 import { breakSchema, type BreakBox, type BreakSpec } from './break-schema.js';
 import { remapInside, SEPIA_SCREEN } from './flashback.js';
@@ -43,14 +43,14 @@ function boxOfQuad(quad: readonly number[]): BreakBox {
   return [x, y, Math.max(...xs) - x, Math.max(...ys) - y];
 }
 
-function checkBox(box: BreakBox, where: string): void {
+function checkBox(box: BreakBox, where: string, page: PageSize): void {
   const [x, y, w, h] = box;
   const inside =
-    x >= -BLEED && y >= -BLEED && x + w <= PAGE_WIDTH + BLEED && y + h <= PAGE_HEIGHT + BLEED;
+    x >= -BLEED && y >= -BLEED && x + w <= page.width + BLEED && y + h <= page.height + BLEED;
   if (!inside) {
     throw new KitError(
       'invalid-params',
-      `${where}: box [${box.map((v) => v.toFixed(0)).join(', ')}] must lie on the 640x360 page (a bleed may pass an edge by ${String(BLEED)} px)`,
+      `${where}: box [${box.map((v) => v.toFixed(0)).join(', ')}] must lie on the ${String(page.width)}x${String(page.height)} page (a bleed may pass an edge by ${String(BLEED)} px)`,
     );
   }
 }
@@ -65,7 +65,7 @@ function plans(ctx: ApiContext, o: BreakSpec, span: readonly [number, number], w
     if (box === undefined) {
       throw new KitError('invalid-params', `${here}: give box [x, y, w, h] or quad`);
     }
-    checkBox(box, here);
+    checkBox(box, here, ctx.model.page);
     const at = ctx.resolve(spec.at, span[0]);
     const until = ctx.resolve(spec.until, span[1]);
     if (at < span[0] - 1e-6 || until < at + 0.3) {
@@ -88,6 +88,7 @@ function plans(ctx: ApiContext, o: BreakSpec, span: readonly [number, number], w
       from: spec.from,
       dur,
       camera,
+      page: ctx.model.page,
     };
   });
 }
@@ -116,7 +117,8 @@ function resolveMoves(
           `${where} move ${String(i + 1)}: starts at ${at.toFixed(2)} s, before the break (${start.toFixed(2)} s)`,
         );
       }
-      if (move.to.box !== undefined) checkBox(move.to.box, `${where} move ${String(i + 1)}`);
+      if (move.to.box !== undefined)
+        checkBox(move.to.box, `${where} move ${String(i + 1)}`, ctx.model.page);
       return { targets, at, dur: move.dur, ease: move.ease, lag: move.lag, to: move.to };
     })
     .sort((a, b) => a.at - b.at);
@@ -230,7 +232,8 @@ export function createPanelBreak(ctx: ApiContext, lettering: Lettering) {
         mis: misFor(plan.key),
         screen: past ? SEPIA_SCREEN : undefined,
       };
-      const panel = new PanelModel((t: number) => pose(plan, t).quad as Quad, style, order);
+      const shape = (t: number) => pose(plan, t).quad as Quad;
+      const panel = new PanelModel(shape, style, order, ctx.model.page);
       model.panels.push(panel);
       const handle = createHandle(ctx, panel, `${where} panel '${plan.id}'`);
       handle.draw((g, t) => {
