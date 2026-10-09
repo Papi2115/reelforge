@@ -6,6 +6,7 @@
  */
 import { mkdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { explainNonAsciiFailure, runAsciiSafe, type AsciiScratchOptions } from './ascii-scratch.js';
 import type { WhisperModelSpec } from './assets.js';
 import type { WhisperAttemptFailure, WhisperError } from './errors.js';
 import { gpuAwarePlan, type Attempt } from './gpu-plan.js';
@@ -102,6 +103,8 @@ export interface TranscribeContext {
   readonly vadModelPath: string;
   readonly ffmpeg: AsrFfmpeg;
   readonly run: ProcessRunner;
+  /** Non-ASCII paths on Windows run in an ASCII scratch folder (see ascii-scratch.ts). */
+  readonly asciiScratch?: AsciiScratchOptions | undefined;
 }
 
 /** VAD max speech duration: longer speech runs are split so chunks stay under whisper's window. */
@@ -149,17 +152,12 @@ async function speechChunks(
   }
   const threads = String(options.threads ?? 4);
   // Without -np: the tool prints the segment list on stdout only when prints are enabled.
-  const vad = await ctx.run(
-    vadTool,
-    ['-vm', ctx.vadModelPath, '-f', wav, '-t', threads, '-vmsd', VAD_MAX_SPEECH_S],
-    { signal: options.signal },
-  );
+  const args = ['-vm', ctx.vadModelPath, '-f', wav, '-t', threads, '-vmsd', VAD_MAX_SPEECH_S];
+  const vad = await ctx.run(vadTool, args, { signal: options.signal });
   if (!vad.ok) {
-    return err(
-      vad.error.kind === 'cancelled'
-        ? { kind: 'cancelled', message: 'VAD cancelled' }
-        : { kind: 'process-failed', message: `VAD failed: ${vad.error.message}`, attempts: [] },
-    );
+    if (vad.error.kind === 'cancelled') return err({ kind: 'cancelled', message: 'VAD cancelled' });
+    const message = explainNonAsciiFailure(`VAD failed: ${vad.error.message}`, args);
+    return err({ kind: 'process-failed', message, attempts: [] });
   }
   const chunks = planChunks(parseVadSegments(vad.value.stdout), durationS, options.chunking);
   if (chunks.length === 0)
@@ -208,14 +206,15 @@ async function runWithFallback(
   for (let index = from; index < plan.length; index++) {
     const attempt = plan[index];
     if (attempt === undefined) continue;
-    const result = await ctx.run(attempt.install.cliPath, buildArgs(attempt), { signal });
+    const args = buildArgs(attempt);
+    const result = await ctx.run(attempt.install.cliPath, args, { signal });
     if (result.ok) return ok({ attemptIndex: index, output: result.value });
     if (result.error.kind === 'cancelled')
       return err({ kind: 'cancelled', message: 'transcription cancelled' });
     failures.push({
       backend: attempt.install.backend,
       gpu: !attempt.noGpu,
-      message: result.error.message,
+      message: explainNonAsciiFailure(result.error.message, args),
     });
   }
   return err({
@@ -290,13 +289,16 @@ async function readChunkWords(
   return ok(words);
 }
 
-/** Never throws: unexpected filesystem failures become an `io` error. */
+/**
+ * Never throws: unexpected filesystem failures become an `io` error. Non-ASCII project / model
+ * paths on Windows are handled by running in an ASCII scratch folder (runAsciiSafe).
+ */
 export async function transcribeChunked(
   ctx: TranscribeContext,
   options: TranscribeOptions,
 ): Promise<Result<WordsRaw, WhisperError>> {
   try {
-    return await transcribe(ctx, options);
+    return await runAsciiSafe(ctx, options, transcribe);
   } catch (error) {
     return err({
       kind: 'io',
