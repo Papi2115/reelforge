@@ -335,9 +335,10 @@ describe('WhisperManager.transcribe', () => {
     expect(result.ok && result.value).toMatchObject({ lang: 'auto', decodedLang: 'pl' });
     const [detect, decode] = whisperCalls();
     expect(detect?.args).toEqual(expect.arrayContaining(['-l', 'auto', '-dl']));
-    expect(detect?.args.filter((arg) => arg.endsWith('.wav'))).toEqual([
-      path.join(root, 'work', 'chunks', 'c001.wav'),
-    ]);
+    // On Windows the non-ASCII `root` runs in an ASCII scratch folder: compare the tail only.
+    const chunkArgs = detect?.args.filter((arg) => arg.endsWith('.wav')) ?? [];
+    expect(chunkArgs).toHaveLength(1);
+    expect(chunkArgs[0]?.endsWith(path.join('work', 'chunks', 'c001.wav'))).toBe(true);
     expect(decode?.args).toEqual(expect.arrayContaining(['-l', 'pl']));
   });
 
