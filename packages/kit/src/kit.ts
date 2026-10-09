@@ -45,7 +45,10 @@ export interface KitApi {
   readonly voxel: VoxelApi;
   readonly env: BoundRegistry<typeof ENV_DEFINITIONS>;
   readonly props: BoundRegistry<typeof PROP_DEFINITIONS>;
-  /** The catalog's effects and the app's own (APP_FX_DEFINITIONS: a short's end card). */
+  /**
+   * The catalog's effects, plus the app's own (APP_FX_DEFINITIONS: a short's end card) as
+   * non-enumerable members: callable, but not listed with the look's effects.
+   */
   readonly fx: BoundRegistry<typeof FX_DEFINITIONS> & BoundRegistry<typeof APP_FX_DEFINITIONS>;
   /** The character pack (mascots, cast, mannequin, role specs; voxel look). */
   readonly cast: CastApi;
@@ -100,6 +103,22 @@ export interface KitHandle {
 
 export { CAST_DEFINITIONS, ENV_DEFINITIONS, FX_DEFINITIONS, PROP_DEFINITIONS };
 
+/**
+ * Adds `hidden` to `target` as non-enumerable members: callable by name (`kit.fx.endCard`) but
+ * absent from every listing of the namespace (Object.keys, spreads), so the kit a look exposes
+ * stays exactly its catalog.
+ */
+function withHiddenMembers<Target extends object, Hidden extends object>(
+  target: Target,
+  hidden: Hidden,
+): Target & Hidden {
+  for (const [name, value] of Object.entries(hidden)) {
+    Object.defineProperty(target, name, { value, enumerable: false });
+  }
+  // defineProperty does not narrow the type: every member of `hidden` was just defined above.
+  return target as Target & Hidden;
+}
+
 export function createKit(options: KitOptions): KitHandle {
   const context = createKitContext(
     options.three,
@@ -128,11 +147,15 @@ export function createKit(options: KitOptions): KitHandle {
     ...bindRegistry(context, voxel, ENV_DEFINITIONS),
     ...bindRegistry(context, voxel, definitionsOf('env')),
   });
-  const fx: KitApi['fx'] = Object.freeze({
-    ...bindRegistry(context, voxel, FX_DEFINITIONS),
-    ...bindRegistry(context, voxel, definitionsOf('fx')),
-    ...bindRegistry(context, voxel, APP_FX_DEFINITIONS),
-  });
+  const fx: KitApi['fx'] = Object.freeze(
+    withHiddenMembers(
+      {
+        ...bindRegistry(context, voxel, FX_DEFINITIONS),
+        ...bindRegistry(context, voxel, definitionsOf('fx')),
+      },
+      bindRegistry(context, voxel, APP_FX_DEFINITIONS),
+    ),
+  );
   const cast = createCastApi(
     bindRegistry(context, voxel, castDefinitions(options.cast), 'cast'),
     options.cast,

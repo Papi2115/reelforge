@@ -28,7 +28,8 @@ const VOCABULARY = buildVocabulary([COMIC_NARRATION, COMIC_RESEARCH]);
 const ACCENT = parseHex(resolveStyle({ style: 'comic' }).palette.accent1);
 const SETUP = { vocabulary: VOCABULARY, spec: COMIC, accent: ACCENT };
 const EXAMPLES = [...comicExamples()];
-const GOLDENS = [...goldenFrames(/^look-comic-.*\.png$/)];
+// The landscape page goldens only: the portrait ones (shorts, PLAN.md#13.18) are not page layouts.
+const GOLDENS = [...goldenFrames(/^look-comic-(?!portrait-).*\.png$/)];
 
 function program(source: string) {
   const parsed = parseScene(source);

@@ -106,13 +106,15 @@ function snapshot(root: THREE.Object3D): string {
 
 describe('kit.fx registry', () => {
   it('registers every effect with catalog metadata and described params', () => {
-    // The app's own end card (PLAN.md#13.18) is bound last and never catalogued.
-    expect(Object.keys(voxelKit().api.fx)).toEqual([...FX_NAMES, 'endCard']);
+    // The app's own end card (PLAN.md#13.18) is callable but neither listed nor catalogued.
+    const voxelFx = voxelKit().api.fx;
+    expect(Object.keys(voxelFx)).toEqual(FX_NAMES);
+    expect(typeof voxelFx.endCard).toBe('function');
     const entries = kitCatalog([], [voxelLook]).fx;
     expect(entries.map((entry) => entry.name)).toEqual(FX_NAMES);
     // With every available look, the voxel kit comes first and the rest belong to other looks.
     const all = kitCatalog().fx;
-    expect(Object.keys(kit().api.fx)).toEqual([...all.map((entry) => entry.name), 'endCard']);
+    expect(Object.keys(kit().api.fx)).toEqual(all.map((entry) => entry.name));
     expect(all.slice(0, FX_NAMES.length)).toEqual(entries);
     for (const entry of all.slice(FX_NAMES.length))
       expect(entry.look, entry.name).not.toBe('voxel');
