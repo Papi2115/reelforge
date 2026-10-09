@@ -101,6 +101,8 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
   );
 
   const pool = new RenderPool(options.openTarget);
+  /** Messages of failures caused by a render window (not a scene): reported as `renderer`. */
+  const windowFailures = new Set<string>();
   try {
     const result = await exportVideo({
       projectDir,
@@ -108,7 +110,11 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
       manifest,
       identity: identity.value,
       media: createFfmpegMedia(ffmpeg.value, encoder.value),
-      createFrameSource: electronFrameSourceFactory(pool, options.signal),
+      createFrameSource: electronFrameSourceFactory(pool, {
+        signal: options.signal,
+        log,
+        onWindowFailure: (error) => windowFailures.add(error.message),
+      }),
       workers: request.workers ?? performance.workers,
       ...(request.preset === undefined ? {} : { preset: request.preset }),
       ...(request.thumbnailAt === undefined ? {} : { thumbnailAt: request.thumbnailAt }),
@@ -137,8 +143,10 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
     });
     if (!result.ok) {
       if (result.error.kind === 'cancelled') return { status: 'cancelled' };
-      log.warn(`export failed: ${result.error.kind}: ${result.error.message}`);
-      return failed(result.error.kind, result.error.message);
+      // A dead / unresponsive render window is not the scene's fault: its own hint (kind renderer).
+      const kind = windowFailures.has(result.error.message) ? 'renderer' : result.error.kind;
+      log.warn(`export failed: ${kind}: ${result.error.message}`);
+      return failed(kind, result.error.message);
     }
     const value = result.value;
     log.info(

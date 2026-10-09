@@ -72,7 +72,7 @@ describe('electronFrameSourceFactory', () => {
   it('drops a crashed window instead of reusing it', async () => {
     const targets = fakeTargets();
     const pool = new RenderPool(targets.open);
-    const source = electronFrameSourceFactory(pool)(0);
+    const source = electronFrameSourceFactory(pool, { windowRetries: 0 })(0);
     expect((await source.open(manifest('CRASH'), range)).ok).toBe(false);
     await source.close();
     const next = electronFrameSourceFactory(pool)(0);
@@ -86,12 +86,12 @@ describe('electronFrameSourceFactory', () => {
     const targets = fakeTargets();
     const pool = new RenderPool(targets.open);
     const controller = new AbortController();
-    const source = electronFrameSourceFactory(pool, controller.signal)(0);
+    const source = electronFrameSourceFactory(pool, { signal: controller.signal })(0);
     await source.open(manifest(), range);
     controller.abort();
     expect(targets.opened[0]?.closed).toBe(1);
     expect((await source.renderFrame(0)).ok).toBe(false);
-    const late = electronFrameSourceFactory(pool, controller.signal)(1);
+    const late = electronFrameSourceFactory(pool, { signal: controller.signal })(1);
     expect(await late.open(manifest(), range)).toMatchObject({
       ok: false,
       error: { kind: 'cancelled' },

@@ -140,7 +140,8 @@ const HINTS: Readonly<Record<string, string>> = {
   'frame-source':
     'A scene failed to render: open Scenes built, fix or rebuild that shot, then Resume.',
   'invalid-input': 'The project is not ready: run Storyboard and Scenes built first.',
-  renderer: 'The render windows did not start: restart the app, then Resume.',
+  renderer:
+    'The render window stopped responding or crashed (not the scene): Resume continues from the finished shots; if it repeats, lower "Export render workers" in Settings → Performance or restart the app.',
   io: 'Check that the folder is writable and the video is not open in a player, then Resume.',
   busy: 'Another export runs: it starts when that one finishes.',
   'no-project': 'Open the project again, then Resume.',
