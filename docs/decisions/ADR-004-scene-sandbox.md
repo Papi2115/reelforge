@@ -35,3 +35,12 @@ Inside the frame `seek(t)` is synchronous: sample timeline → `update()` the ac
 
 ## Tests / goldens
 `pnpm test` (unit, Node, no GPU) covers RNG, palette CPU reference, timeline mapping, anchors, scene contract and ctx. `pnpm test:render` runs Playwright headless-shell Chromium with `--use-angle=swiftshader --enable-unsafe-swiftshader` (renderer asserted to be SwiftShader) and compares with SwiftShader PNG goldens in `packages/engine/test/goldens/swiftshader/` (tolerance 0.2 % of pixels; `REELFORGE_UPDATE_GOLDENS=1` rewrites; diffs land in `packages/engine/out/golden-diff/`). Goldens were produced on Windows; Linux SwiftShader equality is expected but unverified until the first CI run.
+
+## Addendum (2026-10-10, spike PLAN.md#14.0): kit-side Canvas 2D rasters
+Measured in `docs/spikes/ccam-canvas.md`: a CPU-backed Canvas 2D inside the engine frame is bit-identical across seek order, fresh canvases/pages, SwiftShader and the Electron windows (GPU). Rules for any 2D canvas in the engine frame:
+- **Kit code only.** Scenes and project modules never get `document`, a canvas or `OffscreenCanvas` (the scene lint already rejects them); they draw through an API the kit hands them. The canvas, its texture and the quad are created by kit code in `build()`.
+- **CPU-backed only:** `getContext('2d', { willReadFrequently: true, alpha: false })` (`STAGE_CONTEXT_SETTINGS` in `packages/kit/src/fx/ink-stage.ts`). The default GPU-accelerated canvas is not reproducible.
+- **One canvas per stage, reset every frame:** `reset()` → opaque background → paint as a pure function of `t` → upload. No state survives between frames (no module state, no incremental drawing, no reading the previous frame), no scratch canvases or canvas-to-canvas `drawImage`.
+- **No text APIs** (`fillText`, `strokeText`, `measureText`, `font`): they reach system fonts (CSP blocks web fonts, not installed ones), which differ between machines and are unlicensed; lettering is drawn with strokes (ADR-005 spirit). **No `filter`, no `shadowBlur`, no images/`createImageBitmap`/`ImageData` from outside.**
+- **Upload** with `CanvasTexture` (`flipY = false`, nearest, no mipmaps, `NoColorSpace`) on a full-frame `ShaderMaterial` quad; the engine's 8-bit linear targets keep the pixels unchanged when the style does not quantize.
+- Goldens stay per backend (a Chromium/Skia upgrade may move AA edges).
