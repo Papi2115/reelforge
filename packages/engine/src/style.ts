@@ -40,7 +40,11 @@ export type ScanlineFx = NonNullable<StylePreset['scanlines']>;
 export type VignetteFx = NonNullable<StylePreset['vignette']>;
 
 export interface PostFxSettings {
-  readonly lut: PaletteLut;
+  /**
+   * Palette snap table of the final step. Undefined = full-colour style (preset `quantize: false`,
+   * PLAN.md#14.1): no dither offset and no palette snap, the composed colour is the output.
+   */
+  readonly lut: PaletteLut | undefined;
   readonly dither: DitherOptions;
   readonly outline: OutlineFx | undefined;
   readonly ao: AoFx | undefined;
@@ -54,7 +58,10 @@ export interface ResolvedStyle {
   readonly format: VideoFormat;
   readonly width: number;
   readonly height: number;
-  /** Quantization set (preset palette merged with the manifest overrides). */
+  /**
+   * Quantization set (preset palette merged with the manifest overrides). A full-colour style
+   * (`post.lut` undefined) keeps it for tokens, text, annotations and imported-asset stylizing.
+   */
   readonly swatches: Readonly<NamedPalette>;
   readonly palette: ScenePalette;
   readonly post: PostFxSettings;
@@ -155,7 +162,8 @@ export function resolveStyle(
     swatches,
     palette,
     post: {
-      lut: buildPaletteLut(paletteRgb(swatches)),
+      // Full-colour styles (`quantize: false`) have no snap table.
+      lut: preset.quantize === false ? undefined : buildPaletteLut(paletteRgb(swatches)),
       dither: { size: DITHER_SIZES[preset.dither.matrix], spread: preset.dither.spread },
       outline: outline && {
         color: hexToRgb(swatchHex(palette, outline.color)),

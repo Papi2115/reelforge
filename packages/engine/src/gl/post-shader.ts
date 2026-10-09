@@ -4,9 +4,10 @@
  * ordered-dither depth of field, bokeh-shader.ts) -> per-layer pixel text (overlay) ->
  * transition (A/B) -> vignette -> scanlines -> ordered dither -> palette LUT. Every step before the LUT only changes the input colour, so each
  * output pixel is a palette colour. CPU references: palette.ts (dither, LUT), style.ts (vignette,
- * scanlines).
+ * scanlines). Full-colour styles (`post.lut` undefined, preset `quantize: false`, PLAN.md#14.1)
+ * end after the scanlines: no dither offset, no LUT, the composed colour is the output.
  */
-import { bayerMatrix } from '../palette.js';
+import { bayerMatrix, type BayerSize, type DitherOptions, type PaletteLut } from '../palette.js';
 import type { PostFxSettings } from '../style.js';
 import { bokehSection } from './bokeh-shader.js';
 
@@ -172,13 +173,30 @@ export interface PostShaderOptions {
   readonly bokeh?: boolean;
 }
 
+function ditherTable(size: BayerSize): string {
+  const bayer = bayerMatrix(size).map(glslFloat).join(', ');
+  const cells = size * size;
+  return `const float BAYER[${String(cells)}] = float[${String(cells)}](${bayer});\n`;
+}
+
+/** Ordered dither offset, then the palette LUT snap (CPU reference: palette.ts ditherQuantize). */
+function quantizeStep(dither: DitherOptions, lut: PaletteLut): string {
+  const { size, spread } = dither;
+  const cells = size * size;
+  const levels = lut.levels;
+  return /* glsl */ `  float offset = ((BAYER[(p.y % ${String(size)}) * ${String(size)} + (p.x % ${String(size)})] + 0.5) / ${glslFloat(cells)} - 0.5) * ${glslFloat(spread)};
+  ivec3 cell = clamp(ivec3(floor((color + vec3(offset)) * ${glslFloat(levels)})), ivec3(0), ivec3(${String(levels - 1)}));
+  gl_FragColor = vec4(texelFetch(lut, cell, 0).rgb, 1.0);
+`;
+}
+
+/** Full-colour styles (no LUT): the composed colour is the output. */
+const FULL_COLOUR_STEP = '  gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);\n';
+
 export function postFragmentShader(post: PostFxSettings, options: PostShaderOptions = {}): string {
   const bokeh = options.bokeh === true && needsDepth(post);
   const focusUniforms = bokeh ? 'uniform vec2 focusA;\nuniform vec2 focusB;\n' : '';
-  const size = post.dither.size;
-  const bayer = bayerMatrix(size).map(glslFloat).join(', ');
-  const cells = size * size;
-  const levels = post.lut.levels;
+  const { lut } = post;
   const vignette = post.vignette ? '  color *= vignette(p);\n' : '';
   const scanline = post.scanlines ? '  color *= scanline(p);\n' : '';
   return /* glsl */ `
@@ -188,14 +206,12 @@ uniform sampler2D tA;
 uniform sampler2D tB;
 uniform sampler2D xA;
 uniform sampler2D xB;
-uniform highp sampler3D lut;
-uniform int mode;
+${lut ? 'uniform highp sampler3D lut;\n' : ''}uniform int mode;
 uniform float progress;
 uniform int seed;
 uniform int width;
 uniform int height;
-${focusUniforms}const float BAYER[${String(cells)}] = float[${String(cells)}](${bayer});
-${depthSection(post)}
+${focusUniforms}${lut ? ditherTable(post.dither.size) : ''}${depthSection(post)}
 ${shadeSection(post, bokeh)}
 ${COMPOSE_SECTION}
 ${screenSection(post)}
@@ -203,8 +219,5 @@ ${screenSection(post)}
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
   vec3 color = compose(p);
-${vignette}${scanline}  float offset = ((BAYER[(p.y % ${String(size)}) * ${String(size)} + (p.x % ${String(size)})] + 0.5) / ${glslFloat(cells)} - 0.5) * ${glslFloat(post.dither.spread)};
-  ivec3 cell = clamp(ivec3(floor((color + vec3(offset)) * ${glslFloat(levels)})), ivec3(0), ivec3(${String(levels - 1)}));
-  gl_FragColor = vec4(texelFetch(lut, cell, 0).rgb, 1.0);
-}`;
+${vignette}${scanline}${lut ? quantizeStep(post.dither, lut) : FULL_COLOUR_STEP}}`;
 }

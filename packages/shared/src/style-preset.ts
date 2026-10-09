@@ -1,7 +1,8 @@
 /**
  * Style presets (PLAN.md §4.1–4.2): render resolution, the palette every output pixel is snapped
- * to, semantic colour tokens for scenes, and the pixel-art post-fx settings. The engine ships its
- * presets as JSON (`packages/engine/src/presets/*.json`); a render manifest selects one by id.
+ * to (unless the preset sets `quantize: false`), semantic colour tokens for scenes, and the
+ * pixel-art post-fx settings. The engine ships its presets as JSON
+ * (`packages/engine/src/presets/*.json`); a render manifest selects one by id.
  */
 import { z } from 'zod';
 import { variationBudgetKeySchema, variationBudgetSchema } from './ambient-variation.js';
@@ -93,11 +94,17 @@ export const stylePresetSchema = z
     name: z.string().min(1),
     /** Low-res render target; must upscale by an integer factor to the export size. */
     resolution: z.object({ width: z.int().min(16).max(4096), height: z.int().min(16).max(4096) }),
-    /** Quantization set: every output pixel is one of these colours. */
+    /** Quantization set: every output pixel is one of these colours (unless `quantize: false`). */
     palette: paletteSchema,
     /** Semantic role -> swatch name. */
     tokens: z.record(z.enum(PALETTE_TOKENS), swatchNameSchema),
     dither: ditherSettingsSchema,
+    /**
+     * `false` = full-colour style (PLAN.md#14.1): the post pass does not snap output pixels to the
+     * palette and applies no dither offset; the palette (2..32 colours) only feeds the scene tokens,
+     * text and annotation colours. Absent or `true` = the palette snap of every pixel-art style.
+     */
+    quantize: z.boolean().optional(),
     outline: outlineSettingsSchema.optional(),
     ao: aoSettingsSchema.optional(),
     scanlines: scanlineSettingsSchema.optional(),

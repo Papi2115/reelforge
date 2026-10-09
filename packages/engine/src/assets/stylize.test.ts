@@ -17,13 +17,14 @@ import { TEST_CARD_HEIGHT, TEST_CARD_WIDTH, testCardRgb } from './testing/test-c
 
 const CARD: AssetSource = { width: TEST_CARD_WIDTH, height: TEST_CARD_HEIGHT, rgb: testCardRgb() };
 const STYLE = resolveStyle({});
+const LUT = buildPaletteLut(paletteRgb(STYLE.swatches));
 
 function options(overrides: Partial<StylizeOptions> = {}): StylizeOptions {
   return {
     width: 96,
     height: 64,
     crop: 'cover',
-    lut: STYLE.post.lut,
+    lut: LUT,
     dither: 0.5,
     ditherSize: 4,
     contrast: true,
@@ -109,7 +110,7 @@ describe('stylizeAsset', () => {
   it('maps every pixel to a palette colour of the LUT', () => {
     const { indices } = stylizeAsset(CARD, options());
     expect(indices.length).toBe(96 * 64);
-    const count = STYLE.post.lut.palette.length;
+    const count = LUT.palette.length;
     expect([...indices].every((index) => index < count)).toBe(true);
     expect(new Set(indices).size).toBeGreaterThan(8);
   });

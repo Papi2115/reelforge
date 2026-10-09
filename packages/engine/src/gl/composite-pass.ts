@@ -60,9 +60,12 @@ export interface CompositePass {
   dispose(): void;
 }
 
-function createLutTexture(post: PostFxSettings): Data3DTexture {
-  const { levels } = post.lut;
-  const texture = new Data3DTexture(lutTexels(post.lut), levels, levels, levels);
+/** The palette LUT texture; full-colour styles (`quantize: false`) have none. */
+function createLutTexture(post: PostFxSettings): Data3DTexture | null {
+  const { lut } = post;
+  if (lut === undefined) return null;
+  const { levels } = lut;
+  const texture = new Data3DTexture(lutTexels(lut), levels, levels, levels);
   texture.minFilter = NearestFilter;
   texture.magFilter = NearestFilter;
   texture.generateMipmaps = false;
@@ -152,7 +155,7 @@ export function createCompositePass(
       geometry.dispose();
       material.dispose();
       bokehMaterial?.dispose();
-      lut.dispose();
+      lut?.dispose();
     },
   };
 }

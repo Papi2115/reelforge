@@ -64,32 +64,43 @@ export function applyTone(
   applyPaletteShift(frame, width, map, Math.min(1, Math.abs(dim)), out);
 }
 
+/** Maps a 0xRRGGBB colour to its palette colour through the LUT, memoized in `cache`. */
+function paletteSnapper(lut: PaletteLut, cache: Map<number, number>): (rgb: number) => number {
+  const bytes = lut.palette.map((rgb) => rgb.map((channel) => Math.round(channel * 255)));
+  return (rgb) => {
+    let snapped = cache.get(rgb);
+    if (snapped === undefined) {
+      const r = (rgb >> 16) & 255;
+      const g = (rgb >> 8) & 255;
+      const b = rgb & 255;
+      const color = bytes[lutLookup(lut, [r / 255, g / 255, b / 255])] ?? [r, g, b];
+      snapped = ((color[0] ?? 0) << 16) | ((color[1] ?? 0) << 8) | (color[2] ?? 0);
+      cache.set(rgb, snapped);
+    }
+    return snapped;
+  };
+}
+
 /**
  * Draws the opaque pixels of an overlay surface (RGBA8, alpha 0 or 255) over `frame` in place,
- * each colour snapped through the style's palette LUT exactly like the GPU text composite.
+ * each colour snapped through the style's palette LUT exactly like the GPU text composite. Without
+ * a `lut` (full-colour style, preset `quantize: false`) the overlay colours are copied unchanged.
  */
 export function compositeOverlay(
   frame: Uint8Array,
   overlay: Uint8Array,
-  lut: PaletteLut,
+  lut: PaletteLut | undefined,
   snapCache: Map<number, number>,
 ): void {
-  const bytes = lut.palette.map((rgb) => rgb.map((channel) => Math.round(channel * 255)));
+  const snap = lut === undefined ? undefined : paletteSnapper(lut, snapCache);
   for (let offset = 0; offset < overlay.length; offset += 4) {
     if ((overlay[offset + 3] ?? 0) === 0) continue;
-    const r = overlay[offset] ?? 0;
-    const g = overlay[offset + 1] ?? 0;
-    const b = overlay[offset + 2] ?? 0;
-    const key = (r << 16) | (g << 8) | b;
-    let snapped = snapCache.get(key);
-    if (snapped === undefined) {
-      const color = bytes[lutLookup(lut, [r / 255, g / 255, b / 255])] ?? [r, g, b];
-      snapped = ((color[0] ?? 0) << 16) | ((color[1] ?? 0) << 8) | (color[2] ?? 0);
-      snapCache.set(key, snapped);
-    }
-    frame[offset] = (snapped >> 16) & 255;
-    frame[offset + 1] = (snapped >> 8) & 255;
-    frame[offset + 2] = snapped & 255;
+    const rgb =
+      ((overlay[offset] ?? 0) << 16) | ((overlay[offset + 1] ?? 0) << 8) | (overlay[offset + 2] ?? 0);
+    const color = snap === undefined ? rgb : snap(rgb);
+    frame[offset] = (color >> 16) & 255;
+    frame[offset + 1] = (color >> 8) & 255;
+    frame[offset + 2] = color & 255;
     frame[offset + 3] = 255;
   }
 }

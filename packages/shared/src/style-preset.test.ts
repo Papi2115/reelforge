@@ -35,6 +35,17 @@ describe('stylePresetSchema', () => {
     ).toEqual([]);
   });
 
+  it('accepts the quantize flag (absent = snap to the palette) and rejects non-booleans', () => {
+    expect(stylePresetSchema.parse(preset()).quantize).toBeUndefined();
+    expect(stylePresetSchema.parse(preset({ quantize: true })).quantize).toBe(true);
+    expect(stylePresetSchema.parse(preset({ quantize: false })).quantize).toBe(false);
+    expect(issueMessages({ ...(preset() as object), quantize: 'no' })).toHaveLength(1);
+  });
+
+  it('still needs a 2..32 colour palette for the tokens of a full-colour style', () => {
+    expect(issueMessages(preset({ quantize: false, palette: { ink: '#000000' } }))).toHaveLength(1);
+  });
+
   it('bounds the text safe-area margins', () => {
     expect(issueMessages(preset({ safeArea: { x: 0.3, y: 0.05 } }))).toHaveLength(1);
     expect(issueMessages(preset({ safeArea: { x: -0.1, y: 0.05 } }))).toHaveLength(1);
