@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Style 07 variant C + c-plus camera - Would You Survive as a Samurai in Peaceful Japan?</title>
+    <style>
+      body { margin: 0; background: #16130f; color: #cfc5a8; font: 14px/1.4 Georgia, serif; }
+      main { display: flex; flex-direction: column; align-items: center; padding: 10px 16px; gap: 8px; }
+      h1 { font-size: 15px; font-weight: normal; margin: 0; letter-spacing: 0.04em; }
+      h1 b { color: #c9a24a; }
+      canvas { display: block; background: #000; box-shadow: 0 0 0 1px #3a332a; }
+      .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+      button { background: #2b251e; color: #cfc5a8; border: 1px solid #4a4034; padding: 4px 10px; font: inherit; cursor: pointer; }
+      button.on { background: #5b3a22; border-color: #c9a24a; }
+      #scrub { width: min(70vw, 900px); }
+      #note, #keys { font-size: 12px; color: #a99f86; text-align: center; max-width: 1100px; }
+      a { color: #c9a24a; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>STYLE 07 &middot; VARIANT C <b>+ C-PLUS CAMERA</b> &middot; Would You Survive as a Samurai in Peaceful Japan?</h1>
+      <canvas id="frame" width="1920" height="1080"></canvas>
+      <div class="bar" id="shots"></div>
+      <div class="bar">
+        <button id="play">pause</button>
+        <input id="scrub" type="range" min="0" max="62" step="0.0416667" value="0" />
+        <span id="time">0.00 s</span>
+        <label><input id="loop" type="checkbox" /> loop</label>
+        <label><input id="captions" type="checkbox" checked /> narration</label>
+      </div>
+      <div id="note"></div>
+      <div id="keys">keys: space play/pause &middot; 1-9 jump to shot &middot; &uarr;/&darr; or N / P next / previous shot &middot; &larr;/&rarr; one frame &middot; C narration &middot; URL ?t=12.5&amp;paused=1&amp;captions=0 &middot; <a href="test.html">turnarounds (dev)</a></div>
+    </main>
+    <script src="js/core.js"></script>
+    <script src="js/brushes.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/face.js"></script>
+    <script src="js/grime.js"></script>
+    <script src="js/rig.js"></script>
+    <script src="js/poses.js"></script>
+    <script src="js/props.js"></script>
+    <script src="js/edo.js"></script>
+    <script src="js/cast/you.js"></script>
+    <script src="js/cast/merchant.js"></script>
+    <script src="js/cast/elder.js"></script>
+    <script src="js/cast/clerk.js"></script>
+    <script src="js/cast/keeper.js"></script>
+    <script src="js/cast/rival.js"></script>
+    <script src="js/cast/cat.js"></script>
+    <script src="js/cast/crowd.js"></script>
+    <script src="js/sets/sets-a.js"></script>
+    <script src="js/sets/sets-b.js"></script>
+    <script src="js/sets/sets-c.js"></script>
+    <script src="js/shots/shots-a.js"></script>
+    <script src="js/shots/shots-b.js"></script>
+    <script src="js/shots/shots-c.js"></script>
+    <script src="js/shots/shots-d.js"></script>
+    <script src="js/film.js"></script>
+    <script src="js/timeline.js"></script>
+    <script src="js/player.js"></script>
+  </body>
+</html>
