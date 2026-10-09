@@ -10,7 +10,7 @@ import type { AnchorHit } from '../contract.js';
 import { EngineError } from '../errors.js';
 import { hashString } from '../rng.js';
 import type { ScenePalette } from '../style.js';
-import { defaultLowerThirdScale, defaultTitleScale } from '../text/cards.js';
+import { defaultLowerThirdScale, defaultTitleScale, shortEdge } from '../text/cards.js';
 import { parseTextArgument } from '../text/options.js';
 import { hexToRgb8, type Rgb8, type TextSurface } from '../text/surface.js';
 import type { AnnotationTargetProbe, PixelRect, TextCard } from '../text/types.js';
@@ -259,15 +259,16 @@ export function createAnnotationLayer(options: AnnotationLayerOptions): Annotati
       camera: options.camera,
       cards: textCards,
     };
+    const edge = shortEdge({ width, height });
     const env: AnnotationEnv = {
       surface: options.surface,
       width,
       height,
       safeArea: options.safeArea,
       seed: hashString(`annotate:${item.id}`, options.seed),
-      stroke: Math.max(1, Math.round(height / 180)),
-      labelScale: defaultLowerThirdScale(height),
-      bigScale: defaultTitleScale(height),
+      stroke: Math.max(1, Math.round(edge / 180)),
+      labelScale: defaultLowerThirdScale(edge),
+      bigScale: defaultTitleScale(edge),
       phase,
       color: resolveColor(call, item.color, 'color'),
       outline: common.outline === false ? undefined : resolveColor(call, common.outline, 'outline'),

@@ -4,12 +4,14 @@
  * (one runner per project, never a second store), the app's Claude runner and account-wide
  * LimitGuard (the line pauses with the chat on a usage limit), the channel's ElevenLabs voice on
  * its own VoiceService instance, and an own render backend for the film being made (Claude's
- * `reelforge` commands and the export render that film, whichever project is open), the export
- * and publish kit of the app. The QueueService holds the one QueueRunner of the app.
+ * `reelforge` commands and the export render that film, whichever project is open), the export,
+ * the tags and timestamps (the export dialog's model, channel niche and commit) and the publish
+ * kit of the app. The QueueService holds the one QueueRunner of the app.
  */
 import path from 'node:path';
 import type { PipelineStateStore } from '@reelforge/claude-bridge';
 import { loadChannels } from '@reelforge/project';
+import { promptModel } from '@reelforge/prompts';
 import type { FfmpegManager } from '@reelforge/pipeline';
 import { QUEUES_DIR } from '@reelforge/shared';
 import {
@@ -30,6 +32,7 @@ import type { Logger } from '../logger.js';
 import type { RendererSource } from '../navigation-policy.js';
 import type { ManualCommit } from '../project-commits.js';
 import type { ProjectService } from '../project-service.js';
+import { seoChannelOf } from '../publish/seo-service.js';
 import { RenderBackend } from '../render/render-backend.js';
 import type { SettingsService } from '../settings-service.js';
 import { settingsFfmpeg } from '../sound/sound-backend.js';
@@ -160,6 +163,12 @@ export function createQueueBackend(options: QueueBackendOptions): QueueBackend {
           store: pipelineStore,
           log: log.child('export'),
         }),
+        publishSeo: {
+          model: () => promptModel('publish-seo', { economy: settings.get().economy }),
+          channel: (dir) => seoChannelOf(dir, options.channelsFile),
+          commit: async (dir, message, paths) =>
+            (await options.appCommit(dir, message, 'publish', paths)).ok,
+        },
         publishKit: linePublishStep({
           commit: async (dir, message, paths) =>
             (await options.appCommit(dir, message, 'publish', paths)).ok,

@@ -21,6 +21,7 @@ import {
   TEST_CLAUDE_LAUNCHER_ENV,
 } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { finishNewProject, goToStep, openNewProject } from './support/new-project.js';
 import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
@@ -67,8 +68,10 @@ afterAll(async () => {
 
 describe('experimental worlds', () => {
   it('offers no world until Settings turns the switch on', async () => {
-    const start = page.getByRole('region', { name: 'Start' });
-    const styles = start.getByRole('group', { name: 'Style' });
+    const wizard = await openNewProject(page);
+    await wizard.getByLabel('Video title').fill('Leap years');
+    await goToStep(wizard, 'Style');
+    const styles = wizard.getByRole('group', { name: 'Style' });
     await styles.getByRole('radio', { name: /^Voxel Pixel · Crisp 640/ }).waitFor();
     expect(await styles.getByRole('radio').count()).toBe(3);
     expect(await styles.getByRole('radio', { name: /^Voxel Pixel · Crisp 640/ }).isChecked()).toBe(
@@ -95,12 +98,14 @@ describe('experimental worlds', () => {
 
   it('creates a Sketchbook project with the world defaults', async () => {
     if (app === undefined) throw new Error('the app is not running');
-    const start = page.getByRole('region', { name: 'Start' });
-    const styles = start.getByRole('group', { name: 'Style' });
+    // The wizard of the previous test is still open at its Style step.
+    const wizard = page
+      .getByRole('region', { name: 'Start' })
+      .getByRole('region', { name: 'New project' });
+    const styles = wizard.getByRole('group', { name: 'Style' });
     const sketchbook = styles.getByRole('radio', { name: /^Sketchbook\s*preview/ });
     await sketchbook.waitFor();
     expect(await styles.getByRole('radio').count()).toBe(7);
-    await start.getByLabel('Video title').fill('Leap years');
     await sketchbook.check();
     await styles.getByText('Hand-drawn notebook: felt-tip pages, graph paper').waitFor();
     await styles.scrollIntoViewIfNeeded();
@@ -110,7 +115,7 @@ describe('experimental worlds', () => {
     await mkdir(parent);
     dir = path.join(parent, 'Leap years');
     await stubFolderPicker(app, parent);
-    await start.getByRole('button', { name: 'New project…' }).click();
+    await finishNewProject(wizard);
     await projectMenuButton(page).waitFor({ timeout: 30_000 });
     expect(await jsonFile(path.join(dir, 'project.json'))).toMatchObject({
       title: 'Leap years',

@@ -228,7 +228,12 @@ export async function runRenderFramesCli(
       args.scene !== undefined
         ? await sceneInputs(args, args.scene, cwd)
         : await manifestInputs(args.manifest ?? '', cwd);
-    inputs = { ...base, manifest: withPreset(base.manifest, args.preset, args.experimental) };
+    const styled = withPreset(base.manifest, args.preset, args.experimental);
+    // --format portrait renders the style upright (PLAN.md#13.18); absent keeps the manifest's.
+    inputs = {
+      ...base,
+      manifest: args.format === undefined ? styled : { ...styled, format: args.format },
+    };
   } catch (error) {
     if (!(error instanceof UsageError) && !(error instanceof Error && 'code' in error)) throw error;
     io.stderr(

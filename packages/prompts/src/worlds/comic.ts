@@ -39,6 +39,12 @@ const PACE: WorldPace = {
     'Match the transition to what the narration does: reading on to the next step, place or person = `comic-page-slide`; going down, deeper or further = `comic-page-scroll`; into a detail the narration names = `comic-panel-zoom` (focus on it); one thing crowding out another, pressure building = `comic-panel-push`; a sudden stop or a trap closing = `comic-gutter-collapse` (focus at its height); a hit or a loud beat = `comic-panel-slam`; two sides, a split or a choice = `comic-gutter-wipe` (focus on the cut); a new chapter = `comic-page-turn`; into the past = `comic-page-back`, back out of it = `comic-ink-bleed`',
 };
 
+/**
+ * A Comic short (PLAN.md#13.18): the page turns upright (360x640) and reads like a webtoon on a
+ * phone; rendered only inside the scene-build prompt's short section.
+ */
+const SHORT = `Comic in a short: the page is 360x640 (\`page.size\`, key content inside \`page.safe\`), read like a webtoon on a phone: stack the panels DOWN the page (e.g. ${snippet('portrait')}) with the presets 'splash' (one tall panel), '2-stack' / '3-stack' (beats in reading order), 'splash-strip' (a tall splash over two small panels) or 'stagger' (three offset panels zig-zagging down); the landscape presets stand upright on their own. At most 3 panels on the page, the focal one the biggest, its hero filling the width. \`page.flow\` reads \`down\` by default (a column the camera scrolls). Balloons and captions letter at size 2 by default: at most 6 words each, one or two per page, inside \`page.safe\` (the page nudges them in), the sound word and the hero inside it too. Between pages \`comic-page-scroll\` reads on down the phone. Details: \`reelforge kit-docs comicPage\` (its portrait note).`;
+
 export const COMIC_PROMPTS: WorldPromptText = {
   film: 'a printed comic-book video (every shot one comic page: hand-ruled panels, ink over off-register colour plates, halftone, balloons, captions and onomatopoeia)',
   brief:
@@ -78,4 +84,5 @@ export const COMIC_PROMPTS: WorldPromptText = {
     'a sudden page moment (e.g. "the page holds its breath on an almost empty panel, then CLANG slams across the frame", "a torn sepia strip of the past is pasted over the page"); never a camera move (no dolly zoom, orbit, rack focus or screen)',
   moments: COMIC_MOMENTS,
   pace: PACE,
+  short: SHORT,
 };

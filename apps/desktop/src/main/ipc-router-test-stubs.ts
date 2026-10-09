@@ -19,6 +19,7 @@ import type { ExportHandlers } from './export/export-ipc.js';
 import type { AssetsHandlers } from './assets/assets-ipc.js';
 import type { ChannelsHandlers } from './channels/channels-ipc.js';
 import type { ChannelsResult } from '../shared/channels-contract.js';
+import type { HomeHandlers } from './home/home-ipc.js';
 
 export type Listener = (event: IpcSenderEvent, payload: unknown) => unknown;
 
@@ -299,5 +300,22 @@ export function variantStubs(
     variantsRun: (request) => record(request, { status: 'queued', message: null } as const),
     variantsClip: (request) => record(request, { status: 'error', message: 'n/a' } as const),
     variantsManifest: (request) => record(request, { status: 'no-storyboard' } as const),
+  };
+}
+
+/** Home screen channels (PLAN.md#13.16). */
+export function homeStubs(record: <T>(request: unknown, response: T) => Promise<T>): HomeHandlers {
+  const ok = { status: 'ok' } as const;
+  return {
+    homeProjects: (request) => record(request, []),
+    homeOpen: (request) => record(request, opened),
+    homeShowFolder: (request) => record(request, ok),
+    homeRename: (request) => record(request, ok),
+    homeOverview: (request) => record(request, { status: 'error', message: 'n/a' } as const),
+    homeThumbnailUpload: (request) => record(request, { status: 'cancelled' } as const),
+    homeThumbnailRemove: (request) => record(request, { status: 'cancelled' } as const),
+    homeShowExport: (request) => record(request, ok),
+    homeShortsCreate: (request) => record(request, { status: 'ok' as const, shorts: [] }),
+    homeShortCaptions: (request) => record(request, ok),
   };
 }

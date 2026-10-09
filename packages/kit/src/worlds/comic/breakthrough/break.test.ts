@@ -14,7 +14,7 @@ import { createLetteringApi } from '../page/api-lettering.js';
 import { ComicPageModel } from '../page/model.js';
 import { misFor } from '../page/panel.js';
 import type { ComicPen } from '../page/pen.js';
-import { PAGE_WIDTH, PAGE_HEIGHT } from '../style.js';
+import { LANDSCAPE_PAGE, PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
 import { createPanelBreak } from './break.js';
 import { ENTER_DUR, poseAt, type PanelPlan } from './break-motion.js';
 import { BREAK_ENTERS, breakSchema, type BreakBox } from './break-schema.js';
@@ -61,7 +61,8 @@ function plan(box: BreakBox, enter: (typeof BREAK_ENTERS)[number], at = 1): Pane
   }).panels[0];
   if (spec === undefined) throw new Error('no panel');
   const dur = ENTER_DUR[enter];
-  return { id: 'a', key: 'k', spec, box, at, until: 9, enter, from: 'left', dur, camera: [] };
+  const page = LANDSCAPE_PAGE;
+  return { id: 'a', key: 'k', spec, box, at, until: 9, enter, from: 'left', dur, camera: [], page };
 }
 
 describe('page.panelBreak motion', () => {

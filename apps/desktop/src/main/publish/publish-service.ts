@@ -1,7 +1,8 @@
 /**
  * Publish kit of the open project (PLAN.md#12.17, ADR-016): reads the final storyboard, the
  * script, the YouTube suggestions (`out/metadata.json`) and the credits of the assets the scenes
- * use (`reelforge assets credits` logic), builds the four paste-ready texts with the pipeline's
+ * use (`reelforge assets credits` logic) and the SEO tags and chapters (`publish/seo.json`,
+ * PLAN.md#13.17, when written), builds the four paste-ready texts with the pipeline's
  * `buildPublishKit`, and on demand saves them under `publish/` (tracked) with a commit. Nothing is
  * uploaded anywhere. Electron-free.
  */
@@ -24,6 +25,8 @@ import {
 } from '@reelforge/pipeline';
 import {
   projectFileSchema,
+  PUBLISH_SEO_FILE,
+  publishSeoFileSchema,
   storyboardFileSchema,
   wordsFileSchema,
   youtubeMetaFileSchema,
@@ -130,12 +133,13 @@ export class PublishService {
     if (storyboard.status !== 'ok') {
       return { message: 'The publish kit needs a storyboard: run the Storyboard stage first.' };
     }
-    const [project, meta, script, credits, words] = await Promise.all([
+    const [project, meta, script, credits, words, seo] = await Promise.all([
       readProjectJson(dir, FILES.project, projectFileSchema),
       readProjectJson(dir, META_FILES.json, youtubeMetaFileSchema),
       readText(path.join(dir, FILES.script)),
       usedCredits(dir),
       readProjectJson(dir, FILES.words, wordsFileSchema),
+      readProjectJson(dir, PUBLISH_SEO_FILE, publishSeoFileSchema),
     ]);
     const { shots } = storyboard.data;
     const title = project.status === 'ok' ? project.data.title : path.basename(dir);
@@ -150,6 +154,7 @@ export class PublishService {
       credits,
       // Chapter titles from the narration at each chapter start (none yet: from shot intents).
       ...(words.status === 'ok' ? { words: words.data.words } : {}),
+      seo: seo.status === 'ok' ? seo.data : null,
     });
     const view: PublishKitView = {
       files: PUBLISH_FILES.map((name) => ({ name, text: kit.files[name] })),

@@ -54,7 +54,7 @@ const TAG = /\{\{[#/]?\w+\}\}/;
 
 describe('storyboard prompt without a range', () => {
   it('renders every section exactly as storyboard v12', () => {
-    expect(loadPrompt('storyboard').version).toBe(19);
+    expect(loadPrompt('storyboard').version).toBe(20);
     expect(rendered(FULL_VARS)).toBe(fixture('storyboard-standard-full.txt'));
     expect(rendered({ ...FULL_VARS, ...storyboardShotRangeVars(undefined, 642) })).toBe(
       fixture('storyboard-standard-full.txt'),

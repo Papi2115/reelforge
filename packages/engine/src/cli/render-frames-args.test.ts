@@ -24,6 +24,7 @@ describe('render:frames arguments', () => {
       times: [0, 2.5, 5],
       out: 'frames',
       preset: undefined,
+      format: undefined,
       words: undefined,
       duration: undefined,
       seed: undefined,
@@ -39,6 +40,11 @@ describe('render:frames arguments', () => {
       preset: 'test-world',
       experimental: true,
     });
+  });
+
+  it('parses --format (portrait renders, PLAN.md#13.18)', () => {
+    const argv = ['--scene', 'a.js', '--at', '1', '--format', 'portrait'];
+    expect(parseRenderFramesArgs(argv).format).toBe('portrait');
   });
 
   it('parses a manifest invocation with a preset and --no-lint', () => {
@@ -71,6 +77,7 @@ describe('render:frames arguments', () => {
     [['--scene', 'a.js', '--at', '1', '--seed', '1.5'], /--seed: "1.5" is not valid/],
     [['--manifest', 'v.json', '--at', '1', '--seed', '3'], /only apply to --scene/],
     [['--scene', 'a.js', '--at', '1', '--bogus'], /bogus/],
+    [['--scene', 'a.js', '--at', '1', '--format', 'square'], /--format: "square"/],
   ])('rejects %j', (argv, message) => {
     expect(() => parseRenderFramesArgs(argv)).toThrow(UsageError);
     expect(() => parseRenderFramesArgs(argv)).toThrow(message);

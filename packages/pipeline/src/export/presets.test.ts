@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { EXPORT_PRESET_IDS, isExportPresetId, resolveOutputScale } from './presets.js';
+import {
+  EXPORT_PRESET_IDS,
+  isExportPresetId,
+  orientedPreset,
+  resolveOutputScale,
+} from './presets.js';
 
 describe('resolveOutputScale', () => {
   it.each([
@@ -34,6 +39,26 @@ describe('resolveOutputScale', () => {
   it('rejects a different aspect ratio', () => {
     const scale = resolveOutputScale('1080p30', 640, 480);
     expect(!scale.ok && scale.error.kind).toBe('preset-mismatch');
+  });
+
+  it('turns the presets upright for a portrait render (PLAN.md#13.18)', () => {
+    const cases = [
+      ['1080p30', 1080, 1920, 3],
+      ['1440p', 1440, 2560, 4],
+      ['4k', 2160, 3840, 6],
+    ] as const;
+    for (const [id, width, height, factor] of cases) {
+      const scale = resolveOutputScale(id, 360, 640);
+      expect(scale.ok && scale.value).toMatchObject({
+        factor,
+        outputWidth: width,
+        outputHeight: height,
+        renderWidth: 360,
+        renderHeight: 640,
+      });
+    }
+    expect(orientedPreset('1080p30', 360, 640)).toMatchObject({ width: 1080, height: 1920 });
+    expect(orientedPreset('1080p30', 640, 360)).toMatchObject({ width: 1920, height: 1080 });
   });
 
   it('rejects invalid sizes', () => {

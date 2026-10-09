@@ -143,4 +143,13 @@ describe('kit-docs formatting', () => {
     expect(annotate).toContain('a definition / "what is X" -> callout');
     expect(describeKitName(catalog, 'ctx')).toContain('ctx.annotate');
   });
+
+  it('documents the portrait format (PLAN.md#13.18) as its own topic', () => {
+    const portrait = describeKitName(catalog, 'portrait');
+    expect(describeKitName(catalog, 'format')).toBe(portrait);
+    for (const part of ['"format": "portrait"', '360x640', '1080x1920', 'ctx.shot.aspect']) {
+      expect(portrait).toContain(part);
+    }
+    expect(describeKitName(catalog, 'ctx.shot')).toContain('kit-docs portrait');
+  });
 });

@@ -189,7 +189,7 @@ describe('QueueService', () => {
     }, WAIT);
     state = await idle(service);
     expect(items(state).map((item) => item.status)).toEqual(['done', 'needs-approval']);
-    expect(items(state)[0]).toMatchObject({ step: null, stepsDone: 15, stepsTotal: 15 });
+    expect(items(state)[0]).toMatchObject({ step: null, stepsDone: 16, stepsTotal: 16 });
     expect(notices.map((notice) => notice.title)).toContain('Film ready');
     expect(executor.ran).toContain('Sky:export');
     expect(executor.ran).not.toContain('Magnets:voiceover');

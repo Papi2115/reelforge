@@ -71,8 +71,18 @@ export const balloonSchema = z.object({
   tail: z.union([point, pointFn]).optional(),
   dots: z.union([point, pointFn]).optional(),
   pop: z.number().min(0.05).max(1).default(0.22),
-  size: z.int().min(1).max(3).default(1).describe('Lettering size (integer scale)'),
-  width: z.number().min(40).max(400).default(150),
+  size: z
+    .int()
+    .min(1)
+    .max(3)
+    .optional()
+    .describe('Lettering size (integer scale; default 1, 2 on a portrait page)'),
+  width: z
+    .number()
+    .min(40)
+    .max(400)
+    .optional()
+    .describe('Wrap width in page px at size 1 (default 150, 100 on a portrait page)'),
   on: z.unknown().optional(),
 });
 
@@ -83,7 +93,18 @@ export const captionSchema = z.object({
   until: whenParam.optional(),
   tilt: z.number().min(-4).max(4).default(0),
   fill: paint.default('yellowPale'),
-  width: z.number().min(40).max(600).default(220),
+  size: z
+    .int()
+    .min(1)
+    .max(3)
+    .optional()
+    .describe('Lettering size (integer scale; default 1, 2 on a portrait page)'),
+  width: z
+    .number()
+    .min(40)
+    .max(600)
+    .optional()
+    .describe('Wrap width in page px at size 1 (default 220, 120 on a portrait page)'),
   on: z.unknown().optional(),
   type: z
     .number()

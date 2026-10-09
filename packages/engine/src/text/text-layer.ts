@@ -13,6 +13,7 @@ import {
   renderKinetic,
   renderLowerThird,
   renderTitle,
+  shortEdge,
   type CardEnv,
   type CardResult,
 } from './cards.js';
@@ -137,7 +138,9 @@ export function createTextLayer(options: TextLayerOptions): TextLayer {
     const call = 'ctx.text.measure()';
     const parsed = parseTextArgument(measureStyleSchema, style ?? {}, call, shotId);
     const font = fontByName(parsed.font);
-    const scale = parsed.scale ?? (parsed.font === 'mono' ? 1 : defaultTitleScale(height));
+    const scale =
+      parsed.scale ??
+      (parsed.font === 'mono' ? 1 : defaultTitleScale(shortEdge({ width, height })));
     const maxPixels = parsed.maxWidth === undefined ? Infinity : parsed.maxWidth * width;
     const normalized = font.normalize(requireText(text, call, shotId));
     const layout = layoutText(normalized, font, Math.max(1, Math.floor(maxPixels / scale)));

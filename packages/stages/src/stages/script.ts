@@ -13,11 +13,13 @@ import {
 } from '@reelforge/prompts';
 import {
   genrePresetScriptTone,
+  isShort,
   SCRIPT_REPORT_VERSION,
   scriptReportSchema,
   type BriefFile,
 } from '@reelforge/shared';
 import { scriptDramaturgyVars } from '../dramaturgy.js';
+import { runShortScript } from '../shorts/script-step.js';
 import { activeWorld, scriptWorldPromptVars, worldScope } from '../worlds.js';
 import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES, REPORTS } from '../paths.js';
@@ -141,6 +143,11 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
   const { brief } = ctx.snapshot;
   if (brief.status !== 'ok' || brief.value.targetMinutes === undefined) {
     return err(stageError('not-ready', 'brief.json with a target length is required'));
+  }
+  // A short (PLAN.md#13.18): a teaser written from its film, no research turn.
+  const { project } = ctx.snapshot;
+  if (project.status === 'ok' && isShort(project.value)) {
+    return runShortScript(ctx, project.value, brief.value);
   }
   const targetMinutes = brief.value.targetMinutes;
   const targetWords = targetWordsFor(targetMinutes);

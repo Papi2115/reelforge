@@ -4,11 +4,13 @@
  * that cannot be built leaves a fallback and ⚠), then QA rounds by code and scene-fix turns with
  * the findings, at most `maxFixIterations`. The result is ✓ (clean), ⚠ (findings left, missing
  * props) or ✗ (lint/runtime error persisted, no scene).
- * `refineShot` is the same verify/fix loop, used by the whole-video review.
+ * `refineShot` is the same verify/fix loop, used by the whole-video review. A short's end card
+ * never gets a fix turn here, whoever asks (PLAN.md#13.18).
  */
 import { ok, type Result } from '@reelforge/claude-bridge';
 import { parseMissing, sceneCharacterVars } from '@reelforge/prompts';
 import {
+  isEndCardShot,
   SHOT_STATUS_SYMBOLS,
   type QaFinding,
   type ShotBuildRecord,
@@ -20,6 +22,7 @@ import { sceneContinuityVars } from '../continuity.js';
 import { sceneDramaturgyVars } from '../dramaturgy.js';
 import { readProjectText } from '../files.js';
 import { sceneLookVars } from '../looks.js';
+import { sceneShortPromptVars } from '../shorts/scene-checks.js';
 import { fixWorldPromptVars, sceneWorldPromptVars } from '../worlds.js';
 import { projectPropNames } from '../props/builder.js';
 import { provideSceneRoles } from '../roles/scene-roles.js';
@@ -33,34 +36,12 @@ import { researchExcerpt, shotFocus } from './research-excerpt.js';
 import { shotAssetVars } from './shot-assets.js';
 import { unknownKitCalls } from './source-checks.js';
 import { missingPropsOutcome } from './tools.js';
+import { variantFixHint, variantTag, variantVars, type ShotVariantBrief } from './variant-brief.js';
 
 /** Turn failures that end the shot (✗) instead of the whole stage. */
 const SHOT_LEVEL_FAILURES = new Set<StageError['kind']>(['claude', 'validation', 'invalid-input']);
 
-/**
- * One alternative version of a shot (PLAN.md#11.3): built from a creative direction into its own
- * file (the shot's `scene` passed to `buildShot` is that file), never into `scenes/`.
- */
-export interface ShotVariantBrief {
-  /** 1-based variant number. */
-  readonly index: number;
-  readonly direction: { readonly label: string; readonly brief: string };
-  /** The user's note for every variant. */
-  readonly note?: string | undefined;
-}
-
-function variantTag(variant: ShotVariantBrief | undefined): string {
-  return variant === undefined ? '' : ` v${String(variant.index)}`;
-}
-
-function variantVars(variant: ShotVariantBrief | undefined): Record<string, string> {
-  if (variant === undefined) return {};
-  return {
-    direction: `${variant.direction.label}. ${variant.direction.brief}`,
-    variantIndex: String(variant.index),
-    ...(variant.note === undefined || variant.note === '' ? {} : { variantNote: variant.note }),
-  };
-}
+export type { ShotVariantBrief } from './variant-brief.js';
 
 function shotWords(
   job: SceneJob,
@@ -132,6 +113,7 @@ async function buildTurn(
       ? {}
       : { newProps: newProps.map((name) => `kit.props.${name}`).join(', ') }),
     ...variantVars(variant),
+    ...sceneShortPromptVars(job.short), // a short's retention rules (PLAN.md#13.18)
     // Taste profile (PLAN.md#12.13), not for variants: they must stay genuinely different.
     ...(variant === undefined ? { tasteProfile: job.ctx.taste?.profile() } : {}),
   });
@@ -257,7 +239,8 @@ export async function refineShot(
   shot: StoryboardShot,
   options: RefineOptions,
 ): Promise<Result<ShotBuildRecord, StageError>> {
-  const max = job.settings.maxFixIterations;
+  // A short's end card (PLAN.md#13.18) is the app's: QA by code only, never a fix turn.
+  const max = isEndCardShot(shot) ? 0 : job.settings.maxFixIterations;
   const notes = [...(options.notes ?? [])];
   const asked: QaFinding[] = [];
   let fixes = 0;
@@ -331,10 +314,6 @@ async function provideProps(
   }
   job.ctx.step(`${shot.id}: building props ${names.join(', ')}`);
   return job.props.ensureNames(names, shot);
-}
-
-function variantFixHint(shot: StoryboardShot, variant: ShotVariantBrief): string {
-  return `This is variant ${String(variant.index)} of the shot: edit only \`${shot.scene}\` (never \`scenes/\`) and keep its creative direction (${variant.direction.label}).`;
 }
 
 /** Builds a shot (or, with `variant`, one alternative version into `shot.scene`) and QA's it. */

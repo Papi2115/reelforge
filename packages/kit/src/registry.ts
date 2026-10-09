@@ -4,7 +4,7 @@
  * kit-docs the runtime Claude reads (PLAN.md#3.3), and calls are validated against the schema.
  */
 import { z } from 'zod';
-import type { KitContext, KitMaterials } from './context.js';
+import type { KitContext, KitFrame, KitMaterials } from './context.js';
 import { KitError } from './errors.js';
 import { isKitObject, type Disposable, type KitObject, type Three } from './object.js';
 import type { KitPalette, KitRng } from './types.js';
@@ -61,6 +61,11 @@ export interface KitTools {
    * they support (tones of their default colours, horizon, density, debris, light turn, layout).
    */
   readonly variation?: AmbientVariation | undefined;
+  /**
+   * Frame size of the shot in px (PLAN.md#13.18: a portrait short is taller than wide); absent
+   * outside the engine. Full-frame 2D pages (Comic) lay themselves out for it.
+   */
+  readonly frame?: KitFrame | undefined;
   /** Shared kit materials (flat Lambert / unlit, vertex or instance colours). */
   materials(): KitMaterials;
   /** Registers a geometry/material/texture so the kit instance frees it on dispose(). */
@@ -169,6 +174,7 @@ export function bindRegistry<const Definitions extends readonly KitDefinition[]>
         voxel,
         rng,
         variation: context.variation,
+        frame: context.frame,
         materials: () => context.materials(),
         track: (resource) => context.track(resource),
       });

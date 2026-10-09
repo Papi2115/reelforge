@@ -16,6 +16,7 @@ import {
   type StoryboardShot,
   type SyncReport,
   castRoleFile,
+  isEndCardShot,
 } from '@reelforge/shared';
 import { FILES } from '../paths.js';
 import { buildStoryboardProps } from '../props/storyboard-props.js';
@@ -28,6 +29,7 @@ import { finalReview, finalReviewWarnings } from '../scenes/final-review.js';
 import { reviewVideo, type ReviewOutcome } from '../scenes/review.js';
 import { runShotJobs } from '../scenes/run-shots.js';
 import { buildShot } from '../scenes/shot-job.js';
+import { buildEndCard, isAppEndCard } from '../shorts/end-card-step.js';
 import { dismissVariants, pickVariant } from '../variants/decide.js';
 import { generateVariants } from '../variants/generate.js';
 import { ensureWorldAssets } from '../world-assets/builder.js';
@@ -152,7 +154,8 @@ async function build(
     shots: unlocked,
     resume: shots === undefined,
     verb: 'built',
-    work: (shot) => buildShot(job, shot),
+    // A short's end card (PLAN.md#13.18) is written by the app, never by a Claude turn.
+    work: (shot) => (isAppEndCard(job, shot) ? buildEndCard(job, shot) : buildShot(job, shot)),
   });
   if (!ran.ok) return ran;
   const ids = [...ran.value.skipped, ...ran.value.ran];
@@ -256,8 +259,10 @@ async function review(
   const selected = selectShots(job, shots);
   if (!selected.ok) return selected;
   const { unlocked, locked } = splitLocked(job, selected.value);
-  // The sync check reports locked shots too (never fixes them); the other modes skip them.
-  const outcome = await reviewVideo(job, mode, mode === 'sync-check' ? selected.value : unlocked);
+  // The sync check reports locked shots too (never fixes them); the other modes skip them and a
+  // short's end card (PLAN.md#13.18: the app's, no triage or fix turn).
+  const reviewed = unlocked.filter((shot) => !isEndCardShot(shot));
+  const outcome = await reviewVideo(job, mode, mode === 'sync-check' ? selected.value : reviewed);
   if (!outcome.ok) return outcome;
   const records = await recordsOf(job.ctx, outcome.value.fixed);
   if (!records.ok) return records;

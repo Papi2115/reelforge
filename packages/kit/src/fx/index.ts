@@ -3,6 +3,7 @@ import type { KitDefinition } from '../registry.js';
 import { bars3d } from './bars.js';
 import { counter } from './counter.js';
 import { dissolve } from './dissolve.js';
+import { endCard } from './end-card.js';
 import { flicker } from './flicker.js';
 import { glitch } from './glitch.js';
 import { label3d } from './label.js';
@@ -28,6 +29,12 @@ export const FX_DEFINITIONS = [
   screenGlitch,
   label3d,
 ] as const satisfies readonly KitDefinition[];
+
+/**
+ * Effects the app itself uses in scenes it writes (a short's end card, PLAN.md#13.18): bound in
+ * every kit like the others, but not in the catalog or kit-docs (never offered to Claude).
+ */
+export const APP_FX_DEFINITIONS = [endCard] as const satisfies readonly KitDefinition[];
 
 export type { FxMethods, FxObject, LevelFxMethods, LevelFxObject } from './shared.js';
 export { glitchPixels, textPixels, type ScreenPixels } from './screen.js';

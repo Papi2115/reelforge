@@ -13,6 +13,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CLAUDE_SEARCH_DIR_ENV, settingsFile } from '../src/main/app-paths.js';
 import { launchApp, screenshotDir } from './support/electron-app.js';
+import { openMoreOptions, openNewProject } from './support/new-project.js';
 
 const realClaude = await checkConnection({ timeoutMs: 20_000 });
 
@@ -162,9 +163,11 @@ describe('settings', () => {
     await page.getByRole('region', { name: 'Start' }).waitFor();
     expect(await page.getByRole('dialog', { name: 'Connect Claude' }).count()).toBe(0);
     await page.getByText('Economy mode: Sonnet only').waitFor();
-    await expect
-      .poll(() => page.getByRole('region', { name: 'Start' }).getByLabel('Language').inputValue())
-      .toBe('pl');
+    // New project → the last step's More options starts in the language of the settings.
+    const wizard = await openNewProject(page);
+    await wizard.getByLabel('Video title').fill('Język');
+    await openMoreOptions(wizard);
+    await expect.poll(() => wizard.getByLabel('Language').inputValue()).toBe('pl');
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     const reopened = page.getByRole('dialog', { name: 'Settings' });
     await reopened.getByRole('tab', { name: 'Models' }).click();

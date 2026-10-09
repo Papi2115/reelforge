@@ -42,6 +42,7 @@
     "assets": "Proposed 1 candidate for the user to review (assets propose).",
     "research": "Zapisano research.md: 9 faktów ze źródłami.\nGłówne źródła: Wikipedia (AGC, Apollo 11).\nNiepewne: porównanie mocy telefonu i AGC.",
     "script": "Liczba słów: 71. Szacowany czas: ok. 30 sekund.\nWszystkie fakty mają źródła w research.md.",
+    "short-script": "Liczba słów: 67. Wybrany hook: 1. Wstrzymane: jak komputer przetrwał restart.",
     "storyboard": "7 ujęć. Treatmenty: title-card, 3d-reconstruction, ui-mockup, counter/odometer, node-graph/timeline, kinetic-text, character-scene.\nBrakujące propsy: dsky-panel, saturn-v.",
     "scene-build": "Licznik taktowania rośnie do 1024 kHz i staje na \"jednego megaherca\".\nQA: lint 0 błędów, klatki 0/3/6 s obejrzane, anchory w 60 ms.\nMISSING: none",
     "scene-fix": "Przesunąłem napis 1 MHZ o 12 % w lewo, mieści się w safe area.\nLint i klatki 0/3/5.9 s ponownie sprawdzone.",
@@ -175,6 +176,40 @@
           "legible": false,
           "style": "ok",
           "note": "no defining shape at this size"
+        }
+      ]
+    },
+    "publish-seo": {
+      "title": "The Apollo Guidance Computer and Its 4 KB of Memory",
+      "tags": {
+        "oneWord": ["apollo", "nasa", "computing", "engineering", "history"],
+        "twoWord": [
+          "apollo computer",
+          "history explained",
+          "moon landing",
+          "space history",
+          "computer history"
+        ],
+        "threeWord": [
+          "apollo guidance computer",
+          "how apollo landed",
+          "history of computing",
+          "space race history",
+          "engineering history explained"
+        ]
+      },
+      "chapters": [
+        {
+          "t": 0,
+          "title": "More Power in Your Pocket Than Apollo Had"
+        },
+        {
+          "t": 11.11,
+          "title": "The Apollo Computer and Its 4 KB"
+        },
+        {
+          "t": 21.43,
+          "title": "How Apollo Restarted While Landing"
         }
       ]
     }

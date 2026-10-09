@@ -1,0 +1,181 @@
+/* The project overview (PLAN.md#13.16 part B) and Home → Shorts (PLAN.md#13.18): a scrollable full
+   screen of panels in the Home look; the Short wizard reuses wizard/wizard.css. */
+.project-overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  height: 100%;
+  padding: var(--space-6) 32px;
+  overflow-y: auto;
+}
+
+.overview-header {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.overview-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.overview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.overview-status {
+  margin: 0;
+  color: var(--accent-text);
+}
+
+/* Phase, thumbnail / Short settings and facts side by side when there is room. */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: start;
+  gap: var(--space-5);
+}
+
+.overview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  background: var(--panel);
+}
+
+.overview-panel-title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.overview-subtitle {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.overview-note,
+.overview-sentence {
+  margin: 0;
+}
+
+.overview-warning {
+  margin: 0;
+  color: var(--warn);
+  font-size: var(--text-sm);
+}
+
+.overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.overview-phase .progress-strip {
+  flex-wrap: wrap;
+}
+
+.progress-state {
+  font-size: var(--text-xs);
+}
+
+.overview-needs-you ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+
+.overview-thumbnail .card-picture {
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+}
+
+.overview-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.overview-facts dt {
+  color: var(--muted);
+}
+
+.overview-facts dd {
+  margin: 0;
+}
+
+.overview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.overview-details summary {
+  cursor: pointer;
+}
+
+.overview-details p {
+  margin: var(--space-2) 0 0;
+}
+
+/* A film's Shorts in its overview */
+.overview-shorts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.overview-short {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2);
+  background: var(--panel-raised);
+}
+
+.overview-short > .card-picture {
+  width: 72px;
+}
+
+.overview-short-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Home → Shorts */
+.shorts-group-heading {
+  gap: var(--space-4);
+}
+
+.short-film {
+  align-items: center;
+}
+
+.short-film > .card-picture {
+  flex-shrink: 0;
+  width: 96px;
+}

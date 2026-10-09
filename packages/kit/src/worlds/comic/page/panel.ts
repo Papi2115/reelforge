@@ -7,7 +7,7 @@
 import { lerp, rndInt, seg, track, type EaseName } from '../draw/math.js';
 import type { Screen } from '../draw/paint.js';
 import { Place } from '../draw/place.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import { LANDSCAPE_PAGE, type PageSize } from '../style.js';
 import type { ComicPen } from './pen.js';
 import type { Quad } from './layouts.js';
 
@@ -103,6 +103,8 @@ export class PanelModel {
     private readonly shape: Quad | ((t: number) => Quad),
     readonly style: PanelStyle,
     order: number,
+    /** The page it sits on (a slide starts just off it). */
+    private readonly page: PageSize = LANDSCAPE_PAGE,
   ) {
     this.order = order;
   }
@@ -165,9 +167,9 @@ export class PanelModel {
       const ys = quad.filter((_, i) => i % 2 === 1);
       const distance = {
         left: -(Math.max(...xs) + 4),
-        right: PAGE_WIDTH - Math.min(...xs) + 4,
+        right: this.page.width - Math.min(...xs) + 4,
         top: -(Math.max(...ys) + 4),
-        bottom: PAGE_HEIGHT - Math.min(...ys) + 4,
+        bottom: this.page.height - Math.min(...ys) + 4,
       }[enter.from];
       const horizontal = enter.from === 'left' || enter.from === 'right';
       const d = distance * rest;

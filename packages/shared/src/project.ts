@@ -20,6 +20,8 @@ import { characterModeSchema, mascotChoiceSchema } from './characters.js';
 import { repetitionControlModeSchema } from './repetition.js';
 import { dramaturgyModeSchema } from './dramaturgy.js';
 import { tensionMapModeSchema } from './tension.js';
+import { videoFormatSchema } from './video-format.js';
+import { parentProjectSchema, projectKindSchema, shortSettingsSchema } from './shorts.js';
 
 export const PROJECT_FILE_VERSION = 1;
 export const BRIEF_FILE_VERSION = 1;
@@ -140,6 +142,18 @@ export const projectFileSchema = z.object({
    * Absent = none (projects made before 3.1 and projects without a preset are unchanged).
    */
   genrePreset: genrePresetIdSchema.optional(),
+  /**
+   * Video format (PLAN.md#13.18, video-format.ts): `portrait` renders 9:16 (360x640 base,
+   * 1080x1920 export). Absent = `landscape` (every project made before Shorts is unchanged).
+   */
+  format: videoFormatSchema.optional(),
+  /**
+   * Film or short (PLAN.md#13.18, shorts.ts). Absent = `film` (every project made before Shorts).
+   * A short also has `parentProject` (the film it teases) and `short` (length, captions, end card).
+   */
+  kind: projectKindSchema.optional(),
+  parentProject: parentProjectSchema.optional(),
+  short: shortSettingsSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

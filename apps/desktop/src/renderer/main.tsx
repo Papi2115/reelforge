@@ -36,6 +36,10 @@ import './settings/taste.css';
 import './options/options.css';
 import './director/director.css';
 import './channels/channels.css';
+import './home/home.css';
+import './home/cards.css';
+import './home/overview.css';
+import './wizard/wizard.css';
 
 // The CSP forbids eval; skip zod's `new Function` probe.
 z.config({ jitless: true });

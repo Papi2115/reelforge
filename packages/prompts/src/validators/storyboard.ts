@@ -18,8 +18,10 @@ import {
   storyboardFileSchema,
   type LookMode,
   type ShotsPerMinute,
+  type StoryboardShot,
   type TensionFile,
   type WordsFile,
+  withoutEndCard,
 } from '@reelforge/shared';
 import { z } from 'zod';
 import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
@@ -29,6 +31,7 @@ import { checkContinuity } from './continuity.js';
 import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
 import { offensiveJsonIssues } from './offensive.js';
 import {
+  issue,
   parseJsonText,
   report,
   schemaIssues,
@@ -37,6 +40,11 @@ import {
 } from './issues.js';
 import { checkLookRhythm, DEFAULT_LOOK_RHYTHM_RULES, type LookRhythmRules } from './rhythm.js';
 import { checkShotRange } from './shot-range.js';
+import {
+  checkShortStoryboard,
+  SHORT_STORYBOARD_RULES,
+  type ShortStoryboardOptions,
+} from './short.js';
 import {
   identityIssues,
   timelineIssues,
@@ -139,6 +147,11 @@ export interface StoryboardCheckOptions {
    * checks exactly as before presets).
    */
   readonly wowScale?: number;
+  /**
+   * A short (PLAN.md#13.18): its shot length rules and the retention checks (short.ts). Absent =
+   * a film (the checks exactly as before).
+   */
+  readonly short?: ShortStoryboardOptions;
 }
 
 /** Storyboard rules of a range (`StoryboardCheckOptions.rules` still win over them). */
@@ -151,6 +164,23 @@ export function shotRangeStoryboardRules(range: ShotsPerMinute): Partial<Storybo
     typicalMaxShotS: derived.typicalMaxShotS,
     maxPatternS: derived.maxPatternS,
   };
+}
+
+/** An end card anywhere but at the end (the stage appends it last). */
+function endCardIssues(
+  narration: readonly { readonly endCard?: boolean | undefined }[],
+): ValidationIssue[] {
+  const index = narration.findIndex((shot) => shot.endCard === true);
+  return index === -1
+    ? []
+    : [
+        issue(
+          'error',
+          'end-card-position',
+          'the end card must be the last shot',
+          `shots[${String(index)}]`,
+        ),
+      ];
 }
 
 /** Rule checks on an already parsed storyboard. */
@@ -176,9 +206,12 @@ export function checkStoryboard(
             ? {}
             : { transitionEveryS: options.worldVariety.pace.transitionEveryS }),
         }),
+    ...(options.short === undefined ? {} : SHORT_STORYBOARD_RULES),
     ...options.rules,
   };
-  const { shots } = applyContinuityTransitions(storyboard.shots);
+  // A short's end card (built by the stage, PLAN.md#13.18) is never checked; films have none.
+  const narration = withoutEndCard(storyboard.shots);
+  const { shots } = applyContinuityTransitions(narration);
   return [
     ...timelineIssues(shots, rules),
     ...treatmentIssues(shots, rules, ranged),
@@ -223,8 +256,28 @@ export function checkStoryboard(
     ...checkWorldPace(shots, options.worldVariety?.pace),
     ...(options.characters === undefined
       ? []
-      : checkCharacters(storyboard, options.words, options.characters)),
+      : checkCharacters({ ...storyboard, shots: narration }, options.words, options.characters)),
+    ...(options.short === undefined ? [] : checkShortStoryboard(shots, options.short)),
+    ...endCardIssues(narration),
     ...offensiveJsonIssues(storyboard),
+  ];
+}
+
+/**
+ * A short's cut rules alone (PLAN.md#13.18), for `reelforge validate`: the short's shot lengths,
+ * its retention editing (hook shot, cut rate, overall length) and the end card's place; the
+ * trailing end card itself is exempt. The Storyboard stage runs them inside `checkStoryboard`.
+ */
+export function checkShortCuts(
+  shots: readonly StoryboardShot[],
+  options: ShortStoryboardOptions,
+): ValidationIssue[] {
+  const narration = withoutEndCard(shots);
+  const rules = { ...DEFAULT_STORYBOARD_RULES, ...SHORT_STORYBOARD_RULES };
+  return [
+    ...timelineIssues(narration, rules).filter((entry) => entry.code === 'shot-length'),
+    ...checkShortStoryboard(narration, options),
+    ...endCardIssues(narration),
   ];
 }
 

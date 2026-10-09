@@ -32,6 +32,21 @@ same second if there is one, else the first clause of the first shot's intent, a
 
 A film without a valid split (e.g. the 30 s example project) gets no chapters and the reason.
 
+### Tags and timestamps (PLAN 13.17)
+
+The section above the texts writes `publish/seo.json` (tracked, committed): exactly 5 one-word,
+5 two-word and 5 three-word tags (the film's own subject plus umbrella phrases of the channel's
+niche: its genre preset, default tags, name and notes) and 5–8 chapter timestamps (fewer only when
+the cuts of a short film allow no 5 chapters of 10 s; none under ~30 s). One Sonnet turn
+(`publish-seo` prompt, read-only, no web) picks chapter starts from the film's cuts, given with the
+narration spoken there; the reply is checked (word counts, duplicates, offensive words, YouTube's
+chapter rules, no bare "Intro") and gets one repair turn. Without Claude, or when the answer stays
+invalid, a deterministic version (script keywords + the channel's phrases, the storyboard chapter
+plan) is written instead. While the file still fits the film, `tags.txt` holds its 15 tags (the
+three lists interleaved, most important first) and `chapters.txt` / the description its chapters;
+otherwise the kit uses its own and warns "regenerate". The production line writes the file by
+itself after the export, before the kit (docs/production-line.md; never for shorts).
+
 ### Credits and unverified licences
 
 Only assets that a scene module or `storyboard.json` names are credited; your own files never are.

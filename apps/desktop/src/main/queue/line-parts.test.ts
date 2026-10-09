@@ -70,7 +70,7 @@ describe('queue views', () => {
       message: 'Approve the script.',
       targetMinutes: 6,
       stepsDone: 3,
-      stepsTotal: 15,
+      stepsTotal: 16,
       live: null,
     });
     const failed = item({

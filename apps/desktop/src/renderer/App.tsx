@@ -1,26 +1,25 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
-import type { ShotsPerMinute } from '@reelforge/shared';
+import type { HomeProject } from '../shared/home-contract.js';
 import type { AppInfo } from '../shared/ipc-contract.js';
 import type { ProjectSummary } from '../shared/project-contract.js';
 import { ChannelDot } from './channels/ChannelBadge.js';
-import { channelOf, showChannels, type ChannelList } from './channels/channel-view.js';
+import { channelOf, showChannels } from './channels/channel-view.js';
 import { useChannels } from './channels/use-channels.js';
+import { HomeScreen } from './home/HomeScreen.js';
+import type { OpenTarget } from './home/ProjectCard.js';
+import { ProjectOverview } from './home/ProjectOverview.js';
 import { projectMeta } from './layout/header-view.js';
 import { ProjectMenu } from './layout/ProjectMenu.js';
 import { StatusBar } from './layout/StatusBar.js';
 import { useAppShortcut } from './layout/use-app-shortcut.js';
 import { Workspace } from './layout/Workspace.js';
 import { errorMessage, rendererLog } from './log.js';
-import { PreviewPanel } from './preview/PreviewPanel.js';
-import { usePlayer } from './preview/use-player.js';
 import { GuidedTour } from './onboarding/GuidedTour.js';
 import { HelpDialogs, type HelpDialogKind } from './onboarding/HelpDialogs.js';
 import { HelpMenu } from './onboarding/HelpMenu.js';
 import { WelcomeScreen } from './onboarding/WelcomeScreen.js';
 import { HistoryDrawer } from './project/HistoryDrawer.js';
-import { OpenRecovery } from './project/OpenRecovery.js';
 import { ProjectSettingsDialog } from './project/ProjectSettingsDialog.js';
-import { StartScreen } from './project/StartScreen.js';
 import { FirstRunGate } from './settings/FirstRunGate.js';
 import { OpenSettingsContext, type SettingsRequest } from './settings/open-settings.js';
 import { useTitleFont } from './settings/PixelTitles.js';
@@ -35,50 +34,19 @@ import { useProductionLine } from './queue/use-production-line.js';
 import type { QueueItemRef, QueueOpenPanel } from '../shared/queue-contract.js';
 
 const log = rendererLog('app');
-const DEMO_SOURCE = { kind: 'demo' } as const;
 
-/** Start screen: projects on the left, the demo video in the preview. */
-function StartLayout({
-  onOpened,
-  defaultLanguage,
-  defaultShotsPerMinute,
-  defaultFasterChecks,
-  defaultStyle,
-  experimentalWorlds,
-  channels,
-}: {
-  readonly onOpened: (project: ProjectSummary) => void;
-  readonly defaultLanguage: ProjectSummary['language'] | undefined;
-  readonly defaultShotsPerMinute: ShotsPerMinute | null | undefined;
-  readonly defaultFasterChecks: boolean | undefined;
-  readonly defaultStyle: string | undefined;
-  readonly experimentalWorlds: boolean | undefined;
-  readonly channels: ChannelList | undefined;
-}): JSX.Element {
-  // The demo has no audio: the player runs on the system clock.
-  const player = usePlayer(undefined);
-  return (
-    <div className="start-layout">
-      <div className="start-column">
-        <OpenRecovery onOpened={onOpened} />
-        <StartScreen
-          onOpened={onOpened}
-          defaultLanguage={defaultLanguage}
-          defaultShotsPerMinute={defaultShotsPerMinute}
-          defaultFasterChecks={defaultFasterChecks}
-          defaultStyle={defaultStyle}
-          experimentalWorlds={experimentalWorlds}
-          channels={channels}
-        />
-      </div>
-      <PreviewPanel source={DEMO_SOURCE} player={player} snapshots={false} />
-    </div>
-  );
-}
-
+/**
+ * The app window (PLAN.md#13.16): Home (no project open: projects, channels, the wizard), a
+ * project's overview, or the editor (the workspace). "← Projects" closes the project and returns
+ * Home, which lists the projects again.
+ */
 export function App(): JSX.Element {
   const [info, setInfo] = useState<AppInfo | undefined>(undefined);
   const [project, setProject] = useState<ProjectSummary | null>(null);
+  /** What an open project shows: its overview or the editor. */
+  const [screen, setScreen] = useState<OpenTarget>('editor');
+  /** The Home card of the project in the overview (its steps and picture). */
+  const [overviewCard, setOverviewCard] = useState<HomeProject | undefined>(undefined);
   const [historyOpen, setHistoryOpen] = useState(false);
   /** Open Settings: the tab and (Channels) the channel selected first; null = closed. */
   const [settingsRequest, setSettingsRequest] = useState<SettingsRequest | null>(null);
@@ -102,7 +70,10 @@ export function App(): JSX.Element {
   const [tourClosed, setTourClosed] = useState(false);
   const onboarding = appSettings?.onboarding;
   const welcome = onboarding?.connectClaudeDone === true && !onboarding.welcomeDone;
-  const autoTour = project !== null && onboarding?.welcomeDone === true && !onboarding.tourDone;
+  const editor = project !== null && screen === 'editor';
+  /** Home shows Production line, Help and Settings in its rail; the other screens in the header. */
+  const home = project === null && !welcome;
+  const autoTour = editor && onboarding?.welcomeDone === true && !onboarding.tourDone;
   useAppShortcut('shortcuts', () => {
     setHelpDialog('shortcuts');
   });
@@ -127,6 +98,14 @@ export function App(): JSX.Element {
     });
   };
 
+  /** A project main just opened: its overview (with Home's card) or the editor. */
+  const showProject = (opened: ProjectSummary, target: OpenTarget, card?: HomeProject): void => {
+    setProject(opened);
+    setScreen(target);
+    setOverviewCard(card);
+    setHistoryOpen(false);
+  };
+
   const channelName = (channelId: string): string =>
     channels.list?.channels.find((channel) => channel.id === channelId)?.name ?? channelId;
 
@@ -139,14 +118,25 @@ export function App(): JSX.Element {
       const result = await window.reelforge.openQueueProject(ref, panel);
       if (result.status === 'error') return result.error.message;
       if (result.status === 'cancelled') return undefined;
-      setProject(result.project);
-      setHistoryOpen(false);
+      showProject(result.project, 'editor');
       openNonce.current += 1;
       setOpenRequest({ panel, dir: result.project.dir, nonce: openNonce.current });
       line.close();
       return undefined;
     } catch (error) {
       log.error(`openQueueProject failed: ${errorMessage(error)}`);
+      return 'The project could not be opened. See the log for details.';
+    }
+  };
+
+  /** Another project of the Home list in its overview (a Short's film, a film's Short). */
+  const openOverview = async (dir: string): Promise<string | undefined> => {
+    try {
+      const result = await window.reelforge.openHomeProject(dir);
+      if (result.status === 'opened') showProject(result.project, 'overview');
+      return result.status === 'error' ? result.error.message : undefined;
+    } catch (error) {
+      log.error(`openHomeProject failed: ${errorMessage(error)}`);
       return 'The project could not be opened. See the log for details.';
     }
   };
@@ -165,6 +155,19 @@ export function App(): JSX.Element {
     );
   };
 
+  const helpMenu = (
+    <HelpMenu
+      onTour={
+        editor
+          ? () => {
+              setTourOpen(true);
+            }
+          : null
+      }
+      onDialog={setHelpDialog}
+    />
+  );
+
   return (
     <div className="app">
       <header className="app-header">
@@ -174,6 +177,14 @@ export function App(): JSX.Element {
         </span>
         {project && (
           <>
+            <button
+              type="button"
+              className="back-to-projects"
+              title="Close this project and go back to all projects"
+              onClick={closeProject}
+            >
+              ← Projects
+            </button>
             <ProjectMenu
               title={project.title}
               dir={project.dir}
@@ -192,27 +203,20 @@ export function App(): JSX.Element {
           </>
         )}
         <span className="header-spacer" />
-        <LineButton controller={line} />
-        {project && <div className="needs-you-slot" ref={setNeedsYouSlot} />}
-        <HelpMenu
-          onTour={
-            project === null
-              ? null
-              : () => {
-                  setTourOpen(true);
-                }
-          }
-          onDialog={setHelpDialog}
-        />
-        <button
-          type="button"
-          className="link-button"
-          onClick={() => {
-            setSettingsRequest({ tab: 'claude' });
-          }}
-        >
-          Settings
-        </button>
+        {!home && <LineButton controller={line} />}
+        {editor && <div className="needs-you-slot" ref={setNeedsYouSlot} />}
+        {!home && helpMenu}
+        {!home && (
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => {
+              setSettingsRequest({ tab: 'claude' });
+            }}
+          >
+            Settings
+          </button>
+        )}
       </header>
       <main className="app-main">
         {project === null && welcome ? (
@@ -222,22 +226,42 @@ export function App(): JSX.Element {
               settings.update({ onboarding: { welcomeDone: true } });
             }}
             onOpened={(opened) => {
-              setProject(opened);
-              setHistoryOpen(false);
+              showProject(opened, 'editor');
             }}
           />
         ) : project === null ? (
-          <StartLayout
-            defaultLanguage={appSettings?.language}
-            defaultShotsPerMinute={appSettings?.newProjectDefaults.shotsPerMinute}
-            defaultFasterChecks={appSettings?.newProjectDefaults.fasterChecks}
-            defaultStyle={appSettings?.defaultStyle}
-            experimentalWorlds={appSettings?.experimental.worlds}
-            channels={channels.list}
-            onOpened={(opened) => {
-              setProject(opened);
-              setHistoryOpen(false);
+          <HomeScreen
+            channels={channels}
+            line={line}
+            defaults={{
+              language: appSettings?.language,
+              shotsPerMinute: appSettings?.newProjectDefaults.shotsPerMinute,
+              fasterChecks: appSettings?.newProjectDefaults.fasterChecks,
+              style: appSettings?.defaultStyle,
+              experimentalWorlds: appSettings?.experimental.worlds,
             }}
+            onOpened={showProject}
+            onCreated={(created) => {
+              showProject(created, 'editor');
+              openNonce.current += 1;
+              setOpenRequest({ panel: 'brief', dir: created.dir, nonce: openNonce.current });
+            }}
+            onSettings={setSettingsRequest}
+            help={helpMenu}
+          />
+        ) : screen === 'overview' ? (
+          <ProjectOverview
+            key={project.dir}
+            project={project}
+            card={overviewCard}
+            channel={projectChannel}
+            onOpenEditor={(panel) => {
+              setScreen('editor');
+              if (panel === undefined) return;
+              openNonce.current += 1;
+              setOpenRequest({ panel, dir: project.dir, nonce: openNonce.current });
+            }}
+            onOpenProject={openOverview}
           />
         ) : (
           <OpenSettingsContext value={setSettingsRequest}>
@@ -292,7 +316,7 @@ export function App(): JSX.Element {
         {line.dialog.open && (
           <ProductionLineDialog controller={line} channels={channels.list} onOpenFilm={openFilm} />
         )}
-        {tourOpen && project !== null && (
+        {tourOpen && editor && (
           <GuidedTour
             onClose={({ dontShowAgain }) => {
               setTourOpen(false);

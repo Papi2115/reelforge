@@ -11,6 +11,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
+  isEndCardShot,
   SHOT_STATUS_SYMBOLS,
   shotVariantFile,
   shotVariantsFile,
@@ -207,6 +208,12 @@ export async function generateVariants(
   if (!selected.ok) return selected;
   const shot = selected.value;
   if (job.locked.has(shot.id)) return err(lockedShotError(shot.id));
+  // A short's end card (PLAN.md#13.18) is written by the app: no Claude variants of it.
+  if (isEndCardShot(shot)) {
+    return err(
+      stageError('invalid-input', `${shot.id} is the end card the app builds: no variants`),
+    );
+  }
   const planned = await plan(job, shot, request);
   if (!planned.ok) return planned;
   const { targets, round, note } = planned.value;

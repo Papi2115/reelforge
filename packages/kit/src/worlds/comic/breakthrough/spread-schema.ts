@@ -66,7 +66,14 @@ export const spreadSchema = z.object({
     .tuple([z.number(), z.number()])
     .optional()
     .describe('pull-back: the detail the camera starts on (page px)'),
-  fold: z.number().min(260).max(380).default(320).describe('x of the spine crease'),
+  fold: z
+    .number()
+    .min(140)
+    .max(380)
+    .optional()
+    .describe(
+      'x of the spine crease (landscape 260-380, default 320; portrait 140-220, default none: a tall splash without a spine)',
+    ),
   insets: z
     .array(inset)
     .max(SPREAD_LIMITS.insets, `at most ${String(SPREAD_LIMITS.insets)} insets`)

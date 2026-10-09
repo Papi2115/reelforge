@@ -154,6 +154,13 @@ describe('render identity', () => {
     });
     expect(renderIdentity('nope', 'e').ok).toBe(false);
   });
+
+  it('turns the size upright for a portrait project (PLAN.md#13.18)', () => {
+    const portrait = renderIdentity(undefined, 'e', 'portrait');
+    expect(portrait.ok && portrait.value.style).toMatchObject({ width: 360, height: 640 });
+    const landscape = renderIdentity(undefined, 'e', 'landscape');
+    expect(landscape.ok && landscape.value.style).toMatchObject({ width: 640, height: 360 });
+  });
 });
 
 describe('export contract', () => {

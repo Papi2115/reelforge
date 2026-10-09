@@ -136,6 +136,7 @@ function createShotBuilder(
   });
   // The film's world assets (PLAN.md#13.15): parsed once, the same frozen value in every shot.
   const worldAssets = videoWorldAssets(style.id, manifest.worldAssets)?.value;
+  const captions = manifest.captions === true ? (manifest.words?.words ?? []) : undefined;
   return (shot, namespace, index) =>
     buildShot({
       shot: {
@@ -157,6 +158,7 @@ function createShotBuilder(
       assets,
       styleId: style.id,
       worldAssets,
+      captions,
     });
 }
 
@@ -311,16 +313,17 @@ export async function createRuntime(
       const sample = sampleTimeline(timeline, t);
       const current = shotAt(sample.current.index);
       composited = undefined;
+      const options = { captionTime: t }; // captions follow the audio clock, not a scene clock
       if (!sample.transition) {
-        current.update(sceneTime(sample.current.index, sample.current.localTime));
+        current.update(sceneTime(sample.current.index, sample.current.localTime), options);
         frameRenderer.render({ a: current, mode: 'single', progress: 0, seed: 0 });
         finish(sample, t);
         return;
       }
       const outgoing = shotAt(sample.transition.outgoing.index);
       const { outgoing: before } = sample.transition;
-      outgoing.update(sceneTime(before.index, before.localTime));
-      current.update(sceneTime(sample.current.index, sample.current.localTime));
+      outgoing.update(sceneTime(before.index, before.localTime), options);
+      current.update(sceneTime(sample.current.index, sample.current.localTime), options);
       const seed = transitionSeeds[sample.current.index] ?? 0;
       const pixelTransition = findTransition(sample.transition.style);
       if (pixelTransition) {

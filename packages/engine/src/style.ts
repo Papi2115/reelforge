@@ -5,12 +5,16 @@
 import {
   DEFAULT_SAFE_AREA,
   MAX_PALETTE_SIZE,
+  orientFrameSize,
   PALETTE_TOKENS,
+  videoFormatOf,
+  type FrameSize,
   type NamedPalette,
   type PaletteToken,
   type SafeAreaMargins,
   type StylePreset,
   type VariationBudget,
+  type VideoFormat,
 } from '@reelforge/shared';
 import { EngineError } from './errors.js';
 import {
@@ -46,6 +50,8 @@ export interface PostFxSettings {
 
 export interface ResolvedStyle {
   readonly id: string;
+  /** Video format (PLAN.md#13.18); width/height are already oriented for it. */
+  readonly format: VideoFormat;
   readonly width: number;
   readonly height: number;
   /** Quantization set (preset palette merged with the manifest overrides). */
@@ -60,6 +66,8 @@ export interface ResolvedStyle {
 
 export interface StyleRequest {
   readonly style?: string | undefined;
+  /** Absent = landscape (the preset's resolution as declared). */
+  readonly format?: VideoFormat | undefined;
   readonly width?: number | undefined;
   readonly height?: number | undefined;
   readonly palette?: Readonly<NamedPalette> | undefined;
@@ -107,8 +115,8 @@ function scenePalette(preset: StylePreset, swatches: Readonly<NamedPalette>): Sc
   return Object.freeze({ ...swatches, ...tokens });
 }
 
-function checkSize(preset: StylePreset, request: StyleRequest): void {
-  const { width, height } = preset.resolution;
+function checkSize(preset: StylePreset, size: FrameSize, request: StyleRequest): void {
+  const { width, height } = size;
   const mismatch =
     (request.width !== undefined && request.width !== width) ||
     (request.height !== undefined && request.height !== height);
@@ -133,14 +141,17 @@ export function resolveStyle(
   if (!preset) {
     throw invalid(`style "${id}" is unknown; available: ${registry.ids.join(', ')}`);
   }
-  checkSize(preset, request);
+  const format = videoFormatOf(request);
+  const size = orientFrameSize(preset.resolution, format);
+  checkSize(preset, size, request);
   const swatches = Object.freeze(mergeSwatches(preset, request.palette));
   const palette = scenePalette(preset, swatches);
   const outline = preset.outline;
   return {
     id,
-    width: preset.resolution.width,
-    height: preset.resolution.height,
+    format,
+    width: size.width,
+    height: size.height,
     swatches,
     palette,
     post: {

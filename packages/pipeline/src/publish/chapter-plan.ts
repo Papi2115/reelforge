@@ -60,11 +60,11 @@ function chapterCount(
   best: readonly (readonly number[])[],
   last: number,
   targetCount: number,
-  maxChapters: number,
+  counts: ChapterCountBounds,
 ): number {
   const scoreOf = (count: number): number => best[count]?.[last] ?? -Infinity;
   let chosen = -1;
-  for (let count = MIN_CHAPTERS; count <= maxChapters; count += 1) {
+  for (let count = counts.min; count <= counts.max; count += 1) {
     if (scoreOf(count) === -Infinity) continue;
     const distance = Math.max(0, Math.abs(count - targetCount) - COUNT_SLACK);
     const chosenDistance = Math.max(0, Math.abs(chosen - targetCount) - COUNT_SLACK);
@@ -79,10 +79,29 @@ function chapterCount(
   return chosen;
 }
 
-/** Shot indexes the chapters start at (the first is 0), or why YouTube would show none. */
-export function planChapterStarts(shots: readonly PlanShot[], durationS: number): ChapterStarts {
+/** Chapter counts a plan may choose from (inclusive). */
+export interface ChapterCountBounds {
+  readonly min: number;
+  readonly max: number;
+}
+
+/**
+ * Shot indexes the chapters start at (the first is 0), or why YouTube would show none. `counts`
+ * narrows the chapter count (the SEO chapters of PLAN.md#13.17: 5–8); the target count is clamped
+ * into it.
+ */
+export function planChapterStarts(
+  shots: readonly PlanShot[],
+  durationS: number,
+  counts?: ChapterCountBounds,
+): ChapterStarts {
   const end = Math.floor(durationS);
-  const maxChapters = Math.min(MAX_CHAPTERS, Math.floor(end / MIN_CHAPTER_SECONDS));
+  const maxChapters = Math.min(
+    MAX_CHAPTERS,
+    counts?.max ?? MAX_CHAPTERS,
+    Math.floor(end / MIN_CHAPTER_SECONDS),
+  );
+  const minChapters = Math.max(MIN_CHAPTERS, counts?.min ?? MIN_CHAPTERS);
   if (shots.length < MIN_CHAPTERS || maxChapters < MIN_CHAPTERS) {
     return {
       ok: false,
@@ -90,8 +109,8 @@ export function planChapterStarts(shots: readonly PlanShot[], durationS: number)
     };
   }
   const targetCount = Math.min(
-    MAX_TARGET_CHAPTERS,
-    Math.max(MIN_CHAPTERS, Math.round(end / SECONDS_PER_CHAPTER)),
+    maxChapters,
+    Math.max(minChapters, Math.min(MAX_TARGET_CHAPTERS, Math.round(end / SECONDS_PER_CHAPTER))),
   );
   const target = end / targetCount;
   const nodes: Node[] = [
@@ -134,7 +153,10 @@ export function planChapterStarts(shots: readonly PlanShot[], durationS: number)
       }
     }
   }
-  const bestCount = chapterCount(best, last, targetCount, maxChapters);
+  const bestCount = chapterCount(best, last, targetCount, {
+    min: Math.min(minChapters, maxChapters),
+    max: maxChapters,
+  });
   if (bestCount < 0) {
     return {
       ok: false,

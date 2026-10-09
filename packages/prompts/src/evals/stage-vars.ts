@@ -18,8 +18,10 @@ import { criticCharacterVars, sceneCharacterVars, storyboardCharacterVars } from
 import type { TemplateVars } from '../template.js';
 import { claimsPromptVars } from '../validators/claims.js';
 import { hooksPromptVars } from '../validators/hooks.js';
+import { shortScriptPromptVars } from '../short-vars.js';
 import { targetWordsFor } from '../validators/script.js';
 import type { EvalCase } from './cases.js';
+import { seoEvalVars } from './seo-eval.js';
 
 function findShot(evalCase: EvalCase, shotId: string): Result<StoryboardShot, string> {
   const shot = evalCase.storyboard.shots.find((candidate) => candidate.id === shotId);
@@ -211,6 +213,24 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         language: brief.language,
         targetMinutes: brief.targetMinutes ?? 5,
       });
+    case 'short-script': {
+      // A 30 s teaser of the case's film (PLAN.md#13.18); the golden output is in <case>/short/.
+      const read = (name: string): string =>
+        readFileSync(path.join(evalCase.projectDir, name), 'utf8');
+      return ok(
+        shortScriptPromptVars({
+          parentTitle: project.title,
+          parentScript: read('script.txt'),
+          parentBeats: read('beats.md'),
+          research: read('research.md'),
+          channelName: 'Eval Channel',
+          lengthS: 30,
+          language: brief.language,
+        }),
+      );
+    }
+    case 'publish-seo':
+      return ok(seoEvalVars(evalCase));
     case 'youtube-meta':
       return ok({
         title: project.title,

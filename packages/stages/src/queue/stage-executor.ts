@@ -2,8 +2,9 @@
  * The default step executor of the production line: the existing StageRunner entry points (the
  * same stages, gating, limits and autocommits as the app), the script approval gate in
  * pipeline.json (the app's mechanism), the channel's voice provider (or "needs voice"), the asset
- * review gate, and the app's export and publish kit as injected functions. A stage already done
- * and not stale is not run again (crash between the stage and the queue write).
+ * review gate, the app's export and publish kit as injected functions and, between them, the
+ * tags and timestamps (`publish/seo.json`, `runQueueSeo`). A stage already done and not stale is
+ * not run again (crash between the stage and the queue write).
  */
 import {
   PipelineStateStore,
@@ -22,6 +23,7 @@ import { FILES } from '../paths.js';
 import type { StageRunner } from '../runner.js';
 import type { StageError, StageEvent, StageRequest } from '../types.js';
 import { writeQueueBrief } from './brief.js';
+import { runQueueSeo, type QueueSeoSetup } from './seo-step.js';
 import type {
   ExecutorStep,
   QueueStepContext,
@@ -58,6 +60,8 @@ export interface StageQueueExecutorOptions {
   /** The channel's voice generator (13.14); undefined = the film waits for a recording. */
   voiceFor?(channelId: string): VoiceProvider | undefined;
   readonly exportFilm?: FilmStep;
+  /** The tags and timestamps step (model, channel, commit); it runs without it too. */
+  readonly publishSeo?: QueueSeoSetup;
   /** Publish kit (titles, description, chapters, credits); absent = the step is skipped. */
   readonly publishKit?: FilmStep;
   /** The quiet final review after the scene build (the app's setting). Default on. */
@@ -120,6 +124,11 @@ export class StageQueueExecutor implements QueueStepExecutor {
         return this.finalReview(ctx);
       case 'export':
         return this.filmStep(ctx, this.options.exportFilm, 'export');
+      case 'seo':
+        return runQueueSeo(
+          { ...this.options.publishSeo, claude: this.options.claude, now: this.now },
+          ctx,
+        );
       case 'publish':
         return this.filmStep(ctx, this.options.publishKit, 'publish');
       case 'script':

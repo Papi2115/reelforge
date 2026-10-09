@@ -235,23 +235,3 @@
   align-items: flex-start;
   gap: 6px;
 }
-
-.start-column {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  gap: var(--space-4);
-  min-height: 0;
-}
-
-.start-column > .start-screen {
-  flex: 1;
-  min-height: 0;
-}
-
-.start-column > .open-recovery {
-  width: 340px;
-  box-sizing: border-box;
-  border: 1px solid var(--border);
-  background: var(--panel);
-}

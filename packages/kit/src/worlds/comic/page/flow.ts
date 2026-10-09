@@ -10,12 +10,16 @@
  * - `page.thread(spec)`: one element (a rope, a road, a river, a colour band, a gesture, a thing in
  *   flight) drawn in page space OVER three or more panels and the gutters between them, so it is
  *   carried from panel to panel.
- * Pure functions of t.
+ * Portrait shorts (PLAN.md#13.18, a 360x640 page): `down` is the native flow (and the default
+ * direction), a webtoon column read with the thumb; the camera brings each panel's foot to 80 %
+ * of the frame height (the player covers the bottom fifth); `across` is a band at mid-height and
+ * `diagonal` steps down the page. Pure functions of t.
  */
 import { z } from 'zod';
 import { KitError } from '../../../errors.js';
 import { whenParam } from '../../../looks/blueprint/timing.js';
 import { rndRange } from '../draw/math.js';
+import { isPortraitPage, LANDSCAPE_PAGE, type PageSize } from '../style.js';
 import { createHandle, panelModelOf, parse, type ApiContext, type PanelHandle } from './api.js';
 import type { Quad } from './layouts.js';
 import { misFor, PanelModel, type Painter } from './panel.js';
@@ -39,7 +43,10 @@ const flowBeat = z.strictObject({
 
 export const flowSchema = z.strictObject({
   intent: intent('why the page reads in this direction (what the reading path means)'),
-  direction: z.enum(FLOW_DIRECTIONS),
+  direction: z
+    .enum(FLOW_DIRECTIONS)
+    .optional()
+    .describe("Required on a landscape page; a portrait page reads 'down' by default"),
   beats: z.array(flowBeat).min(2, 'a flow is 2-5 panels').max(5, 'a flow is 2-5 panels'),
   breadth: z
     .number()
@@ -80,7 +87,9 @@ export function flowBoxes(
   weights: readonly number[],
   breadth: number | undefined,
   gutter: number,
+  page: PageSize = LANDSCAPE_PAGE,
 ): { boxes: Box[]; centres: [number, number][] } {
+  if (isPortraitPage(page)) return portraitFlowBoxes(direction, weights, breadth, gutter, page);
   const boxes: Box[] = [];
   let [x, y] = [24, 24];
   weights.forEach((weight, i) => {
@@ -105,6 +114,43 @@ export function flowBoxes(
   const centres = boxes.map(([bx, by, bw, bh]): [number, number] => [
     Math.max(320, bx + bw + 20 - 320),
     Math.max(180, by + bh + 16 - 180),
+  ]);
+  return { boxes, centres };
+}
+
+/** The flow on a portrait page: a column down the phone, a band at mid-height or a stair. */
+function portraitFlowBoxes(
+  direction: FlowDirection,
+  weights: readonly number[],
+  breadth: number | undefined,
+  gutter: number,
+  { width: W, height: H }: PageSize,
+): { boxes: Box[]; centres: [number, number][] } {
+  const boxes: Box[] = [];
+  const across = Math.min(breadth ?? 300, W - 40);
+  let [x, y] = [24, 48];
+  weights.forEach((weight, i) => {
+    if (direction === 'across') {
+      const h = Math.min(breadth ?? 300, H * 0.6);
+      const w = Math.min(300, Math.max(130, 210 * weight));
+      boxes.push([x, H / 2 - h / 2 + (i % 2 === 0 ? -4 : 5), w, h]);
+      x += w + gutter;
+    } else if (direction === 'down') {
+      const h = Math.min(H * 0.62, Math.max(150, 230 * weight));
+      boxes.push([(W - across) / 2 + (i % 2 === 0 ? -8 : 8), y, across, h]);
+      y += h + gutter;
+    } else {
+      const w = Math.min(W - 60, Math.max(150, (breadth ?? 220) * weight));
+      const h = Math.min(300, Math.max(120, 170 * weight));
+      const step = weights.length > 1 ? (W - 40 - w) / (weights.length - 1) : 0;
+      boxes.push([20 + step * i, y, w, h]);
+      y += h * 0.7 + gutter;
+    }
+  });
+  // The panel's far end lands at 80 % of the frame (the Shorts player covers the bottom fifth).
+  const centres = boxes.map(([bx, by, bw, bh]): [number, number] => [
+    Math.max(W / 2, bx + bw + 20 - W / 2),
+    Math.max(H / 2, by + bh + 16 - H * 0.3),
   ]);
   return { boxes, centres };
 }
@@ -138,14 +184,22 @@ export function createFlowApi(ctx: ApiContext) {
           );
         }
       });
+      const portrait = isPortraitPage(model.page);
+      const direction = o.direction ?? (portrait ? 'down' : undefined);
+      if (direction === undefined) {
+        throw new KitError(
+          'invalid-params',
+          `${where}: direction: ${FLOW_DIRECTIONS.map((name) => `'${name}'`).join(' | ')} is required (a portrait page reads 'down' by default)`,
+        );
+      }
       const weights = o.beats.map((beat) => beat.weight);
-      const { boxes, centres } = flowBoxes(o.direction, weights, o.breadth, o.gutter);
+      const { boxes, centres } = flowBoxes(direction, weights, o.breadth, o.gutter, model.page);
       const seed = o.seed ?? ctx.seed;
       const panels = o.beats.map((beat, i) => {
         const box = boxes[i] as Box;
         const key = `flow${String(seed)}-${String(i)}`;
         const style = { key, border: 2, boil: 0.5, pencils: true, mis: misFor(key) };
-        const panel = new PanelModel(quadOf(box, key), style, model.panels.length);
+        const panel = new PanelModel(quadOf(box, key), style, model.panels.length, model.page);
         model.panels.push(panel);
         const handle = createHandle(ctx, panel, `${where} panel ${String(i + 1)}`);
         const size = [box[2], box[3]] as const;

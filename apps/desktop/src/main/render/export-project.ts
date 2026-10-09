@@ -76,7 +76,7 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
   const manifest = built.manifest;
   const project = await readProjectJson(projectDir, SNAPSHOT_FILES.project, projectFileSchema);
   if (project.status !== 'ok') return failed('invalid-input', 'project.json cannot be read');
-  const identity = renderIdentity(manifest.style, options.engineVersion);
+  const identity = renderIdentity(manifest.style, options.engineVersion, manifest.format);
   if (!identity.ok) return failed('invalid-input', identity.error);
 
   const settings = effectiveSettings(options.settings, request);

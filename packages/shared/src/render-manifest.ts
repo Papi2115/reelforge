@@ -18,6 +18,7 @@ import {
   paletteShiftWindowSchema,
   timeRemapWindowSchema,
 } from './time-remap.js';
+import { videoFormatSchema } from './video-format.js';
 import { manifestWorldAssetsSchema } from './world-assets.js';
 import { wordsFileSchema } from './words.js';
 
@@ -103,7 +104,14 @@ export const renderManifestSchema = z
     version: z.literal(RENDER_MANIFEST_VERSION),
     /** Style preset id (engine presets); defaults to the engine's default style. */
     style: stylePresetIdSchema.optional(),
-    /** Render size; defaults to the style's resolution and must match it when given. */
+    /**
+     * Video format (PLAN.md#13.18): `portrait` turns the style's resolution upright (640x360 ->
+     * 360x640). Absent = landscape (the style's resolution as declared).
+     */
+    format: videoFormatSchema.optional(),
+    /**
+     * Render size; defaults to the style's resolution in `format` and must match it when given.
+     */
     width: z.int().min(16).max(4096).optional(),
     height: z.int().min(16).max(4096).optional(),
     fps: z.int().min(1).max(120),
@@ -112,6 +120,11 @@ export const renderManifestSchema = z
     /** Swatch overrides/additions merged over the style's palette (same names replace colours). */
     palette: paletteSchema.optional(),
     words: wordsFileSchema.optional(),
+    /**
+     * Word-by-word captions (PLAN.md#13.18, a short's `short.captions`): the engine draws the
+     * spoken `words` over every shot. Absent = off (every manifest made before Shorts).
+     */
+    captions: z.boolean().optional(),
     /** Project-local props (`kit-ext/props/*.js`), registered before any scene is built. */
     kitExtensions: z.array(kitExtensionSchema).optional(),
     /**

@@ -9,6 +9,7 @@
 import type { StoryboardShot, Treatment } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { renderPrompt, type PromptId } from './catalog.js';
+import { sceneBuildShortVars } from './short-vars.js';
 import type { TemplateVars } from './template.js';
 import { checkWorldVariety } from './validators/world-variety.js';
 import {
@@ -305,5 +306,30 @@ describe('comic variety', () => {
     expect(quota?.message).toBe(
       '0 breakthrough moments (popup, strip) in 36 s; this film needs at least 1 (about one per 50 s): plan them where the narration calls for them (a reveal or twist → popup, a sequence of dates → strip)',
     );
+  });
+});
+
+describe('a Comic short (PLAN.md#13.18)', () => {
+  const shot = {
+    shotId: 's01_hook',
+    shotScene: 'scenes/s01_hook.js',
+    shotJson: { id: 's01_hook', t0: 0, t1: 2.5, treatment: 'metaphor-object' },
+    shotWords: [{ text: 'tide', t: 0.4, tEnd: 0.8 }],
+    neighbours: [],
+    styleId: 'comic',
+    ...sceneWorldVars(COMIC),
+  };
+  const shortVars = sceneBuildShortVars({ lengthS: 30, parentTitle: 'The tide', captions: true });
+
+  it('scene-build of a short lays the page out upright, a film never sees it', () => {
+    const short = rendered('scene-build', { ...shot, ...shortVars });
+    expect(text.short).toBeDefined();
+    expect(short).toContain(`- ${text.short ?? ''}\n`);
+    expect(short).toContain(`\`${COMIC_SNIPPETS.portrait}\``);
+    for (const part of ["'2-stack' / '3-stack'", "'splash-strip'", "'stagger'", 'page.safe']) {
+      expect(short).toContain(part);
+    }
+    expect(rendered('scene-build', shot)).not.toContain('Comic in a short');
+    expect(prompts['scene-build']).not.toContain('Comic in a short');
   });
 });

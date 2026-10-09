@@ -4,6 +4,7 @@
  * trusted-sender check.
  */
 import path from 'node:path';
+import { createShortsForFilm } from '@reelforge/stages';
 import { dialog, ipcMain, shell } from 'electron';
 import { channelsFile, logFile, recentProjectsFile } from './app-paths.js';
 import { assetsHandlers, OWN_ASSET_FILTERS } from './assets/assets-ipc.js';
@@ -34,6 +35,69 @@ import { voiceHandlers } from './voice/voice-ipc.js';
 import { soundPickerOptions } from './sound/sound-ipc.js';
 import { timelineHandlers } from './timeline-ipc.js';
 import type { AppContext, AppServices } from './app-services.js';
+import { cardPicture, overviewPicture } from './home/card-picture.js';
+import { homeHandlers, type HomeServices } from './home/home-ipc.js';
+import { OverviewService } from './home/overview-service.js';
+import { ProjectLibrary } from './home/project-library.js';
+import { ShortsService } from './home/shorts-service.js';
+
+/** Project folders of the production line's films (Home shows them before they are opened). */
+async function lineFilmDirs(queue: AppServices['queue']): Promise<string[]> {
+  const state = await queue.service.state();
+  return state.channels.flatMap((channel) =>
+    channel.items.flatMap((item) => (item.projectPath === null ? [] : [item.projectPath])),
+  );
+}
+
+/** Home's project list, the project overview and the Shorts area (PLAN.md#13.16, #13.18). */
+function homeServices(context: AppContext, services: AppServices): HomeServices {
+  const { userDataDir, layout, log } = context;
+  const { projects, queue, appCommit, showOpen } = services;
+  const homeLog = log.child('home');
+  const commit =
+    (step: string) =>
+    async (dir: string, message: string, paths: readonly string[]): Promise<boolean> =>
+      (await appCommit(dir, message, step, paths)).ok;
+  const library = new ProjectLibrary({
+    recentFile: recentProjectsFile(userDataDir),
+    lineDirs: () => lineFilmDirs(queue),
+    thumbnail: cardPicture,
+    openKnown: (dir) => projects.openKnown(dir),
+    currentDir: () => projects.currentProject()?.dir,
+    openPath: (dir) => shell.openPath(dir),
+    commit: commit('project'),
+    log: homeLog,
+  });
+  const overview = new OverviewService({
+    library,
+    picture: overviewPicture,
+    pickImage: async () =>
+      (
+        await showOpen({
+          title: 'Upload a YouTube thumbnail',
+          buttonLabel: 'Use as thumbnail',
+          properties: ['openFile'],
+          filters: [{ name: 'Pictures (PNG, JPEG)', extensions: ['png', 'jpg', 'jpeg'] }],
+        })
+      )?.[0],
+    showItem: (file) => {
+      shell.showItemInFolder(file);
+    },
+    commit: commit('publish'),
+    log: homeLog,
+  });
+  const shorts = new ShortsService({
+    library,
+    channelsFile: channelsFile(userDataDir),
+    recentFile: recentProjectsFile(userDataDir),
+    templateDir: layout.projectTemplateDir,
+    stylesDir: layout.stylesDir,
+    createShorts: createShortsForFilm,
+    commit: commit('project'),
+    log: homeLog,
+  });
+  return { library, overview, shorts };
+}
 
 /** Registers the handlers of every channel (see the module comment). */
 export function registerAppIpc(
@@ -144,6 +208,7 @@ export function registerAppIpc(
         currentProject: () => projects.currentProject()?.dir,
         claude: sharedClaudeRunner(() => claude.sessionManager()),
         settings: () => settings.get(),
+        channelsFile: channelsFile(userDataDir),
         commit: async (dir, message, step, paths) =>
           (await appCommit(dir, message, step, paths)).ok,
         openPath: (folder) => shell.openPath(folder),
@@ -189,6 +254,7 @@ export function registerAppIpc(
       }),
       ...voiceHandlers(voice, () => projects.currentProject()?.dir),
       ...queue.handlers,
+      ...homeHandlers(homeServices(context, services)),
       ...variantsHandlers({
         service: stages,
         currentProject: () => projects.currentProject()?.dir,

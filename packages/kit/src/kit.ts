@@ -10,10 +10,10 @@ import {
   type CastApi,
   type ProjectCast,
 } from './characters/index.js';
-import { createKitContext } from './context.js';
+import { createKitContext, type KitFrame } from './context.js';
 import { ENV_DEFINITIONS } from './env/index.js';
 import { checkExtensionNames } from './extensions.js';
-import { FX_DEFINITIONS } from './fx/index.js';
+import { APP_FX_DEFINITIONS, FX_DEFINITIONS } from './fx/index.js';
 import type { Three } from './object.js';
 import {
   extraLookDefinitions,
@@ -45,7 +45,11 @@ export interface KitApi {
   readonly voxel: VoxelApi;
   readonly env: BoundRegistry<typeof ENV_DEFINITIONS>;
   readonly props: BoundRegistry<typeof PROP_DEFINITIONS>;
-  readonly fx: BoundRegistry<typeof FX_DEFINITIONS>;
+  /**
+   * The catalog's effects, plus the app's own (APP_FX_DEFINITIONS: a short's end card) as
+   * non-enumerable members: callable, but not listed with the look's effects.
+   */
+  readonly fx: BoundRegistry<typeof FX_DEFINITIONS> & BoundRegistry<typeof APP_FX_DEFINITIONS>;
   /** The character pack (mascots, cast, mannequin, role specs; voxel look). */
   readonly cast: CastApi;
 }
@@ -84,6 +88,8 @@ export interface KitOptions {
    * Ambient variation of the shot (PLAN.md#12.8); absent = environments exactly as authored.
    */
   readonly variation?: AmbientVariation | undefined;
+  /** Frame size of the shot in px (portrait shorts); absent = unknown (landscape pages). */
+  readonly frame?: KitFrame | undefined;
 }
 
 /** Engine-side handle of a kit instance. */
@@ -97,8 +103,30 @@ export interface KitHandle {
 
 export { CAST_DEFINITIONS, ENV_DEFINITIONS, FX_DEFINITIONS, PROP_DEFINITIONS };
 
+/**
+ * Adds `hidden` to `target` as non-enumerable members: callable by name (`kit.fx.endCard`) but
+ * absent from every listing of the namespace (Object.keys, spreads), so the kit a look exposes
+ * stays exactly its catalog.
+ */
+function withHiddenMembers<Target extends object, Hidden extends object>(
+  target: Target,
+  hidden: Hidden,
+): Target & Hidden {
+  for (const [name, value] of Object.entries(hidden)) {
+    Object.defineProperty(target, name, { value, enumerable: false });
+  }
+  // defineProperty does not narrow the type: every member of `hidden` was just defined above.
+  return target as Target & Hidden;
+}
+
 export function createKit(options: KitOptions): KitHandle {
-  const context = createKitContext(options.three, options.palette, options.rng, options.variation);
+  const context = createKitContext(
+    options.three,
+    options.palette,
+    options.rng,
+    options.variation,
+    options.frame,
+  );
   const voxel = createVoxelApi(context);
   const extraProps = options.extraProps ?? [];
   const looks = extraLookDefinitions(options.looks, { style: options.style, experimental: true });
@@ -119,10 +147,15 @@ export function createKit(options: KitOptions): KitHandle {
     ...bindRegistry(context, voxel, ENV_DEFINITIONS),
     ...bindRegistry(context, voxel, definitionsOf('env')),
   });
-  const fx: BoundRegistry<typeof FX_DEFINITIONS> = Object.freeze({
-    ...bindRegistry(context, voxel, FX_DEFINITIONS),
-    ...bindRegistry(context, voxel, definitionsOf('fx')),
-  });
+  const fx: KitApi['fx'] = Object.freeze(
+    withHiddenMembers(
+      {
+        ...bindRegistry(context, voxel, FX_DEFINITIONS),
+        ...bindRegistry(context, voxel, definitionsOf('fx')),
+      },
+      bindRegistry(context, voxel, APP_FX_DEFINITIONS),
+    ),
+  );
   const cast = createCastApi(
     bindRegistry(context, voxel, castDefinitions(options.cast), 'cast'),
     options.cast,

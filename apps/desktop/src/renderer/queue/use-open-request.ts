@@ -9,8 +9,15 @@ import type { QueueItemRef, QueueOpenPanel } from '../../shared/queue-contract.j
 import type { CenterDocumentKind } from '../layout/CenterDocument.js';
 import type { AttentionItem } from '../stages/attention-view.js';
 
+/** Step documents the project overview can open the editor on. */
+export type StepDocumentPanel = 'words' | 'storyboard' | 'scenes' | 'sound';
+
 export interface OpenRequest {
-  readonly panel: QueueOpenPanel;
+  /**
+   * `brief`: a project the New project wizard just made (its brief is saved: write the script).
+   * `words` … `sound`: that step's document (the overview's "Next step", PLAN.md#13.16).
+   */
+  readonly panel: QueueOpenPanel | 'brief' | StepDocumentPanel;
   /** The project it is for (another project opened later ignores it). */
   readonly dir: string;
   readonly nonce: number;
@@ -42,8 +49,17 @@ export function useOpenRequest(
       case 'script':
         latest.current.document({ kind: 'script', tab: 'script' });
         return;
+      case 'brief':
+        latest.current.document({ kind: 'script', tab: 'brief' });
+        return;
       case 'voiceover':
         latest.current.document({ kind: 'voiceover' });
+        return;
+      case 'words':
+      case 'storyboard':
+      case 'scenes':
+      case 'sound':
+        latest.current.document({ kind: request.panel });
         return;
       case 'assets':
         latest.current.assetsDialog();

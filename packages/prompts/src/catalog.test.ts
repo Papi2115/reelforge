@@ -24,7 +24,7 @@ import { permissionStageFor, promptModel, promptToolNames } from './stages.js';
 
 const PROMPTS_DIR = path.join(import.meta.dirname, '..', 'prompts');
 /** Prompts that run on Sonnet under the critic's read-only permissions. */
-const SONNET_ON_CRITIC: readonly string[] = ['brief', 'claims', 'hooks'];
+const SONNET_ON_CRITIC: readonly string[] = ['brief', 'claims', 'hooks', 'publish-seo'];
 
 describe('bundled prompts', () => {
   it('match prompts/*.md (run `pnpm --filter @reelforge/prompts generate` after editing)', () => {
@@ -49,6 +49,7 @@ describe('bundled prompts', () => {
         'critic',
         'hooks',
         'prop-build',
+        'publish-seo',
         'research',
         'review-plan',
         'review-triage',
@@ -56,6 +57,7 @@ describe('bundled prompts', () => {
         'scene-build',
         'scene-fix',
         'script',
+        'short-script',
         'sound-cues',
         'storyboard',
         'tension',
@@ -70,7 +72,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 19, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 20, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -227,6 +229,8 @@ describe('stages and models', () => {
       brief: 'critic',
       'world-assets': 'scene-build',
       'world-asset-critic': 'critic',
+      'publish-seo': 'critic',
+      'short-script': 'script',
     };
     for (const id of PROMPT_IDS) expect(permissionStageFor(id), id).toBe(reuse[id] ?? id);
     expect(permissionsForStage('critic', 'C:/project').policy.writable).toBe(false);
@@ -241,6 +245,7 @@ describe('stages and models', () => {
     expect(loadPrompt('claims').model).toBe('sonnet');
     expect(loadPrompt('hooks').model).toBe('sonnet');
     expect(loadPrompt('brief').model).toBe('sonnet');
+    expect(loadPrompt('publish-seo').model).toBe('sonnet');
     for (const id of PROMPT_IDS.filter((candidate) => !SONNET_ON_CRITIC.includes(candidate))) {
       expect(loadPrompt(id).model, id).toBe(DEFAULT_STAGE_MODELS[permissionStageFor(id)]);
     }

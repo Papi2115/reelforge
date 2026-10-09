@@ -168,6 +168,12 @@ export {
   type CheckSourcesOptions,
   type CheckSourcesOutcome,
 } from './claims/check-sources.js';
+export {
+  generatePublishSeo,
+  readPublishSeo,
+  type GeneratePublishSeoOptions,
+  type PublishSeoOutcome,
+} from './publish/seo.js';
 export { sourceChipLines, storyboardSourceChipVars } from './claims/source-chips.js';
 export { generateHooks, type GenerateHooksOptions } from './hook-lab/generate.js';
 export {
@@ -208,3 +214,4 @@ export {
   type TasteLearner,
 } from './taste/signals.js';
 export * from './queue/index.js';
+export * from './shorts/index.js';

@@ -18,6 +18,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile, TEST_CLAUDE_LAUNCHER_ENV } from '../src/main/app-paths.js';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { createProjectNamed } from './support/new-project.js';
 import { openStage, selectStage, showChat, stageText } from './support/pipeline-rows.js';
 import {
   ffprobe,
@@ -127,8 +128,7 @@ describe('the pipeline in the app', () => {
     const parent = path.join(userDataDir, 'Filmy');
     await mkdir(parent);
     await stubFolderPicker(app, parent);
-    await page.getByLabel('Video title').fill('Rainbow in a glass');
-    await page.getByRole('button', { name: 'New project…' }).click();
+    await createProjectNamed(page, 'Rainbow in a glass');
     projectDir = path.join(parent, 'Rainbow in a glass');
     const brief = page.getByRole('form', { name: 'Brief' });
     await brief.waitFor();

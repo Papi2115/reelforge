@@ -20,7 +20,7 @@ import type { createLetteringApi } from '../page/api-lettering.js';
 import type { Quad } from '../page/layouts.js';
 import type { ItemContext } from '../page/model.js';
 import { PanelModel } from '../page/panel.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import type { PageSize } from '../style.js';
 import { beatQuads, defaultBox, tornSheet } from './flashback-layout.js';
 import { flashbackSchema, type Box, type FlashbackSpec } from './flashback-schema.js';
 
@@ -71,19 +71,19 @@ function timing(ctx: ApiContext, o: FlashbackSpec, where: string): Timing {
   return { at, until, beats };
 }
 
-function checkBox(box: Box, where: string): void {
+function checkBox(box: Box, where: string, page: PageSize): void {
   const [x0, y0, x1, y1] = box;
-  const inside = x0 >= -20 && y0 >= -20 && x1 <= PAGE_WIDTH + 20 && y1 <= PAGE_HEIGHT + 20;
+  const inside = x0 >= -20 && y0 >= -20 && x1 <= page.width + 20 && y1 <= page.height + 20;
   if (!inside || x1 - x0 < 120 || y1 - y0 < 60) {
     throw new KitError(
       'invalid-params',
-      `${where}: box [x0, y0, x1, y1] must lie on the 640x360 page and be >= 120 x 60 px`,
+      `${where}: box [x0, y0, x1, y1] must lie on the ${String(page.width)}x${String(page.height)} page and be >= 120 x 60 px`,
     );
   }
 }
 
 /** Placement of the past over time: a strip's tilt and its arrival / departure. */
-function motion(o: FlashbackSpec, box: Box, time: Timing, key: string) {
+function motion(o: FlashbackSpec, box: Box, time: Timing, key: string, page: PageSize) {
   const strip = o.cover === 'strip';
   const deg = strip ? (o.tilt ?? rndRange(key, 7, -1.8, 1.8)) : 0;
   const angle = (deg * Math.PI) / 180;
@@ -91,7 +91,7 @@ function motion(o: FlashbackSpec, box: Box, time: Timing, key: string) {
   const offset = (t: number): [number, number] => {
     if (!strip) return [0, 0];
     const leave = Number.isFinite(time.until)
-      ? (PAGE_WIDTH - box[0] + 30) * seg(t, time.until, time.until + LEAVE, 'inQuad')
+      ? (page.width - box[0] + 30) * seg(t, time.until, time.until + LEAVE, 'inQuad')
       : 0;
     if (o.enter === 'drop') {
       const fall = track(
@@ -166,8 +166,8 @@ function agedPage(ctx: ApiContext, time: Timing, key: string): void {
     layer: 'under',
     draw: ({ canvas, page }) => {
       for (let i = 0; i < 90; i += 1) {
-        const x = page.x(rndRange(key, i, 0, PAGE_WIDTH));
-        const y = page.y(rndRange(key, i + 500, 0, PAGE_HEIGHT));
+        const x = page.x(rndRange(key, i, 0, model.page.width));
+        const y = page.y(rndRange(key, i + 500, 0, model.page.height));
         const r = rnd(key, i + 900) < 0.15 ? 2 : 1;
         canvas.ellipse(x, y, r, r * 0.8, INK.AGED);
       }
@@ -198,15 +198,15 @@ export function createFlashback(ctx: ApiContext, lettering: Lettering) {
     }
     const time = timing(ctx, o, where);
     const key = `flashback${String(ctx.seed)}:${o.when}`;
-    const box = o.box ?? defaultBox(o.arrange, o.cover);
-    checkBox(box, where);
+    const box = o.box ?? defaultBox(o.arrange, o.cover, model.page);
+    checkBox(box, where, model.page);
     const quads = beatQuads(
       o.arrange,
       box,
       o.beats.map((beat) => beat.weight),
       key,
     );
-    const { place, offset, strip } = motion(o, box, time, key);
+    const { place, offset, strip } = motion(o, box, time, key, model.page);
     const gone = Number.isFinite(time.until) ? time.until + (strip ? LEAVE : 0) : time.until;
     if (strip) {
       const sheet = tornSheet(box, 10, key);
@@ -248,7 +248,7 @@ export function createFlashback(ctx: ApiContext, lettering: Lettering) {
         mis: [1, 0] as const,
         screen: SEPIA_SCREEN,
       };
-      const panel = new PanelModel(shape, style, Z + i);
+      const panel = new PanelModel(shape, style, Z + i, ctx.model.page);
       model.panels.push(panel);
       const handle = createHandle(ctx, panel, `${where} beat ${String(i + 1)}`);
       const xs = quad.filter((_, j) => j % 2 === 0);

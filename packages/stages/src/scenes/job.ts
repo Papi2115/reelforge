@@ -24,6 +24,7 @@ import { styleLookScope } from '../looks.js';
 import { FILES } from '../paths.js';
 import { PropBuilder } from '../props/builder.js';
 import { RoleBuilder } from '../roles/builder.js';
+import { loadShortScenes, type ShortSceneSetup } from '../shorts/scene-checks.js';
 import { loadAntiSlop, type AntiSlopSetup } from '../slop/guards.js';
 import { sceneAssetCatalogue } from './shot-assets.js';
 import { fasterSceneSettings, type SceneSettings } from '../settings.js';
@@ -76,6 +77,8 @@ export interface SceneJob {
    * storyboard intent; undefined = no notes (the prompts as before).
    */
   readonly researchNotes?: string | undefined;
+  /** A short's scene setup (PLAN.md#13.18): end card, prompt section, QA; a film: undefined. */
+  readonly short?: ShortSceneSetup | undefined;
 }
 
 /** Installed kit names per style (and experimental scope); computed once each. */
@@ -159,6 +162,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     characters: await loadCharacterSettings(ctx.projectDir, project.value),
     antiSlop: antiSlop.value,
     researchNotes: researchNotes.value,
+    short: await loadShortScenes(project.value),
   });
 }
 

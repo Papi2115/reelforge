@@ -218,6 +218,23 @@ describe('segmentCacheKey', () => {
     expect(keyOf({ manifest: moreWords }, 1)).toBe(keyOf({ manifest: m }, 1));
   });
 
+  it('depends on the words it captions only with captions on (PLAN.md#13.18)', () => {
+    const m = manifest();
+    const shotB = m.shots[1];
+    if (shotB === undefined) throw new Error('no shot b');
+    const said = { text: 'x', t: shotB.t0 + 0.2, tEnd: shotB.t0 + 0.4 };
+    const withWord = (captions?: boolean): RenderManifest => ({
+      ...m,
+      ...(captions === undefined ? {} : { captions }),
+      words: { version: 1, words: [...(m.words?.words ?? []), said] },
+    });
+    expect(keyOf({ manifest: withWord(false) }, 1)).toBe(keyOf({ manifest: m }, 1));
+    expect(keyOf({ manifest: withWord(true) }, 1)).not.toBe(keyOf({ manifest: withWord() }, 1));
+    expect(keyOf({ manifest: { ...m, captions: true } }, 1)).not.toBe(
+      keyOf({ manifest: withWord(true) }, 1),
+    );
+  });
+
   it('includes the previous shot when the shot transitions in', () => {
     const cut = manifest();
     const crossfade: RenderManifest = {

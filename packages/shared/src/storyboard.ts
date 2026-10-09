@@ -241,6 +241,11 @@ export const storyboardShotSchema = z
      * Optional; absent in every other project.
      */
     worldView: worldMomentIdSchema.optional(),
+    /**
+     * A short's fixed end card (PLAN.md#13.18): built by the stage, not by Claude; always the last
+     * shot. The storyboard checks skip it (it runs past the narration by design). Optional.
+     */
+    endCard: z.boolean().optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

@@ -25,6 +25,7 @@ import {
   stubFolderPicker,
   waitForRenderedT,
 } from './support/electron-app.js';
+import { createProjectNamed } from './support/new-project.js';
 import { stageRow } from './support/pipeline-rows.js';
 import { projectMenu } from './support/project-menu.js';
 
@@ -98,8 +99,16 @@ afterAll(async () => {
 });
 
 describe('desktop app', () => {
-  it('previews the demo scene in the sandboxed engine and scrubs', async () => {
+  it('previews a project in the sandboxed engine and scrubs', async () => {
     const page = await app.firstWindow();
+    // Home has no preview (PLAN.md#13.16): a copy of the fixture project is opened for it.
+    await page.getByRole('region', { name: 'Start' }).waitFor();
+    await page.screenshot({ path: path.join(screenshotDir, 'home.png') });
+    expect(await page.locator('canvas.preview-canvas').count()).toBe(0);
+    const dir = path.join(userDataDir, 'Preview ż fixture');
+    await cp(fixtureProject, dir, { recursive: true });
+    await stubFolderPicker(app, dir);
+    await page.getByRole('button', { name: 'Open project…' }).click();
     await page.locator('canvas.preview-canvas[data-rendered-t]').waitFor({
       timeout: FIRST_FRAME_TIMEOUT_MS,
     });
@@ -112,11 +121,17 @@ describe('desktop app', () => {
     const slider = page.getByRole('slider', { name: 'Scrub' });
     await slider.focus();
     await page.keyboard.press('End');
-    await waitForRenderedT(page, '5.000');
+    await page.waitForFunction(
+      () =>
+        (document.querySelector<HTMLCanvasElement>('canvas.preview-canvas')?.dataset['renderedT'] ??
+          '0.000') !== '0.000',
+    );
     const last = await frameStats(page);
     expect(last.distinctColours).toBeGreaterThan(4);
     expect(last.hash).not.toBe(first.hash);
-    await page.screenshot({ path: path.join(screenshotDir, 'window-t5.png') });
+    await page.screenshot({ path: path.join(screenshotDir, 'window-end.png') });
+    await projectMenu(page, 'Close project');
+    await page.getByRole('region', { name: 'Start' }).waitFor();
   });
 
   it('exposes only the typed bridge to the page (no Node)', async () => {
@@ -147,6 +162,7 @@ describe('desktop app', () => {
         'copySnapshot',
         'copyText',
         'createChannel',
+        'createShorts',
         'decideMoment',
         'deleteChannel',
         'deleteChannelSecret',
@@ -162,6 +178,7 @@ describe('desktop app', () => {
         'estimateVoice',
         'exportTaste',
         'generateHooks',
+        'generatePublishSeo',
         'generateVoice',
         'generateYoutubeMeta',
         'getAppInfo',
@@ -177,13 +194,16 @@ describe('desktop app', () => {
         'getEditing',
         'getExportOptions',
         'getExportQueue',
+        'getHomeProjects',
         'getHookLab',
         'getLibraryState',
         'getProjectHistory',
         'getProjectManifest',
+        'getProjectOverview',
         'getProjectSettings',
         'getProjectSnapshot',
         'getPublishKit',
+        'getPublishSeo',
         'getQueueState',
         'getRecentProjects',
         'getScript',
@@ -226,6 +246,7 @@ describe('desktop app', () => {
         'openExampleProject',
         'openExportFolder',
         'openHelpTarget',
+        'openHomeProject',
         'openProject',
         'openPublishFolder',
         'openQueueFolder',
@@ -240,6 +261,8 @@ describe('desktop app', () => {
         'removeLibraryEntry',
         'removeQueueItem',
         'removeQueuedChat',
+        'removeThumbnail',
+        'renameProject',
         'renderMixPreview',
         'reorderChannels',
         'repairProjectFile',
@@ -273,6 +296,9 @@ describe('desktop app', () => {
         'setChannelSecret',
         'setMix',
         'setQueueOptions',
+        'setShortCaptions',
+        'showLastExport',
+        'showProjectFolder',
         'startExport',
         'startLine',
         'stopChat',
@@ -284,6 +310,7 @@ describe('desktop app', () => {
         'updateLinePrefs',
         'updateProjectSettings',
         'updateSettings',
+        'uploadThumbnail',
         'useExistingWhisper',
         'useLibraryEntry',
         'wakeLine',
@@ -300,23 +327,26 @@ describe('desktop app', () => {
     const parent = path.join(userDataDir, 'Moje projekty');
     await mkdir(parent);
     await stubFolderPicker(app, parent);
-    await page.getByLabel('Video title').fill('Smoke ż test');
-    await page.getByRole('button', { name: 'New project…' }).click();
+    await createProjectNamed(page, 'Smoke ż test');
     const badge = page.getByRole('button', { name: 'History', exact: true });
     await badge.waitFor();
     const dir = path.join(parent, 'Smoke ż test');
     for (const file of ['.git', 'CLAUDE.md', 'project.json', '.gitignore']) {
       expect(existsSync(path.join(dir, file))).toBe(true);
     }
-    const recent: unknown = JSON.parse(
+    const recent = JSON.parse(
       await readFile(path.join(userDataDir, 'recent-projects.json'), 'utf8'),
-    );
-    expect(recent).toMatchObject({ version: 1, projects: [{ dir, title: 'Smoke ż test' }] });
+    ) as { version: number; projects: { dir: string; title: string }[] };
+    expect(recent.version).toBe(1);
+    // Newest first (the preview test opened a fixture copy before).
+    expect(recent.projects[0]).toMatchObject({ dir, title: 'Smoke ż test' });
 
     await badge.click();
     const drawer = page.getByRole('complementary', { name: 'History' });
     await drawer.getByText('Create project "Smoke ż test"').waitFor();
-    expect(await drawer.locator('.history-entry').count()).toBe(1);
+    // The wizard saved the brief (the title) right after creating the project.
+    await drawer.getByText('Brief: Smoke ż test').waitFor();
+    expect(await drawer.locator('.history-entry').count()).toBe(2);
 
     // A change committed outside the app; reverting to the first commit must remove it again.
     const scene = path.join(dir, 'scenes', 's01_intro.js');
@@ -336,13 +366,14 @@ describe('desktop app', () => {
     await badge.click();
     await drawer.getByText('Add a scene by hand').waitFor();
     await page.screenshot({ path: path.join(screenshotDir, 'history-drawer.png') });
-    await drawer.getByRole('button', { name: 'Revert' }).click();
+    // The oldest entry ("Create project") is the last one.
+    await drawer.getByRole('button', { name: 'Revert' }).last().click();
     const confirm = page.getByRole('alertdialog', { name: 'Revert project?' });
     await confirm.waitFor();
     await page.screenshot({ path: path.join(screenshotDir, 'revert-confirm.png') });
     await confirm.getByRole('button', { name: 'Revert' }).click();
     await drawer.getByText(/^Revert to [0-9a-f]{7}: Create project/).waitFor();
-    expect(await drawer.locator('.history-entry').count()).toBe(3);
+    expect(await drawer.locator('.history-entry').count()).toBe(4);
     expect(existsSync(scene)).toBe(false);
     await page.screenshot({ path: path.join(screenshotDir, 'history-after-revert.png') });
     await page.getByRole('button', { name: 'Close', exact: true }).click();

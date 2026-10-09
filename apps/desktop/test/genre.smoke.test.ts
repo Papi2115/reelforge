@@ -12,6 +12,12 @@ import path from 'node:path';
 import type { ElectronApplication, Locator, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import {
+  finishNewProject,
+  goToStep,
+  openMoreOptions,
+  openNewProject,
+} from './support/new-project.js';
 import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
@@ -50,12 +56,18 @@ function startForm(): Locator {
   return page.getByRole('region', { name: 'Start' });
 }
 
-async function createProject(title: string): Promise<void> {
+/** Home → New project with `title`, at the "Channel and genre" step. */
+async function startProject(title: string): Promise<Locator> {
+  const wizard = await openNewProject(page);
+  await wizard.getByLabel('Video title').fill(title);
+  await goToStep(wizard, 'Channel and genre');
+  return wizard;
+}
+
+async function createProject(wizard: Locator): Promise<void> {
   if (app === undefined) throw new Error('the app is not running');
-  const start = startForm();
-  await start.getByLabel('Video title').fill(title);
   await stubFolderPicker(app, parent);
-  await start.getByRole('button', { name: 'New project…' }).click();
+  await finishNewProject(wizard);
   await projectMenuButton(page).waitFor({ timeout: 30_000 });
 }
 
@@ -66,23 +78,24 @@ async function closeProject(): Promise<void> {
 
 describe('genre presets', () => {
   it('fills in the form from the genre and records it in project.json', async () => {
-    const start = startForm();
-    await start.waitFor();
-    const genre = start.getByLabel('Genre', { exact: true });
+    await startForm().waitFor();
+    const wizard = await startProject('Fall of Rome');
+    const genre = wizard.getByLabel('Genre', { exact: true });
     expect(await genre.inputValue()).toBe('');
     await genre.selectOption('history');
-    const preview = start.getByRole('status', { name: 'What the genre sets' });
+    const preview = wizard.getByRole('status', { name: 'What the genre sets' });
     // Sketchbook (and Comic) need the experimental switch, which is off: Soft 480.
     expect(await preview.textContent()).toBe(
       'Warm, friendly voxel 3D with bigger pixels · mixed looks · calm pace · 3–5 scenes a minute · continuity links · no surprise moments',
     );
-    await start.getByText(/^Sketchbook.*Comic.*, using Soft 480\.$/).waitFor();
-    expect(await start.locator('input[type="radio"][value="soft-480"]').isChecked()).toBe(true);
-    expect(await start.getByLabel('Scenes per minute').inputValue()).toBe('calm');
-    await start.getByLabel('Video title').fill('Fall of Rome');
+    await wizard.getByText(/^Sketchbook.*Comic.*, using Soft 480\.$/).waitFor();
+    await goToStep(wizard, 'Style');
+    expect(await wizard.locator('input[type="radio"][value="soft-480"]').isChecked()).toBe(true);
+    await openMoreOptions(wizard);
+    expect(await wizard.getByLabel('Scenes per minute').inputValue()).toBe('calm');
     await shot('new-project');
 
-    await createProject('Fall of Rome');
+    await createProject(wizard);
     expect(await projectJson('Fall of Rome')).toMatchObject({
       genrePreset: 'history',
       style: 'soft-480',
@@ -107,13 +120,15 @@ describe('genre presets', () => {
   });
 
   it('keeps a style the user picks by hand', async () => {
-    const start = startForm();
-    await start.getByLabel('Genre', { exact: true }).selectOption('true-crime');
-    expect(await start.locator('input[type="radio"][value="noir-voxel"]').isChecked()).toBe(true);
-    await start.locator('input[type="radio"][value="soft-480"]').check();
-    const preview = start.getByRole('status', { name: 'What the genre sets' });
+    const wizard = await startProject('Cold case');
+    await wizard.getByLabel('Genre', { exact: true }).selectOption('true-crime');
+    await goToStep(wizard, 'Style');
+    expect(await wizard.locator('input[type="radio"][value="noir-voxel"]').isChecked()).toBe(true);
+    await wizard.locator('input[type="radio"][value="soft-480"]').check();
+    await goToStep(wizard, 'Channel and genre');
+    const preview = wizard.getByRole('status', { name: 'What the genre sets' });
     expect(await preview.textContent()).toMatch(/^your style · /);
-    await createProject('Cold case');
+    await createProject(wizard);
     expect(await projectJson('Cold case')).toMatchObject({
       genrePreset: 'true-crime',
       style: 'soft-480',
@@ -140,16 +155,17 @@ describe('genre presets', () => {
     await page.keyboard.press('Escape');
     await dialog.waitFor({ state: 'detached' });
 
-    const start = startForm();
-    const genre = start.getByLabel('Genre', { exact: true });
+    const wizard = await startProject('Plain film');
+    const genre = wizard.getByLabel('Genre', { exact: true });
     await expect.poll(() => genre.inputValue()).toBe('finance');
     await genre.selectOption('');
-    await createProject('Plain film');
+    await createProject(wizard);
     const plain = await projectJson('Plain film');
     expect(plain).not.toHaveProperty('genrePreset');
     expect(plain).toMatchObject({ style: 'voxel-pixel-crisp640' });
     await closeProject();
-    // The channel's genre applies again on the next form.
-    await expect.poll(() => genre.inputValue()).toBe('finance');
+    // The channel's genre applies again in the next wizard.
+    const next = await startProject('Another film');
+    await expect.poll(() => next.getByLabel('Genre', { exact: true }).inputValue()).toBe('finance');
   });
 });

@@ -142,7 +142,7 @@ describe('production line resilience', () => {
       },
     }));
     await line.runner({ lock: false }).start();
-    expect(line.executor.stepsOf(id)).toEqual(['mix', 'export', 'publish']);
+    expect(line.executor.stepsOf(id)).toEqual(['mix', 'export', 'seo', 'publish']);
     const item = await line.item('voxplain', id);
     expect(item.status).toBe('done');
     expect(item.history.some((entry) => entry.message === 'interrupted')).toBe(true);

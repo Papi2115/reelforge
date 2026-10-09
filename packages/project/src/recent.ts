@@ -16,7 +16,8 @@ import { lockKey, withLock } from './mutex.js';
 import { describeUnknown, err, errorCode, ok, projectError, tryIo, type Result } from './result.js';
 
 export const RECENT_PROJECTS_FILE = 'recent-projects.json';
-export const MAX_RECENT_PROJECTS = 10;
+/** The Home screen's project list (PLAN.md#13.16): as many as the file schema allows. */
+export const MAX_RECENT_PROJECTS = 50;
 
 export interface RecentProject extends RecentProjectRecord {
   /** False when the folder (or its project.json) is gone. */

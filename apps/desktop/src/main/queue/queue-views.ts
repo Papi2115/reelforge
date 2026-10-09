@@ -14,6 +14,7 @@ import {
   currentStep,
   parseClock,
   queueAttention,
+  stepFinished,
   type LineEnd,
   type LineStatus,
   type StageEvent,
@@ -35,10 +36,7 @@ export function liveKey(channelId: string, itemId: string): string {
 }
 
 function stepsDone(item: QueueItem): number {
-  return QUEUE_STEPS.filter((step) => {
-    const state = item.stageProgress[step]?.state;
-    return state === 'done' || state === 'skipped';
-  }).length;
+  return QUEUE_STEPS.filter((step) => stepFinished(item.stageProgress, step)).length;
 }
 
 export function itemView(

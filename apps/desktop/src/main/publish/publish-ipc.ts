@@ -9,16 +9,26 @@ import type { Logger } from '../logger.js';
 import type { StepCommit } from '../project-commits.js';
 import { ClaimsService } from './claims-service.js';
 import { PublishService } from './publish-service.js';
+import { PublishSeoService } from './seo-service.js';
 
 export type PublishHandlers = Pick<
   InvokeHandlers,
-  'publishKit' | 'publishSave' | 'publishOpenFolder' | 'claimsState' | 'claimsCheck' | 'claimsEdit'
+  | 'publishKit'
+  | 'publishSave'
+  | 'publishOpenFolder'
+  | 'publishSeoState'
+  | 'publishSeoGenerate'
+  | 'claimsState'
+  | 'claimsCheck'
+  | 'claimsEdit'
 >;
 
 export interface PublishHandlerOptions {
   readonly currentProject: () => string | undefined;
   readonly claude: ClaudeRunner;
   readonly settings: () => AppSettings;
+  /** `<app data>/channels.json` (the channel's niche for the SEO tags). */
+  readonly channelsFile: string;
   /** Autocommit of `paths` with a step name; false when it failed (logged by the caller). */
   readonly commit: StepCommit;
   readonly openPath: (folder: string) => Promise<string>;
@@ -40,10 +50,21 @@ export function publishHandlers(options: PublishHandlerOptions): PublishHandlers
     commit: (dir, message, paths) => options.commit(dir, message, 'sources', paths),
     log: options.log,
   });
+  const seo = new PublishSeoService({
+    currentProject: options.currentProject,
+    claude: options.claude,
+    settings: options.settings,
+    channelsFile: options.channelsFile,
+    now: () => new Date(),
+    commit: (dir, message, paths) => options.commit(dir, message, 'publish', paths),
+    log: options.log,
+  });
   return {
     publishKit: () => publish.kit(),
     publishSave: () => publish.save(),
     publishOpenFolder: () => publish.openFolder(),
+    publishSeoState: () => seo.state(),
+    publishSeoGenerate: () => seo.generate(),
     claimsState: () => claims.state(),
     claimsCheck: () => claims.check(),
     claimsEdit: (request) => claims.edit(request),

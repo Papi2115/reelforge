@@ -32,6 +32,7 @@
 :root:not([data-title-font='system'])
   :is(
     .app-title,
+    .home-title,
     .modal-title,
     .panel-heading-text,
     .doc-title,
@@ -50,6 +51,11 @@
 :root:not([data-title-font='system']) .app-title {
   font-size: var(--title-size-large);
   line-height: calc(var(--text-md) * 1.4);
+}
+
+:root:not([data-title-font='system']) .home-title {
+  font-size: var(--title-size-large);
+  line-height: calc(var(--text-xl) * 1.4);
 }
 
 :root:not([data-title-font='system']) .modal-title {

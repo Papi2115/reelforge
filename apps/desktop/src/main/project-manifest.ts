@@ -22,6 +22,7 @@ import {
 import { loadManifestAssets, locateAssetFfmpeg } from '@reelforge/pipeline';
 import {
   ambientShotInputs,
+  captionsOn,
   DIRECTIONS_FILE,
   directionsFileSchema,
   manifestDirections,
@@ -189,14 +190,18 @@ export async function buildProjectManifest(
     ffmpeg: () => locateAssetFfmpeg(),
   });
   if (!assets.ok) return unavailable(assets.error);
-  const { style, fps, seed, palette } = project.data;
+  const { style, format, fps, seed, palette } = project.data;
   const manifest = renderManifestSchema.safeParse({
     version: 1,
     style,
+    // Portrait projects (PLAN.md#13.18); absent = landscape, the manifest as before.
+    ...(format === undefined ? {} : { format }),
     fps,
     seed,
     ...(palette ? { palette } : {}),
     ...(words.status === 'ok' ? { words: words.data } : {}),
+    // Word-by-word captions of a short (PLAN.md#13.18); absent = off, the manifest as before.
+    ...(captionsOn(project.data) ? { captions: true } : {}),
     ...(props.extensions.length > 0 ? { kitExtensions: props.extensions } : {}),
     ...(castRoles === undefined ? {} : { castRoles }),
     ...(worldAssets === undefined ? {} : { worldAssets }),

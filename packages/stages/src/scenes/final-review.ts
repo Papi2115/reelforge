@@ -3,18 +3,17 @@
  * (sync report, lint, 3-frame renders, blank/cards/safe area, phone legibility) for every shot,
  * then ONE batched Haiku critic turn over the contact sheets of all shots, then at most one Opus
  * `scene-fix` per shot with confirmed findings (code findings and the critic's suspects) and a
- * re-QA. Locked shots are checked and reported only. Results: the scenes report (latest status
- * per shot) and `.reelforge/final-review.json`; nothing is committed per shot (the stage makes one
- * commit, "Final review: fixed N shots").
+ * re-QA. Locked shots and a short's end card are checked and reported only. Results: the scenes
+ * report (latest status per shot) and `.reelforge/final-review.json`; nothing is committed per
+ * shot (the stage makes one commit, "Final review: fixed N shots").
  */
 import { ok, type Result } from '@reelforge/claude-bridge';
 import {
   FINAL_REVIEW_VERSION,
   finalReviewSchema,
+  isEndCardShot,
   type FinalReview,
-  type FinalReviewShot,
   type QaFinding,
-  type ShotBuildRecord,
   type StoryboardShot,
   type SyncReport,
 } from '@reelforge/shared';
@@ -25,15 +24,10 @@ import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES } from '../paths.js';
 import type { StageError } from '../types.js';
 import { finding, fixableFindings, formatFinding } from './checks.js';
-import {
-  checkShot,
-  FINAL_CRITIC_PREFIX,
-  findingsStatus,
-  legibilityCheck,
-  reviewedFindings,
-} from './final-checks.js';
+import { checkShot, FINAL_CRITIC_PREFIX, legibilityCheck } from './final-checks.js';
+import { counts, entryOf, mergeIntoReport } from './final-review-entries.js';
 import type { SceneJob } from './job.js';
-import { readScenesReport, updateScenesReport } from './report.js';
+import { readScenesReport } from './report.js';
 import { SHEET_ROWS, triage } from './review.js';
 import { runShotJobs } from './run-shots.js';
 import { writeContactSheet, type SheetShot } from './sheet.js';
@@ -172,7 +166,8 @@ async function critic(
   if (!job.settings.critic || !job.ctx.hasClaude || sheets.length === 0) return ok(undefined);
   job.ctx.step('Final review: frame critic', 62);
   const looked = new Set(checked.rows.map((row) => row.shotId));
-  const shots = job.shots.filter((shot) => looked.has(shot.id));
+  // A short's end card (PLAN.md#13.18) is the app's: the critic is not asked about it.
+  const shots = job.shots.filter((shot) => looked.has(shot.id) && !isEndCardShot(shot));
   const suspects = await triage(job, shots, sheets, notes);
   if (!suspects.ok) return suspects;
   for (const suspect of suspects.value) {
@@ -212,7 +207,10 @@ async function fixShots(
   notes: string[],
 ): Promise<Result<readonly string[], StageError>> {
   const targets = job.shots.filter(
-    (shot) => !job.locked.has(shot.id) && needsFinalFix(job, checked.findings.get(shot.id) ?? []),
+    (shot) =>
+      !job.locked.has(shot.id) &&
+      !isEndCardShot(shot) && // a short's end card: its findings stay in the report
+      needsFinalFix(job, checked.findings.get(shot.id) ?? []),
   );
   if (targets.length === 0) return ok([]);
   if (!job.ctx.hasClaude) {
@@ -239,71 +237,6 @@ async function fixShots(
       }),
   });
   return ran.ok ? ok(ran.value.ran) : ran;
-}
-
-function entryOf(
-  job: SceneJob,
-  shot: StoryboardShot,
-  found: readonly QaFinding[],
-  record: ShotBuildRecord | undefined,
-  fixed: boolean,
-  sync: SyncReport | undefined,
-): FinalReviewShot {
-  const locked = job.locked.has(shot.id);
-  const findings = reviewedFindings(found, record, fixed);
-  const problems = sync?.shots.find((entry) => entry.shotId === shot.id)?.problems ?? 0;
-  return {
-    shotId: shot.id,
-    status: findingsStatus(findings),
-    findings: [...findings],
-    autoFixed: fixed,
-    locked,
-    outOfSync: locked && problems > 0,
-  };
-}
-
-/** The scenes report gets the review's verdict of the unlocked shots it did not fix. */
-async function mergeIntoReport(
-  job: SceneJob,
-  entries: readonly FinalReviewShot[],
-): Promise<Result<void, StageError>> {
-  const { ctx } = job;
-  const changed = entries.filter((entry) => !entry.locked && !entry.autoFixed);
-  const stamp = ctx.now().toISOString();
-  const written = await updateScenesReport(
-    ctx.projectDir,
-    job.shots.map((shot) => shot.id),
-    ctx.now(),
-    (records) => {
-      for (const entry of changed) {
-        const record = records.get(entry.shotId);
-        if (record === undefined) continue;
-        const same =
-          record.status === entry.status &&
-          JSON.stringify(record.findings) === JSON.stringify(entry.findings);
-        if (!same) {
-          records.set(entry.shotId, {
-            ...record,
-            status: entry.status,
-            findings: entry.findings,
-            updatedAt: stamp,
-          });
-        }
-      }
-    },
-  );
-  return written.ok ? ok(undefined) : written;
-}
-
-function counts(entries: readonly FinalReviewShot[]): FinalReview['counts'] {
-  const count = (test: (entry: FinalReviewShot) => boolean): number => entries.filter(test).length;
-  return {
-    ok: count((entry) => entry.status === 'ok'),
-    warning: count((entry) => entry.status === 'warning'),
-    failed: count((entry) => entry.status === 'failed'),
-    locked: count((entry) => entry.locked),
-    fixed: count((entry) => entry.autoFixed),
-  };
 }
 
 export async function finalReview(

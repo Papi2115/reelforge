@@ -1,6 +1,7 @@
 /**
  * The Comic page compositor (ADR-032): one newsprint page per shot, repainted from scratch for
- * every t into one 640x360 index framebuffer. Order: paper (fibres fixed to the page, travelling
+ * every t into one index framebuffer the size of the frame (640x360, or 360x640 in a portrait
+ * short). Order: paper (fibres fixed to the page, travelling
  * with the page camera) -> under-traces -> panels (pencil rough before an entrance; blue-line
  * pencils; content painted through the panel's mask with its own clock and camera, colour plates
  * out of register; boiled ink border) -> page drawings, lettering and traces over the panels ->
@@ -13,7 +14,7 @@ import { rnd, rndRange, shake, track, type EaseName } from '../draw/math.js';
 import { dither, type Screen } from '../draw/paint.js';
 import { cameraPlace, type Place } from '../draw/place.js';
 import { boil } from '../draw/shapes.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import { LANDSCAPE_PAGE, type PageSize } from '../style.js';
 import { PanelModel } from './panel.js';
 import { ComicPen, type PenContext } from './pen.js';
 
@@ -84,11 +85,14 @@ export class ComicPageModel {
   readonly seed: number;
   readonly paperKey: string;
   readonly mis: readonly [number, number];
+  /** The page in page px: the frame (portrait shorts are 360x640). */
+  readonly page: PageSize;
 
-  constructor(seed: number, mis: readonly [number, number]) {
+  constructor(seed: number, mis: readonly [number, number], page: PageSize = LANDSCAPE_PAGE) {
     this.seed = seed;
     this.paperKey = `paper${String(seed)}`;
     this.mis = mis;
+    this.page = page;
   }
 
   /** Checks the finished page (first frame): the panel cap. */
@@ -108,14 +112,14 @@ export class ComicPageModel {
     const keys = this.cameraKeys;
     const x =
       keys.length === 0
-        ? PAGE_WIDTH / 2
+        ? this.page.width / 2
         : track(
             keys.map((k) => [k.at, k.x, k.ease]),
             t,
           );
     const y =
       keys.length === 0
-        ? PAGE_HEIGHT / 2
+        ? this.page.height / 2
         : track(
             keys.map((k) => [k.at, k.y, k.ease]),
             t,
@@ -134,7 +138,7 @@ export class ComicPageModel {
       dx += sx;
       dy += sy;
     });
-    return cameraPlace(PAGE_WIDTH, PAGE_HEIGHT, x, y, zoom, [dx, dy]);
+    return cameraPlace(this.page.width, this.page.height, x, y, zoom, [dx, dy]);
   }
 
   render(canvas: ComicCanvas, t: number): void {
@@ -143,7 +147,7 @@ export class ComicPageModel {
     const page = this.place(t);
     const ctx: ItemContext = { canvas, boilFrame: Math.floor(t * 10), screen, page, t };
     canvas.clear(INK.PAPER);
-    paper(canvas, page, this.paperKey);
+    paper(canvas, page, this.paperKey, this.page);
     this.drawItems(ctx, 'under');
     const layered = [
       ...this.panels.map((panel) => ({ order: panel.order, panel, item: undefined })),
@@ -184,11 +188,20 @@ function maxOverlap(panels: readonly PanelModel[]): number {
   return most;
 }
 
-/** Newsprint: paper tone, fibres and foxing fixed to the page so they travel with the camera. */
-export function paper(canvas: ComicCanvas, page: Place, key: string): void {
+/**
+ * Newsprint: paper tone, fibres and foxing fixed to the page so they travel with the camera (over
+ * the page and a page beyond each edge, for cameras that read past it).
+ */
+export function paper(
+  canvas: ComicCanvas,
+  page: Place,
+  key: string,
+  size: PageSize = LANDSCAPE_PAGE,
+): void {
+  const [kx, ky] = [size.width / LANDSCAPE_PAGE.width, size.height / LANDSCAPE_PAGE.height];
   for (let i = 0; i < 520; i += 1) {
-    const sx = Math.round(page.x(rndRange(key, i, -700, 1340)));
-    const sy = Math.round(page.y(rndRange(key, i + 3000, -300, 660)));
+    const sx = Math.round(page.x(rndRange(key, i, -700 * kx, 1340 * kx)));
+    const sy = Math.round(page.y(rndRange(key, i + 3000, -300 * ky, 660 * ky)));
     if (sx < 0 || sy < 0 || sx >= canvas.width || sy >= canvas.height) continue;
     const r = rnd(key, i + 6000);
     if (r < 0.08) canvas.plot(sx, sy, INK.AGED);

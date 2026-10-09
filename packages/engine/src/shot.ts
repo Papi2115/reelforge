@@ -8,7 +8,12 @@ import {
   type KitDefinition,
   type ProjectCast,
 } from '@reelforge/kit';
-import { DEFAULT_SAFE_AREA, type SafeAreaMargins } from '@reelforge/shared';
+import {
+  DEFAULT_SAFE_AREA,
+  frameSizeFormat,
+  type SafeAreaMargins,
+  type TimedWord,
+} from '@reelforge/shared';
 import * as THREE from 'three';
 import { createAmbientApi } from './ambient.js';
 import { createAssetsApi } from './assets/api.js';
@@ -34,6 +39,8 @@ import { describeError, EngineError } from './errors.js';
 import { createAnnotationLayer } from './annotations/layer.js';
 import { createRng, hashString, shotSeed } from './rng.js';
 import type { ScenePalette } from './style.js';
+import { captionGroups, drawCaptions, type CaptionColors } from './text/captions.js';
+import { hexToRgb8 } from './text/surface.js';
 import { createTextLayer, type TextOverlay } from './text/text-layer.js';
 import type { PixelRect, TextCard } from './text/types.js';
 import type { WorldAssetsValue } from './world-assets/build.js';
@@ -42,7 +49,8 @@ import type { WorldAssetsValue } from './world-assets/build.js';
 export const DEFAULT_CAMERA_POSE: CameraPose = { position: [0, 2, 8], target: [0, 0, 0], fov: 50 };
 
 export interface ShotInput {
-  readonly shot: ShotInfo & { readonly t0: number };
+  /** `aspect` and `format` are derived from the size. */
+  readonly shot: Omit<ShotInfo, 'aspect' | 'format'> & { readonly t0: number };
   readonly module: SceneModule;
   readonly projectSeed: number;
   readonly palette: ScenePalette;
@@ -61,6 +69,18 @@ export interface ShotInput {
   readonly styleId?: string | undefined;
   /** The video's world assets (frozen, PLAN.md#13.15); undefined outside a world. */
   readonly worldAssets?: WorldAssetsValue | undefined;
+  /**
+   * The video's spoken words when captions are on (manifest `captions`, PLAN.md#13.18): the shot
+   * draws the ones spoken during it over its frame. Absent = no captions.
+   */
+  readonly captions?: readonly TimedWord[] | undefined;
+}
+
+export interface ShotUpdateOptions {
+  /** QA: also test whether annotation targets are hidden behind geometry. */
+  readonly probe?: boolean;
+  /** Video seconds the captions follow (the audio clock); default t0 + the local time. */
+  readonly captionTime?: number;
 }
 
 export interface BuiltShot {
@@ -79,9 +99,9 @@ export interface BuiltShot {
   readonly focus: FocusState | undefined;
   /**
    * Evaluates the scene at local time t (seconds). `probe` (QA) also tests whether annotation
-   * targets are hidden behind geometry.
+   * targets are hidden behind geometry; `captionTime` is the video time captions follow.
    */
-  update(localTime: number, options?: { readonly probe?: boolean }): void;
+  update(localTime: number, options?: ShotUpdateOptions): void;
   /** Text cards and annotations registered by the last `update`. */
   cards(): readonly TextCard[];
 }
@@ -137,6 +157,14 @@ function collectingSfx(shot: ShotInput['shot'], cues: SfxCue[]): SfxApi {
   };
 }
 
+function captionColors(palette: ScenePalette): CaptionColors {
+  return {
+    fill: hexToRgb8(palette.text),
+    highlight: hexToRgb8(palette.accent1),
+    shadow: hexToRgb8(palette.outline),
+  };
+}
+
 function forbiddenSfx(shotId: string): SfxApi {
   return {
     at(_t, name) {
@@ -152,9 +180,11 @@ function forbiddenSfx(shotId: string): SfxApi {
 export function buildShot(input: ShotInput): BuiltShot {
   const { shot, module, palette } = input;
   const { id, width, height, duration, fps } = shot;
-  const info: ShotInfo = { id, width, height, duration, fps };
+  const aspect = width / height;
+  const format = frameSizeFormat({ width, height });
+  const info: ShotInfo = { id, width, height, aspect, format, duration, fps };
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(DEFAULT_CAMERA_POSE.fov, width / height, 0.1, 1000);
+  const camera = new THREE.PerspectiveCamera(DEFAULT_CAMERA_POSE.fov, aspect, 0.1, 1000);
   const seed = shotSeed(input.projectSeed, id);
   let lookTarget: Vec3 = DEFAULT_CAMERA_POSE.target ?? [0, 0, 0];
   const moves = createCameraMoveLayer({ shotId: id, camera, scene, lookTarget: () => lookTarget });
@@ -199,6 +229,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     cast: input.cast,
     variation: input.ambient,
     style: input.styleId,
+    frame: { width, height },
   });
   const drift = input.ambient && createCameraDrift(camera, input.ambient.cameraDrift, duration);
   const library = input.assets ?? NO_ASSETS;
@@ -241,6 +272,13 @@ export function buildShot(input: ShotInput): BuiltShot {
   }
   kit.seal();
   const updateSfx = forbiddenSfx(id);
+  const captions =
+    input.captions === undefined
+      ? undefined
+      : {
+          groups: captionGroups(input.captions, { t0: shot.t0, t1: shot.t0 + duration }),
+          colors: captionColors(palette),
+        };
   return {
     info,
     scene,
@@ -275,6 +313,10 @@ export function buildShot(input: ShotInput): BuiltShot {
         drift?.apply(localTime);
         moves.endFrame();
         annotations.endFrame(updateOptions?.probe === true);
+        if (captions !== undefined) {
+          const time = updateOptions?.captionTime ?? shot.t0 + localTime;
+          drawCaptions(text.surface, captions.groups, time, captions.colors);
+        }
       } catch (error) {
         if (error instanceof EngineError) throw error;
         throw new EngineError(

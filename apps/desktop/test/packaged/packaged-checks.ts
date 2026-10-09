@@ -1,6 +1,6 @@
 /**
  * The smoke checks every packaged ReelForge.exe must pass (unpacked build and installed app):
- * window + demo preview, shipped hook and CLI (direct, cmd shim, Git Bash shim), Claude detection
+ * window + Home + a project's preview, shipped hook and CLI (direct, cmd shim, Git Bash shim), Claude detection
  * in Settings (`claude --version` / `auth status`, never a model call), a new project with
  * CLAUDE.md and the style bibles, and frames of that project rendered by the app's render service
  * through the packaged CLI.
@@ -16,11 +16,13 @@ import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { logFile } from '../../src/main/app-paths.js';
 import {
-  FIRST_FRAME_TIMEOUT_MS,
   fixtureProject,
   frameStats,
   stubFolderPicker,
+  waitForProjectPreview,
 } from '../support/electron-app.js';
+import { createProjectNamed, startRegion } from '../support/new-project.js';
+import { projectMenu } from '../support/project-menu.js';
 import {
   cleanEnv,
   gitBash,
@@ -111,14 +113,23 @@ export function definePackagedSmokeTests(label: string, exe: () => string): void
       expect(page.url()).toBe('reelforge://app/index.html');
     });
 
-    it('previews the demo scene (non-blank frame)', async () => {
-      await page
-        .locator('canvas.preview-canvas[data-rendered-t]')
-        .waitFor({ timeout: FIRST_FRAME_TIMEOUT_MS });
+    it('opens on Home and previews a project (non-blank frame)', async () => {
+      // Home has no preview (PLAN.md#13.16): a copy of the fixture project is opened for it.
+      await startRegion(page).waitFor();
+      expect(await page.locator('canvas.preview-canvas').count()).toBe(0);
+      await page.screenshot({ path: path.join(packagedOutDir, `${label}-home.png`) });
+      const fixtureCopy = path.join(userDataDir, 'Podgląd ż fixture');
+      await cp(fixtureProject, fixtureCopy, { recursive: true });
+      await stubFolderPicker(app, fixtureCopy);
+      await page.getByRole('button', { name: 'Open project…' }).click();
+      await waitForProjectPreview(page);
       const stats = await frameStats(page);
       expect([stats.width, stats.height]).toEqual([640, 360]);
       expect(stats.distinctColours).toBeGreaterThan(4);
       await page.screenshot({ path: path.join(packagedOutDir, `${label}-window.png`) });
+      // Back to Home for the checks below (Settings from Home, then the new-project wizard).
+      await projectMenu(page, 'Close project');
+      await startRegion(page).waitFor();
     });
 
     it('ships the bash guard and the CLI as real files that run on the app binary', async () => {
@@ -184,8 +195,9 @@ export function definePackagedSmokeTests(label: string, exe: () => string): void
       const parent = path.join(userDataDir, 'Moje projekty');
       await mkdir(parent);
       await stubFolderPicker(app, parent);
-      await page.getByLabel('Video title').fill(PROJECT_TITLE);
-      await page.getByRole('button', { name: 'New project…' }).click();
+      // Home → New project wizard: a title, everything else as proposed (PLAN.md#13.16).
+      await startRegion(page).waitFor();
+      await createProjectNamed(page, PROJECT_TITLE);
       await page.getByRole('button', { name: 'History', exact: true }).waitFor();
       projectDir = path.join(parent, PROJECT_TITLE);
       const template = path.join(resources(), 'template');

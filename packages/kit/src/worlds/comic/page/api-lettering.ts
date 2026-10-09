@@ -27,6 +27,7 @@ import { drawText, letterable, measure } from '../draw/text.js';
 import { parse, panelModelOf, type ApiContext } from './api.js';
 import type { ItemContext } from './model.js';
 import { inkIndex } from './pen.js';
+import { balloonBox, captionBox, letteringDefaults, safePlace } from './safe.js';
 import {
   balloonSchema,
   captionSchema,
@@ -64,6 +65,10 @@ function resolvePoint(point: PointArg, t: number): Point {
 
 export function createLetteringApi(ctx: ApiContext) {
   const { model, resolve, call } = ctx;
+  const defaults = letteringDefaults(model.page);
+  /** Key lettering of a portrait page stays in its safe box (unchanged on a landscape page). */
+  const safe = (x: number, y: number, box: Parameters<typeof safePlace>[2]) =>
+    safePlace(model.page, [x, y], box, model.cameraKeys.length === 0);
   /** Seed key of an item: by what and where it is, so adding an item never reshuffles others. */
   const nextKey = (kind: string, x: number, y: number, text = '') =>
     `${kind}${String(ctx.seed)}:${text}@${String(Math.round(x))},${String(Math.round(y))}`;
@@ -83,7 +88,9 @@ export function createLetteringApi(ctx: ApiContext) {
     balloon(text: string, options: z.input<typeof balloonSchema>) {
       const o = parse(balloonSchema, options, `${call}.balloon`);
       const { at, until } = span(o.at, o.until);
-      const lines = wrapLines(text, o.width);
+      const size = o.size ?? defaults.size;
+      const lines = wrapLines(text, o.width ?? defaults.balloonWidth);
+      const box = balloonBox(lines, size);
       const key = nextKey('balloon', o.x, o.y, text);
       model.items.push({
         at,
@@ -95,8 +102,9 @@ export function createLetteringApi(ctx: ApiContext) {
             Number.isFinite(until) && t > until - 0.12
               ? 1 - seg(t, until - 0.12, until - 0.02, 'inQuad')
               : pop(t, at, o.pop);
-          const placed = anchor(item, o.x, o.y, o.on);
-          const zoom = placed.zoom * o.size;
+          const [x, y] = safe(o.x, o.y, box);
+          const placed = anchor(item, x, y, o.on);
+          const zoom = placed.zoom * size;
           const toScreen = (p: Point): [number, number] => [page.x(p[0]), page.y(p[1])];
           const tail = o.tail === undefined ? undefined : toScreen(resolvePoint(o.tail, t));
           const drawn = drawBalloon(item.canvas, {
@@ -120,7 +128,9 @@ export function createLetteringApi(ctx: ApiContext) {
     caption(text: string, options: z.input<typeof captionSchema>) {
       const o = parse(captionSchema, options, `${call}.caption`);
       const { at, until } = span(o.at, o.until);
-      const lines = wrapLines(text, o.width);
+      const size = o.size ?? defaults.size;
+      const lines = wrapLines(text, o.width ?? defaults.captionWidth);
+      const box = captionBox(lines, size);
       const key = nextKey('caption', o.x, o.y, text);
       const fill = inkIndex(o.fill, `${call}.caption fill`);
       model.items.push({
@@ -128,7 +138,9 @@ export function createLetteringApi(ctx: ApiContext) {
         until,
         layer: 'over',
         draw: (item) => {
-          const { sx, sy, zoom } = anchor(item, o.x, o.y, o.on);
+          const [x, y] = safe(o.x, o.y, box);
+          const placed = anchor(item, x, y, o.on);
+          const [sx, sy, zoom] = [placed.sx, placed.sy, placed.zoom * size];
           const dy = Math.round(-5 * (1 - seg(item.t, at, at + 0.12, 'outQuad')));
           const longest = Math.max(...lines.map((line) => line.length));
           const reveal =
@@ -139,7 +151,8 @@ export function createLetteringApi(ctx: ApiContext) {
           drawCaption(item.canvas, caption);
         },
       });
-      return { at, end: at + Math.max(0.12, o.type), height: lines.length * LINE_H + 7 };
+      const height = lines.length * LINE_H * size + 7 * size;
+      return { at, end: at + Math.max(0.12, o.type), height };
     },
 
     stamp(text: string, options: z.input<typeof stampSchema>) {

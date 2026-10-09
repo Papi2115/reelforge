@@ -10,6 +10,7 @@ import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { DEFAULT_STYLE_ID, findStylePreset } from '@reelforge/engine';
 import { KIT_VERSION } from '@reelforge/kit';
 import type { RenderIdentity } from '@reelforge/pipeline';
+import { DEFAULT_VIDEO_FORMAT, orientFrameSize, type VideoFormat } from '@reelforge/shared';
 import { ENGINE_ASSET_DIR } from '../../shared/engine-assets.js';
 
 const ENGINE_FRAME_SCRIPT = 'engine-frame.js';
@@ -31,16 +32,19 @@ export async function engineBundleVersion(
   return err(`the engine frame bundle is missing (looked in ${assetRoots.join(', ')})`);
 }
 
+/** `format`: the manifest's video format (PLAN.md#13.18); portrait turns the size upright. */
 export function renderIdentity(
   style: string | undefined,
   engineVersion: string,
+  format: VideoFormat = DEFAULT_VIDEO_FORMAT,
 ): Result<RenderIdentity, string> {
   const id = style ?? DEFAULT_STYLE_ID;
   const preset = findStylePreset(id);
   if (preset === undefined) return err(`unknown style preset "${id}"`);
+  const { width, height } = orientFrameSize(preset.resolution, format);
   return ok({
     engineVersion,
     kitVersion: KIT_VERSION,
-    style: { id, width: preset.resolution.width, height: preset.resolution.height, preset },
+    style: { id, width, height, preset },
   });
 }

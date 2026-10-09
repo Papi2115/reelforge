@@ -23,6 +23,11 @@ export interface KitMaterials {
   readonly instancedGlow: THREE.MeshBasicMaterial;
 }
 
+export interface KitFrame {
+  readonly width: number;
+  readonly height: number;
+}
+
 export interface KitContext {
   readonly three: Three;
   readonly palette: KitPalette;
@@ -30,6 +35,8 @@ export interface KitContext {
   readonly rng: KitRng;
   /** Ambient variation of the shot (PLAN.md#12.8); undefined when the project has it off. */
   readonly variation: AmbientVariation | undefined;
+  /** Frame size of the shot in px (portrait shorts are taller than wide); absent in unit tests. */
+  readonly frame: KitFrame | undefined;
   materials(): KitMaterials;
   /** Registers a resource freed by the kit's dispose(). */
   track<T extends Disposable>(resource: T): T;
@@ -44,6 +51,7 @@ export function createKitContext(
   palette: KitPalette,
   rng: KitRng,
   variation?: AmbientVariation,
+  frame?: KitFrame,
 ): KitContext {
   const resources: Disposable[] = [];
   let materials: KitMaterials | undefined;
@@ -57,6 +65,7 @@ export function createKitContext(
     palette,
     rng,
     variation,
+    frame,
     track,
     materials() {
       materials ??= {

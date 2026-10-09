@@ -82,13 +82,24 @@ export interface EvalReport {
   };
 }
 
+/**
+ * Folder of a stage's golden outputs: the case project, except for a short's script (PLAN.md#13.18),
+ * whose `script.txt` would collide with the film's: `<case>/short/`.
+ */
+function goldenDir(evalCase: EvalCase, stage: PromptId): string {
+  return stage === 'short-script'
+    ? path.join(path.dirname(evalCase.projectDir), 'short')
+    : evalCase.projectDir;
+}
+
 function goldenTurn(evalCase: EvalCase, stage: PromptId, files: readonly string[]): CannedTurn {
   const reply = evalCase.file.replies[stage];
+  const dir = goldenDir(evalCase, stage);
   return {
     reply: formatValue(reply),
     writes: files.map((file) => ({
       path: file,
-      content: readFileSync(path.join(evalCase.projectDir, file), 'utf8'),
+      content: readFileSync(path.join(dir, file), 'utf8'),
     })),
   };
 }

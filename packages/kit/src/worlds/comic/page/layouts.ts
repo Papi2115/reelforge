@@ -2,10 +2,16 @@
  * Panel layout presets of the Comic page (QUALITY.md §6: uneven gutters, panel size =
  * importance, never a perfect grid). Each preset is hand-ruled from a seed: gutter widths vary
  * 7-14 px, vertical gutters lean (top and bottom x differ), horizontal gutters tilt and never line
- * up across columns, every corner is nudged up to 1.5 px. Page coordinates 640x360.
+ * up across columns, every corner is nudged up to 1.5 px. Page coordinates (640x360).
+ *
+ * Portrait shorts (PLAN.md#13.18, a 360x640 page): the landscape presets are ruled on the page
+ * turned on its side and stood upright, so columns become a vertical stack read downward ('2-up'
+ * = two panels stacked, 'strip' = three, '3-up-l' = a wide panel over two side by side, ...);
+ * the stack presets ('2-stack', '3-stack', 'splash-strip', 'stagger') are ruled as named in either
+ * orientation. Landscape pages are ruled exactly as before.
  */
 import { rndRange } from '../draw/math.js';
-import { PAGE_HEIGHT, PAGE_WIDTH } from '../style.js';
+import { isPortraitPage, LANDSCAPE_PAGE, type PageSize } from '../style.js';
 
 export const LAYOUT_NAMES = [
   'splash',
@@ -15,7 +21,21 @@ export const LAYOUT_NAMES = [
   '4-grid',
   '4-l',
   'splash-inset',
+  '2-stack',
+  '3-stack',
+  'splash-strip',
+  'stagger',
 ] as const;
+
+/** Presets ruled on the turned page in portrait (their columns become rows). */
+const TURNED_IN_PORTRAIT: ReadonlySet<LayoutName> = new Set<LayoutName>([
+  '2-up',
+  'strip',
+  '3-up-l',
+  '4-grid',
+  '4-l',
+  'splash-inset',
+]);
 
 export type LayoutName = (typeof LAYOUT_NAMES)[number];
 
@@ -32,6 +52,8 @@ export interface LayoutOptions {
   /** Mean gutter width in px (default 10). */
   readonly gutter?: number | undefined;
   readonly seed: number;
+  /** The page (default the landscape 640x360). */
+  readonly page?: PageSize | undefined;
 }
 
 const DEFAULT_WEIGHTS: Readonly<Record<LayoutName, readonly number[]>> = {
@@ -42,6 +64,10 @@ const DEFAULT_WEIGHTS: Readonly<Record<LayoutName, readonly number[]>> = {
   '4-grid': [0.56, 0.47, 0.58],
   '4-l': [0.4, 0.4, 0.37],
   'splash-inset': [0.3, 0.38],
+  '2-stack': [0.56],
+  '3-stack': [0.3, 0.64],
+  'splash-strip': [0.64, 0.46],
+  stagger: [0.44, 0.7, 0.78],
 };
 
 /** A leaning vertical gutter: its centre x at the top and at the bottom of a band. */
@@ -56,6 +82,22 @@ function xAt(gutter: Gutter, y: number, y0: number, y1: number): number {
 }
 
 export function layoutQuads(name: LayoutName, options: LayoutOptions): Quad[] {
+  const page = options.page ?? LANDSCAPE_PAGE;
+  const key = `layout:${name}:${String(options.seed)}`;
+  const mirror = options.mirror ?? false;
+  if (isPortraitPage(page) && TURNED_IN_PORTRAIT.has(name)) {
+    const turned = { width: page.height, height: page.width };
+    return ruledQuads(name, options, turned).map((quad, index) =>
+      mirrored(stoodUp(jitter(quad, `${key}:${String(index)}`)), page.width, mirror),
+    );
+  }
+  return ruledQuads(name, options, page).map((quad, index) =>
+    mirrored(jitter(quad, `${key}:${String(index)}`), page.width, mirror),
+  );
+}
+
+/** The preset's quads on a page of `page` size, before the hand nudge. */
+function ruledQuads(name: LayoutName, options: LayoutOptions, page: PageSize): Quad[] {
   const key = `layout:${name}:${String(options.seed)}`;
   const r = (i: number, min: number, max: number) => rndRange(key, i, min, max);
   const weights = options.weights ?? DEFAULT_WEIGHTS[name];
@@ -63,7 +105,7 @@ export function layoutQuads(name: LayoutName, options: LayoutOptions): Quad[] {
   const margin = options.margin ?? Math.round(r(1, 12, 14.9));
   const meanGutter = options.gutter ?? 10;
   const gutterWidth = (i: number) => Math.max(5, meanGutter + r(10 + i, -3, 4));
-  const [L, T, R, B] = [margin, margin, PAGE_WIDTH - margin, PAGE_HEIGHT - margin];
+  const [L, T, R, B] = [margin, margin, page.width - margin, page.height - margin];
   const vertical = (fraction: number, i: number, y0 = T, y1 = B): Gutter => {
     const x = L + (R - L) * fraction;
     const lean = r(20 + i, 2, 7) * (r(30 + i, 0, 1) < 0.5 ? -1 : 1) * ((y1 - y0) / (B - T));
@@ -170,17 +212,63 @@ export function layoutQuads(name: LayoutName, options: LayoutOptions): Quad[] {
       ]);
       break;
     }
+    case '2-stack': {
+      const h = horizontal(w(0), 0);
+      cell(null, null, pageTop, above(h));
+      cell(null, null, below(h), pageBottom);
+      break;
+    }
+    case '3-stack': {
+      const h1 = horizontal(w(0), 0);
+      const h2 = horizontal(w(1), 1);
+      cell(null, null, pageTop, above(h1));
+      cell(null, null, below(h1), above(h2));
+      cell(null, null, below(h2), pageBottom);
+      break;
+    }
+    case 'splash-strip': {
+      // A tall splash, then a strip of two small panels under it.
+      const h = horizontal(w(0), 0);
+      const g = vertical(w(1), 1);
+      cell(null, null, pageTop, above(h));
+      cell(null, g, below(h), pageBottom);
+      cell(g, null, below(h), pageBottom);
+      break;
+    }
+    case 'stagger': {
+      // Three rows, each panel short of one side in turn (a webtoon's staggered reading path).
+      const h1 = horizontal(w(0), 0);
+      const h2 = horizontal(w(1), 1);
+      const edge = (fraction: number, i: number): Gutter => {
+        const x = L + (R - L) * fraction;
+        const lean = r(60 + i, -4, 4);
+        return { top: x + lean, bottom: x - lean, half: 0 };
+      };
+      const share = w(2);
+      cell(null, edge(share, 0), pageTop, above(h1));
+      cell(edge(1 - share, 1), null, below(h1), above(h2));
+      cell(null, edge(share, 2), below(h2), pageBottom);
+      break;
+    }
   }
-  return quads.map((quad, index) => jitter(quad, `${key}:${String(index)}`, options.mirror));
+  return quads;
 }
 
-/** Corners nudged up to 1.5 px (ruled by hand), optionally mirrored left-right. */
-function jitter(quad: Quad, key: string, mirror = false): Quad {
-  const out = quad.map((value, i) =>
-    Math.round(value + rndRange(key, i, -1.5, 1.5)),
-  ) as unknown as Quad;
-  if (!mirror) return out;
-  const [x0, y0, x1, y1, x2, y2, x3, y3] = out;
-  const m = (x: number) => PAGE_WIDTH - x;
+/** Corners nudged up to 1.5 px (ruled by hand). */
+function jitter(quad: Quad, key: string): Quad {
+  return quad.map((value, i) => Math.round(value + rndRange(key, i, -1.5, 1.5))) as unknown as Quad;
+}
+
+/** A quad ruled on the page turned on its side, stood upright (x <-> y, still clockwise). */
+function stoodUp(quad: Quad): Quad {
+  const [x0, y0, x1, y1, x2, y2, x3, y3] = quad;
+  return [y0, x0, y3, x3, y2, x2, y1, x1];
+}
+
+/** Optionally mirrored left-right on a page `width` wide. */
+function mirrored(quad: Quad, width: number, mirror: boolean): Quad {
+  if (!mirror) return quad;
+  const [x0, y0, x1, y1, x2, y2, x3, y3] = quad;
+  const m = (x: number) => width - x;
   return [m(x1), y1, m(x0), y0, m(x3), y3, m(x2), y2];
 }

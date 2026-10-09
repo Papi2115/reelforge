@@ -41,6 +41,14 @@ export function comicInks(tones: Tones): ComicInks {
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
 
 /** 4x4 ordered-dither threshold in [0, 1) (the page renderer's screen). */
+/**
+ * Pixel scale of strokes and gutters for a W x H frame: 1 at 640x360 (the long edge / 640), so a
+ * portrait short (360x640, PLAN.md#13.18) gets the same ink weights as a landscape page.
+ */
+export function inkScale(W: number, H: number): number {
+  return Math.max(W, H) / 640;
+}
+
 export function bayer4(x: number, y: number): number {
   return (BAYER4[(y & 3) * 4 + (x & 3)] ?? 0) / 16;
 }

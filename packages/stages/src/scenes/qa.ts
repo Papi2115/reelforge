@@ -7,11 +7,17 @@
 import { lintScene } from '@reelforge/engine';
 import { ok, type Result } from '@reelforge/claude-bridge';
 import { criticCharacterVars } from '@reelforge/prompts';
-import type { CriticVerdictRecord, QaFinding, StoryboardShot } from '@reelforge/shared';
+import {
+  isEndCardShot,
+  type CriticVerdictRecord,
+  type QaFinding,
+  type StoryboardShot,
+} from '@reelforge/shared';
 import { readProjectText } from '../files.js';
 import { criticLookVars } from '../looks.js';
 import { criticWorldPromptVars } from '../worlds.js';
 import { FILES } from '../paths.js';
+import { shortCopyFindings, shortMotionFindings } from '../shorts/scene-checks.js';
 import { slopShotFindings } from '../slop/guards.js';
 import { SCENE_STUB_MARKER } from '../stages/scene-stub.js';
 import type { StageError } from '../types.js';
@@ -136,6 +142,9 @@ export async function qaRound(
     ...characterSourceFindings(source, shot.scene, shot, job.characters),
     // Slurs and profanity in any string (an error: the fix turn replaces the word).
     ...offensiveSourceFindings(source, shot.scene),
+    // Shorts (PLAN.md#13.18): no copy of a film scene (error), a beat every 3 s (warning).
+    ...shortCopyFindings(job.short, source, shot.scene),
+    ...shortMotionFindings(job.short, shot, render),
   ];
   const sync = syncFindings(
     shotSyncEvents({
@@ -150,8 +159,11 @@ export async function qaRound(
   // Anti-slop guards (PLAN.md#13.7): warnings only; they never decide a fix turn or the sampling.
   const slop = slopShotFindings(job.antiSlop, { source, shot, frames: render.frames });
   const code = [...programmaticCritique(render), ...sync, ...extra];
+  // A short's end card (PLAN.md#13.18) is the app's: never a critic turn.
   const critic: TurnRunner | undefined =
-    job.settings.critic && ctx.hasClaude ? (turn) => ctx.claude(turn) : undefined;
+    job.settings.critic && ctx.hasClaude && !isEndCardShot(shot)
+      ? (turn) => ctx.claude(turn)
+      : undefined;
   if (critic === undefined || fixableFindings(code).length > 0 || !criticSampled(job, shot, code)) {
     return ok({ ...early([...code, ...slop], source), render });
   }

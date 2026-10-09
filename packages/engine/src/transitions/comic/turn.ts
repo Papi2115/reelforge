@@ -8,13 +8,13 @@
  */
 import type { Composition, Compositor } from '../pixels.js';
 import { endFrames } from '../wow.js';
-import { bayer4, comicInks, inOutSine } from './inks.js';
+import { bayer4, comicInks, inOutSine, inkScale } from './inks.js';
 
 function turn(c: Composition, back: boolean, slope: number): void {
   const { width: W, height: H, a, b, out, p } = c;
   const inks = comicInks(c.tones);
   const { INK, SHADE, AGED, PAPER } = inks.ink;
-  const s = W / 640;
+  const s = inkScale(W, H);
   const e = inOutSine(p);
   const f0 = W + 70 * s + (-90 * s - (W + 70 * s)) * e;
   const lift = Math.sin(Math.min(1, p * 1.2) * Math.PI * 0.5 + 0.0001);

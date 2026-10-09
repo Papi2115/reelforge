@@ -1,6 +1,6 @@
 ---
 id: scene-build
-version: 18
+version: 19
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: {{shotScene}}
@@ -38,7 +38,16 @@ VARIANT {{variantIndex}}: the user will compare several alternative versions of 
 {{/variantNote}}
 Write the variant ONLY to `{{shotScene}}`; never edit `scenes/` (the current scene stays as it is). Self-QA it with `reelforge lint {{shotScene}}` and `reelforge frames --shot {{shotId}} --scene {{shotScene}} --at …` (skip `reelforge anchors`: it reads `scenes/`; the app checks this file's anchors).
 {{/direction}}{{#tasteProfile}}
-Taste profile of this user (learned on this computer from their own picks, locks and rebuilds; a soft preference — the shot's intent, its look and the style rules come first): {{tasteProfile}}{{/tasteProfile}}
+Taste profile of this user (learned on this computer from their own picks, locks and rebuilds; a soft preference — the shot's intent, its look and the style rules come first): {{tasteProfile}}{{/tasteProfile}}{{#short}}
+This shot belongs to a vertical YouTube SHORT (9:16 portrait, about {{shortLengthS}} s) that teases the full film "{{shortParentTitle}}", edited for retention. These rules win over the rest of this prompt:
+- Portrait frame: `ctx.shot.format` is `"portrait"` and `ctx.shot.aspect` 0.5625, so the view is about a third as wide as a 16:9 shot (`reelforge kit-docs portrait`). One big, simple subject, closer to the camera than in a film; stack things vertically.
+- Safe zones: the subject and every word stay inside the central 80 % of the width, below the top 12 % and above the bottom 20 % of the frame (the platform's buttons and title cover those).
+- Something visible happens at least every 1.5–3 s, each on a beat (`ctx.anchor` or `ctx.sfx.at`): a punch-in or pull-out, a whip-pan, an object swap, a count-up, a pop. Never a static hold. The hook shot (`"hook": true`) is the strongest image of the short and already moves in its first frame.
+- On-screen text big and short: at most 3 words, scale ≥ 3.
+- At most one pop-up or other showpiece per 30 s of the short, never a template.
+- Props and characters of the full film may be reused, its scenes never: do not copy or adapt a scene file of the film (the app rejects a copy); build this scene new.{{#shortCaptions}}
+- The app draws word-by-word captions of the narration over the frame, centred at about 68 % of the height: keep your own text out of that band (headlines in the top third) and never repeat the spoken words as text.{{/shortCaptions}}{{#worldShort}}
+- {{worldShort}}{{/worldShort}}{{/short}}
 
 Steps:
 1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.

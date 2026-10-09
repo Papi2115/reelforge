@@ -88,7 +88,7 @@ function easeDocs(): string {
 }
 
 const SHOT = [
-  'ctx.shot — { id, duration (s), width, height, fps } of this shot',
+  'ctx.shot — { id, duration (s), width, height, aspect (width / height), format ("landscape" | "portrait"), fps } of this shot; portrait (9:16 Shorts): reelforge kit-docs portrait',
   'ctx.palette — colour tokens: sky, ground, groundAlt, hero, heroTrim, accent1..accent4, keyLight, fillLight, shadow, text, textDim, outline',
   'ctx.three — the Three.js namespace; ctx.scene — this shot’s THREE.Scene (add objects, background, fog)',
 ].join('\n');
@@ -119,6 +119,18 @@ const ASSETS = [
   '  scenes never load or decode files themselves (no fetch, Image, createImageBitmap, ctx.three.TextureLoader: the lint rejects them)',
 ].join('\n');
 
+const PORTRAIT = [
+  'portrait (9:16, YouTube Shorts) — project.json "format": "portrait"; absent = landscape 16:9',
+  '  frame: the style turned upright, 360x640 in Crisp 640 (export 1080x1920; 1440p = 1440x2560, 4k = 2160x3840); ctx.shot.format === "portrait", ctx.shot.aspect = 0.5625',
+  '  camera: same vertical fov (default 50°), so the view is about a third as wide as in 16:9: frame one subject, pull back for wide ones, or stack things vertically (tall towers, a subject above its label, top/bottom split)',
+  '  composition: one subject per shot, centred; keep it inside the middle 80 % of the width; use the height (sky above, ground or text below)',
+  '  text: default sizes follow the short edge (the same pixel sizes as landscape) and wrap inside the 360-px safe area: short titles (2-3 words a line), pos y 0.15-0.3 for headlines',
+  '    keep words and key subjects out of the bottom fifth and the right edge (the Shorts player overlays title, channel and buttons there)',
+  '  ctx.annotate sizes (share values) are shares of the short edge, like text',
+  '  styles: voxel styles (Crisp 640, Noir, Soft 480) are portrait-ready; the Comic page lays itself out upright (360x640, panels stacked down the page: reelforge kit-docs comicPage, its "portrait" note); world pages of Sketchbook and Game B1/B2 are still laid out for 16:9',
+  '  check: reelforge frames renders in the project format (header shows "portrait 9:16")',
+].join('\n');
+
 const TOPICS: Readonly<Record<string, () => string>> = {
   camera: () => CAMERA,
   text: textDocs,
@@ -131,6 +143,8 @@ const TOPICS: Readonly<Record<string, () => string>> = {
   palette: () => SHOT,
   ambient: () => AMBIENT,
   assets: () => ASSETS,
+  portrait: () => PORTRAIT,
+  format: () => PORTRAIT,
 };
 
 /** Names `kit-docs` resolves here (`ctx` = all of them). */

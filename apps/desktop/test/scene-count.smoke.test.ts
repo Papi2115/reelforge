@@ -12,6 +12,7 @@ import path from 'node:path';
 import type { ElectronApplication, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { closeApp, launchApp, screenshotDir, stubFolderPicker } from './support/electron-app.js';
+import { finishNewProject, openMoreOptions, openNewProject } from './support/new-project.js';
 import { projectMenu, projectMenuButton, projectSettingsTab } from './support/project-menu.js';
 
 let app: ElectronApplication | undefined;
@@ -51,12 +52,16 @@ describe('scenes per minute and faster checks', () => {
     if (app === undefined) throw new Error('the app is not running');
     const start = page.getByRole('region', { name: 'Start' });
     await start.waitFor();
-    const select = start.getByRole('combobox', { name: /^Scenes per minute/ });
+    const wizard = await openNewProject(page);
+    await wizard.getByLabel('Video title').fill('Calm film');
+    // The wizard's last step → More options holds the old form's scenes and checks.
+    await openMoreOptions(wizard);
+    const select = wizard.getByRole('combobox', { name: /^Scenes per minute/ });
     expect(await select.inputValue()).toBe('standard');
-    const estimate = start.getByRole('status');
+    const estimate = wizard.getByRole('status');
     await estimate.getByText('≈ 100–130 scenes for a 10:00 film (the default)').waitFor();
     await select.selectOption('calm');
-    await start.getByRole('checkbox', { name: /^Faster checks/ }).check();
+    await wizard.getByRole('checkbox', { name: /^Faster checks/ }).check();
     await estimate
       .getByText('≈ 30–50 scenes for a 10:00 film; roughly 65 % faster build than the default')
       .waitFor();
@@ -66,8 +71,7 @@ describe('scenes per minute and faster checks', () => {
     await mkdir(parent);
     dir = path.join(parent, 'Calm film');
     await stubFolderPicker(app, parent);
-    await start.getByLabel('Video title').fill('Calm film');
-    await start.getByRole('button', { name: 'New project…' }).click();
+    await finishNewProject(wizard);
     await projectMenuButton(page).waitFor({ timeout: 30_000 });
     expect(await projectJson()).toMatchObject({
       shotsPerMinute: { min: 3, max: 5 },

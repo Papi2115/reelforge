@@ -47,9 +47,9 @@ its tour card "The pipeline". The code keeps its own names (`stage`, `patternInt
 
 - One table, `apps/desktop/src/renderer/layout/shortcut-table.ts`: the window-wide keys are matched from it
   (`app-keys.ts`), the tooltips take their labels from it, and Help → **Keyboard shortcuts** (also `?`) lists it in
-  four groups: **Project** (Shift+L lock, V variants, 1 / 2 / 3 pick a variant or opening, Ctrl+Z / Ctrl+Y timeline
+  four groups: **Project** (Ctrl+N new project on the Projects screen, Shift+L lock, V variants, 1 / 2 / 3 pick a variant or opening, Ctrl+Z / Ctrl+Y timeline
   undo / redo, Delete and ← / → for the selected sound), **Playback** (Space, ← / →, Shift+← / →, Home / End, J / K
-  / L, M), **Panels** (?, Ctrl+Shift+C chat, Ctrl+Shift+N Needs you, Ctrl+Shift+L Production line, / direct the
+  / L, M), **Panels** (?, / search your projects on the Projects screen, Ctrl+Shift+C chat, Ctrl+Shift+N Needs you, Ctrl+Shift+L Production line, / direct the
   shot, + / − timeline zoom, Esc), **Claude** (Ctrl+. stop, Enter send, Shift+Enter new line). A test presses every
   listed key against the handler that owns it, so the dialog cannot list a key that does nothing.
 - **Esc** closes the menu, popover or dialog on top first (one Esc = one layer; `layout/escape-layers.ts`): the
@@ -147,7 +147,8 @@ The dialog (`queue/ProductionLineDialog.tsx`, PLAN.md#13.9): channel tabs (tabli
 Settings → Channels with their dot and a summary "3 films · 1 needs you · 1 done" / "No films yet"), then panels:
 
 - **Line** (the same in every tab: one line for all channels): the status strip — "Running · Building film 2 of 5: scenes"
-  (pre-approval steps "Writing film 1 of 2: script", export "Exporting film 1 of 2: export"; with several channels
+  (pre-approval steps "Writing film 1 of 2: script", export "Exporting film 1 of 2: export" / "…: tags and timestamps" /
+  "…: publish kit"; with several channels
   "Running · Voxplain: …"; "· until 06:30" with a planned end), "Waiting for your approval (2 scripts)" / "Waiting for you
   (2 films)", "Paused by Claude usage limit — resumes 14:05" (or "— resumes by itself"), "Quiet hours — starts again at
   07:00", "Stopped · every film is done", "Stopped", "Stopped: <why>" (Claude not connected, another app runs the line);
@@ -166,10 +167,12 @@ Settings → Channels with their dot and a summary "3 films · 1 needs you · 1 
   **Voice needed** / **Building** / **Exporting** / **Done** / **Failed** / **On hold** — one sentence ("Waits for its
   turn.", "The script is written. Read it and approve it.", "Record your voiceover (read the approved script) or import a
   file.", "The channel has a voice now: Generate voice makes it.", "An asset package is ready. Approve or reject the photos
-  and footage.", "Next: the scenes (step 10 of 15).", the running step's live line "Building 3 of 7 · 42 %" / "Generating
+  and footage.", "Next: the scenes (step 10 of 16).", the running step's live line "Building 3 of 7 · 42 %" / "Writing the
+  tags and timestamps" / "Generating
   the voice: 3 of 8 paragraphs", "The brief stopped with a problem: …", "Done ✓. The video and the publish kit are ready." /
   "Done with 2 warnings ⚠. …", "On hold: the line skips it until you resume it."), a thin bar of the steps done, the ⚠
-  lines of a finished film, and buttons, the next action first: "Open script" then "Approve script" (disabled until the
+  lines of a finished film (e.g. "Tags and timestamps made without Claude (<why>). Regenerate them in the export dialog
+  (YouTube texts)." when the line wrote the fallback tags and chapters), and buttons, the next action first: "Open script" then "Approve script" (disabled until the
   script was opened here, tooltip "Open the script first: read it, then approve it."), "Review photos", "Generate voice" /
   "Add voice", "Retry", "Open video folder", "Open publish kit", "Mark as checked", "Hold" / "Resume", "Open project";
   "Move up" / "Move down" (↑ ↓) and "Remove" → "Remove it" / "Keep" (the project folder stays; result "Removed from the
@@ -187,12 +190,127 @@ with a problem", "Production line paused" (usage limit), "Production line stoppe
 it is blocked), "Production line waits for you" ("Nothing more it can do alone: 2 films wait for you."), "Production line
 finished" ("Every film in the queues is done.").
 
+## Home and New project (PLAN.md#13.16)
+
+With no project open the window is **Home** (region "Start"; `home/`): no preview, no demo. Left rail (nav "Home"):
+**Projects** (an orange count chip "2 need you" when projects wait), **Channels**, **Production line** (the same button
+and Ctrl+Shift+L as in the editor), **Shorts**, then **Settings** and **Help** (the Help menu opens to the
+right). The header shows only the brand on Home; in a project it starts with "← Projects" (tooltip "Close this project
+and go back to all projects"), then the project menu as before.
+
+- **Projects**: title "PROJECTS" (pixel title), primary "New project" (tooltip "New project (Ctrl+N)"), "Open project…",
+  link "Open the example project". Filter bar (search "Search projects (/)", channel chips with dots (with more than one
+  channel), "Filter by style" (Any style + the styles in use), "Filter by state" (Any state / Needs you / Working / In
+  progress / Exported), "Clear filters", "Sort by" (Last edited / Last opened / Title (A–Z)), "View" Grid | List). A
+  **Continue** row (the 4 projects opened last, with their channel dot), then one section per channel (region "Channel
+  <name>"; a fold toggle with the channel badge, name and "3 projects" / "1 of 3 projects"; folded sections, grid / list
+  and order are remembered on this computer). Each section starts with a dashed "+ New project" card (name "New project
+  in <channel>") that opens the wizard in that channel; "No project of this channel matches the filters." When the
+  channel list cannot be read every project is under "No channel".
+- **Card** (article named by the title): picture (the uploaded YouTube thumbnail, else the export's frame, else the
+  title's initials on the style's colours), title, badges "Needs you" / "Working" / "Short" / style name (+ "PREVIEW")
+  / "Line" (tooltip "Made by the production line"), the eight-step strip (Script, Voice, Clean, Words, Storyboard,
+  Scenes, Sound, Export; square dots: done green, working orange circle, needs you orange diamond, problem red, not
+  started outline; strip name "3 of 8 steps done", dot tooltip "Voice: needs you"), one sentence ("New: describe the
+  video, then write the script.", "Voice needs you.", "Sound stopped with a problem.", "Working on scenes…", "2 of 8
+  steps done · next: Clean", "Video exported ✓", "The folder is gone (moved or deleted).", "The project file is
+  damaged: open it to repair it."), the length ("8:05") and "Edited 2 h ago" (just now / 5 min ago / yesterday / 4 days
+  ago / 12 Sep). Click = overview, double-click = editor (tooltip "Click: overview · Double-click: editor"). On hover /
+  focus: "Open editor" and "More actions" (menu: "Show overview", "Rename…" (title field "New title", "Save title" /
+  "Cancel"; the folder keeps its name; commit "Project renamed: <title>"), "Show folder"). Shorts of a film are chips
+  "SHORT <title>" under its card.
+- **First run** (no project yet): "YOUR FILMS LIVE HERE" + one paragraph, "Create your first film" (primary), "Try the
+  example film", and a hint about channels.
+- **Channels**: "Add or edit channels…" (Settings → Channels), a line about what a channel is, one card per channel
+  ("3 projects", "2 need you", "Voice: ElevenLabs ✓" / "Voice: you record it" · Genre · Style, "New project", "Edit
+  channel").
+- **Shorts** (PLAN.md#13.18; making Shorts lives here, never in the editor): title "SHORTS", primary "New short from a
+  film", the line "Vertical 9:16 teasers of your films: a 30 s and a 60 s Short per film, each its own project with new
+  scenes, ending on “Full video on YT: <channel>”." Then one section per film (region "Shorts of <film>"; heading = the
+  film's title, link "Film overview"; a Short whose film is not listed keeps the title it was made from, or "Film not
+  found") with project cards of its Shorts (badge "Short", length: the planned "0:30" until the storyboard has one).
+  Empty: "NO SHORTS YET" + "Pick a film with a script and ReelForge writes two teasers from it: a hook and an open
+  question that send viewers to the full video. Shorts are available for voxel and Comic films for now." and the same
+  button.
+- **New short wizard** (region "New short", title "NEW SHORT", the New project wizard's look): steps 1 Film, 2 Angle, 3
+  Captions and create; footer "Back to Shorts" / "Back" and "Next" / "Create 2 shorts" ("Making the Shorts…"); Esc =
+  back to the Shorts. 1. **Film**: radio cards of the films that have a script and a voxel or Comic style (picture,
+  title, "Style · 8:05"); "Not listed: 2 without a script yet, 1 in another style. Shorts are available for voxel and
+  Comic films for now."; waits with "Pick a film." / "No film can have Shorts yet.". 2. **Angle**: "Two different
+  angles" ("30 s opens on the film’s most surprising fact; 60 s raises its central question. Neither gives the answer
+  away.") or "Steer the angle" ("Both Shorts lean toward your hint and stay different.") with the field "Angle hint"
+  (placeholder "e.g. the moment the vault door opened", max 160; "Write the angle hint, or pick “Two different
+  angles”.", "Keep the hint under 160 characters."). 3. **Captions and create**: toggle "Word-by-word captions" ("Off by
+  default; you can switch it later in the Short’s overview."), "Review" (Film, Shorts "30 s + 60 s, vertical 9:16",
+  Angle "Two different angles (automatic)" / "Steered toward: …", End card "Full video on YT: <channel>", Captions "Word
+  by word" / "Off") and "Both Shorts are new projects next to the film’s folder, with its voice and style. Then the 30 s
+  Short’s overview opens." Both Shorts are added to Home (commit "Short of "<film>" (30 s)").
+- **Project overview** (region "Project overview"; full screen, scrolls; opened by a card click, "Show overview", a
+  Short's "Open"): header with the title, channel dot and name, badges ("Short", style name, "PREVIEW"), "EN · Style ·
+  30 fps" and primary "Open editor" ("← Projects" stays in the window header). A note line (role status) after actions
+  ("Thumbnail saved.", "Thumbnail removed.", "Two Shorts made (30 s and 60 s): open one below.", "Captions on.").
+  Panels:
+  - **Where the film is** (region "Phase"): the eight steps with names and their state in words (not started / done /
+    working / needs you / stopped with a problem), the card sentence, primary "Open <Step>" + "Next step: opens the
+    editor there." (Script → the brief before a script exists, Voice/Clean → Voiceover, Words / Storyboard / Scenes /
+    Sound → their documents, Export → the editor), "Needs you" lines as links to the step ("Describe the video, then
+    write the script.", "Read and approve the script.", "Add the voice: record, import or generate it.", "<Step> stopped
+    with a problem: open it to see why.", "<Step> is out of date or waits for your decision.").
+  - **Thumbnail** (films): the uploaded picture, else the card picture with "No thumbnail yet. Upload the picture you
+    made for YouTube (1280 × 720, up to 2 MB)." / "This is a frame of the export. Upload the picture you made for
+    YouTube."; facts "1280 × 720 · 1.4 MB · PNG"; gentle notes "YouTube takes thumbnails up to 2 MB; this one is 3.1 MB.
+    Save it as a JPEG or smaller.", "This picture is 1000 × 1000, not 16:9: YouTube adds bars or crops it. 1280 × 720
+    fits best.", "This picture is 480 × 270: YouTube wants at least 640 wide. …", "This picture is 1920 × 1080; YouTube
+    recommends 1280 × 720 (it is scaled to fit)."; "Upload thumbnail…" / "Replace…" (dialog "Upload a YouTube
+    thumbnail", button "Use as thumbnail", PNG / JPEG) and "Remove". One thumbnail is kept (`publish/thumbnail.png|jpg`,
+    commits "Thumbnail uploaded" / "Thumbnail removed"); errors "Pick a PNG or JPEG picture.", "This file is not a PNG
+    or JPEG picture.", "This file is far too big for a thumbnail.". The Home card shows it.
+  - **Facts**: Length ("8:05" / "Not known yet"), Voice ("Not added yet" / "Recorded or imported" / "Generated with
+    ElevenLabs"), Scenes ("14 shots · 12 scenes built" / "No storyboard yet"), Last export ("heist.mp4 · 2 h ago" + link
+    "Show in folder" / "None yet"; "There is no export yet.").
+  - **Tags and timestamps** (films): the publish kit's panel (PLAN.md#13.17) as in the export dialog.
+  - **Shorts** (films): small cards of its Shorts (badges "Short" and "30 s", title, steps, sentence, "Open" → the Short's
+    overview), or "Two vertical teasers of this film (30 s and 60 s): a hook and an open question that send viewers to
+    the full video. Each is its own project with new scenes." with primary "Create 2 shorts (30 s + 60 s)" ("Making the
+    Shorts…"; automatic angles, captions off), disabled with "Shorts are available for voxel and Comic films for now." or
+    "Needs a script first: Shorts are written from it.".
+  - **Short** (Shorts, instead of the thumbnail): Film (link to the film's overview, or "<title> (not in your list)"),
+    Length "30 s, 9:16", End card "Full video on YT: <channel>", toggle "Word-by-word captions" (commit "Short captions
+    on/off"; "This project is not a Short."), and a folded "Description": "A Short needs no tags or timestamps. In its
+    description, link the full video; the film’s tags are on the film’s overview."
+- **Keys**: Ctrl+N new project (also while typing), / search (not while typing); both listed in Keyboard shortcuts.
+
+**New project wizard** (region "New project", title "NEW PROJECT"): step list "Steps" with numbered dots — 1 Topic, 2
+Channel and genre, 3 Style, 4 Voice and create (a step can be clicked once the steps before it are filled in); heading
+"Step 2 of 4: Channel and genre"; footer "Back to projects" / "Back" and the primary "Next" / "Create project…" (Enter =
+Next; Esc = back to the projects); why Next waits shows under the fields ("Give the video a title.", "Enter the length in
+minutes, e.g. 8.", "The length must be between 0.5 and 60 minutes.", "A channel needs a name.", "Another channel already
+has this name.").
+
+1. **Topic**: "Video title", "What is the video about? (optional)" (hint "A few sentences for the script: the angle, what
+   must be in it, who it is for. Empty = the title is the brief."), "Target length (minutes)" (8), note "Films are made
+   in English (another language: More options in the last step).". Creating saves the brief from these (commit "Brief:
+   <topic>"), so the editor opens on the brief, ready for "Write script".
+2. **Channel and genre**: "Channel" (the channels + "New channel…"; hint "The project starts with this channel’s genre,
+   style and voice. Projects are sorted by channel."; first choice: the channel of the last opened project, or the
+   section's), "New channel name" (hint "Made when you create the project. Add its voice and API key later in Settings →
+   Channels."), then the Genre block as before (below).
+3. **Style**: cards with a preview frame of each style, name (+ "PREVIEW"), one line; the genre's style note; with
+   Experimental worlds off: "More worlds (Sketchbook, Comic, two game worlds) are in preview: turn on “Experimental worlds
+   (preview)” in Settings → Projects to see them here."
+4. **Voice and create**: "Voice": "Generate it with ElevenLabs" (only with a voice and key on the channel, else its
+   reason "This channel has no ElevenLabs voice and key yet: add them in Settings → Channels." / "A new channel has no
+   ElevenLabs voice yet: …"), "Record or import it myself", "Decide later" (each with when it happens: after the script is
+   approved); "More options" (language, scenes per minute, faster checks: "Language" English / Polski and the "Scenes and
+   checks" block below); "Review" (Title, Length "about 8 min", Channel ("… (new)"), Genre, Style, Voice, Language when
+   not English) and "Next you choose the folder the project is saved in. Then the editor opens on the script."
+
 ## Empty stage and hide until usable
 
 - A project without a video (no storyboard yet) shows the empty stage in the preview, never the demo scene:
   "Nothing to show yet — <next step's sentence>" (e.g. "… — Describe the video in the brief, then write the
   script."), "Your video will play here.", and when the files cannot become a video "The preview cannot be built:
-  <reason>". The start screen keeps the demo.
+  <reason>". Home has no preview at all (PLAN.md#13.16).
 - The direction bar under the preview shows once there is a shot. The timeline's Tension and Tracks tools show once
   there are timed words. Timeline rows show once they have something: Shots, Narration, Ambience / Music with content,
   Cues and Audio once there is a voiceover; the Cards row is gone. An empty timeline is one line: "Nothing on the
@@ -207,11 +325,11 @@ finished" ("Every film in the queues is done.").
 - Icon-only buttons always have a tooltip; a keyboard shortcut goes into the tooltip in brackets: "Hide chat (Ctrl+Shift+C)", "Play (Space)", "Lock this shot … (Shift+L)", "Stop the running turn (Ctrl+.)".
 - Settings vs Project settings: **Settings** (header, right) are app-wide; **Project settings** (project menu) live in `project.json`, in section tabs on the left (tablist "Project settings sections", arrows / Home / End; on top under 1100 px): **Visuals** (opens first) · **Characters** (Characters, Mascot) · **Direction** · **Scenes and checks** · **Research** · **Channel & genre** (the read-only Channel and Genre rows) — Visuals: "Voxel only — the classic look" / "Mixed looks — voxel + <looks>", "Vary backgrounds subtly between shots"; every option says when it applies ("Applies to the next Storyboard and Scenes build") and never marks a step out of date.
 - All options of a step (3.0, docs/ux/redesign-2.4.md "Answers" 1): one click on a step selects it and opens it like its Open button (its panel, the export dialog, the Assets dialog; "Audio cleaned" opens its file only with Open); moving the keyboard focus onto a step only selects it. The docked panels Storyboard, Scenes built and Sound design have a section "All options" (summary "same as Project settings"), open by default, in its own full-height column in Scenes built and Sound design; its rows are the Project settings rows (same labels, notes and commits) and its footer reads "Saving…" / "Saved automatically to the project and its history.". Storyboard: Scenes per minute, Dramaturgy, Continuity links, Tension map. Scenes built: Look mode, Ambient variation, Continuity links, People in the film, Mascot of this film, Editing, Scenes per minute. Sound design: Editing, Tension map and the read-only "Sound palette" ("Voxel only: every shot uses the voxel sound palette (the classic effects and ambience)." / "Mixed looks: every shot takes its effects and ambience from the palette of its look (Voxel 3D, Retro UI, …); a shared bit-crush and levels keep the film consistent.", note "Follows the look mode (Visuals); applies from the next sound design. Nothing to switch here."). The Storyboard panel (Open tooltip "Storyboard options, the Hook lab and the shots"): "Hook lab…", "Back to preview", "12 shots planned. They are listed in the Shots panel: select one to see it in the preview." / "No shots yet. Run Storyboard in the pipeline: the shots appear in the Shots panel.".
-- Style and worlds (PLAN.md#13.6): Settings → Projects → section "Worlds" → checkbox "Experimental worlds (preview)" (off by default; hint "Offers worlds that are still being built (today: Sketchbook, a hand-drawn notebook) as a style for new projects, and lets projects in them build. Their look may still change between versions."; under the switch the note "Preview worlds are unfinished and may change."). New project form → fieldset "Style" (hint "A project keeps its style. A world is a whole film language with its own looks and heroes.") with one radio per style, name + one line: "Voxel Pixel · Crisp 640" — "Chunky voxel 3D in crisp pixel art: neon on dark, one hero object per shot.", "Noir Voxel" — "Low-key voxel 3D: mostly shadow, one hard light, red and amber accents.", "Soft 480" — "Warm, friendly voxel 3D with bigger pixels: rose, plum, sage and peach."; with the switch on also "Sketchbook" + tag "PREVIEW" — "Hand-drawn notebook: felt-tip pages, graph paper, pop-up and accordion moments.". The form starts on Settings → Projects → Style. Project settings → Visuals → "Style" (read-only: name, tag, line; note "A project keeps the style it was created with. Choose another style for a new project."; a preview world with the switch off adds the red line "Sketchbook is a preview world: turn on Settings → Projects → “Experimental worlds (preview)” to build this project in it."). In a world's project (Project settings and a step's All options) "Look mode" becomes "Looks of this world" ("A Sketchbook film always mixes its own looks; the voxel looks and look mode do not apply." + the list "A · Sketch story — …", "B · Sketch graph — …", "C · Sketch loud — …"), "People in the film" says "Sketchbook draws its own heroes: the character pack and the classic hero are not used.", "Mascot of this film" says "Sketchbook draws its own heroes: no mascot appears in its films."; their note reads "Nothing to switch here in a world's project.". The header shows the world's name ("EN · Sketchbook · 30 fps").
-- Genre presets (PLAN.md#13.8, ADR-035, `project/genre-view.ts`): New project form → select "Genre" (before Style; "None" + "True crime", "Tech explainer", "History", "Finance", "Science", "Pop culture / gaming", "Explained as a game"; each option's tooltip is its one-line description; the channel's genre is preselected). With None the hint reads "One choice that sets the style, pace and direction for this kind of film. What you change below stays your choice."; with a genre: its line ("Hand-drawn notebook first, calmer pace, people and dates told as a story."), then the highlighted preview (status "What the genre sets") "Warm, friendly voxel 3D with bigger pixels · mixed looks · calm pace · 3–5 scenes a minute · continuity links · no surprise moments" (style look, mixed looks unless a world, calm / steady / fast pace + range, continuity links, no surprise moments, faster checks; a field you changed reads "your style" / "your scenes per minute"), and when a preferred style is not offered "Sketchbook and Comic need “Experimental worlds” (Settings → Projects), using Soft 480." / "Game B2 is in development, using Voxel Pixel · Crisp 640.". Style and Scenes per minute show the genre's values until you change them; then your choice wins. Project settings → section "Genre" → read-only row "Genre" ("History", tooltip "Recipe: <line> Script tone: <tone>."; note "Chosen when the project was created: it filled in the style, pace and direction. Change those options here any time." / "None" with "A genre is chosen when a project is created (New project → Genre). This project has none."). Settings → Channels → "Genre of new projects" (None + the presets; hint "New projects of this channel start with this genre; the New project form can pick another.").
+- Style and worlds (PLAN.md#13.6): Settings → Projects → section "Worlds" → checkbox "Experimental worlds (preview)" (off by default; hint "Offers worlds that are still being built (today: Sketchbook, a hand-drawn notebook) as a style for new projects, and lets projects in them build. Their look may still change between versions."; under the switch the note "Preview worlds are unfinished and may change."). New project wizard → step 3 "Style" (fieldset "Style", hint "A project keeps its style. A world is a whole film language with its own looks and heroes.") with one card per style (a preview frame from the kit's own renders, name + one line): "Voxel Pixel · Crisp 640" — "Chunky voxel 3D in crisp pixel art: neon on dark, one hero object per shot.", "Noir Voxel" — "Low-key voxel 3D: mostly shadow, one hard light, red and amber accents.", "Soft 480" — "Warm, friendly voxel 3D with bigger pixels: rose, plum, sage and peach."; with the switch on also "Sketchbook" + tag "PREVIEW" — "Hand-drawn notebook: felt-tip pages, graph paper, pop-up and accordion moments.". The wizard starts on the channel's style, else Settings → Projects → Style. Project settings → Visuals → "Style" (read-only: name, tag, line; note "A project keeps the style it was created with. Choose another style for a new project."; a preview world with the switch off adds the red line "Sketchbook is a preview world: turn on Settings → Projects → “Experimental worlds (preview)” to build this project in it."). In a world's project (Project settings and a step's All options) "Look mode" becomes "Looks of this world" ("A Sketchbook film always mixes its own looks; the voxel looks and look mode do not apply." + the list "A · Sketch story — …", "B · Sketch graph — …", "C · Sketch loud — …"), "People in the film" says "Sketchbook draws its own heroes: the character pack and the classic hero are not used.", "Mascot of this film" says "Sketchbook draws its own heroes: no mascot appears in its films."; their note reads "Nothing to switch here in a world's project.". The header shows the world's name ("EN · Sketchbook · 30 fps").
+- Genre presets (PLAN.md#13.8, ADR-035, `project/genre-view.ts`): New project wizard → step 2 → select "Genre" (after the channel; "None" + "True crime", "Tech explainer", "History", "Finance", "Science", "Pop culture / gaming", "Explained as a game"; each option's tooltip is its one-line description; the channel's genre is preselected). With None the hint reads "One choice that sets the style, pace and direction for this kind of film. What you change below stays your choice."; with a genre: its line ("Hand-drawn notebook first, calmer pace, people and dates told as a story."), then the highlighted preview (status "What the genre sets") "Warm, friendly voxel 3D with bigger pixels · mixed looks · calm pace · 3–5 scenes a minute · continuity links · no surprise moments" (style look, mixed looks unless a world, calm / steady / fast pace + range, continuity links, no surprise moments, faster checks; a field you changed reads "your style" / "your scenes per minute"), and when a preferred style is not offered "Sketchbook and Comic need “Experimental worlds” (Settings → Projects), using Soft 480." / "Game B2 is in development, using Voxel Pixel · Crisp 640.". Style and Scenes per minute show the genre's values until you change them; then your choice wins. Project settings → section "Genre" → read-only row "Genre" ("History", tooltip "Recipe: <line> Script tone: <tone>."; note "Chosen when the project was created: it filled in the style, pace and direction. Change those options here any time." / "None" with "A genre is chosen when a project is created (New project → Genre). This project has none."). Settings → Channels → "Genre of new projects" (None + the presets; hint "New projects of this channel start with this genre; the New project form can pick another.").
 - Continuity links (PLAN.md#13.2): Project settings → Visuals → "Continuity links" — "Continuity links between shots" (hint: "Now and then the storyboard carries one object across a cut instead of a wipe: the camera dives into it, it stays in place while the world changes, or the place stays while the object changes. Rare (about one link per 45 s), never on the first shot."); note "Applies from the next Storyboard. Shots already planned keep their transitions; no step is marked out of date. Off: the project behaves as before." Commits read "Project settings: continuity links on" / "… off".
 - Characters and mascot (PLAN.md#12.20): Project settings → Characters → "People in the film" — "Pack style (new)" (hint: "People come from the character pack: ten cast members (scientist, doctor, engineer, teacher…), a faceless mannequin for anyone anonymous, and new professions built in the same style.") / "Classic (hoodie guy)" (hint: "The original voxel hero in a hoodie, as in projects made before ReelForge 2.3.5. No mascot."); note "Applies to the next Storyboard and Scenes build. Shots already built keep their people; no step is marked out of date." Project settings → Mascot → "Mascot of this film": cards "No mascot" ("The film tells its story with people and objects only."), "Bulb", "Screen", "Fox", "Bean" (each with its preview and one-line blurb), disabled with the classic hero under the note "Mascots belong to the character pack: choose “Pack style (new)” under Characters to pick one."; note "Applies to the next Storyboard and Scenes build. The mascot gets a little screen time in impersonal roles only (pointing, carrying, reacting, standing in for you), never as a doctor, a scientist or any real person." Commits read "Project settings: characters pack style", "Project settings: mascot Fox". Settings → Projects → "New projects start with …": "People" (Pack style (new) / Classic (hoodie guy)), "Mascot" (No mascot / Bulb / Screen / Fox / Bean; "Mascot (pack style only)" and disabled with the classic hero), hint "New projects start with these characters and this mascot, so a channel mascot carries over; each project can change them in Project settings."
-- Scenes per minute and faster checks (ADR-027): New project form → fieldset "Scenes and checks" with the hint "Fewer scenes per minute = longer shots that develop on the narration (one idea per shot, cuts on sentence ends) and a much faster build; the look and sound stay the same.", select "Scenes per minute" — "Standard — no limit (about 10–13 per minute)" (default) / "Calm — 3–5 per minute" / "Balanced — 5–8 per minute" / "Dynamic — 8–12 per minute" / "Custom…" (fields "From" / "To", errors "Enter two numbers between 1–20.", "Scenes per minute must be between 1–20.", "“From” must not be larger than “to”."); live estimate "≈ 30–50 scenes for a 10:00 film; roughly 60 % faster build than the default" ("… (the default)", "… about the default build time", "… roughly 10 % slower build than the default"); checkbox "Faster checks: lighter review, small quality trade-off" (hint "The frame critic looks at flagged shots and a sample (every 4th), one fix per shot, at most 4 new props (checked from 2 angles), and the final review skips fixes for small-text hints."). The same controls in Project settings → "Scenes and checks" → "Scenes per minute" (note "Scenes per minute applies from the next Storyboard, faster checks from the next Scenes build. Standard and off: the project behaves as before.") and Settings → Projects → "Scenes and checks of new projects". Commits read "Project settings: scenes per minute 3–5", "Project settings: scenes per minute no limit", "Project settings: faster checks on". Storyboard result: "42 shots for 10:42 · 3.9/min · range 3–5 · 42 shots, 9 treatments".
+- Scenes per minute and faster checks (ADR-027): New project wizard → step 4 → "More options" → fieldset "Scenes and checks" with the hint "Fewer scenes per minute = longer shots that develop on the narration (one idea per shot, cuts on sentence ends) and a much faster build; the look and sound stay the same.", select "Scenes per minute" — "Standard — no limit (about 10–13 per minute)" (default) / "Calm — 3–5 per minute" / "Balanced — 5–8 per minute" / "Dynamic — 8–12 per minute" / "Custom…" (fields "From" / "To", errors "Enter two numbers between 1–20.", "Scenes per minute must be between 1–20.", "“From” must not be larger than “to”."); live estimate "≈ 30–50 scenes for a 10:00 film; roughly 60 % faster build than the default" ("… (the default)", "… about the default build time", "… roughly 10 % slower build than the default"); checkbox "Faster checks: lighter review, small quality trade-off" (hint "The frame critic looks at flagged shots and a sample (every 4th), one fix per shot, at most 4 new props (checked from 2 angles), and the final review skips fixes for small-text hints."). The same controls in Project settings → "Scenes and checks" → "Scenes per minute" (note "Scenes per minute applies from the next Storyboard, faster checks from the next Scenes build. Standard and off: the project behaves as before.") and Settings → Projects → "Scenes and checks of new projects". Commits read "Project settings: scenes per minute 3–5", "Project settings: scenes per minute no limit", "Project settings: faster checks on". Storyboard result: "42 shots for 10:42 · 3.9/min · range 3–5 · 42 shots, 9 treatments".
 - Research assets (Project settings → Research): "Ask me for each package" (default for new projects) / "Automatic from selected sources" (+ a checklist: Wikimedia Commons, Openverse, Internet Archive, NASA Image and Video Library, Library of Congress) / "Full auto ⚠ risky" (red warning: unverified licences, the user is responsible) / "Off" (no network). The Assets dialog: "Asset package N: choose what Claude may use", "Approve selected (N)", "Reject all"; licence chips read "CC BY 4.0" or "⚠ unverified". The export dialog: "⚠ N assets have an unverified licence: check them before publishing (the export is not blocked)." and "Credits for the video description" with Copy.
 - Your files and the library (PLAN.md#12.12, #12.19): the Pipeline panel's "Assets" button opens the Assets dialog (tabs "This project" / "Library"). "Your files": "Add my assets…", drop hint "Add your photos, logos, screenshots and clips (PNG, JPG, WebP, GIF, MP4, WebM) or drop them here…", per file "Describe" (fields "Title", "What it shows (Claude reads this)"), "Save to library", "Remove" → "Remove it" / "Keep". Results: "Added 2 files." / "No file added; 1 was already in the project." Library: "Search", "Kind", "Licence" (Open licence (verified) / ⚠ Unverified licence / Your files), "Tag", "Favourites only", a ★ toggle ("Add to favourites"), "Tags (comma separated)", "Use in project" (or "In this project"), "Remove" → "Remove it" / "Keep"; "Added to this project as <id>." Settings → Projects → "Asset library": "Save downloaded assets to the library", "Save my own files to the library".
 - Tension map (PLAN.md#12.22): Project settings → Direction → "Tension map" — "Steer the film by a tension curve" (note: "Applies from the next Storyboard (Claude proposes a curve first) and the next sound design. Edit the curve in the Tension panel (Timeline → Tension). Off: the project behaves as before."). Timeline toolbar "Tension" (tooltip "Show the tension curve" / "Hide the tension curve") opens the Tension panel under the timeline: status "Proposed by Claude" / "Drawn by you" / "Claude's proposal, edited" (+ " · locked"), "No curve yet: pick a preset or let Claude propose one."; presets "Flat", "Rising", "Wave", "Three acts"; "Propose with Claude", "Reset", "Undo", "Lock curve", "Close"; segment labels "<phase or label> · ~4.2 s shots"; points are sliders "Tension point 2 of 6" (value text "Tension 80 % at 20.0 s, shots ~3.9 s"; arrows nudge, Shift = fine, Delete removes, Enter seeks, double-click adds, Alt = no snapping); note "The tension map is off for this project: the curve steers nothing until you turn it on in Project settings → Direction."; after a change "N shots out of date (tension): backgrounds follow in the preview now, cut tempo and looks at the next Storyboard run. Locked shots keep their tension: s03." Commits read "Tension: preset three-act", "Tension: moved a point", "Tension: undo", "Tension: reset to Claude's proposal", "Tension: proposed by Claude (7 points, peak 0.85 at 0:27)".

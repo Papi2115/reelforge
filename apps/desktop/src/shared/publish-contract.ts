@@ -3,7 +3,7 @@
  * paste-ready texts of the finished film, saving them under `publish/`, and `claims.json` (Check
  * sources, attach a URL/document/note, change a claim's status). Merged into ipc-contract.ts.
  */
-import { CLAIM_STATUSES, claimsFileSchema } from '@reelforge/shared';
+import { CLAIM_STATUSES, claimsFileSchema, publishSeoFileSchema } from '@reelforge/shared';
 import { z } from 'zod';
 
 /** Same names as the pipeline's `PUBLISH_FILES` (checked in publish-service.test.ts). */
@@ -121,6 +121,34 @@ export const claimEditResultSchema = z.discriminatedUnion('status', [
 ]);
 export type ClaimEditResult = z.infer<typeof claimEditResultSchema>;
 
+/** "Tags and timestamps" (PLAN.md#13.17): `publish/seo.json` of the open project. */
+export const publishSeoStateSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('ok'),
+    /** null: not generated yet (or unreadable: see `problem`). */
+    seo: publishSeoFileSchema.nullable(),
+    /** Length of the film in seconds (the chapters' end). */
+    durationS: z.number().min(0),
+    /** A generation is running. */
+    generating: z.boolean(),
+    problem: z.string().nullable(),
+  }),
+  z.object({ status: z.literal('error'), message: z.string() }),
+]);
+export type PublishSeoState = z.infer<typeof publishSeoStateSchema>;
+
+export const publishSeoGenerateResultSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('ok'),
+    state: publishSeoStateSchema,
+    /** Why the deterministic fallback was written instead of Claude's answer (null: Claude's). */
+    fallbackReason: z.string().nullable(),
+    warnings: z.array(z.string()),
+  }),
+  z.object({ status: z.literal('error'), message: z.string() }),
+]);
+export type PublishSeoGenerateResult = z.infer<typeof publishSeoGenerateResultSchema>;
+
 export const PUBLISH_IPC = {
   publishKit: { name: 'publish:kit', request: z.null(), response: publishKitResultSchema },
   publishSave: { name: 'publish:save', request: z.null(), response: publishSaveResultSchema },
@@ -128,6 +156,16 @@ export const PUBLISH_IPC = {
     name: 'publish:open-folder',
     request: z.null(),
     response: publishOpenResultSchema,
+  },
+  publishSeoState: {
+    name: 'publish:seo-state',
+    request: z.null(),
+    response: publishSeoStateSchema,
+  },
+  publishSeoGenerate: {
+    name: 'publish:seo-generate',
+    request: z.null(),
+    response: publishSeoGenerateResultSchema,
   },
   claimsState: { name: 'claims:state', request: z.null(), response: claimsStateSchema },
   claimsCheck: { name: 'claims:check', request: z.null(), response: claimsCheckResultSchema },
@@ -142,6 +180,8 @@ export interface PublishApi {
   getPublishKit(): Promise<PublishKitResult>;
   savePublishKit(): Promise<PublishSaveResult>;
   openPublishFolder(): Promise<PublishOpenResult>;
+  getPublishSeo(): Promise<PublishSeoState>;
+  generatePublishSeo(): Promise<PublishSeoGenerateResult>;
   getClaimsState(): Promise<ClaimsState>;
   checkSources(): Promise<ClaimsCheckResult>;
   editClaim(request: ClaimEditRequest): Promise<ClaimEditResult>;

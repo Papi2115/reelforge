@@ -172,6 +172,8 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.publishKit, handlers.publishKit);
   registerInvoke(IPC.publishSave, handlers.publishSave);
   registerInvoke(IPC.publishOpenFolder, handlers.publishOpenFolder);
+  registerInvoke(IPC.publishSeoState, handlers.publishSeoState);
+  registerInvoke(IPC.publishSeoGenerate, handlers.publishSeoGenerate);
   registerInvoke(IPC.claimsState, handlers.claimsState);
   registerInvoke(IPC.claimsCheck, handlers.claimsCheck);
   registerInvoke(IPC.claimsEdit, handlers.claimsEdit);
@@ -212,6 +214,16 @@ export function registerIpc(ipcMain: IpcMainLike, options: IpcRouterOptions): vo
   registerInvoke(IPC.queueMarkReviewed, handlers.queueMarkReviewed);
   registerInvoke(IPC.queueWake, handlers.queueWake);
   registerInvoke(IPC.queuePrefs, handlers.queuePrefs);
+  registerInvoke(IPC.homeProjects, handlers.homeProjects);
+  registerInvoke(IPC.homeOpen, handlers.homeOpen);
+  registerInvoke(IPC.homeShowFolder, handlers.homeShowFolder);
+  registerInvoke(IPC.homeRename, handlers.homeRename);
+  registerInvoke(IPC.homeOverview, handlers.homeOverview);
+  registerInvoke(IPC.homeThumbnailUpload, handlers.homeThumbnailUpload);
+  registerInvoke(IPC.homeThumbnailRemove, handlers.homeThumbnailRemove);
+  registerInvoke(IPC.homeShowExport, handlers.homeShowExport);
+  registerInvoke(IPC.homeShortsCreate, handlers.homeShortsCreate);
+  registerInvoke(IPC.homeShortCaptions, handlers.homeShortCaptions);
 
   const logChannel = IPC_EVENTS.log;
   ipcMain.on(logChannel.name, (event, payload) => {

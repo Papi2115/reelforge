@@ -9,13 +9,15 @@ import path from 'node:path';
 import { findStylePreset } from '@reelforge/engine';
 import {
   EXPORT_PRESET_IDS,
-  EXPORT_PRESETS as PIPELINE_PRESETS,
+  orientedPreset,
   resolveOutputScale,
   safeOutputName,
 } from '@reelforge/pipeline';
 import {
+  orientFrameSize,
   projectFileSchema,
   storyboardFileSchema,
+  videoFormatOf,
   type AppSettings,
   type StoryboardShot,
 } from '@reelforge/shared';
@@ -31,7 +33,7 @@ import { projectChapters } from './export-chapters.js';
 /** Presets with their factor for a `width`×`height` render (null factor = blocked). */
 export function presetOptions(width: number, height: number): PresetOption[] {
   return EXPORT_PRESET_IDS.map((id) => {
-    const preset = PIPELINE_PRESETS[id];
+    const preset = orientedPreset(id, width, height);
     const scale = resolveOutputScale(id, width, height);
     return {
       id,
@@ -98,9 +100,13 @@ export async function exportOptions(input: ExportOptionsInput): Promise<ExportOp
   ]);
   const title = project.status === 'ok' ? project.data.title : path.basename(dir);
   const style = project.status === 'ok' ? findStylePreset(project.data.style) : undefined;
+  // A portrait project (PLAN.md#13.18) renders the style upright and exports 9:16.
   const render =
     project.status === 'ok' && style !== undefined
-      ? { width: style.resolution.width, height: style.resolution.height, style: style.id }
+      ? {
+          ...orientFrameSize(style.resolution, videoFormatOf(project.data)),
+          style: style.id,
+        }
       : null;
   const shots = storyboard.status === 'ok' ? storyboard.data.shots : [];
   const durationS = shots.at(-1)?.t1 ?? 0;

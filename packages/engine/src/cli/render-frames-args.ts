@@ -1,5 +1,6 @@
 /** Argument parsing for `render:frames` (pure, unit-tested). */
 import { parseArgs } from 'node:util';
+import { videoFormatSchema, type VideoFormat } from '@reelforge/shared';
 
 export const RENDER_FRAMES_USAGE = `usage: pnpm render:frames -- (--scene <file.js> | --manifest <file.json>) --at <t,t,...> [options]
 Renders frames through the sandboxed engine harness (headless Chromium, SwiftShader) and prints
@@ -10,6 +11,8 @@ the PNG paths, one per line.
   --at <list>          comma-separated times in seconds (global video time)
   --out <dir>          output directory (default: packages/engine/out/frames/<name>)
   --preset <id>        style preset id (sets manifest.style)
+  --format <f>         landscape | portrait (sets manifest.format; portrait = 9:16, 360x640
+                       for the 640x360 styles)
   --words <file>       words.json for ctx.anchor (--scene only; default: words.json next to
                        the scene, else ../timing/words.json, else ../words.json)
   --duration <s>       shot length for --scene (default: max(5, last --at + 1))
@@ -24,6 +27,8 @@ export interface RenderFramesArgs {
   readonly times: readonly number[];
   readonly out: string | undefined;
   readonly preset: string | undefined;
+  /** Video format override (manifest.format); undefined = the manifest's. */
+  readonly format: VideoFormat | undefined;
   readonly words: string | undefined;
   readonly duration: number | undefined;
   readonly seed: number | undefined;
@@ -67,12 +72,20 @@ function optionalNumber(
   return value;
 }
 
+function parseFormat(text: string | undefined): VideoFormat | undefined {
+  if (text === undefined) return undefined;
+  const parsed = videoFormatSchema.safeParse(text);
+  if (!parsed.success) throw new UsageError(`--format: "${text}" is not landscape or portrait`);
+  return parsed.data;
+}
+
 const OPTIONS = {
   scene: { type: 'string' },
   manifest: { type: 'string' },
   at: { type: 'string' },
   out: { type: 'string' },
   preset: { type: 'string' },
+  format: { type: 'string' },
   words: { type: 'string' },
   duration: { type: 'string' },
   seed: { type: 'string' },
@@ -118,6 +131,7 @@ export function parseRenderFramesArgs(argv: readonly string[]): RenderFramesArgs
     times: values.at === undefined ? [] : parseTimes(values.at),
     out: values.out,
     preset: values.preset,
+    format: parseFormat(values.format),
     words: values.words,
     duration: optionalNumber(
       'duration',
