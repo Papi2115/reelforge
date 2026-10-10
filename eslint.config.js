@@ -13,6 +13,8 @@ export default defineConfig(
       '**/coverage/**',
       '**/release/**',
       'docs/worlds/**',
+      // Concept films and reference engines (classic browser scripts, not repo code)
+      'docs/concepts/**',
       'scratch/**',
     ],
   },
