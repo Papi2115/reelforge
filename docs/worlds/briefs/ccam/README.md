@@ -10,9 +10,13 @@ Run these in claude.ai/code (cloud sessions, the $250 credit), one session per b
 - Work on your own branch named in the brief; open a PR into `main` at the end; do NOT merge it. Do NOT
   edit `PLAN.md`, `CLAUDE.md` or anything under `docs/concepts/` (the Manager updates plan and log after
   the merge; parallel sessions would conflict).
-- You are the "coder" of CLAUDE.md: read CLAUDE.md §3 (product rules, determinism, preview = export,
-  Windows), §6 (code conventions: TypeScript strict, no `any`, files <= 400 lines, tests for every
-  feature, licences) and §7 (Conventional Commits). Skip the Manager/scout role text.
+- Roles (CLAUDE.md §1): you are the Manager. Write ALL code and tests through the `coder` subagent
+  (Opus 5.5, `.claude/agents/coder.md`) with a work packet (GOAL/TASK/CONTEXT/CONSTRAINTS/ACCEPTANCE/
+  OUT OF SCOPE taken from your brief); use the `scout` subagent (Haiku) for reading big files/logs.
+  If the `coder` subagent is unavailable, switch the session model to Opus 5.5 and write the code
+  yourself. Follow CLAUDE.md §3 (product rules, determinism, preview = export, Windows), §6 (code
+  conventions: TypeScript strict, no `any`, files <= 400 lines, tests for every feature, licences) and
+  §7 (Conventional Commits).
 - Setup: `pnpm install` (Node 24, pnpm from `packageManager`). Verify with `pnpm typecheck`, `pnpm lint`
   and the targeted vitest runs of the packages you touched (CI runs everything; on Linux the render
   tests use SwiftShader goldens).
