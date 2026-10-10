@@ -160,6 +160,7 @@
       ]
     },
     "roles": "Zbudowany pilot: czapka z daszkiem, granatowa marynarka z krawatem, plakietka, podkładka; 3 kolory stroju.\ncast preview: wszystkie testy ok; od frontu i z boku czytelny jako pilot.",
+    "c-cam-build": "Zbudowane workRoom: ciemny pokój, tynk z rysą i plamą, kamienna podłoga, jedna ciepła plama światła.\nplaces-preview: blank, deterministic ok; czytelne jako jedno brudne wnętrze w każdym kadrze.",
     "world-assets": "Zbudowany 1 rekwizyt (lunar-module); nowe miejsca: brak.\nworld-assets check: 0 błędów; arkusz czytelny w miniaturze.",
     "world-asset-critic": {
       "assets": [

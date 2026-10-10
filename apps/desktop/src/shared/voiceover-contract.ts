@@ -100,6 +100,8 @@ export const SCENE_ACTIONS = [
   'final-review',
   /** World films: design the film's own look assets again (scenes keep their status). */
   'world-assets',
+  /** Grim Ink films: build the film's people and places again (scenes keep their status). */
+  'c-cam-modules',
 ] as const;
 export const sceneActionSchema = z.enum(SCENE_ACTIONS);
 export type SceneActionKey = z.infer<typeof sceneActionSchema>;

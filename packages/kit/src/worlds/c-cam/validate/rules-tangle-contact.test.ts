@@ -3,7 +3,7 @@ import type { Character } from '../draw/character.js';
 import { handAt, pose, type BodyDims, type Pose, type Vec3 } from '../draw/poses.js';
 import { TEST_CHARACTER } from '../draw/test-character.js';
 import { THRESHOLDS, validateCharacter, type SweepCase } from './index.js';
-import { contactLimit } from './rules-contact.js';
+import { contactLimit, objectContactLimit } from './rules-contact.js';
 
 const T = TEST_CHARACTER;
 const withD = (d: Partial<Character['D']>): Character => ({ ...T, D: { ...T.D, ...d } });
@@ -109,10 +109,14 @@ describe('tangle', () => {
 });
 
 describe('contact', () => {
-  it('scales the c-plus 4 px limit with figures drawn larger than 1', () => {
+  it('scales the c-plus 4 px handshake limit with figures drawn larger than 1', () => {
     expect(contactLimit(0.6)).toBe(4);
     expect(contactLimit(1)).toBe(4);
     expect(contactLimit(1.4)).toBeCloseTo(5.6, 9);
+  });
+
+  it('keeps palms on objects within the flat c-plus 4 px at every scale', () => {
+    expect(objectContactLimit()).toBe(4);
   });
 
   it('contact-miss: a guard box over the chest pushes every palm off its goal', () => {

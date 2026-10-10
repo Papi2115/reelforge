@@ -31,13 +31,14 @@ import {
 import { PlaywrightFrameRenderer } from './playwright-renderer.js';
 
 const USAGE =
-  'usage: run-stage <project> <script|voiceover|clean|words|storyboard|scenes|sound-cues|mix> [--source <file>] [--action <build|review mode|variants|world-assets>] [--shots <ids>] [--count 2|3] [--note <text>] [--pick <n> [--lock]] [--economy] [--no-commit]\n';
+  'usage: run-stage <project> <script|voiceover|clean|words|storyboard|scenes|sound-cues|mix> [--source <file>] [--action <build|review mode|variants|world-assets|c-cam-modules>] [--shots <ids>] [--count 2|3] [--note <text>] [--pick <n> [--lock]] [--economy] [--no-commit]\n';
 
 function isSceneAction(value: string): value is SceneAction {
   return (
     value === 'build' ||
     value === 'variants' ||
     value === 'world-assets' ||
+    value === 'c-cam-modules' ||
     (REVIEW_MODES as readonly string[]).includes(value)
   );
 }

@@ -5,7 +5,9 @@ import { videoFormatSchema, type VideoFormat } from '@reelforge/shared';
 export const RENDER_FRAMES_USAGE = `usage: pnpm render:frames -- (--scene <file.js> | --manifest <file.json>) --at <t,t,...> [options]
 Renders frames through the sandboxed engine harness (headless Chromium, SwiftShader) and prints
 the PNG paths, one per line.
-  --scene <file>       scene module; rendered as a single shot starting at t=0
+  --scene <file>       scene module; rendered as a single shot starting at t=0, at the frame
+                       rate of the style's world (Grim Ink: 24, else 30); Grim Ink people and
+                       places next to it (people/, places/) or in ../kit-ext/ are loaded
   --manifest <file>    render manifest JSON; shots[].scene.source may be omitted (read from
                        shots[].scene.file, relative to the manifest)
   --at <list>          comma-separated times in seconds (global video time)

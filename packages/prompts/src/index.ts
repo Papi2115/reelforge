@@ -43,6 +43,7 @@ export * from './validators/short.js';
 export * from './validators/offensive.js';
 export * from './validators/critic.js';
 export * from './validators/world-asset-critic.js';
+export * from './validators/c-cam-build.js';
 export * from './validators/cues.js';
 export * from './validators/review.js';
 export * from './validators/text-outputs.js';

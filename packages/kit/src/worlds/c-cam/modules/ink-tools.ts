@@ -3,12 +3,25 @@
  * JS files without imports, so every drawing function they get (`torso(g, ink, view)`,
  * `head(g, ink, view, face)`, `draw(g, ink, t)`) receives `ink`: the brush env of the moment
  * (`zoom`, `lw`: the ink width of the figure / camera) plus the ported brushes already bound to
- * `g` and that env, the palette `C` and the pure time / hash helpers. Same inputs -> same strokes.
+ * `g` and that env (scenery, grime, face parts, the film's props and gag marks), the palette `C`
+ * and the pure time / hash helpers. Same inputs -> same strokes.
  */
 import { C, clamp01, ease, hash, key, lerp, noise1, rnd, seg, step, twos } from '../core.js';
 import { bbox, brushStroke, curve, inkLine, type BrushEnv } from '../draw/brushes.js';
 import { brow, eye, mouth } from '../draw/face-parts.js';
-import { stubble, wart } from '../draw/face.js';
+import { pores, stubble, wart } from '../draw/face.js';
+import {
+  checklist,
+  gumBubble,
+  helmet,
+  mug,
+  puff,
+  sandwich,
+  sweat,
+  thumbsUp,
+  ticks,
+  watch,
+} from '../draw/gag-props.js';
 import { crack, cobbles, peel, puddle, stain, windowPane } from '../draw/grime.js';
 import type { Paint2D } from '../draw/paint.js';
 import { bands, beam, bricks, gloom, pool, rect, rough, stars, wobble } from '../draw/scenery.js';
@@ -77,6 +90,18 @@ function bindTools(g: Paint2D, env: BrushEnv) {
     mouth: withEnv(g, env, mouth),
     stubble: withEnv(g, env, stubble),
     wart: withEnv(g, env, wart),
+    pores: withPaint(g, pores),
+    sweat: withEnv(g, env, sweat),
+    gumBubble: withEnv(g, env, gumBubble),
+    helmet: withEnv(g, env, helmet),
+    // Held props and gag marks (the Apollo film's props.js + gag-props.ts).
+    thumbsUp: withEnv(g, env, thumbsUp),
+    mug: withEnv(g, env, mug),
+    sandwich: withEnv(g, env, sandwich),
+    checklist: withEnv(g, env, checklist),
+    puff: withEnv(g, env, puff),
+    ticks: withEnv(g, env, ticks),
+    watch: withEnv(g, env, watch),
     // Pure point helpers.
     curve,
     ellipseRing,

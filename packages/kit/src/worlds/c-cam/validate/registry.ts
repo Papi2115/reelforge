@@ -11,6 +11,7 @@ import {
   shoulderAboveOpenChin,
   shoulderOutsideTorso,
 } from './rules-anchors.js';
+import { noSignatureGag } from './rules-acting.js';
 import { contactMiss } from './rules-contact.js';
 import { figurePieces, headPieces } from './rules-head.js';
 import {
@@ -131,8 +132,16 @@ export const RULES: readonly RuleSpec[] = [
     severity: 'error',
     kind: 'geometry',
     summary:
-      'handshake palms and palm-on-object goals within reach (0.9 arm + 0.5 hand) meet within 4 px x max(1, scale)',
+      'handshake palms and palm-on-object goals within reach (0.9 arm + 0.5 hand) meet: palm on object <= 4 px, handshake gap <= 4 px x max(1, scale)',
     run: contactMiss,
+  },
+  {
+    code: 'no-signature-gag',
+    category: 'acting',
+    severity: 'warn',
+    kind: 'geometry',
+    summary: 'the person states its one recurring tic: signatureGag { kind (a gag kind), note }',
+    run: noSignatureGag,
   },
 ];
 

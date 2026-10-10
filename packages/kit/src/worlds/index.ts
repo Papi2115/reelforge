@@ -14,6 +14,8 @@ import type { World } from './types.js';
 export * from './types.js';
 export { C_CAM_ID } from './c-cam/index.js';
 export { C_CAM_VOCABULARY, type CCamVocabulary } from './c-cam/vocabulary.js';
+export { STAGE_INK_NAMES, type StageInk } from './c-cam/stage-ink.js';
+export type { InkStageEnv, InkStageObject } from './c-cam/stage.js';
 export { COMIC_ID, COMIC_INKS } from './comic/index.js';
 export { GAME_B1_COLOURS, GAME_B1_ID, GAME_B1_LUTS } from './game-b1/index.js';
 export {

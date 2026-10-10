@@ -9,11 +9,12 @@
  *    without lean) must land <= `contactLimit` from the point.
  * C-CAM has no `ST.meet` slide: a goal out of reach (> `reachShare` arm + `reachHand` hands from
  * the shoulder) is REPORTED in the metrics, never failed and never faked (as c-plus does).
- * The limit is c-plus's 4 world px, grown with figures drawn larger than scale 1: `reachPalm`
- * stops after `REACH_STEPS` fixed-point steps and leaves up to ~3.5 px at scale 1 (c-plus's
- * `ST.meet` converged to <= 2.3 px), which a figure scaled up magnifies.
+ * Limits (measured on the test character and the five Apollo people with `REACH_STEPS` = 6):
+ * a palm on an object meets c-plus's flat 4 world px at every scale (worst 1.9 px at scale 1,
+ * 2.7 px at 1.4); a handshake gap adds the residuals of two solved palms and keeps the 4 px grown
+ * with the larger figure's scale (worst 0.1 px at scale 1, 4.8 px at 1.4 / 1.3 against 5.6).
  *
- * Public API: `contactLimit`, `contactMiss`.
+ * Public API: `contactLimit`, `objectContactLimit`, `contactMiss`.
  */
 import type { Character } from '../draw/character.js';
 import {
@@ -39,9 +40,14 @@ import {
   THRESHOLDS,
 } from './thresholds.js';
 
-/** World px two contact points may be apart for a figure drawn at scale s. */
+/** World px two handshake palms may be apart when the larger figure is drawn at scale s. */
 export function contactLimit(s: number): number {
   return THRESHOLDS.contactPx * Math.max(1, s);
+}
+
+/** World px a palm may land from an object point, at any scale (c-plus's flat 4 px). */
+export function objectContactLimit(): number {
+  return THRESHOLDS.contactPx;
 }
 
 const offered = (ch: Character, side: HandSide): Pose => {
@@ -174,14 +180,14 @@ function objects(ctx: RuleContext): void {
             ctx.check();
             const { miss } = reachPalmChecked(fig, side, goal);
             ctx.metric('contact: max palm-on-object miss px (reachable goals)', miss);
-            if (miss <= contactLimit(s)) continue;
+            if (miss <= objectContactLimit()) continue;
             ctx.fail({
               view: yaw,
               pose: `object ${side} s ${str(s)} lean ${str(lean)} offset ${str(ox)}/${str(oy)}`,
               message: `${side} palm lands ${fmt(miss)} px from a reachable point`,
               fix: 'the face guard or the IK clamp moves the hand: check D.head (it must not cover the chest) and the arm lengths l1a / l2a',
               measured: miss,
-              limit: contactLimit(s),
+              limit: objectContactLimit(),
             });
           }
         }

@@ -1,12 +1,13 @@
 /**
  * The closed word lists of the Grim Ink (c-cam) drawing API, read from the modules that define
  * them, for the docs the runtime Claude reads (`reelforge kit-docs ink-*`, PLAN.md#14.10): views,
- * poses, expressions, hand kinds, cut eases, camera ranges, lettering faces and palette names. Data
- * only; the functions stay in their modules.
+ * poses, expressions, hand kinds, cut eases, camera ranges, lettering faces, palette names and
+ * person gags. Data only; the functions stay in their modules.
  */
 import { C } from './core.js';
 import { CUT_EASES, ROT_MAX, ZOOM_MAX, ZOOM_MIN } from './draw/camera-schema.js';
 import { EXPR_NAMES } from './draw/face.js';
+import { GAG_KINDS } from './draw/gags.js';
 import { HAND_KINDS } from './draw/hand.js';
 import { POSE_NAMES } from './draw/poses.js';
 import { VIEWS } from './draw/rig-views.js';
@@ -22,6 +23,8 @@ export interface CCamVocabulary {
   readonly maxRoll: number;
   readonly letterFaces: readonly string[];
   readonly palette: readonly string[];
+  /** Person gags (`kit.people.<id>.draw(g, env, { gag: { kind } })`, `signatureGag.kind`). */
+  readonly gags: readonly string[];
 }
 
 export const C_CAM_VOCABULARY: CCamVocabulary = Object.freeze({
@@ -34,4 +37,5 @@ export const C_CAM_VOCABULARY: CCamVocabulary = Object.freeze({
   maxRoll: ROT_MAX,
   letterFaces: FACE_NAMES,
   palette: Object.freeze(Object.keys(C)),
+  gags: GAG_KINDS,
 });

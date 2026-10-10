@@ -2,15 +2,17 @@
  * The Grim Ink (c-cam) scene API as the prompts, the kit-docs topics and the anti-slop guards name
  * it (PLAN.md#14.10), in ONE place so a rename is one edit here.
  *
- * Real on this branch: `ctx.kit.fx.inkStage()`, `stage.paint(t, (g, env) => …)`, `env.C`,
- * `env.time.*` and `env.brush.{inkLine, brushStroke, blob, curve}` (zoom 1). The rest is the
- * binding the world gets when it is wired (PLAN.md#14.8, #14.12): `env.ink.*` = the kit's C-CAM
- * draw functions (packages/kit/src/worlds/c-cam/draw, lettering) with their own signatures
- * (`(g, inkEnv, …)`; `inkEnv` = `cam.env` after the camera), and the project modules
- * `kit-ext/people/<id>.js` / `kit-ext/places/<id>.js` as `ctx.kit.people.<id>` /
- * `ctx.kit.places.<id>` (PLAN.md#14.8: `export const person = {…}` / `export const place = {…}`,
- * camelCase ids = file names, `reelforge kit-docs people` / `places`). Values in
- * the snippets show the shape of a call on topics far from the showcase films, never a design.
+ * All of it is real (packages/kit/src/worlds/c-cam/stage.ts, stage-ink.ts, modules/):
+ * `ctx.kit.fx.inkStage()`, `stage.paint(t, (g, env) => …)`, `env.C`, `env.time.*`,
+ * `env.brush.{inkLine, brushStroke, blob, curve}` (zoom 1) and `env.ink.*` = the kit's C-CAM draw
+ * functions (draw/, lettering/) with their own signatures (`(g, inkEnv, …)`; `inkEnv` = `cam.env`
+ * after the camera, or `env` itself at zoom 1), `drawText(text, o)` drawing on the stage. The
+ * project modules `kit-ext/people/<id>.js` / `kit-ext/places/<id>.js` (`export const person =
+ * {…}` / `export const place = {…}`, camelCase ids = file names, `reelforge kit-docs people` /
+ * `places`) are `ctx.kit.people.<id>` / `ctx.kit.places.<id>`, drawn with `cam.env` after the
+ * camera. The snippets run through the real kit stage in
+ * packages/cli/src/commands/c-cam-snippets.test.ts. Values in the snippets show the shape of a
+ * call on topics far from the showcase films, never a design.
  */
 
 /** Namespaces and file locations of the world's scene API. */
@@ -85,14 +87,16 @@ export const C_CAM_SNIPPETS = {
   cuts: "s.cuts = [{ at: 0, name: 'wide', x: 960, y: 560, z: 1 }, { at: s.knock, name: 'door', x: 1420, y: 610, z: 3.4, rot: -4 }, { at: s.gone, name: 'face', x: 760, y: 430, z: 2.1, ease: 'out', to: { x: 780, y: 420, z: 2.4 }, end: s.gone + 1.2 }]",
   /** paint: the camera first (it resets the transform); `cam.env` scales the ink at that zoom. */
   camera: `const cam = ${INK}.applyCamera(g, ${INK}.resolveCut(s.cuts, env.t))`,
-  /** paint: a place module of this film, wider than any framing. */
-  place: `${C_CAM_API.places}.pawnShop.draw(g, env, env.t, { light: true })`,
-  /** paint: one hand-built person of this film (feet at x, y; s = scale; acting on twos). */
-  person: `${C_CAM_API.people}.broker.draw(g, env, { x: 1240, y: 930, s: 0.9, view: 'three-quarter', pose: ${C_CAM_API.people}.broker.pose('point', ${C_CAM_API.time}.twos(env.t)), expr: ${INK}.exprAt([[0, 'deadpan'], [s.knock, 'shock']], env.t), t: env.t })`,
+  /** paint: a place module of this film, wider than any framing, at the camera's ink width. */
+  place: `${C_CAM_API.places}.pawnShop.draw(g, cam.env, env.t, { light: true })`,
+  /** paint: a person's pose for this frame, acting on twos (a library pose for its own body). */
+  pose: `const pose = ${C_CAM_API.people}.broker.pose('stand', 0, { lean: ${C_CAM_API.time}.key(${C_CAM_API.time}.twos(env.t), [[0, 0], [s.knock, 6, 'out']]) })`,
+  /** paint: one hand-built person of this film (feet at x, y; s = scale; view yaw 1 = three-quarter). */
+  person: `${C_CAM_API.people}.broker.draw(g, cam.env, { x: 1240, y: 930, s: 0.9, view: 'three-quarter', pose, expr: ${INK}.exprAt([[0, 'deadpan'], [s.knock, 'shock']], env.t), t: env.t })`,
   /** A palm in world space (place the held thing there), solved before the camera. */
-  palm: `const palm = ${INK}.palmWorld({ character: ${C_CAM_API.people}.broker, placement: { x: 1240, y: 930, s: 0.9 }, pose }, 'R')`,
+  palm: `const palm = ${INK}.palmWorld({ character: ${C_CAM_API.people}.broker, placement: { x: 1240, y: 930, s: 0.9, yaw: 1 }, pose }, 'R')`,
   /** A hand target that puts the palm ON a world point (merge it into the pose as hR). */
-  reach: `const hR = ${INK}.reachPalm({ character: ${C_CAM_API.people}.broker, placement: { x: 1240, y: 930, s: 0.9 }, pose }, 'R', [1410, 640])`,
+  reach: `const hR = ${INK}.reachPalm({ character: ${C_CAM_API.people}.broker, placement: { x: 1240, y: 930, s: 0.9, yaw: 1 }, pose }, 'R', [1180, 560])`,
   /** A shape with a shade crescent, mottle and hatching, in world space. */
   blob: `${INK}.blob(g, cam.env, [1300, 600, 1460, 590, 1480, 700, 1310, 720], env.C.CLAY, { seed: 4, shade: [env.C.CLAY_D, 18, 14], mottle: [env.C.CLAY_D, 8, 10], hatch: { n: 5, len: 36, ang: -30 }, lw: 7 })`,
   /** An uneven ink line (width swells 0.4-1.9x; never a uniform stroke). */

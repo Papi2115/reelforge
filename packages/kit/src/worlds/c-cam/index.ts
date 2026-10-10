@@ -5,15 +5,16 @@
  * (`ink-insert`), C = the poster/title (`ink-poster`); each brings the same `kit.fx.inkStage`
  * (stage.ts), so a project may keep any one of them.
  *
- * Skeleton: experimental and NOT wired (no prompts, no world assets, no shorts); it renders only
- * with `render:frames --experimental` and the apps and the CLI refuse it as a project style.
- * Characters, faces, rig and camera are later tasks (PLAN.md#14.4-14.6).
+ * Experimental and NOT wired yet: it renders only with `render:frames --experimental` (at the
+ * world's `fps`, 24) and the apps and the CLI refuse it as a project style. The stage's
+ * `env.ink` (stage-ink.ts) binds the camera, scenery, grime, faces, rig, contacts and lettering.
  *
- * Text: no `ctx.text` in the films; the ink-stroke lettering (lettering/) joins the stage later.
+ * Text: no `ctx.text` in the films; the ink-stroke lettering is `env.ink.drawText(text, o)`.
  * `fonts` maps the roles to the engine pixel fonts only because every world must name them.
  * Sound: no own palette yet; the looks reuse `voxel` (follow-up).
  */
 import { defineWorld } from '../types.js';
+import { FPS } from './core.js';
 import { inkInsertLook } from './looks/ink-insert/index.js';
 import { inkPosterLook } from './looks/ink-poster/index.js';
 import { inkSceneLook } from './looks/ink-scene/index.js';
@@ -34,5 +35,6 @@ export const C_CAM = defineWorld({
   style: C_CAM_STYLE,
   fonts: { display: 'display', mono: 'mono' },
   soundPalette: 'voxel',
+  fps: FPS,
   looks: [inkSceneLook, inkInsertLook, inkPosterLook],
 });

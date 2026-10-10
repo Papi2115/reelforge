@@ -5,10 +5,19 @@
  *   export const person = {                       export const place = {
  *     id, name, D, neck, headScale, seed, tones,    id, name, bounds: [w, h],
  *     arm, leg, defaultExpr?, faceAnchors?,         light?, anchors?, collide?,
- *     torso(g, ink, view) { ... },                  draw(g, ink, t) { ... },
- *     head(g, ink, view, face) { ... },           };
- *     drawNeck?(g, ink, view, neck) { ... },
+ *     signatureGag?: { kind, note },                draw(g, ink, t, opts) { ... },
+ *     torso(g, ink, view, p) { ... },               foreground?(g, ink, t, opts) { ... },
+ *     head(g, ink, view, face, p) { ... },        };
+ *     drawNeck?(g, ink, view, neck, p) { ... },
+ *     arms?(p) { return { R: { hand: 'grip', front: true } }; },
+ *     held?(g, ink, side, palm, p) { ... },
+ *     beforeHand?(g, ink, J, view, p) { ... },
  *   };
+ *
+ * `p` = the shot's `props` (JSON-like values) plus `t`, the shot time: what the person carries or
+ * does in this shot (the director's mug, the commander's gum). `opts` of a place = the shot's
+ * place options (an alarm lit, the approach `k`); both are `{ t }` / `{}` when the shot names
+ * none, so modules written for the shorter calls keep working.
  *
  * A person is the rig's `Character` (draw/character.ts) whose drawings get the ink toolbox
  * (`ink`, ink-tools.ts) instead of a bare brush env: modules have no imports. A place is drawn in
@@ -20,6 +29,8 @@ import { z } from 'zod';
 import { characterDataShape, type NeckSpec } from '../draw/character.js';
 import type { FaceState } from '../draw/face.js';
 import type { Paint2D } from '../draw/paint.js';
+import { HAND_KINDS, type HandKind } from '../draw/hand.js';
+import type { RigJoints } from '../draw/rig-layers.js';
 import type { ViewIndex } from '../draw/rig-views.js';
 import type { InkTools } from './ink-tools.js';
 
@@ -35,9 +46,42 @@ const point2 = z.tuple([coordinate, coordinate]).readonly();
 const isFunction = (value: unknown): boolean => typeof value === 'function';
 
 /** Keys of `person` that are functions. */
-export const PERSON_FUNCTION_KEYS: readonly string[] = ['torso', 'head', 'drawNeck'];
+export const PERSON_FUNCTION_KEYS: readonly string[] = [
+  'torso',
+  'head',
+  'drawNeck',
+  'arms',
+  'held',
+  'beforeHand',
+];
 /** Keys of `place` that are functions. */
-export const PLACE_FUNCTION_KEYS: readonly string[] = ['draw'];
+export const PLACE_FUNCTION_KEYS: readonly string[] = ['draw', 'foreground'];
+
+/** A JSON-like value (shot props of a person, options of a place). */
+export type InkJson = string | number | boolean | null | readonly InkJson[] | InkJsonObject;
+export interface InkJsonObject {
+  readonly [key: string]: InkJson;
+}
+
+const inkJson: z.ZodType<InkJson> = z.lazy(() =>
+  z.union([
+    z.string().max(400),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(inkJson).max(256),
+    z.record(z.string().max(40), inkJson),
+  ]),
+);
+
+/** Shot props / place options: an object of JSON-like values with identifier keys. */
+export const inkOptionsSchema = z
+  .record(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]{0,39}$/, 'keys are identifiers'), inkJson)
+  .refine((value) => Object.keys(value).length <= 32, 'at most 32 keys');
+export type InkOptions = Readonly<Record<string, InkJson>>;
+
+/** What a person's drawings get as `p`: the shot's props plus the shot time `t`. */
+export type PersonProps = InkOptions & { readonly t: number };
 
 /** Everything of `export const person` except its drawings. */
 export const personDataSchema = z.strictObject({
@@ -47,9 +91,54 @@ export const personDataSchema = z.strictObject({
 });
 export type PersonData = z.output<typeof personDataSchema>;
 
-export type PersonTorso = (g: Paint2D, ink: InkTools, view: ViewIndex) => void;
-export type PersonHead = (g: Paint2D, ink: InkTools, view: ViewIndex, face: FaceState) => void;
-export type PersonNeck = (g: Paint2D, ink: InkTools, view: ViewIndex, neck: NeckSpec) => void;
+export type PersonTorso = (g: Paint2D, ink: InkTools, view: ViewIndex, p: PersonProps) => void;
+export type PersonHead = (
+  g: Paint2D,
+  ink: InkTools,
+  view: ViewIndex,
+  face: FaceState,
+  p: PersonProps,
+) => void;
+export type PersonNeck = (
+  g: Paint2D,
+  ink: InkTools,
+  view: ViewIndex,
+  neck: NeckSpec,
+  p: PersonProps,
+) => void;
+
+/** Hand shape and "in front of the face" (layer 2 unless the arm is behind the body) of one arm. */
+export interface ArmSetting {
+  readonly hand?: HandKind | 'none' | undefined;
+  readonly front?: boolean | undefined;
+}
+const armSettingSchema = z.strictObject({
+  hand: z.enum([...HAND_KINDS, 'none']).optional(),
+  front: z.boolean().optional(),
+});
+/** What `arms(p)` may return (undefined = the pose's hands, layers as usual). */
+export const armSettingsSchema = z
+  .strictObject({ L: armSettingSchema.optional(), R: armSettingSchema.optional() })
+  .optional();
+export type ArmSettings = z.output<typeof armSettingsSchema>;
+/** `arms(p)`: per-shot hand shapes (a grip round the mug) and arms brought in front (a sip). */
+export type PersonArms = (p: PersonProps) => unknown;
+/** `held(g, ink, side, palm, p)`: drawn right before arm `side`, so the hand closes over it. */
+export type PersonHeld = (
+  g: Paint2D,
+  ink: InkTools,
+  side: 'L' | 'R',
+  palm: readonly [number, number],
+  p: PersonProps,
+) => void;
+/** `beforeHand(g, ink, J, view, p)`: between the head and the arms in front (a book in both hands). */
+export type PersonBeforeHand = (
+  g: Paint2D,
+  ink: InkTools,
+  J: RigJoints,
+  view: ViewIndex,
+  p: PersonProps,
+) => void;
 
 /** A person module (`export const person`). */
 export interface PersonModule extends PersonData {
@@ -59,6 +148,9 @@ export interface PersonModule extends PersonData {
   readonly head: PersonHead;
   /** Custom neck (default: the rig's skin tube). */
   readonly drawNeck?: PersonNeck;
+  readonly arms?: PersonArms;
+  readonly held?: PersonHeld;
+  readonly beforeHand?: PersonBeforeHand;
 }
 
 export const personModuleSchema: z.ZodType<PersonModule> = personDataSchema.extend({
@@ -68,6 +160,17 @@ export const personModuleSchema: z.ZodType<PersonModule> = personDataSchema.exte
   }),
   drawNeck: z
     .custom<PersonNeck>(isFunction, { message: 'drawNeck must be a function (g, ink, view, neck)' })
+    .exactOptional(),
+  arms: z
+    .custom<PersonArms>(isFunction, { message: 'arms must be a function (p)' })
+    .exactOptional(),
+  held: z
+    .custom<PersonHeld>(isFunction, { message: 'held must be a function (g, ink, side, palm, p)' })
+    .exactOptional(),
+  beforeHand: z
+    .custom<PersonBeforeHand>(isFunction, {
+      message: 'beforeHand must be a function (g, ink, J, view, p)',
+    })
     .exactOptional(),
 });
 
@@ -106,16 +209,21 @@ export const placeDataSchema = z.strictObject({
 });
 export type PlaceData = z.output<typeof placeDataSchema>;
 
-export type PlaceDraw = (g: Paint2D, ink: InkTools, t: number) => void;
+export type PlaceDraw = (g: Paint2D, ink: InkTools, t: number, opts: InkOptions) => void;
 
 /** A place module (`export const place`), parsed (defaults applied). */
 export interface PlaceModule extends PlaceData {
-  /** The place for time t (seconds), in place px; a pure function of t. */
+  /** The place for time t (seconds) and the shot's options, in place px; a pure function. */
   readonly draw: PlaceDraw;
+  /** Drawn after the people: the front console row, door edges, smoke (optional). */
+  readonly foreground?: PlaceDraw;
 }
 
 export const placeModuleSchema = placeDataSchema.extend({
-  draw: z.custom<PlaceDraw>(isFunction, { message: 'draw must be a function (g, ink, t)' }),
+  draw: z.custom<PlaceDraw>(isFunction, { message: 'draw must be a function (g, ink, t, opts)' }),
+  foreground: z
+    .custom<PlaceDraw>(isFunction, { message: 'foreground must be a function (g, ink, t, opts)' })
+    .exactOptional(),
 });
 
 /** `path: message; ...` of a zod error (for one-line module errors). */

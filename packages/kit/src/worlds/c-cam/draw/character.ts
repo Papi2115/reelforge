@@ -13,16 +13,19 @@
  *  - the head scale (1.05-1.2 in the films, hard-coded per file) is the data field `headScale`;
  *  - a custom neck drawing is `drawNeck` (the name `neck` is the per-view table);
  *  - added (from the c-plus `CHARACTER_CONTRACT.md` §5): optional `faceAnchors`, head-local face
- *    points per view (the rig's `anchors` places them in figure space; no jaw rule in C).
+ *    points per view (the rig's `anchors` places them in figure space; no jaw rule in C);
+ *  - added (PLAN.md#14.9): optional `signatureGag`, the person's one recurring tic (gags.ts);
+ *    the validator warns when a built person states none.
  *
  * Public API: `rigDimsSchema`, `RigDims`, `HeadBox`, `neckSpecSchema`, `NeckSpec`, `neckBase`,
  * `neckHead`, `tonesSchema`, `Tones`, `TorsoDraw`, `HeadDraw`, `NeckDraw`, `FACE_ANCHOR_NAMES`,
- * `FaceAnchorName`, `faceAnchorTableSchema`, `FaceAnchorTable`, `FaceAnchors`, `Character`,
- * `characterSchema`.
+ * `FaceAnchorName`, `faceAnchorTableSchema`, `FaceAnchorTable`, `FaceAnchors`,
+ * `signatureGagSchema`, `SignatureGag`, `Character`, `characterSchema`.
  */
 import { z } from 'zod';
 import type { BrushEnv } from './brushes.js';
 import type { FaceState } from './face.js';
+import { GAG_KINDS } from './gags.js';
 import type { Paint2D } from './paint.js';
 import { bodyDimsSchema } from './poses.js';
 import { armStyleSchema, legStyleSchema, type ArmStyle, type LegStyle } from './rig-limbs.js';
@@ -130,6 +133,16 @@ export type FaceAnchors = readonly [
   FaceAnchorTable,
 ];
 
+/** The person's one recurring tic: a gag kind and what it says about them. */
+export const signatureGagSchema = z
+  .strictObject({
+    kind: z.enum(GAG_KINDS),
+    note: z.string().min(1).max(200),
+  })
+  .readonly();
+
+export type SignatureGag = z.infer<typeof signatureGagSchema>;
+
 /** A hand-built person: data plus its view-specific drawings. */
 export interface Character {
   /** kebab-case id (`old-baker`). */
@@ -153,6 +166,8 @@ export interface Character {
   readonly drawNeck?: NeckDraw;
   /** Head-local face points per head view (optional). */
   readonly faceAnchors?: FaceAnchors;
+  /** The person's signature gag (optional; the validator warns without one). */
+  readonly signatureGag?: SignatureGag;
 }
 
 const isFunction = (v: unknown): boolean => typeof v === 'function';
@@ -181,6 +196,7 @@ export const characterDataShape = {
     ])
     .readonly()
     .exactOptional(),
+  signatureGag: signatureGagSchema.exactOptional(),
 } as const;
 
 export const characterSchema: z.ZodType<Character> = z

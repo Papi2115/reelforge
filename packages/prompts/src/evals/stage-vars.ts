@@ -201,6 +201,27 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         naming: 'one file per thing, <id>.json',
         budget: '24 things',
       });
+    case 'c-cam-build': {
+      // Grim Ink films only (PLAN.md#14.11); an eval case is a built-in style: the place of its
+      // first shot (golden module: kit-ext/places/workRoom.js).
+      const shot = evalCase.storyboard.shots[0];
+      if (shot === undefined) return err(`${file.id}: the storyboard has no shot`);
+      return ok({
+        folder: 'places',
+        id: 'workRoom',
+        noun: 'place',
+        binding: 'place',
+        place: true,
+        brief: `the setting of ${shot.id}`,
+        shots: `${shot.id}: ${shot.intent}`,
+        narration: `${shot.id}: "${shotWords(evalCase, shot)
+          .map((word) => word.text)
+          .join(' ')}"`,
+        style: 'One uneven ink line over muddy flat colour, grime as flat shapes, one warm light.',
+        contract:
+          'export const place = { id, name, bounds: [w, h], light?, anchors?, collide?, draw(g, ink, t) }',
+      });
+    }
     case 'world-asset-critic':
       return ok({
         worldLabel: 'Sketchbook',

@@ -76,6 +76,11 @@ describe('style registry', () => {
     expect(preset?.resolution).toEqual({ width: 640, height: 360 });
   });
 
+  it('carries the frame rate a world is drawn for (Grim Ink: 24)', () => {
+    expect(STYLE_REGISTRY.entry('c-cam')?.world?.fps).toBe(24);
+    expect(STYLE_REGISTRY.entry('comic')?.world).not.toHaveProperty('fps');
+  });
+
   it('lists a world once it is no longer experimental', () => {
     const shipped = createStyleRegistry(BUILT_IN_STYLE_PRESETS, [
       { ...TEST_WORLD, experimental: false },

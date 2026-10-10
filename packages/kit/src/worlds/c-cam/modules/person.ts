@@ -3,12 +3,13 @@
  * (contract.ts) and turns it into the rig's `Character` plus the handle scenes call as
  * `kit.people.<id>`: `draw(g, env, { x, y, s, view, pose, expr, t, ... })` draws the person through
  * the rig (`drawFigure`, the fixed figure order); `pose(name, ph, over)` resolves a library pose for
- * the person's own dimensions `D`.
+ * the person's own dimensions `D`. Per shot, `props` (what the person carries; the module's
+ * drawings read them as `p`) and `gag` (micro-acting, draw/gags.ts) fold in through
+ * person-acting.ts.
  */
 import { KitError } from '../../../errors.js';
 import { DEFAULT_ENV, type BrushEnv } from '../draw/brushes.js';
-import type { Character, NeckSpec } from '../draw/character.js';
-import type { FaceState } from '../draw/face.js';
+import type { Character } from '../draw/character.js';
 import {
   drawFigure,
   type BodyPlacement,
@@ -18,9 +19,18 @@ import {
 import type { Paint2D } from '../draw/paint.js';
 import { POSE_NAMES, pose as libraryPose, type Pose, type PoseName } from '../draw/poses.js';
 import type { RigJoints } from '../draw/rig-layers.js';
-import { VIEWS, type View, type ViewIndex } from '../draw/rig-views.js';
-import { issuesText, personModuleSchema, type PersonModule } from './contract.js';
+import { VIEWS, type View } from '../draw/rig-views.js';
+import { z } from 'zod';
+import type { GagSpec } from '../draw/gags.js';
+import {
+  issuesText,
+  personDataSchema,
+  personModuleSchema,
+  type InkOptions,
+  type PersonProps,
+} from './contract.js';
 import { inkTools, type InkTools } from './ink-tools.js';
+import { acting, boundCharacter, personGags, personProps } from './person-acting.js';
 import { paintPersonSheet } from './sheet.js';
 
 /** Hooks of `draw` get the ink toolbox (people modules have no imports). */
@@ -28,7 +38,12 @@ export type PersonHook = (J: RigJoints, ink: InkTools) => void;
 
 /** Everything `draw` takes besides g and env; all optional. */
 export interface PersonDrawOptions
-  extends Partial<BodyPlacement>, Omit<DrawFigureOptions, 'beforeHand' | 'after'> {
+  extends
+    Partial<BodyPlacement>,
+    Omit<
+      DrawFigureOptions,
+      'beforeHand' | 'after' | 'beforeArm' | 'afterArm' | 'afterHead' | 'hands'
+    > {
   /** View name or signed ring yaw (-3..3, negative = facing screen-left); default `front`. */
   readonly view?: FigureView;
   /** Pose name (default `stand`) or a pose from `person.pose(name, ph, over)`. */
@@ -43,6 +58,10 @@ export interface PersonDrawOptions
   readonly beforeHand?: PersonHook;
   /** Drawn over everything (things over the hands). */
   readonly after?: PersonHook;
+  /** What the person carries / does in this shot, read by the module as `p` (JSON-like values). */
+  readonly props?: InkOptions;
+  /** One gag or up to two (`{ kind, t0?, rate?, hand?, seed?, visor? }`, draw/gags.ts). */
+  readonly gag?: GagSpec | readonly GagSpec[];
 }
 
 /** A stage env (`t`) or a camera env (`zoom`, `lw`); without a zoom the ink width is zoom 1's. */
@@ -108,28 +127,10 @@ function resolvePose(character: Character, value: unknown, ph: number, label: st
   );
 }
 
-/** The rig character of a checked module: its drawings get the ink toolbox. */
-function characterOf(module: PersonModule): Character {
-  const { torso, head, drawNeck, ...data } = module;
-  const neck =
-    drawNeck === undefined
-      ? {}
-      : {
-          drawNeck: (g: Paint2D, env: BrushEnv, view: ViewIndex, spec: NeckSpec) => {
-            drawNeck(g, inkTools(g, env), view, spec);
-          },
-        };
-  return Object.freeze({
-    ...data,
-    torso: (g: Paint2D, env: BrushEnv, view: ViewIndex) => {
-      torso(g, inkTools(g, env), view);
-    },
-    head: (g: Paint2D, env: BrushEnv, view: ViewIndex, face: FaceState) => {
-      head(g, inkTools(g, env), view, face);
-    },
-    ...neck,
-  });
-}
+/** The data fields of a checked module (its functions dropped). */
+const personData = z.object(personDataSchema.shape);
+
+const NO_PROPS: PersonProps = Object.freeze({ t: 0 });
 
 function figureOptions(g: Paint2D, opts: PersonDrawOptions): DrawFigureOptions {
   const { headYaw, headDy, layer, talk, look, beforeHand, after } = opts;
@@ -183,7 +184,9 @@ export function definePerson(value: unknown, file = 'person'): InkPerson {
       `${file}: \`export const person\` is invalid (${issuesText(parsed.error)}); see reelforge kit-docs people`,
     );
   }
-  const character = characterOf(parsed.data);
+  const module = parsed.data;
+  const data = personData.parse(module);
+  const character = boundCharacter(data, module, NO_PROPS);
   const label = `kit.people.${character.id}`;
   return Object.freeze({
     kind: 'person' as const,
@@ -202,17 +205,13 @@ export function definePerson(value: unknown, file = 'person'): InkPerson {
       const P = resolvePose(character, opts.pose ?? 'stand', opts.ph ?? 0, where);
       const V = checkView(opts.view ?? 'front', where);
       const at = placementOf(opts);
-      return drawFigure(
-        g,
-        brushEnvOf(env),
-        character,
-        at,
-        P,
-        V,
-        opts.expr,
-        t,
-        figureOptions(g, opts),
-      );
+      const p = personProps(opts.props, t, where);
+      const gags = personGags(opts.gag, where);
+      const scene = figureOptions(g, opts);
+      const input = { pose: P, view: V, expr: opts.expr, t, p, gags, scene, label: where };
+      const act = acting(g, module, character, input);
+      const drawn = boundCharacter(data, module, p);
+      return drawFigure(g, brushEnvOf(env), drawn, at, act.pose, V, act.expr, t, act.options);
     },
     sheet: (g: Paint2D, page: number): void => {
       paintPersonSheet(g, character, page);

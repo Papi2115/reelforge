@@ -77,8 +77,11 @@ export type ReviewMode = (typeof REVIEW_MODES)[number];
  * `variants`: alternative versions of one shot to compare and pick from (PLAN.md#11.3).
  * `world-assets`: design the world film's own assets again (PLAN.md#13.15; a build runs it by
  * itself once per storyboard).
+ * `c-cam-modules`: build a Grim Ink film's people and places again (PLAN.md#14.11; a build runs
+ * it by itself once per storyboard).
  */
-export type SceneAction = 'build' | ReviewMode | 'final-review' | 'variants' | 'world-assets';
+export type SceneAction =
+  'build' | ReviewMode | 'final-review' | 'variants' | 'world-assets' | 'c-cam-modules';
 
 /**
  * Shot variants (PLAN.md#11.3): `generate` builds `count` variants (or rebuilds variant `only`

@@ -11,6 +11,7 @@ import {
   WORLD_CAST_FILE,
   worldCastFileSchema,
 } from '@reelforge/shared';
+import { validateInkModuleSource } from '../validators/c-cam-build.js';
 import { validateClaimsReply } from '../validators/claims.js';
 import { validateCriticReply } from '../validators/critic.js';
 import { validateWorldAssetCriticReply } from '../validators/world-asset-critic.js';
@@ -57,6 +58,7 @@ const MAX_REPLY_LINES: Partial<Record<PromptId, number>> = {
   roles: 4,
   tension: 3,
   'world-assets': 4,
+  'c-cam-build': 4,
 };
 
 function readOutputs(
@@ -148,6 +150,12 @@ function fileIssues<T extends CuesLike>(
     return validateRoleFile(text, { roleId: evalCase.file.roleBuild.id }).issues;
   }
   if (file === WORLD_CAST_FILE) return worldCastIssues(text);
+  // A Grim Ink person or place (PLAN.md#14.11): kit-ext/people|places/<id>.js.
+  const inkModule = /^kit-ext\/(people|places)\/([A-Za-z0-9]+)\.js$/.exec(file);
+  if (inkModule?.[2] !== undefined) {
+    const folder = inkModule[1] === 'people' ? 'people' : 'places';
+    return validateInkModuleSource(text, folder, inkModule[2]).issues;
+  }
   if (file.endsWith('.js')) return validateSceneModule(text).issues;
   return [];
 }

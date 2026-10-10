@@ -131,6 +131,18 @@ describe('kit.fx.inkStage', () => {
     expect(env).toMatchObject({ width: 1920, height: 1080, t: 2.04, C });
     expect(env.time.twos(env.t)).toBe(twos(2.04));
     expect(Object.keys(env.brush).sort()).toEqual(['blob', 'brushStroke', 'curve', 'inkLine']);
+    expect(env).toMatchObject({ zoom: 1, lw: 1 });
+    expect(Object.isFrozen(env.ink)).toBe(true);
+  });
+
+  it('draws env.ink lettering on the stage surface', () => {
+    const fake = fakeStage();
+    const stage = buildInkStage({}, tools(), () => fake.canvas);
+    stage.paint(0, (_g, env) => {
+      env.ink.drawText('OPEN', { face: 'hand', size: 40, x: 10, y: 60, seed: 1, fill: C.LINEN });
+    });
+    expect(fake.calls).toContain(`fillStyle=${C.LINEN}`);
+    expect(fake.calls.filter((call) => call === 'fill(nonzero)').length).toBeGreaterThan(3);
   });
 
   it('draws the brushes through the surface', () => {

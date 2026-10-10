@@ -13,6 +13,17 @@ export {
   placeDataSchema,
   placeLightSchema,
   placeModuleSchema,
+  armSettingsSchema,
+  inkOptionsSchema,
+  type ArmSetting,
+  type ArmSettings,
+  type InkJson,
+  type InkJsonObject,
+  type InkOptions,
+  type PersonArms,
+  type PersonBeforeHand,
+  type PersonHeld,
+  type PersonProps,
   type PersonData,
   type PersonHead,
   type PersonModule,
@@ -33,6 +44,7 @@ export {
   type PersonHook,
   type ZoomEnv,
 } from './person.js';
+export { faceSpots, personGags, personProps } from './person-acting.js';
 export { definePlace, placeFromModule, type InkPlace, type PlaceDrawOptions } from './place.js';
 export {
   createInkModulesApi,

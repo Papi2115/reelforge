@@ -12,7 +12,7 @@ import type { BodyDims, Pose } from '../draw/poses.js';
 /** `error` = the character is broken; `warn` = likely visible in some shots, check the sheet. */
 export type Severity = 'error' | 'warn';
 
-export type RuleCategory = 'anchors' | 'head' | 'tangle' | 'contact';
+export type RuleCategory = 'anchors' | 'head' | 'tangle' | 'contact' | 'acting';
 
 /** `geometry` = measured on the rig and on recorded paths; `raster` = needs a CPU raster. */
 export type RuleKind = 'geometry' | 'raster';
@@ -30,6 +30,7 @@ export const RULE_CODES = [
   'guard-out-of-reach',
   'elbow-flip',
   'contact-miss',
+  'no-signature-gag',
 ] as const;
 
 export type RuleCode = (typeof RULE_CODES)[number];

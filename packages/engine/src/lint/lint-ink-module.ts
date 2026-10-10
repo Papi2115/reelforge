@@ -5,9 +5,11 @@
  * contract (`export const person` / `place`: literal data valid for the kit, the id equal to the
  * file name, the drawing functions present) and the world's grammar: ink shapes only, so no text
  * (`fillText`: lettering is drawn ink), no gradients, patterns, filters, shadows or images, and a
- * file of at most 250 lines (a module is one person / place, not a library).
+ * file of at most 250 lines (a module is one person / place, not a library). A person without a
+ * `signatureGag` (its one recurring tic, PLAN.md#14.9) gets a warning.
  */
 import {
+  GAG_KINDS,
   PERSON_FUNCTION_KEYS,
   PLACE_FUNCTION_KEYS,
   personDataSchema,
@@ -42,7 +44,7 @@ const SPECS: Readonly<Record<InkModuleKind, KindSpec>> = {
     required: ['torso', 'head'],
     data: personDataSchema,
     example:
-      "export const person = { id: 'nightBaker', name: 'The Night Baker', D: { ... }, neck: [...], headScale: 1.1, seed: 2100, tones: { skin: '#c9946e', skinD: '#9a6a50' }, arm: { ... }, leg: { ... }, torso(g, ink, view) { ink.blob(...); }, head(g, ink, view, face) { ink.eye(...); } };",
+      "export const person = { id: 'nightBaker', name: 'The Night Baker', D: { ... }, neck: [...], headScale: 1.1, seed: 2100, tones: { skin: '#c9946e', skinD: '#9a6a50' }, arm: { ... }, leg: { ... }, signatureGag: { kind: 'yawn', note: 'yawns through the night shift' }, torso(g, ink, view, p) { ink.blob(...); }, head(g, ink, view, face, p) { ink.eye(...); } };",
   },
   places: {
     binding: 'place',
@@ -50,7 +52,7 @@ const SPECS: Readonly<Record<InkModuleKind, KindSpec>> = {
     required: ['draw'],
     data: placeDataSchema,
     example:
-      "export const place = { id: 'bakeryBackRoom', name: 'The bakery back room', bounds: [1920, 1080], light: { x: 900, y: 300, rx: 600, ry: 400, color: '#e0a050' }, anchors: { oven: [1400, 900] }, collide: [], draw(g, ink, t) { ink.rect(...); } };",
+      "export const place = { id: 'bakeryBackRoom', name: 'The bakery back room', bounds: [1920, 1080], light: { x: 900, y: 300, rx: 600, ry: 400, color: '#e0a050' }, anchors: { oven: [1400, 900] }, collide: [], draw(g, ink, t, opts) { ink.rect(...); }, foreground(g, ink, t, opts) { ... } };",
   },
 };
 
@@ -142,13 +144,14 @@ function readFields(
   readonly data: Record<string, unknown> | undefined;
   readonly id: AnyNode | undefined;
   readonly idValue: unknown;
+  readonly keys: ReadonlySet<string>;
 } {
   const fail = (at: AnyNode, message: string, fix = spec.example): void => {
     report(at, { rule: 'ink-module-contract', message, fix });
   };
   if (object.type !== 'ObjectExpression') {
     fail(object, `\`${spec.binding}\` must be an object literal.`);
-    return { data: undefined, id: undefined, idValue: undefined };
+    return { data: undefined, id: undefined, idValue: undefined, keys: new Set() };
   }
   const data: Record<string, unknown> = {};
   const seen = new Set<string>();
@@ -187,7 +190,19 @@ function readFields(
   for (const name of spec.required) {
     if (!seen.has(name)) fail(object, `\`${spec.binding}.${name}(...)\` is missing.`);
   }
-  return { data: literal ? data : undefined, id: idNode, idValue };
+  return { data: literal ? data : undefined, id: idNode, idValue, keys: seen };
+}
+
+/** A person states its one recurring tic (a warning: the figure works without one). */
+function checkSignatureGag(object: AnyNode, keys: ReadonlySet<string>, report: Report): void {
+  if (object.type !== 'ObjectExpression' || keys.has('signatureGag')) return;
+  report(object, {
+    rule: 'ink-module-contract',
+    severity: 'warning',
+    message:
+      'The person has no `signatureGag`: give each person one recurring tic the films can use (1-2 gags per shot, never decorative).',
+    fix: `Add signatureGag: { kind, note } with kind one of ${GAG_KINDS.join(', ')} (reelforge kit-docs people).`,
+  });
 }
 
 function checkData(
@@ -265,7 +280,9 @@ export function lintInkModule(
   checkExports(program, collectExports(program, tree), spec, report);
   const object = findBinding(program, spec.binding);
   if (object !== undefined) {
-    checkData(object, readFields(object, spec, report), spec, options.filename, report);
+    const fields = readFields(object, spec, report);
+    checkData(object, fields, spec, options.filename, report);
+    if (kind === 'people') checkSignatureGag(object, fields.keys, report);
   }
   checkProgram(program, { source, report, tree, updateFunction: undefined });
   checkModuleStateWrites(program, tree, report);

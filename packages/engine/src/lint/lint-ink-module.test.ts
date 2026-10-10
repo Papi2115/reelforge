@@ -7,7 +7,12 @@ import { lintModule } from './lint-prop.js';
 import { describeLintErrors, lintManifestKitExtensions } from './manifest.js';
 
 const EXAMPLES = path.resolve(import.meta.dirname, '..', '..', '..', 'kit', 'examples', 'c-cam');
-const PERSON = readFileSync(path.join(EXAMPLES, 'people', 'nightBaker.js'), 'utf8');
+const SAMPLE_PERSON = readFileSync(path.join(EXAMPLES, 'people', 'nightBaker.js'), 'utf8');
+/** The sample predates signature gags (PLAN.md#14.9): the tests give it one. */
+const PERSON = SAMPLE_PERSON.replace(
+  "  defaultExpr: 'exhausted',",
+  "  defaultExpr: 'exhausted',\n  signatureGag: { kind: 'yawn', note: 'yawns through the night shift' },",
+);
 const PLACE = readFileSync(path.join(EXAMPLES, 'places', 'bakeryBackRoom.js'), 'utf8');
 const PERSON_FILE = 'kit-ext/people/nightBaker.js';
 const PLACE_FILE = 'kit-ext/places/bakeryBackRoom.js';
@@ -18,7 +23,7 @@ function rules(source: string, file: string, kind: 'people' | 'places'): string[
     .map((diagnostic) => `${diagnostic.rule}: ${diagnostic.message}`);
 }
 
-const PLACE_HEAD = `export const place = { id: 'room', name: 'Room', bounds: [1920, 1080], draw(g, ink, t) {`;
+const PLACE_HEAD = `export const place = { id: 'room', name: 'Room', bounds: [1920, 1080], draw(g, ink, t, opts) {`;
 
 describe('lint of Grim Ink people / places modules (PLAN.md#14.8)', () => {
   it('passes the sample person and place, also through lintModule by path', () => {
@@ -85,6 +90,20 @@ describe('lint of Grim Ink people / places modules (PLAN.md#14.8)', () => {
     const long = `${PLACE}${'\n'.repeat(200)}`;
     expect(rules(long, PLACE_FILE, 'places')).toEqual([
       expect.stringMatching(/lines; one person \/ place stays within 250/),
+    ]);
+  });
+
+  it('warns a person without a signature gag and accepts place options and a foreground', () => {
+    expect(PERSON).not.toBe(SAMPLE_PERSON);
+    const plain = lintInkModule(SAMPLE_PERSON, { filename: PERSON_FILE }, 'people');
+    expect(plain.map((d) => `${d.severity} ${d.message}`)).toEqual([
+      expect.stringMatching(/^warning The person has no `signatureGag`/),
+    ]);
+    const front = `${PLACE_HEAD} ink.rect(0, 0, 10, 10, opts.c || '#000'); }, foreground(g, ink, t, opts) { ink.rect(0, 0, 5, 5, '#111'); } };`;
+    expect(lintInkModule(front, { filename: 'kit-ext/places/room.js' }, 'places')).toEqual([]);
+    const notFn = `${PLACE_HEAD} }, foreground: 3 };`;
+    expect(rules(notFn, 'kit-ext/places/room.js', 'places')).toEqual([
+      expect.stringMatching(/`place.foreground` must be a plain synchronous function/),
     ]);
   });
 

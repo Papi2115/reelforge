@@ -7,6 +7,7 @@ import { C_CAM_VOCABULARY, kitCatalog, LOOKS } from '@reelforge/kit';
 import { C_CAM_API, C_CAM_MODULE_TOPICS, C_CAM_SNIPPETS, C_CAM_TOPICS } from '@reelforge/prompts';
 import { describe, expect, it } from 'vitest';
 import { C_CAM_TOPIC_NAMES, describeCCamTopic } from './kit-docs-c-cam.js';
+import { describeInkModulesTopic } from './kit-docs-c-cam-people.js';
 import { formatCatalog } from './kit-docs-index.js';
 import { describeKitName } from './kit-docs.js';
 
@@ -55,6 +56,20 @@ describe('kit-docs Grim Ink topics', () => {
     expect(topic('ink-stage')).toContain('INK, EYE, MOUTH');
     expect(topic('ink-camera')).toContain('z = zoom 0.8-5.4');
     expect(topic('ink-camera')).toContain('at most +-7');
+  });
+
+  it('documents every person gag, the gag rule and the module hooks in the people topic', () => {
+    const people = describeInkModulesTopic('people') ?? '';
+    for (const name of C_CAM_VOCABULARY.gags) expect(people).toContain(`  ${name}: `);
+    expect(people).toContain('one signature gag per person');
+    expect(people).toContain('1-2 gags per shot, never decorative');
+    for (const hook of ['signatureGag', 'arms?(p)', 'held?(g, ink, side, palm, p)', 'props:']) {
+      expect(people).toContain(hook);
+    }
+    expect(people.length).toBeLessThan(6_000);
+    const places = describeInkModulesTopic('places') ?? '';
+    expect(places).toContain('foreground?(g, ink, t, opts)');
+    expect(places).toContain('room.foreground(g, cam.env, env.t, opts)');
   });
 
   it("names the API from the prompts' one list", () => {

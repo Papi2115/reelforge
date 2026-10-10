@@ -45,6 +45,7 @@ describe('bundled prompts', () => {
       [
         'assets',
         'brief',
+        'c-cam-build',
         'claims',
         'critic',
         'hooks',
@@ -229,6 +230,7 @@ describe('stages and models', () => {
       brief: 'critic',
       'world-assets': 'scene-build',
       'world-asset-critic': 'critic',
+      'c-cam-build': 'scene-build',
       'publish-seo': 'critic',
       'short-script': 'script',
     };

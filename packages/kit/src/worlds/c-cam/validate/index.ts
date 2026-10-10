@@ -5,7 +5,8 @@
  *
  * Categories: anchors (shoulders vs torso and chin, face anchors on the head), head (head and
  * figure connectivity on a CPU raster, jaw shut and open), tangle (palms in the head, arms across
- * the face, reach, elbow flips), contact (handshakes, palms on objects). Rules, severities and
+ * the face, reach, elbow flips), contact (handshakes, palms on objects), acting (a signature gag
+ * stated). Rules, severities and
  * thresholds: registry.ts and thresholds.ts. A CLI / QA hook comes with PLAN.md#14.11.
  *
  * Public API: `validateCharacter`, `RULES`, `RuleSpec`, `ruleSpec`, `THRESHOLDS`,

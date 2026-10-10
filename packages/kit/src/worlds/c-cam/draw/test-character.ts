@@ -123,6 +123,7 @@ export const TEST_CHARACTER: Character = {
   arm: ARM,
   leg: LEG,
   defaultExpr: 'deadpan',
+  signatureGag: { kind: 'clockCheck', note: 'checks his watch against the ferry timetable' },
   torso: wardenTorso,
   head: wardenHead,
   faceAnchors: [

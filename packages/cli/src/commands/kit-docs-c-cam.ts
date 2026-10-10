@@ -3,9 +3,10 @@
  * ink-lettering` (PLAN.md#14.10): the Grim Ink (c-cam) drawing API, one short topic
  * each, so a scene turn reads only what it uses (each text far under the 28,000-character Bash
  * limit). Names come from the one API list of the prompts (`C_CAM_API`, `C_CAM_TOPICS`) and the
- * kit's own word lists (`C_CAM_VOCABULARY`), so the docs cannot drift from either. The world is
- * not wired yet (PLAN.md#14.12): the topics are reference text only. How a person or place module
- * is written is the module topics' (`kit-docs people` / `places`, kit-docs-c-cam-people.ts).
+ * kit's own word lists (`C_CAM_VOCABULARY`), so the docs cannot drift from either; every
+ * `env.ink.<name>` they mention exists on the stage (`STAGE_INK_NAMES`, kit-docs-c-cam.test.ts).
+ * How a person or place module is written is the module topics' (`kit-docs people` / `places`,
+ * kit-docs-c-cam-people.ts).
  */
 import { C_CAM_VOCABULARY } from '@reelforge/kit';
 import {
@@ -48,11 +49,11 @@ const STAGE = [
   `${C_CAM_API.paint}(t, (g, env) => …) — call it every frame in update(t): the stage clears to opaque ink and runs the painter, which must be a pure function of env.t (no state between frames, no Math.random, no Date).`,
   'g (Paint2D): fillStyle, strokeStyle, lineWidth, lineCap, globalAlpha, save/restore, setTransform/translate/rotate/scale, beginPath/closePath/moveTo/lineTo/quadraticCurveTo/rect/ellipse, fill(rule)/stroke/clip, fillRect. No text, images, gradients, filters or pixel reads.',
   'env (frozen, per frame):',
-  '  width, height — canvas px; t — the time passed to paint',
+  '  width, height — canvas px; t — the time passed to paint; zoom, lw — 1 (env is the ink env of screen space)',
   `  ${C_CAM_API.palette} — the palette: ${list(V.palette)} (\`_D\` = the shade partner of a fill)`,
   `  ${C_CAM_API.time} — twos(t) (acting time on 1/12 s steps), key(t, [[t, v, ease?], …]), step(t, [[t, value], …]), seg(t, a, b), ease.{lin, inOut, out, back}, lerp, clamp01, hash(a, b, c, d), rnd(lo, hi, a, b, c, d), noise1(seed, x)`,
   `  ${C_CAM_API.brush} — inkLine(pts, o), brushStroke(pts, o), blob(pts, fill, o), curve(pts, closed, step), bound at zoom 1 (screen space: posters, titles)`,
-  `  ${INK} — the world's draw functions with their own signatures, (g, inkEnv, …) where inkEnv = cam.env after the camera (${C_CAM_TOPICS.brushes}, ${C_CAM_TOPICS.camera}, ${C_CAM_TOPICS.rig}, ${C_CAM_TOPICS.faces}, ${C_CAM_TOPICS.lettering})`,
+  `  ${INK} — the world's draw functions with their own signatures, (g, inkEnv, …) where inkEnv = cam.env after the camera, env at zoom 1 (${C_CAM_TOPICS.brushes}, ${C_CAM_TOPICS.camera}, ${C_CAM_TOPICS.rig}, ${C_CAM_TOPICS.faces}, ${C_CAM_TOPICS.lettering})`,
   'Points are flat arrays [x, y, x, y, …] in px. ctx.camera does nothing on the stage; ctx.text and ctx.annotate are never used in this world.',
 ];
 
@@ -86,19 +87,21 @@ const RIG = [
   `Views: ${list(V.views)} (a signed ring yaw from ${INK}.turn mirrors the drawing to face screen-left); turns walk the ring one view per animation frame, never a 180 deg flip.`,
   `Poses: ${INK}.pose(name, D, ph = 0, over) with name one of ${list(V.poses)}; ph in [0, 1) for the cyclic ones (feed twos time); over = { hL, hR, fL, fR, kL, kR, lean, bob } overrides (hand targets in body space: x = the character's left, y down, feet at 0, z forward).`,
   `Hands: ${list(V.hands)} (kL / kR in the pose); mittens 1.3-1.8x realistic.`,
-  `Drawing: ${INK}.drawFigure(g, e, character, { x, y, s, lean, bow }, pose, view, expr, t, { headYaw, headDy, layer: { L, R }, talk, look, beforeHand(J, e), after(J, e) }) — the feet at x, y (world), scale s (0.6-1.0 wide or medium, 1.25-4.2 for over-the-shoulder backs); returns the joints. The film's people modules wrap it (person.draw, kit-docs ${C_CAM_MODULE_TOPICS.people}).`,
+  `Drawing: ${INK}.drawFigure(g, e, character (a person or its .character), { x, y, s, lean, bow }, pose, view, expr, t, { headYaw, headDy, layer: { L, R }, talk, look, beforeHand(J, e), after(J, e) }) — the feet at x, y (world), scale s (0.6-1.0 wide or medium, 1.25-4.2 for over-the-shoulder backs); returns the joints. The film's people modules wrap it (person.draw, kit-docs ${C_CAM_MODULE_TOPICS.people}).`,
   'Arm layers: far arms behind the body, raised hands behind the head, the near arm in front (layer 2 forces a hand in front: folded arms, writing).',
   `Contacts (world space, BEFORE the camera; fig = { character, placement: { x, y, s, yaw, bow }, pose }):`,
   `  ${INK}.palmWorld(fig, 'L' | 'R') — where the palm is: draw the held thing there`,
   `  ${INK}.reachPalm(fig, side, [x, y], keep?) — the hand target that puts the palm ON the point (merge it into the pose as hL / hR); reachPalmChecked(…) also gives the miss in px`,
   `  ${INK}.figToWorld(placement, flip, lean, pt), ${INK}.bowPt(pt, hy, deg) — a body point (a face in a bow) in world space`,
+  `  ${INK}.solvePose(character, pose, view) — the joints; ${INK}.anchorWorld(fig, name) — a named body or face point (chin, mouth, …) in world space`,
+  `  ${INK}.hand(g, e, x, y, ang, size, skin, kind) — a loose mitten (a prop's hand, a crowd)`,
   'Rules: hands ON props (solve the palm, draw the prop there, close the hand over it), never "near"; never a hand across a face; stage people within reach (arms 162-242 units); shoulders well below the open-jaw chin.',
 ];
 
 const CAMERA = [
   `Cut table (build it in build(), times from ctx.anchor(...).t): [{ at, name?, x, y, z, rot?, ease?, to?, end? }, …], at strictly ascending; x, y = the world point at the frame centre; z = zoom ${String(V.zoom[0])}-${String(V.zoom[1])}; rot = Dutch roll in degrees, at most +-${String(V.maxRoll)}; a move runs from the framing to \`to\` over [at, end] with ease ${list(V.cutEases)} ('cut' = no move).`,
   `  e.g. ${C_CAM_SNIPPETS.cuts}`,
-  `  ${C_CAM_SNIPPETS.camera} — the first thing the painter draws (it resets the transform); cam.env scales the ink at that zoom; cam.toScreen(x, y), cam.toWorld(x, y), cam.visibleRect()`,
+  `  ${C_CAM_SNIPPETS.camera} — the first thing the painter draws (it resets the transform); cam.env scales the ink at that zoom (pass it to every ink call, person.draw and place.draw); cam.toScreen(x, y), cam.toWorld(x, y), cam.visibleRect()`,
   '  cuts are selected on twos (a cut at `at` shows from the first 1/12 s step >= at); moves inside a framing run smoothly',
   `  ${INK}.fgScreen(g, draw) — screen space (foreground silhouettes at the lens); ${INK}.fgWorld(g, cam, draw) — back in world space; ${INK}.silhouette(g, pts, fill?) — a flat ink shape, no outline`,
   `  ${INK}.coverage(cuts, { x0, y0, x1, y1 }) — framings whose frame leaves the drawn place (must be empty)`,
