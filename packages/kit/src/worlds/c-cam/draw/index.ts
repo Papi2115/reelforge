@@ -1,0 +1,114 @@
+/**
+ * C-CAM rig public API (PLAN.md#14.5): views, IK, layers, limbs, the character contract, the
+ * figure drawing, anchors and the contact helpers. Brushes, faces, poses and the camera are
+ * imported from their own modules for now; the kit's main index does not export C-CAM yet.
+ * The test character (test-character.ts) is a fixture and is not re-exported.
+ */
+export {
+  VIEWS,
+  RING,
+  VIEW_DEG,
+  yawOfRing,
+  turn,
+  viewState,
+  viewName,
+  viewIndex,
+  yawOfView,
+  proj,
+  headView,
+  type View,
+  type ViewIndex,
+  type ViewState,
+  type RingKey,
+  type HeadView,
+} from './rig-views.js';
+export {
+  solveIK3,
+  solveIK,
+  limbRig,
+  elbowPole,
+  kneePole,
+  palm,
+  type IKSolution,
+  type BendSign,
+  type LimbRig,
+} from './rig-ik.js';
+export {
+  guard,
+  solve,
+  armLayer,
+  FIGURE_ORDER,
+  legsFarFirst,
+  type RigJoints,
+  type ArmLayer,
+  type FigureStep,
+  type LegDraw,
+} from './rig-layers.js';
+export {
+  FOOT_TILT,
+  hatchSpecSchema,
+  armStyleSchema,
+  legStyleSchema,
+  drawArm,
+  drawLeg,
+  drawFoot,
+  type ArmStyle,
+  type LegStyle,
+  type FootStyle,
+} from './rig-limbs.js';
+export {
+  rigDimsSchema,
+  neckSpecSchema,
+  neckBase,
+  neckHead,
+  tonesSchema,
+  FACE_ANCHOR_NAMES,
+  faceAnchorTableSchema,
+  characterSchema,
+  type RigDims,
+  type HeadBox,
+  type NeckSpec,
+  type Tones,
+  type TorsoDraw,
+  type HeadDraw,
+  type NeckDraw,
+  type FaceAnchorName,
+  type FaceAnchorTable,
+  type FaceAnchors,
+  type Character,
+} from './character.js';
+export {
+  resolveView,
+  solvePose,
+  bowed,
+  drawFigure,
+  type FigureView,
+  type BodyPlacement,
+  type ArmLayerOverrides,
+  type FigureHook,
+  type DrawFigureOptions,
+} from './figure.js';
+export {
+  BODY_ANCHOR_NAMES,
+  anchors,
+  anchorWorld,
+  type BodyAnchorName,
+  type AnchorName,
+  type AnchorOptions,
+  type RigAnchors,
+} from './anchors.js';
+export {
+  REACH_STEPS,
+  bowPt,
+  figToWorld,
+  worldToFig,
+  bodyAt,
+  palmWorld,
+  reachPalm,
+  reachPalmChecked,
+  type HandSide,
+  type Point2,
+  type Placement,
+  type PlacedFigure,
+  type ReachResult,
+} from './contact.js';
