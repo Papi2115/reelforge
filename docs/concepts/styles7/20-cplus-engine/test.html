@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>c-plus engine - turnarounds, contact board, validators</title>
+    <style>
+      body { margin: 0; background: #1b1814; color: #cfc5a8; font: 14px/1.4 Georgia, serif; }
+      main { padding: 12px 16px; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+      h1 { font-size: 16px; font-weight: normal; margin: 0; }
+      canvas { display: block; box-shadow: 0 0 0 1px #3a332a; }
+      #report { white-space: pre-wrap; font: 12px/1.35 Consolas, monospace; max-width: 1400px; }
+      .fail { color: #e0745c; } .pass { color: #9fc27a; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>c-plus engine: every test character in 6 views x poses (incl. face contact, folded arms) + faces/visemes. Validators: button below (also headless: <code>node tools/validate.mjs</code>).</h1>
+      <button id="run">run the validators (a few seconds)</button>
+      <div id="report"></div>
+      <div id="sheets"></div>
+    </main>
+    <script src="js/core.js"></script>
+    <script src="js/brushes.js"></script>
+    <script src="js/light.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/rig.js"></script>
+    <script src="js/limbs.js"></script>
+    <script src="js/poses.js"></script>
+    <script src="js/acting.js"></script>
+    <script src="js/face.js"></script>
+    <script src="js/facekit.js"></script>
+    <script src="js/grime.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/contact.js"></script>
+    <script src="js/bg.js"></script>
+    <script src="cast-examples/skeleton.js"></script>
+    <script src="cast-examples/captain.js"></script>
+    <script src="cast-examples/recruit.js"></script>
+    <script src="cast-examples/senator.js"></script>
+    <script src="cast-examples/washer.js"></script>
+    <script src="cast-examples/you.js"></script>
+    <script src="js/validate-raster.js"></script>
+    <script src="js/validate.js"></script>
+    <script src="js/test-page.js"></script>
+  </body>
+</html>
