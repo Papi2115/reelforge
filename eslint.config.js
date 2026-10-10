@@ -13,6 +13,7 @@ export default defineConfig(
       '**/coverage/**',
       '**/release/**',
       'docs/worlds/**',
+      'docs/concepts/**',
       'scratch/**',
     ],
   },
