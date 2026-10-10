@@ -73,6 +73,28 @@ export interface WorldSlopSpec {
     ((program: AnyNode, file: string, shot: ShotChecked) => QaFinding[]) | undefined;
   /** The world's own checks over the film's scenes at the final review (Game B1: monotony). */
   readonly filmChecks?: ((shots: readonly ShotProgram[]) => Map<string, QaFinding[]>) | undefined;
+  /**
+   * The world's own frame budgets (PLAN.md#14.19), measured on its reference frames; absent = the
+   * general budgets of guards.ts.
+   */
+  readonly frameBudgets?: FrameBudgets | undefined;
+  /**
+   * The accent guard counts only accent regions inside the frame, never the ground or set that
+   * reaches its border (PLAN.md#14.18: Grim Ink's mustard accent is also its sand and ochre).
+   */
+  readonly accentObjectsOnly?: boolean | undefined;
+  /** The band the captions use, kept free of scene lettering when captions are on (14.18). */
+  readonly captionBand?: { readonly share: number; readonly height: number } | undefined;
+}
+
+/** Budgets of the frame guards (guards.ts); each absent one keeps the general value. */
+export interface FrameBudgets {
+  /** Competing high-contrast elements a frame may have (general: ELEMENT_BUDGET). */
+  readonly elements?: number | undefined;
+  /** Accent-colour pixel share a frame may have (general: MAX_ACCENT_SHARE). */
+  readonly accentShare?: number | undefined;
+  /** Mirror similarity from which a centred frame is symmetric (general: SYMMETRY_THRESHOLD). */
+  readonly symmetry?: number | undefined;
 }
 
 /** What `shotChecks` reads of the storyboard shot. */

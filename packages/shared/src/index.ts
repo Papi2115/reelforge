@@ -12,6 +12,7 @@ export * from './characters.js';
 export * from './claims.js';
 export * from './claims-ops.js';
 export * from './continuity.js';
+export * from './direction.js';
 export * from './dramaturgy.js';
 export * from './final-review.js';
 export * from './genre-preset-apply.js';

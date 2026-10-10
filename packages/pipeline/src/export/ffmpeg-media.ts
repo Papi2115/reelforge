@@ -96,8 +96,9 @@ export function muxArgs(spec: MuxSpec, listFile: string): string[] {
 }
 
 export function thumbnailArgs(spec: ThumbnailSpec): string[] {
-  const outWidth = spec.width * spec.factor;
-  const outHeight = spec.height * spec.factor;
+  const outWidth = spec.size?.width ?? spec.width * spec.factor;
+  const outHeight = spec.size?.height ?? spec.height * spec.factor;
+  const flags = spec.size === undefined ? 'neighbor' : 'area';
   return [
     '-hide_banner',
     '-nostdin',
@@ -106,7 +107,7 @@ export function thumbnailArgs(spec: ThumbnailSpec): string[] {
     '-y',
     ...rawInputArgs(spec.width, spec.height, 1),
     '-vf',
-    `scale=${String(outWidth)}:${String(outHeight)}:flags=neighbor`,
+    `scale=${String(outWidth)}:${String(outHeight)}:flags=${flags}`,
     '-frames:v',
     '1',
     '-pix_fmt',

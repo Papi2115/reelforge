@@ -12,6 +12,7 @@ import {
   type ShotMascot,
 } from './characters.js';
 import { continuityLinkSchema } from './continuity.js';
+import { shotDirectionRefsSchema } from './direction.js';
 import { interruptSchema } from './interrupts.js';
 
 export const STORYBOARD_FILE_VERSION = 1;
@@ -246,6 +247,12 @@ export const storyboardShotSchema = z
      * shot. The storyboard checks skip it (it runs past the narration by design). Optional.
      */
     endCard: z.boolean().optional(),
+    /**
+     * A Grim Ink shot's refs into `direction.json` (PLAN.md#14.16, direction.ts): its beats, the
+     * people whose signature gag plays, its framing progression. Optional; other projects never
+     * write it.
+     */
+    direction: shotDirectionRefsSchema.optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] });
 export type StoryboardShot = z.infer<typeof storyboardShotSchema>;

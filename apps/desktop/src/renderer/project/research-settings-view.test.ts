@@ -26,6 +26,7 @@ const SETTINGS: ProjectSettings = {
   fasterChecks: false,
   continuityLinks: false,
   worldLooks: null,
+  captions: 'off',
 };
 
 describe('research settings view', () => {

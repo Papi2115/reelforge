@@ -13,7 +13,23 @@ import { SKETCHBOOK } from './sketchbook/index.js';
 import type { World } from './types.js';
 
 export * from './types.js';
-export { C_CAM_ID } from './c-cam/index.js';
+export {
+  CAPTION_BAND_SHARE,
+  C_CAM_CAPTION_MAX_WORDS,
+  C_CAM_ID,
+  PROTOTYPE_CAPTION,
+  ROLE_FAMILIES,
+  ROLE_SPECS,
+  TEXT_ROLES,
+  inkFontReport,
+  titleLines,
+  type CaptionFrame,
+  type CaptionScene,
+  type InkFontReport,
+  type MeasureTarget,
+  type TextRole,
+  type WorldCaptions,
+} from './c-cam/index.js';
 export { C_CAM_VOCABULARY, type CCamVocabulary } from './c-cam/vocabulary.js';
 export { STAGE_INK_NAMES, type StageInk } from './c-cam/stage-ink.js';
 export type { InkStageEnv, InkStageObject } from './c-cam/stage.js';

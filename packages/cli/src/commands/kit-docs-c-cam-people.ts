@@ -16,7 +16,7 @@ const LIMITS = `Limits: ${String(INK_MODULE_LIMITS.maxModules)} modules per kind
 
 const COMMON = [
   'Module rules (reelforge lint checks them): no imports; the same determinism rules as scenes (no Date, Math.random, timers, fetch, DOM); no module state written by functions; the ink grammar: no fillText / fonts (lettering is drawn ink), no gradients, patterns, filters, shadows, images or pixel reads.',
-  'Every drawing function gets `ink`: zoom, lw (the ink width of the moment), C (palette), time.{twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1}, and the brushes bound to g: inkLine(pts, o), brushStroke(pts, o), blob(pts, fill, o), tube(pts, widths, fill, o), rough, rect(x, y, w, h, fill, o), beam(x0, y0, x1, y1, w, seed, col), hatch(bb, spec, seed), mottle(bb, spec, seed), bands, stars, pool(cx, cy, rx, ry, col, alpha), gloom, bricks(x0, y0, w, h, o), stain, peel, crack, cobbles, windowPane, puddle, eye(x, y, rx, ry, face, o), brow(x, y, w, side, face, o), mouth(x, y, w, face, o), stubble, wart, pores(x0, y0, w, h, n, seed, col); props: sweat(pts, t, seed), gumBubble(x, y, r, seed), helmet(cx, cy, rx, ry, { visor, vx, seed }), thumbsUp(x, y, sz, col, colD, seed), mug(x, y, tilt, seed, steam), sandwich(x, y, rot, seed, bite), checklist(x, y, w, page, seed), puff(x, y, k, seed), ticks(x, y, len, ang, seed), watch(x, y, r, t, seed); pure: curve, ellipseRing(cx, cy, rx, ry, n), wobble, bbox. Points are flat [x, y, x, y, ...].',
+  'Every drawing function gets `ink`: zoom, lw (the ink width of the moment), C (palette), time.{twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1}, and the brushes bound to g: inkLine(pts, o), brushStroke(pts, o), blob(pts, fill, o), tube(pts, widths, fill, o), rough, rect(x, y, w, h, fill, o), beam(x0, y0, x1, y1, w, seed, col), hatch(bb, spec, seed), mottle(bb, spec, seed), bands, stars, pool(cx, cy, rx, ry, col, alpha), gloom, bricks(x0, y0, w, h, o), stain, peel, crack, cobbles, windowPane, puddle, eye(x, y, rx, ry, face, o), brow(x, y, w, side, face, o), mouth(x, y, w, face, o), stubble, wart, pores(x0, y0, w, h, n, seed, col); props: sweat(pts, t, seed), gumBubble(x, y, r, seed), helmet(cx, cy, rx, ry, { visor, vx, seed }), thumbsUp(x, y, sz, col, colD, seed), mug(x, y, tilt, seed, steam), sandwich(x, y, rot, seed, bite), checklist(x, y, w, page, seed), puff(x, y, k, seed), ticks(x, y, len, ang, seed), watch(x, y, r, t, seed); pure: curve, ellipseRing(cx, cy, rx, ry, n), wobble, bbox; text(text, { role, x, y }). Points are flat [x, y, x, y, ...].',
   LIMITS,
 ];
 
@@ -33,8 +33,8 @@ const PEOPLE = [
   '  head(g, ink, view, face, p) { ... },   // head-local: origin = top of the neck, +x = the way the head faces',
   '  drawNeck?(g, ink, view, neck, p) { ... },',
   "  arms?(p) { return p.mug === undefined ? undefined : { R: { hand: 'grip', front: Boolean(p.sip) } }; },  // hand shape, arm in front of the face",
-  '  held?(g, ink, side, palm, p) { ... },  // drawn just before arm side (L / R): the hand closes over it (ink.mug(palm[0], palm[1], ...))',
-  '  beforeHand?(g, ink, J, view, p) { ... },  // after the head, under the arms in front (a book in both hands at J.aL.h / J.aR.h)',
+  "  held?(g, ink, side, palm, p) { ... },  // a ONE-hand prop, in that arm's layer; the hand closes over it (ink.mug(palm[0], palm[1]))",
+  '  beforeHand?(g, ink, J, view, p) { ... },  // only a thing in BOTH hands (a book at J.aL.h / J.aR.h)',
   '};',
   "p = the shot's props + t (shot time): what the person carries / does in this shot (p.mug, p.sweat, p.bubble), always an object.",
   'In a scene (c-cam style only): const baker = ctx.kit.people.nightBaker;',
@@ -57,6 +57,7 @@ const PLACES = [
   '  draw(g, ink, t, opts) { ... },             // a pure function of t and opts (flicker on twos via ink.time)',
   '  foreground?(g, ink, t, opts) { ... },      // what stands in front of the people (a front desk row, a door edge, smoke)',
   '};',
+  'Props of the period (PLAN.md#14.18): no bound book, paper cup or clock in antiquity; neutral writing surfaces: scroll, wax tablet, clay tablet, ledger sheet, slate.',
   "opts = the shot's place options (JSON-like, e.g. { alarm: true, k: 0.4 }); {} when none: give every option a default.",
   'In a scene (c-cam style only): const room = ctx.kit.places.bakeryBackRoom;',
   "  room.draw(g, cam.env, env.t, { light: true, ...opts }) right after the camera (cam.env = its ink width); then the people; then room.foreground(g, cam.env, env.t, opts) (no-op without one; room.hasForeground). room.anchor('oven') -> [x, y]; room.bounds, room.light, room.collide.",

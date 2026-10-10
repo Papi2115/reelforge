@@ -45,4 +45,5 @@ export {
 export { readSheetRounds, startSheetRounds } from '../world-assets/rounds.js';
 // Grim Ink people and places (PLAN.md#14.11): the contact sheets and the kit-docs contract text.
 export * from '../ink/preview.js';
+export * from '../ink/check-module.js';
 export { describeInkModulesTopic } from '../commands/kit-docs-c-cam-people.js';

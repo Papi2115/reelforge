@@ -224,11 +224,40 @@ export function criticWorldVars(world: PromptWorld, momentId?: string): Record<s
  * Script variables of a world project: what a surprise beat is in this world and, for a world
  * whose films are written for it (Game B2), how the narration is framed.
  */
-export function scriptWorldVars(world: PromptWorld): Record<string, string> {
+export function scriptWorldVars(
+  world: PromptWorld,
+  targetMinutes?: number,
+): Record<string, string> {
   const { surprise, script } = world.text;
+  const budget =
+    targetMinutes === undefined ? undefined : worldWordBudget(world.text, targetMinutes);
+  const lines = [
+    ...(script === undefined ? [] : [script]),
+    ...(budget === undefined ? [] : [wordBudgetLine(budget, targetMinutes ?? 0)]),
+  ];
   return {
     world: world.label,
     worldSurprise: surprise,
-    ...(script === undefined ? {} : { worldScript: script }),
+    ...(lines.length === 0 ? {} : { worldScript: lines.join('\n') }),
   };
+}
+
+/** A world's words budget for a target length (PLAN.md#14.18); undefined without length control. */
+export function worldWordBudget(
+  text: Pick<WorldPromptText, 'wordBudget'>,
+  targetMinutes: number,
+): { readonly words: number; readonly over: number; readonly wordsPerSecond: number } | undefined {
+  const control = text.wordBudget;
+  if (control === undefined) return undefined;
+  const words = Math.round(control.wordsPerSecond * targetMinutes * 60);
+  return { words, over: control.overWarn, wordsPerSecond: control.wordsPerSecond };
+}
+
+function wordBudgetLine(
+  budget: NonNullable<ReturnType<typeof worldWordBudget>>,
+  targetMinutes: number,
+): string {
+  const seconds = Math.round(targetMinutes * 60);
+  const limit = Math.floor(budget.words * (1 + budget.over));
+  return `Length (binding in this world): the voice reads 150 words per minute, ~${String(budget.wordsPerSecond)} words/s, so the words budget is ~${String(budget.wordsPerSecond)} words/s × ${String(seconds)} s = ${String(budget.words)} words for the whole script.txt; the pauses between sentences take time too, so aim at or a little under ${String(budget.words)}. Count the words before you save: more than ${String(limit)} words is too long.`;
 }

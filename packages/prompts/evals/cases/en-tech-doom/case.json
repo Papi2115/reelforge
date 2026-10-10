@@ -215,6 +215,241 @@
           "title": "Why Doom Runs on Calculators and Printers"
         }
       ]
+    },
+    "c-cam-direction": {
+      "version": 1,
+      "titleFrame": {
+        "cast": ["lead"],
+        "title": "In 1993 a small team in",
+        "background": {
+          "placeId": "mainPlace",
+          "why": "the setting the narration opens in"
+        },
+        "acting": [
+          {
+            "person": "lead",
+            "pose": "stand",
+            "expr": "scared",
+            "note": "braced for what the title promises"
+          }
+        ],
+        "accentObject": "the one object the opening line names"
+      },
+      "motifs": [],
+      "cast": [
+        {
+          "id": "lead",
+          "role": "the person the narration follows (its \"you\")",
+          "signatureGag": {
+            "kind": "fidget",
+            "note": "a nervous tic that grows with the pressure",
+            "arc": {
+              "setup": "b01",
+              "escalations": ["b04"],
+              "payoff": "b07",
+              "why": "the nerves are how the viewer feels the stakes"
+            }
+          }
+        }
+      ],
+      "beats": [
+        {
+          "id": "b01",
+          "span": {
+            "t0": 1.6,
+            "t1": 7.895,
+            "text": "In 1993, a small team in Texas shipped a game that fit on four floppy disks."
+          },
+          "intent": "setup",
+          "camera": {
+            "progression": [
+              {
+                "framing": "wide",
+                "subject": "the place and the lead"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"In 1993, a small team…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        },
+        {
+          "id": "b02",
+          "span": {
+            "t0": 8.745,
+            "t1": 11.455,
+            "text": "It was called Doom, and it changed everything."
+          },
+          "intent": "reaction",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead in the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": []
+        },
+        {
+          "id": "b03",
+          "span": {
+            "t0": 12.305,
+            "t1": 16.35,
+            "text": "The engine drew a fake 3D world using clever tricks: no rooms above"
+          },
+          "intent": "cause-effect",
+          "camera": {
+            "progression": [
+              {
+                "framing": "ots",
+                "subject": "over the lead's shoulder"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"The engine drew a fake…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "wide",
+                "subject": "pull back on the place"
+              }
+            ]
+          },
+          "gagRefs": [],
+          "accident": "the lead fumbles and drops something small, then freezes (a small mishap the narration does not say)"
+        },
+        {
+          "id": "b04",
+          "span": {
+            "t0": 16.35,
+            "t1": 20.7,
+            "text": "rooms, no sloped floors, just flat sectors and a very fast renderer."
+          },
+          "intent": "reveal",
+          "camera": {
+            "progression": [
+              {
+                "framing": "wide",
+                "subject": "the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              },
+              {
+                "framing": "medium",
+                "subject": "the lead and the thing"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        },
+        {
+          "id": "b05",
+          "span": {
+            "t0": 24.05,
+            "t1": 30.495,
+            "text": "Thirty years later, people run that same code on calculators, printers, and even pregnancy tests."
+          },
+          "intent": "reaction",
+          "camera": {
+            "progression": [
+              {
+                "framing": "wide",
+                "subject": "the place and the lead"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"Thirty years later, people run…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": []
+        },
+        {
+          "id": "b06",
+          "span": {
+            "t0": 31.345,
+            "t1": 32.775,
+            "text": "Why does it run everywhere?"
+          },
+          "intent": "tension",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead at the decisive moment"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing that decides \"Why does it run everywhere?\"",
+                "why": "consequence: the outcome happens in this thing"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead holds still as it lands"
+              }
+            ],
+            "tilt": true
+          },
+          "gagRefs": []
+        },
+        {
+          "id": "b07",
+          "span": {
+            "t0": 33.625,
+            "t1": 41.45,
+            "text": "Because the original source was released in 1997, and it only needs about 4 megabytes of memory."
+          },
+          "intent": "punchline",
+          "camera": {
+            "progression": [
+              {
+                "framing": "ots",
+                "subject": "over the lead's shoulder"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"Because the original source was…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "wide",
+                "subject": "pull back on the place"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        }
+      ],
+      "climax": {
+        "beatRef": "b06",
+        "ecuSubject": "the thing that decides \"Why does it run everywhere?\"",
+        "why": "consequence: the narration's decisive moment happens in this thing"
+      },
+      "accidents": ["b03"]
     }
   }
 }

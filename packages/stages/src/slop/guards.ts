@@ -11,6 +11,7 @@ import type { RgbaImage } from '@reelforge/engine/raster';
 import { ok, type Result } from '@reelforge/claude-bridge';
 import type { World } from '@reelforge/kit';
 import {
+  captionsOn,
   projectAntiSlopGuards,
   type AssetRecord,
   type ProjectFile,
@@ -22,6 +23,7 @@ import { readProjectText } from '../files.js';
 import { FILES } from '../paths.js';
 import { finding } from '../scenes/checks.js';
 import type { StageError } from '../types.js';
+import { accentObjectShare } from './accent-objects.js';
 import {
   compositionSignature,
   frameMetrics,
@@ -31,6 +33,7 @@ import {
   type FrameMetrics,
 } from './frame-guards.js';
 import { breakthroughIntentFindings } from './breakthrough-intent.js';
+import { captionBandFindings, type CaptionBand } from './caption-band.js';
 import { popupIntentFindings } from './popup-intent.js';
 import { countTraces, MIN_HUMAN_TRACES, uniformTimings } from './source-guards.js';
 import { onScreenTexts, parseScene } from './source-text.js';
@@ -59,6 +62,8 @@ export interface AntiSlopSetup {
   readonly spec: WorldSlopSpec | undefined;
   /** The style's accent1 swatch (undefined: unknown style). */
   readonly accent: readonly [number, number, number] | undefined;
+  /** The band captions use when they are on and the world reserves one (PLAN.md#14.18). */
+  readonly captionBand?: CaptionBand | undefined;
 }
 
 export interface AntiSlopInputs {
@@ -94,10 +99,13 @@ export async function loadAntiSlop(
   }
   texts.push((inputs.words?.words ?? []).map((word) => word.text).join(' '));
   texts.push(...inputs.assets.map((asset) => asset.title));
+  const spec = worldSlopSpec(world?.id);
+  const band = captionsOn(project) ? spec?.captionBand : undefined;
   return ok({
     vocabulary: buildVocabulary(texts),
-    spec: worldSlopSpec(world?.id),
+    spec,
     accent: styleAccent(project),
+    ...(band === undefined ? {} : { captionBand: band }),
   });
 }
 
@@ -178,6 +186,9 @@ export function slopSourceFindings(
     ...(setup.spec === undefined ? [] : traceFindings(setup.spec, program, file)),
     ...(setup.spec?.sourceChecks?.(program, file, setup.vocabulary) ?? []),
     ...(shot === undefined ? [] : (setup.spec?.shotChecks?.(program, file, shot) ?? [])),
+    ...(setup.captionBand === undefined
+      ? []
+      : captionBandFindings(program, file, setup.captionBand, setup.spec?.textMethods ?? [])),
     ...uniform,
   ];
 }
@@ -197,10 +208,10 @@ function worst(
   return top !== undefined && score(top.metrics) > over ? top : undefined;
 }
 
-function symmetric(metrics: FrameMetrics): boolean {
+function symmetric(metrics: FrameMetrics, threshold: number): boolean {
   return (
     metrics.content >= MIN_JUDGED_CONTENT &&
-    metrics.mirror >= SYMMETRY_THRESHOLD &&
+    metrics.mirror >= threshold &&
     metrics.centroidOffset <= CENTRED_OFFSET &&
     metrics.heroOffset <= CENTRED_OFFSET
   );
@@ -212,30 +223,39 @@ export function slopFrameFindings(
   frames: readonly TimedImage[],
   shot: Pick<StoryboardShot, 'treatment'>,
 ): QaFinding[] {
-  const measured = frames.map((frame) => ({
-    t: frame.t,
-    metrics: frameMetrics(frame.image, setup.accent),
-  }));
+  // A world that paints its sets in the accent's colour counts accent objects only (Grim Ink).
+  const objectsOnly = setup.spec?.accentObjectsOnly === true;
+  const measured = frames.map((frame) => {
+    const metrics = frameMetrics(frame.image, setup.accent);
+    if (!objectsOnly) return { t: frame.t, metrics };
+    const accentShare = accentObjectShare(frame.image, setup.accent);
+    return { t: frame.t, metrics: { ...metrics, accentShare } };
+  });
+  // A world's measured budgets (PLAN.md#14.19, Grim Ink), else the general ones.
+  const budgets = setup.spec?.frameBudgets;
+  const elementBudget = budgets?.elements ?? ELEMENT_BUDGET;
+  const accentBudget = budgets?.accentShare ?? MAX_ACCENT_SHARE;
+  const symmetry = budgets?.symmetry ?? SYMMETRY_THRESHOLD;
   const findings: QaFinding[] = [];
-  const crowded = worst(measured, (metrics) => metrics.competing, ELEMENT_BUDGET);
+  const crowded = worst(measured, (metrics) => metrics.competing, elementBudget);
   if (crowded !== undefined) {
     findings.push(
       slop(
-        `clutter: ${String(crowded.metrics.competing)} competing high-contrast elements (budget ${String(ELEMENT_BUDGET)}). Keep one focal point; drop the rest or make it low-contrast texture.`,
+        `clutter: ${String(crowded.metrics.competing)} competing high-contrast elements (budget ${String(elementBudget)}). Keep one focal point; drop the rest or make it low-contrast texture.`,
         crowded.t,
       ),
     );
   }
-  const loud = worst(measured, (metrics) => metrics.accentShare, MAX_ACCENT_SHARE);
+  const loud = worst(measured, (metrics) => metrics.accentShare, accentBudget);
   if (loud !== undefined) {
     findings.push(
       slop(
-        `accent colour on ${(loud.metrics.accentShare * 100).toFixed(0)} % of the frame (≤ ${String(MAX_ACCENT_SHARE * 100)} %). Keep the accent for the point of the sentence.`,
+        `accent colour on ${(loud.metrics.accentShare * 100).toFixed(0)} % of the frame (≤ ${String(Math.round(accentBudget * 1000) / 10)} %). Keep the accent for the point of the sentence.`,
         loud.t,
       ),
     );
   }
-  const centred = measured.find((entry) => symmetric(entry.metrics));
+  const centred = measured.find((entry) => symmetric(entry.metrics, symmetry));
   if (centred !== undefined && shot.treatment !== 'title-card') {
     findings.push(
       slop(

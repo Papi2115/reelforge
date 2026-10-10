@@ -52,6 +52,8 @@ export function shortEndCardText(channelName: string): string {
 interface MaybeShort {
   readonly kind?: ProjectKind | undefined;
   readonly short?: ShortSettings | undefined;
+  /** A film's captions switch (project.json `captions`, PLAN.md#14.18). */
+  readonly captions?: 'off' | 'words' | undefined;
 }
 
 /** Whether a project is a short (absent kind = a film). */
@@ -84,9 +86,12 @@ export function supportsShorts(style: string): boolean {
   return !world || SHORT_WORLDS.includes(style);
 }
 
-/** Whether the engine draws word-by-word captions (a short with `short.captions`; never a film). */
+/**
+ * Whether the engine draws captions: a short with `short.captions`, a film with
+ * `captions: 'words'` (PLAN.md#14.18; absent = off).
+ */
 export function captionsOn(project: MaybeShort): boolean {
-  return isShort(project) && project.short.captions;
+  return isShort(project) ? project.short.captions : project.captions === 'words';
 }
 
 /** Total length of a short (end card included), seconds; undefined for a film. */

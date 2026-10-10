@@ -213,6 +213,209 @@
           "title": "How Apollo Restarted While Landing"
         }
       ]
+    },
+    "c-cam-direction": {
+      "version": 1,
+      "titleFrame": {
+        "cast": ["lead"],
+        "title": "Każdy telefon w twojej kieszeni ma",
+        "background": {
+          "placeId": "mainPlace",
+          "why": "the setting the narration opens in"
+        },
+        "acting": [
+          {
+            "person": "lead",
+            "pose": "stand",
+            "expr": "scared",
+            "note": "braced for what the title promises"
+          }
+        ],
+        "accentObject": "the one object the opening line names"
+      },
+      "motifs": [],
+      "cast": [
+        {
+          "id": "lead",
+          "role": "the person the narration follows (its \"you\")",
+          "signatureGag": {
+            "kind": "fidget",
+            "note": "a nervous tic that grows with the pressure",
+            "arc": {
+              "setup": "b01",
+              "escalations": ["b04"],
+              "payoff": "b06",
+              "why": "the nerves are how the viewer feels the stakes"
+            }
+          }
+        }
+      ],
+      "beats": [
+        {
+          "id": "b01",
+          "span": {
+            "t0": 1.6,
+            "t1": 5.72,
+            "text": "Każdy telefon w twojej kieszeni ma więcej mocy obliczeniowej niż komputery,"
+          },
+          "intent": "setup",
+          "camera": {
+            "progression": [
+              {
+                "framing": "wide",
+                "subject": "the place and the lead"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"Każdy telefon w twojej kieszeni…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        },
+        {
+          "id": "b02",
+          "span": {
+            "t0": 5.92,
+            "t1": 10.26,
+            "text": "które w 1969 roku wysłały ludzi na Księżyc."
+          },
+          "intent": "reaction",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead in the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": []
+        },
+        {
+          "id": "b03",
+          "span": {
+            "t0": 11.11,
+            "t1": 17.58,
+            "text": "Komputer pokładowy Apollo miał zaledwie 4 kilobajty pamięci operacyjnej i taktowanie około jednego megaherca."
+          },
+          "intent": "cause-effect",
+          "camera": {
+            "progression": [
+              {
+                "framing": "ots",
+                "subject": "over the lead's shoulder"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"Komputer pokładowy Apollo miał zaledwie…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "wide",
+                "subject": "pull back on the place"
+              }
+            ]
+          },
+          "gagRefs": [],
+          "accident": "the lead fumbles and drops something small, then freezes (a small mishap the narration does not say)"
+        },
+        {
+          "id": "b04",
+          "span": {
+            "t0": 21.43,
+            "t1": 27.465,
+            "text": "Mimo to inżynierowie zbudowali system, który potrafił się zrestartować w trakcie lądowania i dalej działać."
+          },
+          "intent": "reveal",
+          "camera": {
+            "progression": [
+              {
+                "framing": "wide",
+                "subject": "the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              },
+              {
+                "framing": "medium",
+                "subject": "the lead and the thing"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        },
+        {
+          "id": "b05",
+          "span": {
+            "t0": 28.315,
+            "t1": 32.935,
+            "text": "Dziś programiści często zapominają, że ograniczenia wymuszają kreatywność."
+          },
+          "intent": "tension",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead at the decisive moment"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing that decides \"Dziś programiści często zapominają, że…\"",
+                "why": "consequence: the outcome happens in this thing"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead holds still as it lands"
+              }
+            ],
+            "tilt": true
+          },
+          "gagRefs": []
+        },
+        {
+          "id": "b06",
+          "span": {
+            "t0": 33.785,
+            "t1": 40.355,
+            "text": "Właśnie dlatego warto czasem spojrzeć wstecz i zapytać: czego naprawdę potrzebujemy, żeby zbudować coś wielkiego?"
+          },
+          "intent": "punchline",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead in the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        }
+      ],
+      "climax": {
+        "beatRef": "b05",
+        "ecuSubject": "the thing that decides \"Dziś programiści często zapominają, że…\"",
+        "why": "consequence: the narration's decisive moment happens in this thing"
+      },
+      "accidents": ["b03"]
     }
   }
 }

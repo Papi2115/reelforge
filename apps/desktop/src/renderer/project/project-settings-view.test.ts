@@ -70,6 +70,7 @@ describe('withProjectSettingsPatch', () => {
       fasterChecks: false,
       continuityLinks: false,
       worldLooks: null,
+      captions: 'off',
     };
     expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
       ...settings,

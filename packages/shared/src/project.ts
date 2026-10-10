@@ -52,6 +52,11 @@ export const genrePresetIdSchema = z
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'genre preset ids are kebab-case, e.g. "true-crime"');
 export type GenrePresetId = z.infer<typeof genrePresetIdSchema>;
 
+/** Values of `project.json#captions`, a film's captions switch (PLAN.md#14.18). */
+export const FILM_CAPTIONS = ['off', 'words'] as const;
+export const filmCaptionsSchema = z.enum(FILM_CAPTIONS);
+export type FilmCaptions = z.infer<typeof filmCaptionsSchema>;
+
 export const projectFileSchema = z.object({
   version: z.literal(PROJECT_FILE_VERSION),
   title: z.string().min(1),
@@ -160,6 +165,12 @@ export const projectFileSchema = z.object({
   kind: projectKindSchema.optional(),
   parentProject: parentProjectSchema.optional(),
   short: shortSettingsSchema.optional(),
+  /**
+   * Captions of a film (PLAN.md#14.18): `words` = the spoken words burned in (manifest
+   * `captions`; Grim Ink draws them like its prototypes). Absent = `off` (every project made
+   * before is unchanged). A short keeps its own `short.captions`.
+   */
+  captions: filmCaptionsSchema.optional(),
 });
 export type ProjectFile = z.infer<typeof projectFileSchema>;
 

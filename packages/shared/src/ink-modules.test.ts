@@ -47,6 +47,6 @@ describe('project module kinds (PLAN.md#14.8)', () => {
   it('has camelCase ids and limits', () => {
     expect(inkModuleIdSchema.safeParse('nightBaker').success).toBe(true);
     expect(inkModuleIdSchema.safeParse('night-baker').success).toBe(false);
-    expect(INK_MODULE_LIMITS).toEqual({ maxModules: 24, maxBytes: 65536, maxLines: 250 });
+    expect(INK_MODULE_LIMITS).toEqual({ maxModules: 64, maxBytes: 163840, maxLines: 450 });
   });
 });

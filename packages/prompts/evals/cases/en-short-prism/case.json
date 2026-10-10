@@ -216,6 +216,209 @@
           "title": "Why Red and Violet Bend Differently"
         }
       ]
+    },
+    "c-cam-direction": {
+      "version": 1,
+      "titleFrame": {
+        "cast": ["lead"],
+        "title": "Here is a quick experiment you",
+        "background": {
+          "placeId": "mainPlace",
+          "why": "the setting the narration opens in"
+        },
+        "acting": [
+          {
+            "person": "lead",
+            "pose": "stand",
+            "expr": "scared",
+            "note": "braced for what the title promises"
+          }
+        ],
+        "accentObject": "the one object the opening line names"
+      },
+      "motifs": [],
+      "cast": [
+        {
+          "id": "lead",
+          "role": "the person the narration follows (its \"you\")",
+          "signatureGag": {
+            "kind": "fidget",
+            "note": "a nervous tic that grows with the pressure",
+            "arc": {
+              "setup": "b01",
+              "escalations": ["b04"],
+              "payoff": "b06",
+              "why": "the nerves are how the viewer feels the stakes"
+            }
+          }
+        }
+      ],
+      "beats": [
+        {
+          "id": "b01",
+          "span": {
+            "t0": 1.6,
+            "t1": 4.48,
+            "text": "Here is a quick experiment you can try at home."
+          },
+          "intent": "setup",
+          "camera": {
+            "progression": [
+              {
+                "framing": "wide",
+                "subject": "the place and the lead"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"Here is a quick experiment…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        },
+        {
+          "id": "b02",
+          "span": {
+            "t0": 5.33,
+            "t1": 10.825,
+            "text": "Take a glass of water, place it on a table, and shine a flashlight through it at an angle."
+          },
+          "intent": "reaction",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead in the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": []
+        },
+        {
+          "id": "b03",
+          "span": {
+            "t0": 11.675,
+            "t1": 14.445,
+            "text": "You will see a tiny rainbow on the wall behind it."
+          },
+          "intent": "cause-effect",
+          "camera": {
+            "progression": [
+              {
+                "framing": "ots",
+                "subject": "over the lead's shoulder"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing named in \"You will see a tiny…\"",
+                "why": "information: what the narration names on this beat"
+              },
+              {
+                "framing": "wide",
+                "subject": "pull back on the place"
+              }
+            ]
+          },
+          "gagRefs": [],
+          "accident": "the lead fumbles and drops something small, then freezes (a small mishap the narration does not say)"
+        },
+        {
+          "id": "b04",
+          "span": {
+            "t0": 19.295,
+            "t1": 25.895,
+            "text": "That happens because white light is a mix of many colors, and water bends each color by a slightly different amount."
+          },
+          "intent": "reveal",
+          "camera": {
+            "progression": [
+              {
+                "framing": "wide",
+                "subject": "the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              },
+              {
+                "framing": "medium",
+                "subject": "the lead and the thing"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        },
+        {
+          "id": "b05",
+          "span": {
+            "t0": 26.745,
+            "t1": 29.475,
+            "text": "Red bends the least, violet bends the most."
+          },
+          "intent": "tension",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead at the decisive moment"
+              },
+              {
+                "framing": "ecu",
+                "subject": "the thing that decides \"Red bends the least, violet…\"",
+                "why": "consequence: the outcome happens in this thing"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead holds still as it lands"
+              }
+            ],
+            "tilt": true
+          },
+          "gagRefs": []
+        },
+        {
+          "id": "b06",
+          "span": {
+            "t0": 30.325,
+            "t1": 36.705,
+            "text": "Isaac Newton described this effect in 1672, using a simple prism and a dark room."
+          },
+          "intent": "punchline",
+          "camera": {
+            "progression": [
+              {
+                "framing": "medium",
+                "subject": "the lead in the place"
+              },
+              {
+                "framing": "close",
+                "subject": "the lead",
+                "why": "emotion: the lead takes the beat in"
+              }
+            ]
+          },
+          "gagRefs": ["lead"]
+        }
+      ],
+      "climax": {
+        "beatRef": "b05",
+        "ecuSubject": "the thing that decides \"Red bends the least, violet…\"",
+        "why": "consequence: the narration's decisive moment happens in this thing"
+      },
+      "accidents": ["b03"]
     }
   }
 }

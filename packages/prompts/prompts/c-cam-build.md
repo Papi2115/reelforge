@@ -1,11 +1,11 @@
 ---
 id: c-cam-build
-version: 2
+version: 3
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: kit-ext/{{folder}}/{{id}}.js
 ---
-Build `kit-ext/{{folder}}/{{id}}.js` by hand: one {{noun}} of a Grim Ink video (a hand-inked grim cartoon), which every scene of this film draws as `ctx.kit.{{folder}}.{{id}}`. The world is a style GRAMMAR, never a catalogue: there is no generator and nothing to reuse; this {{noun}} is designed for THIS film from its narration, whatever the topic. Follow `CLAUDE.md` in this project (determinism, kit-ext rules). Write only this one file: do not create or edit scenes, the storyboard or any other file.
+Build `kit-ext/{{folder}}/{{id}}.js` by hand: one {{noun}} of a Grim Ink video (a hand-inked grim cartoon), which every scene of this film draws as `ctx.kit.{{folder}}.{{id}}`. The world is a style GRAMMAR, never a catalogue: there is no generator and nothing to reuse; this {{noun}} is designed for THIS film from its narration, whatever the topic. Follow `CLAUDE.md` in this project (determinism, kit-ext rules). Write only this one file (and, for a helper other modules or scenes of this film can share, a library `kit-ext/lib/<name>.js`: `reelforge kit-docs lib`): do not create or edit scenes, the storyboard or any other file.
 
 What it must be: {{brief}}
 Where it appears: {{shots}}

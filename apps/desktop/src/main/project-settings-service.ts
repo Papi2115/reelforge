@@ -95,6 +95,7 @@ export function effectiveProjectSettings(project: ProjectFile): ProjectSettings 
     fasterChecks: projectFasterChecks(project),
     continuityLinks: projectContinuityLinks(project),
     worldLooks: project.worldLooks === undefined ? null : [...project.worldLooks],
+    captions: project.captions ?? 'off',
   };
 }
 
@@ -126,6 +127,9 @@ export function applyProjectSettingsPatch(
   // All looks on = the field is removed: the world's prompts are exactly as before (PLAN.md#14.12).
   if (patch.worldLooks === null) delete next['worldLooks'];
   else if (patch.worldLooks !== undefined) next['worldLooks'] = [...patch.worldLooks];
+  // Off = the field is removed: the film exports exactly as before (PLAN.md#14.18).
+  if (patch.captions === 'off') delete next['captions'];
+  else if (patch.captions === 'words') next['captions'] = 'words';
   return next;
 }
 
@@ -209,6 +213,9 @@ export function describeSettingsChange(before: ProjectSettings, after: ProjectSe
   if (before.continuityLinks !== after.continuityLinks) {
     parts.push(`continuity links ${after.continuityLinks ? 'on' : 'off'}`);
   }
+  if (before.captions !== after.captions) {
+    parts.push(`captions ${after.captions === 'words' ? 'on' : 'off'}`);
+  }
   if (!sameLooks(before.worldLooks, after.worldLooks)) {
     parts.push(`looks of this world ${after.worldLooks?.join(', ') ?? 'all'}`);
   }
@@ -243,6 +250,7 @@ function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
     sameRange(left.shotsPerMinute, right.shotsPerMinute) &&
     left.fasterChecks === right.fasterChecks &&
     left.continuityLinks === right.continuityLinks &&
+    left.captions === right.captions &&
     sameLooks(left.worldLooks, right.worldLooks)
   );
 }

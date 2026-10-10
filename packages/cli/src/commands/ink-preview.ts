@@ -25,6 +25,7 @@ import {
   type InkCheck,
   type InkPreviewKind,
 } from '../ink/preview.js';
+import { checkInkModule, validatorLines } from '../ink/check-module.js';
 import { readProjectFiles } from '../project/files.js';
 import { extensionsOfKind } from '../project/kit-ext.js';
 import { projectPath } from '../project/paths.js';
@@ -41,8 +42,14 @@ function usage(kind: InkPreviewKind): string {
   return `usage: reelforge ${kind}-preview <id> [--json]
 Renders the Grim Ink ${noun} kit-ext/${kind}/<id>.js on the world's ink stage, through the same
 engine as the scenes, into ONE labelled image (Read it): ${sheet}.
-Checks by code: ${noun} module lint (determinism, contract, ink grammar), pages not blank, the
-same page rendered twice gives the same pixels. Writing one: reelforge kit-docs ${kind}.
+Checks by code: ${noun} module lint (determinism, contract, ink grammar), the contract${
+    kind === 'people'
+      ? `,
+the people validators (the same list the build step judges by: errors AND warnings, one line per
+rule with its fix; any error fails)`
+      : ''
+  }, pages not blank, the same page rendered twice gives
+the same pixels. Writing one: reelforge kit-docs ${kind}.
 Exit code: 0 ok, 1 problems (lint errors, the module failed to load, a check failed), 2 usage error.`;
 }
 
@@ -105,6 +112,19 @@ async function runPreview(
     ];
     return result(1, lines, { id, file, lint, checks: [] });
   }
+  const checked = checkInkModule(kind, file, module.source);
+  if (!checked.ok) {
+    const lines = [
+      `${noun} ${id} · ${file}`,
+      `contract / load check failed: ${checked.error}`,
+      verdictLine(1, `fix the ${noun} module, then run reelforge ${kind}-preview again`),
+    ];
+    return result(1, lines, { id, file, lint, error: checked.error, checks: [] });
+  }
+  const findings = checked.report?.findings ?? [];
+  const validatorErrors = findings.filter((finding) => finding.severity === 'error').length;
+  // The same list the build step's QA judges the module by and hands to its fix turn.
+  const validators = kind === 'people' ? validatorLines(findings) : [];
   const paths = inkPreviewPaths(kind, id);
   const source = inkSheetSource(kind, id);
   await writeScene(root, paths.scene, source);
@@ -124,27 +144,29 @@ async function runPreview(
     const error = render === undefined ? 'the sheet scene did not pass lint' : render.error;
     const lines = [
       `${noun} ${id} · ${file}`,
+      ...validators,
       `failed to load: ${error}`,
       verdictLine(1, `fix the ${noun} module, then run reelforge ${kind}-preview again`),
     ];
-    return result(1, lines, { id, file, lint, error, checks: [] });
+    return result(1, lines, { id, file, lint, error, checks: [], validators: findings });
   }
   const checks = inkSheetChecks(kind, render.frames);
   const sheet = await writePng(
     projectPath(root, paths.sheet),
     inkSheet(kind, id, render.frames, render),
   );
-  const failed = checks.filter((check) => !check.ok);
+  const failed = checks.filter((check) => !check.ok).length + (validatorErrors > 0 ? 1 : 0);
   const warnings = lint.filter((diagnostic) => diagnostic.severity === 'warning');
   const lines = [
     `${noun} ${id} · ${file}`,
     `contact sheet (Read it: does it read as one specific, grimy ${noun}?): ${sheet}`,
     'checks:',
     ...checks.map(checkLine),
+    ...validators,
     ...(warnings.length > 0 ? [formatDiagnostics(file, warnings)] : []),
-    verdictLine(failed.length, `fix the ${noun} module and run reelforge ${kind}-preview again`),
+    verdictLine(failed, `fix the ${noun} module and run reelforge ${kind}-preview again`),
   ];
-  return result(failed.length, lines, { id, file, sheet, checks, lint });
+  return result(failed, lines, { id, file, sheet, checks, lint, validators: findings });
 }
 
 export const peoplePreviewCommand: Command = {

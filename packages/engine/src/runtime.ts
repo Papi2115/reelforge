@@ -22,6 +22,7 @@ import {
   type FrameDirector,
 } from './direction.js';
 import { describeError, EngineError } from './errors.js';
+import { filmPlaceOf } from './film.js';
 import {
   configureColorManagement,
   createFrameRenderer,
@@ -159,6 +160,7 @@ function createShotBuilder(
       styleId: style.id,
       worldAssets,
       captions,
+      film: filmPlaceOf(manifest, index),
     });
 }
 

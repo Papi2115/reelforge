@@ -205,9 +205,12 @@ export function sceneWorldPromptVars(
 }
 
 /** Script prompt variables of the world: its surprise beats (none outside a world). */
-export function scriptWorldPromptVars(world: World | undefined): Record<string, string> {
+export function scriptWorldPromptVars(
+  world: World | undefined,
+  targetMinutes?: number,
+): Record<string, string> {
   const text = promptWorld(world);
-  return text === undefined ? {} : scriptWorldVars(text);
+  return text === undefined ? {} : scriptWorldVars(text, targetMinutes);
 }
 
 /** Reveal-moment camera hints of a world (its camera never orbits); undefined outside. */

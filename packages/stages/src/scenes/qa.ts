@@ -6,7 +6,7 @@
  */
 import { lintScene } from '@reelforge/engine';
 import { ok, type Result } from '@reelforge/claude-bridge';
-import { criticCharacterVars } from '@reelforge/prompts';
+import { criticCharacterVars, criticDirectionVars } from '@reelforge/prompts';
 import {
   isEndCardShot,
   type CriticVerdictRecord,
@@ -16,6 +16,7 @@ import {
 import { readProjectText } from '../files.js';
 import { criticLookVars } from '../looks.js';
 import { criticWorldPromptVars } from '../worlds.js';
+import { criticMinModel, criticReferenceVars, worldQaTimes } from '../c-cam/critic.js';
 import { FILES } from '../paths.js';
 import { shortCopyFindings, shortMotionFindings } from '../shorts/scene-checks.js';
 import { slopShotFindings } from '../slop/guards.js';
@@ -107,7 +108,14 @@ export async function qaRound(
   const unknownAssets = await worldAssetRefFindings(job, source, shot.scene);
   if (!unknownAssets.ok) return unknownAssets;
   if (unknownAssets.value.length > 0) return ok(early(unknownAssets.value, source));
-  const times = smokeTimes(shot.t1 - shot.t0);
+  // Grim Ink (PLAN.md#14.19): three times per framing of the cut table; elsewhere the smoke times.
+  const times = worldQaTimes({
+    world: job.world,
+    source,
+    shot,
+    anchors: job.anchorIndex,
+    smoke: smokeTimes(shot.t1 - shot.t0),
+  });
   // A variant (PLAN.md#11.3) is checked from its own file at the storyboard shot's place.
   const own = job.shots.find((candidate) => candidate.id === shot.id)?.scene;
   const scene = own === undefined || own === shot.scene ? undefined : shot.scene;
@@ -167,6 +175,7 @@ export async function qaRound(
   if (critic === undefined || fixableFindings(code).length > 0 || !criticSampled(job, shot, code)) {
     return ok({ ...early([...code, ...slop], source), render });
   }
+  const lookVars = criticLookVars(job.lookMode, shot, job.looks);
   const judged = await critiqueFrames(
     {
       projectDir: ctx.projectDir,
@@ -174,12 +183,17 @@ export async function qaRound(
       intent: shot.intent,
       styleId: job.styleId,
       lookVars: {
-        ...criticLookVars(job.lookMode, shot, job.looks),
+        ...lookVars,
+        // Grim Ink: two authored frames of the shot's look as the bar (PLAN.md#14.19).
+        ...(await criticReferenceVars(ctx.projectDir, job.world, lookVars['lookId'])),
         ...criticCharacterVars(job.characters, shot),
         // A world's checklist: the critic names the focal point and the traces (PLAN.md#13.6).
         ...criticWorldPromptVars(job.world, shot),
+        // Grim Ink: what the shot's direction plan must show (PLAN.md#14.16); else nothing.
+        ...criticDirectionVars(job.direction, shot),
       },
       craft: job.world !== undefined,
+      minModel: criticMinModel(job.world),
       research: researchExcerpt(job.researchNotes, shotFocus(shot, job.words)),
       render,
       sheetFile: qaSheetFile(shot.id, label),

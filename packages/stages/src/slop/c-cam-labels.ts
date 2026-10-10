@@ -21,7 +21,8 @@
  * poster grammar, not toolkit calls: their intent is the storyboard's and the critic's check.
  */
 import { C_CAM_TEXT_METHODS } from '@reelforge/prompts';
-import type { WorldSlopSpec } from './world-labels.js';
+import { cCamShowcaseFindings } from './c-cam-showcase.js';
+import type { FrameBudgets, WorldSlopSpec } from './world-labels.js';
 
 /** Words of signs, stamps, ledgers and tags that label the thing they are on. */
 const INK_LABELS = [
@@ -34,6 +35,27 @@ const INK_LABELS = [
   // the end card of a poster
   'end',
 ].join(' ');
+
+/**
+ * Frame budgets measured on the concept films (PLAN.md#14.19: prototype fidelity beats the
+ * general budgets; "never push toward emptier frames than the prototypes"). Measured by
+ * packages/stages/scripts/c-cam-proof-metrics.mjs on 182 authored frames (proof/sheet.png of
+ * 01-samurai-edo 51, 02-papal-conclave 61, 03-apollo-11 39 + proof/cuts.png 31; each 480x270 or
+ * 500x281 cell scaled to 1920x1080, accent = mustard #9b8236) with frameMetrics:
+ * - competing elements: p50 2, p90 5, max 7 (5 frames, all three films) -> 7 x 1.15 = 8.05 -> 8
+ *   (general 6 flagged 5 authored frames);
+ * - accent share: p50 0.02 %, p90 0.39 %, max 10.14 % (the samurai title's mustard sunset) ->
+ *   10.14 % x 1.15 = 11.7 % (general 12 %);
+ * - centred frames (centroid and hero within 5 %): mirror max 0.729 -> 0.729 x 1.15 = 0.84; no
+ *   authored frame is centred-symmetric at 0.80 or 0.84 (general 0.80).
+ * The same-composition distance (0.2) is not measurable on the sheets (neighbouring cells are
+ * often one shot) and stays general; the trace minimum (3) counts scene calls, not pixels.
+ */
+export const C_CAM_FRAME_BUDGETS: FrameBudgets = {
+  elements: 8,
+  accentShare: 0.117,
+  symmetry: 0.84,
+};
 
 export const C_CAM_SLOP: WorldSlopSpec = {
   traceMethods: {
@@ -69,4 +91,11 @@ export const C_CAM_SLOP: WorldSlopSpec = {
   labels: INK_LABELS.split(' '),
   labelPatterns: [],
   textMethods: C_CAM_TEXT_METHODS,
+  // The concept films' objects must not leak through the technique topics (PLAN.md#14.19).
+  sourceChecks: cCamShowcaseFindings,
+  frameBudgets: C_CAM_FRAME_BUDGETS,
+  // Mustard is the accent AND the arena sand / ochre walls: only accent objects count (14.18).
+  accentObjectsOnly: true,
+  // The prototypes' caption pass sits in the bottom 18 % of the 1080 px frame (14.18).
+  captionBand: { share: 0.18, height: 1080 },
 };

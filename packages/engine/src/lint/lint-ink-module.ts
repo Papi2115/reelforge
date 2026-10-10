@@ -5,8 +5,10 @@
  * contract (`export const person` / `place`: literal data valid for the kit, the id equal to the
  * file name, the drawing functions present) and the world's grammar: ink shapes only, so no text
  * (`fillText`: lettering is drawn ink), no gradients, patterns, filters, shadows or images, and a
- * file of at most 250 lines (a module is one person / place, not a library). A person without a
- * `signatureGag` (its one recurring tic, PLAN.md#14.9) gets a warning.
+ * file of at most INK_MODULE_LIMITS.maxLines lines (450 since PLAN.md#14.19). A person without a
+ * `signatureGag` (its one recurring tic, PLAN.md#14.9) gets a warning. A library
+ * (`kit-ext/lib/<name>.js`, PLAN.md#14.19) is `export const lib = { … }` of plain functions only,
+ * under the same rules.
  */
 import {
   GAG_KINDS,
@@ -21,12 +23,16 @@ import { childNodes, isFunctionNode, memberKey, staticKey } from './ast.js';
 import { checkProgram } from './checker.js';
 import { collectExports, type SceneExports } from './contract-rules.js';
 import { normalizeDiagnostics, type LintDiagnostic, type Report } from './diagnostics.js';
+import { checkLibrary } from './lint-ink-lib.js';
 import { collectingReport, parseScene, type LintSceneOptions } from './lint-scene.js';
 import { staticValue } from './prop-meta.js';
 import { checkModuleStateWrites } from './prop-rules.js';
 import { analyzeScopes } from './scope.js';
 
-export type InkModuleKind = 'people' | 'places';
+export type InkModuleKind = 'people' | 'places' | 'lib';
+
+/** The kinds with a data contract (a library has functions only). */
+type DataKind = Exclude<InkModuleKind, 'lib'>;
 
 interface KindSpec {
   /** Exported binding: `person` / `place`. */
@@ -37,7 +43,7 @@ interface KindSpec {
   readonly example: string;
 }
 
-const SPECS: Readonly<Record<InkModuleKind, KindSpec>> = {
+const SPECS: Readonly<Record<DataKind, KindSpec>> = {
   people: {
     binding: 'person',
     functions: PERSON_FUNCTION_KEYS,
@@ -84,11 +90,13 @@ const ASSIGNED_ONLY: ReadonlySet<string> = new Set([
   'shadowOffsetY',
 ]);
 
-/** Kind of a module path `kit-ext/people|places/<id>.js` (any separator, any prefix). */
+/** Kind of a module path `kit-ext/people|places|lib/<id>.js` (any separator, any prefix). */
 export function inkModuleKindOfPath(file: string): InkModuleKind | undefined {
-  const match = /(?:^|\/)(kit-ext\/(?:people|places)\/[^/]+\.js)$/.exec(file.replaceAll('\\', '/'));
+  const match = /(?:^|\/)(kit-ext\/(?:people|places|lib)\/[^/]+\.js)$/.exec(
+    file.replaceAll('\\', '/'),
+  );
   const kind = match?.[1] === undefined ? undefined : kitExtensionOfFile(match[1])?.kind;
-  return kind === 'people' || kind === 'places' ? kind : undefined;
+  return kind === 'people' || kind === 'places' || kind === 'lib' ? kind : undefined;
 }
 
 function fileId(filename: string): string | undefined {
@@ -260,7 +268,7 @@ function checkLength(source: string, program: Program, report: Report): void {
   if (lines > INK_MODULE_LIMITS.maxLines) {
     report(program, {
       rule: 'ink-module-contract',
-      message: `The module has ${String(lines)} lines; one person / place stays within ${String(INK_MODULE_LIMITS.maxLines)}.`,
+      message: `The module has ${String(lines)} lines; a module stays within ${String(INK_MODULE_LIMITS.maxLines)}.`,
       fix: 'Simplify the drawing (fewer, bolder shapes) or split the scenery into another place.',
     });
   }
@@ -276,13 +284,18 @@ export function lintInkModule(
   const diagnostics: LintDiagnostic[] = [];
   const report = collectingReport(diagnostics);
   const tree = analyzeScopes(program);
-  const spec = SPECS[kind];
-  checkExports(program, collectExports(program, tree), spec, report);
-  const object = findBinding(program, spec.binding);
-  if (object !== undefined) {
-    const fields = readFields(object, spec, report);
-    checkData(object, fields, spec, options.filename, report);
-    if (kind === 'people') checkSignatureGag(object, fields.keys, report);
+  const exports = collectExports(program, tree);
+  if (kind === 'lib') {
+    checkLibrary(program, exports, findBinding(program, 'lib'), report);
+  } else {
+    const spec = SPECS[kind];
+    checkExports(program, exports, spec, report);
+    const object = findBinding(program, spec.binding);
+    if (object !== undefined) {
+      const fields = readFields(object, spec, report);
+      checkData(object, fields, spec, options.filename, report);
+      if (kind === 'people') checkSignatureGag(object, fields.keys, report);
+    }
   }
   checkProgram(program, { source, report, tree, updateFunction: undefined });
   checkModuleStateWrites(program, tree, report);

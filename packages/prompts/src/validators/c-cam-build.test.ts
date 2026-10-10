@@ -31,7 +31,9 @@ const VARS = {
 describe('c-cam-build prompt', () => {
   it('is an Opus turn writing one module, with the kit examples embedded verbatim', () => {
     const prompt = loadPrompt('c-cam-build');
-    expect(prompt).toMatchObject({ version: 2, model: 'opus' });
+    expect(prompt).toMatchObject({ version: 3, model: 'opus' });
+    // PLAN.md#14.19: a module turn may also write the film's shared libraries.
+    expect(prompt.template).toContain('a library `kit-ext/lib/<name>.js`');
     expect(prompt.template).toContain(BAKER);
     expect(prompt.template).toContain(ROOM);
     expect(promptVariables('c-cam-build').required).toEqual(

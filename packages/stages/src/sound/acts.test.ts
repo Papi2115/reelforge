@@ -123,6 +123,17 @@ describe('moods', () => {
     ]);
   });
 
+  it('keeps Grim Ink dry, low and tense: never lofi-chill, even when hinted', () => {
+    const acts = [act('intro', 0.5), act('body', 0.95), { ...act('outro', 0.5), tension: 0.9 }];
+    expect(actMoods(acts, 'c-cam')).toEqual([
+      'calm-tech',
+      'tense-investigation',
+      'tense-investigation',
+    ]);
+    const hinted = actMoods(acts, 'c-cam', ['lofi-chill', 'lofi-chill', 'tense-investigation']);
+    expect(hinted).toEqual(['calm-tech', 'tense-investigation', 'tense-investigation']);
+  });
+
   it('plans crossfaded, ducked beds for the acts', () => {
     const acts = detectActs(shots(36, 5), 180);
     const cues = plannedMusicCues({

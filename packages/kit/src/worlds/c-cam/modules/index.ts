@@ -54,4 +54,14 @@ export {
   type InkModulesApi,
   type InkRegistry,
 } from './registry.js';
+export {
+  bindLibraries,
+  defineLibrary,
+  libraryFromModule,
+  withModuleLibraries,
+  type BoundLibraries,
+  type InkLibrary,
+  type InkLibraryFunctions,
+  type LibraryInk,
+} from './library.js';
 export { PERSON_SHEET_PAGES, PLACE_SHEET_PAGES, SHEET_T, placeFraming } from './sheet.js';

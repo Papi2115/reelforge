@@ -13,6 +13,7 @@ import {
 } from '@reelforge/shared';
 import { validateInkModuleSource } from '../validators/c-cam-build.js';
 import { validateClaimsReply } from '../validators/claims.js';
+import { validateDirection } from '../validators/direction.js';
 import { validateCriticReply } from '../validators/critic.js';
 import { validateWorldAssetCriticReply } from '../validators/world-asset-critic.js';
 import { validateHooksReply } from '../validators/hooks.js';
@@ -189,6 +190,13 @@ function hooksIssues(evalCase: EvalCase, reply: string): readonly ValidationIssu
   return validateHooksReply(reply, { currentOpening, research: read('research.md') }).issues;
 }
 
+/** The direction plan reply against the case's narration (PLAN.md#14.16). */
+function directionIssues(evalCase: EvalCase, reply: string): readonly ValidationIssue[] {
+  const script = readFileSync(path.join(evalCase.projectDir, 'script.txt'), 'utf8');
+  const durationS = evalCase.words.words.at(-1)?.tEnd ?? 0;
+  return validateDirection(reply, { durationS, script }).issues;
+}
+
 /** The claims reply against the case's script and research.md (PLAN.md#12.18). */
 function claimsIssues(evalCase: EvalCase, reply: string): readonly ValidationIssue[] {
   const read = (name: string): string => readFileSync(path.join(evalCase.projectDir, name), 'utf8');
@@ -218,6 +226,7 @@ export function checkStageOutput<T extends CuesLike>(input: StageCheckInput<T>):
   if (stage === 'review-plan') issues.push(...validatePlanReply(reply, { shotIds }).issues);
   if (stage === 'claims') issues.push(...claimsIssues(evalCase, reply));
   if (stage === 'hooks') issues.push(...hooksIssues(evalCase, reply));
+  if (stage === 'c-cam-direction') issues.push(...directionIssues(evalCase, reply));
   if (stage === 'publish-seo') issues.push(...seoEvalIssues(evalCase, reply));
   if (stage === 'youtube-meta') {
     const chapters = evalCase.file.youtubeMeta?.chapters ?? null;

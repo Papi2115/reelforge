@@ -15,6 +15,7 @@ import {
   inkSheetDuration,
   inkSheetSource,
   inkSheetTimes,
+  validatorLines,
 } from '@reelforge/cli/service';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { formatDiagnostics, hasErrors, lintInkModule } from '@reelforge/engine';
@@ -45,9 +46,6 @@ export interface InkQa {
   readonly notes: readonly string[];
 }
 
-/** Validator findings per rule in a prompt (a rule fails in many views and poses at once). */
-const MAX_RULE_LINES = 8;
-
 /**
  * Validator warnings the step requires fixed (PLAN.md#14.15): a built person declares its one
  * `signatureGag`. Sent to the fix turn like an error, but the figure itself is sound, so a person
@@ -68,24 +66,6 @@ const failed = (findings: readonly string[], sheet?: string): InkQa => ({
   notes: [],
 });
 
-/** One line per rule: how often, where first, the message and the fix. */
-export function groupedFindings(findings: readonly InkValidationFinding[]): string[] {
-  const byCode = new Map<string, InkValidationFinding[]>();
-  for (const finding of findings) {
-    byCode.set(finding.code, [...(byCode.get(finding.code) ?? []), finding]);
-  }
-  return [...byCode.values()].slice(0, MAX_RULE_LINES).map((group) => {
-    const [first] = group;
-    if (first === undefined) return '';
-    const where = [
-      first.view === null ? undefined : `view ${String(first.view)}`,
-      first.pose === null ? undefined : `pose ${first.pose}`,
-    ].filter((part) => part !== undefined);
-    const count = group.length === 1 ? '' : ` (${String(group.length)} cases)`;
-    return `validator ${first.code}${count}${where.length === 0 ? '' : `, first at ${where.join(', ')}`}: ${first.message}; fix: ${first.fix}`;
-  });
-}
-
 async function critique(
   job: InkJob,
   design: InkModuleDesign,
@@ -105,7 +85,7 @@ async function critique(
         };
   const prompt = render('critic', {
     imagePaths: sheet,
-    intent: `ONE hand-built ${noun} of the film shown alone on a labelled contact sheet (${design.kind === 'people' ? 'six views x stand/akimbo/walk, then the 14 faces' : 'wide, x2 on its light, x3.2 on its first anchor'}): ${designBrief(design)}. ok = it reads as that one specific, grimy ${noun} in every tile; off-intent = it does not read as that ${noun}, the views disagree, or it breaks the style; blank/clipped as usual`,
+    intent: `ONE hand-built ${noun} of the film shown alone on a labelled contact sheet (${design.kind === 'people' ? 'six views x stand/akimbo/walk, then the 14 faces' : 'wide, x2 on its light, x3.2 on its first anchor'}): ${designBrief(design)}. ok = it reads as that one specific, grimy ${noun} in every tile; off-intent = it does not read as that ${noun}, the views disagree, a prop is from the wrong period (a modern bound book in antiquity), or it breaks the style; blank/clipped as usual`,
     styleId: job.styleId,
     ...world,
   });
@@ -195,11 +175,15 @@ export async function inkQaRound(
   const checked = checkInkModule(design.kind, file, source.value);
   if (!checked.ok) return ok(failed([checked.error]));
   const findings = checked.report?.findings ?? [];
-  const errors = groupedFindings(findings.filter((finding) => finding.severity === 'error'));
-  const required = groupedFindings(findings.filter(isRequiredWarning));
-  const warnings = groupedFindings(
-    findings.filter((finding) => finding.severity === 'warn' && !isRequiredWarning(finding)),
+  const mustFix = findings.some(
+    (finding) => finding.severity === 'error' || isRequiredWarning(finding),
   );
+  // The very lines `reelforge people-preview` prints (errors AND warnings, grouped by rule): the
+  // fix turn gets them verbatim; warnings alone are notes and keep the module.
+  const validators = findings.length === 0 ? [] : [validatorLines(findings).join('\n')];
+  const errors = findings.some((finding) => finding.severity === 'error') ? validators : [];
+  const required = mustFix ? validators : [];
+  const warnings = mustFix ? [] : validators;
   const drawn = await contactSheet(job, design, label);
   if (!drawn.ok) return drawn;
   const { sheet } = drawn.value;

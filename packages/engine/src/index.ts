@@ -33,6 +33,7 @@ export {
   type PickInfo,
   type ReelforgeHarness,
 } from './harness/protocol.js';
+export { loadInfoFonts, type InkFonts } from './ink-fonts.js';
 export * from './lint/index.js';
 export * from './palette.js';
 export type { PickKind, PickResult } from './pick.js';

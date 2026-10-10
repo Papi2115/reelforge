@@ -46,6 +46,7 @@ describe('bundled prompts', () => {
         'assets',
         'brief',
         'c-cam-build',
+        'c-cam-direction',
         'claims',
         'critic',
         'hooks',
@@ -73,7 +74,7 @@ describe('bundled prompts', () => {
 describe('loadPrompt', () => {
   it('returns front matter fields and the template body', () => {
     const storyboard = loadPrompt('storyboard');
-    expect(storyboard).toMatchObject({ id: 'storyboard', version: 20, model: 'sonnet' });
+    expect(storyboard).toMatchObject({ id: 'storyboard', version: 21, model: 'sonnet' });
     expect(storyboard.output).toEqual({ kind: 'files', paths: ['storyboard.json'] });
     expect(storyboard.template.startsWith('You are the director')).toBe(true);
     expect(storyboard.template).not.toContain('---\nid:');
@@ -231,6 +232,7 @@ describe('stages and models', () => {
       'world-assets': 'scene-build',
       'world-asset-critic': 'critic',
       'c-cam-build': 'scene-build',
+      'c-cam-direction': 'storyboard',
       'publish-seo': 'critic',
       'short-script': 'script',
     };

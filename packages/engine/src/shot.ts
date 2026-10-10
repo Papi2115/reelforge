@@ -37,10 +37,16 @@ import type {
   Vec3,
 } from './contract.js';
 import { describeError, EngineError } from './errors.js';
+import { createFilmInfo, filmAnchor, standaloneFilmPlace, type FilmPlace } from './film.js';
 import { createAnnotationLayer } from './annotations/layer.js';
 import { createRng, hashString, shotSeed } from './rng.js';
 import type { ScenePalette } from './style.js';
-import { captionGroups, drawCaptions, type CaptionColors } from './text/captions.js';
+import {
+  captionGroups,
+  drawCaptions,
+  drawWorldCaptions,
+  type CaptionColors,
+} from './text/captions.js';
 import { hexToRgb8 } from './text/surface.js';
 import { createTextLayer, type TextOverlay } from './text/text-layer.js';
 import type { PixelRect, TextCard } from './text/types.js';
@@ -77,6 +83,8 @@ export interface ShotInput {
    * draws the ones spoken during it over its frame. Absent = no captions.
    */
   readonly captions?: readonly TimedWord[] | undefined;
+  /** The shot's place in the film (`ctx.film`, PLAN.md#14.19); absent = the shot is the film. */
+  readonly film?: FilmPlace | undefined;
 }
 
 export interface ShotUpdateOptions {
@@ -185,7 +193,9 @@ export function buildShot(input: ShotInput): BuiltShot {
   const { id, width, height, duration, fps } = shot;
   const aspect = width / height;
   const format = frameSizeFormat({ width, height });
-  const info: ShotInfo = { id, width, height, aspect, format, duration, fps };
+  const info: ShotInfo = { id, t0: shot.t0, width, height, aspect, format, duration, fps };
+  const place = input.film ?? standaloneFilmPlace(shot.t0 + duration);
+  const anchorInFilm = filmAnchor(input.resolveAnchor, id);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(DEFAULT_CAMERA_POSE.fov, aspect, 0.1, 1000);
   const seed = shotSeed(input.projectSeed, id);
@@ -247,6 +257,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     ease: EASINGS,
     anchor: createAnchor(input),
     shot: info,
+    film: createFilmInfo(place, shot.t0, 0, anchorInFilm),
     ambient: createAmbientApi(input.ambient),
     worldAssets: input.worldAssets,
   };
@@ -280,7 +291,11 @@ export function buildShot(input: ShotInput): BuiltShot {
     input.captions === undefined
       ? undefined
       : {
-          groups: captionGroups(input.captions, { t0: shot.t0, t1: shot.t0 + duration }),
+          groups: captionGroups(
+            input.captions,
+            { t0: shot.t0, t1: shot.t0 + duration },
+            kit.captions?.maxWords,
+          ),
           colors: captionColors(palette),
         };
   return {
@@ -303,6 +318,7 @@ export function buildShot(input: ShotInput): BuiltShot {
       annotations.beginFrame(localTime);
       const updateContext: SceneContext = {
         ...base,
+        film: createFilmInfo(place, shot.t0, localTime, anchorInFilm),
         text: text.frameApi,
         annotate: annotations.frameApi,
         sfx: updateSfx,
@@ -319,7 +335,12 @@ export function buildShot(input: ShotInput): BuiltShot {
         annotations.endFrame(updateOptions?.probe === true);
         if (captions !== undefined) {
           const time = updateOptions?.captionTime ?? shot.t0 + localTime;
-          drawCaptions(text.surface, captions.groups, time, captions.colors);
+          // A world with its own captions (Grim Ink) letters them on its stage (PLAN.md#14.18).
+          const world = kit.captions;
+          const drawn =
+            world !== undefined &&
+            drawWorldCaptions(world, scene, captions.groups, time, { width, height });
+          if (!drawn) drawCaptions(text.surface, captions.groups, time, captions.colors);
         }
       } catch (error) {
         if (error instanceof EngineError) throw error;

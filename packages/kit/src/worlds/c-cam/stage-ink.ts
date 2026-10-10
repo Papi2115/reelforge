@@ -49,6 +49,10 @@ import {
   wrapText,
 } from './lettering/index.js';
 import { CHECKED, boundDrawText } from './stage-ink-checks.js';
+import { inkText, type InkTextOptions, type InkTextResult } from './text/ink-text.js';
+import { textTargetOf } from './text/target.js';
+import { titleCard, type TitleCardResult, type TitleCardSpec } from './text/title-card.js';
+import { VOCAB } from './vocabulary/index.js';
 
 /** The frame-independent part of `env.ink` (built once). */
 const INK_FUNCTIONS = Object.freeze({
@@ -131,16 +135,29 @@ const INK_FUNCTIONS = Object.freeze({
   posterLayers,
   thudScale,
   thudIn,
+  // Vocabulary (PLAN.md#14.20): props, instruments, crowd, acting, fx (vocabulary/).
+  ...VOCAB,
 });
 
-/** `env.ink` of one frame: the kit's draw functions plus `drawText` on that frame's surface. */
-export function stageInk(g: Paint2D) {
-  return Object.freeze({ ...INK_FUNCTIONS, drawText: boundDrawText(paintInkSurface(g)) });
+/**
+ * `env.ink` of one frame: the kit's draw functions plus, on that frame's surface, `drawText`,
+ * `text` (the prototypes' system-font roles with the CC0 fallback, PLAN.md#14.18) and
+ * `titleCard` at the stage time `t`.
+ */
+export function stageInk(g: Paint2D, t = 0) {
+  const target = textTargetOf(g);
+  return Object.freeze({
+    ...INK_FUNCTIONS,
+    drawText: boundDrawText(paintInkSurface(g)),
+    text: (text: string, options: InkTextOptions): InkTextResult =>
+      inkText(g, target, text, options),
+    titleCard: (spec: TitleCardSpec): TitleCardResult => titleCard(g, target, t, spec),
+  });
 }
 
 export type StageInk = ReturnType<typeof stageInk>;
 
 /** Names of `env.ink` (docs and tests). */
 export const STAGE_INK_NAMES: readonly string[] = Object.freeze(
-  [...Object.keys(INK_FUNCTIONS), 'drawText'].sort(),
+  [...Object.keys(INK_FUNCTIONS), 'drawText', 'text', 'titleCard'].sort(),
 );

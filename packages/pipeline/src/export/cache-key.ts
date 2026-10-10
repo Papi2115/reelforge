@@ -30,6 +30,12 @@ export interface RenderIdentity {
     /** The full style preset JSON as the engine uses it. */
     readonly preset: unknown;
   };
+  /**
+   * Grim Ink (PLAN.md#14.18): the text fonts the frames were drawn with on this machine
+   * (`system`, or `fallback:<missing families>` when the CC0 lettering stands in); undefined
+   * (left out of the key) for every other style, so their keys stay valid.
+   */
+  readonly fonts?: string | undefined;
 }
 
 export interface AnchorSpan {
@@ -105,7 +111,8 @@ function anchorInputs(
 /**
  * Project modules (`kitExtensions`) a scene may call: those whose name it mentions, or all of a
  * kind when it indexes `props[...]` / `people[...]` / `places[...]` dynamically (people and places
- * also by their kebab-case spelling). Props keep `{ name, source }` (keys of earlier manifests
+ * also by their kebab-case spelling), and every library (`kit-ext/lib`: its people and places
+ * call them too). Props keep `{ name, source }` (keys of earlier manifests
  * unchanged); people and places add their `kind`. Undefined without project modules.
  */
 export function kitExtensionInputs(
@@ -132,6 +139,8 @@ function calledExtensions(source: string, extensions: KitExtensions): KitExtensi
   const named = (name: string): boolean => new RegExp(String.raw`\b${name}\b`).test(source);
   return extensions.filter((extension) => {
     const kind = extension.kind ?? 'props';
+    // A library (PLAN.md#14.19) may be called by any person or place the scene draws.
+    if (kind === 'lib') return true;
     if (dynamic(kind) || named(extension.name)) return true;
     return kind !== 'props' && source.includes(kebab(extension.name));
   });
@@ -228,6 +237,28 @@ function shotContent(
     // Word-by-word captions (PLAN.md#13.18): the words drawn over this shot; undefined (left out)
     // with captions off, so old keys stay valid.
     captions: manifest.captions === true ? captionInputs(shot, manifest) : undefined,
+    // `ctx.film` (PLAN.md#14.19): undefined (left out) unless the scene mentions `film`.
+    film: filmInputs(shot, manifest),
+  };
+}
+
+/** `ctx.film`, `x.film` or a destructured `{ film }`. */
+const READS_FILM = /\.film\b|[{,]\s*film\s*[,}:]/;
+
+/**
+ * The film place a scene that reads `ctx.film` depends on (film length, its index, the shot
+ * count); undefined when the source never reads `film`, so old keys stay valid.
+ */
+export function filmInputs(
+  shot: ManifestShot,
+  manifest: Pick<RenderManifest, 'film' | 'shots'>,
+): { duration: number; index: number; count: number } | undefined {
+  if (!READS_FILM.test(shot.scene.source)) return undefined;
+  const index = manifest.shots.findIndex((candidate) => candidate.id === shot.id);
+  return {
+    duration: manifest.film?.duration ?? manifest.shots.at(-1)?.t1 ?? 0,
+    index: shot.filmIndex ?? index,
+    count: manifest.film?.shotCount ?? manifest.shots.length,
   };
 }
 
@@ -265,6 +296,7 @@ export function segmentCacheKey(input: SegmentKeyInput): string {
     engine: identity.engineVersion,
     kit: identity.kitVersion,
     style: identity.style,
+    ...(identity.fonts === undefined ? {} : { fonts: identity.fonts }),
     palette: manifest.palette ?? null,
     seed: manifest.seed,
     ambientVariation: manifest.ambientVariation,

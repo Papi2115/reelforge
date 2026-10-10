@@ -9,23 +9,15 @@
  * `missingProps` is collected. With the tension map on (PLAN.md#12.22) the curve is read (or
  * proposed by Claude first, tension.ts), handed to the prompt as a table and checked against the
  * cut tempo (`tension-tempo`); the `tension` action only proposes the curve. The project's
- * characters and mascot (PLAN.md#12.20, characters.ts) add their prompt sections and checks.
+ * characters and mascot (PLAN.md#12.20, characters.ts) add their prompt sections and checks. A
+ * Grim Ink film plans its direction first (`direction.json`, c-cam/direction*.ts, PLAN.md#14.16;
+ * the `direction` action plans it again); the storyboard is checked against it. Checks:
+ * storyboard-check.ts.
  */
 import { err, ok, type Result } from '@reelforge/claude-bridge';
+import { storyboardCharacterVars, storyboardShotRangeVars } from '@reelforge/prompts';
 import {
-  storyboardCharacterVars,
-  storyboardOutputSchema,
-  storyboardShotRangeVars,
-  validateStoryboard,
-  type CharacterCheckOptions,
-  type InterruptCheckOptions,
-  type StoryboardOutput,
-  type ValidationIssue,
-} from '@reelforge/prompts';
-import {
-  assignTransitionStyles,
   DEFAULT_MAX_ASSET_NEEDS,
-  projectContinuityLinks,
   projectResearchMode,
   projectShotsPerMinute,
   projectTensionMap,
@@ -36,24 +28,21 @@ import {
   STORYBOARD_REPORT_VERSION,
   storyboardReportSchema,
   wordsFileSchema,
-  type TensionFile,
-  type WordsFile,
 } from '@reelforge/shared';
 import { loadCharacterSettings, storyboardCharacterOptions } from '../characters.js';
 import { applyStoryboardContinuity, storyboardContinuityVars } from '../continuity.js';
 import { finishStoryboardDramaturgy, prepareStoryboardDramaturgy } from '../dramaturgy.js';
-import { storyboardGenreCheckOptions, storyboardGenrePromptVars } from '../genre.js';
-import { readProjectText, requireProjectJson, writeProjectJson } from '../files.js';
-import { storyboardLookOptions, storyboardLookVars } from '../looks.js';
+import { storyboardGenrePromptVars } from '../genre.js';
+import { requireProjectJson, writeProjectJson } from '../files.js';
+import { storyboardLookVars } from '../looks.js';
 import {
-  assignWorldTransitions,
   lookSetup,
-  storyboardWorldOptions,
   storyboardWorldPromptVars,
   worldScope,
   worldTransitionOptions,
-  type LookSetup,
 } from '../worlds.js';
+import { runDirectionAction, storyboardDirection } from '../c-cam/direction-stage.js';
+import { assignStyles, treatmentCounts } from './storyboard-styles.js';
 import { runTensionProposal, storyboardTension, storyboardTensionVars } from '../tension.js';
 import { FILES, REPORTS } from '../paths.js';
 import {
@@ -64,159 +53,24 @@ import {
   type StageError,
   type StageSummary,
 } from '../types.js';
-import { checkWithRepair, errorLines, render, warningLines, type OutputCheck } from './repair.js';
+import { checkWithRepair, render } from './repair.js';
 import { writeSceneStubs } from './scene-stub.js';
-import {
-  onlyAnnotationCountErrors,
-  softenAnnotationCounts,
-  trimAnnotations,
-  trimWarning,
-} from './annotation-trim.js';
-import { readLockedShots } from '../locks.js';
-import { beatSyncCheckOptions, storyboardBeatSync } from '../beat-sync/storyboard-step.js';
-import { currentAssetIds, storyboardAssetVars } from './storyboard-assets.js';
+import { storyboardBeatSync } from '../beat-sync/storyboard-step.js';
+import { storyboardAssetVars } from './storyboard-assets.js';
+import { checkStoryboard } from './storyboard-check.js';
 import { storyboardSourceChipVars } from '../claims/source-chips.js';
-import {
-  appendShortEndCard,
-  storyboardShortCheckOptions,
-  storyboardShortPromptVars,
-} from '../shorts/storyboard-step.js';
+import { appendShortEndCard, storyboardShortPromptVars } from '../shorts/storyboard-step.js';
 
 /** Economy mode (PLAN.md §2.2): shorter storyboards. */
 export const ECONOMY_STORYBOARD_HINT =
   '\n\nEconomy mode: keep the storyboard lean — prefer fewer, longer shots (5–8 s) and simple treatments the kit already covers.';
-
-type FileCheck = OutputCheck<StoryboardOutput> & { readonly issues: readonly ValidationIssue[] };
-
-function fileCheck(
-  value: StoryboardOutput | undefined,
-  issues: readonly ValidationIssue[],
-  notes: readonly string[] = [],
-): FileCheck {
-  return {
-    value,
-    issues,
-    problems: errorLines(issues),
-    warnings: [...notes, ...warningLines(issues)],
-  };
-}
-
-async function validateFile(
-  ctx: StageContext,
-  words: WordsFile,
-  setup: LookSetup,
-  research: boolean,
-  tension: TensionFile | undefined,
-  characters: CharacterCheckOptions,
-  interrupts?: InterruptCheckOptions,
-): Promise<FileCheck> {
-  const { project } = ctx.snapshot;
-  // Scenes per minute (ADR-027): absent = the checks as before.
-  const range = project.status === 'ok' ? projectShotsPerMinute(project.value) : undefined;
-  const text = await readProjectText(ctx.projectDir, FILES.storyboard);
-  if (!text.ok)
-    return { value: undefined, issues: [], problems: [text.error.message], warnings: [] };
-  if (text.value === undefined) {
-    const problems = [`${FILES.storyboard} was not written`];
-    return { value: undefined, issues: [], problems, warnings: [] };
-  }
-  const report = validateStoryboard(text.value, {
-    words,
-    ...storyboardLookOptions(setup.lookMode, setup.looks),
-    // A world names only its page-native transitions (PLAN.md#13.6); built-in styles: nothing.
-    ...storyboardWorldOptions(
-      setup,
-      ctx.settings.worldQuotaOverride,
-      project.status === 'ok' && projectContinuityLinks(project.value),
-    ),
-    assetNeeds: { research },
-    ...withAssetIds(await currentAssetIds(ctx.projectDir)),
-    ...(tension === undefined ? {} : { tension }),
-    ...beatSyncCheckOptions(ctx.snapshot.project),
-    ...(interrupts === undefined ? {} : { interrupts }),
-    characters,
-    ...(range === undefined ? {} : { shotsPerMinute: range }),
-    // The genre preset's wow pace (ADR-035); no preset = the checks as before.
-    ...(project.status === 'ok' ? storyboardGenreCheckOptions(project.value) : {}),
-    // A short's cut rules (PLAN.md#13.18); a film: nothing changes.
-    ...(project.status === 'ok' ? storyboardShortCheckOptions(project.value) : {}),
-  });
-  return fileCheck(report.value, report.issues);
-}
-
-/**
- * Validates storyboard.json; when the only errors are annotation count rules the weakest unlocked
- * marks are trimmed (written back, validated again) and what a lock keeps becomes a warning, so
- * neither a repair turn nor the stage is spent on them (annotation-trim.ts).
- */
-async function checkStoryboard(
-  ctx: StageContext,
-  words: WordsFile,
-  setup: LookSetup,
-  research: boolean,
-  tension: TensionFile | undefined,
-  characters: CharacterCheckOptions,
-  interrupts?: InterruptCheckOptions,
-): Promise<OutputCheck<StoryboardOutput>> {
-  const validate = (): Promise<FileCheck> =>
-    validateFile(ctx, words, setup, research, tension, characters, interrupts);
-  const first = await validate();
-  if (first.value === undefined || !onlyAnnotationCountErrors(first.issues)) return first;
-  const locked = await readLockedShots(ctx.projectDir);
-  if (!locked.ok) return first;
-  const trimmed = trimAnnotations(first.value, words, locked.value);
-  if (trimmed.removed.length === 0) {
-    return fileCheck(first.value, softenAnnotationCounts(first.issues));
-  }
-  const written = await writeProjectJson(
-    ctx.projectDir,
-    FILES.storyboard,
-    storyboardOutputSchema,
-    trimmed.storyboard,
-  );
-  if (!written.ok) return { value: undefined, problems: [written.error.message], warnings: [] };
-  const second = await validate();
-  return fileCheck(second.value, softenAnnotationCounts(second.issues), [
-    trimWarning(trimmed.removed),
-  ]);
-}
-
-function withAssetIds(ids: string[] | undefined): { assetIds?: string[] } {
-  return ids === undefined ? {} : { assetIds: ids };
-}
-
-/**
- * `mixed` projects: fills the transition-kit styles the storyboard left out (ADR-011); a world's
- * project gets the world's page-native styles instead (PLAN.md#13.6).
- */
-async function assignStyles(
-  ctx: StageContext,
-  storyboard: StoryboardOutput,
-  seed: number,
-  setup: LookSetup,
-): Promise<Result<StoryboardOutput, StageError>> {
-  const assigned =
-    setup.world === undefined
-      ? assignTransitionStyles(storyboard.shots, seed)
-      : assignWorldTransitions(storyboard.shots, worldTransitionOptions(setup.world), seed);
-  if (assigned.changed.length === 0) return ok(storyboard);
-  return writeProjectJson(ctx.projectDir, FILES.storyboard, storyboardOutputSchema, {
-    ...storyboard,
-    shots: assigned.shots,
-  });
-}
-
-function treatmentCounts(storyboard: StoryboardOutput): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const shot of storyboard.shots) counts[shot.treatment] = (counts[shot.treatment] ?? 0) + 1;
-  return counts;
-}
 
 async function run(
   ctx: StageContext,
   request: RequestOf<'storyboard'>,
 ): Promise<Result<StageSummary, StageError>> {
   if (request.action === 'tension') return runTensionProposal(ctx);
+  if (request.action === 'direction') return runDirectionAction(ctx);
   const { project } = ctx.snapshot;
   if (project.status !== 'ok') return err(stageError('not-ready', 'project.json is invalid'));
   const words = await requireProjectJson(ctx.projectDir, FILES.words, wordsFileSchema);
@@ -227,6 +81,10 @@ async function run(
       : ok({ file: undefined, warnings: [], repairs: 0 });
   if (!tension.ok) return tension;
   const curve = tension.value.file;
+  // A Grim Ink film plans its direction first (PLAN.md#14.16); every other project: none.
+  const direction = await storyboardDirection(ctx, project.value, words.value);
+  if (!direction.ok) return direction;
+  const plan = direction.value.file;
   // Look mode, looks and world (PLAN.md#13.6): a world's project always mixes its own looks.
   const setup = lookSetup(project.value, worldScope(ctx.settings));
   const lookMode = setup.lookMode;
@@ -274,6 +132,7 @@ async function run(
     tasteProfile: ctx.taste?.profile(),
     // A short (PLAN.md#13.18): retention editing, vertical framing; a film: nothing changes.
     ...storyboardShortPromptVars(project.value),
+    ...direction.value.vars,
   });
   if (!prompt.ok) return prompt;
   ctx.step('Writing the storyboard', 10);
@@ -301,6 +160,7 @@ async function run(
         curve,
         characterChecks,
         drama.value.interrupts,
+        plan,
       ),
   });
   if (!checked.ok) return checked;
@@ -342,6 +202,7 @@ async function run(
         curve,
         characterChecks,
         drama.value.interrupts,
+        plan,
       ),
   );
   if (!synced.ok) return synced;
@@ -364,6 +225,7 @@ async function run(
   const treatments = treatmentCounts(storyboard);
   const warnings = [
     ...tension.value.warnings,
+    ...direction.value.warnings,
     ...checked.value.warnings,
     ...synced.value.warnings,
     ...dramaturgy.value,
@@ -393,7 +255,12 @@ async function run(
       range === undefined
         ? summary
         : `${shotsSummary(storyboard.shots.length, durationS, range)} · ${summary}`,
-    outputs: [FILES.storyboard, ...synced.value.outputs, ...stubs.value],
+    outputs: [
+      FILES.storyboard,
+      ...direction.value.outputs,
+      ...synced.value.outputs,
+      ...stubs.value,
+    ],
     changed: true,
     warnings,
     metrics: {

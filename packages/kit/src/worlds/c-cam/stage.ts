@@ -29,6 +29,8 @@ import type { Paint2D } from './draw/paint.js';
 import { blob, type BlobOptions } from './draw/shapes.js';
 import { stageInk, type StageInk } from './stage-ink.js';
 import { stageSurface } from './stage-surface.js';
+import { bindTextTarget, textTargetOf } from './text/target.js';
+import type { TextTarget } from './text/ink-text.js';
 
 /** Pure helpers of core.ts a painter may use (all functions of their arguments). */
 const TIME = Object.freeze({ twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1 });
@@ -72,6 +74,13 @@ export type InkStageObject = KitObject & {
   /** Repaints the stage for time t (seconds) with a pure painter; call it in update(t). */
   paint(t: number, painter: InkPainter): void;
 };
+
+/**
+ * The engine's hook on a stage (not for scenes, not enumerable): paints the world's captions over
+ * the frame the scene painted last; false when the stage was not painted since the last caption.
+ */
+export type CaptionPainter = (g: Paint2D, target: TextTarget | undefined) => void;
+export const CAPTION_HOOK = 'paintCaption';
 
 export const inkStageParams = z.object({
   size: z
@@ -151,6 +160,8 @@ export function buildInkStage(
     if (disposed) throw new KitError('invalid-params', 'inkStage.paint(): the stage was disposed');
     stage.render(t, (context) => {
       const g = stageSurface(context);
+      // The kit (never the painter) letters with the role fonts on this canvas (ink.text).
+      bindTextTarget(g, context);
       const env: InkStageEnv = {
         width,
         height,
@@ -160,12 +171,28 @@ export function buildInkStage(
         C,
         time: TIME,
         brush: brushesFor(g),
-        ink: stageInk(g),
+        ink: stageInk(g, t),
       };
       painter(g, Object.freeze(env));
     });
   };
-  return Object.assign(object, { size, paint });
+  let painted = false;
+  const wrappedPaint = (t: number, painter: InkPainter): void => {
+    paint(t, painter);
+    painted = true;
+  };
+  const paintCaption = (painter: CaptionPainter): boolean => {
+    if (disposed || !painted) return false;
+    painted = false;
+    stage.overpaint((context) => {
+      const g = stageSurface(context);
+      bindTextTarget(g, context);
+      painter(g, textTargetOf(g));
+    });
+    return true;
+  };
+  Object.defineProperty(object, CAPTION_HOOK, { value: paintCaption, enumerable: false });
+  return Object.assign(object, { size, paint: wrappedPaint });
 }
 
 export const inkStage = defineFx({

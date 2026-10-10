@@ -10,6 +10,7 @@ import {
   targetWordsFor,
   validateResearch,
   validateScript,
+  worldWordBudget,
 } from '@reelforge/prompts';
 import {
   genrePresetScriptTone,
@@ -20,7 +21,7 @@ import {
 } from '@reelforge/shared';
 import { scriptDramaturgyVars } from '../dramaturgy.js';
 import { runShortScript } from '../shorts/script-step.js';
-import { activeWorld, scriptWorldPromptVars, worldScope } from '../worlds.js';
+import { activeWorld, promptWorld, scriptWorldPromptVars, worldScope } from '../worlds.js';
 import { readProjectText, writeProjectJson } from '../files.js';
 import { FILES, REPORTS } from '../paths.js';
 import {
@@ -74,6 +75,7 @@ interface ScriptStats {
 async function checkScript(
   ctx: StageContext,
   targetWords: number,
+  budget: { readonly words: number; readonly over: number } | undefined,
 ): Promise<OutputCheck<ScriptStats>> {
   const [beats, script] = await Promise.all([
     readProjectText(ctx.projectDir, FILES.beats),
@@ -93,7 +95,10 @@ async function checkScript(
       warnings: [],
     };
   }
-  const report = validateScript(script.value, { targetWords });
+  const report = validateScript(script.value, {
+    targetWords,
+    ...(budget === undefined ? {} : { budget }),
+  });
   const stats =
     report.value === undefined
       ? undefined
@@ -151,6 +156,13 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
   }
   const targetMinutes = brief.value.targetMinutes;
   const targetWords = targetWordsFor(targetMinutes);
+  const world =
+    project.status === 'ok'
+      ? activeWorld(project.value.style, worldScope(ctx.settings))
+      : undefined;
+  // A world with length control (Grim Ink, PLAN.md#14.18): the budget in the prompt and a warning.
+  const worldText = promptWorld(world)?.text;
+  const budget = worldText === undefined ? undefined : worldWordBudget(worldText, targetMinutes);
   const research = await runResearch(ctx, brief.value);
   if (!research.ok) return research;
 
@@ -171,11 +183,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
       ? scriptDramaturgyVars(ctx.snapshot.project.value)
       : {}),
     // A world's surprise beats are page moments, not camera moves (real run Sketchbook 1).
-    ...(ctx.snapshot.project.status === 'ok'
-      ? scriptWorldPromptVars(
-          activeWorld(ctx.snapshot.project.value.style, worldScope(ctx.settings)),
-        )
-      : {}),
+    ...(project.status === 'ok' ? scriptWorldPromptVars(world, targetMinutes) : {}),
   });
   if (!prompt.ok) return prompt;
   ctx.step('Beat sheet and script', 45);
@@ -193,7 +201,7 @@ async function run(ctx: StageContext): Promise<Result<StageSummary, StageError>>
     purpose: 'script',
     file: FILES.script,
     label: 'script',
-    check: () => checkScript(ctx, targetWords),
+    check: () => checkScript(ctx, targetWords, budget),
   });
   if (!checked.ok) return checked;
   const { value: stats, problems, repairs } = checked.value;

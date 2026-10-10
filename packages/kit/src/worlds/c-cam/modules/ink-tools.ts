@@ -26,6 +26,9 @@ import { crack, cobbles, peel, puddle, stain, windowPane } from '../draw/grime.j
 import type { Paint2D } from '../draw/paint.js';
 import { bands, beam, bricks, gloom, pool, rect, rough, stars, wobble } from '../draw/scenery.js';
 import { blob, ellipseRing, hatch, mottle, tube } from '../draw/shapes.js';
+import { bindVocabulary } from '../vocabulary/index.js';
+import { inkText, type InkTextOptions, type InkTextResult } from '../text/ink-text.js';
+import { textTargetOf } from '../text/target.js';
 
 /** Pure helpers of core.ts (all functions of their arguments). */
 export const INK_TIME = Object.freeze({
@@ -107,6 +110,11 @@ function bindTools(g: Paint2D, env: BrushEnv) {
     ellipseRing,
     wobble,
     bbox,
+    // Vocabulary (PLAN.md#14.20): ink.props.door({ … }), ink.crowd.rows({ … }), ink.fx.dust({ … })…
+    ...bindVocabulary(g, env),
+    // The prototypes' lettering (PLAN.md#14.18): system fonts drawn by the kit, CC0 fallback.
+    text: (text: string, options: InkTextOptions): InkTextResult =>
+      inkText(g, textTargetOf(g), text, options),
   };
 }
 

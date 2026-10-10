@@ -171,7 +171,10 @@ describe('Grim Ink people and places', { timeout: 180_000 }, () => {
     const done = await runner.run({ stage: 'scenes', action: 'c-cam-modules' });
     if (!done.ok) throw new Error(JSON.stringify(done.error));
     const [, fix] = turns(harness, BUILD_CLERK);
-    expect(fix?.prompt).toMatch(/- validator shoulder-[a-z-]+.*; fix: /);
+    // The people-preview list, verbatim (errors and warnings by rule, with the fix).
+    expect(fix?.prompt).toMatch(
+      /- validators: \d+ error case\(s\)[^\n]*\n {2}ERROR shoulder-[a-z-]+.*; fix: /,
+    );
     expect(report(dir).modules[0]?.status).toBe('built');
   });
 
@@ -187,7 +190,9 @@ describe('Grim Ink people and places', { timeout: 180_000 }, () => {
     if (!done.ok) throw new Error(JSON.stringify(done.error));
     const clerk = turns(harness, BUILD_CLERK);
     expect(clerk).toHaveLength(2);
-    expect(clerk[1]?.prompt).toMatch(/- validator no-signature-gag: clerk has no signature gag/);
+    expect(clerk[1]?.prompt).toMatch(
+      /- validators: 0 error case\(s\)[^\n]*\n(.*\n)* {2}warn {2}no-signature-gag: clerk has no signature gag/,
+    );
     expect(report(dir).modules[0]).toMatchObject({ id: 'clerk', status: 'warning', attempts: 2 });
     expect(readProject(dir, CLERK)).toBe(NO_GAG_CLERK);
   });

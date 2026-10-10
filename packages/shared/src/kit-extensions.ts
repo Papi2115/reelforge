@@ -55,20 +55,24 @@ export function normalizePropName(raw: string): string | undefined {
 /**
  * Kinds of project modules (PLAN.md#14.8): `props` (`kit.props.<name>`, every style), `people`
  * and `places` (`kit.people.<id>` / `kit.places.<id>`, the Grim Ink world's hand-built people and
- * places, see ink-modules.ts). Each kind has its own folder under `kit-ext/`.
+ * places, see ink-modules.ts) and `lib` (`kit.lib.<name>`, PLAN.md#14.19: the Grim Ink film's
+ * shared code, pure functions used by its scenes, people and places). Each kind has its own
+ * folder under `kit-ext/`.
  */
-export const KIT_EXTENSION_KINDS = ['props', 'people', 'places'] as const;
+export const KIT_EXTENSION_KINDS = ['props', 'people', 'places', 'lib'] as const;
 export const kitExtensionKindSchema = z.enum(KIT_EXTENSION_KINDS);
 export type KitExtensionKind = z.infer<typeof kitExtensionKindSchema>;
 
 /** Project-relative folders of the people / place modules (forward slashes). */
 export const KIT_EXT_PEOPLE_DIR = 'kit-ext/people';
 export const KIT_EXT_PLACES_DIR = 'kit-ext/places';
+export const KIT_EXT_LIB_DIR = 'kit-ext/lib';
 
 export const KIT_EXTENSION_DIRS: Readonly<Record<KitExtensionKind, string>> = Object.freeze({
   props: KIT_EXT_PROPS_DIR,
   people: KIT_EXT_PEOPLE_DIR,
   places: KIT_EXT_PLACES_DIR,
+  lib: KIT_EXT_LIB_DIR,
 });
 
 /** `kit-ext/<kind>/<name>.js`. */
@@ -80,7 +84,9 @@ export function kitExtensionFile(kind: KitExtensionKind, name: string): string {
 export function kitExtensionOfFile(
   file: string,
 ): { readonly kind: KitExtensionKind; readonly name: string } | undefined {
-  const match = /^kit-ext\/(props|people|places)\/([^/]+)\.js$/.exec(file.replaceAll('\\', '/'));
+  const match = /^kit-ext\/(props|people|places|lib)\/([^/]+)\.js$/.exec(
+    file.replaceAll('\\', '/'),
+  );
   const kind = kitExtensionKindSchema.safeParse(match?.[1]);
   const name = match?.[2];
   return kind.success && name !== undefined && PROP_NAME_PATTERN.test(name)

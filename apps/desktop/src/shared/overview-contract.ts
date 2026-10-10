@@ -22,6 +22,11 @@ export const overviewThumbnailSchema = z.object({
   width: z.number().int().nonnegative(),
   height: z.number().int().nonnegative(),
   bytes: z.number().int().nonnegative(),
+  /**
+   * `opening-frame`: the export saved the film's opening title card as the thumbnail (Grim Ink,
+   * PLAN.md#14.18); absent / `uploaded`: the user's own picture.
+   */
+  origin: z.enum(['uploaded', 'opening-frame']).optional(),
 });
 export type OverviewThumbnail = z.infer<typeof overviewThumbnailSchema>;
 

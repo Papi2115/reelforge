@@ -15,7 +15,7 @@ import type { Character } from '../draw/character.js';
 import { EXPR_NAMES, face } from '../draw/face.js';
 import { drawFigure } from '../draw/figure.js';
 import type { Paint2D } from '../draw/paint.js';
-import { pose, type PoseName } from '../draw/poses.js';
+import { pose, type Pose, type PoseName } from '../draw/poses.js';
 import { RING } from '../draw/rig-views.js';
 import { rect } from '../draw/scenery.js';
 import type { BrushEnv } from '../draw/brushes.js';
@@ -45,7 +45,27 @@ function backdrop(g: Paint2D, rows: number): void {
   }
 }
 
-function turnaround(g: Paint2D, character: Character): void {
+/**
+ * Draws one figure of the turnaround. The default is the bare rig; a project person passes its
+ * own drawer (person.ts) so its module hooks (`arms`, `held`, `beforeHand`) and its default
+ * props show on the sheet like in a scene (PLAN.md#14.18: the props never showed before).
+ */
+export type SheetFigure = (
+  g: Paint2D,
+  env: BrushEnv,
+  at: { readonly x: number; readonly y: number; readonly s: number },
+  pose: Pose,
+  yaw: number,
+  t: number,
+) => void;
+
+function rigFigure(character: Character): SheetFigure {
+  return (g, env, at, P, yaw, t) => {
+    drawFigure(g, env, character, at, P, yaw, undefined, t);
+  };
+}
+
+function turnaround(g: Paint2D, character: Character, drawOne: SheetFigure): void {
   backdrop(g, SHEET_POSES.length);
   const cellW = W / RING.length;
   const cellH = H / SHEET_POSES.length;
@@ -55,7 +75,7 @@ function turnaround(g: Paint2D, character: Character): void {
     RING.forEach((yaw, col) => {
       const P = pose(name, character.D, 0.25);
       const at = { x: (col + 0.5) * cellW, y: floor, s };
-      drawFigure(g, DEFAULT_ENV, character, at, P, yaw, undefined, SHEET_T);
+      drawOne(g, DEFAULT_ENV, at, P, yaw, SHEET_T);
     });
   });
 }
@@ -83,10 +103,15 @@ function faces(g: Paint2D, character: Character): void {
 }
 
 /** Paints page `page` (0 turnaround, 1 faces; wraps) of a person's sheet. */
-export function paintPersonSheet(g: Paint2D, character: Character, page: number): void {
+export function paintPersonSheet(
+  g: Paint2D,
+  character: Character,
+  page: number,
+  drawOne: SheetFigure = rigFigure(character),
+): void {
   const index = ((Math.floor(page) % PERSON_SHEET_PAGES) + PERSON_SHEET_PAGES) % PERSON_SHEET_PAGES;
   g.save();
-  if (index === 0) turnaround(g, character);
+  if (index === 0) turnaround(g, character, drawOne);
   else faces(g, character);
   g.restore();
 }

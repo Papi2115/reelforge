@@ -52,6 +52,11 @@ export interface InkStage {
   /** Resets the canvas, fills the background, runs paint(g, t) and schedules the upload. */
   render(t: number, paint: StagePaint): void;
   /**
+   * Paints over the last `render` without a reset (the world's captions, PLAN.md#14.18) and
+   * schedules the upload again; `t` is the time of that render.
+   */
+  overpaint(paint: StagePaint): void;
+  /**
    * Frees the canvas backing store (~8 MB at 1080p): width and height 0. Idempotent; the texture,
    * material and geometry are freed by `tools.track`.
    */
@@ -156,7 +161,13 @@ export function createInkStage(
   texture.minFilter = three.NearestFilter;
   texture.magFilter = three.NearestFilter;
   const mesh = stageMesh(tools, texture);
+  let lastT = 0;
+  const upload = (): void => {
+    if (pixels !== undefined) pixels.set(g.getImageData(0, 0, options.width, options.height).data);
+    texture.needsUpdate = true;
+  };
   const render = (t: number, paint: StagePaint): void => {
+    lastT = t;
     // reset(): default state, empty path, cleared bitmap; nothing survives from the last frame.
     g.reset();
     g.fillStyle = options.background;
@@ -164,12 +175,18 @@ export function createInkStage(
     g.save();
     paint(g, t);
     g.restore();
-    if (pixels !== undefined) pixels.set(g.getImageData(0, 0, options.width, options.height).data);
-    texture.needsUpdate = true;
+    upload();
+  };
+  const overpaint = (paint: StagePaint): void => {
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    paint(g, lastT);
+    g.restore();
+    upload();
   };
   const dispose = (): void => {
     canvas.width = 0;
     canvas.height = 0;
   };
-  return { mesh, render, dispose };
+  return { mesh, render, overpaint, dispose };
 }

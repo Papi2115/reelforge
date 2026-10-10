@@ -26,6 +26,8 @@ import { projectCastOf } from './cast-preview.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
 import { C_CAM_TOPIC_NAMES, describeCCamTopic } from './kit-docs-c-cam.js';
 import { describeInkModulesTopic, INK_MODULE_TOPICS } from './kit-docs-c-cam-people.js';
+import { C_CAM_REFERENCE_TOPICS, describeCCamReferenceTopic } from './kit-docs-c-cam-shots.js';
+import { C_CAM_VOCAB_TOPIC_NAMES, describeInkVocabTopic } from './kit-docs-c-cam-vocab.js';
 import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
 import { describeGenerators, generatorsTopic, GENERATORS_TOPIC } from './kit-docs-generators.js';
 import { formatCatalog } from './kit-docs-index.js';
@@ -122,6 +124,8 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
     GENERATORS_TOPIC,
     ...C_CAM_TOPIC_NAMES,
     ...INK_MODULE_TOPICS,
+    ...C_CAM_REFERENCE_TOPICS,
+    ...C_CAM_VOCAB_TOPIC_NAMES,
   ];
   const bare = name.split('.').at(-1) ?? name;
   const guesses = suggestNames(bare, known);
@@ -152,6 +156,10 @@ export function describeKitName(
   if (inkModules !== undefined) return inkModules;
   const grimInk = describeCCamTopic(input);
   if (grimInk !== undefined) return grimInk;
+  const grimInkReference = describeCCamReferenceTopic(input);
+  if (grimInkReference !== undefined) return grimInkReference;
+  const grimInkVocab = describeInkVocabTopic(input);
+  if (grimInkVocab !== undefined) return grimInkVocab;
   if (input === WORLD_ASSETS_TOPIC)
     return describeWorldAssets(options.style, options.worldAssetIds);
   const generators = generatorsTopic(input);

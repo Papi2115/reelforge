@@ -9,7 +9,18 @@
  * palettes (`world`). Muted on purpose: no chimes, no pops of colour; the gag beat is a knock, the
  * poster's letters land with a thump. Bed: a quiet room.
  */
+import type { MusicMood } from '@reelforge/pipeline';
 import { only, pick, type SoundPalette } from './types.js';
+
+/**
+ * The world's own music moods (PLAN.md#14.18), [calm, tense]: dry and low under the deadpan holds
+ * (`calm-tech`), tense where the stakes land (`tense-investigation`). Never `lofi-chill` (real run
+ * Grim Ink 1: a lo-fi bed fit the muted world poorly), nothing bright, no synth.
+ */
+export const C_CAM_MUSIC_MOODS: readonly [MusicMood, MusicMood] = [
+  'calm-tech',
+  'tense-investigation',
+];
 
 /** Sounds that hit at their start land on the cut instead of leading into it. */
 const ON_CUT = { leadS: 0.03 } as const;

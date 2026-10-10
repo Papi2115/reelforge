@@ -3,7 +3,7 @@
  * the safe area or overlapping, console errors) needs no Claude; the Haiku layer reads a contact
  * sheet of the frames and answers `blank | clipped | overlap | off-intent | ok` as JSON.
  */
-import { err, ok, type Result } from '@reelforge/claude-bridge';
+import { err, ok, type ModelAlias, type Result } from '@reelforge/claude-bridge';
 import { isCraftNote, validateCriticReply } from '@reelforge/prompts';
 import type { CriticVerdictRecord, QaFinding } from '@reelforge/shared';
 import type { ClaudeTurnResult } from '../claude.js';
@@ -40,6 +40,8 @@ export interface CritiqueInput {
    * contradiction is a `fact-conflict:` note (a ⚠, never a fix turn); undefined = none.
    */
   readonly research?: string | undefined;
+  /** The critic model at least (PLAN.md#14.19: Sonnet for Grim Ink); absent = per settings. */
+  readonly minModel?: ModelAlias | undefined;
 }
 
 export interface Critique {
@@ -116,6 +118,7 @@ async function askCritic(
     label: `critic ${input.shotId}`,
     commit: false,
     detached: true,
+    ...(input.minModel === undefined ? {} : { minModel: input.minModel }),
   });
   if (!turn.ok) {
     if (turn.error.kind !== 'claude') return turn;

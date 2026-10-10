@@ -39,12 +39,15 @@ import { createVoxelApi, VOXEL_API_DOCS, type ApiDoc, type VoxelApi } from './vo
 import { KIT_VERSION } from './version.js';
 import {
   createInkModulesApi,
+  type InkLibraryFunctions,
   type InkModules,
   type InkPerson,
   type InkPlace,
   type InkRegistry,
 } from './worlds/c-cam/modules/index.js';
 import { C_CAM_ID } from './worlds/c-cam/style.js';
+import type { WorldCaptions } from './worlds/c-cam/text/captions.js';
+import { C_CAM_CAPTIONS } from './worlds/c-cam/text/world-captions.js';
 
 /** `ctx.kit` as scenes see it. */
 export interface KitApi {
@@ -64,6 +67,8 @@ export interface KitApi {
   readonly people?: InkRegistry<InkPerson>;
   /** The project's places (`kit-ext/places`, PLAN.md#14.8); Grim Ink (`c-cam`) shots only. */
   readonly places?: InkRegistry<InkPlace>;
+  /** The film's shared code (`kit-ext/lib`, PLAN.md#14.19); Grim Ink (`c-cam`) shots only. */
+  readonly lib?: InkRegistry<InkLibraryFunctions>;
 }
 
 export interface KitOptions {
@@ -117,6 +122,11 @@ export interface KitHandle {
   seal(): void;
   /** Frees every geometry and material this kit instance created. */
   dispose(): void;
+  /**
+   * The world's own captions (Grim Ink, PLAN.md#14.18: the prototypes' caption pass on the ink
+   * stage); undefined = the engine draws its pixel-font captions.
+   */
+  readonly captions?: WorldCaptions | undefined;
 }
 
 export { CAST_DEFINITIONS, ENV_DEFINITIONS, FX_DEFINITIONS, PROP_DEFINITIONS };
@@ -182,6 +192,7 @@ export function createKit(options: KitOptions): KitHandle {
   const api: KitApi = Object.freeze({ version: KIT_VERSION, voxel, env, props, fx, cast, ...ink });
   return {
     api,
+    ...(options.style === C_CAM_ID ? { captions: C_CAM_CAPTIONS } : {}),
     seal() {
       context.seal();
     },

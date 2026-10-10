@@ -13,15 +13,27 @@
 import { z } from 'zod';
 import { PROP_NAME_PATTERN } from './kit-extensions.js';
 
-/** Limits per project and per module file (people and places each). */
+/**
+ * Limits per project and per module file (people, places and libraries each). Raised in
+ * PLAN.md#14.19 to the density of the concept films (docs/worlds/c-cam-ENGINE-GAPS.md): their cast
+ * files run to ~200 tightly packed lines, a film has up to 8 people plus its crowd, several sets
+ * per file and shared helper files (acting.js, props.js, crowd.js); was 24 modules / 64 KB / 250
+ * lines. Only the Grim Ink world reads these kinds.
+ */
 export const INK_MODULE_LIMITS = Object.freeze({
-  /** Modules per kind in one project. */
-  maxModules: 24,
-  /** Bytes per module file. */
-  maxBytes: 64 * 1024,
-  /** Lines per module file (lint). */
-  maxLines: 250,
+  /** Modules per kind in one project (was 24). */
+  maxModules: 64,
+  /** Bytes per module file (was 64 KB). */
+  maxBytes: 160 * 1024,
+  /** Lines per module file (lint; was 250). */
+  maxLines: 450,
 });
+
+/**
+ * Lines of a Grim Ink scene the prompts and the project's CLAUDE.md allow (was "under ~250"): a
+ * concept film's shot with its cut table, acting and inline props runs to 300-500 lines.
+ */
+export const C_CAM_SCENE_MAX_LINES = 600;
 
 /** camelCase, like prop names: the file name and the registry key (`kit.people.oldBaker`). */
 export const inkModuleIdSchema = z

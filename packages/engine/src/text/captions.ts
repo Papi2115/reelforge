@@ -51,6 +51,7 @@ function captionText(word: TimedWord): string {
 export function captionGroups(
   words: readonly TimedWord[],
   window: { readonly t0: number; readonly t1: number },
+  maxWords: number = CAPTION_MAX_WORDS,
 ): CaptionGroup[] {
   const spoken = words.filter(
     (word) => word.t >= window.t0 && word.t < window.t1 && captionText(word) !== '',
@@ -61,7 +62,7 @@ export function captionGroups(
     const previous = current.at(-1);
     const breaks =
       previous !== undefined &&
-      (current.length >= CAPTION_MAX_WORDS ||
+      (current.length >= maxWords ||
         SENTENCE_END.test(previous.text) ||
         word.t - previous.tEnd > CAPTION_GAP_S);
     if (breaks) {
@@ -101,6 +102,34 @@ export function spokenWordIndex(group: CaptionGroup, time: number): number {
 export interface CaptionFrame {
   readonly width: number;
   readonly height: number;
+}
+
+/**
+ * A world that draws its own captions (Grim Ink, PLAN.md#14.18: the prototypes' caption pass on
+ * its ink stage; kit `WorldCaptions`).
+ */
+export interface WorldCaptionDrawer {
+  draw(
+    scene: { traverse(callback: (object: unknown) => void): void },
+    text: string,
+    frame: CaptionFrame,
+  ): boolean;
+}
+
+/**
+ * The caption group on screen at `time` drawn by the world (one line group, no highlight); false
+ * when there is none or the world had nothing to draw on (then the engine's own captions).
+ */
+export function drawWorldCaptions(
+  world: WorldCaptionDrawer,
+  scene: { traverse(callback: (object: unknown) => void): void },
+  groups: readonly CaptionGroup[],
+  time: number,
+  frame: CaptionFrame,
+): boolean {
+  const group = captionGroupAt(groups, time);
+  if (group === undefined) return true;
+  return world.draw(scene, group.words.map(captionText).join(' '), frame);
 }
 
 /** Integer text scale of captions: the title default, one step bigger in portrait. */

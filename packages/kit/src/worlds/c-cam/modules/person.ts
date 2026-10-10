@@ -214,7 +214,22 @@ export function definePerson(value: unknown, file = 'person'): InkPerson {
       return drawFigure(g, brushEnvOf(env), drawn, at, act.pose, V, act.expr, t, act.options);
     },
     sheet: (g: Paint2D, page: number): void => {
-      paintPersonSheet(g, character, page);
+      // Through the module's own hooks with its default props (p.t 0, as before), like a scene.
+      paintPersonSheet(g, character, page, (g2, env, at, P, yaw, t) => {
+        const input = {
+          pose: P,
+          view: yaw,
+          expr: undefined,
+          t,
+          p: NO_PROPS,
+          gags: [],
+          scene: {},
+          label,
+        };
+        const act = acting(g2, module, character, input);
+        const drawn = boundCharacter(data, module, NO_PROPS);
+        drawFigure(g2, env, drawn, at, act.pose, yaw, act.expr, t, act.options);
+      });
     },
   });
 }

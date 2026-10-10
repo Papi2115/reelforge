@@ -11,7 +11,9 @@
  * stage's `env.ink` (stage-ink.ts) binds the camera, scenery, grime, faces, rig, contacts and
  * lettering.
  *
- * Text: no `ctx.text` in the films; the ink-stroke lettering is `env.ink.drawText(text, o)`.
+ * Text: no `ctx.text` in the films; `env.ink.text(text, { role })` letters with the prototypes'
+ * system fonts when installed (world exception, ADR-005 addendum) and the CC0 ink-stroke lettering
+ * otherwise; `env.ink.drawText(text, o)` is the ink lettering itself; captions: text/captions.ts.
  * `fonts` maps the roles to the engine pixel fonts only because every world must name them.
  * Sound: the world's own muted, dry room palette `c-cam` (packages/stages sound palettes).
  */
@@ -26,6 +28,25 @@ export { C_CAM_ID, C_CAM_STYLE } from './style.js';
 export { inkInsertLook } from './looks/ink-insert/index.js';
 export { inkPosterLook } from './looks/ink-poster/index.js';
 export { inkSceneLook } from './looks/ink-scene/index.js';
+// Text roles with the prototypes' system fonts and the CC0 fallback (PLAN.md#14.18).
+export {
+  ROLE_FAMILIES,
+  ROLE_SPECS,
+  TEXT_ROLES,
+  inkFontReport,
+  type InkFontReport,
+  type MeasureTarget,
+  type TextRole,
+} from './text/roles.js';
+export {
+  CAPTION_BAND_SHARE,
+  C_CAM_CAPTION_MAX_WORDS,
+  PROTOTYPE_CAPTION,
+  type CaptionFrame,
+  type CaptionScene,
+  type WorldCaptions,
+} from './text/captions.js';
+export { titleLines } from './text/title-card.js';
 
 export const C_CAM = defineWorld({
   id: C_CAM_ID,

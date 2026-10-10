@@ -7,6 +7,7 @@ import type { JSX } from 'react';
 import { CharactersRow, MascotRow } from './CharacterRows.js';
 import {
   AmbientRow,
+  CaptionsRow,
   ContinuityLinksRow,
   DramaturgyRow,
   EditingRow,
@@ -25,6 +26,7 @@ export const OPTION_ROWS: Readonly<Record<OptionRowId, (props: RowProps) => JSX.
   'look-mode': LookModeRow,
   'ambient-variation': AmbientRow,
   'continuity-links': ContinuityLinksRow,
+  captions: CaptionsRow,
   characters: CharactersRow,
   mascot: MascotRow,
   'research-assets': ResearchRow,

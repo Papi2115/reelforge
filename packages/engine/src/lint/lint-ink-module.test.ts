@@ -84,9 +84,12 @@ describe('lint of Grim Ink people / places modules (PLAN.md#14.8)', () => {
     expect(rules(`const NAME = 'x';\n${computedId}`, PLACE_FILE, 'places')).toEqual([
       expect.stringMatching(/`place.id` must be a string literal/),
     ]);
-    const long = `${PLACE}${'\n'.repeat(200)}`;
+    // PLAN.md#14.19: 450 lines (was 250); a module of the concept films' density passes.
+    const dense = `${PLACE}${'\n'.repeat(449 - PLACE.split('\n').length)}`;
+    expect(rules(dense, PLACE_FILE, 'places')).toEqual([]);
+    const long = `${PLACE}${'\n'.repeat(460)}`;
     expect(rules(long, PLACE_FILE, 'places')).toEqual([
-      expect.stringMatching(/lines; one person \/ place stays within 250/),
+      expect.stringMatching(/lines; a module stays within 450/),
     ]);
   });
 

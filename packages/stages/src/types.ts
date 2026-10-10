@@ -1,5 +1,5 @@
 /** Stage runner contracts: requests, results, events, the context a stage runs with. */
-import type { PipelineStateStore, Result, StreamEvent } from '@reelforge/claude-bridge';
+import type { ModelAlias, PipelineStateStore, Result, StreamEvent } from '@reelforge/claude-bridge';
 import type { AssetRuntime } from '@reelforge/cli/assets';
 import type { WhisperModelId } from '@reelforge/pipeline';
 import type { PromptId } from '@reelforge/prompts';
@@ -101,7 +101,7 @@ export type VariantOp =
 
 export type AssetsAction = 'research' | 'fetch-approved';
 
-export type StoryboardAction = 'build' | 'tension';
+export type StoryboardAction = 'build' | 'tension' | 'direction';
 
 export type RequestOf<S extends StageId> = Extract<StageRequest, { readonly stage: S }>;
 
@@ -217,6 +217,11 @@ export interface StageTurn {
    * fresh again (nothing to resume). Default false: the stored session, resumed after a limit.
    */
   readonly detached?: boolean;
+  /**
+   * The weakest model this turn may run on (PLAN.md#14.19: the Grim Ink critic on Sonnet); a
+   * stronger model from the settings or Economy is kept. Absent = the model per settings.
+   */
+  readonly minModel?: ModelAlias | undefined;
 }
 
 /** A shot's progress as the scene stage reports it. */

@@ -3,8 +3,9 @@
  * (`kitExtensions`), so preview, export and the CLI register the same things: props
  * (`kit-ext/props/<name>.js` -> `ctx.kit.props.<name>`, PLAN.md#7.4) and the Grim Ink world's
  * people / places (`kit-ext/people|places/<id>.js` -> `kit.people|places.<id>`, PLAN.md#14.8,
- * manifest `kind`). Only regular files with camelCase names inside the project; people and places
- * are limited in count and size (INK_MODULE_LIMITS).
+ * manifest `kind`) and its shared libraries (`kit-ext/lib/<name>.js` -> `kit.lib.<name>`,
+ * PLAN.md#14.19). Only regular files with camelCase names inside the project; people, places and
+ * libraries are limited in count and size (INK_MODULE_LIMITS).
  */
 import { existsSync, realpathSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
@@ -22,7 +23,7 @@ import { describeUnknown, ProjectError } from '../errors.js';
 import { isInside, projectPath } from './paths.js';
 
 export interface KitExtensionFiles {
-  /** Props first (no `kind`, as before), then people, then places (`kind` set). */
+  /** Props first (no `kind`, as before), then people, places and libraries (`kind` set). */
   readonly extensions: readonly KitExtensionSource[];
   /** Project-relative `.js` files skipped because their name is not a camelCase name. */
   readonly ignored: readonly string[];

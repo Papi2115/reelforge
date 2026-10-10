@@ -48,10 +48,11 @@ const INK = C_CAM_API.ink;
 const BRUSH = C_CAM_API.brush;
 
 /**
- * The world's lettering calls (`env.ink.drawText`, …): the on-screen string is the FIRST
- * argument (the text-provenance guard reads it, packages/stages/src/slop/c-cam-labels.ts).
+ * The world's lettering calls (`env.ink.drawText`, `env.ink.text` with the system-font roles
+ * of PLAN.md#14.18, …): the on-screen string is the FIRST argument (the text-provenance guard
+ * reads it, packages/stages/src/slop/c-cam-labels.ts).
  */
-export const C_CAM_TEXT_METHODS = ['drawText', 'layoutText', 'wrapText'] as const;
+export const C_CAM_TEXT_METHODS = ['drawText', 'text', 'layoutText', 'wrapText'] as const;
 
 /**
  * The storyboard's cast and place tags (the world has no `newRoles`: its people are hand-built
@@ -131,3 +132,6 @@ export type CCamSnippet = keyof typeof C_CAM_SNIPPETS;
 
 /** A snippet as inline code in a prompt. */
 export const cCamSnippet = (name: CCamSnippet): string => `\`${C_CAM_SNIPPETS[name]}\``;
+
+/** The props / instruments / crowd / acting / fx vocabulary (PLAN.md#14.20): c-cam-vocab-api.ts. */
+export { C_CAM_VOCAB_API, C_CAM_VOCAB_SNIPPETS, C_CAM_VOCAB_TOPICS } from './c-cam-vocab-api.js';

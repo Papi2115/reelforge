@@ -6,13 +6,17 @@
  * handles of that world's shots.
  */
 import {
+  bindLibraries,
   C_CAM_ID,
   checkExtensionNames,
   KitError,
+  libraryFromModule,
   personFromModule,
   placeFromModule,
   PROP_DEFINITIONS,
   propDefinitionFromModule,
+  withModuleLibraries,
+  type BoundLibraries,
   type InkModules,
   type KitDefinition,
 } from '@reelforge/kit';
@@ -70,27 +74,64 @@ function checkId(extension: KitExtensionSource, id: string, label: string): void
   }
 }
 
-/** People and places of `extensions` (any kinds, others skipped); throws `kit-extension`. */
+/**
+ * The project's libraries (`kind` `lib`, PLAN.md#14.19), bound once; undefined without any, so
+ * the people and places of a project without libraries load exactly as before.
+ */
+function projectLibraries(
+  extensions: readonly KitExtensionSource[],
+  namespaces: readonly unknown[],
+): BoundLibraries | undefined {
+  const libraries = extensions.flatMap((extension, index) =>
+    kitExtensionKind(extension) === 'lib'
+      ? [libraryFromModule(namespaces[index], extension.name, extension.file)]
+      : [],
+  );
+  return libraries.length === 0 ? undefined : bindLibraries(libraries);
+}
+
+/** A module namespace whose `binding` value gets `ink.lib` (unchanged without libraries). */
+function withLibraries(
+  namespace: unknown,
+  binding: 'person' | 'place',
+  libraries: BoundLibraries | undefined,
+): unknown {
+  if (libraries === undefined || typeof namespace !== 'object' || namespace === null) {
+    return namespace;
+  }
+  const value = (namespace as Record<string, unknown>)[binding];
+  return { [binding]: withModuleLibraries(value, libraries) };
+}
+
+/**
+ * People, places and libraries of `extensions` (any kinds, props skipped); throws
+ * `kit-extension`.
+ */
 export function inkModuleHandles(
   extensions: readonly KitExtensionSource[],
   namespaces: readonly unknown[],
 ): InkModules {
   try {
+    const libraries = projectLibraries(extensions, namespaces);
     const people = [];
     const places = [];
     for (const [index, extension] of extensions.entries()) {
       const kind = kitExtensionKind(extension);
       if (kind === 'people') {
-        const person = personFromModule(namespaces[index], extension.file);
+        const namespace = withLibraries(namespaces[index], 'person', libraries);
+        const person = personFromModule(namespace, extension.file);
         checkId(extension, person.id, 'person');
         people.push(person);
       } else if (kind === 'places') {
-        const place = placeFromModule(namespaces[index], extension.file);
+        const namespace = withLibraries(namespaces[index], 'place', libraries);
+        const place = placeFromModule(namespace, extension.file);
         checkId(extension, place.id, 'place');
         places.push(place);
       }
     }
-    return Object.freeze({ people, places });
+    return Object.freeze(
+      libraries === undefined ? { people, places } : { people, places, lib: libraries.registry },
+    );
   } catch (error) {
     throw asEngineError(error);
   }
@@ -107,8 +148,8 @@ export async function loadKitExtensions(
 }
 
 /**
- * Imports every project module of the manifest once: the props always, the people and places
- * only for the Grim Ink style (`styleId` = the resolved style; elsewhere nothing reads them).
+ * Imports every project module of the manifest once: the props always, the people, places and
+ * libraries only for the Grim Ink style (`styleId` = the resolved style; elsewhere nothing reads them).
  */
 export async function loadProjectModules(
   manifest: Pick<RenderManifest, 'kitExtensions'>,

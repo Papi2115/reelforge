@@ -14,6 +14,7 @@ import {
   C_CAM_MODULE_TOPICS,
   C_CAM_SNIPPETS,
   C_CAM_TOPICS,
+  C_CAM_VOCAB_TOPICS,
   type CCamTopic,
 } from '@reelforge/prompts';
 
@@ -36,6 +37,7 @@ const INDEX = [
   `${C_CAM_TOPICS.rig}: views, poses, hands, drawing a figure, contacts (palms on things)`,
   `${C_CAM_TOPICS.camera}: the cut table, framings, foreground silhouettes, coverage`,
   `${C_CAM_TOPICS.lettering}: hand and poster lettering in ink strokes (never ctx.text)`,
+  `${Object.values(C_CAM_VOCAB_TOPICS).join(', ')}: the vocabulary (env.ink.props / instruments / crowd / acting / fx; ink.* in modules): parameterized, period-neutral props, controls, crowds, two-body gags and small effects to compose and vary for the narration, never a finished scene`,
   `${MODULES}: the film's own people and places, one module each (${C_CAM_API.peopleDir}/<id>.js, ${C_CAM_API.placesDir}/<id>.js, camelCase ids); in a scene:`,
   `  ${C_CAM_SNIPPETS.person}`,
   `  ${C_CAM_SNIPPETS.place}`,
@@ -111,13 +113,15 @@ const CAMERA = [
 ];
 
 const LETTERING = [
-  `Ink lettering (CC0 strokes drawn with the ink line; never ctx.text, never a font). Faces: ${list(V.letterFaces)} (hand = loose handwriting for signs, ledgers, tags, sound words; poster = fat capitals for titles and the line of the film).`,
+  `${INK}.text(text, { role, x, y, size?, fill?, outline?: colour | false, outlineWidth?, align?, rot? }) — the prototypes' lettering: the kit draws the role's system font when installed (never in your code: no fillText, no font, no document), else the ink strokes at the same size. Roles: caption (bold 46 px Arial Black, bone, 11 px ink outline), poster / title (Impact, bone, ink outline), label (Impact, ink), ledger (Georgia), digits (Courier New); y = the middle of the capitals; returns { width, fallback }.`,
+  `${INK}.titleCard({ title, subtitle?, cast: [{ person, view, pose, expr, x, y, s, props? }], place?, placeOptions?, accent?, t0? }) — the opening poster as a ready thumbnail (look C): the place (or a mud field with one light), the cast lined up, the title thudding in on twos (two lines when long), then the subtitle tag; returns { settled } (s: when it has landed). Call it in the painter of the first shot.`,
+  `Ink lettering (CC0 strokes drawn with the ink line; never ctx.text). Faces: ${list(V.letterFaces)} (hand = loose handwriting for signs, ledgers, tags, sound words; poster = fat capitals for titles and the line of the film).`,
   `  ${INK}.drawText(text, { face, size, x, y, seed, fill, track?, rot?, align?: 'left' | 'center' | 'right', wobble?, width?, layers?, charScale? }) — the string comes first; returns its layout`,
   `  e.g. ${C_CAM_SNIPPETS.hand}`,
   `  ${INK}.posterLayers(size) — outline, rust extrusion and bone fill of a poster word; ${INK}.thudScale(t, t0) — letters thud in one by one on twos from t0 (0.04 s apart)`,
   `  e.g. ${C_CAM_SNIPPETS.poster}`,
   `  ${INK}.layoutText(text, options), ${INK}.wrapText(text, maxWidth, size, face) — layout only (measure, wrap lines)`,
-  'Rules: every word comes from the narration or the research notes (real names, numbers, dates; a sound word on its beat); letter it ON the thing it names (a sign, a tag, a ledger line, a gauge); at most 6 words on a poster; no captions in films.',
+  "Rules: every word comes from the narration or the research notes (real names, numbers, dates; a sound word on its beat); letter it ON the thing it names (a sign, a tag, a ledger line, a gauge); at most 6 words on a poster; keep lettering above y 886 (the bottom 18 % is the caption band: the film's captions are drawn there by the kit, never by a scene).",
 ];
 
 const TOPICS: Readonly<Record<CCamTopic, readonly string[]>> = {

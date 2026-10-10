@@ -381,7 +381,13 @@ export {
   type ExportPaths,
   type ExportState,
 } from './export/state.js';
-export { THUMBNAIL_MIN_WIDTH, thumbnailFactor } from './export/thumbnail.js';
+export {
+  OPENING_THUMBNAIL_FILE,
+  OPENING_THUMBNAIL_SIZE,
+  THUMBNAIL_MIN_WIDTH,
+  openingSettledTime,
+  thumbnailFactor,
+} from './export/thumbnail.js';
 export { safeOutputName } from './export/output-name.js';
 export {
   defaultWorkerCount,

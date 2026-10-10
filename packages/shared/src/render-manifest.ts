@@ -53,6 +53,11 @@ export const manifestShotSchema = z
     paletteShift: z.array(paletteShiftWindowSchema).max(MAX_SHOT_EFFECT_WINDOWS).optional(),
     /** Live co-direction overrides (PLAN.md#12.14, live-direction.ts). Absent = none. */
     direction: shotDirectionSchema.optional(),
+    /**
+     * The shot's 0-based storyboard position for `ctx.film` (PLAN.md#14.19) when the manifest is
+     * not the whole film (an isolated render of one shot); absent = its index in `shots`.
+     */
+    filmIndex: z.int().nonnegative().optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] })
   .superRefine((shot, issues) => {
@@ -99,6 +104,14 @@ export const manifestAssetSchema = z
   });
 export type ManifestAsset = z.infer<typeof manifestAssetSchema>;
 
+/** The film a partial manifest belongs to (`ctx.film`, PLAN.md#14.19). */
+export const filmPlaceSchema = z.object({
+  /** Film length in seconds. */
+  duration: z.number().positive(),
+  shotCount: z.int().min(1),
+});
+export type FilmPlaceFile = z.infer<typeof filmPlaceSchema>;
+
 export const renderManifestSchema = z
   .object({
     version: z.literal(RENDER_MANIFEST_VERSION),
@@ -144,6 +157,11 @@ export const renderManifestSchema = z
      * engine into `ctx.worldAssets`; absent = none (a world's scenes get its empty set).
      */
     worldAssets: manifestWorldAssetsSchema.optional(),
+    /**
+     * The whole film for `ctx.film` (PLAN.md#14.19) when the manifest renders only part of it (one
+     * shot at its place): the storyboard's length and shot count. Absent = the manifest is the film.
+     */
+    film: filmPlaceSchema.optional(),
     shots: z.array(manifestShotSchema).min(1),
   })
   .superRefine((manifest, issues) => {

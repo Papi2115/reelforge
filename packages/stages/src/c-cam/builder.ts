@@ -14,6 +14,7 @@ import { err, ok, type Result } from '@reelforge/claude-bridge';
 import {
   INK_MODULES_FAILED_DIR,
   kitExtensionFile,
+  kitExtensionOfFile,
   type InkModuleRecord,
   type InkModuleStatus,
 } from '@reelforge/shared';
@@ -56,7 +57,8 @@ async function buildTurn(
   const snapshot = await snapshotTurnWrites(
     job.ctx.projectDir,
     `the c-cam-build turn of ${file}`,
-    (written) => written === file,
+    // The film's shared libraries (PLAN.md#14.19) may grow with the module that needs them.
+    (written) => written === file || kitExtensionOfFile(written)?.kind === 'lib',
   );
   if (!snapshot.ok) return snapshot;
   const turn = await job.ctx.claude({

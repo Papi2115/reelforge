@@ -84,6 +84,12 @@ export interface WorldPromptText {
    * inside them): the storyboard is never asked for distinct transition styles. Absent = it is.
    */
   readonly cutsOnly?: boolean;
+  /**
+   * Length control of the script (Grim Ink, PLAN.md#14.18): the prompt states the words budget from
+   * the speaking rate (`wordsPerSecond` × the target seconds) and the validator warns when the
+   * script runs over it by more than `overWarn` (a share). Absent = the plain ±15 % target.
+   */
+  readonly wordBudget?: { readonly wordsPerSecond: number; readonly overWarn: number };
 }
 
 /** One framing of a shot (storyboard `worldView`): where it starts and ends, room or screen. */

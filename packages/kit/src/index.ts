@@ -166,6 +166,15 @@ export {
   type GagKind,
   type GagSpec,
 } from './worlds/c-cam/draw/gags.js';
+// The Grim Ink vocabulary (PLAN.md#14.20): families, entry names and docs (kit-docs ink-props …).
+export {
+  VOCAB_FAMILIES,
+  VOCAB_NAMES,
+  vocabDocs,
+  vocabTopic,
+  type VocabEntryDoc,
+  type VocabFamily,
+} from './worlds/c-cam/vocabulary/index.js';
 // The people validators for the people-and-places step (PLAN.md#14.11).
 export {
   validateCharacter,

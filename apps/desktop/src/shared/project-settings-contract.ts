@@ -12,6 +12,7 @@ import {
   beatSyncModeSchema,
   characterModeSchema,
   dramaturgyModeSchema,
+  filmCaptionsSchema,
   lookModeSchema,
   mascotChoiceSchema,
   repetitionControlModeSchema,
@@ -61,6 +62,8 @@ export const projectSettingsSchema = z.object({
    * null = all of them (absent in project.json).
    */
   worldLooks: worldLooksSchema.nullable(),
+  /** A film's captions (PLAN.md#14.18); absent in project.json = `off`. */
+  captions: filmCaptionsSchema,
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 
@@ -85,6 +88,7 @@ export const projectSettingsPatchSchema = z
     continuityLinks: z.boolean().optional(),
     /** null removes the field (every look of the world on). */
     worldLooks: worldLooksSchema.nullable().optional(),
+    captions: filmCaptionsSchema.optional(),
   })
   .refine((patch) => Object.values(patch).some((value) => value !== undefined), {
     message: 'the patch changes nothing',

@@ -76,17 +76,18 @@ describe('Grim Ink modules in the CLI', () => {
   });
 
   it('refuses too many or too large modules', async () => {
-    await project.write('kit-ext/places/huge.js', `// ${'x'.repeat(70 * 1024)}`);
+    // PLAN.md#14.19: 160 KB and 64 modules per kind (were 64 KB and 24).
+    await project.write('kit-ext/places/huge.js', `// ${'x'.repeat(170 * 1024)}`);
     await expect(readKitExtensions(project.root)).rejects.toThrow(
-      /huge\.js is 71 KB \(at most 64 KB\)/,
+      /huge\.js is 171 KB \(at most 160 KB\)/,
     );
     await project.remove();
     project = await copyFixtureProject();
     await mkdir(path.join(project.root, 'kit-ext', 'people'), { recursive: true });
-    for (let index = 0; index < 25; index += 1) {
+    for (let index = 0; index < 65; index += 1) {
       await project.write(`kit-ext/people/p${String(index)}.js`, 'export const person = {};');
     }
-    await expect(readKitExtensions(project.root)).rejects.toThrow(/25 modules \(at most 24\)/);
+    await expect(readKitExtensions(project.root)).rejects.toThrow(/65 modules \(at most 64\)/);
   });
 
   it('lints them by path (reelforge lint, default files included)', async () => {
