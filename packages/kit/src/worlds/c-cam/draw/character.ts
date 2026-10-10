@@ -11,10 +11,13 @@
  *    only supplies its per-view torso and head drawings, its `NECK` table (`neck`) and styles;
  *  - `hsz` is required in `D` (film 3 keeps it there; film 1 kept it on the cast record);
  *  - the head scale (1.05-1.2 in the films, hard-coded per file) is the data field `headScale`;
- *  - a custom neck drawing is `drawNeck` (the name `neck` is the per-view table).
+ *  - a custom neck drawing is `drawNeck` (the name `neck` is the per-view table);
+ *  - added (from the c-plus `CHARACTER_CONTRACT.md` §5): optional `faceAnchors`, head-local face
+ *    points per view (the rig's `anchors` places them in figure space; no jaw rule in C).
  *
  * Public API: `rigDimsSchema`, `RigDims`, `HeadBox`, `neckSpecSchema`, `NeckSpec`, `neckBase`,
- * `neckHead`, `tonesSchema`, `Tones`, `TorsoDraw`, `HeadDraw`, `NeckDraw`, `Character`,
+ * `neckHead`, `tonesSchema`, `Tones`, `TorsoDraw`, `HeadDraw`, `NeckDraw`, `FACE_ANCHOR_NAMES`,
+ * `FaceAnchorName`, `faceAnchorTableSchema`, `FaceAnchorTable`, `FaceAnchors`, `Character`,
  * `characterSchema`.
  */
 import { z } from 'zod';
@@ -96,6 +99,35 @@ export type HeadDraw = (g: Paint2D, env: BrushEnv, view: ViewIndex, face: FaceSt
 /** Custom neck drawing for a view (default: the rig's neck tube from `neckBase` to `neckHead`). */
 export type NeckDraw = (g: Paint2D, env: BrushEnv, view: ViewIndex, neck: NeckSpec) => void;
 
+/** Named face points (validators and face contact read them; c-plus `CHARACTER_CONTRACT.md` §5). */
+export const FACE_ANCHOR_NAMES = ['chin', 'cheek', 'nose', 'mouth', 'ear', 'forehead'] as const;
+
+export type FaceAnchorName = (typeof FACE_ANCHOR_NAMES)[number];
+
+const point2 = z.tuple([num, num]).readonly();
+
+/** Face points of one head view, head-local `[x, y]` (as `HeadDraw`); any of them may be absent. */
+export const faceAnchorTableSchema = z
+  .object({
+    chin: point2.exactOptional(),
+    cheek: point2.exactOptional(),
+    nose: point2.exactOptional(),
+    mouth: point2.exactOptional(),
+    ear: point2.exactOptional(),
+    forehead: point2.exactOptional(),
+  })
+  .readonly();
+
+export type FaceAnchorTable = z.infer<typeof faceAnchorTableSchema>;
+
+/** One face table per head view: front, three-quarter, profile, back. */
+export type FaceAnchors = readonly [
+  FaceAnchorTable,
+  FaceAnchorTable,
+  FaceAnchorTable,
+  FaceAnchorTable,
+];
+
 /** A hand-built person: data plus its view-specific drawings. */
 export interface Character {
   /** kebab-case id (`old-baker`). */
@@ -117,6 +149,8 @@ export interface Character {
   readonly torso: TorsoDraw;
   readonly head: HeadDraw;
   readonly drawNeck?: NeckDraw;
+  /** Head-local face points per head view (optional). */
+  readonly faceAnchors?: FaceAnchors;
 }
 
 const isFunction = (v: unknown): boolean => typeof v === 'function';
@@ -137,6 +171,15 @@ export const characterSchema: z.ZodType<Character> = z
     head: z.custom<HeadDraw>(isFunction, { message: 'head must be a function' }),
     drawNeck: z
       .custom<NeckDraw>(isFunction, { message: 'drawNeck must be a function' })
+      .exactOptional(),
+    faceAnchors: z
+      .tuple([
+        faceAnchorTableSchema,
+        faceAnchorTableSchema,
+        faceAnchorTableSchema,
+        faceAnchorTableSchema,
+      ])
+      .readonly()
       .exactOptional(),
   })
   .readonly();
