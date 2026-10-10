@@ -70,3 +70,13 @@ Topic-neutral wording: it teaches HOW, not Apollo content.
 `pnpm typecheck`, `pnpm lint`, `pnpm test` green; other worlds/fixtures byte-identical;
 `docs/worlds/c-cam-DIRECTION.md` present; PR description lists the schema, validators and
 thresholds and what is NOT done. Do not run real Claude; use fake-claude fixtures.
+
+## Addendum (Papi, 2026-10-11): the opening frame is the thumbnail
+In the prototypes the first frame already was a poster: the episode's MAIN CHARACTERS plus a nicely
+written title plus a background — practically a finished thumbnail. Add to `direction.json` a
+`titleFrame: { cast: id[] (the 1–3 main characters), title (<= 6 words, from the script's own
+framing), background: placeId + why, pose/expression notes per person (acting that sells the
+premise), accentObject }`; the storyboard's FIRST shot must be that title frame (look C
+`ink-poster`, duration 1.5–3 s with the title lettering thud-in) and a validator errors when it is
+missing. The kit helper `ink.titleCard(...)` and the thumbnail export are built in brief 11: use
+it by name in the prompts (agree on the signature in that brief's addendum).

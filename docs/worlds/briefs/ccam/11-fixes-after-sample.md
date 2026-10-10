@@ -47,3 +47,26 @@ These are engineering fixes, independent of brief 09 (direction) and brief 10 (l
 `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:render` (goldens regenerated only where the
 change is intended: list them); other worlds byte-identical; PR description with before/after for
 each item.
+
+## Addendum (Papi, 2026-10-11): captions and the opening frame must look like the prototypes
+The captions of the prototype films (Apollo, papal conclave, samurai) were liked; ours are "a
+tragedy". Reference: `docs/concepts/c-cam-style/films/*/js/timeline.js` (caption pass) and
+`docs/concepts/c-cam-style/docs/01-STYLE_GRAMMAR.md` §9: bold block capitals, bone fill `#e2d8b8`,
+thick ink outline (~11 px at 1080p), 46 px-class size, placed in the lower third, one short line at a
+time, hard cut between lines. The originals use system fonts (Arial Black), which we may not ship:
+reproduce the LOOK with the ink-stroke `poster` face from `packages/kit/src/worlds/c-cam/lettering`
+(heavy strokes, outline drawn as a wider ink ribbon under the bone fill). Match proportions by
+rendering the same sentence next to the prototype's proof frame and comparing; list the numbers you
+chose in the PR. This replaces item 2(a)/(b) wording where they differ; keep 2(c)/(d).
+
+## Addendum: opening frame = a ready thumbnail (also in brief 09 as `titleFrame`)
+The first frame of every prototype was a poster: the main characters of the episode + a nicely
+written title + a background, practically a finished thumbnail. Implement the product side here:
+(1) kit helper `ink.titleCard({ title, subtitle?, cast: [{person, view, pose, expr, x, y, s}],
+place?, accent? })` composing a poster-look frame (look C `ink-poster`) with the ink lettering
+`thud-in` for the title (3 stepped entrance, 12 fps), usable as the opening shot; (2) the export/
+publish step saves the title-frame still (PNG, 1280x720 downscaled from the render at the title's
+settled moment) as `publish/thumbnail.png` when none exists (the project overview already prefers
+an uploaded thumbnail: keep upload priority), and offers it in the overview as "Thumbnail from the
+opening frame"; (3) tests + a golden of a sample title card; document in kit-docs people/places
+topic or a new `title` topic (index < 28 KB).
