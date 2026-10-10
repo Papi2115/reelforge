@@ -96,7 +96,9 @@ export function compositeOverlay(
   for (let offset = 0; offset < overlay.length; offset += 4) {
     if ((overlay[offset + 3] ?? 0) === 0) continue;
     const rgb =
-      ((overlay[offset] ?? 0) << 16) | ((overlay[offset + 1] ?? 0) << 8) | (overlay[offset + 2] ?? 0);
+      ((overlay[offset] ?? 0) << 16) |
+      ((overlay[offset + 1] ?? 0) << 8) |
+      (overlay[offset + 2] ?? 0);
     const color = snap === undefined ? rgb : snap(rgb);
     frame[offset] = (color >> 16) & 255;
     frame[offset + 1] = (color >> 8) & 255;
