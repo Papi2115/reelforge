@@ -58,8 +58,9 @@ palette through the 64³ LUT. With `false`:
   CPU transitions' tone ladder and the asset stylizer (imported pictures are still snapped to the palette; the library builds the LUT
   from the swatches). Live co-direction overlays are copied without a snap.
 - Host passes that map palette colours (reveal palette shift, co-direction `dim`, mood grade, transition tone shifts) only change pixels
-  that are exactly a swatch; other pixels pass through. The palette-only vibe guard (`engine/src/vibe.ts`: `expectVibe`, the cast checks
-  of `reelforge`) does not know the flag yet and would flag a full-colour frame.
+  that are exactly a swatch; other pixels pass through. The palette-only vibe guard (`engine/src/vibe.ts`, the cast checks of
+  `reelforge`) does not know the flag yet and would flag a full-colour frame; the kit render tests' `expectVibe`
+  (`packages/kit/test/support/vibe.ts`) checks only opacity for a full-colour style (PLAN.md#14.2).
 Every existing style keeps the flag absent: its shader source and goldens are byte-identical.
 
 ## Checklist (every world)
@@ -78,7 +79,9 @@ Every existing style keeps the flag absent: its shader source and goldens are by
    it for every built-in style with the world registered.
 7. **Wired**: when the world gets its prompts (`WORLD_PROMPTS` entry) and project defaults (`WORLD_PROJECT_DEFAULTS` entry), set
    `wired: true` in its `defineWorld` and re-read its one-line `STYLE_DESCRIPTIONS` entry (`apps/desktop/src/shared/style-choices.ts`);
-   `packages/stages/src/worlds.test.ts` then requires both entries (and that no registered world is left unwired). Before that the app and the runtime Claude never see the world.
+   `packages/stages/src/worlds.test.ts` then requires both entries and lists the worlds still unwired (today Grim Ink). Before that the
+   app and the runtime Claude never see the world. Project defaults may exist before the world is wired (Grim Ink's 24 fps): only
+   `wired` makes a world offered.
 8. **Ship**: flip `experimental` off on the world and its looks, add `styles/<world-id>/`, a sound palette, the world's row in Project
    settings, a decision-log line in CLAUDE.md §8.
 
@@ -850,3 +853,32 @@ inks), not the set of things a film may contain (DECISIONS.md "PRINCIPLE"). Code
   calendar) are identifiable; single 8-unit sprites (ranger, fish, camels, traders, cars) become 2-3 px dots and the
   village is just bands. Rule for phase 2 (prompts, critic): one hero per shot at size 2-4 or rowH 3, the place carried by
   a scenery playfield or the room shell, never a shot that relies on small sprites to say what it is.
+
+## Grim Ink (c-cam): world skeleton (PLAN.md#14.2)
+Hand-built caricature people in specific, grimy places, an uneven ink line, muddy full colour at native 1080p, acting on twos
+(analysis: `docs/concepts/c-cam-style`). **Experimental and NOT wired**: it renders only with
+`pnpm render:frames -- --scene packages/kit/examples/c-cam/s0_stage.js --preset c-cam --experimental`; the app's style lists,
+Project settings ("in development"), `reelforge validate`, kit-docs and the stages refuse or ignore it, with or without
+Settings → Experimental worlds. No prompts, world assets, shorts or own sound palette yet (the looks reuse `voxel`).
+- **Style** (`style.ts`): id `c-cam`, name "Grim Ink", 1920x1080 (scale 1; export 1080p x1 or 4K x2, 1440p refused as a non-integer
+  factor), `quantize: false`, 28 swatches taken from the C palette (`core.ts` `C`), tokens `shadow` = ink, `text` = bone,
+  `textDim` = linen, `outline` = brownDark, dither spread 0, no outline/AO/scanlines/vignette, a neutral `c-cam` variation budget.
+  The preset schema has no frame rate: the 24 fps is `WORLD_PROJECT_DEFAULTS['c-cam'].fps` (`packages/project/src/world-defaults.ts`,
+  over the template's 30 and the caller's choice). Fonts map to the engine `display`/`mono` only; films draw no `ctx.text`.
+- **Looks**: `ink-scene` (A, the scene), `ink-insert` (B, insert/ECU/document), `ink-poster` (C, poster/title). Each lists the
+  same `kit.fx.inkStage` definition in `kit.fx`, so any one look can be the only one of a project (PLAN.md#14.12).
+- **`kit.fx.inkStage({ size? })`** (`stage.ts`, on the spike's `fx/ink-stage.ts`): one CPU canvas (default the frame size), a
+  nearest-filtered full-frame quad; `stage.paint(t, (g, env) => ...)` repaints it every frame: `reset()` → opaque INK →
+  `save()` → painter → `restore()` → upload. `g` is a frozen `Paint2D` (`stage-surface.ts`) that forwards to the canvas and has
+  no `canvas`, text, images, filters or pixel reads (ADR-004 addendum). `env` (frozen, per frame) = `width`, `height`, `t`, the
+  palette `C`, `time.{twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1}` and `brush.{inkLine, brushStroke, blob, curve}`
+  bound to `g` at zoom 1 (camera and figure space: PLAN.md#14.6). A non-finite `t` or a painter that is not a function throws;
+  `dispose()` (the object's or the kit's) frees the canvas (width and height 0).
+- **Example and goldens**: `packages/kit/examples/c-cam/s0_stage.js` (muddy ground, one ink ribbon that boils on twos, one boulder
+  blob, the INK frame); `packages/kit/test/render/world-ccam-stage.test.ts` (scene lint, goldens `look-ink-scene-stage-t*` at
+  1920x1080 / 24 fps, seek-order and reload determinism).
+- **Files**: `packages/kit/src/worlds/c-cam/{index,style,stage,stage-surface}.ts`, `looks/{ink-scene,ink-insert,ink-poster}/index.ts`,
+  tests `c-cam.test.ts`, `stage.test.ts`; registered last in `WORLDS`.
+- **Checklist status**: 1 style ✓ (`presets.test.ts` checks pass); 2–4 craft brief, references and guards: later tasks
+  (PLAN.md#14.10, #14.13); 5 goldens ✓ (skeleton example only); 6 no-harm ✓ (`worlds.test.ts`, the "unwired" tests of the CLI,
+  desktop and stages name `c-cam`); 7–8 wiring and shipping: not yet.

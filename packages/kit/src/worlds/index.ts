@@ -1,9 +1,10 @@
 /**
  * World registry (PLAN.md#13.1). `WORLDS` lists every world module the kit ships (Sketchbook
- * first, 13.6; Comic, 13.3; Game B2, 13.4; Game B1, 13.5). Their looks join `LOOKS` scoped to the world's style, and the engine
+ * first, 13.6; Comic, 13.3; Game B2, 13.4; Game B1, 13.5; Grim Ink, 14.2, not wired). Their looks join `LOOKS` scoped to the world's style, and the engine
  * registers each world's style preset next to the built-in ones.
  */
 import type { Look } from '../looks/types.js';
+import { C_CAM } from './c-cam/index.js';
 import { COMIC } from './comic/index.js';
 import { GAME_B1 } from './game-b1/index.js';
 import { GAME_B2 } from './game-b2/index.js';
@@ -11,6 +12,7 @@ import { SKETCHBOOK } from './sketchbook/index.js';
 import type { World } from './types.js';
 
 export * from './types.js';
+export { C_CAM_ID } from './c-cam/index.js';
 export { COMIC_ID, COMIC_INKS } from './comic/index.js';
 export { GAME_B1_COLOURS, GAME_B1_ID, GAME_B1_LUTS } from './game-b1/index.js';
 export {
@@ -65,7 +67,7 @@ export {
 } from './generator-docs.js';
 
 /** Every world module, in delivery order. */
-export const WORLDS: readonly World[] = Object.freeze([SKETCHBOOK, COMIC, GAME_B2, GAME_B1]);
+export const WORLDS: readonly World[] = Object.freeze([SKETCHBOOK, COMIC, GAME_B2, GAME_B1, C_CAM]);
 
 /**
  * True when `style` is the style of a registered world that is not wired yet (no prompts or

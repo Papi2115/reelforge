@@ -40,9 +40,9 @@ describe('lookSummaries', () => {
   });
 
   it('lists no looks for a world that is not wired yet, switch or not', () => {
-    // Every registered world is wired today (Game B1 last, PLAN.md#13.5 part c).
+    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired yet.
     const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
-    expect(unwired).toEqual([]);
+    expect(unwired).toEqual(['c-cam']);
     for (const style of unwired) {
       expect(lookSummaries(style, true)).toEqual([]);
       expect(lookSummaries(style, false)).toEqual([]);
@@ -88,11 +88,20 @@ describe('projectStyle', () => {
   });
 
   it('never lets a world that is not wired yet build, and says it is in development', () => {
-    // Every registered world is wired today: none of them is "in development".
-    expect(WORLDS.filter((world) => !world.wired)).toEqual([]);
+    // Grim Ink (c-cam, PLAN.md#14.2) is the only world in development.
+    expect(WORLDS.filter((world) => !world.wired).map((world) => world.id)).toEqual(['c-cam']);
     expect(projectStyle('game-b1', true)).not.toHaveProperty('inDevelopment');
     expect(projectStyle('sketchbook', true)).not.toHaveProperty('inDevelopment');
     expect(projectStyle('comic', true)).not.toHaveProperty('inDevelopment');
     expect(projectStyle('game-b2', true)).not.toHaveProperty('inDevelopment');
+    for (const experimental of [true, false]) {
+      expect(projectStyle('c-cam', experimental)).toMatchObject({
+        label: 'Grim Ink',
+        world: true,
+        preview: true,
+        enabled: false,
+        inDevelopment: true,
+      });
+    }
   });
 });

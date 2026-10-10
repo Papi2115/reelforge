@@ -114,6 +114,15 @@ describe('createInkStage', () => {
     expect(data.length).toBe(4 * 2 * 4);
   });
 
+  it('frees the canvas backing store on dispose (idempotent)', () => {
+    const canvas = fakeCanvas();
+    const stage = createInkStage(tools, OPTIONS, () => canvas);
+    stage.dispose();
+    expect([canvas.width, canvas.height]).toEqual([0, 0]);
+    stage.dispose();
+    expect([canvas.width, canvas.height]).toEqual([0, 0]);
+  });
+
   it('fails clearly without a 2D context or outside a document', () => {
     expect(() => createInkStage(tools, OPTIONS, () => fakeCanvas(false))).toThrow(KitError);
     expect(() => createInkStage(tools, OPTIONS)).toThrow(/no document/);

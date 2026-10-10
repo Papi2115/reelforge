@@ -68,9 +68,10 @@ describe('style choices (PLAN.md#13.6)', () => {
   });
 
   it('never offers a world that is not wired yet, switch or not', () => {
-    // Every registered world is wired today (Game B1 last, PLAN.md#13.5 part c).
+    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired yet.
     const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
-    expect(unwired).toEqual([]);
+    expect(unwired).toEqual(['c-cam']);
+    expect(styleChoices(true).map((choice) => choice.id)).not.toContain('c-cam');
     for (const id of unwired) {
       expect(STYLE_REGISTRY.allIds).toContain(id);
       expect(isOfferedStyle(id, true)).toBe(false);

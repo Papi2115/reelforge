@@ -41,9 +41,9 @@ describe('kit-docs in a world project', () => {
   });
 
   it('never lists the looks of a world that is not wired yet, switch or not', () => {
-    // Every registered world is wired today (Game B1 last, PLAN.md#13.5 part c).
+    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired yet.
     const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
-    expect(unwired).toEqual([]);
+    expect(unwired).toEqual(['c-cam']);
     for (const style of unwired) {
       expect(kitDocsScope(style, true)).toEqual({ style });
       expect(kitCatalog([], LOOKS, kitDocsScope(style, true)).looks).toEqual([]);

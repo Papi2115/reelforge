@@ -194,7 +194,7 @@ async function templateProject(
   // The preset's patch leaves out the explicit choices, so it only replaces defaults (ADR-035).
   const preset = await genrePresetPatch(options);
   if (!preset.ok) return preset;
-  // A world's style brings its film language (world-defaults.ts); built-in styles: nothing.
+  // A world's style brings its film language and, if it sets one, its fps (world-defaults.ts).
   const merged: Record<string, unknown> = { ...base, ...choices, ...preset.value };
   const mergedStyle = merged['style'];
   const world = typeof mergedStyle === 'string' ? worldProjectDefaults(mergedStyle) : undefined;

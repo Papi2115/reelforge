@@ -93,7 +93,7 @@ describe('shorts support and captions', () => {
     for (const style of ['voxel-pixel-crisp640', 'noir-voxel', 'soft-480', 'comic']) {
       expect(supportsShorts(style), style).toBe(true);
     }
-    for (const style of ['sketchbook', 'game-b1', 'game-b2']) {
+    for (const style of ['sketchbook', 'game-b1', 'game-b2', 'c-cam']) {
       expect(supportsShorts(style), style).toBe(false);
     }
   });
