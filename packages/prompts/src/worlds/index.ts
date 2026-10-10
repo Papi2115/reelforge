@@ -10,6 +10,7 @@ import {
   storyboardContinuityVars,
   storyboardMomentVars,
 } from './moment-vars.js';
+import { C_CAM_PROMPTS } from './c-cam.js';
 import { COMIC_PROMPTS } from './comic.js';
 import { GAME_B1_PROMPTS } from './game-b1.js';
 import { GAME_B2_PROMPTS } from './game-b2.js';
@@ -27,6 +28,17 @@ import { paceContinuityBudget, type WorldPace } from './pace.js';
 export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from './types.js';
 export type { WorldPace } from './pace.js';
 export { worldMomentOption } from './moment-vars.js';
+export {
+  C_CAM_API,
+  C_CAM_CAST_TAG,
+  C_CAM_MODULE_TOPICS,
+  C_CAM_PLACE_TAG,
+  C_CAM_SNIPPETS,
+  C_CAM_TEXT_METHODS,
+  C_CAM_TOPICS,
+  type CCamSnippet,
+  type CCamTopic,
+} from './c-cam-api.js';
 export { COMIC_SNIPPETS, type ComicSnippet } from './comic-snippets.js';
 export { GAME_B1_SNIPPETS, type GameB1Snippet } from './game-b1-snippets.js';
 export { GAME_B2_SNIPPETS, type GameB2Snippet } from './game-b2-snippets.js';
@@ -46,6 +58,8 @@ export const WORLD_PROMPTS: Readonly<Record<string, WorldPromptText>> = Object.f
   comic: COMIC_PROMPTS,
   'game-b2': GAME_B2_PROMPTS,
   'game-b1': GAME_B1_PROMPTS,
+  // Grim Ink: prompts ready, the world is not wired yet (PLAN.md#14.10, #14.12).
+  'c-cam': C_CAM_PROMPTS,
 });
 
 /** The prompt texts of a world (undefined for every other style). */

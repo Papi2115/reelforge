@@ -7,6 +7,7 @@
 import type { AnyNode } from 'acorn';
 import type { QaFinding, Transition } from '@reelforge/shared';
 import type { BreakthroughKinds } from './breakthrough-intent.js';
+import { C_CAM_SLOP } from './c-cam-labels.js';
 import { comicShowcaseFindings, panelBreakMechanism } from './comic-breakthroughs.js';
 import { comicFlowFilmFindings, comicFlowSourceFindings } from './comic-flow.js';
 import { GAME_B1_SLOP } from './game-b1-labels.js';
@@ -238,6 +239,7 @@ const SPECS: Readonly<Record<string, WorldSlopSpec>> = {
   comic: COMIC,
   'game-b2': GAME_B2_SLOP,
   'game-b1': GAME_B1_SLOP,
+  'c-cam': C_CAM_SLOP,
 };
 
 export function worldSlopSpec(worldId: string | undefined): WorldSlopSpec | undefined {

@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { ambientShotSchema, ambientVariationSettingsSchema } from './ambient-variation.js';
 import { assetIdSchema, assetMimeSchema } from './assets.js';
 import { manifestCastRolesSchema } from './cast-roles.js';
-import { kitExtensionSchema } from './kit-extensions.js';
+import { kitExtensionKind, kitExtensionSchema } from './kit-extensions.js';
 import { shotDirectionSchema } from './live-direction.js';
 import { paletteSchema } from './palette.js';
 import { shotIdSchema, transitionSchema } from './storyboard.js';
@@ -125,7 +125,10 @@ export const renderManifestSchema = z
      * spoken `words` over every shot. Absent = off (every manifest made before Shorts).
      */
     captions: z.boolean().optional(),
-    /** Project-local props (`kit-ext/props/*.js`), registered before any scene is built. */
+    /**
+     * Project modules registered before any scene is built: props (`kit-ext/props/*.js`) and the
+     * Grim Ink world's people / places (`kit-ext/people|places/*.js`, `kind`, PLAN.md#14.8).
+     */
     kitExtensions: z.array(kitExtensionSchema).optional(),
     /**
      * Project roles and accessory extensions (`characters/`, PLAN.md#12.20, ADR-026), resolved by
@@ -155,16 +158,19 @@ export const renderManifestSchema = z
       }
       refs.add(asset.ref);
     });
+    // Names are unique per kind (a prop and a person may share one).
     const names = new Set<string>();
     (manifest.kitExtensions ?? []).forEach((extension, index) => {
-      if (names.has(extension.name)) {
+      const kind = kitExtensionKind(extension);
+      const key = kind === 'props' ? extension.name : `${kind}/${extension.name}`;
+      if (names.has(key)) {
         issues.addIssue({
           code: 'custom',
-          message: `duplicate kit extension "${extension.name}"`,
+          message: `duplicate kit extension "${key}"`,
           path: ['kitExtensions', index, 'name'],
         });
       }
-      names.add(extension.name);
+      names.add(key);
     });
     const seen = new Set<string>();
     manifest.shots.forEach((shot, index) => {

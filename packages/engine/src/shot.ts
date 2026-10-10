@@ -5,6 +5,7 @@
 import {
   createKit,
   type AmbientVariation,
+  type InkModules,
   type KitDefinition,
   type ProjectCast,
 } from '@reelforge/kit';
@@ -59,6 +60,8 @@ export interface ShotInput {
   readonly resolveAnchor: AnchorResolver;
   /** Project props (manifest `kitExtensions`), registered as ctx.kit.props.<name>. */
   readonly kitExtensions?: readonly KitDefinition[] | undefined;
+  /** People and places (manifest `kitExtensions` of kind people / places), c-cam shots only. */
+  readonly inkModules?: InkModules | undefined;
   /** Project roles (manifest `castRoles`), resolved by id in ctx.kit.cast. */
   readonly cast?: ProjectCast | undefined;
   /** Ambient variation of the shot (PLAN.md#12.8); absent = the scene exactly as authored. */
@@ -226,6 +229,7 @@ export function buildShot(input: ShotInput): BuiltShot {
     palette,
     rng: createRng(hashString('kit', seed)),
     extraProps: input.kitExtensions,
+    inkModules: input.inkModules,
     cast: input.cast,
     variation: input.ambient,
     style: input.styleId,

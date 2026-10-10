@@ -37,6 +37,14 @@ import type { KitPalette, KitRng } from './types.js';
 import type { AmbientVariation } from './variation/types.js';
 import { createVoxelApi, VOXEL_API_DOCS, type ApiDoc, type VoxelApi } from './voxel/api.js';
 import { KIT_VERSION } from './version.js';
+import {
+  createInkModulesApi,
+  type InkModules,
+  type InkPerson,
+  type InkPlace,
+  type InkRegistry,
+} from './worlds/c-cam/modules/index.js';
+import { C_CAM_ID } from './worlds/c-cam/style.js';
 
 /** `ctx.kit` as scenes see it. */
 export interface KitApi {
@@ -52,6 +60,10 @@ export interface KitApi {
   readonly fx: BoundRegistry<typeof FX_DEFINITIONS> & BoundRegistry<typeof APP_FX_DEFINITIONS>;
   /** The character pack (mascots, cast, mannequin, role specs; voxel look). */
   readonly cast: CastApi;
+  /** The project's people (`kit-ext/people`, PLAN.md#14.8); Grim Ink (`c-cam`) shots only. */
+  readonly people?: InkRegistry<InkPerson>;
+  /** The project's places (`kit-ext/places`, PLAN.md#14.8); Grim Ink (`c-cam`) shots only. */
+  readonly places?: InkRegistry<InkPlace>;
 }
 
 export interface KitOptions {
@@ -71,6 +83,12 @@ export interface KitOptions {
    * `kit.cast.person/role/spec`. Absent = the pack only.
    */
   readonly cast?: ProjectCast | undefined;
+  /**
+   * The project's people and places (PLAN.md#14.8): bound as `kit.people` / `kit.places` when
+   * `style` is the Grim Ink world's (`c-cam`, even with none: unknown ids then explain); ignored
+   * in every other style.
+   */
+  readonly inkModules?: InkModules | undefined;
   /**
    * Look modules (default: LOOKS). The available ones other than voxel add their definitions
    * next to the kit's own (`kit.env/props/fx.<name>`); with only voxel available (today) the
@@ -160,7 +178,8 @@ export function createKit(options: KitOptions): KitHandle {
     bindRegistry(context, voxel, castDefinitions(options.cast), 'cast'),
     options.cast,
   );
-  const api: KitApi = Object.freeze({ version: KIT_VERSION, voxel, env, props, fx, cast });
+  const ink = options.style === C_CAM_ID ? createInkModulesApi(options.inkModules) : {};
+  const api: KitApi = Object.freeze({ version: KIT_VERSION, voxel, env, props, fx, cast, ...ink });
   return {
     api,
     seal() {

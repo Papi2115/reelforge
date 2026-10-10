@@ -103,27 +103,38 @@ function anchorInputs(
 }
 
 /**
- * Project props (`kitExtensions`) a scene may call: those whose name it mentions, or all of them
- * when it indexes `props[...]` dynamically. Undefined without project props (keys unchanged).
+ * Project modules (`kitExtensions`) a scene may call: those whose name it mentions, or all of a
+ * kind when it indexes `props[...]` / `people[...]` / `places[...]` dynamically (people and places
+ * also by their kebab-case spelling). Props keep `{ name, source }` (keys of earlier manifests
+ * unchanged); people and places add their `kind`. Undefined without project modules.
  */
 export function kitExtensionInputs(
   source: string,
   extensions: RenderManifest['kitExtensions'],
-): { name: string; source: string }[] | undefined {
+): { name: string; source: string; kind?: string }[] | undefined {
   if (extensions === undefined || extensions.length === 0) return undefined;
   return calledExtensions(source, extensions).map((extension) => ({
     name: extension.name,
     source: sha256Hex(extension.source),
+    ...(extension.kind === undefined || extension.kind === 'props' ? {} : { kind: extension.kind }),
   }));
 }
 
 type KitExtensions = NonNullable<RenderManifest['kitExtensions']>;
 
+/** `nightBaker` -> `night-baker`. */
+function kebab(name: string): string {
+  return name.replaceAll(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+}
+
 function calledExtensions(source: string, extensions: KitExtensions): KitExtensions {
-  const dynamic = /\bprops\s*\[/.test(source);
-  return extensions.filter(
-    (extension) => dynamic || new RegExp(`\\b${extension.name}\\b`).test(source),
-  );
+  const dynamic = (kind: string): boolean => new RegExp(String.raw`\b${kind}\s*\[`).test(source);
+  const named = (name: string): boolean => new RegExp(String.raw`\b${name}\b`).test(source);
+  return extensions.filter((extension) => {
+    const kind = extension.kind ?? 'props';
+    if (dynamic(kind) || named(extension.name)) return true;
+    return kind !== 'props' && source.includes(kebab(extension.name));
+  });
 }
 
 type CastFiles = NonNullable<RenderManifest['castRoles']>['roles'];

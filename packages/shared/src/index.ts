@@ -17,6 +17,7 @@ export * from './final-review.js';
 export * from './genre-preset-apply.js';
 export * from './genre-presets.js';
 export * from './hook-lab.js';
+export * from './ink-modules.js';
 export * from './interrupts.js';
 export * from './kit-extensions.js';
 export * from './live-direction.js';

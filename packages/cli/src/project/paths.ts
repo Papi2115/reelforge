@@ -19,6 +19,9 @@ export const PROJECT_PATHS = {
   words: 'timing/words.json',
   scenes: 'scenes',
   kitExtProps: 'kit-ext/props',
+  /** Grim Ink people / places modules (PLAN.md#14.8). */
+  kitExtPeople: 'kit-ext/people',
+  kitExtPlaces: 'kit-ext/places',
   audio: 'audio',
   voClean: 'audio/vo.clean.wav',
   mix: 'audio/mix.wav',

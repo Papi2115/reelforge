@@ -13,17 +13,19 @@ import {
   type KitCatalogEntry,
   type ProjectCast,
 } from '@reelforge/kit';
-import { projectFileSchema, type LookMode } from '@reelforge/shared';
+import { KIT_EXT_PROPS_DIR, projectFileSchema, type LookMode } from '@reelforge/shared';
 import { COMMON_OPTIONS, parseCommandArgs, parseInteger } from '../args.js';
 import { result, type Command } from '../command.js';
 import { UsageError } from '../errors.js';
 import { readCastRoles } from '../project/cast-roles.js';
 import { checkJsonFile } from '../project/files.js';
-import { readKitExtensions } from '../project/kit-ext.js';
+import { extensionsOfKind, readKitExtensions } from '../project/kit-ext.js';
 import { readWorldAssetFiles, worldAssetSet } from '../project/world-assets.js';
 import { PROJECT_PATHS } from '../project/paths.js';
 import { projectCastOf } from './cast-preview.js';
 import { CTX_TOPICS, describeCtxTopic } from './ctx-docs.js';
+import { C_CAM_TOPIC_NAMES, describeCCamTopic } from './kit-docs-c-cam.js';
+import { describeInkModulesTopic, INK_MODULE_TOPICS } from './kit-docs-c-cam-people.js';
 import { CHARACTERS_TOPIC, describeCharacters } from './kit-docs-characters.js';
 import { describeGenerators, generatorsTopic, GENERATORS_TOPIC } from './kit-docs-generators.js';
 import { formatCatalog } from './kit-docs-index.js';
@@ -118,6 +120,8 @@ function unknownName(catalog: KitCatalog, input: string, name: string): UsageErr
     CHARACTERS_TOPIC,
     WORLD_ASSETS_TOPIC,
     GENERATORS_TOPIC,
+    ...C_CAM_TOPIC_NAMES,
+    ...INK_MODULE_TOPICS,
   ];
   const bare = name.split('.').at(-1) ?? name;
   const guesses = suggestNames(bare, known);
@@ -144,6 +148,10 @@ export function describeKitName(
   options: DescribeOptions = {},
 ): string {
   if (input === PROP_MODULE_TOPIC) return propModuleDocs();
+  const inkModules = describeInkModulesTopic(input);
+  if (inkModules !== undefined) return inkModules;
+  const grimInk = describeCCamTopic(input);
+  if (grimInk !== undefined) return grimInk;
   if (input === WORLD_ASSETS_TOPIC)
     return describeWorldAssets(options.style, options.worldAssetIds);
   const generators = generatorsTopic(input);
@@ -180,10 +188,12 @@ export async function projectProps(
 ): Promise<{ entries: KitCatalogEntry[]; problems: string[] }> {
   const files = await readKitExtensions(root);
   const entries: KitCatalogEntry[] = [];
-  const problems = files.ignored.map(
-    (file) => `ignored: ${file} (prop file names are camelCase, e.g. kit-ext/props/fileIcon.js)`,
-  );
-  for (const extension of files.extensions) {
+  const problems = files.ignored
+    .filter((file) => file.startsWith(`${KIT_EXT_PROPS_DIR}/`))
+    .map(
+      (file) => `ignored: ${file} (prop file names are camelCase, e.g. kit-ext/props/fileIcon.js)`,
+    );
+  for (const extension of extensionsOfKind(files.extensions, 'props')) {
     const meta = extractPropMeta(extension.source, extension.file);
     if (meta.ok && meta.meta.name === extension.name) {
       entries.push(propExtensionCatalogEntry(meta.meta));

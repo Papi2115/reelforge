@@ -79,6 +79,11 @@ export interface WorldPromptText {
    * non-cut budget, denser continuity links, the dry-run check. Absent = the defaults.
    */
   readonly pace?: WorldPace;
+  /**
+   * The world has no page-native transitions (Grim Ink: hard cuts between shots, the camera cuts
+   * inside them): the storyboard is never asked for distinct transition styles. Absent = it is.
+   */
+  readonly cutsOnly?: boolean;
 }
 
 /** One framing of a shot (storyboard `worldView`): where it starts and ends, room or screen. */

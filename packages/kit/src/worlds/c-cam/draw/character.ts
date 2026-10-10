@@ -56,6 +56,8 @@ export const rigDimsSchema = z
     hsz: z.number().positive(),
     /** Face-guard box; without it hands may cross the face (crowds). */
     head: headBoxSchema.optional(),
+    /** Neck gap: how far the shoulders must sit below the chin (validators; default 6). */
+    neckGap: z.number().nonnegative().optional(),
   })
   .readonly();
 
@@ -155,31 +157,39 @@ export interface Character {
 
 const isFunction = (v: unknown): boolean => typeof v === 'function';
 
+/**
+ * The data fields of a `Character` (everything but the drawings). The id is kebab-case or, for
+ * project people modules (PLAN.md#14.8, `kit.people.<id>`), camelCase.
+ */
+export const characterDataShape = {
+  id: z.string().regex(/^[a-z][a-zA-Z0-9]*(?:-[a-z0-9]+)*$/),
+  name: z.string().min(1),
+  D: rigDimsSchema,
+  neck: z.tuple([neckSpecSchema, neckSpecSchema, neckSpecSchema, neckSpecSchema]).readonly(),
+  headScale: z.number().positive(),
+  seed: num,
+  tones: tonesSchema,
+  arm: armStyleSchema,
+  leg: legStyleSchema,
+  defaultExpr: z.string().min(1).exactOptional(),
+  faceAnchors: z
+    .tuple([
+      faceAnchorTableSchema,
+      faceAnchorTableSchema,
+      faceAnchorTableSchema,
+      faceAnchorTableSchema,
+    ])
+    .readonly()
+    .exactOptional(),
+} as const;
+
 export const characterSchema: z.ZodType<Character> = z
   .object({
-    id: z.string().regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/),
-    name: z.string().min(1),
-    D: rigDimsSchema,
-    neck: z.tuple([neckSpecSchema, neckSpecSchema, neckSpecSchema, neckSpecSchema]).readonly(),
-    headScale: z.number().positive(),
-    seed: num,
-    tones: tonesSchema,
-    arm: armStyleSchema,
-    leg: legStyleSchema,
-    defaultExpr: z.string().min(1).exactOptional(),
+    ...characterDataShape,
     torso: z.custom<TorsoDraw>(isFunction, { message: 'torso must be a function' }),
     head: z.custom<HeadDraw>(isFunction, { message: 'head must be a function' }),
     drawNeck: z
       .custom<NeckDraw>(isFunction, { message: 'drawNeck must be a function' })
-      .exactOptional(),
-    faceAnchors: z
-      .tuple([
-        faceAnchorTableSchema,
-        faceAnchorTableSchema,
-        faceAnchorTableSchema,
-        faceAnchorTableSchema,
-      ])
-      .readonly()
       .exactOptional(),
   })
   .readonly();

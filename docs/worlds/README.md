@@ -859,7 +859,7 @@ Hand-built caricature people in specific, grimy places, an uneven ink line, mudd
 (analysis: `docs/concepts/c-cam-style`). **Experimental and NOT wired**: it renders only with
 `pnpm render:frames -- --scene packages/kit/examples/c-cam/s0_stage.js --preset c-cam --experimental`; the app's style lists,
 Project settings ("in development"), `reelforge validate`, kit-docs and the stages refuse or ignore it, with or without
-Settings → Experimental worlds. No prompts, world assets, shorts or own sound palette yet (the looks reuse `voxel`).
+Settings → Experimental worlds. No world assets, shorts or own sound palette yet (the looks reuse `voxel`); its prompts are ready but unused (below, PLAN.md#14.10).
 - **Style** (`style.ts`): id `c-cam`, name "Grim Ink", 1920x1080 (scale 1; export 1080p x1 or 4K x2, 1440p refused as a non-integer
   factor), `quantize: false`, 28 swatches taken from the C palette (`core.ts` `C`), tokens `shadow` = ink, `text` = bone,
   `textDim` = linen, `outline` = brownDark, dither spread 0, no outline/AO/scanlines/vignette, a neutral `c-cam` variation budget.
@@ -882,3 +882,73 @@ Settings → Experimental worlds. No prompts, world assets, shorts or own sound 
 - **Checklist status**: 1 style ✓ (`presets.test.ts` checks pass); 2–4 craft brief, references and guards: later tasks
   (PLAN.md#14.10, #14.13); 5 goldens ✓ (skeleton example only); 6 no-harm ✓ (`worlds.test.ts`, the "unwired" tests of the CLI,
   desktop and stages name `c-cam`); 7–8 wiring and shipping: not yet.
+
+## Grim Ink (c-cam): prompts and docs (PLAN.md#14.10)
+The world's wording for the runtime Claude, ready before the world is wired (PLAN.md#14.12 sets `wired: true`); until then no
+stage, guard or kit-docs index uses it, and every other world's prompts stay byte-identical (their fixtures).
+- **One API list**: `packages/prompts/src/worlds/c-cam-api.ts` names the scene API once (`C_CAM_API`, `C_CAM_SNIPPETS`,
+  `C_CAM_TOPICS`, `C_CAM_TEXT_METHODS`, the storyboard's `cast:` / `place:` tags); the prompts, the kit-docs topics and the
+  anti-slop hooks read it. Real today: `ctx.kit.fx.inkStage()`, `stage.paint(t, (g, env) => …)`, `env.C`, `env.time.*`,
+  `env.brush.*` (zoom 1). Bound when wired: `env.ink.*` = the kit's C-CAM draw functions with their own signatures
+  (`applyCamera`/`resolveCut`, `blob`, `inkLine`, `stain`, `pool`, `fgScreen`, `silhouette`, `pose`, `exprAt`, `palmWorld`,
+  `reachPalm`, `drawFigure`, `drawText`, `posterLayers`, `thudScale`, …) and the project modules `kit-ext/people/<id>.js` /
+  `kit-ext/places/<id>.js` as `ctx.kit.people.<id>` / `ctx.kit.places.<id>` (PLAN.md#14.8, section below:
+  `person.draw(g, env, { x, y, s, view, pose: person.pose(name, ph), expr, t })`, `place.draw(g, env, t, { light: true })`).
+  A rename is one edit there.
+- **Prompts** (`packages/prompts/src/worlds/c-cam.ts`, `WORLD_PROMPTS['c-cam']`): the storyboard plans a cast of 2–5 roles
+  (camelCase ids = the module file names, introduced once with a one-line brief: job, exaggeration axis, loud prop) and a place
+  id per setting, as tags at the start of each intent (`cast: nightPorter (…)`, `place: boilerRoom`; no `newRoles`, PLAN.md#14.11
+  reads the tags); A `ink-scene` = the scene (2–5 framings cut on the beats), B `ink-insert` = the extreme close-up of the named
+  thing, C `ink-poster` = title / the line; hard cuts between shots (`cutsOnly`: no page-transition styles are asked for). The
+  scene-build design process: nouns → the film's people and places by id → the cut table from the anchors → contacts in world
+  space before the camera → draw order (camera, place, pool, props, people back to front, foreground, screen silhouettes) →
+  every framing checked. Craft brief 1.4 KB (≤ 1.5 KB, tested); critic checklist (focal point per framing, one exaggeration
+  axis, hands on things, jaw, pool behind, one accent, coverage, tilt only on tense beats, ink lettering, traces, slop tells).
+- **Moments** (`c-cam-moments.ts`): breakthroughs `reverse` (A, ≥ 3.5 s: a hard cut to the other side of one place that
+  reveals what the narration says) and `poster` (C, ≥ 2.5 s: the line the film turns on, ≤ 6 words, thudding in on one emblem);
+  moments `insert` (B, ≥ 1.5 s) and `over-shoulder` (A, ≥ 3 s). Each needs its claim in the intent (scene: a first comment
+  `// moment: <id> | intent: …`), never the same mechanism twice; the generic variety rules apply (≈ 1 breakthrough per 50 s,
+  two kinds, never adjacent, one kind per 90 s).
+- **kit-docs topics** (`packages/cli/src/commands/kit-docs-c-cam.ts`): `grim-ink` (index), `ink-stage`, `ink-brushes`,
+  `ink-faces`, `ink-rig`, `ink-camera`, `ink-lettering`, each < 6,000 characters (the module format: `people`, `places`,
+  PLAN.md#14.8); word lists (views, poses,
+  expressions, hands, cut eases, zoom, roll, lettering faces, palette) come from the kit's `C_CAM_VOCABULARY`. The world's
+  index with its looks on stays < 28 KB (`kit-docs-c-cam.test.ts`). The look docs point at these topics.
+- **Anti-slop hooks** (`packages/stages/src/slop/c-cam-labels.ts`): traces = member calls `stain`, `peel`, `crack`, `puddle`,
+  `flies`, `silhouette`, `fgWorld`, `exprAt` (capped) and the options `rot`, `headDy`, `lean`, `bow`; text = `drawText`,
+  `layoutText`, `wrapText` (string first); labels of signs and stamps (`open`, `closed`, `exit`, `paid`, `sold`, …).
+  Calibration on the fixture film is PLAN.md#14.12. Critic look rules for the three looks in `packages/stages/src/looks.ts`.
+- **Style bible**: `docs/worlds/c-cam-STYLE.md` (the STYLE.md equivalent; moves to `styles/c-cam/STYLE.md` when the world ships).
+- **Bias tests**: `packages/prompts/src/c-cam-bias.test.ts` (no noun of the three showcase films in any rendered prompt) and the
+  c-cam block of `packages/stages/src/world-bias-lookdocs.test.ts` (the kit's look docs and critic rules).
+
+## Grim Ink (c-cam): people and places modules (PLAN.md#14.8)
+Every film hand-builds its own people and places (grammar: always new people, no generator). They live in the project as
+plain ES modules without imports, loaded like project props (`kit-ext/props`, PLAN.md#7.4) and bound in Grim Ink shots only.
+- **Files**: `kit-ext/people/<id>.js` (`export const person = { ... }`) and `kit-ext/places/<id>.js` (`export const place = { ... }`);
+  ids camelCase = the file name. Read by `readKitExtensions` (`packages/cli/src/project/kit-ext.ts`) into the manifest's
+  `kitExtensions` with `kind: 'people' | 'places'` (props keep no `kind`, so earlier manifests and export cache keys are
+  unchanged); names are unique per kind. Limits (`INK_MODULE_LIMITS`, `packages/shared/src/ink-modules.ts`): 24 modules per kind,
+  64 KB and 250 lines per file.
+- **Contract** (`packages/kit/src/worlds/c-cam/modules/contract.ts`, zod): a person is the rig's `Character` data (`id`, `name`,
+  `D`, `neck`, `headScale`, `seed`, `tones`, `arm`, `leg`, `defaultExpr?`, `faceAnchors?`) plus `torso(g, ink, view)`,
+  `head(g, ink, view, face)`, `drawNeck?(g, ink, view, neck)`; a place is `id`, `name`, `bounds: [w, h]`, `light?: { x, y, rx, ry,
+  color, alpha }` (one stepped pool), `anchors?: { name: [x, y] }`, `collide?: [[x, y, w, h]]` plus `draw(g, ink, t)`. `ink`
+  (`ink-tools.ts`) = the brush env of the moment (`zoom`, `lw`), the palette `C`, the pure time helpers and the ported brushes
+  bound to `g` (lines, blobs, tubes, scenery, grime, face parts).
+- **Scenes** (`kit.people` / `kit.places`, `registry.ts`, only when the style is `c-cam`): `kit.people.<id>.draw(g, env, { x, y, s,
+  view, pose, ph, expr, t, lean, bow, headYaw, headDy, talk, look, layer, beforeHand, after })` draws through `drawFigure`;
+  `.pose(name, ph, over)`, `.D`, `.character`. `kit.places.<id>.draw(g, env, t, { light })`, `.anchor(name)`, `.bounds`, `.light`,
+  `.collide`. An unknown id throws a KitError listing the defined ids; a kebab-case spelling reads the camelCase module.
+- **Engine** (`packages/engine/src/kit-extensions.ts` `loadProjectModules`): imports people/places only for the `c-cam` style;
+  contract errors are `kit-extension` engine errors. Lint (`lint/lint-ink-module.ts`, chosen by path in `lintModule` and by
+  `kind` in the manifest lint): scene determinism rules, no module state written by functions, the contract (literal `id`/`name`
+  = file name, required functions, literal data validated by the kit schema) and the ink grammar (`ink-grammar`: no
+  `fillText`/fonts, gradients, patterns, filters, shadows, images or pixel reads), at most 250 lines.
+- **Previews**: `reelforge people-preview <id>` (page 1: the six ring views x stand / akimbo / walk; page 2: the 14 faces) and
+  `reelforge places-preview <id>` (wide, x2 on the light, x3.2 on the first anchor): a generated scene on the world's ink stage,
+  rendered by the same engine as the scenes (`.reelforge/frames/<kind>/<id>/sheet.png`), checks: lint, pages not blank, the
+  first page identical when rendered again. Docs: `reelforge kit-docs people` / `kit-docs places`.
+- **Examples and goldens**: `packages/kit/examples/c-cam/people/nightBaker.js`, `.../places/bakeryBackRoom.js`; render test
+  `packages/kit/test/render/ccam-modules.test.ts` (goldens `ccam-person-sheet-p{0,1}`, `ccam-place-sheet-p0`; the other two
+  framings checked non-blank; Chromium canvas) and `packages/cli/test/render/ink-preview.test.ts` (both CLI previews through the engine).

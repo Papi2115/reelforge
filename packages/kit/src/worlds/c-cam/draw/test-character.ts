@@ -36,7 +36,8 @@ export const WARDEN_DIMS: RigDims = {
   top: -805,
   waist: [70, -400],
   hsz: 38,
-  head: { x: [0, 22, 40, 0], top: -805, bottom: -588, hw: 70 },
+  // bottom = the lowest measured chin (jaw shut), x[1] = the measured 3/4 head centre (PLAN.md#14.13)
+  head: { x: [0, 17, 40, 0], top: -805, bottom: -579, hw: 70 },
 };
 
 /** Coat outline per view (figure space); every one contains the projected shoulder joints. */

@@ -2,8 +2,10 @@
  * Lints every scene (and project prop) of a render manifest; used to reject broken modules before
  * they are loaded.
  */
-import type { RenderManifest, SceneSource } from '@reelforge/shared';
+import { C_CAM_ID } from '@reelforge/kit';
+import { kitExtensionKind, type RenderManifest, type SceneSource } from '@reelforge/shared';
 import { formatDiagnostics, hasErrors, type LintDiagnostic } from './diagnostics.js';
+import { lintInkModule } from './lint-ink-module.js';
 import { lintPropModule } from './lint-prop.js';
 import { lintScene } from './lint-scene.js';
 
@@ -26,13 +28,31 @@ export function lintManifestScenes(manifest: RenderManifest): SceneLintResult[] 
   return manifest.shots.map((shot) => lintShotScene(shot.id, shot.scene));
 }
 
-/** Prop-mode lint of the manifest's project props (`shotId` is `kit-ext:<name>`). */
+/**
+ * Module-mode lint of the manifest's project modules (`shotId` is `kit-ext:<name>` for props,
+ * `kit-ext:<kind>/<id>` for people / places).
+ */
 export function lintManifestKitExtensions(manifest: RenderManifest): SceneLintResult[] {
-  return (manifest.kitExtensions ?? []).map((extension) => ({
-    shotId: `kit-ext:${extension.name}`,
-    file: extension.file,
-    diagnostics: lintPropModule(extension.source, { filename: extension.file }),
-  }));
+  // People and places load only in the Grim Ink style (kit-extensions.ts); elsewhere unread.
+  const ink = manifest.style === C_CAM_ID;
+  const modules = (manifest.kitExtensions ?? []).filter(
+    (extension) => ink || kitExtensionKind(extension) === 'props',
+  );
+  return modules.map((extension) => {
+    const kind = kitExtensionKind(extension);
+    const options = { filename: extension.file };
+    return kind === 'props'
+      ? {
+          shotId: `kit-ext:${extension.name}`,
+          file: extension.file,
+          diagnostics: lintPropModule(extension.source, options),
+        }
+      : {
+          shotId: `kit-ext:${kind}/${extension.name}`,
+          file: extension.file,
+          diagnostics: lintInkModule(extension.source, options, kind),
+        };
+  });
 }
 
 /** Text of all error-level diagnostics, or undefined when every scene passes. */

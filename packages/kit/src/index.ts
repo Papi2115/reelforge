@@ -155,3 +155,4 @@ export {
 } from './voxel/model.js';
 export * from './voxel/ops.js';
 export * from './worlds/index.js';
+export * from './worlds/c-cam/modules/index.js';
