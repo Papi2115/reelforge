@@ -1,7 +1,15 @@
 import { PALETTE_TOKENS } from '@reelforge/shared';
+import type { StylePreset } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { EngineError } from './errors.js';
-import { DEFAULT_STYLE_ID, findStylePreset, STYLE_PRESET_IDS } from './presets/index.js';
+import {
+  BUILT_IN_STYLE_PRESETS,
+  createStyleRegistry,
+  DEFAULT_STYLE_ID,
+  findStylePreset,
+  STYLE_PRESET_IDS,
+} from './presets/index.js';
+import { postFragmentShader } from './gl/post-shader.js';
 import { resolveStyle, scanlineFactor, vignetteFactor } from './style.js';
 
 /** Export size: every preset must upscale to it by an integer factor (ffmpeg `neighbor`). */
@@ -35,7 +43,7 @@ describe('resolveStyle', () => {
     expect(style.palette.sky).toBe(style.palette['navy']);
     expect(style.post.dither).toEqual({ size: 4, spread: 0.12 });
     expect(style.post.outline?.color).toEqual([5 / 255, 6 / 255, 15 / 255]);
-    expect(style.post.lut.palette).toHaveLength(22);
+    expect(style.post.lut?.palette).toHaveLength(22);
   });
 
   it('resolves another preset with its own post-fx', () => {
@@ -49,7 +57,7 @@ describe('resolveStyle', () => {
     const style = resolveStyle({ palette: { navy: '#000022', wood: '#7a4a2a' } });
     expect(style.palette.sky).toBe('#000022');
     expect(style.palette['wood']).toBe('#7a4a2a');
-    expect(style.post.lut.palette).toHaveLength(23);
+    expect(style.post.lut?.palette).toHaveLength(23);
   });
 
   it('rejects unknown styles, size mismatches and token-named overrides', () => {
@@ -91,5 +99,44 @@ describe('screen-space post-fx references', () => {
       scanlineFactor(y, { period: 3, strength: 0.25 }),
     );
     expect(rows).toEqual([1, 1, 0.75, 1, 1, 0.75]);
+  });
+});
+
+describe('full-colour styles (quantize: false)', () => {
+  const base = findStylePreset('soft-480');
+  if (!base) throw new Error('missing soft-480');
+  const fullColour: StylePreset = { ...base, id: 'full-colour-test', quantize: false };
+  const registry = createStyleRegistry([...BUILT_IN_STYLE_PRESETS, fullColour], []);
+
+  it('quantizes unless the preset opts out', () => {
+    for (const id of STYLE_PRESET_IDS) expect(resolveStyle({ style: id }).post.lut).toBeDefined();
+    expect(resolveStyle({ style: fullColour.id }, registry).post.lut).toBeUndefined();
+  });
+
+  it('keeps the palette for the scene tokens', () => {
+    const style = resolveStyle({ style: fullColour.id }, registry);
+    expect(style.palette.sky).toBe(style.palette['dusk']);
+    expect(style.swatches).toEqual(base.palette);
+  });
+
+  it('drops the dither table and the palette LUT from the shader, keeps the other passes', () => {
+    const withFx: StylePreset = {
+      ...fullColour,
+      scanlines: { period: 3, strength: 0.2 },
+      vignette: { strength: 0.3, radius: 0.6, softness: 0.4 },
+    };
+    const style = resolveStyle({ style: withFx.id }, createStyleRegistry([withFx], []));
+    const shader = postFragmentShader(style.post);
+    expect(shader).not.toMatch(/sampler3D|BAYER|texelFetch\(lut/);
+    expect(shader).toContain('color *= vignette(p);');
+    expect(shader).toContain('color *= scanline(p);');
+    expect(shader).toMatch(/gl_FragColor = vec4\(clamp\(color, 0\.0, 1\.0\), 1\.0\);\s*}$/);
+  });
+
+  it('leaves the shader of quantizing styles with the dither table and the LUT', () => {
+    const shader = postFragmentShader(resolveStyle({}).post);
+    expect(shader).toContain('uniform highp sampler3D lut;');
+    expect(shader).toContain('const float BAYER[16]');
+    expect(shader).toContain('gl_FragColor = vec4(texelFetch(lut, cell, 0).rgb, 1.0);');
   });
 });

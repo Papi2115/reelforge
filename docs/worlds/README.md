@@ -46,6 +46,22 @@ docs/worlds/<world>-v2/  the approved standalone showcase = the visual contract
 Register the world by adding it to `WORLDS` in `packages/kit/src/worlds/index.ts` (one import; nothing else changes). The test-only world
 `packages/kit/src/testing/test-world.ts` shows the minimal shape (never registered).
 
+## Full-colour styles (`quantize: false`, PLAN.md#14.1)
+A style preset may set `quantize: false` (`stylePresetSchema`, `packages/shared/src/style-preset.ts`). Absent or `true` = the pixel-art
+final step of every existing style: ordered Bayer dither offset (`dither.matrix`, `dither.spread`), then every output pixel snapped to the
+palette through the 64³ LUT. With `false`:
+- `resolveStyle` gives `post.lut === undefined`; the GPU post pass (`gl/post-shader.ts`) has no LUT uniform, no Bayer table and no dither
+  offset. Output = the composed colour (scene, outline/AO, depth-of-field bokeh, text layer, A/B transition, vignette, scanlines) clamped
+  to 0..1; readback and the ffmpeg export are unchanged, so a flat `#7a5c3e` reaches the MP4 as `#7a5c3e` (`test/render/full-colour.test.ts`).
+- `dither` is still required by the schema but does not touch the output (the bokeh keeps its own fixed 4x4 pattern).
+- The palette (2..32 swatches, every token mapped) stays mandatory: it feeds `ctx.palette`, text, annotations, the outline colour, the
+  CPU transitions' tone ladder and the asset stylizer (imported pictures are still snapped to the palette; the library builds the LUT
+  from the swatches). Live co-direction overlays are copied without a snap.
+- Host passes that map palette colours (reveal palette shift, co-direction `dim`, mood grade, transition tone shifts) only change pixels
+  that are exactly a swatch; other pixels pass through. The palette-only vibe guard (`engine/src/vibe.ts`: `expectVibe`, the cast checks
+  of `reelforge`) does not know the flag yet and would flag a full-colour frame.
+Every existing style keeps the flag absent: its shader source and goldens are byte-identical.
+
 ## Checklist (every world)
 1. **Style**: palette (paper/ink/accent families, ≤ 32 colours, no swatch named like a token), every token mapped, text legible on the
    `shadow` plate (WCAG AA) and the plate distinct from `sky`/`ground`/`groundAlt`/`outline` (the checks of `presets.test.ts`), resolution

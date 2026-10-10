@@ -64,6 +64,17 @@ describe('asset library', () => {
     );
   });
 
+  it('stylizes to the palette without a post-fx LUT (full-colour style), like with one', () => {
+    const fullColour = createAssetLibrary([testCardManifestAsset('test-card')], {
+      ...settings,
+      lut: undefined,
+    });
+    const expected = library.image('test-card', DEFAULT_STYLE, 's01').pixels(24, 16);
+    const actual = fullColour.image('test-card', DEFAULT_STYLE, 's01').pixels(24, 16);
+    expect(actual.colors).toEqual(expected.colors);
+    expect([...actual.indices]).toEqual([...expected.indices]);
+  });
+
   it('gives handles with a stable key and memoised, palette-pure pixels', () => {
     const first = library.image('test-card', DEFAULT_STYLE, 's01');
     const second = library.image('test-card', DEFAULT_STYLE, 's02');

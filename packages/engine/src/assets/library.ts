@@ -33,9 +33,12 @@ export interface AssetStyle {
 }
 
 export interface AssetLibrarySettings {
-  /** The style's quantisation colours (`#rrggbb`, palette order) and their LUT (the post-fx one). */
+  /**
+   * The style's quantisation colours (`#rrggbb`, palette order) and their LUT (the post-fx one).
+   * Full-colour styles have no post-fx LUT: the library builds it from `colors` on first use.
+   */
   readonly colors: readonly string[];
-  readonly lut: PaletteLut;
+  readonly lut: PaletteLut | undefined;
   readonly ditherSize: BayerSize;
 }
 
@@ -139,7 +142,8 @@ export function createAssetLibrary(
   const entries = new Map(assets.map((asset) => [asset.ref, asset]));
   const sources = new Map<string, AssetSource>();
   const defaultKey = settings.colors.join(',').toLowerCase();
-  const luts = new Map<string, PaletteLut>([[defaultKey, settings.lut]]);
+  const luts = new Map<string, PaletteLut>();
+  if (settings.lut !== undefined) luts.set(defaultKey, settings.lut);
   const memo = new Map<string, AssetPixels | Uint8Array>();
   const refs = Object.freeze([...entries.keys()].sort());
 
