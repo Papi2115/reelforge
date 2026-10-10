@@ -13,7 +13,7 @@ export default defineConfig(
       '**/coverage/**',
       '**/release/**',
       'docs/worlds/**',
-      // Browser-side concept sketches (plain JS films, not part of the build)
+      // Concept films and reference engines (classic browser scripts, not repo code)
       'docs/concepts/**',
       'scratch/**',
     ],
