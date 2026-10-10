@@ -42,6 +42,8 @@ export interface WorldSuite {
   readonly minColors?: number;
   /** A portrait short's frame (9:16, PLAN.md#13.18); absent = landscape. */
   readonly format?: 'portrait' | undefined;
+  /** Manifest frame rate (default 30). */
+  readonly fps?: number | undefined;
 }
 
 function label(file: string): string {
@@ -53,7 +55,7 @@ export function describeWorldLook(
   look: string,
   scenes: readonly WorldScene[],
 ): void {
-  const { style, width, height, format } = suite;
+  const { style, width, height, format, fps } = suite;
   let browser: HarnessBrowser;
 
   beforeAll(async () => {
@@ -86,7 +88,7 @@ export function describeWorldLook(
         const tiles: RgbaImage[] = [];
         await withPage(async (page) => {
           for (const [file, duration, times] of scenes) {
-            const info = await page.load(sceneManifest(file, { style, duration, format }));
+            const info = await page.load(sceneManifest(file, { style, duration, format, fps }));
             expect([info.width, info.height]).toEqual([width, height]);
             for (const t of times) {
               const data = await page.frameAt(t);
@@ -117,7 +119,7 @@ export function describeWorldLook(
       async () => {
         await withPage(async (page) => {
           for (const [file, duration, times] of scenes) {
-            const manifest = sceneManifest(file, { style, duration, format });
+            const manifest = sceneManifest(file, { style, duration, format, fps });
             await page.load(manifest);
             const forward: string[] = [];
             for (const t of times) forward.push(await page.hashAt(t));

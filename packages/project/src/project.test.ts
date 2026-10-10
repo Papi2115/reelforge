@@ -133,7 +133,34 @@ describe('createProject', () => {
       'comic',
       'game-b2',
       'game-b1',
+      'c-cam',
     ]);
+  });
+
+  it('gives Grim Ink (c-cam) its 24 fps over the template and the caller (PLAN.md#14.2)', async () => {
+    // The world is not wired (the app and the CLI refuse it); the package creates what it is asked.
+    const ink = await createProject({
+      dir: projectDir('grim ink world'),
+      title: 'The night shift',
+      style: 'c-cam',
+      fps: 30,
+      git: sandbox.git,
+    });
+    if (!ink.ok) throw new Error(ink.error.message);
+    expect(ink.value.project).toMatchObject({
+      style: 'c-cam',
+      fps: 24,
+      lookMode: 'mixed',
+      continuityLinks: true,
+      antiSlopGuards: true,
+      characters: 'classic',
+      mascot: 'none',
+    });
+    expect(worldProjectDefaults('c-cam')?.fps).toBe(24);
+    for (const id of ['sketchbook', 'comic', 'game-b2', 'game-b1']) {
+      expect(worldProjectDefaults(id), id).not.toHaveProperty('fps');
+    }
+    expect(existsSync(path.join(ink.value.dir, 'styles', 'c-cam'))).toBe(false);
   });
 
   it('gives the Comic world the same film language (PLAN.md#13.3 part c)', async () => {

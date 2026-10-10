@@ -53,9 +53,22 @@ describe('world registry wiring', () => {
   });
 
   it('never offers a world that is not wired yet, flag or not', () => {
-    // Every registered world is wired today; an unwired copy of each is never active.
-    expect(WORLDS.filter((world) => !world.wired)).toEqual([]);
-    const unwired = WORLDS.map((world) => ({ ...world, wired: false }));
+    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired: never active, no looks or prompts.
+    expect(WORLDS.filter((world) => !world.wired).map((world) => world.id)).toEqual(['c-cam']);
+    for (const scope of [{}, ON]) {
+      expect(activeWorld('c-cam', scope)).toBeUndefined();
+      expect(styleLookScope('c-cam', scope)).toEqual({ style: 'c-cam' });
+      const setup = lookSetup({ style: 'c-cam' }, scope);
+      expect(setup.world).toBeUndefined();
+      expect(setup.looks).toEqual([]);
+      expect(storyboardWorldPromptVars(setup, 120)).toEqual({});
+      expect(storyboardWorldOptions(setup)).toEqual({});
+    }
+    // The wired worlds: an unwired copy of each is never active.
+    const unwired = WORLDS.filter((world) => world.wired).map((world) => ({
+      ...world,
+      wired: false,
+    }));
     for (const { id } of unwired) {
       for (const scope of [{}, ON]) {
         expect(activeWorld(id, scope, unwired)).toBeUndefined();

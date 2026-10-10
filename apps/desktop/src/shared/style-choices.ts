@@ -30,6 +30,7 @@ export const STYLE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   comic: 'Comic book pages: panels, halftone print, speech bubbles and onomatopoeia.',
   'game-b2': 'First-person RPG: a corridor walk with a HUD, dialogue and inventory.',
   'game-b1': 'Atari 2600 game in a 1982 living room: CRT picture, boss cards, sticky notes.',
+  'c-cam': 'Hand-inked grimy caricature cartoon in muddy full colour at 1080p, acting on twos.',
 };
 
 /** How the app describes style `id`; undefined for a style this build does not ship. */

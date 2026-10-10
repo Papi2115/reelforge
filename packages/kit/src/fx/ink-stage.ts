@@ -4,8 +4,8 @@
  * conversion) through the normal post pass. Measured in spike PLAN.md#14.0
  * (docs/spikes/ccam-canvas.md); rules for kit-side canvases: ADR-004 addendum.
  *
- * Staged for PLAN.md#14.2 (`kit.fx.inkStage` of the c-cam world): NOT registered in any kit
- * registry, catalog or kit-docs yet, so no scene can reach it.
+ * Wrapped by `kit.fx.inkStage` of the c-cam world (PLAN.md#14.2, `worlds/c-cam/stage.ts`), which
+ * hands scenes a narrowed drawing surface; this module is the raw canvas + texture + quad.
  */
 import type * as THREE from 'three';
 import { KitError } from '../errors.js';
@@ -51,6 +51,11 @@ export interface InkStage {
   readonly mesh: THREE.Mesh;
   /** Resets the canvas, fills the background, runs paint(g, t) and schedules the upload. */
   render(t: number, paint: StagePaint): void;
+  /**
+   * Frees the canvas backing store (~8 MB at 1080p): width and height 0. Idempotent; the texture,
+   * material and geometry are freed by `tools.track`.
+   */
+  dispose(): void;
 }
 
 /** Same draw slot as the full-frame 2D pages (whiteboard quad.ts). */
@@ -162,5 +167,9 @@ export function createInkStage(
     if (pixels !== undefined) pixels.set(g.getImageData(0, 0, options.width, options.height).data);
     texture.needsUpdate = true;
   };
-  return { mesh, render };
+  const dispose = (): void => {
+    canvas.width = 0;
+    canvas.height = 0;
+  };
+  return { mesh, render, dispose };
 }

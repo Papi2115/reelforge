@@ -7,11 +7,15 @@
  * keep the keys in sync with `WORLDS`.
  * World styles have no style bible (`styles/<id>/STYLE.md`) until they ship: their prompts carry
  * the world brief instead.
+ * A world drawn for one frame rate sets `fps` (Grim Ink: 24, its acting is on twos at 12 fps); the
+ * others keep the template's. A key here does not make a world offered: only `wired` worlds are
+ * (`@reelforge/kit` `World.wired`); Grim Ink has defaults while still render-only (PLAN.md#14.2).
  */
 import type { ProjectFile } from '@reelforge/shared';
 
 export type WorldProjectDefaults = Readonly<
-  Pick<ProjectFile, 'lookMode' | 'continuityLinks' | 'characters' | 'mascot' | 'antiSlopGuards'>
+  Pick<ProjectFile, 'lookMode' | 'continuityLinks' | 'characters' | 'mascot' | 'antiSlopGuards'> &
+    Partial<Pick<ProjectFile, 'fps'>>
 >;
 
 const WORLD_DEFAULTS: WorldProjectDefaults = {
@@ -29,6 +33,7 @@ export const WORLD_PROJECT_DEFAULTS: Readonly<Record<string, WorldProjectDefault
     comic: WORLD_DEFAULTS,
     'game-b2': WORLD_DEFAULTS,
     'game-b1': WORLD_DEFAULTS,
+    'c-cam': { ...WORLD_DEFAULTS, fps: 24 },
   },
 );
 

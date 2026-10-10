@@ -68,11 +68,19 @@ export const SHORTS_UNSUPPORTED_MESSAGE = 'Shorts are available for voxel and Co
 const SHORT_WORLDS: readonly string[] = ['comic'];
 
 /**
+ * World styles with no asset vocabulary yet (render-only worlds, PLAN.md#14.2): this package has
+ * no kit dependency, so they are named here to keep them out of the voxel default.
+ */
+const VOCABULARY_LESS_WORLDS: readonly string[] = ['c-cam'];
+
+/**
  * Whether films in `style` can have shorts: the voxel styles and Comic. The other worlds
- * (Sketchbook, Game B1, Game B2) are not laid out for portrait yet.
+ * (Sketchbook, Game B1, Game B2, Grim Ink) are not laid out for portrait yet.
  */
 export function supportsShorts(style: string): boolean {
-  const world = (WORLD_ASSET_WORLDS as readonly string[]).includes(style);
+  const world =
+    (WORLD_ASSET_WORLDS as readonly string[]).includes(style) ||
+    VOCABULARY_LESS_WORLDS.includes(style);
   return !world || SHORT_WORLDS.includes(style);
 }
 

@@ -44,6 +44,8 @@ export function sceneManifest(
     readonly style?: string;
     /** A portrait short (9:16, PLAN.md#13.18); absent = landscape. */
     readonly format?: RenderManifest['format'];
+    /** Frame rate of the manifest (default 30; Grim Ink films run at 24). */
+    readonly fps?: number | undefined;
   } = {},
 ): RenderManifest {
   const id = path.basename(file, '.js').slice(0, 3);
@@ -51,7 +53,7 @@ export function sceneManifest(
     version: 1,
     ...(options.style === undefined ? { width: 640, height: 360 } : { style: options.style }),
     ...(options.format === undefined ? {} : { format: options.format }),
-    fps: 30,
+    fps: options.fps ?? 30,
     seed: 2115,
     shots: [
       {

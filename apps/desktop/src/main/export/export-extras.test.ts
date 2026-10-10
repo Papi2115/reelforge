@@ -1,6 +1,7 @@
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { findStylePreset } from '@reelforge/engine';
 import { defaultAppSettings, youtubeMetaFileSchema } from '@reelforge/shared';
 import type { ClaudeRunner, ClaudeTurnResult } from '@reelforge/stages';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -92,6 +93,20 @@ describe('export options', () => {
     expect(odd.map((preset) => preset.factor)).toEqual([4, null, 8]);
     expect(odd[1]?.problem).toMatch(
       /not an integer multiple of the 480x270 render size \(x5\.33\)/,
+    );
+  });
+
+  it('offers Grim Ink (native 1080p) 1080p x1 and 4K x2, and refuses 1440p (PLAN.md#14.2)', () => {
+    const resolution = findStylePreset('c-cam')?.resolution;
+    expect(resolution).toEqual({ width: 1920, height: 1080 });
+    const options = presetOptions(resolution?.width ?? 0, resolution?.height ?? 0);
+    expect(options.map((preset) => [preset.id, preset.factor])).toEqual([
+      ['1080p30', 1],
+      ['1440p', null],
+      ['4k', 2],
+    ]);
+    expect(options[1]?.problem).toMatch(
+      /not an integer multiple of the 1920x1080 render size \(x1\.33\).*presets that fit: 1080p30, 4k/,
     );
   });
 

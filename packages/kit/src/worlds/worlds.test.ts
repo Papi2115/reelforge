@@ -198,7 +198,13 @@ describe('no harm to the built-in styles', () => {
   );
 
   it('ships only experimental worlds so far: LOOKS adds nothing outside their styles', () => {
-    expect(WORLDS.map((entry) => entry.id)).toEqual(['sketchbook', 'comic', 'game-b2', 'game-b1']);
+    expect(WORLDS.map((entry) => entry.id)).toEqual([
+      'sketchbook',
+      'comic',
+      'game-b2',
+      'game-b1',
+      'c-cam',
+    ]);
     expect(WORLDS.every((entry) => entry.experimental)).toBe(true);
     const builtIn = LOOKS.filter((look) => look.styles === undefined);
     expect(builtIn.every((look) => look.experimental !== true)).toBe(true);
@@ -254,7 +260,7 @@ describe('defineWorld', () => {
 });
 
 describe('wired worlds (PLAN.md#13)', () => {
-  it('wires every registered world; an unwired one is render-only', () => {
+  it('wires every registered world but Grim Ink (c-cam); an unwired one is render-only', () => {
     expect(WORLDS.filter((entry) => entry.wired).map((entry) => entry.id)).toEqual([
       'sketchbook',
       'comic',
@@ -265,6 +271,7 @@ describe('wired worlds (PLAN.md#13)', () => {
     expect(isUnwiredWorldStyle('comic')).toBe(false);
     expect(isUnwiredWorldStyle('game-b2')).toBe(false);
     expect(isUnwiredWorldStyle('game-b1')).toBe(false);
+    expect(isUnwiredWorldStyle('c-cam')).toBe(true);
     for (const style of STYLES_OF_TODAY) expect(isUnwiredWorldStyle(style)).toBe(false);
     expect(isUnwiredWorldStyle(TEST_WORLD_ID, [TEST_WORLD])).toBe(true);
     expect(isUnwiredWorldStyle(TEST_WORLD_ID, [world({ wired: true })])).toBe(false);

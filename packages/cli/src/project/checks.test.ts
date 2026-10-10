@@ -66,9 +66,9 @@ describe('styleProblems', () => {
   });
 
   it('rejects a world that is not wired yet, switch or not, even when shipped', () => {
-    // Every registered world is wired today (Game B1 last, PLAN.md#13.5 part c).
+    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired yet.
     const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
-    expect(unwired).toEqual([]);
+    expect(unwired).toEqual(['c-cam']);
     for (const style of unwired) {
       expect(STYLE_REGISTRY.entry(style)).toBeDefined();
       for (const registry of [STYLE_REGISTRY, SHIPPED]) {
