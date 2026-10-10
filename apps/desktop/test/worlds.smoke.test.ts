@@ -105,7 +105,8 @@ describe('experimental worlds', () => {
     const styles = wizard.getByRole('group', { name: 'Style' });
     const sketchbook = styles.getByRole('radio', { name: /^Sketchbook\s*preview/ });
     await sketchbook.waitFor();
-    expect(await styles.getByRole('radio').count()).toBe(7);
+    // 3 voxel styles + 5 worlds (Sketchbook, Comic, Game B2, Game B1, Grim Ink).
+    expect(await styles.getByRole('radio').count()).toBe(8);
     await sketchbook.check();
     await styles.getByText('Hand-drawn notebook: felt-tip pages, graph paper').waitFor();
     await styles.scrollIntoViewIfNeeded();
