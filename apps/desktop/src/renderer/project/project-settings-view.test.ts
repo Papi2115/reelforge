@@ -69,6 +69,7 @@ describe('withProjectSettingsPatch', () => {
       shotsPerMinute: null,
       fasterChecks: false,
       continuityLinks: false,
+      worldLooks: null,
     };
     expect(withProjectSettingsPatch(settings, { ambientVariation: true })).toEqual({
       ...settings,

@@ -79,7 +79,7 @@ Every existing style keeps the flag absent: its shader source and goldens are by
    it for every built-in style with the world registered.
 7. **Wired**: when the world gets its prompts (`WORLD_PROMPTS` entry) and project defaults (`WORLD_PROJECT_DEFAULTS` entry), set
    `wired: true` in its `defineWorld` and re-read its one-line `STYLE_DESCRIPTIONS` entry (`apps/desktop/src/shared/style-choices.ts`);
-   `packages/stages/src/worlds.test.ts` then requires both entries and lists the worlds still unwired (today Grim Ink). Before that the
+   `packages/stages/src/worlds.test.ts` then requires both entries and lists the worlds still unwired (none since Grim Ink, PLAN.md#14.12). Before that the
    app and the runtime Claude never see the world. Project defaults may exist before the world is wired (Grim Ink's 24 fps): only
    `wired` makes a world offered.
 8. **Ship**: flip `experimental` off on the world and its looks, add `styles/<world-id>/`, a sound palette, the world's row in Project
@@ -856,10 +856,10 @@ inks), not the set of things a film may contain (DECISIONS.md "PRINCIPLE"). Code
 
 ## Grim Ink (c-cam): world skeleton (PLAN.md#14.2)
 Hand-built caricature people in specific, grimy places, an uneven ink line, muddy full colour at native 1080p, acting on twos
-(analysis: `docs/concepts/c-cam-style`). **Experimental and NOT wired**: it renders only with
-`pnpm render:frames -- --scene packages/kit/examples/c-cam/s0_stage.js --preset c-cam --experimental`; the app's style lists,
-Project settings ("in development"), `reelforge validate`, kit-docs and the stages refuse or ignore it, with or without
-Settings → Experimental worlds. No world assets, shorts or own sound palette yet (the looks reuse `voxel`); its prompts are ready but unused (below, PLAN.md#14.10).
+(analysis: `docs/concepts/c-cam-style`). **Experimental, wired since PLAN.md#14.12** ("Grim Ink (c-cam): wired" below):
+offered with Settings → Experimental worlds on, like the other worlds; showcase renders still work with
+`pnpm render:frames -- --scene packages/kit/examples/c-cam/s0_stage.js --preset c-cam --experimental`. No world assets or
+shorts; its own sound palette `c-cam` since 14.12.
 - **Style** (`style.ts`): id `c-cam`, name "Grim Ink", 1920x1080 (scale 1; export 1080p x1 or 4K x2, 1440p refused as a non-integer
   factor), `quantize: false`, 28 swatches taken from the C palette (`core.ts` `C`), tokens `shadow` = ink, `text` = bone,
   `textDim` = linen, `outline` = brownDark, dither spread 0, no outline/AO/scanlines/vignette, a neutral `c-cam` variation budget.
@@ -917,7 +917,7 @@ stage, guard or kit-docs index uses it, and every other world's prompts stay byt
 - **Anti-slop hooks** (`packages/stages/src/slop/c-cam-labels.ts`): traces = member calls `stain`, `peel`, `crack`, `puddle`,
   `flies`, `silhouette`, `fgWorld`, `exprAt` (capped) and the options `rot`, `headDy`, `lean`, `bow`; text = `drawText`,
   `layoutText`, `wrapText` (string first); labels of signs and stamps (`open`, `closed`, `exit`, `paid`, `sold`, …).
-  Calibration on the fixture film is PLAN.md#14.12. Critic look rules for the three looks in `packages/stages/src/looks.ts`.
+  Calibrated in PLAN.md#14.12 ("Grim Ink (c-cam): wired" below). Critic look rules for the three looks in `packages/stages/src/looks.ts`.
 - **Style bible**: `docs/worlds/c-cam-STYLE.md` (the STYLE.md equivalent; moves to `styles/c-cam/STYLE.md` when the world ships).
 - **Bias tests**: `packages/prompts/src/c-cam-bias.test.ts` (no noun of the three showcase films in any rendered prompt) and the
   c-cam block of `packages/stages/src/world-bias-lookdocs.test.ts` (the kit's look docs and critic rules).
@@ -952,3 +952,39 @@ plain ES modules without imports, loaded like project props (`kit-ext/props`, PL
 - **Examples and goldens**: `packages/kit/examples/c-cam/people/nightBaker.js`, `.../places/bakeryBackRoom.js`; render test
   `packages/kit/test/render/ccam-modules.test.ts` (goldens `ccam-person-sheet-p{0,1}`, `ccam-place-sheet-p0`; the other two
   framings checked non-blank; Chromium canvas) and `packages/cli/test/render/ink-preview.test.ts` (both CLI previews through the engine).
+
+## Grim Ink (c-cam): wired (PLAN.md#14.12)
+`wired: true` and `optionalLooks: true` in `packages/kit/src/worlds/c-cam/index.ts`: the world is offered like the other
+experimental worlds (Settings → Experimental worlds on) and a project may turn some of its three looks off.
+- **Wiring points**: kit `WORLDS` (`wired`, `optionalLooks`, palette `c-cam` on the world and its looks); the app's style lists
+  (`apps/desktop/src/shared/style-choices.ts`, unchanged: they read `wired`), the wizard's preview picture
+  (`apps/desktop/src/renderer/wizard/thumbs/c-cam.png`, the golden `look-ink-scene-person_place-t0.6` at 640×360,
+  docs/licenses.md) and the home card colours (`renderer/home/card-view.ts`); Project settings (`project-settings-ipc.ts`:
+  `optionalLooks` on the style); `reelforge validate` (`packages/cli/src/project/{checks,world-checks}.ts`); the stages
+  (`activeWorld`, `lookSetup`, the `c-cam-modules` step of the Scenes stage, `run-stage --action c-cam-modules`); project defaults
+  (`WORLD_PROJECT_DEFAULTS['c-cam']`: 24 fps, mixed looks, continuity links, no pack or mascot, anti-slop guards on); genre presets
+  History (`sketchbook → c-cam → comic → soft-480`) and True crime (`noir-voxel → c-cam`: an option only, the noir voxel is always
+  offered first); music moods `lofi-chill` and `tense-investigation` (`packages/stages/src/sound/acts.ts`).
+- **Looks of this world** (project.json `worldLooks`, `packages/shared/src/world-looks.ts`): the looks kept ON, absent = all three
+  (new projects too); at least one, unique kebab-case ids; a list without any of the world's looks counts as all on. Only a world
+  with `optionalLooks` reads it (`looksInUse`, `packages/stages/src/worlds.ts`): the storyboard lists, letters and validates only the
+  looks in use (the first kept is roll A, then B, C), the world's "Rolls and looks" lines keep only those looks, relettered, plus one
+  line naming the looks that are off, and the moment catalog drops the moments only an off look hosts (`worldTextForLooks`,
+  `packages/prompts/src/worlds/world-looks.ts`: no `poster` without `ink-poster`, no `reverse` or `over-shoulder` without
+  `ink-scene`, no `insert` without `ink-insert`). A shot of a look that is off builds in the first look in use (`fallbackLook`);
+  `reelforge validate` reports it as `look-off`. With every look on, prompts and checks are byte for byte as before. UI: Project
+  settings → Visuals → "Looks of this world" with one box per look ("A · Ink scene", "Off · Ink insert"; the last look on cannot be
+  turned off); commits read "Project settings: looks of this world ink-scene, ink-poster" / "… all".
+- **Sound palette** `c-cam` (`packages/stages/src/sound/palettes/c-cam.ts`): a grimy room heard up close and dry, from existing
+  recipes only: a chair creak, a knuckle on wood (`board-tap`), a stamp or a fist (`marker-thump`), papers (`paper-shuffle`,
+  `paper-rustle`), a ballpoint (`pen-click`), a latch (`relay-click`), a pencil (`pencil-scratch`), wood ticks for counters; a
+  room-tone bed; no page-native transition sounds (the world cuts hard).
+- **Anti-slop calibration** (`packages/stages/src/slop/c-cam-guards.test.ts`, fixtures `packages/stages/src/testing/c-cam-slop-fixtures.ts`):
+  no finding on the person-in-a-place example (`s1_person_place.js`), the six look goldens and the wide / medium / close frames of
+  the nine place goldens; the contact sheets of people, faces, rig and acting (several figures side by side by design) are judged
+  for accent and symmetry only, and the medium place framing (centred on the light by construction) is not judged for symmetry.
+  The frame guards keep their general budgets (the busiest place frame has 6 competing elements = the budget). The stage skeleton
+  `s0_stage.js` has no human trace and is flagged for that only (correct: a shot like it is bare). Spec additions: traces `gag`
+  (option) and a place's `foreground(…)` (member call, once); labels of door and wall signs, rubber stamps and ledger heads
+  (`paid`, `void`, `overdue`, `total`, `balance`, `no smoking`, …). The people and places modules are not scenes: the guards do
+  not read them (their QA is the c-cam-build stage's).

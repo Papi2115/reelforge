@@ -21,6 +21,7 @@ import { repetitionControlModeSchema } from './repetition.js';
 import { dramaturgyModeSchema } from './dramaturgy.js';
 import { tensionMapModeSchema } from './tension.js';
 import { videoFormatSchema } from './video-format.js';
+import { worldLooksSchema } from './world-looks.js';
 import { parentProjectSchema, projectKindSchema, shortSettingsSchema } from './shorts.js';
 
 export const PROJECT_FILE_VERSION = 1;
@@ -131,6 +132,11 @@ export const projectFileSchema = z.object({
    * unchanged); the template writes `false`, a world's project defaults `true`.
    */
   antiSlopGuards: z.boolean().optional(),
+  /**
+   * The looks of the world a project keeps ON (PLAN.md#14.12, world-looks.ts; only a world whose
+   * looks are optional reads it: Grim Ink). Absent = all of the world's looks.
+   */
+  worldLooks: worldLooksSchema.optional(),
   /**
    * Channel of the project (PLAN.md#13.13, channels.ts). Absent = the default channel (projects
    * made before 3.1 are unchanged; no rewrite needed).

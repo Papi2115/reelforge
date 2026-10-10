@@ -10,7 +10,8 @@
  * tension map: the next storyboard and sound cues, and the manifest's per-shot tension;
  * characters and mascot: the next storyboard and scene build; scenes per minute: the next
  * storyboard; faster checks: the next scene build and final review, ADR-027; continuity links: the
- * next storyboard, PLAN.md#13.2).
+ * next storyboard, PLAN.md#13.2; looks of this world: the next storyboard and scene build,
+ * PLAN.md#14.12, only for a world whose looks are optional and only its own look ids).
  * No pipeline step is marked out of date.
  */
 import path from 'node:path';
@@ -93,6 +94,7 @@ export function effectiveProjectSettings(project: ProjectFile): ProjectSettings 
     shotsPerMinute: projectShotsPerMinute(project) ?? null,
     fasterChecks: projectFasterChecks(project),
     continuityLinks: projectContinuityLinks(project),
+    worldLooks: project.worldLooks === undefined ? null : [...project.worldLooks],
   };
 }
 
@@ -121,6 +123,9 @@ export function applyProjectSettingsPatch(
   // Off = the field is removed: the storyboard prompt is exactly as before (PLAN.md#13.2).
   if (patch.continuityLinks === false) delete next['continuityLinks'];
   else if (patch.continuityLinks === true) next['continuityLinks'] = true;
+  // All looks on = the field is removed: the world's prompts are exactly as before (PLAN.md#14.12).
+  if (patch.worldLooks === null) delete next['worldLooks'];
+  else if (patch.worldLooks !== undefined) next['worldLooks'] = [...patch.worldLooks];
   return next;
 }
 
@@ -204,6 +209,9 @@ export function describeSettingsChange(before: ProjectSettings, after: ProjectSe
   if (before.continuityLinks !== after.continuityLinks) {
     parts.push(`continuity links ${after.continuityLinks ? 'on' : 'off'}`);
   }
+  if (!sameLooks(before.worldLooks, after.worldLooks)) {
+    parts.push(`looks of this world ${after.worldLooks?.join(', ') ?? 'all'}`);
+  }
   return `Project settings: ${parts.length === 0 ? 'no change' : parts.join(', ')}`;
 }
 
@@ -212,6 +220,13 @@ function sameRange(
   right: ProjectSettings['shotsPerMinute'],
 ): boolean {
   return left?.min === right?.min && left?.max === right?.max;
+}
+
+function sameLooks(
+  left: ProjectSettings['worldLooks'],
+  right: ProjectSettings['worldLooks'],
+): boolean {
+  return (left?.join(',') ?? null) === (right?.join(',') ?? null);
 }
 
 function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
@@ -227,7 +242,8 @@ function sameSettings(left: ProjectSettings, right: ProjectSettings): boolean {
     left.mascot === right.mascot &&
     sameRange(left.shotsPerMinute, right.shotsPerMinute) &&
     left.fasterChecks === right.fasterChecks &&
-    left.continuityLinks === right.continuityLinks
+    left.continuityLinks === right.continuityLinks &&
+    sameLooks(left.worldLooks, right.worldLooks)
   );
 }
 
@@ -263,6 +279,8 @@ export class ProjectSettingsService {
     if (dir === undefined) return { status: 'error', message: 'no project is open' };
     const loaded = await this.load(dir);
     if (!loaded.ok) return { status: 'error', message: loaded.message };
+    const refused = this.worldLooksProblem(loaded.project.style, patch);
+    if (refused !== undefined) return { status: 'error', message: refused };
     const before = effectiveProjectSettings(loaded.project);
     const next = applyProjectSettingsPatch(loaded.raw, patch);
     const valid = projectFileSchema.safeParse(next);
@@ -281,6 +299,18 @@ export class ProjectSettingsService {
     const committed = await this.options.commit(message, [PROJECT_FILE]);
     this.options.log.info(`${message}${committed ? '' : ' (not committed)'}`);
     return { status: 'ok', settings: after, committed };
+  }
+
+  /** Why a `worldLooks` patch is refused (undefined: accepted or none). */
+  private worldLooksProblem(style: string, patch: ProjectSettingsPatch): string | undefined {
+    const chosen = patch.worldLooks;
+    if (chosen === undefined || chosen === null) return undefined;
+    if (this.options.style(style).optionalLooks !== true) {
+      return 'the style of this project has no looks to turn off';
+    }
+    const known = new Set(this.options.looks(style).map((look) => look.id));
+    const unknown = chosen.filter((id) => !known.has(id));
+    return unknown.length === 0 ? undefined : `not a look of this world: ${unknown.join(', ')}`;
   }
 
   private async load(dir: string): Promise<Loaded> {

@@ -1,6 +1,6 @@
 ---
 id: c-cam-build
-version: 1
+version: 2
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: kit-ext/{{folder}}/{{id}}.js
@@ -79,7 +79,7 @@ export const person = {
     top: -872,
     waist: [62, -440],
     hsz: 34,
-    head: { x: [0, 20, 36, 0], top: -872, bottom: -650, hw: 62 },
+    head: { x: [0, 26, 49, 0], top: -872, bottom: -614, hw: 86 },
   },
   neck: [
     [0, -618, 0, -660],
@@ -115,6 +115,11 @@ export const person = {
     hatch: { c: 'rgba(24,20,16,0.4)', n: 3, len: 28, gap: 7, k: 3, ang: 80 },
   },
   defaultExpr: 'exhausted',
+  // The one recurring tic (a gag kind): scenes use it 1-2 times a shot, on a narration beat.
+  signatureGag: {
+    kind: 'wipeBrow',
+    note: 'wipes the oven heat off his brow and leaves a streak of flour',
+  },
   // prettier-ignore
   faceAnchors: [
     { chin: [0, 6], cheek: [34, -56], nose: [0, -60], mouth: [0, -26], ear: [56, -92], forehead: [0, -140] },
@@ -350,8 +355,8 @@ function table(ink) {
 ```
 {{/place}}
 Steps:
-1. Design it from the narration before writing code. {{#person}}The person's job or role in THIS story, ONE exaggeration axis (a drooping face, a barrel chest, a tiny head on a huge coat, ...), one loud garment or prop detail, 4-6 muddy tones with their darker shades; four views (front, three-quarter, profile, back) that agree with each other; a face that can act (brows, eyes, mouth through `ink.brow`, `ink.eye`, `ink.mouth` with `face`).{{/person}}{{#place}}The setting's few big shapes (walls, floor or ground, the one or two pieces the narration needs), its ONE warm light, grime as flat shapes (stains, cracks, peeling), anchors where people stand and things sit, collide boxes for solid furniture; bounds wider than the frame so no framing ever shows an edge.{{/place}}
+1. Design it from the narration before writing code. {{#person}}The person's job or role in THIS story, ONE exaggeration axis (a drooping face, a barrel chest, a tiny head on a huge coat, ...), one loud garment or prop detail, 4-6 muddy tones with their darker shades; four views (front, three-quarter, profile, back) that agree with each other; a face that can act (brows, eyes, mouth through `ink.brow`, `ink.eye`, `ink.mouth` with `face`). REQUIRED: exactly ONE `signatureGag: { kind, note }`, the person's one recurring tic: a gag kind from the contract's list that fits THIS person and the narration (nerves, boredom, impatience, effort), the note saying what it tells about them; scenes play it 1-2 times per shot on a narration beat, never as decoration; a person without it goes back to fix. When the narration has the person carry something from shot to shot, draw it from the shot's props `p` (`held`, `beforeHand`, with `arms(p)` for the hand shape) with a default for every prop; otherwise leave those out.{{/person}}{{#place}}The setting's few big shapes (walls, floor or ground, the one or two pieces the narration needs), its ONE warm light, grime as flat shapes (stains, cracks, peeling), anchors where people stand and things sit, collide boxes for solid furniture; bounds wider than the frame so no framing ever shows an edge. `draw(g, ink, t, opts)` reads the shot's place options `opts` with a default for each (`{}` when a shot names none); add a `foreground(g, ink, t, opts)` only when part of the place stands in front of the people (a counter's front, a door edge, smoke).{{/place}}
 2. Write the module: `export const {{binding}} = { id: '{{id}}', name: '…', … }`: no imports, plain data plus the drawing functions, fixed seeds, a pure function of its inputs (time only through `ink.time`).
-3. Self-QA, at most 2 rounds: `reelforge lint kit-ext/{{folder}}/{{id}}.js` until it reports 0 errors, then `reelforge {{folder}}-preview {{id}}` and Read the sheet it prints. Judge honestly: does it read as one specific, grimy {{noun}} of this narration, in the world's ink?{{#person}} Arms start at the shoulders (never out of the jowls), the head sits on the neck in every view, the face anchors lie on the head.{{/person}} Fix and run the second round, then stop: the step's own QA (lint, validators, contact sheet, critic) checks it afterwards.
+3. Self-QA, at most 2 rounds: `reelforge lint kit-ext/{{folder}}/{{id}}.js` until it reports 0 errors, then `reelforge {{folder}}-preview {{id}}` and Read the sheet it prints. Judge honestly: does it read as one specific, grimy {{noun}} of this narration, in the world's ink?{{#person}} Arms start at the shoulders (never out of the jowls), the head sits on the neck in every view, the face anchors lie on the head, `D.head` covers the drawn head in every view, `signatureGag` is set.{{/person}} Fix and run the second round, then stop: the step's own QA (lint, validators, contact sheet, critic) checks it afterwards.
 
 Reply in ≤4 lines: what you built (the design in one line), the preview checks result, and what you could not get right (if anything).

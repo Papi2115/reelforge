@@ -1,9 +1,9 @@
 # Style: C-CAM · Grim Ink
 
-World style (`c-cam`, experimental, not wired yet: PLAN.md#14.12). Renders at 1920×1080 (no upscale), canvas ink drawing in
-full colour (`quantize: false`), 24 fps. Hand-built, ugly-lovable caricature people in specific, grimy places; deadpan acting
-on twos; a restless TV-cartoon camera with cuts inside a shot. The world is a grammar, never a catalogue: every film builds its
-own people and places from its narration. Prompt wording: `packages/prompts/src/worlds/c-cam.ts`; API reference:
+World style (`c-cam`, experimental, wired in PLAN.md#14.12: offered with Settings → Experimental worlds). Renders at
+1920×1080 (no upscale), canvas ink drawing in full colour (`quantize: false`), 24 fps. Hand-built, ugly-lovable caricature
+people in specific, grimy places; deadpan acting on twos; a restless TV-cartoon camera with cuts inside a shot. The world is
+a grammar, never a catalogue: every film builds its own people and places from its narration. Prompt wording: `packages/prompts/src/worlds/c-cam.ts`; API reference:
 `reelforge kit-docs grim-ink`. Moves to `styles/c-cam/STYLE.md` when the world ships.
 
 ## Look
@@ -43,6 +43,17 @@ Generic or generated faces; the same face on two people; arms across faces; prop
 more than one accent; pure black or white; over-the-top caricature (at most two strong exaggerations per face); polished
 symmetric drawing; cosmetic camera moves; tilt on calm beats; a set edge in any framing; scenes > 250 lines (move people and
 places into their modules); content from the showcase films.
+
+## Looks of this world
+- A = `ink-scene` (the people acting in one place), B = `ink-insert` (an extreme close-up of the thing), C = `ink-poster`
+  (the line the film turns on). A project may turn looks off (Project settings → Looks of this world, project.json
+  `worldLooks`; at least one stays on): the storyboard then uses only the looks in use, lettered A, B, C by place, and never
+  plans the moments only an off look hosts (`poster` needs `ink-poster`; `reverse` and `over-shoulder` need `ink-scene`;
+  `insert` needs `ink-insert`).
+
+## Sound
+- Palette `c-cam`: dry room foley (a chair creak, a knuckle on wood, a stamp, papers, a pen click, a latch), a quiet room bed;
+  music `lofi-chill` under the deadpan holds, `tense-investigation` where the stakes land.
 
 ## Ambient variation budget
 None (one hand-drawn world; places differ by content, not by tone drift).

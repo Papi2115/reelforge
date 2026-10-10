@@ -28,9 +28,11 @@ import { paceContinuityBudget, type WorldPace } from './pace.js';
 export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from './types.js';
 export type { WorldPace } from './pace.js';
 export { worldMomentOption } from './moment-vars.js';
+export { worldTextForLooks } from './world-looks.js';
 export {
   C_CAM_API,
   C_CAM_CAST_TAG,
+  C_CAM_GAG_TAG,
   C_CAM_MODULE_TOPICS,
   C_CAM_PLACE_TAG,
   C_CAM_SNIPPETS,
@@ -58,7 +60,7 @@ export const WORLD_PROMPTS: Readonly<Record<string, WorldPromptText>> = Object.f
   comic: COMIC_PROMPTS,
   'game-b2': GAME_B2_PROMPTS,
   'game-b1': GAME_B1_PROMPTS,
-  // Grim Ink: prompts ready, the world is not wired yet (PLAN.md#14.10, #14.12).
+  // Grim Ink (PLAN.md#14.10, wired in #14.12).
   'c-cam': C_CAM_PROMPTS,
 });
 

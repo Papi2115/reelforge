@@ -7,12 +7,9 @@ import { lintModule } from './lint-prop.js';
 import { describeLintErrors, lintManifestKitExtensions } from './manifest.js';
 
 const EXAMPLES = path.resolve(import.meta.dirname, '..', '..', '..', 'kit', 'examples', 'c-cam');
-const SAMPLE_PERSON = readFileSync(path.join(EXAMPLES, 'people', 'nightBaker.js'), 'utf8');
-/** The sample predates signature gags (PLAN.md#14.9): the tests give it one. */
-const PERSON = SAMPLE_PERSON.replace(
-  "  defaultExpr: 'exhausted',",
-  "  defaultExpr: 'exhausted',\n  signatureGag: { kind: 'yawn', note: 'yawns through the night shift' },",
-);
+const PERSON = readFileSync(path.join(EXAMPLES, 'people', 'nightBaker.js'), 'utf8');
+/** The sample without its signature gag (PLAN.md#14.15): a lint warning, not an error. */
+const NO_GAG_PERSON = PERSON.replace(/^ {2}signatureGag: \{[^}]*\},\n/m, '');
 const PLACE = readFileSync(path.join(EXAMPLES, 'places', 'bakeryBackRoom.js'), 'utf8');
 const PERSON_FILE = 'kit-ext/people/nightBaker.js';
 const PLACE_FILE = 'kit-ext/places/bakeryBackRoom.js';
@@ -94,8 +91,8 @@ describe('lint of Grim Ink people / places modules (PLAN.md#14.8)', () => {
   });
 
   it('warns a person without a signature gag and accepts place options and a foreground', () => {
-    expect(PERSON).not.toBe(SAMPLE_PERSON);
-    const plain = lintInkModule(SAMPLE_PERSON, { filename: PERSON_FILE }, 'people');
+    expect(NO_GAG_PERSON).not.toBe(PERSON);
+    const plain = lintInkModule(NO_GAG_PERSON, { filename: PERSON_FILE }, 'people');
     expect(plain.map((d) => `${d.severity} ${d.message}`)).toEqual([
       expect.stringMatching(/^warning The person has no `signatureGag`/),
     ]);

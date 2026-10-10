@@ -49,6 +49,7 @@ const PAINT: readonly CCamSnippet[] = [
   'crack',
   'hand',
   'person',
+  'foreground',
   'fg',
 ];
 const SCREEN: readonly CCamSnippet[] = ['screenBlob', 'poster'];
@@ -195,6 +196,7 @@ describe('Grim Ink snippets of the prompts and kit-docs', () => {
     expect(() => run(drifted('person', "'three-quarter'", "'sideways'"))).toThrow(/view/);
     expect(() => run(drifted('pose', "'stand'", "'dance'"))).toThrow(/pose/);
     expect(() => run(drifted('person', "'shock'", "'smirk'"))).toThrow(/unknown expression/);
+    expect(() => run(drifted('person', "'clockCheck'", "'juggle'"))).toThrow(/gag must be/);
     expect(() => run(drifted('hand', "'hand'", "'serif'"))).toThrow(/face must be one of/);
     expect(() => run(drifted('place', 'pawnShop', 'pawnshop'))).toThrow(/defined ids: pawnShop/);
   });

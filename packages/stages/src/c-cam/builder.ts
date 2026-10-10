@@ -4,7 +4,8 @@
  * turn, and the module is committed alone ("Person <id> built ✓"). A module that still fails a
  * code check never blocks the film: it moves to `.reelforge/ink-failed/` and a plain sketched
  * placeholder takes its id (⚠, "Person <id> placeholder ⚠"), so every scene that draws it still
- * renders. Critic findings alone keep the module (⚠).
+ * renders. Critic findings alone keep the module (⚠). The turn may write only its own module file:
+ * anything else it changes in the project is put back afterwards (write-guard.ts, a warning).
  */
 import { existsSync } from 'node:fs';
 import { mkdir, rename } from 'node:fs/promises';
@@ -20,6 +21,7 @@ import { writeProjectText } from '../files.js';
 import { inProject } from '../paths.js';
 import { render } from '../stages/repair.js';
 import { stageError, type StageError } from '../types.js';
+import { restoreTurnWrites, snapshotTurnWrites } from '../write-guard.js';
 import { designBrief, type InkModuleDesign } from './design.js';
 import { placeholderSource } from './placeholder.js';
 import { cCamBuildVars } from './prompt.js';
@@ -50,6 +52,13 @@ async function buildTurn(
 ): Promise<Result<string | undefined, StageError>> {
   const prompt = render('c-cam-build', cCamBuildVars(design, job.words, { findings, attempt }));
   if (!prompt.ok) return prompt;
+  const file = kitExtensionFile(design.kind, design.id);
+  const snapshot = await snapshotTurnWrites(
+    job.ctx.projectDir,
+    `the c-cam-build turn of ${file}`,
+    (written) => written === file,
+  );
+  if (!snapshot.ok) return snapshot;
   const turn = await job.ctx.claude({
     prompt: 'c-cam-build',
     text: prompt.value,
@@ -59,6 +68,13 @@ async function buildTurn(
     commit: false,
     detached: true,
   });
+  const discarded = await restoreTurnWrites(snapshot.value);
+  if (!discarded.ok) return discarded;
+  for (const changed of discarded.value) {
+    job.ctx.warn(
+      `the c-cam-build turn of ${file} changed ${changed}; change discarded (it may write only ${file})`,
+    );
+  }
   if (turn.ok) return ok(undefined);
   return MODULE_LEVEL_FAILURES.has(turn.error.kind) ? ok(turn.error.message) : turn;
 }

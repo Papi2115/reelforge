@@ -5,9 +5,9 @@
  * (`cast: nightPorter (the hotel's night porter; axis: …), guest`), later intents name the id
  * only; every setting is `place: boilerRoom`. Ids are camelCase (kebab-case spellings are read
  * the same: `place: boiler-room` = `boilerRoom`). A tag runs to the next `|`, `;` at the top
- * level, newline, sentence end or the other tag.
+ * level, newline, sentence end or another tag (including the gag hint, `gag: nightPorter on …`).
  */
-import { C_CAM_CAST_TAG, C_CAM_PLACE_TAG } from '@reelforge/prompts';
+import { C_CAM_CAST_TAG, C_CAM_GAG_TAG, C_CAM_PLACE_TAG } from '@reelforge/prompts';
 import {
   INK_MODULE_LIMITS,
   normalizePropName,
@@ -34,6 +34,12 @@ export interface IntentTags {
 const NOBODY = new Set(['none', 'nobody', 'no', 'na', 'empty', 'nothing']);
 const MAX_ID_LENGTH = 40;
 
+/** The start of another tag (the gag hint follows the cast in an intent, PLAN.md#14.15). */
+const OTHER_TAG = new RegExp(
+  `^\\s(?:${[C_CAM_CAST_TAG, C_CAM_PLACE_TAG, C_CAM_GAG_TAG].map((tag) => tag.replace(':', '')).join('|')})\\s*:`,
+  'i',
+);
+
 /** The tag's text: from after the tag to its end at paren depth 0. */
 function tagSegment(intent: string, tag: string): string | undefined {
   const match = new RegExp(`(?:^|[\\s|(;,\`'"])${tag.replace(':', '\\s*:')}`, 'i').exec(intent);
@@ -47,7 +53,7 @@ function tagSegment(intent: string, tag: string): string | undefined {
     else if (depth === 0) {
       const rest = intent.slice(index);
       if (/^[|;\n]/.test(rest) || /^\.(\s|$)/.test(rest)) return intent.slice(start, index);
-      if (/^\s(cast|place)\s*:/i.test(rest)) return intent.slice(start, index);
+      if (OTHER_TAG.test(rest)) return intent.slice(start, index);
     }
   }
   return intent.slice(start);

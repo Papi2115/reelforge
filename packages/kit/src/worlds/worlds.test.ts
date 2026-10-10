@@ -260,20 +260,31 @@ describe('defineWorld', () => {
 });
 
 describe('wired worlds (PLAN.md#13)', () => {
-  it('wires every registered world but Grim Ink (c-cam); an unwired one is render-only', () => {
+  it('wires every registered world (Grim Ink since 14.12); an unwired one is render-only', () => {
     expect(WORLDS.filter((entry) => entry.wired).map((entry) => entry.id)).toEqual([
       'sketchbook',
       'comic',
       'game-b2',
       'game-b1',
+      'c-cam',
     ]);
     expect(isUnwiredWorldStyle('sketchbook')).toBe(false);
     expect(isUnwiredWorldStyle('comic')).toBe(false);
     expect(isUnwiredWorldStyle('game-b2')).toBe(false);
     expect(isUnwiredWorldStyle('game-b1')).toBe(false);
-    expect(isUnwiredWorldStyle('c-cam')).toBe(true);
+    expect(isUnwiredWorldStyle('c-cam')).toBe(false);
     for (const style of STYLES_OF_TODAY) expect(isUnwiredWorldStyle(style)).toBe(false);
     expect(isUnwiredWorldStyle(TEST_WORLD_ID, [TEST_WORLD])).toBe(true);
     expect(isUnwiredWorldStyle(TEST_WORLD_ID, [world({ wired: true })])).toBe(false);
+  });
+
+  it('lets only Grim Ink projects turn looks off; its looks sound in its own palette', () => {
+    const optional = WORLDS.filter((entry) => entry.optionalLooks === true);
+    expect(optional.map((entry) => entry.id)).toEqual(['c-cam']);
+    const cCam = optional[0];
+    expect(cCam?.looks.map((look) => look.id)).toEqual(['ink-scene', 'ink-insert', 'ink-poster']);
+    expect(cCam?.looks.map((look) => look.soundPalette)).toEqual(['c-cam', 'c-cam', 'c-cam']);
+    expect(cCam?.soundPalette).toBe('c-cam');
+    expect(() => world({ optionalLooks: 'yes' as unknown as boolean })).toThrow(/optionalLooks/);
   });
 });

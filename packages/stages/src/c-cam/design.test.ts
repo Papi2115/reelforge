@@ -35,6 +35,13 @@ describe('intentTags', () => {
     });
   });
 
+  it('ends a tag at the gag hint (PLAN.md#14.15), never casting the hint', () => {
+    expect(intentTags("cast: porter gag: porter on 'the bell', twice | place: lobby")).toEqual({
+      cast: [{ id: 'porter', description: undefined }],
+      place: { id: 'lobby', description: undefined },
+    });
+  });
+
   it('reads nothing from a poster without people or from plain prose', () => {
     expect(intentTags('cast: none | place: none. The title thuds in.')).toEqual({
       cast: [],

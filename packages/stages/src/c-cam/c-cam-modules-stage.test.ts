@@ -3,9 +3,11 @@
  * film's Scenes build first builds every person and place its storyboard tags (one Opus turn
  * each, QA by code + critic, committed alone) and keeps them for the same storyboard; a lint
  * error or a validator error goes to ONE fix turn; a module that still fails is replaced by a
- * plain placeholder (⚠) and the scenes still build. Another style never runs the step.
+ * plain placeholder (⚠) and the scenes still build. A person needs its signature gag (one fix
+ * turn, else kept ⚠); a turn's writes outside its module are put back. Another style never runs
+ * the step.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { autocommit } from '@reelforge/project';
 import type { FakeClaudeStep } from '@reelforge/fake-claude';
@@ -33,10 +35,16 @@ const BOOTH = 'kit-ext/places/tollBooth.js';
 const BUILD_CLERK = `Build \`${CLERK}\` by hand`;
 const FIX_CLERK = `This is fix 2 of \`${CLERK}\``;
 
+const DEADPAN = "  defaultExpr: 'deadpan',\n";
+const SIGNATURE =
+  "  signatureGag: { kind: 'clockCheck', note: 'checks the clock between two cars' },\n";
 /** A module that passes every check (the placeholder's drawing under the film's own id). */
-const good = (kind: 'people' | 'places', id: string, name: string): string =>
-  placeholderSource(kind, id, name).replace(`${PLACEHOLDER_MARKER}\n`, '');
+const good = (kind: 'people' | 'places', id: string, name: string): string => {
+  const source = placeholderSource(kind, id, name).replace(`${PLACEHOLDER_MARKER}\n`, '');
+  return kind === 'people' ? source.replace(DEADPAN, `${DEADPAN}${SIGNATURE}`) : source;
+};
 const GOOD_CLERK = good('people', 'clerk', 'The toll clerk');
+const NO_GAG_CLERK = GOOD_CLERK.replace(SIGNATURE, '');
 const GOOD_BOOTH = good('places', 'tollBooth', 'The toll booth');
 const LINT_ERROR = GOOD_CLERK.replace(
   'const S = 4100;',
@@ -165,6 +173,53 @@ describe('Grim Ink people and places', { timeout: 180_000 }, () => {
     const [, fix] = turns(harness, BUILD_CLERK);
     expect(fix?.prompt).toMatch(/- validator shoulder-[a-z-]+.*; fix: /);
     expect(report(dir).modules[0]?.status).toBe('built');
+  });
+
+  it('sends a person without a signature gag to one fix turn and keeps it (⚠) when still missing', async () => {
+    expect(NO_GAG_CLERK).not.toBe(GOOD_CLERK);
+    const { dir } = await film('signature gag');
+    const { harness, runner } = setup(dir, [
+      rule(FIX_CLERK, { [CLERK]: NO_GAG_CLERK }),
+      rule(BUILD_CLERK, { [CLERK]: NO_GAG_CLERK }),
+      BOOTH_RULE,
+    ]);
+    const done = await runner.run({ stage: 'scenes', action: 'c-cam-modules' });
+    if (!done.ok) throw new Error(JSON.stringify(done.error));
+    const clerk = turns(harness, BUILD_CLERK);
+    expect(clerk).toHaveLength(2);
+    expect(clerk[1]?.prompt).toMatch(/- validator no-signature-gag: clerk has no signature gag/);
+    expect(report(dir).modules[0]).toMatchObject({ id: 'clerk', status: 'warning', attempts: 2 });
+    expect(readProject(dir, CLERK)).toBe(NO_GAG_CLERK);
+  });
+
+  it("puts back what a module's turn writes outside its own file", async () => {
+    const { dir } = await film('outside writes');
+    const scene = readProject(dir, 'scenes/s01.js');
+    const { runner } = setup(dir, [
+      rule(BUILD_CLERK, {
+        [CLERK]: GOOD_CLERK,
+        'scenes/s01.js': 'export const tampered = true;\n',
+        'kit-ext/places/extra.js': 'export const place = {};\n',
+      }),
+      BOOTH_RULE,
+    ]);
+    const warnings: string[] = [];
+    runner.on('event', (event) => {
+      if (event.type === 'warning') warnings.push(event.message);
+    });
+    const done = await runner.run({ stage: 'scenes', action: 'c-cam-modules' });
+    if (!done.ok) throw new Error(JSON.stringify(done.error));
+    expect(readFileSync(path.join(dir, 'scenes', 's01.js'), 'utf8')).toBe(scene);
+    expect(existsSync(path.join(dir, 'kit-ext', 'places', 'extra.js'))).toBe(false);
+    expect(readProject(dir, CLERK)).toBe(GOOD_CLERK);
+    const only = `change discarded (it may write only ${CLERK})`;
+    expect(warnings).toEqual(
+      expect.arrayContaining([
+        `the c-cam-build turn of ${CLERK} changed kit-ext/places/extra.js; ${only}`,
+        `the c-cam-build turn of ${CLERK} changed scenes/s01.js; ${only}`,
+      ]),
+    );
+    expect(report(dir).modules[0]).toMatchObject({ id: 'clerk', status: 'built' });
   });
 
   it('replaces a module that still fails with a placeholder (⚠) and the scenes still build', async () => {

@@ -45,7 +45,13 @@ function shot(id: string, extra: Partial<StoryboardShot> = {}): StoryboardShot {
 describe('world registry wiring', () => {
   it('has project defaults and prompt wording for every wired world', () => {
     const wired = WORLDS.filter((world) => world.wired);
-    expect(wired.map((world) => world.id)).toEqual(['sketchbook', 'comic', 'game-b2', 'game-b1']);
+    expect(wired.map((world) => world.id)).toEqual([
+      'sketchbook',
+      'comic',
+      'game-b2',
+      'game-b1',
+      'c-cam',
+    ]);
     for (const world of wired) {
       expect(Object.keys(WORLD_PROJECT_DEFAULTS)).toContain(world.id);
       expect(Object.keys(WORLD_PROMPTS)).toContain(world.id);
@@ -53,17 +59,8 @@ describe('world registry wiring', () => {
   });
 
   it('never offers a world that is not wired yet, flag or not', () => {
-    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired: never active, no looks or prompts.
-    expect(WORLDS.filter((world) => !world.wired).map((world) => world.id)).toEqual(['c-cam']);
-    for (const scope of [{}, ON]) {
-      expect(activeWorld('c-cam', scope)).toBeUndefined();
-      expect(styleLookScope('c-cam', scope)).toEqual({ style: 'c-cam' });
-      const setup = lookSetup({ style: 'c-cam' }, scope);
-      expect(setup.world).toBeUndefined();
-      expect(setup.looks).toEqual([]);
-      expect(storyboardWorldPromptVars(setup, 120)).toEqual({});
-      expect(storyboardWorldOptions(setup)).toEqual({});
-    }
+    // Every registered world is wired since Grim Ink (PLAN.md#14.12, world-looks.test.ts).
+    expect(WORLDS.filter((world) => !world.wired).map((world) => world.id)).toEqual([]);
     // The wired worlds: an unwired copy of each is never active.
     const unwired = WORLDS.filter((world) => world.wired).map((world) => ({
       ...world,

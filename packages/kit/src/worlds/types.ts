@@ -40,6 +40,11 @@ export interface World {
    * Showcase renders (`render:frames --scene`) use it; projects get it from their defaults.
    */
   readonly fps?: number;
+  /**
+   * A project may turn some of the world's looks off (Project settings → Looks of this world,
+   * project.json `worldLooks`; Grim Ink). Absent = the world always mixes all of its looks.
+   */
+  readonly optionalLooks?: boolean;
   /** The world's looks, A roll first; each lists this world in `styles`. */
   readonly looks: readonly Look[];
 }
@@ -58,6 +63,7 @@ const worldMetaSchema = z.object({
   fonts: z.object({ display: z.string().min(1), mono: z.string().min(1) }),
   soundPalette: z.string().min(1),
   fps: z.int().min(1).max(120).optional(),
+  optionalLooks: z.boolean().optional(),
 });
 
 function worldError(id: string, message: string): Error {

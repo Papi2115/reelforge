@@ -53,7 +53,7 @@ export const person = {
     top: -872,
     waist: [62, -440],
     hsz: 34,
-    head: { x: [0, 20, 36, 0], top: -872, bottom: -650, hw: 62 },
+    head: { x: [0, 26, 49, 0], top: -872, bottom: -614, hw: 86 },
   },
   neck: [
     [0, -618, 0, -660],
@@ -89,6 +89,11 @@ export const person = {
     hatch: { c: 'rgba(24,20,16,0.4)', n: 3, len: 28, gap: 7, k: 3, ang: 80 },
   },
   defaultExpr: 'exhausted',
+  // The one recurring tic (a gag kind): scenes use it 1-2 times a shot, on a narration beat.
+  signatureGag: {
+    kind: 'wipeBrow',
+    note: 'wipes the oven heat off his brow and leaves a streak of flour',
+  },
   // prettier-ignore
   faceAnchors: [
     { chin: [0, 6], cheek: [34, -56], nose: [0, -60], mouth: [0, -26], ear: [56, -92], forehead: [0, -140] },

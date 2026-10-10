@@ -86,9 +86,11 @@ describe('resolveGenrePreset: style fallback by availability', () => {
   const cases: readonly [string, (id: string) => boolean, string, readonly string[]][] = [
     ['true-crime', builtInOnly, 'noir-voxel', []],
     ['tech-explainer', builtInOnly, 'voxel-pixel-crisp640', []],
-    ['history', builtInOnly, 'soft-480', ['sketchbook', 'comic']],
+    ['true-crime', everyWorld, 'noir-voxel', []],
+    ['history', builtInOnly, 'soft-480', ['sketchbook', 'c-cam', 'comic']],
     ['history', withSketchbook, 'sketchbook', []],
-    ['history', (id) => id !== 'sketchbook', 'comic', ['sketchbook']],
+    ['history', (id) => id !== 'sketchbook', 'c-cam', ['sketchbook']],
+    ['history', (id) => id !== 'sketchbook' && id !== 'c-cam', 'comic', ['sketchbook', 'c-cam']],
     ['finance', builtInOnly, 'voxel-pixel-crisp640', []],
     ['science', builtInOnly, 'voxel-pixel-crisp640', ['sketchbook']],
     ['science', withSketchbook, 'sketchbook', []],

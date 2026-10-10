@@ -10,7 +10,9 @@
  * project modules `kit-ext/people/<id>.js` / `kit-ext/places/<id>.js` (`export const person =
  * {…}` / `export const place = {…}`, camelCase ids = file names, `reelforge kit-docs people` /
  * `places`) are `ctx.kit.people.<id>` / `ctx.kit.places.<id>`, drawn with `cam.env` after the
- * camera. The snippets run through the real kit stage in
+ * camera; a person plays its module's one `signatureGag` through `gag` and carries the shot's
+ * things through `props` (the module's drawings read them as `p`), a place may paint a
+ * `foreground` after the people. The snippets run through the real kit stage in
  * packages/cli/src/commands/c-cam-snippets.test.ts. Values in the snippets show the shape of a
  * call on topics far from the showcase films, never a design.
  */
@@ -57,6 +59,11 @@ export const C_CAM_TEXT_METHODS = ['drawText', 'layoutText', 'wrapText'] as cons
  */
 export const C_CAM_CAST_TAG = 'cast:';
 export const C_CAM_PLACE_TAG = 'place:';
+/**
+ * The storyboard's optional gag hint (PLAN.md#14.15): the beat a person's signature gag plays on
+ * (`gag: nightPorter on 'never seen him'`), read by the scene builder and the critic.
+ */
+export const C_CAM_GAG_TAG = 'gag:';
 
 /** `reelforge kit-docs <topic>` names of the world (packages/cli/src/commands/kit-docs-c-cam.ts). */
 export const C_CAM_TOPICS = {
@@ -91,8 +98,13 @@ export const C_CAM_SNIPPETS = {
   place: `${C_CAM_API.places}.pawnShop.draw(g, cam.env, env.t, { light: true })`,
   /** paint: a person's pose for this frame, acting on twos (a library pose for its own body). */
   pose: `const pose = ${C_CAM_API.people}.broker.pose('stand', 0, { lean: ${C_CAM_API.time}.key(${C_CAM_API.time}.twos(env.t), [[0, 0], [s.knock, 6, 'out']]) })`,
-  /** paint: one hand-built person of this film (feet at x, y; s = scale; view yaw 1 = three-quarter). */
-  person: `${C_CAM_API.people}.broker.draw(g, cam.env, { x: 1240, y: 930, s: 0.9, view: 'three-quarter', pose, expr: ${INK}.exprAt([[0, 'deadpan'], [s.knock, 'shock']], env.t), t: env.t })`,
+  /**
+   * paint: one hand-built person of this film (feet at x, y; s = scale; view yaw 1 =
+   * three-quarter), playing its signature gag (the module's `signatureGag.kind`) on a beat.
+   */
+  person: `${C_CAM_API.people}.broker.draw(g, cam.env, { x: 1240, y: 930, s: 0.9, view: 'three-quarter', pose, expr: ${INK}.exprAt([[0, 'deadpan'], [s.knock, 'shock']], env.t), t: env.t, gag: { kind: 'clockCheck', t0: s.gone } })`,
+  /** paint: what the place's module draws in front of the people (a no-op without a `foreground`). */
+  foreground: `${C_CAM_API.places}.pawnShop.foreground(g, cam.env, env.t, { light: true })`,
   /** A palm in world space (place the held thing there), solved before the camera. */
   palm: `const palm = ${INK}.palmWorld({ character: ${C_CAM_API.people}.broker, placement: { x: 1240, y: 930, s: 0.9, yaw: 1 }, pose }, 'R')`,
   /** A hand target that puts the palm ON a world point (merge it into the pose as hR). */

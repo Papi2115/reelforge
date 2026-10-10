@@ -26,6 +26,10 @@ describe('checkInkModule', { timeout: 60_000 }, () => {
   it('loads the kit examples and runs the validators on the person', () => {
     const baker = checkInkModule('people', 'kit-ext/people/nightBaker.js', BAKER);
     expect(baker.ok && baker.report?.checks['figure-pieces']).toBeGreaterThan(0);
+    // The embedded example of the c-cam-build prompt: no validator error, its signature gag set.
+    expect(errorsOf(baker)).toEqual([]);
+    const codes = baker.ok ? (baker.report?.findings ?? []).map((finding) => finding.code) : [];
+    expect(codes).not.toContain('no-signature-gag');
     const room = checkInkModule('places', 'kit-ext/places/bakeryBackRoom.js', ROOM);
     expect(room).toEqual({ ok: true, report: undefined });
   });

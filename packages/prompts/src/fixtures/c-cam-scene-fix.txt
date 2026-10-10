@@ -10,7 +10,7 @@ Craft brief (Grim Ink; binding). The world gives the GRAMMAR, the narration give
 - Line: only the ink line (width swells 0.4-1.9x); silhouettes w 7-8, faces 5-7, details 3-4; never a uniform stroke.
 - Colour: muddy olive, clay, grey-blue, mustard, rust, plum; whites are dirty linen, darks are ink; one warm light pool BEHIND the people; ONE accent object per shot.
 - Grime as flat shapes only (shade crescents, mottle, hatching, stains, cracks, peels); never gradients, textures, noise, blur, paper or watercolour.
-- People: the film's own, by id; one exaggeration axis, tiny pupils, heavy lids, ugly-lovable and grim, never goofy. Hands ON things (solve the palm first), never across a face.
+- People: the film's own, by id; one exaggeration axis, tiny pupils, heavy lids, ugly-lovable and grim, never goofy. Hands ON things (solve the palm first), never across a face. Each plays its one signature gag on a beat with a reason, never as decoration.
 - Camera: 2-5 framings cut on the beats; one focal point off-centre each; Dutch tilt 2-7 deg only on tense beats; small moves; the place wider than every framing.
 - Timing: acting on twos, expressions snap, a shock = snap + head jolt for 0.2 s; holds >= 0.4 s; never constant motion.
 - Traces (>= 3): a stain, a crack, a peel, stubble, a wart, flies, a head jolt, a tilt on the tense beat, a foreground silhouette.

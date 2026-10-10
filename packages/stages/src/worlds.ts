@@ -4,10 +4,12 @@
  * meaning there), its prompts carry the world's wording (`@reelforge/prompts` worlds), its
  * storyboard names only the world's page-native transitions, and shots without a style get one of
  * them. An experimental world counts only with `StageSettings.experimentalWorlds`; until then (and
- * for every built-in style) nothing here changes a prompt, a check or a file.
+ * for every built-in style) nothing here changes a prompt, a check or a file. A world whose looks
+ * are optional (Grim Ink, PLAN.md#14.12) offers only the looks the project keeps on
+ * (project.json `worldLooks`), its rolls lettered by place and its storyboard wording to match.
  */
 import { WORLD_TRANSITIONS, type WorldTransition } from '@reelforge/engine';
-import { isWorldStyle, WORLDS, type Look, type World } from '@reelforge/kit';
+import { isWorldStyle, LOOK_ROLLS, WORLDS, type Look, type World } from '@reelforge/kit';
 import {
   criticWorldVars,
   fixWorldVars,
@@ -15,12 +17,14 @@ import {
   scriptWorldVars,
   storyboardWorldVars,
   worldPromptText,
+  worldTextForLooks,
   worldTransitionRange,
   type PromptWorld,
   type WorldQuotaOverride,
   type WorldVarietyOptions,
 } from '@reelforge/prompts';
 import {
+  enabledWorldLooks,
   isContinuityStyle,
   PAGE_CAMERA_HINTS,
   type ContinuityKind,
@@ -70,14 +74,33 @@ export interface LookSetup {
   readonly world: World | undefined;
 }
 
+/**
+ * The looks a world project keeps on (`worldLooks`; every look of a world without optional looks):
+ * with some turned off, each look in use gets the roll of its place (A, B, C).
+ */
+export function looksInUse(
+  world: World | undefined,
+  looks: readonly Look[],
+  chosen: readonly string[] | undefined,
+): Look[] {
+  if (world?.optionalLooks !== true) return [...looks];
+  const kept = enabledWorldLooks(looks, chosen);
+  if (kept.length === looks.length) return kept;
+  return kept.map((look, index) => {
+    const roll = LOOK_ROLLS[index];
+    return roll === undefined ? look : { ...look, rolls: [roll] };
+  });
+}
+
 export function lookSetup(
-  project: Pick<ProjectFile, 'lookMode' | 'style'>,
+  project: Pick<ProjectFile, 'lookMode' | 'style' | 'worldLooks'>,
   scope: WorldScope = {},
 ): LookSetup {
+  const world = activeWorld(project.style, scope);
   return {
     lookMode: effectiveLookMode(project),
-    looks: styleLooks(project.style, scope),
-    world: activeWorld(project.style, scope),
+    looks: looksInUse(world, styleLooks(project.style, scope), project.worldLooks),
+    world,
   };
 }
 
@@ -85,6 +108,18 @@ export function lookSetup(
 export function promptWorld(world: World | undefined): PromptWorld | undefined {
   const text = worldPromptText(world?.id);
   return world === undefined || text === undefined ? undefined : { label: world.label, text };
+}
+
+/**
+ * The world's storyboard wording for the looks the project keeps (a world without optional looks,
+ * or with all of them on: its wording as it is).
+ */
+function storyboardPromptWorld(setup: LookSetup): PromptWorld | undefined {
+  const world = promptWorld(setup.world);
+  if (world === undefined || setup.world?.optionalLooks !== true) return world;
+  const all = setup.world.looks.map((look) => look.id);
+  const kept = setup.looks.map((look) => look.id);
+  return { ...world, text: worldTextForLooks(world.text, all, kept) };
 }
 
 /**
@@ -117,7 +152,7 @@ export function storyboardWorldPromptVars(
   durationS?: number,
   override?: WorldQuotaOverride,
 ): Record<string, string> {
-  const world = promptWorld(setup.world);
+  const world = storyboardPromptWorld(setup);
   if (world === undefined) return {};
   const first = setup.looks[0]?.id ?? fallbackLook(setup.looks).id;
   const film = durationS === undefined ? undefined : { durationS, override };
@@ -139,7 +174,7 @@ export function storyboardWorldOptions(
 } {
   if (setup.world === undefined) return {};
   const transitions = worldTransitionOptions(setup.world);
-  const text = promptWorld(setup.world)?.text;
+  const text = storyboardPromptWorld(setup)?.text;
   const moments = text?.moments ?? [];
   return {
     worldTransitions: transitions,

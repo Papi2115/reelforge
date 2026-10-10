@@ -5,13 +5,15 @@
  * (`ink-insert`), C = the poster/title (`ink-poster`); each brings the same `kit.fx.inkStage`
  * (stage.ts), so a project may keep any one of them.
  *
- * Experimental and NOT wired yet: it renders only with `render:frames --experimental` (at the
- * world's `fps`, 24) and the apps and the CLI refuse it as a project style. The stage's
- * `env.ink` (stage-ink.ts) binds the camera, scenery, grime, faces, rig, contacts and lettering.
+ * Experimental and wired (PLAN.md#14.12): offered as a project style only with Settings ->
+ * Experimental worlds; projects get 24 fps and the world defaults (`@reelforge/project`), and a
+ * project may turn some of the three looks off (`optionalLooks`, project.json `worldLooks`). The
+ * stage's `env.ink` (stage-ink.ts) binds the camera, scenery, grime, faces, rig, contacts and
+ * lettering.
  *
  * Text: no `ctx.text` in the films; the ink-stroke lettering is `env.ink.drawText(text, o)`.
  * `fonts` maps the roles to the engine pixel fonts only because every world must name them.
- * Sound: no own palette yet; the looks reuse `voxel` (follow-up).
+ * Sound: the world's own muted, dry room palette `c-cam` (packages/stages sound palettes).
  */
 import { defineWorld } from '../types.js';
 import { FPS } from './core.js';
@@ -31,10 +33,11 @@ export const C_CAM = defineWorld({
   description:
     'Hand-inked caricature people in specific, grimy places: an uneven ink line, muddy full colour at native 1080p, flat grime shapes, deadpan acting on twos.',
   experimental: true,
-  wired: false,
+  wired: true,
+  optionalLooks: true,
   style: C_CAM_STYLE,
   fonts: { display: 'display', mono: 'mono' },
-  soundPalette: 'voxel',
+  soundPalette: 'c-cam',
   fps: FPS,
   looks: [inkSceneLook, inkInsertLook, inkPosterLook],
 });

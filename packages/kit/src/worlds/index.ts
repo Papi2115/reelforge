@@ -1,7 +1,8 @@
 /**
  * World registry (PLAN.md#13.1). `WORLDS` lists every world module the kit ships (Sketchbook
- * first, 13.6; Comic, 13.3; Game B2, 13.4; Game B1, 13.5; Grim Ink, 14.2, not wired). Their looks join `LOOKS` scoped to the world's style, and the engine
- * registers each world's style preset next to the built-in ones.
+ * first, 13.6; Comic, 13.3; Game B2, 13.4; Game B1, 13.5; Grim Ink, 14.2, wired in 14.12). Their
+ * looks join `LOOKS` scoped to the world's style, and the engine registers each world's style
+ * preset next to the built-in ones.
  */
 import type { Look } from '../looks/types.js';
 import { C_CAM } from './c-cam/index.js';

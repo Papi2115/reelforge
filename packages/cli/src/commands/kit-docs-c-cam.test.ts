@@ -63,6 +63,10 @@ describe('kit-docs Grim Ink topics', () => {
     for (const name of C_CAM_VOCABULARY.gags) expect(people).toContain(`  ${name}: `);
     expect(people).toContain('one signature gag per person');
     expect(people).toContain('1-2 gags per shot, never decorative');
+    expect(people).toContain("REQUIRED: the person's ONE tic");
+    expect(people).toContain("the narration beat that gives it a reason (the intent's gag: hint)");
+    expect(topic('grim-ink')).toContain('ONE signatureGag');
+    expect(topic('grim-ink')).toContain(C_CAM_SNIPPETS.foreground);
     for (const hook of ['signatureGag', 'arms?(p)', 'held?(g, ink, side, palm, p)', 'props:']) {
       expect(people).toContain(hook);
     }

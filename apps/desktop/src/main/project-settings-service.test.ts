@@ -76,6 +76,7 @@ describe('effectiveProjectSettings', () => {
       shotsPerMinute: null,
       fasterChecks: false,
       continuityLinks: false,
+      worldLooks: null,
     });
     expect(
       effectiveProjectSettings({
@@ -99,6 +100,7 @@ describe('effectiveProjectSettings', () => {
       shotsPerMinute: null,
       fasterChecks: false,
       continuityLinks: false,
+      worldLooks: null,
     });
   });
 });
@@ -139,6 +141,7 @@ describe('describeSettingsChange', () => {
       shotsPerMinute: null,
       fasterChecks: false,
       continuityLinks: false,
+      worldLooks: null,
     };
     expect(
       describeSettingsChange(before, { ...before, lookMode: 'mixed', ambientVariation: true }),
@@ -174,6 +177,7 @@ describe('describeSettingsChange', () => {
         shotsPerMinute: null,
         fasterChecks: false,
         continuityLinks: false,
+        worldLooks: null,
       }),
     ).toBe('Project settings: pattern interrupts on, reveal moments on');
     expect(
@@ -249,6 +253,7 @@ describe('ProjectSettingsService', () => {
         shotsPerMinute: null,
         fasterChecks: false,
         continuityLinks: false,
+        worldLooks: null,
       },
       looks: LOOKS,
       style: {
@@ -282,6 +287,7 @@ describe('ProjectSettingsService', () => {
         shotsPerMinute: null,
         fasterChecks: false,
         continuityLinks: false,
+        worldLooks: null,
       },
       committed: true,
     });
@@ -319,6 +325,7 @@ describe('ProjectSettingsService', () => {
         shotsPerMinute: null,
         fasterChecks: false,
         continuityLinks: false,
+        worldLooks: null,
       },
       committed: false,
     });

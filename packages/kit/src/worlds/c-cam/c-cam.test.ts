@@ -51,11 +51,13 @@ function fxNames(style: string | undefined, looks: readonly Look[] = LOOKS): str
 }
 
 describe('world c-cam (Grim Ink)', () => {
-  it('is registered last, experimental and not wired, with looks A, B, C', () => {
+  it('is registered last, experimental and wired (PLAN.md#14.12), with optional looks A, B, C', () => {
     expect(WORLDS.at(-1)).toBe(C_CAM);
     expect(C_CAM).toMatchObject({ id: 'c-cam', label: 'Grim Ink', experimental: true });
-    expect(C_CAM.wired).toBe(false);
-    expect(isUnwiredWorldStyle(C_CAM_ID)).toBe(true);
+    expect(C_CAM.wired).toBe(true);
+    expect(C_CAM.optionalLooks).toBe(true);
+    expect(C_CAM.soundPalette).toBe('c-cam');
+    expect(isUnwiredWorldStyle(C_CAM_ID)).toBe(false);
     expect(C_CAM.fonts).toEqual({ display: 'display', mono: 'mono' });
     expect(C_CAM.looks).toEqual(LOOKS_ABC);
     expect(LOOKS_ABC.map((look) => look.id)).toEqual(['ink-scene', 'ink-insert', 'ink-poster']);

@@ -23,7 +23,7 @@ export const inkSceneLook = defineLook({
   rolls: ['A'],
   treatments: ['character-scene', 'metaphor-object'],
   docs: DOCS,
-  soundPalette: 'voxel',
+  soundPalette: 'c-cam',
   variationBudget: C_CAM_VARIATION,
   available: true,
   styles: [C_CAM_ID],

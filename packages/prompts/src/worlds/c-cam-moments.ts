@@ -7,6 +7,7 @@
  * places. `reverse` and `poster` are the breakthroughs (about one per ~50 s, two kinds, never
  * adjacent: variety.ts); each needs an intent that names the claim, never the same mechanism
  * twice in a film. `insert` and `over-shoulder` are the everyday moments of the camera grammar.
+ * A reaction may be the person's signature gag (PLAN.md#14.15), always on a beat with a reason.
  */
 import { cCamSnippet as snippet } from './c-cam-api.js';
 import type { WorldMomentOption } from './types.js';
@@ -19,7 +20,7 @@ const POSTER = 'ink-poster';
 const INTENT_LINE =
   "`// moment: <id> | intent: <the claim in the narration's words>` as the first comment of the scene";
 
-const REVERSE_BUILD = `A reveal from the other side, never a template (look \`ink-scene\`). First decide what the reverse must SHOW (the claim of THIS narration: who was watching, what stood behind the door, how many waited, that the room was empty), then build it: ${INTENT_LINE}. The cut table holds at least two framings of ONE place: the establishing side, then on the narration's phrase a hard cut to the opposite side (every person turns to the other \`view\`, the place's far wall becomes the near one, the foreground piece changes), solved before the camera so contacts and eyelines match across the cut (${snippet('cuts')}). The place must be drawn for both sides (its module or a set extension; never an edge in any framing). Hold the revealed side >= 0.6 s with one small acting beat on twos (a blink, a head jolt of 0.2 s). Never reverse the same place twice in a film, never the same kind of reveal twice; a reverse whose new side shows nothing the narration says is decoration.`;
+const REVERSE_BUILD = `A reveal from the other side, never a template (look \`ink-scene\`). First decide what the reverse must SHOW (the claim of THIS narration: who was watching, what stood behind the door, how many waited, that the room was empty), then build it: ${INTENT_LINE}. The cut table holds at least two framings of ONE place: the establishing side, then on the narration's phrase a hard cut to the opposite side (every person turns to the other \`view\`, the place's far wall becomes the near one, the foreground piece changes), solved before the camera so contacts and eyelines match across the cut (${snippet('cuts')}). The place must be drawn for both sides (its module or a set extension; never an edge in any framing). Hold the revealed side >= 0.6 s with one small acting beat on twos (a blink, a head jolt of 0.2 s, or a person's signature gag when the reveal gives it a reason). Never reverse the same place twice in a film, never the same kind of reveal twice; a reverse whose new side shows nothing the narration says is decoration.`;
 
 const POSTER_BUILD = `The line the film turns on, as a hand-inked poster, never a template (look \`ink-poster\`): ${INTENT_LINE}. Screen space at zoom 1, no camera: one flat mud field, a worn border, ONE emblem of THIS narration drawn big and off-centre (${snippet('screenBlob')}: the thing the line is about, its 2-3 defining features, thick uneven ink 12-18), and the line itself, at most 6 words exactly as the narration says them, thudding in letter by letter on twos (${snippet('poster')}). Two or three colours (bone, rust, one mud, ink), one accent at most. It lands on the phrase with a short shake (8 px on twos for 0.2 s), then holds >= 0.6 s still (only line boil). Never the same emblem and layout twice in a film; the opening title card is a plain \`ink-poster\` shot, not this moment.`;
 
@@ -65,7 +66,7 @@ export const C_CAM_MOMENTS: readonly WorldMomentOption[] = [
     looks: [SCENE],
     useWhen:
       'has someone look at, read, wait for or face something (a letter, a crowd, a door, another person)',
-    build: `a cast member's back huge in the foreground (\`view: 'back'\`, scale 1.25-4.2, feet far below the frame), drawn after the place and before any screen-space piece, never covering the focal point; the thing looked at sits off-centre in the free part of the frame; the cut table then cuts to a close-up of what they see or of the reaction on the beat (${snippet('cuts')}). One foreground piece per framing, only in the framing that needs it.`,
+    build: `a cast member's back huge in the foreground (\`view: 'back'\`, scale 1.25-4.2, feet far below the frame), drawn after the place and before any screen-space piece, never covering the focal point; the thing looked at sits off-centre in the free part of the frame; the cut table then cuts to a close-up of what they see or of the reaction on the beat (the reaction may be the person's signature gag, never as decoration; ${snippet('cuts')}). One foreground piece per framing, only in the framing that needs it.`,
     visible:
       "a person's back or shoulder huge in the foreground, the thing they look at off-centre beyond it",
     minShotS: 3,

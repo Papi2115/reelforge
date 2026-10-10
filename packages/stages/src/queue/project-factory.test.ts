@@ -129,7 +129,7 @@ describe('queue project factory with genre presets', () => {
       asked.push(id);
       return id === 'soft-480';
     });
-    expect(asked).toEqual(['sketchbook', 'comic', 'soft-480']);
+    expect(asked).toEqual(['sketchbook', 'c-cam', 'comic', 'soft-480']);
     expect(history).toMatchObject({ genrePreset: 'history', style: 'soft-480' });
     const unknown = await make('unknown', item('u1', { genrePreset: 'tech' }), {});
     expect(unknown).toMatch(/there is no genre preset "tech"/);

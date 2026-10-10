@@ -4,7 +4,8 @@
  * the contact sheet rendered through the frame renderer like `reelforge people-preview` /
  * `places-preview` (pages not blank, the same page twice identical) → the Haiku critic on the
  * sheet, only when the code checks pass. `codeFailed` says the module cannot be trusted in a
- * scene (lint, contract, validator errors, render); critic findings alone keep it usable.
+ * scene (lint, contract, validator errors, render); critic findings and a missing signature gag
+ * (a required fix, PLAN.md#14.15) alone keep it usable.
  */
 import {
   INK_SHEET_SHOT_ID,
@@ -46,6 +47,16 @@ export interface InkQa {
 
 /** Validator findings per rule in a prompt (a rule fails in many views and poses at once). */
 const MAX_RULE_LINES = 8;
+
+/**
+ * Validator warnings the step requires fixed (PLAN.md#14.15): a built person declares its one
+ * `signatureGag`. Sent to the fix turn like an error, but the figure itself is sound, so a person
+ * still without one is kept with the finding (⚠), never replaced by the placeholder.
+ */
+const REQUIRED_WARNINGS: ReadonlySet<string> = new Set(['no-signature-gag']);
+
+const isRequiredWarning = (finding: InkValidationFinding): boolean =>
+  finding.severity === 'warn' && REQUIRED_WARNINGS.has(finding.code);
 
 const describe = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -185,19 +196,22 @@ export async function inkQaRound(
   if (!checked.ok) return ok(failed([checked.error]));
   const findings = checked.report?.findings ?? [];
   const errors = groupedFindings(findings.filter((finding) => finding.severity === 'error'));
-  const warnings = groupedFindings(findings.filter((finding) => finding.severity === 'warn'));
+  const required = groupedFindings(findings.filter(isRequiredWarning));
+  const warnings = groupedFindings(
+    findings.filter((finding) => finding.severity === 'warn' && !isRequiredWarning(finding)),
+  );
   const drawn = await contactSheet(job, design, label);
   if (!drawn.ok) return drawn;
   const { sheet } = drawn.value;
   const code = [...errors, ...drawn.value.failures];
   if (code.length > 0) return ok({ ...failed(code, sheet), notes: warnings });
   if (sheet === undefined || !job.settings.critic || !ctx.hasClaude) {
-    return ok({ findings: [], codeFailed: false, sheet, notes: warnings });
+    return ok({ findings: required, codeFailed: false, sheet, notes: warnings });
   }
   const judged = await critique(job, design, sheet);
   if (!judged.ok) return judged;
   return ok({
-    findings: judged.value.findings,
+    findings: [...required, ...judged.value.findings],
     codeFailed: false,
     sheet,
     notes: [...warnings, ...judged.value.notes],

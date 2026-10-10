@@ -20,7 +20,7 @@ export const inkPosterLook = defineLook({
   rolls: ['C'],
   treatments: ['title-card', 'montage/transition'],
   docs: DOCS,
-  soundPalette: 'voxel',
+  soundPalette: 'c-cam',
   variationBudget: C_CAM_VARIATION,
   available: true,
   styles: [C_CAM_ID],

@@ -138,3 +138,54 @@ describe('reelforge validate on a world film', () => {
     }
   });
 });
+
+describe('worldVarietyProblems in a Grim Ink film (PLAN.md#14.12)', () => {
+  const INK = { A: 'ink-scene', B: 'ink-insert', C: 'ink-poster' } as const;
+  const plans: readonly [keyof typeof INK, string?][] = [
+    ['C', 'poster'],
+    ['A'],
+    ['B', 'insert'],
+    ['A', 'reverse'],
+    ['B'],
+    ['A'],
+  ];
+  const film: StoryboardFile = {
+    version: 1,
+    shots: plans.map(([roll, moment], index): StoryboardShot => {
+      const id = `s${String(index + 1).padStart(2, '0')}`;
+      return {
+        id,
+        t0: index * 5,
+        t1: (index + 1) * 5,
+        treatment: 'character-scene',
+        intent: `cast: porter | place: corridor | shot ${id}`,
+        scene: `scenes/${id}.js`,
+        roll,
+        look: INK[roll],
+        ...(moment === undefined ? {} : { worldMoment: moment }),
+      };
+    }),
+  };
+  const ink: ProjectFile = { ...PROJECT, style: 'c-cam', fps: 24, continuityLinks: false };
+  const problems = (project: ProjectFile) => worldVarietyProblems(project, film, true);
+
+  it('checks the film with every look on, with or without the field', () => {
+    const all = problems(ink).map((problem) => problem.message);
+    expect(all.filter((message) => /^(look-off|moment-unknown)/u.test(message))).toEqual([]);
+    const listed = problems({ ...ink, worldLooks: ['ink-scene', 'ink-insert', 'ink-poster'] });
+    expect(listed.map((problem) => problem.message)).toEqual(all);
+  });
+
+  it('reports the shots in a look that is off and the moments it alone hosts', () => {
+    const off = problems({ ...ink, worldLooks: ['ink-scene', 'ink-poster'] });
+    const lookOff = off.filter((problem) => problem.message.startsWith('look-off'));
+    expect(lookOff.map((problem) => problem.at)).toEqual(['shots[2].look', 'shots[4].look']);
+    expect(lookOff[0]?.message).toContain('looks in use: ink-scene, ink-poster');
+    expect(off.some((problem) => problem.message.startsWith('moment-unknown'))).toBe(true);
+  });
+
+  it('ignores the field in a world whose looks are not optional', () => {
+    const plain = codes(PROJECT, VARIED);
+    expect(codes({ ...PROJECT, worldLooks: ['sketch-story'] }, VARIED)).toEqual(plain);
+  });
+});

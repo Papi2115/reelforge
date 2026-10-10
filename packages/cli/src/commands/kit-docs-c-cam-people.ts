@@ -5,6 +5,7 @@
  * drawing API is in the world's own topics (kit-docs grim-ink).
  */
 import { GAG_DOCS, GAG_KINDS, MAX_GAGS } from '@reelforge/kit';
+import { C_CAM_GAG_TAG } from '@reelforge/prompts';
 import { INK_MODULE_LIMITS } from '@reelforge/shared';
 
 export const PEOPLE_TOPIC = 'people';
@@ -27,7 +28,7 @@ const PEOPLE = [
   '  neck: [[x, y] | [baseX, baseY, headX, headY] x 4 views], headScale: 1.05-1.2,',
   '  tones: { skin, skinD, ...any }, arm: { cloth, clothD, w: [3], skin, skinD, hsz, bare?, hand?, cuff?, hatch?, lw? }, leg: { cloth, clothD, w: [3], shoe, shoeD, len, sw, splay?, hatch?, lw? },',
   "  defaultExpr?: 'deadpan', faceAnchors?: [4 x { chin, cheek, nose, mouth, ear, forehead }],",
-  "  signatureGag: { kind: 'gum', note: 'chews gum when everyone panics' },  // the person's one tic (a gag kind below); lint / validator warn without it",
+  "  signatureGag: { kind: 'gum', note: 'chews gum when everyone panics' },  // REQUIRED: the person's ONE tic (a gag kind below)",
   '  torso(g, ink, view, p) { ... },        // view 0 front, 1 three-quarter, 2 profile, 3 back; figure space',
   '  head(g, ink, view, face, p) { ... },   // head-local: origin = top of the neck, +x = the way the head faces',
   '  drawNeck?(g, ink, view, neck, p) { ... },',
@@ -41,7 +42,7 @@ const PEOPLE = [
   '  cam.env = the ink width of the camera (const cam = env.ink.applyCamera(g, env.ink.resolveCut(s.cuts, env.t))); env itself is zoom 1 (screen space).',
   '  baker.D (dimensions for poses / contacts), baker.character (the rig record), baker.pose(name, ph, over); baker itself is a valid `character` for env.ink.palmWorld / reachPalm / drawFigure.',
   'Look at it: reelforge people-preview <id> (6 views x stand/akimbo/walk + the 14 faces), then Read the sheet.',
-  `Gags (micro-acting on any person, on twos): gag: { kind, t0 = 0 (s it starts), rate = 1 (cycle speed), hand = 'R', seed, visor (helmet) } or a list of up to ${String(MAX_GAGS)}. Rule: one signature gag per person (signatureGag), 1-2 gags per shot, never decorative: a gag is acting (boredom, nerves, impatience). Kinds:`,
+  `Gags (micro-acting on any person, on twos): gag: { kind, t0 = 0 (s it starts), rate = 1 (cycle speed), hand = 'R', seed, visor (helmet) } or a list of up to ${String(MAX_GAGS)}. Rule: one signature gag per person (signatureGag), 1-2 gags per shot, never decorative: a gag is acting (boredom, nerves, impatience). A scene plays the person's signatureGag.kind on the narration beat that gives it a reason (the intent's ${C_CAM_GAG_TAG} hint). Kinds:`,
   ...GAG_KINDS.map((kind) => `  ${kind}: ${GAG_DOCS[kind]}`),
   ...COMMON,
 ];

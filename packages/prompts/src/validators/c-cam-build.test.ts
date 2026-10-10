@@ -31,7 +31,7 @@ const VARS = {
 describe('c-cam-build prompt', () => {
   it('is an Opus turn writing one module, with the kit examples embedded verbatim', () => {
     const prompt = loadPrompt('c-cam-build');
-    expect(prompt).toMatchObject({ version: 1, model: 'opus' });
+    expect(prompt).toMatchObject({ version: 2, model: 'opus' });
     expect(prompt.template).toContain(BAKER);
     expect(prompt.template).toContain(ROOM);
     expect(promptVariables('c-cam-build').required).toEqual(
@@ -49,6 +49,9 @@ describe('c-cam-build prompt', () => {
     expect(person.value).not.toContain(ROOM);
     expect(person.value).toContain('never reuse its content');
     expect(person.value).not.toContain('This is fix');
+    expect(person.value).toContain('REQUIRED: exactly ONE `signatureGag: { kind, note }`');
+    expect(person.value).toContain('`held`, `beforeHand`, with `arms(p)`');
+    expect(person.value).not.toContain('add a `foreground(g, ink, t, opts)`');
     const place = renderPrompt('c-cam-build', {
       ...VARS,
       folder: 'places',
@@ -65,12 +68,23 @@ describe('c-cam-build prompt', () => {
     expect(place.value).not.toContain(BAKER);
     expect(place.value).toContain('This is fix 2 of `kit-ext/places/tollBooth.js`');
     expect(place.value).toContain('reelforge places-preview tollBooth');
+    expect(place.value).toContain('add a `foreground(g, ink, t, opts)` only when');
+    expect(place.value).not.toContain('REQUIRED: exactly ONE');
   });
 });
 
 describe('validateInkModuleSource', () => {
   it('accepts the kit examples', () => {
     expect(validateInkModuleSource(BAKER, 'people', 'nightBaker').issues).toEqual([]);
+    expect(validateInkModuleSource(ROOM, 'places', 'bakeryBackRoom').issues).toEqual([]);
+  });
+
+  it('requires the signature gag of a person, never of a place', () => {
+    const plain = BAKER.replace(/^ {2}signatureGag: [{][^}]*[}],$/m, '');
+    expect(plain).not.toBe(BAKER);
+    expect(validateInkModuleSource(plain, 'people', 'nightBaker').issues).toEqual([
+      expect.objectContaining({ severity: 'error', code: 'ink-signature-gag' }),
+    ]);
     expect(validateInkModuleSource(ROOM, 'places', 'bakeryBackRoom').issues).toEqual([]);
   });
 
@@ -81,6 +95,7 @@ describe('validateInkModuleSource', () => {
       'ink-id',
       'ink-function',
       'ink-function',
+      'ink-signature-gag',
       'ink-forbidden',
     ]);
   });

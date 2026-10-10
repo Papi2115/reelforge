@@ -109,7 +109,8 @@ const BUILT_IN_GENRE_PRESETS: readonly GenrePreset[] = [
     id: 'true-crime',
     name: 'True crime',
     description: 'Low-key noir voxel, measured pace, open loops and reveals carry the case.',
-    styles: ['noir-voxel'],
+    // Grim Ink (PLAN.md#14.12) as an option after the noir voxel (never picked over it).
+    styles: ['noir-voxel', 'c-cam'],
     lookMode: 'mixed',
     // Measured: time for evidence to land; tension map drives the faster stretches.
     shotsPerMinute: SHOT_RANGE_PRESETS.balanced,
@@ -145,8 +146,8 @@ const BUILT_IN_GENRE_PRESETS: readonly GenrePreset[] = [
     id: 'history',
     name: 'History',
     description: 'Hand-drawn notebook first, calmer pace, people and dates told as a story.',
-    // Comic joins as soon as it is wired; soft voxel when no world is offered.
-    styles: ['sketchbook', 'comic', 'soft-480'],
+    // Then Grim Ink (PLAN.md#14.12) and Comic; soft voxel when no world is offered.
+    styles: ['sketchbook', 'c-cam', 'comic', 'soft-480'],
     lookMode: 'mixed',
     shotsPerMinute: SHOT_RANGE_PRESETS.calm,
     // Calmer: no planned pattern interrupts; loops and reveals still shape the story.

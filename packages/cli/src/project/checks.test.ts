@@ -61,19 +61,31 @@ describe('styleProblems', () => {
     expect(off?.fix).toBe('use one of: voxel-pixel-crisp640, noir-voxel, soft-480');
     const [on] = styleProblems('vaporwave', STYLE_REGISTRY, true);
     expect(on?.fix).toBe(
-      'use one of: voxel-pixel-crisp640, noir-voxel, soft-480, sketchbook, comic, game-b2, game-b1',
+      'use one of: voxel-pixel-crisp640, noir-voxel, soft-480, sketchbook, comic, game-b2, game-b1, c-cam',
+    );
+  });
+
+  it('accepts Grim Ink (c-cam, wired in PLAN.md#14.12) like the other experimental worlds', () => {
+    expect(WORLDS.filter((world) => !world.wired)).toEqual([]);
+    expect(STYLE_REGISTRY.isExperimental('c-cam')).toBe(true);
+    expect(styleProblems('c-cam', STYLE_REGISTRY, true)).toEqual([]);
+    expect(styleProblems('c-cam', STYLE_REGISTRY, false)[0]?.message).toBe(
+      'style "c-cam" is an experimental world; turn on Experimental worlds in Settings',
     );
   });
 
   it('rejects a world that is not wired yet, switch or not, even when shipped', () => {
-    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired yet.
-    const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
-    expect(unwired).toEqual(['c-cam']);
-    for (const style of unwired) {
+    // An unwired copy of Grim Ink stands for a world still in development.
+    const worlds = WORLDS.map((world) =>
+      world.id === 'c-cam' ? { ...world, wired: false } : world,
+    );
+    for (const style of ['c-cam']) {
       expect(STYLE_REGISTRY.entry(style)).toBeDefined();
+      const [unknown] = styleProblems('vaporwave', STYLE_REGISTRY, true, worlds);
+      expect(unknown?.fix).not.toContain('c-cam');
       for (const registry of [STYLE_REGISTRY, SHIPPED]) {
         for (const experimental of [false, true]) {
-          expect(styleProblems(style, registry, experimental)).toEqual([
+          expect(styleProblems(style, registry, experimental, worlds)).toEqual([
             {
               severity: 'error',
               file: 'project.json',

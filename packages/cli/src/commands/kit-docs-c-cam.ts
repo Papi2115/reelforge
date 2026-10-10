@@ -39,8 +39,9 @@ const INDEX = [
   `${MODULES}: the film's own people and places, one module each (${C_CAM_API.peopleDir}/<id>.js, ${C_CAM_API.placesDir}/<id>.js, camelCase ids); in a scene:`,
   `  ${C_CAM_SNIPPETS.person}`,
   `  ${C_CAM_SNIPPETS.place}`,
+  `  ${C_CAM_SNIPPETS.foreground}`,
   `  look at them: ${C_CAM_API.peoplePreview} <id>, ${C_CAM_API.placesPreview} <id>`,
-  "A person (built once per film, never a generator, never a showcase film's cast): one exaggeration axis (head:body 1:2.7-1:4.2), a torso drawn by hand for each view, 4 heads by view, tiny pupils, heavy lids, 4-6 grit marks, a costume that tells the job and one loud prop with a gag use; the people of a film clearly different in silhouette; background people simple (flat colour, dot eyes, no hatching).",
+  "A person (built once per film, never a generator, never a showcase film's cast): one exaggeration axis (head:body 1:2.7-1:4.2), a torso drawn by hand for each view, 4 heads by view, tiny pupils, heavy lids, 4-6 grit marks, a costume that tells the job, one loud prop with a gag use and ONE signatureGag (its tic, played 1-2 times a shot on a beat with a reason, never as decoration); the people of a film clearly different in silhouette; background people simple (flat colour, dot eyes, no hatching).",
   'A place: drawn wider than every framing (about x -300 to 2300, y -300 to 1300), one warm light pool, a floor of its own material, grime, clutter that tells the place; animated parts read t on twos. A thing used in one shot only is drawn inline in that scene.',
 ];
 

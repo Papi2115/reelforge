@@ -9,7 +9,8 @@
  * the world brief instead.
  * A world drawn for one frame rate sets `fps` (Grim Ink: 24, its acting is on twos at 12 fps); the
  * others keep the template's. A key here does not make a world offered: only `wired` worlds are
- * (`@reelforge/kit` `World.wired`); Grim Ink has defaults while still render-only (PLAN.md#14.2).
+ * (`@reelforge/kit` `World.wired`; Grim Ink since PLAN.md#14.12). A world with optional looks
+ * (Grim Ink) starts with all of them: `worldLooks` is written only when the user turns one off.
  */
 import type { ProjectFile } from '@reelforge/shared';
 

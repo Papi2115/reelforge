@@ -99,6 +99,8 @@ describe('Grim Ink prompts', () => {
     expect(storyboard).toContain('Cast: 2-5 roles');
     expect(storyboard).toContain('`cast: nightPorter (the hotel');
     expect(storyboard).toContain('`place: boilerRoom`');
+    expect(storyboard).toContain('ONE signature tic');
+    expect(storyboard).toContain("`gag: nightPorter on 'never seen him'` (at most 2 per shot");
     expect(storyboard).toContain('- `A` = the scene (`ink-scene`');
     expect(storyboard).toContain('- `B` = the insert (`ink-insert`');
     expect(storyboard).toContain('- `C` = the poster (`ink-poster`');
@@ -157,7 +159,12 @@ describe('Grim Ink prompts', () => {
     ]) {
       expect(build).toContain(part);
     }
-    for (const name of ['stage', 'paint', 'person', 'place', 'cuts', 'camera', 'reach'] as const) {
+    expect(build).toContain("each person plays its module's one `signatureGag`");
+    expect(build).toContain('never all shot long, never as decoration');
+    expect(build).toContain('goes in its `props` (the module draws it from `p`');
+    expect(C_CAM_SNIPPETS.person).toContain('gag: { kind:');
+    const names = ['stage', 'paint', 'person', 'place', 'foreground', 'cuts', 'camera', 'reach'];
+    for (const name of names as readonly (keyof typeof C_CAM_SNIPPETS)[]) {
       expect(build).toContain(`\`${C_CAM_SNIPPETS[name]}\``);
     }
     expect(build).toContain('Page moment planned for this shot (`reverse`;');
@@ -182,6 +189,8 @@ describe('Grim Ink prompts', () => {
     expect(critic).toContain('a note starting `reverse:`');
     expect(critic).toContain("the ink line's swell, the mottle and hatching of every fill");
     expect(critic).toContain('a hand floating near a prop');
+    expect(critic).toContain("each person's signature gag present where the intent names it");
+    expect(critic).toContain('a gag with no reason in the narration');
   });
 
   it('give the script grim-ink surprises', () => {

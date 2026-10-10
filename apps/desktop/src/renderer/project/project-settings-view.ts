@@ -116,6 +116,7 @@ export function withProjectSettingsPatch(
       patch.shotsPerMinute === undefined ? settings.shotsPerMinute : patch.shotsPerMinute,
     fasterChecks: patch.fasterChecks ?? settings.fasterChecks,
     continuityLinks: patch.continuityLinks ?? settings.continuityLinks,
+    worldLooks: patch.worldLooks === undefined ? settings.worldLooks : patch.worldLooks,
   };
 }
 

@@ -21,7 +21,7 @@ export const inkInsertLook = defineLook({
   rolls: ['B'],
   treatments: ['metaphor-object', 'counter/odometer'],
   docs: DOCS,
-  soundPalette: 'voxel',
+  soundPalette: 'c-cam',
   variationBudget: C_CAM_VARIATION,
   available: true,
   styles: [C_CAM_ID],
