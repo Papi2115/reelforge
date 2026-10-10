@@ -2,7 +2,7 @@
  * Engine runtime for one loaded video: validates the manifest, imports and builds every shot,
  * and renders any global time synchronously. Runs inside the sandboxed engine frame.
  */
-import { loadProjectCast, type KitDefinition } from '@reelforge/kit';
+import { loadProjectCast } from '@reelforge/kit';
 import {
   renderManifestSchema,
   type RenderManifest,
@@ -22,6 +22,7 @@ import {
   type FrameDirector,
 } from './direction.js';
 import { describeError, EngineError } from './errors.js';
+import { filmPlaceOf } from './film.js';
 import {
   configureColorManagement,
   createFrameRenderer,
@@ -29,7 +30,7 @@ import {
   type FrameRendererOptions,
   type GpuInfo,
 } from './gl/frame-renderer.js';
-import { loadKitExtensions, type KitExtensionImporter } from './kit-extensions.js';
+import { loadProjectModules, type KitExtensionImporter } from './kit-extensions.js';
 import {
   applyPaletteShift,
   paletteShiftMap,
@@ -98,7 +99,7 @@ export interface RuntimeDependencies {
   readonly canvas: HTMLCanvasElement;
   /** Imports a scene module source and returns its namespace. */
   importScene(scene: SceneSource, shotId: string): Promise<unknown>;
-  /** Imports a project prop module (`kitExtensions`) and returns its namespace. */
+  /** Imports a project module (`kitExtensions`) and returns its namespace. */
   readonly importKitExtension: KitExtensionImporter;
 }
 
@@ -121,7 +122,7 @@ type ShotBuilder = (
 function createShotBuilder(
   manifest: RenderManifest,
   style: ResolvedStyle,
-  kitExtensions: readonly KitDefinition[],
+  modules: Awaited<ReturnType<typeof loadProjectModules>>,
 ): ShotBuilder {
   // Project roles (PLAN.md#12.20): invalid files are left out, a scene naming one gets the error.
   const cast = loadProjectCast(manifest.castRoles);
@@ -152,13 +153,14 @@ function createShotBuilder(
       palette: style.palette,
       safeArea: style.safeArea,
       resolveAnchor,
-      kitExtensions,
+      ...modules,
       cast,
       ambient: shotAmbient(manifest, style, index),
       assets,
       styleId: style.id,
       worldAssets,
       captions,
+      film: filmPlaceOf(manifest, index),
     });
 }
 
@@ -191,11 +193,8 @@ export async function createRuntime(
   const style = resolveStyle(manifest);
   // Before any scene code runs: module top-level code may already create Colors.
   configureColorManagement();
-  const kitExtensions = await loadKitExtensions(
-    manifest.kitExtensions ?? [],
-    dependencies.importKitExtension,
-  );
-  const build = createShotBuilder(manifest, style, kitExtensions);
+  const modules = await loadProjectModules(manifest, style.id, dependencies.importKitExtension);
+  const build = createShotBuilder(manifest, style, modules);
   const shots = await buildShots(manifest, build, dependencies);
   const timeline = createTimeline(
     manifest.shots.map((shot) => ({

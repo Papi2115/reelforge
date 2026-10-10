@@ -15,6 +15,7 @@ import {
 } from '@reelforge/shared';
 import { CUE_RULES } from '../cue-rules.js';
 import { BLUEPRINT_PALETTE } from './blueprint.js';
+import { C_CAM_PALETTE } from './c-cam.js';
 import { COMIC_PALETTE, COMIC_TRANSITION_SFX } from './comic.js';
 import { DIORAMA_PALETTE } from './diorama.js';
 import { FLAT_2D_PALETTE } from './flat-2d.js';
@@ -43,6 +44,7 @@ export { SKETCHBOOK_PALETTE, WORLD_TRANSITION_SFX };
 export { COMIC_PALETTE, COMIC_TRANSITION_SFX };
 export { GAME_B2_PALETTE, GAME_B2_TRANSITION_SFX };
 export { GAME_B1_PALETTE, GAME_B1_TRANSITION_SFX };
+export { C_CAM_PALETTE };
 
 export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   voxel: VOXEL_PALETTE,
@@ -56,6 +58,7 @@ export const SOUND_PALETTES: Readonly<Record<SoundPaletteId, SoundPalette>> = {
   comic: COMIC_PALETTE,
   'game-b2': GAME_B2_PALETTE,
   'game-b1': GAME_B1_PALETTE,
+  'c-cam': C_CAM_PALETTE,
 };
 
 /** A palette by id (undefined for unknown ids). */

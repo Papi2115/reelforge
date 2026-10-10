@@ -18,6 +18,7 @@ import type {
 import { describeError, type Logger } from '../logger.js';
 import { projectKey } from '../stages/stage-service-model.js';
 import { filmFacts, latestExport } from './film-facts.js';
+import { thumbnailOrigin } from './opening-thumbnail.js';
 import type { ProjectLibrary } from './project-library.js';
 import type { RenameCommit } from './project-rename.js';
 
@@ -181,6 +182,7 @@ export class OverviewService {
         width: picture.width,
         height: picture.height,
         bytes,
+        origin: await thumbnailOrigin(dir, file),
       };
     }
     return null;

@@ -1,7 +1,8 @@
 /**
  * World registry (PLAN.md#13.1). `WORLDS` lists every world module the kit ships (Sketchbook
- * first, 13.6; Comic, 13.3; Game B2, 13.4; Game B1, 13.5; Grim Ink, 14.2, not wired). Their looks join `LOOKS` scoped to the world's style, and the engine
- * registers each world's style preset next to the built-in ones.
+ * first, 13.6; Comic, 13.3; Game B2, 13.4; Game B1, 13.5; Grim Ink, 14.2, wired in 14.12). Their
+ * looks join `LOOKS` scoped to the world's style, and the engine registers each world's style
+ * preset next to the built-in ones.
  */
 import type { Look } from '../looks/types.js';
 import { C_CAM } from './c-cam/index.js';
@@ -12,7 +13,26 @@ import { SKETCHBOOK } from './sketchbook/index.js';
 import type { World } from './types.js';
 
 export * from './types.js';
-export { C_CAM_ID } from './c-cam/index.js';
+export {
+  CAPTION_BAND_SHARE,
+  C_CAM_CAPTION_MAX_WORDS,
+  C_CAM_ID,
+  PROTOTYPE_CAPTION,
+  ROLE_FAMILIES,
+  ROLE_SPECS,
+  TEXT_ROLES,
+  inkFontReport,
+  titleLines,
+  type CaptionFrame,
+  type CaptionScene,
+  type InkFontReport,
+  type MeasureTarget,
+  type TextRole,
+  type WorldCaptions,
+} from './c-cam/index.js';
+export { C_CAM_VOCABULARY, type CCamVocabulary } from './c-cam/vocabulary.js';
+export { STAGE_INK_NAMES, type StageInk } from './c-cam/stage-ink.js';
+export type { InkStageEnv, InkStageObject } from './c-cam/stage.js';
 export { COMIC_ID, COMIC_INKS } from './comic/index.js';
 export { GAME_B1_COLOURS, GAME_B1_ID, GAME_B1_LUTS } from './game-b1/index.js';
 export {

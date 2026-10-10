@@ -63,7 +63,7 @@ describe('world sections off (script, sound-cues)', () => {
 
   it('bumps the versions of the prompts with world variety wording', () => {
     const ids = ['storyboard', 'scene-build', 'scene-fix', 'critic', 'script', 'sound-cues'];
-    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([20, 19, 7, 11, 4, 6]);
+    expect(ids.map((id) => loadPrompt(id as PromptId).version)).toEqual([21, 20, 7, 12, 4, 6]);
   });
 });
 

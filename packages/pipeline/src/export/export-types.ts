@@ -84,6 +84,11 @@ export interface ExportVideoOptions {
   readonly audio?: string | null;
   /** Thumbnail time in seconds (default: middle of the first shot); `null` skips the thumbnail. */
   readonly thumbnailAt?: number | null;
+  /**
+   * Grim Ink (PLAN.md#14.18): also save the opening frame (the title card, the moment it has
+   * landed) as a 1280x720 YouTube thumbnail, `out/opening-frame.png`. Default false.
+   */
+  readonly openingThumbnail?: boolean;
   /** Chapters for `out/chapters.txt` (YouTube format); omitted -> no file. */
   readonly chapters?: readonly Chapter[];
   /** Resolves `anchor()` phrases for cache keys; without it every word change re-renders all. */
@@ -107,6 +112,8 @@ export interface ExportVideoOptions {
 export interface ExportResult {
   readonly output: string;
   readonly thumbnail: string | null;
+  /** `out/opening-frame.png` when `openingThumbnail` asked for it, else null. */
+  readonly openingThumbnail: string | null;
   readonly chaptersFile: string | null;
   readonly renderedShots: readonly string[];
   readonly cachedShots: readonly string[];

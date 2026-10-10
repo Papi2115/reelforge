@@ -85,7 +85,9 @@ export const propPreviewCommand: Command = {
     // A turntable resolves no anchors: it works before "Words timed" (and with a broken words file).
     const setup = renderSetup(files, { withoutWords: true });
     const file = propExtensionFile(name);
-    const extension = setup.kitExtensions.find((candidate) => candidate.name === name);
+    const extension = setup.kitExtensions.find(
+      (candidate) => candidate.name === name && (candidate.kind ?? 'props') === 'props',
+    );
     if (extension === undefined) {
       throw new ProjectError(
         `${file} does not exist`,

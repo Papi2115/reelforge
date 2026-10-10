@@ -8,6 +8,7 @@
  */
 import type { MusicMood } from '@reelforge/pipeline';
 import { meanTension, type StoryboardShot, type TensionPoint } from '@reelforge/shared';
+import { C_CAM_MUSIC_MOODS } from './palettes/c-cam.js';
 
 export type ActRole = 'full' | 'intro' | 'body' | 'outro';
 
@@ -47,6 +48,7 @@ export const STYLE_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
   comic: ['calm-tech', 'tense-investigation'],
   'game-b2': ['lofi-chill', 'tense-investigation', 'retro-wave'],
   'game-b1': ['lofi-chill', 'retro-wave', 'tense-investigation'],
+  'c-cam': C_CAM_MUSIC_MOODS,
 };
 export const DEFAULT_STYLE_MOODS: readonly MusicMood[] = ['calm-tech', 'bright-explainer'];
 
@@ -62,6 +64,7 @@ export const TENSION_STYLE_MOODS: Readonly<Record<string, readonly [MusicMood, M
   comic: ['calm-tech', 'tense-investigation'],
   'game-b2': ['lofi-chill', 'tense-investigation'],
   'game-b1': ['lofi-chill', 'tense-investigation'],
+  'c-cam': C_CAM_MUSIC_MOODS,
 };
 export const DEFAULT_TENSION_MOODS: readonly [MusicMood, MusicMood] = ['calm-tech', 'retro-wave'];
 /** A body act this tense (mean) gets the tense mood; intro and outro need TENSE_EDGE_ACT. */
@@ -190,6 +193,8 @@ export const WORLD_MOODS: Readonly<Record<string, readonly MusicMood[]>> = {
   // A 1982 living room with the console on: a low lo-fi bed in the room, the console's own synth
   // for the livelier acts, tense at the boss fights; nothing bright or cheerful.
   'game-b1': ['lofi-chill', 'retro-wave', 'tense-investigation'],
+  // A grimy room in an adult TV cartoon (Grim Ink): the palette's own dry, low and tense moods.
+  'c-cam': C_CAM_MUSIC_MOODS,
 };
 
 /** Mood per act: Claude's hint where given (same length as the acts), else the style default. */

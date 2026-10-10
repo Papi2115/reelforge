@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { ambientShotSchema, ambientVariationSettingsSchema } from './ambient-variation.js';
 import { assetIdSchema, assetMimeSchema } from './assets.js';
 import { manifestCastRolesSchema } from './cast-roles.js';
-import { kitExtensionSchema } from './kit-extensions.js';
+import { kitExtensionKind, kitExtensionSchema } from './kit-extensions.js';
 import { shotDirectionSchema } from './live-direction.js';
 import { paletteSchema } from './palette.js';
 import { shotIdSchema, transitionSchema } from './storyboard.js';
@@ -53,6 +53,11 @@ export const manifestShotSchema = z
     paletteShift: z.array(paletteShiftWindowSchema).max(MAX_SHOT_EFFECT_WINDOWS).optional(),
     /** Live co-direction overrides (PLAN.md#12.14, live-direction.ts). Absent = none. */
     direction: shotDirectionSchema.optional(),
+    /**
+     * The shot's 0-based storyboard position for `ctx.film` (PLAN.md#14.19) when the manifest is
+     * not the whole film (an isolated render of one shot); absent = its index in `shots`.
+     */
+    filmIndex: z.int().nonnegative().optional(),
   })
   .refine((shot) => shot.t1 > shot.t0, { message: 't1 must be > t0', path: ['t1'] })
   .superRefine((shot, issues) => {
@@ -99,6 +104,14 @@ export const manifestAssetSchema = z
   });
 export type ManifestAsset = z.infer<typeof manifestAssetSchema>;
 
+/** The film a partial manifest belongs to (`ctx.film`, PLAN.md#14.19). */
+export const filmPlaceSchema = z.object({
+  /** Film length in seconds. */
+  duration: z.number().positive(),
+  shotCount: z.int().min(1),
+});
+export type FilmPlaceFile = z.infer<typeof filmPlaceSchema>;
+
 export const renderManifestSchema = z
   .object({
     version: z.literal(RENDER_MANIFEST_VERSION),
@@ -125,7 +138,10 @@ export const renderManifestSchema = z
      * spoken `words` over every shot. Absent = off (every manifest made before Shorts).
      */
     captions: z.boolean().optional(),
-    /** Project-local props (`kit-ext/props/*.js`), registered before any scene is built. */
+    /**
+     * Project modules registered before any scene is built: props (`kit-ext/props/*.js`) and the
+     * Grim Ink world's people / places (`kit-ext/people|places/*.js`, `kind`, PLAN.md#14.8).
+     */
     kitExtensions: z.array(kitExtensionSchema).optional(),
     /**
      * Project roles and accessory extensions (`characters/`, PLAN.md#12.20, ADR-026), resolved by
@@ -141,6 +157,11 @@ export const renderManifestSchema = z
      * engine into `ctx.worldAssets`; absent = none (a world's scenes get its empty set).
      */
     worldAssets: manifestWorldAssetsSchema.optional(),
+    /**
+     * The whole film for `ctx.film` (PLAN.md#14.19) when the manifest renders only part of it (one
+     * shot at its place): the storyboard's length and shot count. Absent = the manifest is the film.
+     */
+    film: filmPlaceSchema.optional(),
     shots: z.array(manifestShotSchema).min(1),
   })
   .superRefine((manifest, issues) => {
@@ -155,16 +176,19 @@ export const renderManifestSchema = z
       }
       refs.add(asset.ref);
     });
+    // Names are unique per kind (a prop and a person may share one).
     const names = new Set<string>();
     (manifest.kitExtensions ?? []).forEach((extension, index) => {
-      if (names.has(extension.name)) {
+      const kind = kitExtensionKind(extension);
+      const key = kind === 'props' ? extension.name : `${kind}/${extension.name}`;
+      if (names.has(key)) {
         issues.addIssue({
           code: 'custom',
-          message: `duplicate kit extension "${extension.name}"`,
+          message: `duplicate kit extension "${key}"`,
           path: ['kitExtensions', index, 'name'],
         });
       }
-      names.add(extension.name);
+      names.add(key);
     });
     const seen = new Set<string>();
     manifest.shots.forEach((shot, index) => {

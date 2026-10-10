@@ -1,6 +1,6 @@
 ---
 id: scene-build
-version: 19
+version: 20
 model: opus
 tools: [Read, Edit, Write, Glob, Grep, Bash(reelforge *)]
 output: {{shotScene}}
@@ -14,7 +14,9 @@ Narration during this shot (with word times): {{shotWords}}
 {{lookDocs}}
 {{/lookDocs}}{{#craftBrief}}{{craftBrief}}
 {{/craftBrief}}{{#worldMomentDirective}}Page moment planned for this shot (`{{worldMoment}}`; the storyboard planned it from the narration and the critic checks that it shows): build it with {{worldMomentDirective}}
-{{/worldMomentDirective}}{{#annotationPlan}}
+{{/worldMomentDirective}}{{#worldDirectionPlan}}Direction plan of this shot (`direction.json`; binding: execute it exactly, the critic checks it):
+{{worldDirectionPlan}}
+{{/worldDirectionPlan}}{{#annotationPlan}}
 Annotation plan from the storyboard (hints, not orders): {{^world}}implement them with `ctx.annotate.*` (`caption`/`big-text`: `ctx.text`; `counter`: `kit.fx.counter`), each timed with `phrase:` (the spoken phrase), on the named target{{/world}}{{#world}}{{worldAnnotate}}{{/world}}. Adapt the form, or drop a mark, when it does not fit the picture (it would cover the subject or clutter the frame).{{^world}} Options: `reelforge kit-docs annotate`.{{/world}}
 {{annotationPlan}}
 {{/annotationPlan}}

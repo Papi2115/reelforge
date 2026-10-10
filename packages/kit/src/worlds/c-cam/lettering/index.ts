@@ -22,5 +22,6 @@ export {
   type PosterColours,
   type Ribbon,
 } from './draw.js';
+export { paintInkSurface } from './paint-surface.js';
 export { THUD_FPS, THUD_LETTER_STEP, thudIn, thudScale, thudStart, type Thud } from './thud-in.js';
 export { FACE_NAMES, type FaceName, type InkSurface, type Pt } from './types.js';

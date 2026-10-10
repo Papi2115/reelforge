@@ -20,6 +20,7 @@ export const SOUND_PALETTE_IDS = [
   'comic',
   'game-b2',
   'game-b1',
+  'c-cam',
 ] as const;
 export type SoundPaletteId = (typeof SOUND_PALETTE_IDS)[number];
 

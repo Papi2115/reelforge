@@ -155,3 +155,29 @@ export {
 } from './voxel/model.js';
 export * from './voxel/ops.js';
 export * from './worlds/index.js';
+export * from './worlds/c-cam/modules/index.js';
+// The people gags (PLAN.md#14.9): kinds, one-line docs, cycle lengths, the scene spec.
+export {
+  GAG_DOCS,
+  GAG_KINDS,
+  GAG_PERIOD,
+  MAX_GAGS,
+  gagSpecSchema,
+  type GagKind,
+  type GagSpec,
+} from './worlds/c-cam/draw/gags.js';
+// The Grim Ink vocabulary (PLAN.md#14.20): families, entry names and docs (kit-docs ink-props …).
+export {
+  VOCAB_FAMILIES,
+  VOCAB_NAMES,
+  vocabDocs,
+  vocabTopic,
+  type VocabEntryDoc,
+  type VocabFamily,
+} from './worlds/c-cam/vocabulary/index.js';
+// The people validators for the people-and-places step (PLAN.md#14.11).
+export {
+  validateCharacter,
+  type Finding as InkValidationFinding,
+  type ValidationReport as InkValidationReport,
+} from './worlds/c-cam/validate/index.js';

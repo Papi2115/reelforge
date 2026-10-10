@@ -52,15 +52,66 @@ export function normalizePropName(raw: string): string | undefined {
   return PROP_NAME_PATTERN.test(name) ? name : undefined;
 }
 
-/** One prop module inlined into a render manifest (the engine never reads the disk). */
+/**
+ * Kinds of project modules (PLAN.md#14.8): `props` (`kit.props.<name>`, every style), `people`
+ * and `places` (`kit.people.<id>` / `kit.places.<id>`, the Grim Ink world's hand-built people and
+ * places, see ink-modules.ts) and `lib` (`kit.lib.<name>`, PLAN.md#14.19: the Grim Ink film's
+ * shared code, pure functions used by its scenes, people and places). Each kind has its own
+ * folder under `kit-ext/`.
+ */
+export const KIT_EXTENSION_KINDS = ['props', 'people', 'places', 'lib'] as const;
+export const kitExtensionKindSchema = z.enum(KIT_EXTENSION_KINDS);
+export type KitExtensionKind = z.infer<typeof kitExtensionKindSchema>;
+
+/** Project-relative folders of the people / place modules (forward slashes). */
+export const KIT_EXT_PEOPLE_DIR = 'kit-ext/people';
+export const KIT_EXT_PLACES_DIR = 'kit-ext/places';
+export const KIT_EXT_LIB_DIR = 'kit-ext/lib';
+
+export const KIT_EXTENSION_DIRS: Readonly<Record<KitExtensionKind, string>> = Object.freeze({
+  props: KIT_EXT_PROPS_DIR,
+  people: KIT_EXT_PEOPLE_DIR,
+  places: KIT_EXT_PLACES_DIR,
+  lib: KIT_EXT_LIB_DIR,
+});
+
+/** `kit-ext/<kind>/<name>.js`. */
+export function kitExtensionFile(kind: KitExtensionKind, name: string): string {
+  return `${KIT_EXTENSION_DIRS[kind]}/${name}.js`;
+}
+
+/** Kind and name of a project-relative module path `kit-ext/<kind>/<name>.js`, else undefined. */
+export function kitExtensionOfFile(
+  file: string,
+): { readonly kind: KitExtensionKind; readonly name: string } | undefined {
+  const match = /^kit-ext\/(props|people|places|lib)\/([^/]+)\.js$/.exec(
+    file.replaceAll('\\', '/'),
+  );
+  const kind = kitExtensionKindSchema.safeParse(match?.[1]);
+  const name = match?.[2];
+  return kind.success && name !== undefined && PROP_NAME_PATTERN.test(name)
+    ? { kind: kind.data, name }
+    : undefined;
+}
+
+/** One project module inlined into a render manifest (the engine never reads the disk). */
 export const kitExtensionSchema = z.object({
   name: propNameSchema,
   /** Project-relative path, e.g. `kit-ext/props/fridge.js` (messages, stack traces). */
   file: z.string().min(1),
   /** ES module source text. */
   source: z.string().min(1),
+  /** Module kind; absent = `props` (every manifest made before PLAN.md#14.8). */
+  kind: kitExtensionKindSchema.optional(),
 });
 export type KitExtensionSource = z.infer<typeof kitExtensionSchema>;
+
+/** The kind of a manifest module (absent = `props`). */
+export function kitExtensionKind(extension: {
+  readonly kind?: KitExtensionKind | undefined;
+}): KitExtensionKind {
+  return extension.kind ?? 'props';
+}
 
 export const PROPS_REPORT_VERSION = 1;
 

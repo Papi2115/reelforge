@@ -8,7 +8,7 @@
  * "Showcase pieces (…)" line, and no text may name a showcase example file (the runtime Claude
  * cannot read them). The noun lists follow the prompts' bias tests of each world.
  */
-import type { Look } from '@reelforge/kit';
+import { LOOKS, type Look } from '@reelforge/kit';
 import type { StoryboardShot } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { CRITIC_LOOK_RULES, lookLine, sceneLookVars, styleLooks } from './looks.js';
@@ -164,6 +164,37 @@ describe.each(Object.entries(NOUNS))('%s: the real look docs of the kit', (world
   it('names no showcase noun or example file outside the showcase line', () => {
     const found = looks.flatMap((look) =>
       lookTexts(look, looks).flatMap(([name, text]) => hits(name, text, nouns)),
+    );
+    expect(found).toEqual([]);
+  });
+});
+
+/**
+ * Grim Ink (c-cam, PLAN.md#14.10): not wired yet, so `styleLooks` never lists its looks; scan the
+ * kit's own look definitions for the nouns of its three showcase films (Edo samurai, the 1268
+ * papal election, the Apollo 11 landing).
+ */
+const C_CAM_NOUNS: readonly RegExp[] = [
+  /samurai|\bedo\b|shogun|daimyo|\bronin\b|katana|\bkoban\b|\brice\b|merchant/i,
+  /\bpopes?\b|\bpapal\b|conclave|cardinals?\b|viterbo|\bgregory\b|\b12(?:68|71)\b/i,
+  /apollo|\beagle\b|lunar|\blander\b|\bmoon\b|\bDSKY\b|\b120[12]\b|astronaut|houston/i,
+  /would you survive|survival tip/i,
+];
+
+describe('c-cam: the real look docs of the kit (not wired yet)', () => {
+  const looks = LOOKS.filter((look) => look.styles?.includes('c-cam') === true);
+
+  it('has its three looks, each with build docs and critic rules', () => {
+    expect(looks.map((look) => look.id)).toEqual(['ink-scene', 'ink-insert', 'ink-poster']);
+    for (const look of looks) {
+      expect(look.docs.length, look.id).toBeGreaterThan(400);
+      expect(CRITIC_LOOK_RULES[look.id], look.id).toBeDefined();
+    }
+  });
+
+  it('names no showcase noun or example file', () => {
+    const found = looks.flatMap((look) =>
+      lookTexts(look, looks).flatMap(([name, text]) => hits(name, text, C_CAM_NOUNS)),
     );
     expect(found).toEqual([]);
   });

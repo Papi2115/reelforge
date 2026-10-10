@@ -35,6 +35,16 @@ export interface World {
   readonly fonts: WorldFonts;
   /** Default sound palette id of the world (its looks name their own). */
   readonly soundPalette: string;
+  /**
+   * The frame rate the world is drawn for (Grim Ink: 24, acting on twos); absent = the project's.
+   * Showcase renders (`render:frames --scene`) use it; projects get it from their defaults.
+   */
+  readonly fps?: number;
+  /**
+   * A project may turn some of the world's looks off (Project settings → Looks of this world,
+   * project.json `worldLooks`; Grim Ink). Absent = the world always mixes all of its looks.
+   */
+  readonly optionalLooks?: boolean;
   /** The world's looks, A roll first; each lists this world in `styles`. */
   readonly looks: readonly Look[];
 }
@@ -52,6 +62,8 @@ const worldMetaSchema = z.object({
   wired: z.boolean().optional(),
   fonts: z.object({ display: z.string().min(1), mono: z.string().min(1) }),
   soundPalette: z.string().min(1),
+  fps: z.int().min(1).max(120).optional(),
+  optionalLooks: z.boolean().optional(),
 });
 
 function worldError(id: string, message: string): Error {

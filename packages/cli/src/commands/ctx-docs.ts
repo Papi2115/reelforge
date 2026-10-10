@@ -88,7 +88,8 @@ function easeDocs(): string {
 }
 
 const SHOT = [
-  'ctx.shot — { id, duration (s), width, height, aspect (width / height), format ("landscape" | "portrait"), fps } of this shot; portrait (9:16 Shorts): reelforge kit-docs portrait',
+  'ctx.shot — { id, t0 (film s where it starts), duration (s), width, height, aspect (width / height), format ("landscape" | "portrait"), fps } of this shot; portrait (9:16 Shorts): reelforge kit-docs portrait',
+  "ctx.film — the shot's place in the whole film (running gags, counters, motifs across shots): { t (film s = ctx.shot.t0 + local t), duration, progress (0..1), shotIndex, shotCount, shotT0, anchor(phrase, nth?) -> { t, tEnd } in film s, anywhere in the narration }",
   'ctx.palette — colour tokens: sky, ground, groundAlt, hero, heroTrim, accent1..accent4, keyLight, fillLight, shadow, text, textDim, outline',
   'ctx.three — the Three.js namespace; ctx.scene — this shot’s THREE.Scene (add objects, background, fog)',
 ].join('\n');

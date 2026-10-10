@@ -5,7 +5,9 @@ import type { ManifestShot, RenderManifest } from '@reelforge/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AnchorResolver, RenderIdentity } from './cache-key.js';
 import { exportVideo, type ExportProgress, type ExportVideoOptions } from './export-video.js';
+import { planShots } from './shot-plan.js';
 import { ExportStateSchema, exportPaths } from './state.js';
+import { openingSettledTime } from './thumbnail.js';
 import {
   createFakeSourceFactory,
   createRawMedia,
@@ -120,6 +122,21 @@ describe('exportVideo (fake frame source + raw media)', () => {
     );
     expect(state.status).toBe('complete');
     expect(state.finished.map((shot) => shot.id).sort()).toEqual(['a', 'b', 'c']);
+  });
+
+  it('saves the landed opening frame as out/opening-frame.png when asked (Grim Ink)', async () => {
+    const { result, raw } = run(threeShots(), { openingThumbnail: true });
+    const exported = await result;
+    if (!exported.ok) throw new Error(exported.error.message);
+    const file = path.join(projectDir, 'out', 'opening-frame.png');
+    expect(exported.value.openingThumbnail).toBe(file);
+    expect(raw.stats.thumbnails).toBe(1);
+    // the last frame of the first shot
+    const t = openingSettledTime(planShots(threeShots()));
+    expect(t).toBeGreaterThan(0);
+    expect((await readFile(file))[0]).toBe(Math.round(t * 1000) % 251);
+    const plain = await run(threeShots()).result;
+    expect(plain.ok && plain.value.openingThumbnail).toBeNull();
   });
 
   it('writes the video to a chosen path outside out/ (thumbnail stays in out/)', async () => {

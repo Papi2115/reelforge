@@ -2,7 +2,7 @@
  * IPC payloads of the per-project settings dialog: options stored in the open project's
  * `project.json` (2.x: look mode, ambient variation, research mode + sources, tension map,
  * dramaturgy, editing, characters and mascot, scenes per minute and faster checks; 3.0: continuity
- * links between shots).
+ * links between shots; 3.6: the looks of a world a project keeps on).
  * Main reads and writes the file (zod-validated, atomic, autocommitted); the renderer only sees
  * the effective values and sends patches. Changes apply to future builds: nothing is marked
  * out of date. Merged into ipc-contract.ts.
@@ -12,12 +12,14 @@ import {
   beatSyncModeSchema,
   characterModeSchema,
   dramaturgyModeSchema,
+  filmCaptionsSchema,
   lookModeSchema,
   mascotChoiceSchema,
   repetitionControlModeSchema,
   researchModeSchema,
   shotsPerMinuteSchema,
   tensionMapModeSchema,
+  worldLooksSchema,
 } from '@reelforge/shared';
 import { z } from 'zod';
 
@@ -55,6 +57,13 @@ export const projectSettingsSchema = z.object({
   fasterChecks: z.boolean(),
   /** Continuity links between shots (PLAN.md#13.2); absent in project.json = off. */
   continuityLinks: z.boolean(),
+  /**
+   * The world's looks the project keeps on (PLAN.md#14.12, a world with optional looks: Grim Ink);
+   * null = all of them (absent in project.json).
+   */
+  worldLooks: worldLooksSchema.nullable(),
+  /** A film's captions (PLAN.md#14.18); absent in project.json = `off`. */
+  captions: filmCaptionsSchema,
 });
 export type ProjectSettings = z.infer<typeof projectSettingsSchema>;
 
@@ -77,6 +86,9 @@ export const projectSettingsPatchSchema = z
     shotsPerMinute: shotsPerMinuteSchema.nullable().optional(),
     fasterChecks: z.boolean().optional(),
     continuityLinks: z.boolean().optional(),
+    /** null removes the field (every look of the world on). */
+    worldLooks: worldLooksSchema.nullable().optional(),
+    captions: filmCaptionsSchema.optional(),
   })
   .refine((patch) => Object.values(patch).some((value) => value !== undefined), {
     message: 'the patch changes nothing',
@@ -107,6 +119,8 @@ export const projectStyleSchema = z.object({
   enabled: z.boolean(),
   /** A world that is not wired yet (render-only): never enabled, whatever the switch says. */
   inDevelopment: z.boolean().optional(),
+  /** A world whose looks a project may turn off (PLAN.md#14.12, Grim Ink). */
+  optionalLooks: z.boolean().optional(),
 });
 export type ProjectStyle = z.infer<typeof projectStyleSchema>;
 

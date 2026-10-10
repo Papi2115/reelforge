@@ -32,9 +32,9 @@ Shot ranges per minute: calm 3–5, balanced 5–8, dynamic 8–12. Direction = 
 
 | Preset | Styles (first offered wins) | Shots/min | Direction | Continuity | Wow budget | Music moods | Looks favoured |
 |---|---|---|---|---|---|---|---|
-| True crime | noir-voxel | 5–8 | all auto | on | ×0.5 | tense-investigation, calm-tech | blueprint, retro-ui |
+| True crime | noir-voxel → c-cam | 5–8 | all auto | on | ×0.5 | tense-investigation, calm-tech | blueprint, retro-ui |
 | Tech explainer | voxel-pixel-crisp640 → sketchbook | 8–12 | all auto | off | ×1.25 | bright-explainer, calm-tech, retro-wave | blueprint, retro-ui, flat-2d |
-| History | sketchbook → comic → soft-480 | 3–5 | interrupts off | on | ×0.75 | lofi-chill, calm-tech, tense-investigation | paper-cutout, diorama, whiteboard |
+| History | sketchbook → c-cam → comic → soft-480 | 3–5 | interrupts off | on | ×0.75 | lofi-chill, calm-tech, tense-investigation | paper-cutout, diorama, whiteboard |
 | Finance | voxel-pixel-crisp640 → sketchbook | 5–8 | all auto | off | ×0.75 | calm-tech, lofi-chill | flat-2d, blueprint, retro-ui |
 | Science | sketchbook → voxel-pixel-crisp640 | 5–8 | all auto | off | ×1 | bright-explainer, calm-tech, lofi-chill | diorama, whiteboard, blueprint |
 | Pop culture / gaming | game-b2 → voxel-pixel-crisp640 | 8–12 | all auto | off | ×1.5 | retro-wave, bright-explainer | retro-ui, flat-2d |

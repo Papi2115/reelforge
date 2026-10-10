@@ -22,6 +22,10 @@ import { shortScriptPromptVars } from '../short-vars.js';
 import { targetWordsFor } from '../validators/script.js';
 import type { EvalCase } from './cases.js';
 import { seoEvalVars } from './seo-eval.js';
+import { cCamDirectionPromptVars } from '../worlds/c-cam-direction.js';
+
+/** Gag kinds the direction eval offers (the kit's list is not a dependency of this package). */
+export const EVAL_GAG_KINDS: readonly string[] = ['gum', 'sweat', 'yawn', 'fidget', 'penClick'];
 
 function findShot(evalCase: EvalCase, shotId: string): Result<StoryboardShot, string> {
   const shot = evalCase.storyboard.shots.find((candidate) => candidate.id === shotId);
@@ -201,6 +205,38 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         naming: 'one file per thing, <id>.json',
         budget: '24 things',
       });
+    case 'c-cam-build': {
+      // Grim Ink films only (PLAN.md#14.11); an eval case is a built-in style: the place of its
+      // first shot (golden module: kit-ext/places/workRoom.js).
+      const shot = evalCase.storyboard.shots[0];
+      if (shot === undefined) return err(`${file.id}: the storyboard has no shot`);
+      return ok({
+        folder: 'places',
+        id: 'workRoom',
+        noun: 'place',
+        binding: 'place',
+        place: true,
+        brief: `the setting of ${shot.id}`,
+        shots: `${shot.id}: ${shot.intent}`,
+        narration: `${shot.id}: "${shotWords(evalCase, shot)
+          .map((word) => word.text)
+          .join(' ')}"`,
+        style: 'One uneven ink line over muddy flat colour, grime as flat shapes, one warm light.',
+        contract:
+          'export const place = { id, name, bounds: [w, h], light?, anchors?, collide?, draw(g, ink, t) }',
+      });
+    }
+    case 'c-cam-direction':
+      // Grim Ink films only (PLAN.md#14.16); an eval case is a built-in style: its own narration.
+      return ok(
+        cCamDirectionPromptVars({
+          script: readFileSync(path.join(evalCase.projectDir, 'script.txt'), 'utf8'),
+          words: evalCase.words,
+          style:
+            'One uneven ink line over muddy flat colour, grime as flat shapes, one warm light.',
+          gagKinds: EVAL_GAG_KINDS,
+        }),
+      );
     case 'world-asset-critic':
       return ok({
         worldLabel: 'Sketchbook',

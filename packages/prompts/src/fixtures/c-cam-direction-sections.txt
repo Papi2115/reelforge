@@ -1,0 +1,40 @@
+Direction plan (`direction.json`, made before the shots; binding, the app checks the storyboard against it):
+Title frame: "Nobody had the key" — warden akimbo, smug (jingles an empty key ring); inmate stand, scared; place cellBlock (the place the story is trapped in); accent: the empty key ring.
+Cast and signature gags (setup → escalations → payoff):
+- warden (the night warden): gag `yawn` — yawns at every alarm; b01 → b03 → payoff b06 (his boredom opens the door)
+- inmate: gag `sweat`; b02 → b04 → payoff b05 (his nerves carry the stakes)
+Beats (id, span, intent, quote | framing progression | tilt | gags | accident):
+- b01 0.0–4.0 s setup "Nobody had the key." | wide: the cell block > ecu: the empty hook (why: information: the thing the narration names) > close: the warden (why: emotion: the reaction) | gags: warden
+- b02 4.0–9.0 s reveal "The warden slept through every alarm." | medium: the warden asleep > close: the inmate (why: emotion: the reaction) | gags: inmate
+- b03 9.0–14.0 s cause-effect "The inmate counted the bars twice." | wide: the cell > ecu: the bars (why: information: the thing the narration names) > medium: both of them | gags: warden | accident: the inmate bumps his head on the bunk while counting
+- b04 14.0–19.0 s tension "Then the lock simply fell off." | ecu: the lock (why: information: the thing the narration names) > close: the inmate (why: emotion: the reaction) | tilt | gags: inmate
+- b05 19.0–24.0 s reveal "The warden woke up to an open door." | wide: the open door > ecu: the lock on the floor (why: information: the thing the narration names) > close: the warden (why: emotion: the reaction) | gags: inmate
+- b06 24.0–30.0 s punchline "He went back to sleep." | close: the warden (why: emotion: the reaction) > wide: the empty cell block | gags: warden
+Climax: b05 — ECU of the lock on the floor (the outcome lies there).
+Motifs: a ring of keys (control nobody has).
+Execute it:
+- The FIRST shot is the title frame (the thumbnail): look `ink-poster`, roll C, 1.5–3 s (it ends on a word start), `"direction": { "titleFrame": true, "framings": [{ "framing": "wide", "subject": "the title over the cast" }] }`; its intent names the title frame's cast ids, the title words and the place.
+- Use exactly the plan's people and ids: the `cast:` tag that introduces a person describes them and their signature gag (`tic: <kind>, <the plan's note>`); nobody else plays a gag.
+- Every other shot carries `"direction": { "beats": ["b03"], "gags": ["warden"], "framings": [{ "framing": "wide", "subject": "…" }, { "framing": "ecu", "subject": "…", "why": "…" }] }`: `beats` = the plan's beats spoken in the shot, `gags` = the people whose gag plays there (those beats' gags), `framings` = 2–5 framings taken from those beats' progressions in order (every close and ecu keeps its `why`). Write the same framings, gags and accidents into the intent, on their phrases.
+- Every planned beat is in a shot; the shot of a person's payoff beat lists the person in `gags`; a person in 3 or more shots plays the gag in at least 3; the climax beat's shot keeps its ECU; never two shots in a row with the same sequence of framing sizes.
+Then run `reelforge validate` and fix any error. Reply with shot count, treatment mix, annotation mix and missing props.
+
+
+---
+
+Direction plan of this shot (`direction.json`; binding: execute it exactly, the critic checks it):
+This is the TITLE FRAME (the thumbnail): draw it with `env.ink.titleCard(g, env, { title, subtitle?, cast: [{ person, view, pose, expr, x, y, s }], place?, accent? })`: title "Nobody had the key", cast [{ person: 'warden', pose: 'akimbo', expr: 'smug', … }, { person: 'inmate', pose: 'stand', expr: 'scared', … }] acting the premise (jingles an empty key ring; inmate scared), place 'cellBlock' (the place the story is trapped in), accent the empty key ring; the lettering thuds in letter by letter on twos, one framing (a slow push-in or pull-back), then a still hold.
+
+---
+
+Direction plan of this shot (`direction.json`; binding: execute it exactly, the critic checks it):
+- Cut table, these framings in this order, each cut on its beat: 1. wide: the open door; 2. ecu: the lock on the floor (why: information: the thing the narration names); 3. close: the warden (why: emotion: the reaction).
+- Beats: b05 at 0.0–5.0 s of the shot (reveal, "The warden woke up to an open door.").
+- inmate plays `sweat`: `gag: { kind: 'sweat', t0 }` with t0 ≈ 0.0 s (on the beat's words, `ctx.anchor(…)`), the PAYOFF: land it big and clear, then hold; the face at least 1/12 of the frame height (90 px of 1080) at that moment.
+- CLIMAX of the film: the extreme close-up (zoom 2.4-5.4) of the lock on the floor, held >= 0.6 s (the outcome lies there).
+
+---
+
+Direction check (the shot's plan): the frames must show an extreme close-up of the lock on the floor; inmate playing `sweat` (its payoff: drawn and clear) with the face at least 1/12 of the frame height (90 px of 1080); the climax ECU of the lock on the floor. Frames before a beat may miss it; when no frame shows a planned ECU, gag or payoff → `off-intent` with a note starting `direction:`.
+Return ONLY JSON, no prose: `{"frames":[{"path":"…","verdict":"ok","note":"≤25 words"}]}`
+

@@ -9,6 +9,7 @@ import { castCommand } from './commands/cast.js';
 import { contactSheetCommand } from './commands/contact-sheet.js';
 import { fetchAssetCommand } from './commands/fetch-asset.js';
 import { framesCommand } from './commands/frames.js';
+import { peoplePreviewCommand, placesPreviewCommand } from './commands/ink-preview.js';
 import { kitDocsCommand } from './commands/kit-docs.js';
 import { lintCommand } from './commands/lint.js';
 import { looksCommand } from './commands/looks.js';
@@ -30,6 +31,8 @@ export const COMMANDS: readonly Command[] = [
   kitDocsCommand,
   looksCommand,
   propPreviewCommand,
+  peoplePreviewCommand,
+  placesPreviewCommand,
   worldAssetsCommand,
   castCommand,
   assetsCommand,

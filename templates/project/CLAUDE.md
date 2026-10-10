@@ -97,7 +97,7 @@ Read `styles/<style id>/STYLE.md` (path given in `project.json` → `style`). Sh
 
 ## Working rules
 - Small, targeted edits to the requested scope (Selection → the selected object in the given shot; Shot → one scene file; Whole video → any scene, but explain).
-- Keep a scene under ~250 lines. Name state fields clearly. No dead code, no `console.log`.
+- Keep a scene under ~250 lines (Grim Ink, style `c-cam`: ~600, and code shared by several shots or modules goes in a library `kit-ext/lib/<name>.js`, `reelforge kit-docs lib`). Name state fields clearly. No dead code, no `console.log`.
 - If the request is ambiguous or needs something the kit lacks, say exactly what is missing instead of guessing.
 - Never print or open credential/config files; never try to leave this folder.
 

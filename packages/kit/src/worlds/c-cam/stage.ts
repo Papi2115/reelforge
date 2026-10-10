@@ -6,8 +6,10 @@
  *
  * Scene API: `const stage = ctx.kit.fx.inkStage()` in build() (add it to ctx.scene), then
  * `stage.paint(t, (g, env) => ...)` in update(t). `g` is a `Paint2D` (no canvas, text, images or
- * pixel reads); `env` (`InkStageEnv`) carries the frame size, t, the palette `C`, the pure time and
- * hash helpers of core.ts and the brushes bound to `g` at zoom 1. Units: canvas px, seconds.
+ * pixel reads); `env` (`InkStageEnv`) carries the frame size, t, zoom 1 (`zoom`, `lw`: env is a
+ * brush env itself), the palette `C`, the pure time and hash helpers of core.ts, the brushes bound
+ * to `g` at zoom 1 and `ink`, the kit's C-CAM draw functions (stage-ink.ts: camera, scenery,
+ * grime, faces, rig, contacts, lettering on this surface). Units: canvas px, seconds.
  */
 import { z } from 'zod';
 import { KitError } from '../../errors.js';
@@ -25,12 +27,15 @@ import {
 } from './draw/brushes.js';
 import type { Paint2D } from './draw/paint.js';
 import { blob, type BlobOptions } from './draw/shapes.js';
+import { stageInk, type StageInk } from './stage-ink.js';
 import { stageSurface } from './stage-surface.js';
+import { bindTextTarget, textTargetOf } from './text/target.js';
+import type { TextTarget } from './text/ink-text.js';
 
 /** Pure helpers of core.ts a painter may use (all functions of their arguments). */
 const TIME = Object.freeze({ twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1 });
 
-/** Brushes bound to this frame's surface at zoom 1 (camera and figure space: later tasks). */
+/** Brushes bound to this frame's surface at zoom 1 (screen space; `env.ink` has the rest). */
 export interface StageBrushes {
   /** The uneven ink ribbon through points `[x, y, x, y, ...]` (options: closed, seed, w, taper, color). */
   inkLine(pts: Pts, options?: InkLineOptions): void;
@@ -49,11 +54,16 @@ export interface InkStageEnv {
   readonly height: number;
   /** The time passed to `paint`, seconds. */
   readonly t: number;
+  /** Zoom 1 and its ink width: `env` is the brush env of screen space (`cam.env` after a camera). */
+  readonly zoom: number;
+  readonly lw: number;
   /** The C-CAM palette (`C.INK`, `C.LINEN`, `C.RUST`, ...). */
   readonly C: typeof C;
   /** Pure helpers: twos (pose time on twos), key, step, seg, ease, lerp, clamp01, hash, rnd, noise1. */
   readonly time: typeof TIME;
   readonly brush: StageBrushes;
+  /** The kit's C-CAM draw functions with their own signatures; `drawText` draws on `g`. */
+  readonly ink: StageInk;
 }
 
 export type InkPainter = (g: Paint2D, env: InkStageEnv) => void;
@@ -64,6 +74,13 @@ export type InkStageObject = KitObject & {
   /** Repaints the stage for time t (seconds) with a pure painter; call it in update(t). */
   paint(t: number, painter: InkPainter): void;
 };
+
+/**
+ * The engine's hook on a stage (not for scenes, not enumerable): paints the world's captions over
+ * the frame the scene painted last; false when the stage was not painted since the last caption.
+ */
+export type CaptionPainter = (g: Paint2D, target: TextTarget | undefined) => void;
+export const CAPTION_HOOK = 'paintCaption';
 
 export const inkStageParams = z.object({
   size: z
@@ -76,7 +93,7 @@ const STAGE_METHODS = {
   'paint(t, (g, env) => ...)':
     'Repaints the whole stage for time t (seconds) from an opaque INK background: call it every frame in update(t). The painter must be a pure function of env.t (no state between frames)',
   g: 'Paint2D: fillStyle, strokeStyle, lineWidth, lineCap, globalAlpha, save/restore, setTransform/translate/rotate/scale, beginPath/closePath/moveTo/lineTo/quadraticCurveTo/rect/ellipse, fill(rule)/stroke/clip, fillRect. No text, images, gradients or pixel reads',
-  env: 'width, height, t, C (palette: INK, LINEN, OLIVE, CLAY, MUSTARD, RUST, ...), time.{twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1}, brush.{inkLine(pts, o), brushStroke(pts, o), blob(pts, fill, o), curve(pts, closed, step)}; points are flat [x, y, x, y, ...] in canvas px',
+  env: 'width, height, t, zoom/lw (1: screen space), C (palette: INK, LINEN, OLIVE, CLAY, MUSTARD, RUST, ...), time.{twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1}, brush.{inkLine(pts, o), brushStroke(pts, o), blob(pts, fill, o), curve(pts, closed, step)}, ink.* (the C-CAM draw functions: applyCamera, resolveCut, blob(g, e, ...), pool, stain, exprAt, palmWorld, reachPalm, drawFigure, drawText(text, o), ...: reelforge kit-docs grim-ink); points are flat [x, y, x, y, ...] in canvas px',
 } as const;
 
 function brushesFor(g: Paint2D): StageBrushes {
@@ -143,10 +160,39 @@ export function buildInkStage(
     if (disposed) throw new KitError('invalid-params', 'inkStage.paint(): the stage was disposed');
     stage.render(t, (context) => {
       const g = stageSurface(context);
-      painter(g, Object.freeze({ width, height, t, C, time: TIME, brush: brushesFor(g) }));
+      // The kit (never the painter) letters with the role fonts on this canvas (ink.text).
+      bindTextTarget(g, context);
+      const env: InkStageEnv = {
+        width,
+        height,
+        t,
+        zoom: DEFAULT_ENV.zoom,
+        lw: DEFAULT_ENV.lw,
+        C,
+        time: TIME,
+        brush: brushesFor(g),
+        ink: stageInk(g, t),
+      };
+      painter(g, Object.freeze(env));
     });
   };
-  return Object.assign(object, { size, paint });
+  let painted = false;
+  const wrappedPaint = (t: number, painter: InkPainter): void => {
+    paint(t, painter);
+    painted = true;
+  };
+  const paintCaption = (painter: CaptionPainter): boolean => {
+    if (disposed || !painted) return false;
+    painted = false;
+    stage.overpaint((context) => {
+      const g = stageSurface(context);
+      bindTextTarget(g, context);
+      painter(g, textTargetOf(g));
+    });
+    return true;
+  };
+  Object.defineProperty(object, CAPTION_HOOK, { value: paintCaption, enumerable: false });
+  return Object.assign(object, { size, paint: wrappedPaint });
 }
 
 export const inkStage = defineFx({

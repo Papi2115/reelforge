@@ -1,0 +1,21 @@
+Fix or change an existing scene according to the request. Follow `CLAUDE.md` (contract, determinism, self-QA).
+
+Scope: Shot (Selection | Shot | Whole video) · Shot(s): s11_rule
+
+Request: QA fix 1/2 for shot s11_rule.
+Critic findings to address: error critic: poster: the emblem is generic
+World: Grim Ink; this shot is in look `ink-poster` (`reelforge kit-docs ink-poster`). Keep the world's craft while fixing:
+Craft brief (Grim Ink; binding). The world gives the GRAMMAR, the narration gives the content: draw what THIS shot names.
+- First, a comment: `// focal: <the one thing read first> | cast: <ids> | place: <id> | traces: <three>`; build toward the focal point.
+- Line: only the ink line (width swells 0.4-1.9x); silhouettes w 7-8, faces 5-7, details 3-4; never a uniform stroke.
+- Colour: muddy olive, clay, grey-blue, mustard, rust, plum; whites are dirty linen, darks are ink; one warm light pool BEHIND the people; ONE accent object per shot.
+- Grime as flat shapes only (shade crescents, mottle, hatching, stains, cracks, peels); never gradients, textures, noise, blur, paper or watercolour.
+- People: the film's own, by id; one exaggeration axis, tiny pupils, heavy lids, ugly-lovable and grim, never goofy. Hands ON things (solve the palm first), never across a face. Each plays its one signature gag on a beat with a reason, never as decoration.
+- Camera: 2-5 framings cut on the beats; one focal point off-centre each; Dutch tilt 2-7 deg only on tense beats; small moves; the place wider than every framing.
+- Timing: acting on twos, expressions snap, a shock = snap + head jolt for 0.2 s; holds >= 0.4 s; never constant motion.
+- Traces (>= 3): stain, crack, peel, stubble, wart, flies, head jolt, tense tilt, foreground silhouette.
+- Text: only words of the narration or research, in ink lettering (`env.ink.text`) above y 886; never `ctx.text` or `ctx.annotate`.
+- Props of the period (antiquity: scroll, wax tablet; no book).
+Keep the planned page moment (`poster`) in the shot: The line the film turns on, as a hand-inked poster, never a template (look `ink-poster`): `// moment: <id> | intent: <the claim in the narration's words>` as the first comment of the scene. Screen space at zoom 1, no camera: one flat mud field, a worn border, ONE emblem of THIS narration drawn big and off-centre (`env.brush.blob([700, 300, 1200, 280, 1240, 760, 680, 780], env.C.MUSTARD, { seed: 3, shade: [env.C.MUSTARD_D, 24, 18], lw: 14 })`: the thing the line is about, its 2-3 defining features, thick uneven ink 12-18), and the line itself, at most 6 words exactly as the narration says them, thudding in letter by letter on twos (`env.ink.drawText('NOBODY CAME', { face: 'poster', size: 150, x: 960, y: 520, seed: 7, align: 'center', fill: env.C.EYE, layers: env.ink.posterLayers(150), charScale: env.ink.thudScale(env.t, 0.3) })`). Two or three colours (bone, rust, one mud, ink), one accent at most. It lands on the phrase with a short shake (8 px on twos for 0.2 s), then holds >= 0.6 s still (only line boil). Never the same emblem and layout twice in a film; the opening title card is a plain `ink-poster` shot, not this moment.
+
+Make the smallest edit that satisfies the request in the given scope. Re-run lint, re-render the affected frames, Read them and confirm the problem is gone and nothing else broke. Max 2 iterations. Reply in ≤4 lines: what changed, what you verified.

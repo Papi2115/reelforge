@@ -56,8 +56,14 @@ function screen(params: Record<string, unknown> = {}): Screen {
 }
 
 describe('world game-b1', () => {
-  it('is the last wired world registered, experimental, with looks A, B, C on its own palette', () => {
-    expect(WORLDS.filter((world) => world.wired).at(-1)).toBe(GAME_B1);
+  it('is wired after Game B2, experimental, with looks A, B, C on its own palette', () => {
+    expect(WORLDS.filter((world) => world.wired).map((world) => world.id)).toEqual([
+      'sketchbook',
+      'comic',
+      'game-b2',
+      'game-b1',
+      'c-cam',
+    ]);
     expect(GAME_B1.experimental).toBe(true);
     expect(GAME_B1.wired).toBe(true);
     expect(isUnwiredWorldStyle(GAME_B1_ID)).toBe(false);
