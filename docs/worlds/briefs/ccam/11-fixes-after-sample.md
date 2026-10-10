@@ -70,3 +70,34 @@ settled moment) as `publish/thumbnail.png` when none exists (the project overvie
 an uploaded thumbnail: keep upload priority), and offers it in the overview as "Thumbnail from the
 opening frame"; (3) tests + a golden of a sample title card; document in kit-docs people/places
 topic or a new `title` topic (index < 28 KB).
+
+## Addendum 2 (Papi, 2026-10-11): PROTOTYPE FIDELITY beats engine rules in this world — use the real fonts
+Papi: "why can't we use Arial Black? it was clean and I liked it. Follow the prototypes as closely
+as possible; if our engine does not allow it we make exceptions from the rules for this world, for
+every element. The engine must speed up work, not limit it." DECISION (supersedes the CC0-only
+lettering wording above and in brief 02): in the c-cam world, text is drawn with the SAME system
+fonts as the prototypes — Impact and Arial Black (captions, poster words, titles), Arial, Georgia
+(ledgers), Courier New (digits/DSKY), Times New Roman — via canvas `fillText`/`strokeText` inside the
+kit (never in scene source), exactly like `ST.label`/`ST.posterWord`/captions of
+`docs/concepts/c-cam-style/films/*/js/{brushes,timeline}.js` (46 px Arial Black, fill `#e2d8b8`,
+ink outline 11 px, round joins). We do not SHIP font files (no licence issue: the app only uses the
+fonts installed on the user's Windows PC, as any program would; add a `docs/licenses.md` row stating
+"system fonts used when installed, not distributed"). Determinism stays per machine (CPU canvas): on
+a machine WITHOUT a font (CI Linux, cloud) the kit automatically falls back to our CC0 ink-stroke
+lettering (brief 02), probe availability once per frame source via `measureText` against a generic
+fallback and put the result into the export cache key and the render report ("font fallback used").
+Goldens therefore use the fallback; Papi's machine uses the real fonts.
+Implement: `ink.text(text, { role: 'caption'|'poster'|'title'|'label'|'ledger'|'digits', x, y, size,
+fill, outline, align, rot })` in `packages/kit/src/worlds/c-cam/` (stage-ink), role → font stack
+table copied from the prototypes; module/scene lint: allow `ink.text` (the kit performs fillText),
+keep forbidding raw `fillText`, `document`, `font =` in scene/module source; update ADR-005 with an
+addendum "world exception: c-cam system fonts" and the kit-docs lettering topic; the anti-slop text
+guard treats `ink.text` as an on-screen text call; captions in films and shorts of this world use
+role `caption`. Add a test that the fallback path renders identically to brief 02's lettering and a
+render test for the font path that is skipped when the font is missing.
+
+## General rule for this world (applies to every element, not only fonts)
+Where an engine/lint/ADR rule blocks reproducing a prototype detail, DO NOT drop the detail: add a
+documented, world-scoped exception (in the world's code, behind `world === 'c-cam'`) with a
+fallback so CI stays deterministic, and list each exception in `docs/worlds/c-cam-STYLE.md` under
+"Exceptions to engine rules". Never change other worlds' behaviour.
