@@ -3,6 +3,7 @@
  * style, copied from the kit's own golden renders (packages/kit/test/goldens/swiftshader, our own
  * work, docs/licenses.md). A style without a picture shows its colours instead.
  */
+import cCam from './thumbs/c-cam.png';
 import comic from './thumbs/comic.png';
 import gameB1 from './thumbs/game-b1.png';
 import gameB2 from './thumbs/game-b2.png';
@@ -19,6 +20,7 @@ const STYLE_THUMBS: Readonly<Record<string, string>> = {
   comic,
   'game-b2': gameB2,
   'game-b1': gameB1,
+  'c-cam': cCam,
 };
 
 export function styleThumb(styleId: string): string | undefined {

@@ -5,6 +5,7 @@
  */
 import { sceneSourceSchema } from '@reelforge/shared';
 import { describeError, EngineError, type EngineErrorData } from '../errors.js';
+import { withInkFonts } from '../ink-fonts.js';
 import { createRuntime, type EngineRuntime, type LoadInfo } from '../runtime.js';
 import { importKitExtensionSource, importSceneSource } from './module-loader.js';
 import { RPC_CHANNEL, requestSchema, type RpcRequest } from './protocol.js';
@@ -40,7 +41,8 @@ async function load(manifest: unknown): Promise<LoadInfo> {
     importKitExtension: importKitExtensionSource,
   });
   runtime = next;
-  return next.info;
+  // Grim Ink: the machine's text fonts, for the export's cache key and report (PLAN.md#14.18).
+  return withInkFonts(next.info);
 }
 
 async function reloadShot(shotId: string, input: unknown): Promise<LoadInfo> {

@@ -20,8 +20,12 @@
  *  - the bow's hip "seat" blob (film 1, a per-character cloth patch over the hinge) is not drawn;
  *  - hooks receive `(J, env)` and run in the upper-body (bowed) frame, so palms line up.
  *
- * Public API: `FigureView`, `resolveView`, `BodyPlacement`, `ArmLayerOverrides`,
- * `FigureHook`, `DrawFigureOptions`, `solvePose`, `bowed`, `drawFigure`.
+ *  - added (PLAN.md#14.9, the gags): hand-shape overrides and per-arm / head-local hooks, so a
+ *    held mug sits under the fingers in the arm's own layer and a bubble rides on the head.
+ *
+ * Public API: `FigureView`, `resolveView`, `BodyPlacement`, `ArmLayerOverrides`, `ArmSide`,
+ * `FigureHook`, `ArmHook`, `HeadHook`, `HandOverrides`, `DrawFigureOptions`, `solvePose`, `bowed`,
+ * `drawFigure`.
  */
 import { figure, type BrushEnv, type FigurePlacement } from './brushes.js';
 import { neckBase, neckHead, type Character, type NeckSpec } from './character.js';
@@ -31,7 +35,14 @@ import type { Paint2D } from './paint.js';
 import type { Pose } from './poses.js';
 import { armLayer, legsFarFirst, solve, type ArmLayer, type RigJoints } from './rig-layers.js';
 import { drawArm, drawLeg, type ArmStyle } from './rig-limbs.js';
-import { headView, viewState, yawOfView, type View, type ViewState } from './rig-views.js';
+import {
+  headView,
+  viewState,
+  yawOfView,
+  type View,
+  type ViewIndex,
+  type ViewState,
+} from './rig-views.js';
 import { tube } from './shapes.js';
 import type { LimbRig } from './rig-ik.js';
 
@@ -56,6 +67,21 @@ export interface ArmLayerOverrides {
 /** A draw hook, run in figure space (upper-body frame) with the solved joints and the figure's env. */
 export type FigureHook = (J: RigJoints, env: BrushEnv) => void;
 
+/** The character's left or right arm. */
+export type ArmSide = 'L' | 'R';
+
+/** A per-arm hook, run in the arm's own draw layer right before / after that arm is drawn. */
+export type ArmHook = (side: ArmSide, j: LimbRig, env: BrushEnv) => void;
+
+/** A hook run in head-local space (after the head) with the head's view. */
+export type HeadHook = (view: ViewIndex, env: BrushEnv) => void;
+
+/** Hand shape overrides per side (`'none'`: no hand, e.g. a thumbs-up drawn by an arm hook). */
+export interface HandOverrides {
+  readonly L?: HandKind | 'none';
+  readonly R?: HandKind | 'none';
+}
+
 export interface DrawFigureOptions {
   /** Head yaw (default: the body's), see `headView`. */
   readonly headYaw?: number;
@@ -70,6 +96,14 @@ export interface DrawFigureOptions {
   readonly beforeHand?: FigureHook;
   /** Step `after`: things over the hands. */
   readonly after?: FigureHook;
+  /** Hand shapes that replace the pose's `kL` / `kR`. */
+  readonly hands?: HandOverrides;
+  /** Before each arm, in its layer: a held object the hand closes over. */
+  readonly beforeArm?: ArmHook;
+  /** After each arm, in its layer: things on the hand (a thumbs-up, a watch). */
+  readonly afterArm?: ArmHook;
+  /** Head-local, right after the head: things on the face (a bubble, sweat, a helmet). */
+  readonly afterHead?: HeadHook;
 }
 
 /** Resolves `pose` for the character in `view` (the joints `drawFigure` draws). */
@@ -104,12 +138,13 @@ function defaultNeck(g: Paint2D, env: BrushEnv, character: Character, n: NeckSpe
 }
 
 interface ArmDraw {
+  readonly side: ArmSide;
   readonly j: LimbRig;
   readonly layer: ArmLayer;
   readonly style: ArmStyle;
 }
 
-function armStyle(character: Character, kind: HandKind | undefined, sd: number): ArmStyle {
+function armStyle(character: Character, kind: HandKind | 'none' | undefined, sd: number): ArmStyle {
   const hand = character.arm.hand === 'none' ? 'none' : (kind ?? character.arm.hand ?? 'fist');
   return { ...character.arm, hsz: character.D.hsz, hand, seed: character.seed + 80 + sd };
 }
@@ -143,14 +178,16 @@ export function drawFigure(
   const headDy = opts.headDy || 0;
   const arms: readonly ArmDraw[] = [
     {
+      side: 'L',
       j: J.aL,
       layer: armLayer(J.aL, neckY, opts.layer?.L),
-      style: armStyle(character, pose.kL, 1),
+      style: armStyle(character, opts.hands?.L ?? pose.kL, 1),
     },
     {
+      side: 'R',
       j: J.aR,
       layer: armLayer(J.aR, neckY, opts.layer?.R),
-      style: armStyle(character, pose.kR, 2),
+      style: armStyle(character, opts.hands?.R ?? pose.kR, 2),
     },
   ];
   const hy = D.hy + J.bob;
@@ -159,7 +196,12 @@ export function drawFigure(
   const at = { x: placement.x, y: placement.y, s: placement.s, lean };
   figure(g, env, at, V.mir, (inner) => {
     const armsAt = (layer: ArmLayer): void => {
-      for (const arm of arms) if (arm.layer === layer) drawArm(g, inner, arm.j, arm.style);
+      for (const arm of arms) {
+        if (arm.layer !== layer) continue;
+        if (opts.beforeArm) opts.beforeArm(arm.side, arm.j, inner);
+        drawArm(g, inner, arm.j, arm.style);
+        if (opts.afterArm) opts.afterArm(arm.side, arm.j, inner);
+      }
     };
     bowed(g, hy, bow, () => {
       armsAt(0);
@@ -183,6 +225,7 @@ export function drawFigure(
       g.translate(hx, hyHead + J.bob + headDy);
       g.scale(H.flip ? -k : k, k);
       character.head(g, inner, H.V.v, f);
+      if (opts.afterHead) opts.afterHead(H.V.v, inner);
       g.restore();
       if (opts.beforeHand) opts.beforeHand(J, inner);
       armsAt(2);

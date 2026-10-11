@@ -16,6 +16,7 @@ import {
   type StoryboardShot,
   type SyncReport,
   castRoleFile,
+  INK_MODULES_REPORT_FILE,
   isEndCardShot,
 } from '@reelforge/shared';
 import { FILES } from '../paths.js';
@@ -32,6 +33,7 @@ import { buildShot } from '../scenes/shot-job.js';
 import { buildEndCard, isAppEndCard } from '../shorts/end-card-step.js';
 import { dismissVariants, pickVariant } from '../variants/decide.js';
 import { generateVariants } from '../variants/generate.js';
+import { cCamModulesAction, ensureCCamModules } from '../c-cam/stage.js';
 import { ensureWorldAssets } from '../world-assets/builder.js';
 import { worldAssetsAction } from '../world-assets/stage.js';
 import {
@@ -141,6 +143,9 @@ async function build(
   // World films (PLAN.md#13.15): the film's own assets exist before the first scene.
   const worldAssets = await ensureWorldAssets(job, { force: false });
   if (!worldAssets.ok) return worldAssets;
+  // Grim Ink films (PLAN.md#14.11): the film's own people and places exist before the first scene.
+  const inkModules = await ensureCCamModules(job, { force: false });
+  if (!inkModules.ok) return inkModules;
   ctx.step('roles the storyboard needs');
   const roles = await buildStoryboardRoles(job.roles, ctx.projectDir, unlocked);
   if (!roles.ok) return roles;
@@ -184,10 +189,16 @@ async function build(
       ...newProps.map((name) => `kit-ext/props/${name}.js`),
       ...roleNote.outputs,
       ...worldAssets.value.outputs,
+      ...inkModules.value.outputs,
       FILES.scenesReport,
     ],
     changed: ran.value.ran.length > 0,
-    warnings: [...lockWarnings, ...worldAssets.value.warnings, ...shotWarnings(records.value)],
+    warnings: [
+      ...lockWarnings,
+      ...worldAssets.value.warnings,
+      ...inkModules.value.warnings,
+      ...shotWarnings(records.value),
+    ],
     metrics: {
       ...(locked.length === 0 ? {} : { locked: locked.length }),
       shots: records.value.length,
@@ -348,6 +359,8 @@ async function run(
       return variants(job.value, request);
     case 'world-assets':
       return worldAssetsAction(job.value);
+    case 'c-cam-modules':
+      return cCamModulesAction(job.value);
     default:
       return review(job.value, action, request.shots);
   }
@@ -370,6 +383,9 @@ export const scenesStage: StageDefinition<'scenes'> = {
     '.reelforge/taste.json',
     'assets/<world>/*.json',
     'assets/cast.json',
+    'kit-ext/people/<id>.js',
+    'kit-ext/places/<id>.js',
+    INK_MODULES_REPORT_FILE,
   ],
   run,
 };

@@ -169,11 +169,14 @@ describe('QueueService', () => {
       ['approve-script', 'Sky'],
       ['approve-script', 'Magnets'],
     ]);
-    expect(notices.map((notice) => notice.title)).toEqual([
-      'Script to approve',
-      'Script to approve',
-      'Production line waits for you',
-    ]);
+    // The end notice follows `lastEnd` (it reads the state first): wait for it, do not assume it.
+    await vi.waitFor(() => {
+      expect(notices.map((notice) => notice.title)).toEqual([
+        'Script to approve',
+        'Script to approve',
+        'Production line waits for you',
+      ]);
+    }, WAIT);
     expect(notices[0]?.ref).toEqual({ channelId: 'voxplain', itemId: items(state)[0]?.id });
 
     // Approving restarts the line that ran out of work (it was not stopped by the user).

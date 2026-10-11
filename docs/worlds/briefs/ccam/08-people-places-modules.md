@@ -27,8 +27,9 @@ with a CLI sheet command.
 1. Contract + zod schema (packages/shared): `PersonModule` (id, name, `D`, seed, tones,
    `draw(g, env, view, pose, expr, t)` registered through a small `definePerson` helper provided by the
    kit) and `PlaceModule` (id, name, bounds `[w,h]`, `draw(g, env, t)`, optional light pool and
-   `collide`/anchor points). Modules are plain JS files with ONE `export default definePerson({...})`
-   style the lint can read (follow the prop module format exactly).
+   `collide`/anchor points). Modules are plain JS files without imports that export ONE literal object,
+   `export const person = { ... }` or `export const place = { ... }`, which the lint can read (as
+   built: `packages/kit/src/worlds/c-cam/modules/contract.ts`).
 2. Loader: read `kit-ext/people/*.js` and `kit-ext/places/*.js` in `readKitExtensions` (cli service),
    include in the render manifest (`kitExtensions` kind `people` / `places`), the preview manifest
    builder, `reelforge frames`, export cache key. Limits: count and size like props.

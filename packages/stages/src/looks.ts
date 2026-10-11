@@ -210,6 +210,13 @@ export const CRITIC_LOOK_RULES: Readonly<Record<string, string>> = {
     "Atari menu: the console's own screens: a menu painted in the TV with a cursor, the level-select map (the narration's places, dotted paths, a cursor), the attract-mode high-score table (rows in the order of events, one gold score, locked ??? rows) or the two-colour HOW TO PLAY manual page (numbered rules, FIG. 1, ONE red correction); real numbers and the narration's names only; text whole and readable.",
   'atari-boss':
     'Atari boss: one pressure moment: a boss card only for the central problem (BOSS n, the name slammed in, a bar in a real unit), a hit with hit-stop, a flash and a decaying shake, the crash draining the picture line by line, or the continue? screen with the card burned in; never two loud things at once; text whole and readable.',
+  // Grim Ink (PLAN.md#14.10, not wired yet); the world's craft checklist comes with criticWorldVars.
+  'ink-scene':
+    "Ink scene: the film's own people acting in one specific grimy place, framed by a cut camera (wide, extreme close-up, close-up, over-the-shoulder): one uneven ink line over muddy flat colour, grime as flat shapes, one warm light pool behind the people, one accent object; the focal point off-centre, hands on what they hold, no edge of the place in the frame.",
+  'ink-insert':
+    'Ink insert: one object of the narration in extreme close-up, filling most of the frame off-centre, worn and specific (dents, stains, peeled paint as flat shapes), a foreground edge for depth, one accent on the detail that matters; any number or word hand-lettered in ink, whole and readable.',
+  'ink-poster':
+    'Ink poster: a hand-inked poster: one emblem of the narration on a flat mud field with a worn border, the line in fat ink capitals (bone fill, rust extrusion) landing letter by letter, two or three colours; the words exactly as narrated, whole and readable; never a typeset font.',
   'paper-cutout':
     'Paper cut-out: flat paper pieces with torn or cut edges on layered depth strips (sky bands, hills, city, a toy-theatre room) with soft dithered drop shadows, a jointed paper puppet, pixel-caps signs and title strips; seen straight on, no perspective close-ups; text whole and not over the puppet.',
 };

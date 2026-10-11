@@ -17,10 +17,18 @@ import {
   type HarnessPage,
   type RgbaImage,
 } from '../../../engine/src/cli/index.js';
+import { sceneInkModules } from '../../../engine/src/cli/render-frames-modules.js';
 import { lintScene } from '../../../engine/src/index.js';
 import { composeSheet } from './contact-sheet.js';
 import { downscale } from './image.js';
-import { KIT_GOLDEN_DIR, KIT_OUT_DIR, sceneManifest, sceneSource } from './scenes.js';
+import {
+  KIT_GOLDEN_DIR,
+  KIT_OUT_DIR,
+  kitFile,
+  sceneManifest,
+  sceneSource,
+  type RenderManifest,
+} from './scenes.js';
 import { expectVibe } from './vibe.js';
 
 const SUITE_TIMEOUT = 600_000;
@@ -44,6 +52,11 @@ export interface WorldSuite {
   readonly format?: 'portrait' | undefined;
   /** Manifest frame rate (default 30). */
   readonly fps?: number | undefined;
+  /**
+   * Load the Grim Ink people and places next to each scene (people/, places/), as
+   * `render:frames --scene` does (default false).
+   */
+  readonly inkModules?: boolean | undefined;
 }
 
 function label(file: string): string {
@@ -57,6 +70,17 @@ export function describeWorldLook(
 ): void {
   const { style, width, height, format, fps } = suite;
   let browser: HarnessBrowser;
+
+  async function manifestOf(file: string, duration: number): Promise<RenderManifest> {
+    const kitExtensions = suite.inkModules === true ? await sceneInkModules(kitFile(file)) : [];
+    return sceneManifest(file, {
+      style,
+      duration,
+      format,
+      fps,
+      ...(kitExtensions.length > 0 ? { kitExtensions } : {}),
+    });
+  }
 
   beforeAll(async () => {
     browser = await launchHarnessBrowser();
@@ -88,7 +112,7 @@ export function describeWorldLook(
         const tiles: RgbaImage[] = [];
         await withPage(async (page) => {
           for (const [file, duration, times] of scenes) {
-            const info = await page.load(sceneManifest(file, { style, duration, format, fps }));
+            const info = await page.load(await manifestOf(file, duration));
             expect([info.width, info.height]).toEqual([width, height]);
             for (const t of times) {
               const data = await page.frameAt(t);
@@ -119,7 +143,7 @@ export function describeWorldLook(
       async () => {
         await withPage(async (page) => {
           for (const [file, duration, times] of scenes) {
-            const manifest = sceneManifest(file, { style, duration, format, fps });
+            const manifest = await manifestOf(file, duration);
             await page.load(manifest);
             const forward: string[] = [];
             for (const t of times) forward.push(await page.hashAt(t));

@@ -19,6 +19,7 @@ import { launchHarnessBrowser } from './harness-session.js';
 import type { CliIo } from './io.js';
 import { DEFAULT_FRAMES_DIR } from './paths.js';
 import { encodePng } from './png.js';
+import { sceneInkModules } from './render-frames-modules.js';
 import {
   frameFileName,
   parseRenderFramesArgs,
@@ -107,6 +108,7 @@ async function sceneInputs(args: RenderFramesArgs, scene: string, cwd: string): 
   const file = path.resolve(cwd, scene);
   const source = await readFile(file, 'utf8');
   const words = await findWords(args, file, cwd);
+  const kitExtensions = await sceneInkModules(file);
   const lastTime = Math.max(...args.times);
   const manifest = validateManifest(
     {
@@ -114,6 +116,7 @@ async function sceneInputs(args: RenderFramesArgs, scene: string, cwd: string): 
       fps: DEFAULT_FPS,
       seed: args.seed ?? DEFAULT_SEED,
       ...(words ? { words } : {}),
+      ...(kitExtensions.length > 0 ? { kitExtensions } : {}),
       shots: [
         {
           id: 's00',
@@ -166,6 +169,16 @@ function withPreset(
   if (problem !== undefined) throw new UsageError(`--preset: ${problem}`);
   // The render size comes from the style unless the manifest pins it.
   return { ...manifest, style: preset };
+}
+
+/**
+ * A `--scene` render runs at the frame rate its world is drawn for (Grim Ink: 24, so
+ * `ctx.shot.fps` is what the app gives a project of that world); a manifest keeps its own.
+ */
+export function withWorldFps(manifest: RenderManifest): RenderManifest {
+  const style = manifest.style;
+  const fps = style === undefined ? undefined : STYLE_REGISTRY.entry(style)?.world?.fps;
+  return fps === undefined ? manifest : { ...manifest, fps };
 }
 
 /** Lints every scene; prints diagnostics; true when rendering may proceed. */
@@ -228,7 +241,8 @@ export async function runRenderFramesCli(
       args.scene !== undefined
         ? await sceneInputs(args, args.scene, cwd)
         : await manifestInputs(args.manifest ?? '', cwd);
-    const styled = withPreset(base.manifest, args.preset, args.experimental);
+    const preset = withPreset(base.manifest, args.preset, args.experimental);
+    const styled = args.scene === undefined ? preset : withWorldFps(preset);
     // --format portrait renders the style upright (PLAN.md#13.18); absent keeps the manifest's.
     inputs = {
       ...base,

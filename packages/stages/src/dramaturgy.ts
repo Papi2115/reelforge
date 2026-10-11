@@ -13,6 +13,7 @@ import {
   checkInterrupts,
   interruptTarget,
   validateLoops,
+  worldPromptText,
   type InterruptCheckOptions,
 } from '@reelforge/prompts';
 import {
@@ -49,7 +50,8 @@ import { readLockedShots } from './locks.js';
 import { FILES } from './paths.js';
 import type { StageError } from './types.js';
 
-type Switches = Pick<ProjectFile, 'patternInterrupts' | 'openLoops' | 'revealMoments'>;
+type Switches = Pick<ProjectFile, 'patternInterrupts' | 'openLoops' | 'revealMoments'> &
+  Partial<Pick<ProjectFile, 'style'>>;
 
 /** Script prompt vars (empty with both switches off). */
 export function scriptDramaturgyVars(project: Switches): Record<string, string | boolean | number> {
@@ -128,7 +130,13 @@ export function interruptOptions(
   locked: ReadonlyMap<string, Interrupt | undefined>,
 ): InterruptCheckOptions | undefined {
   if (projectPatternInterrupts(project) !== 'auto') return undefined;
-  return { locked, ...(tension === undefined ? {} : { tension: tension.points }) };
+  // A world that only cuts (Grim Ink) never asks for a look-change transition (PLAN.md#14.18).
+  const cutsOnly = worldPromptText(project.style)?.cutsOnly === true;
+  return {
+    locked,
+    ...(tension === undefined ? {} : { tension: tension.points }),
+    ...(cutsOnly ? { cutsOnly } : {}),
+  };
 }
 
 export interface LoopsOutcome {

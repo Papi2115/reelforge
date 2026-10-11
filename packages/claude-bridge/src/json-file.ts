@@ -20,7 +20,9 @@ export function errorCode(error: unknown): string | undefined {
   return typeof error.code === 'string' ? error.code : undefined;
 }
 
-const RENAME_RETRIES = 5;
+/** Same budget as packages/project atomic.ts: 10 attempts, 25 ms × attempt between them. */
+const RENAME_RETRIES = 10;
+const RENAME_DELAY_MS = 25;
 
 /** tmp + rename; retries rename briefly (Windows: EPERM/EBUSY while a scanner holds the file). */
 export async function writeAtomic(file: string, content: string): Promise<void> {
@@ -40,7 +42,7 @@ export async function writeAtomic(file: string, content: string): Promise<void> 
         await rm(tmp, { force: true });
         throw error;
       }
-      await new Promise((resolve) => setTimeout(resolve, 20 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, RENAME_DELAY_MS * attempt));
     }
   }
 }
@@ -88,7 +90,12 @@ export async function writeJsonFile<T>(
   return ok(validated.data);
 }
 
-/** One schema, many files (one per project): serialized read-modify-write per file. */
+/**
+ * One schema, many files (one per project): reads and read-modify-writes are serialized per file.
+ * A read never overlaps this process's own rename of the same file: on Windows that overlap fails
+ * one side (the rename with EPERM while the reader holds the file, or the open with EPERM/ENOENT
+ * while the file is being replaced), which a caller would see as an unreadable or empty file.
+ */
 export class JsonFileStore<T> {
   private readonly chains = new Map<string, Promise<unknown>>();
 
@@ -97,17 +104,23 @@ export class JsonFileStore<T> {
     private readonly empty: () => T,
   ) {}
 
+  /** Reads `file` once the pending updates of it (in this process) are written. */
   read(file: string): Promise<Result<T, JsonFileError>> {
-    return readJsonFile(file, this.schema, this.empty);
+    return this.enqueue(file, () => readJsonFile(file, this.schema, this.empty));
   }
 
   /** Applies `mutate` to the current content (or `empty()`) and writes the result atomically. */
   update(file: string, mutate: (current: T) => T): Promise<Result<T, JsonFileError>> {
-    const previous = this.chains.get(file) ?? Promise.resolve();
-    const next = previous.then(async () => {
-      const current = await this.read(file);
+    return this.enqueue(file, async () => {
+      const current = await readJsonFile(file, this.schema, this.empty);
       return current.ok ? writeJsonFile(file, this.schema, mutate(current.value)) : current;
     });
+  }
+
+  private enqueue<R>(file: string, run: () => Promise<R>): Promise<R> {
+    const previous = this.chains.get(file) ?? Promise.resolve();
+    // Runs after the previous operation settled, whatever its outcome (its caller handles it).
+    const next = previous.then(run, run);
     this.chains.set(file, next);
     return next;
   }

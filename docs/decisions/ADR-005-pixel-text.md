@@ -41,3 +41,19 @@ and `checkCards(timeline)` reports `card-overlap` (two visible cards intersect) 
 `card-outside-safe-area` (with per-side overflow and frame clipping), merged into time ranges,
 with an LLM-readable message and fix. Goldens: title / lower third mid-wipe / kinetic mid-pop in
 `voxel-pixel-crisp640` and `soft-480`.
+
+## Addendum (2026-10-11, PLAN.md#14.18): world exception "c-cam system fonts"
+Grim Ink (`c-cam`) follows its prototype films over this ADR (Papi: "the engine must speed up work, not limit it").
+In that world only, text is lettered with the SAME system fonts as the prototypes (`docs/concepts/c-cam-style/films/*/js/
+{brushes,timeline}.js`): Arial Black and Impact for captions, poster words, titles and labels, Georgia / Times New Roman
+for ledgers, Courier New for digits. Rules of the exception:
+- Drawn by the kit (`env.ink.text(text, { role })`, `env.ink.titleCard`, the world's captions) on the ink stage's CPU canvas
+  with `fillText` / `strokeText`; scene and module source still never call `fillText`, set `font` or touch `document`
+  (lint), and never see the canvas context.
+- Fonts are never shipped: only the fonts installed on the user's machine are used (`docs/licenses.md`).
+- Determinism is per machine. Availability is probed once per frame source with `measureText` against the generic
+  families; a role whose fonts are missing (CI Linux, cloud) draws with the CC0 ink lettering at the same cap height and
+  width, so goldens stay deterministic. The probe result is part of the export cache key and a fallback is named in the
+  export report ("font fallback used").
+- Captions of this world use role `caption` on the ink stage (bold 46 px, bone fill, 11 px ink outline); every other world
+  keeps the pixel captions of this ADR byte-identical.

@@ -7,6 +7,8 @@
 import { useId, type JSX } from 'react';
 import {
   AMBIENT_NOTE,
+  CAPTIONS_HINT,
+  CAPTIONS_NOTE,
   CONTINUITY_HINT,
   CONTINUITY_NOTE,
   DRAMATURGY_CHOICES,
@@ -105,6 +107,29 @@ export function ContinuityLinksRow({ settings, update }: RowProps): JSX.Element 
           <span>
             <strong>Continuity links between shots</strong>
             <span className="muted">{CONTINUITY_HINT}</span>
+          </span>
+        </label>
+      )}
+    </SettingRow>
+  );
+}
+
+/** A film's captions (PLAN.md#14.18): `project.captions`, off by default. */
+export function CaptionsRow({ settings, update }: RowProps): JSX.Element {
+  return (
+    <SettingRow title="Captions" note={CAPTIONS_NOTE}>
+      {() => (
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.captions === 'words'}
+            onChange={(event) => {
+              update({ captions: event.target.checked ? 'words' : 'off' });
+            }}
+          />
+          <span>
+            <strong>Captions in the film</strong>
+            <span className="muted">{CAPTIONS_HINT}</span>
           </span>
         </label>
       )}

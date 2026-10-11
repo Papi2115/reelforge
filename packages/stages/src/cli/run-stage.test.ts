@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { envWithPathFirst, variantOp } from './run-stage.js';
+import { envWithPathFirst, experimentalWorldsSetup, variantOp } from './run-stage.js';
 
 describe('run-stage child env', () => {
   it('puts the reelforge launchers first on PATH, keeping the Windows variable name', () => {
@@ -8,6 +8,19 @@ describe('run-stage child env', () => {
     expect(envWithPathFirst({}, '/rf', 'linux')).toEqual({ PATH: '/rf' });
     expect(envWithPathFirst({ PATH: '/usr/bin' }, '/rf', 'linux')).toEqual({
       PATH: '/rf:/usr/bin',
+    });
+  });
+});
+
+describe('run-stage experimental worlds', () => {
+  it('turns the worlds on for the stages and the runtime CLI only with the flag', () => {
+    expect(experimentalWorldsSetup(true, { PATH: '/usr/bin' })).toEqual({
+      settings: { experimentalWorlds: true },
+      env: { PATH: '/usr/bin', REELFORGE_EXPERIMENTAL_WORLDS: '1' },
+    });
+    expect(experimentalWorldsSetup(false, { PATH: '/usr/bin' })).toEqual({
+      settings: {},
+      env: { PATH: '/usr/bin' },
     });
   });
 });

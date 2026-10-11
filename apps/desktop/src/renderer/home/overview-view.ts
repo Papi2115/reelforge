@@ -40,6 +40,10 @@ function isWide(width: number, height: number): boolean {
   return height > 0 && Math.abs(width / height - 16 / 9) < 0.02;
 }
 
+/** The line under a thumbnail the export made from the opening title card (PLAN.md#14.18). */
+export const OPENING_FRAME_NOTE =
+  "Thumbnail from the opening frame: the film's title card, saved by the export. Replace it with your own picture any time.";
+
 /** Gentle notes when the thumbnail is off YouTube's limits (empty = all good). */
 export function thumbnailNotes(thumbnail: OverviewThumbnail): string[] {
   const { width, height, bytes } = thumbnail;

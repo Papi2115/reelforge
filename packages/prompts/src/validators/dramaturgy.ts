@@ -34,6 +34,8 @@ export interface InterruptCheckOptions {
   readonly tension?: readonly TensionPoint[];
   /** Locked shot id -> the interrupt it had before this turn (undefined = none). */
   readonly locked?: ReadonlyMap<string, Interrupt | undefined>;
+  /** The world cuts hard between shots (`cutsOnly`, Grim Ink): no look-change transition asked. */
+  readonly cutsOnly?: boolean;
 }
 
 const TENSION_STEP_S = 10;
@@ -64,6 +66,7 @@ function shotIssues(
   shot: StoryboardShot,
   previous: StoryboardShot | undefined,
   where: string,
+  cutsOnly: boolean,
 ): ValidationIssue[] {
   const interrupt = shot.interrupt;
   if (interrupt === undefined) return [];
@@ -87,7 +90,8 @@ function shotIssues(
       ),
     );
   }
-  if (interrupt.kind === 'look-switch' && (transition === undefined || transition.type === 'cut')) {
+  const plainCut = transition === undefined || transition.type === 'cut';
+  if (interrupt.kind === 'look-switch' && plainCut && !cutsOnly) {
     issues.push(
       issue(
         'warning',
@@ -143,7 +147,7 @@ export function checkInterrupts(
         ),
       );
     }
-    issues.push(...shotIssues(shot, shots[index - 1], where));
+    issues.push(...shotIssues(shot, shots[index - 1], where, options.cutsOnly === true));
     last = shot;
   });
   const durationS = shots.at(-1)?.t1 ?? 0;

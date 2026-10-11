@@ -14,6 +14,20 @@ export function thumbnailFactor(renderWidth: number): number {
   return Math.max(1, Math.ceil(THUMBNAIL_MIN_WIDTH / renderWidth));
 }
 
+/** The opening frame's still (Grim Ink, PLAN.md#14.18): a YouTube thumbnail, 1280x720. */
+export const OPENING_THUMBNAIL_SIZE = { width: 1280, height: 720 } as const;
+export const OPENING_THUMBNAIL_FILE = 'opening-frame.png';
+
+/**
+ * When the opening title card has landed: the last frame of the first shot (a title card thuds
+ * in within its first ~2 s and then holds).
+ */
+export function openingSettledTime(plan: ShotPlan): number {
+  const first = plan.shots[0];
+  if (first === undefined) return 0;
+  return frameTime(Math.max(first.startFrame, first.endFrame - 1), plan.fps);
+}
+
 /** Default thumbnail time: the middle of the first shot (usually the title card). */
 export function defaultThumbnailTime(plan: ShotPlan): number {
   const first = plan.shots[0];
@@ -32,6 +46,8 @@ export interface ThumbnailOptions {
   readonly media: ExportMedia;
   readonly createFrameSource: FrameSourceFactory;
   readonly signal: AbortSignal;
+  /** Exact, area-downscaled output size (the opening frame); default the neighbour upscale. */
+  readonly size?: { readonly width: number; readonly height: number } | undefined;
 }
 
 export async function renderThumbnail(
@@ -64,6 +80,7 @@ export async function renderThumbnail(
         width: options.width,
         height: options.height,
         factor: thumbnailFactor(options.width),
+        ...(options.size === undefined ? {} : { size: options.size }),
       },
       rendered.value,
       options.signal,

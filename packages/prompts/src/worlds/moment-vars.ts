@@ -48,7 +48,7 @@ function quotaSentence(
 
 /** Storyboard variables of the moment catalog for a film of `durationS` seconds. */
 export function storyboardMomentVars(
-  text: Pick<WorldPromptText, 'moments'>,
+  text: Pick<WorldPromptText, 'moments' | 'cutsOnly'>,
   durationS: number,
   override?: WorldQuotaOverride,
   rules: WorldVarietyRules = WORLD_VARIETY_RULES,
@@ -56,7 +56,7 @@ export function storyboardMomentVars(
   if (text.moments.length === 0) return {};
   const breakthroughs = text.moments.filter((entry) => entry.breakthrough).map((entry) => entry.id);
   const transitions =
-    durationS >= rules.distinctTransitionsFromS
+    text.cutsOnly !== true && durationS >= rules.distinctTransitionsFromS
       ? ` Name the \`style\` of every non-cut transition and use at least ${String(rules.minDistinctTransitions)} different page transitions in the film.`
       : '';
   const rulesText = [

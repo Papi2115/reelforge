@@ -138,7 +138,8 @@ describe('createProject', () => {
   });
 
   it('gives Grim Ink (c-cam) its 24 fps over the template and the caller (PLAN.md#14.2)', async () => {
-    // The world is not wired (the app and the CLI refuse it); the package creates what it is asked.
+    // Wired in PLAN.md#14.12: the app offers it only with Experimental worlds on; no worldLooks
+    // (all three looks) until the user turns one off in Project settings.
     const ink = await createProject({
       dir: projectDir('grim ink world'),
       title: 'The night shift',
@@ -161,6 +162,7 @@ describe('createProject', () => {
       expect(worldProjectDefaults(id), id).not.toHaveProperty('fps');
     }
     expect(existsSync(path.join(ink.value.dir, 'styles', 'c-cam'))).toBe(false);
+    expect(ink.value.project).not.toHaveProperty('worldLooks');
   });
 
   it('gives the Comic world the same film language (PLAN.md#13.3 part c)', async () => {

@@ -154,6 +154,8 @@ const STYLE_TINTS: Readonly<Record<string, readonly [string, string]>> = {
   comic: ['#22344f', '#f2c14e'],
   'game-b2': ['#1c1610', '#d9a441'],
   'game-b1': ['#10282c', '#f08a3c'],
+  // Grim Ink: a mud wall and the mustard accent.
+  'c-cam': ['#4a3f2c', '#c9a23a'],
 };
 const DEFAULT_TINT: readonly [string, string] = ['#1d1f28', '#ff8a3d'];
 

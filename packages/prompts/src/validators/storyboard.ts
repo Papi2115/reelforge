@@ -16,6 +16,7 @@ import {
   shotRangeRules,
   STANDARD_TEMPO,
   storyboardFileSchema,
+  type DirectionFile,
   type LookMode,
   type ShotsPerMinute,
   type StoryboardShot,
@@ -28,6 +29,7 @@ import { checkAnnotationPlans, type AnnotationRules } from './annotations.js';
 import { checkAssetNeeds, checkShotAssets, type AssetNeedRules } from './asset-needs.js';
 import { checkCharacters, type CharacterCheckOptions } from './characters.js';
 import { checkContinuity } from './continuity.js';
+import { checkDirectedStoryboard } from './direction-storyboard.js';
 import { checkInterrupts, type InterruptCheckOptions } from './dramaturgy.js';
 import { offensiveJsonIssues } from './offensive.js';
 import {
@@ -152,6 +154,8 @@ export interface StoryboardCheckOptions {
    * a film (the checks exactly as before).
    */
   readonly short?: ShortStoryboardOptions;
+  /** A Grim Ink film's direction plan (PLAN.md#14.16): the `direction-*` checks; absent = none. */
+  readonly direction?: DirectionFile;
 }
 
 /** Storyboard rules of a range (`StoryboardCheckOptions.rules` still win over them). */
@@ -258,6 +262,7 @@ export function checkStoryboard(
       ? []
       : checkCharacters({ ...storyboard, shots: narration }, options.words, options.characters)),
     ...(options.short === undefined ? [] : checkShortStoryboard(shots, options.short)),
+    ...(options.direction === undefined ? [] : checkDirectedStoryboard(shots, options.direction)),
     ...endCardIssues(narration),
     ...offensiveJsonIssues(storyboard),
   ];

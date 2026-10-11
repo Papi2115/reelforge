@@ -122,6 +122,7 @@ describe('OverviewService', () => {
       width: 1280,
       height: 720,
       bytes: 8,
+      origin: 'uploaded',
     });
     expect(overview.facts).toMatchObject({
       voice: 'elevenlabs',

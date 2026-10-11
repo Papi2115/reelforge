@@ -4,7 +4,7 @@
  * look registry for the project's style (`styleLookSummaries`, ADR-029: a world's style offers
  * only its own looks), so a newly available look shows up without a UI change.
  */
-import { isUnwiredWorldStyle, isWorldStyle } from '@reelforge/kit';
+import { isUnwiredWorldStyle, isWorldStyle, WORLDS } from '@reelforge/kit';
 import { styleLooks, styleLookSummaries } from '@reelforge/stages';
 import type { LookSummary, ProjectStyle } from '../shared/project-settings-contract.js';
 import { describeStyle } from '../shared/style-choices.js';
@@ -46,7 +46,12 @@ export function projectStyle(style: string, experimentalWorlds: boolean): Projec
     };
   }
   if (isUnwiredWorldStyle(style)) return { ...choice, enabled: false, inDevelopment: true };
-  return { ...choice, enabled: !choice.preview || experimentalWorlds };
+  const optional = WORLDS.some((world) => world.id === style && world.optionalLooks === true);
+  return {
+    ...choice,
+    enabled: !choice.preview || experimentalWorlds,
+    ...(optional ? { optionalLooks: true } : {}),
+  };
 }
 
 export function projectSettingsHandlers(

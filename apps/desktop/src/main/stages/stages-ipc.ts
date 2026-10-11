@@ -185,8 +185,10 @@ export function stagesHandlers(options: StagesHandlerOptions): StagesHandlers {
       if (dir !== undefined && request.action === 'build' && request.shots !== null) {
         await options.taste?.recordShots(dir, request.shots, 'rebuild');
       }
-      // A world film's look assets are one set for the whole film: never per shot.
-      const shots = request.action === 'world-assets' ? null : request.shots;
+      // A world film's look assets (and a Grim Ink film's people and places) are one set for the
+      // whole film: never per shot.
+      const wholeFilm = request.action === 'world-assets' || request.action === 'c-cam-modules';
+      const shots = wholeFilm ? null : request.shots;
       return service.enqueue([
         {
           stage: 'scenes',

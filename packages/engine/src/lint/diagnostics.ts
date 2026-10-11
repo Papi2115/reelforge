@@ -22,6 +22,8 @@ export const LINT_RULES = [
   'no-module-state-in-prop',
   'lettering-options',
   'kit-page-not-added',
+  'ink-module-contract',
+  'ink-grammar',
 ] as const;
 export type LintRule = (typeof LINT_RULES)[number];
 

@@ -47,6 +47,12 @@ export const PROMPT_PERMISSION_STAGE: Readonly<Record<PromptId, Stage>> = {
   'world-assets': 'scene-build',
   // The world-assets critic (PLAN.md#13.15) names each asset crop: the critic's Haiku, read-only.
   'world-asset-critic': 'critic',
+  // A Grim Ink person or place (PLAN.md#14.11) is a project module built like a prop: Opus,
+  // project edits + reelforge.
+  'c-cam-build': 'scene-build',
+  // A Grim Ink film's direction plan (PLAN.md#14.16) is planning before the storyboard: Sonnet,
+  // the storyboard's permissions; the prompt asks for a JSON reply and no file edits.
+  'c-cam-direction': 'storyboard',
   // The SEO tags and chapters (PLAN.md#13.17) are written from the project's texts alone:
   // read-only tools, no web (the critic's permissions); the app asks for the prompt's own model
   // (Sonnet) explicitly.

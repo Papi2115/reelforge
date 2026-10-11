@@ -12,7 +12,7 @@ import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { ElectronApplication, Locator, Page } from 'playwright';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   closeApp,
   fixtureProject,
@@ -57,7 +57,9 @@ function point(index: number): Locator {
   return panel().getByRole('slider', { name: new RegExp(`^Tension point ${String(index)} of `) });
 }
 
-beforeAll(async () => {
+// Per test, not per file: a CI retry (vitest.config.ts) then starts from a fresh app and project
+// instead of an app already inside the project with a half-edited curve.
+beforeEach(async () => {
   userDataDir = await mkdtemp(path.join(tmpdir(), 'reelforge tension ż-'));
   dir = path.join(userDataDir, 'Projekt ż napięcie');
   await cp(fixtureProject, dir, { recursive: true });
@@ -69,8 +71,9 @@ beforeAll(async () => {
   await page.waitForFunction(() => window.innerWidth === 1280 && window.innerHeight === 720);
 });
 
-afterAll(async () => {
+afterEach(async () => {
   await closeApp(app);
+  app = undefined;
   await rm(userDataDir, { recursive: true, force: true, maxRetries: 5 });
 });
 
@@ -118,10 +121,29 @@ describe('tension panel', () => {
     await panel().getByRole('button', { name: 'Undo' }).click();
     await expectCommit('Tension: undo');
     expect((await curve()).points).toHaveLength(6);
+    // The commit lands before the panel reloads the saved curve; until then a click on the lock
+    // can be undone by that reload. Wait for the panel to show the undo and be idle again.
+    await expect
+      .poll(
+        () =>
+          panel()
+            .getByRole('slider', { name: /^Tension point \d+ of 6$/ })
+            .count(),
+        {
+          timeout: 15_000,
+        },
+      )
+      .toBe(6);
+    await expect
+      .poll(() => panel().getByRole('button', { name: 'Undo' }).isEnabled(), { timeout: 15_000 })
+      .toBe(true);
 
-    await panel().getByRole('checkbox', { name: 'Lock curve' }).check();
+    // The saved file is the truth: click, wait for the commit, then for the box to follow it.
+    const lock = panel().getByRole('checkbox', { name: 'Lock curve' });
+    await lock.click();
     await expectCommit('Tension: locked the curve');
     expect((await curve()).locked).toBe(true);
+    await expect.poll(() => lock.isChecked(), { timeout: 15_000 }).toBe(true);
     expect(await panel().getByRole('button', { name: 'Three acts' }).isDisabled()).toBe(true);
     expect(await panel().getByRole('button', { name: 'Propose with Claude' }).isDisabled()).toBe(
       true,

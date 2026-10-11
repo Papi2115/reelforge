@@ -1,6 +1,7 @@
 /**
- * `reelforge lint [file.js...]`: determinism + contract lint of scenes and project props
- * (engine lintModule: `kit-ext/props/*.js` are checked as prop modules).
+ * `reelforge lint [file.js...]`: determinism + contract lint of scenes and project modules
+ * (engine lintModule: `kit-ext/props/*.js` are checked as prop modules, `kit-ext/people|places/*.js`
+ * as Grim Ink people / places, PLAN.md#14.8).
  */
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
@@ -14,7 +15,8 @@ import { PROJECT_PATHS, projectPath, projectRelative, resolveInProject } from '.
 export const LINT_USAGE = `usage: reelforge lint [--json] [file.js...]
 Checks scene modules for non-deterministic APIs (Date, Math.random, timers, fetch, ...) and
 scene-contract problems; kit-ext/props/*.js files are checked as project prop modules (same API
-rules + the prop contract). Without files: every scenes/*.js and kit-ext/props/*.js.
+rules + the prop contract), kit-ext/people/*.js and kit-ext/places/*.js as Grim Ink people / places
+(same API rules + their contract + ink grammar). Without files: every scenes/*.js and kit-ext/*/*.js.
 Exit code: 0 no errors (warnings allowed), 1 lint errors, 2 usage error.`;
 
 export interface LintedFile {
@@ -35,6 +37,8 @@ async function defaultFiles(root: string): Promise<string[]> {
   const files = [
     ...(await jsFiles(root, PROJECT_PATHS.scenes)),
     ...(await jsFiles(root, PROJECT_PATHS.kitExtProps)),
+    ...(await jsFiles(root, PROJECT_PATHS.kitExtPeople)),
+    ...(await jsFiles(root, PROJECT_PATHS.kitExtPlaces)),
   ];
   if (files.length === 0) {
     throw new ProjectError(

@@ -18,6 +18,26 @@ function codedError(code: string): Error {
   return Object.assign(new Error(`${code}: simulated`), { code });
 }
 
+/** Windows: opening the target while a rename replaces it fails briefly (ENOENT/EPERM/EBUSY). */
+const REPLACING_CODES = new Set(['ENOENT', 'EPERM', 'EBUSY', 'EACCES']);
+
+/** The pause of a reader between two reads (not a wait for a state: nothing is awaited here). */
+const readerGap = (): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 2);
+  });
+
+/** The file's content, or undefined when it was being replaced at that instant. */
+async function readWhenOpenable(file: string): Promise<Buffer | undefined> {
+  try {
+    return await readFile(file);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code ?? '';
+    if (REPLACING_CODES.has(code)) return undefined;
+    throw error;
+  }
+}
+
 /** A large payload, so a non-atomic write would be observable as a truncated file. */
 function payload(fill: string): Buffer {
   return Buffer.alloc(2 * 1024 * 1024, fill);
@@ -43,10 +63,16 @@ describe('writeFileAtomicIfChanged', () => {
     const seen = new Set<string>();
     const reader = (async () => {
       while (run.writing) {
-        const content = await readFile(file);
-        const match = versions.findIndex((version) => version.equals(content));
-        expect(match, `a read saw ${String(content.length)} bytes of a partial file`).not.toBe(-1);
-        seen.add(String(match));
+        const content = await readWhenOpenable(file);
+        if (content !== undefined) {
+          const match = versions.findIndex((version) => version.equals(content));
+          expect(match, `a read saw ${String(content.length)} bytes of a partial file`).not.toBe(
+            -1,
+          );
+          seen.add(String(match));
+        }
+        // A real reader (the frames harness) does not spin on the file: leave the writers a gap.
+        await readerGap();
       }
     })();
     const writers = Array.from({ length: 12 }, (_, index) =>
@@ -55,9 +81,14 @@ describe('writeFileAtomicIfChanged', () => {
         delayMs: 10,
       }),
     );
-    const outcomes = await Promise.all(writers);
-    run.writing = false;
-    await reader;
+    let outcomes: Awaited<ReturnType<typeof writeFileAtomicIfChanged>>[];
+    try {
+      outcomes = await Promise.all(writers);
+    } finally {
+      // The reader is always awaited, so its failure is reported instead of escaping unhandled.
+      run.writing = false;
+      await reader;
+    }
     expect(outcomes).toHaveLength(12);
     expect(outcomes).toContain('written');
     expect(seen.size).toBeGreaterThan(0);

@@ -10,6 +10,7 @@ import {
   storyboardContinuityVars,
   storyboardMomentVars,
 } from './moment-vars.js';
+import { C_CAM_PROMPTS } from './c-cam.js';
 import { COMIC_PROMPTS } from './comic.js';
 import { GAME_B1_PROMPTS } from './game-b1.js';
 import { GAME_B2_PROMPTS } from './game-b2.js';
@@ -27,6 +28,19 @@ import { paceContinuityBudget, type WorldPace } from './pace.js';
 export type { WorldMomentOption, WorldPromptText, WorldTransitionOption } from './types.js';
 export type { WorldPace } from './pace.js';
 export { worldMomentOption } from './moment-vars.js';
+export { worldTextForLooks } from './world-looks.js';
+export {
+  C_CAM_API,
+  C_CAM_CAST_TAG,
+  C_CAM_GAG_TAG,
+  C_CAM_MODULE_TOPICS,
+  C_CAM_PLACE_TAG,
+  C_CAM_SNIPPETS,
+  C_CAM_TEXT_METHODS,
+  C_CAM_TOPICS,
+  type CCamSnippet,
+  type CCamTopic,
+} from './c-cam-api.js';
 export { COMIC_SNIPPETS, type ComicSnippet } from './comic-snippets.js';
 export { GAME_B1_SNIPPETS, type GameB1Snippet } from './game-b1-snippets.js';
 export { GAME_B2_SNIPPETS, type GameB2Snippet } from './game-b2-snippets.js';
@@ -46,6 +60,8 @@ export const WORLD_PROMPTS: Readonly<Record<string, WorldPromptText>> = Object.f
   comic: COMIC_PROMPTS,
   'game-b2': GAME_B2_PROMPTS,
   'game-b1': GAME_B1_PROMPTS,
+  // Grim Ink (PLAN.md#14.10, wired in #14.12).
+  'c-cam': C_CAM_PROMPTS,
 });
 
 /** The prompt texts of a world (undefined for every other style). */
@@ -208,11 +224,40 @@ export function criticWorldVars(world: PromptWorld, momentId?: string): Record<s
  * Script variables of a world project: what a surprise beat is in this world and, for a world
  * whose films are written for it (Game B2), how the narration is framed.
  */
-export function scriptWorldVars(world: PromptWorld): Record<string, string> {
+export function scriptWorldVars(
+  world: PromptWorld,
+  targetMinutes?: number,
+): Record<string, string> {
   const { surprise, script } = world.text;
+  const budget =
+    targetMinutes === undefined ? undefined : worldWordBudget(world.text, targetMinutes);
+  const lines = [
+    ...(script === undefined ? [] : [script]),
+    ...(budget === undefined ? [] : [wordBudgetLine(budget, targetMinutes ?? 0)]),
+  ];
   return {
     world: world.label,
     worldSurprise: surprise,
-    ...(script === undefined ? {} : { worldScript: script }),
+    ...(lines.length === 0 ? {} : { worldScript: lines.join('\n') }),
   };
+}
+
+/** A world's words budget for a target length (PLAN.md#14.18); undefined without length control. */
+export function worldWordBudget(
+  text: Pick<WorldPromptText, 'wordBudget'>,
+  targetMinutes: number,
+): { readonly words: number; readonly over: number; readonly wordsPerSecond: number } | undefined {
+  const control = text.wordBudget;
+  if (control === undefined) return undefined;
+  const words = Math.round(control.wordsPerSecond * targetMinutes * 60);
+  return { words, over: control.overWarn, wordsPerSecond: control.wordsPerSecond };
+}
+
+function wordBudgetLine(
+  budget: NonNullable<ReturnType<typeof worldWordBudget>>,
+  targetMinutes: number,
+): string {
+  const seconds = Math.round(targetMinutes * 60);
+  const limit = Math.floor(budget.words * (1 + budget.over));
+  return `Length (binding in this world): the voice reads 150 words per minute, ~${String(budget.wordsPerSecond)} words/s, so the words budget is ~${String(budget.wordsPerSecond)} words/s × ${String(seconds)} s = ${String(budget.words)} words for the whole script.txt; the pauses between sentences take time too, so aim at or a little under ${String(budget.words)}. Count the words before you save: more than ${String(limit)} words is too long.`;
 }

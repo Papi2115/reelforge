@@ -66,6 +66,15 @@ export interface ShotPlan {
   readonly standalone: boolean;
   /** Storyboard position for ambient variation (storyboard shots only). */
   readonly ambient?: AmbientShot | undefined;
+  /** The shot's place in the film for `ctx.film` (storyboard shots only, PLAN.md#14.19). */
+  readonly film?: ShotFilmPlace | undefined;
+}
+
+/** Storyboard position, shot count and film length of a storyboard shot. */
+export interface ShotFilmPlace {
+  readonly index: number;
+  readonly count: number;
+  readonly duration: number;
 }
 
 const MIN_STANDALONE_DURATION = 5;
@@ -184,7 +193,12 @@ export async function planForShot(
   if (!shot) throw unknownShot(id, storyboard);
   const { file, source } = await readScene(files.root, scene ?? shot.scene);
   const ambient = storyboardAmbient(files, storyboard)[index];
-  return { id: shot.id, t0: shot.t0, t1: shot.t1, file, source, standalone: false, ambient };
+  const film = {
+    index,
+    count: storyboard.shots.length,
+    duration: storyboard.shots.at(-1)?.t1 ?? shot.t1,
+  };
+  return { id: shot.id, t0: shot.t0, t1: shot.t1, file, source, standalone: false, ambient, film };
 }
 
 export async function allShotPlans(files: ProjectFiles): Promise<ShotPlan[]> {
@@ -255,6 +269,10 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
     // does not list yet) has no storyboard position and renders neutral, so the camera drift
     // cannot make one view differ from itself at another time.
     ...(setup.ambientVariation && plan.ambient ? { ambientVariation: setup.ambientVariation } : {}),
+    // `ctx.film` (PLAN.md#14.19): the storyboard's film, not this manifest of one shot.
+    ...(plan.film === undefined
+      ? {}
+      : { film: { duration: plan.film.duration, shotCount: plan.film.count } }),
     shots: [
       ...pad,
       {
@@ -263,6 +281,7 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
         t1: plan.t1,
         scene: { file: plan.file, source: plan.source },
         ...(setup.ambientVariation && plan.ambient ? { ambient: plan.ambient } : {}),
+        ...(plan.film === undefined ? {} : { filmIndex: plan.film.index }),
       },
     ],
   };

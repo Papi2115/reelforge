@@ -17,6 +17,11 @@ export interface ScriptCheckOptions {
   readonly targetWords: number;
   /** Allowed relative deviation from the target. Default 0.15 (±15 %). */
   readonly tolerance?: number;
+  /**
+   * A world's words budget (PLAN.md#14.18, `WorldPromptText.wordBudget`): a warning when the
+   * script runs over `words` by more than `over` (a share).
+   */
+  readonly budget?: { readonly words: number; readonly over: number };
 }
 
 export interface ScriptStats {
@@ -87,6 +92,16 @@ export function validateScript(
         'error',
         'word-count',
         `${String(wordCount)} words, target ${String(options.targetWords)} ±${String(Math.round(tolerance * 100))} % (${deviation > 0 ? '+' : ''}${String(Math.round(deviation * 100))} %)`,
+      ),
+    );
+  }
+  const budget = options.budget;
+  if (budget !== undefined && wordCount > budget.words * (1 + budget.over)) {
+    issues.push(
+      issue(
+        'warning',
+        'word-budget',
+        `${String(wordCount)} words, over the budget of ${String(budget.words)} (150 wpm × the target length) by more than ${String(Math.round(budget.over * 100))} %: the film runs long; cut sentences, not facts`,
       ),
     );
   }

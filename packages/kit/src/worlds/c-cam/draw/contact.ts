@@ -62,8 +62,11 @@ export interface PlacedFigure {
   readonly pose: Pose;
 }
 
-/** Number of fixed-point steps on the palm offset (film 1's count). */
-export const REACH_STEPS = 4;
+/**
+ * Number of fixed-point steps on the palm offset (film 1 used 4; 6 is where c-plus's `ST.meet`
+ * converged: palm misses <= 2.7 px at scale 1.4 for the Apollo people, 4 left up to 7 px).
+ */
+export const REACH_STEPS = 6;
 
 function rotateAbout(pt: Point2, cx: number, cy: number, deg: number): Point2 {
   const a = deg * RAD;

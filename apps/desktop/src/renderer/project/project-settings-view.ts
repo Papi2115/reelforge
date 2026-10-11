@@ -41,6 +41,7 @@ export const OPTION_ROW_IDS = [
   'look-mode',
   'ambient-variation',
   'continuity-links',
+  'captions',
   'characters',
   'mascot',
   'research-assets',
@@ -68,6 +69,7 @@ export const PROJECT_SETTINGS_ROWS: readonly OptionSectionRow[] = [
   { id: 'look-mode', section: 'visuals' },
   { id: 'ambient-variation', section: 'visuals' },
   { id: 'continuity-links', section: 'visuals' },
+  { id: 'captions', section: 'visuals' },
   { id: 'characters', section: 'characters' },
   { id: 'mascot', section: 'mascot' },
   { id: 'research-assets', section: 'research' },
@@ -116,6 +118,8 @@ export function withProjectSettingsPatch(
       patch.shotsPerMinute === undefined ? settings.shotsPerMinute : patch.shotsPerMinute,
     fasterChecks: patch.fasterChecks ?? settings.fasterChecks,
     continuityLinks: patch.continuityLinks ?? settings.continuityLinks,
+    worldLooks: patch.worldLooks === undefined ? settings.worldLooks : patch.worldLooks,
+    captions: patch.captions ?? settings.captions,
   };
 }
 
@@ -209,6 +213,12 @@ export const CONTINUITY_NOTE =
 
 export const CONTINUITY_HINT =
   'Now and then the storyboard carries one object across a cut instead of a wipe: the camera dives into it, it stays in place while the world changes, or the place stays while the object changes. Rare (about one link per 45 s), never on the first shot.';
+
+export const CAPTIONS_NOTE =
+  'Shows in the preview right away and in the next export. No scene is rebuilt. A Short keeps its own captions switch (Home).';
+
+export const CAPTIONS_HINT =
+  'The narration burned in at the bottom, one short line at a time. Grim Ink draws them like its prototype films (bold bone capitals with a thick ink outline).';
 
 export const SOUND_PALETTE_NOTE =
   'Follows the look mode (Visuals); applies from the next sound design. Nothing to switch here.';

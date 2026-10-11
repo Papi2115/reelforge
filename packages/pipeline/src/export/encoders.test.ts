@@ -139,5 +139,8 @@ describe('ffmpeg arguments', () => {
     const args = thumbnailArgs({ file: 't.png', width: 640, height: 360, factor: 2 }).join(' ');
     expect(args).toContain('scale=1280:720:flags=neighbor');
     expect(args).toContain('-frames:v 1 -pix_fmt rgb24');
+    const opening = { file: 'o.png', width: 1920, height: 1080, factor: 1 };
+    const sized = thumbnailArgs({ ...opening, size: { width: 1280, height: 720 } }).join(' ');
+    expect(sized).toContain('scale=1280:720:flags=area');
   });
 });

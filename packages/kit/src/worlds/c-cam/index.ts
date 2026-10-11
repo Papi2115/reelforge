@@ -5,15 +5,20 @@
  * (`ink-insert`), C = the poster/title (`ink-poster`); each brings the same `kit.fx.inkStage`
  * (stage.ts), so a project may keep any one of them.
  *
- * Skeleton: experimental and NOT wired (no prompts, no world assets, no shorts); it renders only
- * with `render:frames --experimental` and the apps and the CLI refuse it as a project style.
- * Characters, faces, rig and camera are later tasks (PLAN.md#14.4-14.6).
+ * Experimental and wired (PLAN.md#14.12): offered as a project style only with Settings ->
+ * Experimental worlds; projects get 24 fps and the world defaults (`@reelforge/project`), and a
+ * project may turn some of the three looks off (`optionalLooks`, project.json `worldLooks`). The
+ * stage's `env.ink` (stage-ink.ts) binds the camera, scenery, grime, faces, rig, contacts and
+ * lettering.
  *
- * Text: no `ctx.text` in the films; the ink-stroke lettering (lettering/) joins the stage later.
+ * Text: no `ctx.text` in the films; `env.ink.text(text, { role })` letters with the prototypes'
+ * system fonts when installed (world exception, ADR-005 addendum) and the CC0 ink-stroke lettering
+ * otherwise; `env.ink.drawText(text, o)` is the ink lettering itself; captions: text/captions.ts.
  * `fonts` maps the roles to the engine pixel fonts only because every world must name them.
- * Sound: no own palette yet; the looks reuse `voxel` (follow-up).
+ * Sound: the world's own muted, dry room palette `c-cam` (packages/stages sound palettes).
  */
 import { defineWorld } from '../types.js';
+import { FPS } from './core.js';
 import { inkInsertLook } from './looks/ink-insert/index.js';
 import { inkPosterLook } from './looks/ink-poster/index.js';
 import { inkSceneLook } from './looks/ink-scene/index.js';
@@ -23,6 +28,25 @@ export { C_CAM_ID, C_CAM_STYLE } from './style.js';
 export { inkInsertLook } from './looks/ink-insert/index.js';
 export { inkPosterLook } from './looks/ink-poster/index.js';
 export { inkSceneLook } from './looks/ink-scene/index.js';
+// Text roles with the prototypes' system fonts and the CC0 fallback (PLAN.md#14.18).
+export {
+  ROLE_FAMILIES,
+  ROLE_SPECS,
+  TEXT_ROLES,
+  inkFontReport,
+  type InkFontReport,
+  type MeasureTarget,
+  type TextRole,
+} from './text/roles.js';
+export {
+  CAPTION_BAND_SHARE,
+  C_CAM_CAPTION_MAX_WORDS,
+  PROTOTYPE_CAPTION,
+  type CaptionFrame,
+  type CaptionScene,
+  type WorldCaptions,
+} from './text/captions.js';
+export { titleLines } from './text/title-card.js';
 
 export const C_CAM = defineWorld({
   id: C_CAM_ID,
@@ -30,9 +54,11 @@ export const C_CAM = defineWorld({
   description:
     'Hand-inked caricature people in specific, grimy places: an uneven ink line, muddy full colour at native 1080p, flat grime shapes, deadpan acting on twos.',
   experimental: true,
-  wired: false,
+  wired: true,
+  optionalLooks: true,
   style: C_CAM_STYLE,
   fonts: { display: 'display', mono: 'mono' },
-  soundPalette: 'voxel',
+  soundPalette: 'c-cam',
+  fps: FPS,
   looks: [inkSceneLook, inkInsertLook, inkPosterLook],
 });

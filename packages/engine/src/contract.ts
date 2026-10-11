@@ -158,6 +158,8 @@ export type {
 
 export interface ShotInfo {
   readonly id: string;
+  /** Film seconds where the shot starts (local t = 0); `ctx.film` has the rest of the film. */
+  readonly t0: number;
   /** Shot length in seconds (t1 - t0); the shot may still be evaluated past it during a transition. */
   readonly duration: number;
   readonly width: number;
@@ -170,6 +172,29 @@ export interface ShotInfo {
    */
   readonly format: VideoFormat;
   readonly fps: number;
+}
+
+/**
+ * `ctx.film` (PLAN.md#14.19): where the shot sits in the whole film, for running gags, counters
+ * and motifs that span shots (gum chewed all film, a tally that grows, a bubble that pops at the
+ * end). Read-only and a pure function of the shot's place and the local time: `t` is film seconds
+ * (`shotT0` + the scene's local time; in `build` it is `shotT0`), `progress` is `t / duration`
+ * clamped to 0..1. `anchor` resolves a phrase anywhere in the film (the nth occurrence of the
+ * whole narration, film seconds; throws like `ctx.anchor` when it is not spoken).
+ */
+export interface FilmInfo {
+  readonly t: number;
+  /** Film length in seconds (the end of the last storyboard shot). */
+  readonly duration: number;
+  /** `t / duration`, 0..1. */
+  readonly progress: number;
+  /** 0-based storyboard position of this shot. */
+  readonly shotIndex: number;
+  /** Storyboard shots in the film. */
+  readonly shotCount: number;
+  /** Film seconds where this shot starts (= `ctx.shot.t0`). */
+  readonly shotT0: number;
+  anchor(phrase: string, nth?: number): AnchorHit;
 }
 
 /**
@@ -252,6 +277,8 @@ export interface SceneContext {
    */
   readonly rng: Rng;
   readonly shot: ShotInfo;
+  /** The shot's place in the whole film: film time, progress, index, film-wide anchors. */
+  readonly film: FilmInfo;
   /** Ambient variation of the shot (read-only; environments already apply it). */
   readonly ambient: AmbientApi;
   /** Asset pictures (photos, video stills) for kit props; `image()` in build only. */

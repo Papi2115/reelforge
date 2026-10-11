@@ -75,6 +75,8 @@ export {
   type FaceAnchorName,
   type FaceAnchorTable,
   type FaceAnchors,
+  signatureGagSchema,
+  type SignatureGag,
   type Character,
 } from './character.js';
 export {
@@ -85,9 +87,41 @@ export {
   type FigureView,
   type BodyPlacement,
   type ArmLayerOverrides,
+  type ArmSide,
   type FigureHook,
+  type ArmHook,
+  type HeadHook,
+  type HandOverrides,
   type DrawFigureOptions,
 } from './figure.js';
+export {
+  GAG_KINDS,
+  GAG_DOCS,
+  GAG_PERIOD,
+  MAX_GAGS,
+  gagSpecSchema,
+  gagPhase,
+  bump,
+  type GagKind,
+  type GagSpec,
+  type ResolvedGag,
+  type FaceSpots,
+  type GagFrame,
+} from './gags.js';
+export { gagFrame, gagSeed, type GagContext } from './gag-acts.js';
+export {
+  helmet,
+  thumbsUp,
+  checklist,
+  mug,
+  sandwich,
+  sweat,
+  gumBubble,
+  puff,
+  ticks,
+  watch,
+  type HelmetOptions,
+} from './gag-props.js';
 export {
   BODY_ANCHOR_NAMES,
   anchors,

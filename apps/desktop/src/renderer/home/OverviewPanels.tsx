@@ -16,6 +16,7 @@ import {
   stepPanel,
   thumbnailFacts,
   thumbnailNotes,
+  OPENING_FRAME_NOTE,
   VOICE_WORDS,
 } from './overview-view.js';
 import { ProgressStrip } from './ProgressStrip.js';
@@ -44,7 +45,12 @@ export function ThumbnailPanel(props: {
             : 'This is a frame of the export. Upload the picture you made for YouTube.'}
         </p>
       ) : (
-        <p className="muted overview-note mono">{thumbnailFacts(thumbnail)}</p>
+        <>
+          {thumbnail.origin === 'opening-frame' && (
+            <p className="muted overview-note">{OPENING_FRAME_NOTE}</p>
+          )}
+          <p className="muted overview-note mono">{thumbnailFacts(thumbnail)}</p>
+        </>
       )}
       {notes.map((note) => (
         <p key={note} className="overview-warning">

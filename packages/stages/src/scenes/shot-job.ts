@@ -8,7 +8,7 @@
  * never gets a fix turn here, whoever asks (PLAN.md#13.18).
  */
 import { ok, type Result } from '@reelforge/claude-bridge';
-import { parseMissing, sceneCharacterVars } from '@reelforge/prompts';
+import { parseMissing, sceneCharacterVars, sceneDirectionVars } from '@reelforge/prompts';
 import {
   isEndCardShot,
   SHOT_STATUS_SYMBOLS,
@@ -104,6 +104,7 @@ async function buildTurn(
     ...sceneLookVars(job.lookMode, shot, job.looks),
     // A world's wording and craft brief (PLAN.md#13.6); built-in styles: nothing.
     ...sceneWorldPromptVars(job.world, shot),
+    ...sceneDirectionVars(job.direction, shot), // Grim Ink's plan of the shot (PLAN.md#14.16)
     annotationPlan: annotationPlanText(shot),
     ...sceneDramaturgyVars(job.dramaturgy, job.shots, shot),
     ...sceneContinuityVars(job.shots, shot),

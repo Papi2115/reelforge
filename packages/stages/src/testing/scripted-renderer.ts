@@ -5,13 +5,14 @@
  * (an overlapping-cards diagnostic), `// render:timeout` (the renderer timed out twice); otherwise
  * frames are colourful. A role lineup is answered by scripted-lineup.ts. A standalone prop
  * turntable reads the prop module instead: `// render:fail` (does not load), `// render:floating`
- * (a part floats), otherwise a good prop. Rendering of real scenes is covered by the Playwright
+ * (a part floats), otherwise a good prop. A Grim Ink contact sheet (PLAN.md#14.11) reads the
+ * person / place module: `// render:fail` (does not load), `// render:blank` (blank pages). Rendering of real scenes is covered by the Playwright
  * tests.
  */
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { CardDiagnostic } from '@reelforge/engine';
-import { METRICS_CUE, WORLD_ASSET_SHEET_SHOT_ID } from '@reelforge/cli/service';
+import { INK_SHEET_SHOT_ID, METRICS_CUE, WORLD_ASSET_SHEET_SHOT_ID } from '@reelforge/cli/service';
 import { propExtensionFile, storyboardFileSchema } from '@reelforge/shared';
 import type { FrameRenderer, ShotRender, ShotRenderRequest } from '../scenes/tools.js';
 import { lineupRoleId, renderLineup } from './scripted-lineup.js';
@@ -78,6 +79,7 @@ export class ScriptedFrameRenderer implements FrameRenderer {
     const turntable = await readFile(path.join(request.projectDir, ...scene.split('/')), 'utf8');
     // A world-assets contact sheet (PLAN.md#13.15) draws the project's asset files.
     if (request.shotId === WORLD_ASSET_SHEET_SHOT_ID) return this.renderSheet(request, turntable);
+    if (request.shotId === INK_SHEET_SHOT_ID) return this.renderInkSheet(request, turntable);
     const role = lineupRoleId(turntable);
     if (role !== undefined) return renderLineup(request, role);
     const name = /const NAME = "([A-Za-z0-9]+)"/.exec(turntable)?.[1] ?? '';
@@ -135,6 +137,32 @@ export class ScriptedFrameRenderer implements FrameRenderer {
       frames: request.times.map((t) => ({
         t,
         image: { width: WIDTH, height: HEIGHT, data: sheetFrame(t, !scene.includes('IDS = [];')) },
+      })),
+      cards: [],
+      anchors: [],
+      cues: [],
+      errors: [],
+    };
+  }
+
+  /** Pages repeat after the last one: the repeat of page 0 is identical (determinism check). */
+  private async renderInkSheet(request: ShotRenderRequest, scene: string): Promise<ShotRender> {
+    const kind = /ctx\.kit\.(people|places)/.exec(scene)?.[1] ?? 'people';
+    const id = /const ID = "([A-Za-z0-9]+)"/.exec(scene)?.[1] ?? '';
+    const file = path.join(request.projectDir, 'kit-ext', kind, `${id}.js`);
+    const source = await readFile(file, 'utf8');
+    if (source.includes('// render:fail')) {
+      return { ok: false, error: `kit-ext/${kind}/${id}.js: scripted failure`, errors: [] };
+    }
+    const pages = (request.standalone?.duration ?? 2) - 1;
+    const blank = source.includes('// render:blank');
+    return {
+      ok: true,
+      width: WIDTH,
+      height: HEIGHT,
+      frames: request.times.map((t) => ({
+        t,
+        image: { width: WIDTH, height: HEIGHT, data: frame(blank, t % pages) },
       })),
       cards: [],
       anchors: [],

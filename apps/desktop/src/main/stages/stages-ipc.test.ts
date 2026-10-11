@@ -61,6 +61,12 @@ describe('scenesRun', () => {
     expect(queued).toEqual([[{ stage: 'scenes', action: 'world-assets' }]]);
   });
 
+  it("queues a Grim Ink film's people and places as one whole-film scenes action", async () => {
+    const { handlers: api, queued } = handlers();
+    await api.scenesRun({ action: 'c-cam-modules', shots: ['s01'] });
+    expect(queued).toEqual([[{ stage: 'scenes', action: 'c-cam-modules' }]]);
+  });
+
   it('keeps a build of chosen shots and a review as before', async () => {
     const { handlers: api, queued } = handlers();
     await api.scenesRun({ action: 'build', shots: ['s02'] });

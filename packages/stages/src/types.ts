@@ -1,5 +1,5 @@
 /** Stage runner contracts: requests, results, events, the context a stage runs with. */
-import type { PipelineStateStore, Result, StreamEvent } from '@reelforge/claude-bridge';
+import type { ModelAlias, PipelineStateStore, Result, StreamEvent } from '@reelforge/claude-bridge';
 import type { AssetRuntime } from '@reelforge/cli/assets';
 import type { WhisperModelId } from '@reelforge/pipeline';
 import type { PromptId } from '@reelforge/prompts';
@@ -77,8 +77,11 @@ export type ReviewMode = (typeof REVIEW_MODES)[number];
  * `variants`: alternative versions of one shot to compare and pick from (PLAN.md#11.3).
  * `world-assets`: design the world film's own assets again (PLAN.md#13.15; a build runs it by
  * itself once per storyboard).
+ * `c-cam-modules`: build a Grim Ink film's people and places again (PLAN.md#14.11; a build runs
+ * it by itself once per storyboard).
  */
-export type SceneAction = 'build' | ReviewMode | 'final-review' | 'variants' | 'world-assets';
+export type SceneAction =
+  'build' | ReviewMode | 'final-review' | 'variants' | 'world-assets' | 'c-cam-modules';
 
 /**
  * Shot variants (PLAN.md#11.3): `generate` builds `count` variants (or rebuilds variant `only`
@@ -98,7 +101,7 @@ export type VariantOp =
 
 export type AssetsAction = 'research' | 'fetch-approved';
 
-export type StoryboardAction = 'build' | 'tension';
+export type StoryboardAction = 'build' | 'tension' | 'direction';
 
 export type RequestOf<S extends StageId> = Extract<StageRequest, { readonly stage: S }>;
 
@@ -214,6 +217,11 @@ export interface StageTurn {
    * fresh again (nothing to resume). Default false: the stored session, resumed after a limit.
    */
   readonly detached?: boolean;
+  /**
+   * The weakest model this turn may run on (PLAN.md#14.19: the Grim Ink critic on Sonnet); a
+   * stronger model from the settings or Economy is kept. Absent = the model per settings.
+   */
+  readonly minModel?: ModelAlias | undefined;
 }
 
 /** A shot's progress as the scene stage reports it. */

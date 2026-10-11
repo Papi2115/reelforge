@@ -40,14 +40,13 @@ describe('kit-docs in a world project', () => {
     );
   });
 
-  it('never lists the looks of a world that is not wired yet, switch or not', () => {
-    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired yet.
-    const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
-    expect(unwired).toEqual(['c-cam']);
-    for (const style of unwired) {
-      expect(kitDocsScope(style, true)).toEqual({ style });
-      expect(kitCatalog([], LOOKS, kitDocsScope(style, true)).looks).toEqual([]);
-    }
+  it('lists the Grim Ink looks only with experimental worlds on (wired in PLAN.md#14.12)', () => {
+    // Every registered world is wired now (an unwired one: kit worlds.test.ts).
+    expect(WORLDS.filter((world) => !world.wired)).toEqual([]);
+    expect(kitDocsScope('c-cam', true)).toEqual({ style: 'c-cam', experimental: true });
+    const on = kitCatalog([], LOOKS, kitDocsScope('c-cam', true));
+    expect(on.looks.map((look) => look.id)).toEqual(['ink-scene', 'ink-insert', 'ink-poster']);
+    expect(kitCatalog([], LOOKS, kitDocsScope('c-cam', false)).looks).toEqual([]);
   });
 
   it('lists the comic page and its three looks only with experimental worlds on', () => {

@@ -7,6 +7,7 @@
 import { checkProgram } from './checker.js';
 import { collectExports } from './contract-rules.js';
 import { normalizeDiagnostics, type LintDiagnostic } from './diagnostics.js';
+import { inkModuleKindOfPath, lintInkModule } from './lint-ink-module.js';
 import { collectingReport, lintScene, parseScene, type LintSceneOptions } from './lint-scene.js';
 import { checkModuleStateWrites, checkPropContract, isPropModulePath } from './prop-rules.js';
 import { analyzeScopes } from './scope.js';
@@ -23,9 +24,12 @@ export function lintPropModule(source: string, options: LintSceneOptions): LintD
   return normalizeDiagnostics(diagnostics);
 }
 
-/** Scene or prop module lint, by path: `kit-ext/props/*.js` are props, everything else scenes. */
+/**
+ * Scene or project module lint, by path: `kit-ext/props/*.js` are props, `kit-ext/people|places/*.js`
+ * Grim Ink people / places (PLAN.md#14.8), everything else scenes.
+ */
 export function lintModule(source: string, options: LintSceneOptions): LintDiagnostic[] {
-  return isPropModulePath(options.filename)
-    ? lintPropModule(source, options)
-    : lintScene(source, options);
+  if (isPropModulePath(options.filename)) return lintPropModule(source, options);
+  const ink = inkModuleKindOfPath(options.filename);
+  return ink === undefined ? lintScene(source, options) : lintInkModule(source, options, ink);
 }

@@ -62,6 +62,11 @@ describe('checkInterrupts', () => {
       'error:interrupt-transition',
       'warning:interrupt-transition',
     ]);
+    // A world that only cuts (Grim Ink, PLAN.md#14.18): the plain cut is the rule, no warning.
+    const cutOnly = codes(film({ 5: enter, 11: look, 17: withZoom, 24: SCALE }), {
+      cutsOnly: true,
+    });
+    expect(cutOnly).toEqual(['error:interrupt-transition']);
   });
 
   it('warns when the density misses the range; the tension curve moves the target', () => {

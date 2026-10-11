@@ -34,6 +34,7 @@ describe('projectSettingsTabs', () => {
       'look-mode',
       'ambient-variation',
       'continuity-links',
+      'captions',
     ]);
     expect(tabs.filter((tab) => tab.channelAndGenre).map((tab) => tab.id)).toEqual(['channel']);
   });

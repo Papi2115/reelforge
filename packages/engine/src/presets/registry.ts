@@ -19,6 +19,8 @@ export interface WorldStyleInfo {
   readonly soundPalette: string;
   /** Ids of the world's looks. */
   readonly looks: readonly string[];
+  /** The frame rate the world is drawn for (showcase renders); absent = the default. */
+  readonly fps?: number;
 }
 
 export interface StyleEntry {
@@ -62,7 +64,8 @@ function worldEntry(world: World): StyleEntry {
   }
   const { label, experimental, fonts, soundPalette } = world;
   const looks = world.looks.map((look) => look.id);
-  return { preset, world: { label, experimental, fonts, soundPalette, looks } };
+  const fps = world.fps === undefined ? {} : { fps: world.fps };
+  return { preset, world: { label, experimental, fonts, soundPalette, looks, ...fps } };
 }
 
 /**

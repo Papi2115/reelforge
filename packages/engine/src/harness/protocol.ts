@@ -10,6 +10,7 @@ import {
 } from '@reelforge/shared';
 import { z } from 'zod';
 import { ENGINE_ERROR_CODES } from '../errors.js';
+import { inkFontsSchema } from '../ink-fonts.js';
 import type { LoadInfo } from '../runtime.js';
 import { CARD_RULES, type CardDiagnostic } from '../text/check-cards.js';
 
@@ -114,6 +115,8 @@ export const loadInfoSchema = z.object({
     }),
   ),
   gpu: gpuInfoSchema,
+  /** Grim Ink: the missing system fonts of the text roles (PLAN.md#14.18). */
+  fonts: inkFontsSchema.optional(),
 });
 
 export const cardDiagnosticSchema = z.object({

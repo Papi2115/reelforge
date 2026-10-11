@@ -19,10 +19,11 @@ describe('style choices (PLAN.md#13.6)', () => {
     expect(isOfferedStyle('comic', false)).toBe(false);
     expect(isOfferedStyle('game-b2', false)).toBe(false);
     expect(isOfferedStyle('game-b1', false)).toBe(false);
+    expect(isOfferedStyle('c-cam', false)).toBe(false);
     expect(isOfferedStyle('noir-voxel', false)).toBe(true);
   });
 
-  it('adds Sketchbook, Comic, Game B2 and Game B1 as preview worlds with the switch on, built-ins first', () => {
+  it('adds the five worlds as preview worlds with the switch on, built-ins first', () => {
     const choices = styleChoices(true);
     expect(choices.map((choice) => choice.id)).toEqual([
       ...BUILT_IN,
@@ -30,29 +31,39 @@ describe('style choices (PLAN.md#13.6)', () => {
       'comic',
       'game-b2',
       'game-b1',
+      'c-cam',
     ]);
+    // Grim Ink, wired in PLAN.md#14.12.
     expect(choices.at(-1)).toEqual({
+      id: 'c-cam',
+      label: 'Grim Ink',
+      description:
+        'Hand-inked grimy caricature cartoon in muddy full colour at 1080p, acting on twos.',
+      world: true,
+      preview: true,
+    });
+    expect(choices.at(-2)).toEqual({
       id: 'game-b1',
       label: 'Game B1: Atari boss montage',
       description: 'Atari 2600 game in a 1982 living room: CRT picture, boss cards, sticky notes.',
       world: true,
       preview: true,
     });
-    expect(choices.at(-2)).toEqual({
+    expect(choices.at(-3)).toEqual({
       id: 'game-b2',
       label: 'Game B2: first-person RPG',
       description: 'First-person RPG: a corridor walk with a HUD, dialogue and inventory.',
       world: true,
       preview: true,
     });
-    expect(choices.at(-3)).toEqual({
+    expect(choices.at(-4)).toEqual({
       id: 'comic',
       label: 'Comic',
       description: 'Comic book pages: panels, halftone print, speech bubbles and onomatopoeia.',
       world: true,
       preview: true,
     });
-    expect(choices.at(-4)).toEqual({
+    expect(choices.at(-5)).toEqual({
       id: 'sketchbook',
       label: 'Sketchbook',
       description:
@@ -67,18 +78,10 @@ describe('style choices (PLAN.md#13.6)', () => {
     expect(isOfferedStyle('no-such-style', true)).toBe(false);
   });
 
-  it('never offers a world that is not wired yet, switch or not', () => {
-    // Grim Ink (c-cam, PLAN.md#14.2) is registered but not wired yet.
-    const unwired = WORLDS.filter((world) => !world.wired).map((world) => world.id);
-    expect(unwired).toEqual(['c-cam']);
-    expect(styleChoices(true).map((choice) => choice.id)).not.toContain('c-cam');
-    for (const id of unwired) {
-      expect(STYLE_REGISTRY.allIds).toContain(id);
-      expect(isOfferedStyle(id, true)).toBe(false);
-      expect(isOfferedStyle(id, false)).toBe(false);
-      // Still described (the header names a hand-edited project's style).
-      expect(describeStyle(id)?.world).toBe(true);
-    }
+  it('offers every registered world: none is still in development', () => {
+    expect(WORLDS.filter((world) => !world.wired)).toEqual([]);
+    expect(isOfferedStyle('c-cam', true)).toBe(true);
+    expect(describeStyle('c-cam')?.world).toBe(true);
   });
 
   it('has a one-line description for every registered style', () => {

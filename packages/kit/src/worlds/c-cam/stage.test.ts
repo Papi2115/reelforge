@@ -11,7 +11,14 @@ import type { StageCanvas } from '../../fx/ink-stage.js';
 import type { Disposable } from '../../object.js';
 import { C, twos } from './core.js';
 import type { Paint2D } from './draw/paint.js';
-import { buildInkStage, inkStage, inkStageParams, type InkStageEnv } from './stage.js';
+import {
+  CAPTION_HOOK,
+  buildInkStage,
+  inkStage,
+  inkStageParams,
+  type CaptionPainter,
+  type InkStageEnv,
+} from './stage.js';
 
 interface FakeStage {
   readonly canvas: StageCanvas;
@@ -131,6 +138,18 @@ describe('kit.fx.inkStage', () => {
     expect(env).toMatchObject({ width: 1920, height: 1080, t: 2.04, C });
     expect(env.time.twos(env.t)).toBe(twos(2.04));
     expect(Object.keys(env.brush).sort()).toEqual(['blob', 'brushStroke', 'curve', 'inkLine']);
+    expect(env).toMatchObject({ zoom: 1, lw: 1 });
+    expect(Object.isFrozen(env.ink)).toBe(true);
+  });
+
+  it('draws env.ink lettering on the stage surface', () => {
+    const fake = fakeStage();
+    const stage = buildInkStage({}, tools(), () => fake.canvas);
+    stage.paint(0, (_g, env) => {
+      env.ink.drawText('OPEN', { face: 'hand', size: 40, x: 10, y: 60, seed: 1, fill: C.LINEN });
+    });
+    expect(fake.calls).toContain(`fillStyle=${C.LINEN}`);
+    expect(fake.calls.filter((call) => call === 'fill(nonzero)').length).toBeGreaterThan(3);
   });
 
   it('draws the brushes through the surface', () => {
@@ -175,5 +194,29 @@ describe('kit.fx.inkStage', () => {
     buildInkStage({}, kitTools, () => other.canvas);
     for (const resource of kitTools.tracked) resource.dispose();
     expect([other.canvas.width, other.canvas.height]).toEqual([0, 0]);
+  });
+});
+
+describe('the caption hook (PLAN.md#14.18)', () => {
+  it('paints over the last frame once per paint, never in a listing of the stage', () => {
+    const fake = fakeStage();
+    const stage = buildInkStage({}, tools(), () => fake.canvas);
+    const hook = Reflect.get(stage, CAPTION_HOOK) as (painter: CaptionPainter) => boolean;
+    expect(Object.keys(stage)).not.toContain(CAPTION_HOOK);
+    const painted: string[] = [];
+    const caption: CaptionPainter = (g) => {
+      g.fillStyle = '#e2d8b8';
+      painted.push('caption');
+    };
+    expect(hook(caption)).toBe(false);
+    stage.paint(1, () => undefined);
+    fake.calls.length = 0;
+    expect(hook(caption)).toBe(true);
+    expect(painted).toEqual(['caption']);
+    // no reset: drawn over the scene's frame, from an identity transform
+    expect(fake.calls).not.toContain('reset()');
+    expect(fake.calls).toContain('setTransform(1,0,0,1,0,0)');
+    expect(fake.calls).toContain('fillStyle=#e2d8b8');
+    expect(hook(caption)).toBe(false);
   });
 });

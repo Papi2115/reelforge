@@ -86,7 +86,7 @@ describe('genreFormValues', () => {
     const off = formValues({ genre: 'history' });
     expect(off.style).toBe('soft-480');
     expect(off.shotsPerMinute).toEqual({ min: 3, max: 5 });
-    expect(off.resolution?.skippedStyles).toEqual(['sketchbook', 'comic']);
+    expect(off.resolution?.skippedStyles).toEqual(['sketchbook', 'c-cam', 'comic']);
     expect(formValues({ genre: 'history', experimentalWorlds: true }).style).toBe('sketchbook');
   });
 
@@ -133,7 +133,7 @@ describe('genre preview and style note', () => {
 
   it('says which preferred style is not offered and what is used instead', () => {
     expect(genreStyleNote(resolved({ genre: 'history' }), false, offer)).toBe(
-      'Sketchbook needs “Experimental worlds” (Settings → Projects) and Comic is in development, using Soft 480.',
+      'Sketchbook needs “Experimental worlds” (Settings → Projects) and Grim Ink and Comic are in development, using Soft 480.',
     );
     expect(
       genreStyleNote(resolved({ genre: 'history', experimentalWorlds: true }), true, offer),
@@ -144,11 +144,12 @@ describe('genre preview and style note', () => {
     expect(genreStyleNote(resolved({ genre: 'explained-as-a-game' }), false, offer)).toMatch(
       /^Game B2.*, using Voxel Pixel · Crisp 640\.$/,
     );
-    // Comic wired: both worlds wait for the switch.
+    // Grim Ink and Comic wired: the three worlds wait for the switch.
     const wired: StyleOffer = (id, experimental) =>
-      BUILT_INS.has(id) || (experimental && (id === 'sketchbook' || id === 'comic'));
+      BUILT_INS.has(id) ||
+      (experimental && (id === 'sketchbook' || id === 'c-cam' || id === 'comic'));
     expect(genreStyleNote(resolved({ genre: 'history' }, wired), false, wired)).toBe(
-      'Sketchbook and Comic need “Experimental worlds” (Settings → Projects), using Soft 480.',
+      'Sketchbook, Grim Ink and Comic need “Experimental worlds” (Settings → Projects), using Soft 480.',
     );
   });
 });

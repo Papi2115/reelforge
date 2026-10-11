@@ -41,6 +41,11 @@ export interface ThumbnailSpec {
   readonly height: number;
   /** Integer neighbour upscale factor. */
   readonly factor: number;
+  /**
+   * Exact output size, area-downscaled (the Grim Ink opening frame as a 1280x720 YouTube
+   * thumbnail, PLAN.md#14.18); overrides `factor`.
+   */
+  readonly size?: { readonly width: number; readonly height: number } | undefined;
 }
 
 export interface ExportMedia {

@@ -10,6 +10,7 @@ import {
   projectResearchMode,
   storyboardFileSchema,
   type AssetRecord,
+  type DirectionFile,
   wordsFileSchema,
   type LookMode,
   type StoryboardShot,
@@ -26,6 +27,8 @@ import { PropBuilder } from '../props/builder.js';
 import { RoleBuilder } from '../roles/builder.js';
 import { loadShortScenes, type ShortSceneSetup } from '../shorts/scene-checks.js';
 import { loadAntiSlop, type AntiSlopSetup } from '../slop/guards.js';
+import { worldSceneSettings } from '../c-cam/critic.js';
+import { loadSceneDirection } from '../c-cam/direction-stage.js';
 import { sceneAssetCatalogue } from './shot-assets.js';
 import { fasterSceneSettings, type SceneSettings } from '../settings.js';
 import { stageError, type StageContext, type StageError } from '../types.js';
@@ -79,6 +82,8 @@ export interface SceneJob {
   readonly researchNotes?: string | undefined;
   /** A short's scene setup (PLAN.md#13.18): end card, prompt section, QA; a film: undefined. */
   readonly short?: ShortSceneSetup | undefined;
+  /** A Grim Ink film's direction plan (PLAN.md#14.16); undefined elsewhere. */
+  readonly direction?: DirectionFile | undefined;
 }
 
 /** Installed kit names per style (and experimental scope); computed once each. */
@@ -122,9 +127,13 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
   const kitNames = tools.kitNames ?? installedKitNames(project.value.style, scope);
   const setup = lookSetup(project.value, scope);
   // Faster checks (ADR-027): lighter QA for this project; off = the settings as they are.
-  const settings = projectFasterChecks(project.value)
-    ? fasterSceneSettings(ctx.settings.scenes)
-    : ctx.settings.scenes;
+  // Grim Ink keeps at least two fix turns (PLAN.md#14.19), also with faster checks.
+  const settings = worldSceneSettings(
+    projectFasterChecks(project.value)
+      ? fasterSceneSettings(ctx.settings.scenes)
+      : ctx.settings.scenes,
+    setup.world,
+  );
   const styleId = project.value.style;
   const assets = await sceneAssetCatalogue(ctx.projectDir);
   const antiSlop = await loadAntiSlop({
@@ -163,6 +172,7 @@ export async function loadSceneJob(ctx: StageContext): Promise<Result<SceneJob, 
     antiSlop: antiSlop.value,
     researchNotes: researchNotes.value,
     short: await loadShortScenes(project.value),
+    direction: await loadSceneDirection(ctx.projectDir, project.value, setup.world),
   });
 }
 

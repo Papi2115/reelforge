@@ -20,7 +20,13 @@ import { DEFAULT_EXPORT_PRESET, resolveOutputScale } from './presets.js';
 import { runRenderPass, type RenderPass, type RenderPassContext } from './render-pass.js';
 import { planShots } from './shot-plan.js';
 import { exportPaths, fileExists } from './state.js';
-import { defaultThumbnailTime, renderThumbnail } from './thumbnail.js';
+import {
+  OPENING_THUMBNAIL_FILE,
+  OPENING_THUMBNAIL_SIZE,
+  defaultThumbnailTime,
+  openingSettledTime,
+  renderThumbnail,
+} from './thumbnail.js';
 import { err, ok, type Result } from '../result.js';
 
 export type {
@@ -234,6 +240,24 @@ export async function exportVideo(
     });
     if (!thumb.ok) return thumb;
   }
+  let openingThumbnail: string | null = null;
+  if (options.openingThumbnail === true) {
+    if (signal.aborted) return err({ kind: 'cancelled', message: 'export cancelled' });
+    openingThumbnail = path.join(paths.outDir, OPENING_THUMBNAIL_FILE);
+    const opening = await renderThumbnail({
+      manifest,
+      plan,
+      t: openingSettledTime(plan),
+      width: identity.style.width,
+      height: identity.style.height,
+      file: openingThumbnail,
+      media,
+      createFrameSource: options.createFrameSource,
+      signal,
+      size: OPENING_THUMBNAIL_SIZE,
+    });
+    if (!opening.ok) return opening;
+  }
 
   const completed = await state.markComplete();
   if (!completed.ok)
@@ -245,6 +269,7 @@ export async function exportVideo(
   return ok({
     output,
     thumbnail,
+    openingThumbnail,
     chaptersFile,
     renderedShots: toRender.map((job) => job.planned.shot.id),
     cachedShots: cached.map((job) => job.planned.shot.id),

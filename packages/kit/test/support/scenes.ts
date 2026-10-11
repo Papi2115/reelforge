@@ -32,6 +32,11 @@ export const ENV_SETUPS = [
 
 export type EnvSetup = (typeof ENV_SETUPS)[number];
 
+/** Absolute path of a kit file (examples/...). */
+export function kitFile(file: string): string {
+  return path.join(kitRoot, file);
+}
+
 export function sceneSource(file: string): string {
   return readFileSync(path.join(kitRoot, file), 'utf8');
 }
@@ -46,6 +51,8 @@ export function sceneManifest(
     readonly format?: RenderManifest['format'];
     /** Frame rate of the manifest (default 30; Grim Ink films run at 24). */
     readonly fps?: number | undefined;
+    /** Project modules inlined into the manifest (Grim Ink people and places). */
+    readonly kitExtensions?: RenderManifest['kitExtensions'];
   } = {},
 ): RenderManifest {
   const id = path.basename(file, '.js').slice(0, 3);
@@ -55,6 +62,7 @@ export function sceneManifest(
     ...(options.format === undefined ? {} : { format: options.format }),
     fps: options.fps ?? 30,
     seed: 2115,
+    ...(options.kitExtensions === undefined ? {} : { kitExtensions: options.kitExtensions }),
     shots: [
       {
         id,

@@ -7,9 +7,11 @@
 import {
   ECONOMY_HINT,
   err,
+  MODEL_ALIASES,
   ok,
   toPipelinePause,
   type LimitGuard,
+  type ModelAlias,
   type PipelineStateStore,
   type Result,
 } from '@reelforge/claude-bridge';
@@ -36,6 +38,12 @@ export interface TurnDriverOptions {
 
 export function continuationPrompt(original: string): string {
   return `The previous attempt at this task was interrupted by a usage limit. Check the current state of the project files, then continue and finish the task:\n\n${original}`;
+}
+
+/** The stronger of a resolved model and a turn's floor (MODEL_ALIASES: strongest first). */
+export function atLeastModel(model: ModelAlias, floor: ModelAlias | undefined): ModelAlias {
+  if (floor === undefined) return model;
+  return MODEL_ALIASES.indexOf(floor) < MODEL_ALIASES.indexOf(model) ? floor : model;
 }
 
 /** Resolves true on resume, false when the signal aborts first. */
@@ -71,7 +79,10 @@ export class TurnDriver {
 
   async run(turn: StageTurn): Promise<Result<ClaudeTurnResult, StageError>> {
     const { claude, guard, signal, settings, stage, projectDir } = this.options;
-    const model = promptModel(turn.prompt, { economy: settings.economy, models: settings.models });
+    const model = atLeastModel(
+      promptModel(turn.prompt, { economy: settings.economy, models: settings.models }),
+      turn.minModel,
+    );
     let prompt = turn.text;
     let newSession = turn.newSession;
     for (;;) {

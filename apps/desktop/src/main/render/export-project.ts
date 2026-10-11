@@ -16,6 +16,7 @@ import {
   type FfmpegError,
   type Result,
 } from '@reelforge/pipeline';
+import { C_CAM_ID } from '@reelforge/kit';
 import { projectFileSchema, type AppSettings } from '@reelforge/shared';
 import type { ExportOutcome, ExportStartRequest } from '../../shared/export-contract.js';
 import { SNAPSHOT_FILES } from '../../shared/snapshot-contract.js';
@@ -24,6 +25,8 @@ import { readProjectJson } from '../project-files.js';
 import { buildProjectManifest } from '../project-manifest.js';
 import { exportSettings, ffmpegLocateOptions } from '../settings-consumers.js';
 import { electronFrameSourceFactory } from './electron-frame-source.js';
+import { adoptOpeningThumbnail } from '../home/opening-thumbnail.js';
+import { inkFontsKey, inkFontsWarning, probeInkFonts } from './ink-fonts.js';
 import { userWarnings, warningLogLine } from './export-warnings.js';
 import { renderIdentity } from './render-identity.js';
 import { RenderPool } from './render-pool.js';
@@ -104,11 +107,16 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
   /** Messages of failures caused by a render window (not a scene): reported as `renderer`. */
   const windowFailures = new Set<string>();
   try {
+    // Grim Ink: the machine's text fonts key the segments and, on a fallback, the report.
+    const fonts = await probeInkFonts(pool, manifest);
+    const fontWarning = fonts === undefined ? undefined : inkFontsWarning(fonts);
+    if (fontWarning !== undefined) log.warn(`export ${projectDir}: ${fontWarning}`);
     const result = await exportVideo({
       projectDir,
       title: project.data.title,
       manifest,
-      identity: identity.value,
+      identity:
+        fonts === undefined ? identity.value : { ...identity.value, fonts: inkFontsKey(fonts) },
       media: createFfmpegMedia(ffmpeg.value, encoder.value),
       createFrameSource: electronFrameSourceFactory(pool, {
         signal: options.signal,
@@ -118,6 +126,8 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
       workers: request.workers ?? performance.workers,
       ...(request.preset === undefined ? {} : { preset: request.preset }),
       ...(request.thumbnailAt === undefined ? {} : { thumbnailAt: request.thumbnailAt }),
+      // Grim Ink opens on a title card that is a ready thumbnail (PLAN.md#14.18).
+      ...(manifest.style === C_CAM_ID ? { openingThumbnail: true } : {}),
       ...(options.output === undefined ? {} : { output: options.output }),
       ...(manifest.words === undefined
         ? {}
@@ -149,6 +159,15 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
       return failed(kind, result.error.message);
     }
     const value = result.value;
+    if (value.openingThumbnail !== null) {
+      const adopted = await adoptOpeningThumbnail(projectDir, value.openingThumbnail).catch(
+        (error: unknown) => {
+          log.warn(`cannot save the opening frame as the thumbnail: ${describeError(error)}`);
+          return false;
+        },
+      );
+      if (adopted) log.info(`${projectDir}: thumbnail from the opening frame saved`);
+    }
     log.info(
       `exported ${value.output} with ${value.encoder} (${String(value.totalFrames)} frames, ${String(Math.round(value.wallMs))} ms)`,
     );
@@ -166,7 +185,10 @@ export async function exportProject(options: ExportProjectOptions): Promise<Expo
       gpu: value.gpu,
       resumed: value.resumed,
       wallMs: value.wallMs,
-      warnings: userWarnings(value.warnings),
+      warnings: [
+        ...userWarnings(value.warnings),
+        ...(fontWarning === undefined ? [] : [fontWarning]),
+      ],
     };
   } catch (error) {
     log.error(`export crashed: ${describeError(error)}`);

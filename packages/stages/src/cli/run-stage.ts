@@ -5,6 +5,8 @@
  *   pnpm --filter @reelforge/stages run-stage <project> <stage> [--source <file>] [--economy] [--no-commit]
  *     scenes: [--action build|fix-what-looks-wrong|phone-legibility|sync-check] [--shots s01,s02]
  *     scenes --action variants --shots s03 [--count 2|3] [--note <text>] | [--pick <n> [--lock]]
+ *     --experimental-worlds: build a project in an experimental world's style (Sketchbook, Comic,
+ *       Game B2, Game B1, Grim Ink), like the app with Settings → Experimental worlds on
  */
 import os from 'node:os';
 import path from 'node:path';
@@ -31,13 +33,14 @@ import {
 import { PlaywrightFrameRenderer } from './playwright-renderer.js';
 
 const USAGE =
-  'usage: run-stage <project> <script|voiceover|clean|words|storyboard|scenes|sound-cues|mix> [--source <file>] [--action <build|review mode|variants|world-assets>] [--shots <ids>] [--count 2|3] [--note <text>] [--pick <n> [--lock]] [--economy] [--no-commit]\n';
+  'usage: run-stage <project> <script|voiceover|clean|words|storyboard|scenes|sound-cues|mix> [--source <file>] [--action <build|review mode|variants|world-assets|c-cam-modules>] [--shots <ids>] [--count 2|3] [--note <text>] [--pick <n> [--lock]] [--economy] [--experimental-worlds] [--no-commit]\n';
 
 function isSceneAction(value: string): value is SceneAction {
   return (
     value === 'build' ||
     value === 'variants' ||
     value === 'world-assets' ||
+    value === 'c-cam-modules' ||
     (REVIEW_MODES as readonly string[]).includes(value)
   );
 }
@@ -57,6 +60,19 @@ export function variantOp(values: {
     count: values.count === undefined ? 3 : Number(values.count),
     ...(values.note === undefined ? {} : { note: values.note }),
   };
+}
+
+/** = `EXPERIMENTAL_WORLDS_ENV` of @reelforge/cli: the runtime `reelforge` accepts world styles. */
+export const EXPERIMENTAL_WORLDS_VAR = 'REELFORGE_EXPERIMENTAL_WORLDS';
+
+/** Stage settings and the children's env with experimental worlds on or off (the app's switch). */
+export function experimentalWorldsSetup(
+  on: boolean,
+  env: NodeJS.ProcessEnv,
+): { readonly settings: { readonly experimentalWorlds?: true }; readonly env: NodeJS.ProcessEnv } {
+  return on
+    ? { settings: { experimentalWorlds: true }, env: { ...env, [EXPERIMENTAL_WORLDS_VAR]: '1' } }
+    : { settings: {}, env };
 }
 
 /** `env` with `dir` first on PATH (whatever the case of the PATH variable on Windows). */
@@ -112,6 +128,7 @@ export async function main(argv: readonly string[]): Promise<number> {
       pick: { type: 'string' },
       lock: { type: 'boolean', default: false },
       economy: { type: 'boolean', default: false },
+      'experimental-worlds': { type: 'boolean', default: false },
       'no-commit': { type: 'boolean', default: false },
     },
   });
@@ -149,12 +166,13 @@ ${USAGE}`);
   // The storyboard/scene prompts run `reelforge ...`: put the CLI on the children's PATH like the app does.
   const shimDir = path.join(os.tmpdir(), 'reelforge-run-stage-bin');
   await writeCliShims({ dir: shimDir, runtime: process.execPath });
+  const worlds = experimentalWorldsSetup(values['experimental-worlds'], process.env);
   const manager =
     executable === undefined
       ? undefined
       : new SessionManager({
           launcher: { command: executable, args: [] },
-          env: envWithPathFirst(process.env, shimDir, process.platform),
+          env: envWithPathFirst(worlds.env, shimDir, process.platform),
           guard,
           concurrency,
           usage: new UsageLedger(),
@@ -166,7 +184,7 @@ ${USAGE}`);
     audio: createPipelineAudioTools(),
     scenes: { frames },
     guard,
-    settings: { ...DEFAULT_STAGE_SETTINGS, economy: values.economy },
+    settings: { ...DEFAULT_STAGE_SETTINGS, economy: values.economy, ...worlds.settings },
     autocommit: !values['no-commit'],
   });
   runner.on('event', (event) => {

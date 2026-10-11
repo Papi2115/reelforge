@@ -134,7 +134,7 @@ describe('mixed prompts', () => {
     const noRoll = rendered('critic', { ...CRITIC_VARS, lookId: 'voxel', lookRules: rules });
     expect(noRoll).toContain('Look of this shot: `voxel`. The film mixes looks');
     expect(noRoll).not.toMatch(TAG);
-    expect(loadPrompt('critic').version).toBe(11);
+    expect(loadPrompt('critic').version).toBe(12);
   });
 
   it('tell a world critic that text still being written is not a defect (real run Game B2 #2)', () => {
