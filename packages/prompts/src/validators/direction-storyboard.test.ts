@@ -115,6 +115,16 @@ describe('a storyboard against its direction plan', () => {
     expect(warnings.map((entry) => entry.code)).toEqual(['direction-uncovered']);
   });
 
+  it('wants every planned person in the cast tag of 2+ shots', () => {
+    const once = edited(4, (shot) => ({ ...shot, intent: shot.intent.replace(', guard', '') }));
+    expect(errors(once)).toEqual(['direction-cast-shots']);
+    const kebab = edited(4, (shot) => ({
+      ...shot,
+      intent: shot.intent.replace('guard', 'guard (the day guard)'),
+    }));
+    expect(errors(kebab)).toEqual([]);
+  });
+
   it('runs inside validateStoryboard only with a plan', () => {
     const text = JSON.stringify({
       version: 1,

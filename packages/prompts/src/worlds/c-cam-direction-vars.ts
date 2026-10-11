@@ -2,12 +2,19 @@
  * How the storyboard, scene-build and critic prompts of a Grim Ink film read `direction.json`
  * (PLAN.md#14.16): the storyboard gets the whole plan as a digest (`worldDirection`), a scene the
  * exact plan of its shot (`worldDirectionPlan`: framings, beats in shot time, gag calls, the
- * accident, the climax ECU, the title frame through `env.ink.titleCard`), the critic what must be
- * visible (`worldDirectionCheck`). No plan or a shot without refs = no variable (the prompts are
+ * ensemble and crowd on screen, the accident, the climax ECU, the title frame through
+ * `env.ink.titleCard`), the critic what must be visible (`worldDirectionCheck`). No plan or a shot without refs = no variable (the prompts are
  * exactly as before).
  */
-import type { DirectionBeat, DirectionFile, FramingStep, StoryboardShot } from '@reelforge/shared';
+import type {
+  DirectionBeat,
+  DirectionFile,
+  FramingStep,
+  SignatureGag,
+  StoryboardShot,
+} from '@reelforge/shared';
 import { C_CAM_API } from './c-cam-api.js';
+import { C_CAM_VOCAB_API } from './c-cam-vocab-api.js';
 
 const SECONDS = (value: number): string => value.toFixed(1);
 
@@ -28,6 +35,10 @@ function beatLine(beat: DirectionBeat): string {
     beat.camera.progression.map(framingText).join(' > '),
     ...(beat.camera.tilt === true ? ['tilt'] : []),
     ...(beat.gagRefs.length === 0 ? [] : [`gags: ${beat.gagRefs.join(', ')}`]),
+    ...(beat.people === undefined || beat.people.length === 0
+      ? []
+      : [`people: ${beat.people.join(', ')}`]),
+    ...(beat.crowd === undefined ? [] : [`crowd: ${beat.crowd}`]),
     ...(beat.accident === undefined ? [] : [`accident: ${beat.accident}`]),
   ];
   return `- ${parts.join(' | ')}`;
@@ -46,8 +57,10 @@ function titleLine(plan: DirectionFile): string {
 }
 
 function castLine(person: DirectionFile['cast'][number]): string {
+  const about = [person.part, person.role, person.silhouette].filter((text) => text !== undefined);
+  const role = about.length === 0 ? '' : ` (${about.join('; ')})`;
+  if (person.signatureGag === undefined) return `- ${person.id}${role}: no gag`;
   const { kind, note, arc } = person.signatureGag;
-  const role = person.role === undefined ? '' : ` (${person.role})`;
   const escalations = arc.escalations.length === 0 ? '' : ` → ${arc.escalations.join(', ')}`;
   return `- ${person.id}${role}: gag \`${kind}\`${note === undefined ? '' : ` — ${note}`}; ${arc.setup}${escalations} → payoff ${arc.payoff} (${arc.why})`;
 }
@@ -61,9 +74,9 @@ export function storyboardDirectionVars(plan: DirectionFile | undefined): Record
       : [`Motifs: ${plan.motifs.map((motif) => `${motif.object} (${motif.meaning})`).join('; ')}.`];
   const lines = [
     titleLine(plan),
-    'Cast and signature gags (setup → escalations → payoff):',
+    'Cast (part; role; silhouette) and signature gags (setup → escalations → payoff); tag every person in `cast:` of the shots of their beats (gags + people):',
     ...plan.cast.map(castLine),
-    'Beats (id, span, intent, quote | framing progression | tilt | gags | accident):',
+    'Beats (id, span, intent, quote | framing progression | tilt | gags | people | crowd | accident):',
     ...plan.beats.map(beatLine),
     `Climax: ${plan.climax.beatRef} — ECU of ${plan.climax.ecuSubject} (${plan.climax.why}).`,
     ...motifs,
@@ -77,8 +90,8 @@ function localBeat(beat: DirectionBeat, shot: Pick<StoryboardShot, 't0' | 't1'>)
   return `${beat.id} at ${SECONDS(from)}–${SECONDS(Math.max(from, to))} s of the shot (${beat.intent}, "${beat.span.text}")${beat.camera.tilt === true ? ', Dutch tilt' : ''}`;
 }
 
-function gagRole(person: DirectionFile['cast'][number], beatIds: readonly string[]): string {
-  const { arc } = person.signatureGag;
+function gagRole(gag: SignatureGag, beatIds: readonly string[]): string {
+  const { arc } = gag;
   if (beatIds.includes(arc.payoff)) return 'the PAYOFF: land it big and clear, then hold';
   if (beatIds.includes(arc.setup)) return 'the setup: plant it small while nothing depends on it';
   return 'an escalation: bigger than last time, under the pressure of the beat';
@@ -90,14 +103,16 @@ function gagLines(
   beats: readonly DirectionBeat[],
 ): string[] {
   const gags = shot.direction?.gags ?? [];
-  return plan.cast
-    .filter((person) => gags.includes(person.id))
-    .map((person) => {
-      const beat = beats.find((entry) => entry.gagRefs.includes(person.id)) ?? beats[0];
-      const t0 = beat === undefined ? 0 : Math.max(0, beat.span.t0 - shot.t0);
-      const ids = beats.map((entry) => entry.id);
-      return `- ${person.id} plays \`${person.signatureGag.kind}\`${person.signatureGag.note === undefined ? '' : ` (${person.signatureGag.note})`}: \`gag: { kind: '${person.signatureGag.kind}', t0 }\` with t0 ≈ ${SECONDS(t0)} s (on the beat's words, \`ctx.anchor(…)\`), ${gagRole(person, ids)}; the face at least 1/12 of the frame height (90 px of 1080) at that moment.`;
-    });
+  return plan.cast.flatMap((person) => {
+    const gag = person.signatureGag;
+    if (gag === undefined || !gags.includes(person.id)) return [];
+    const beat = beats.find((entry) => entry.gagRefs.includes(person.id)) ?? beats[0];
+    const t0 = beat === undefined ? 0 : Math.max(0, beat.span.t0 - shot.t0);
+    const ids = beats.map((entry) => entry.id);
+    return [
+      `- ${person.id} plays \`${gag.kind}\`${gag.note === undefined ? '' : ` (${gag.note})`}: \`gag: { kind: '${gag.kind}', t0 }\` with t0 ≈ ${SECONDS(t0)} s (on the beat's words, \`ctx.anchor(…)\`), ${gagRole(gag, ids)}; the face at least 1/12 of the frame height (90 px of 1080) at that moment.`,
+    ];
+  });
 }
 
 function titlePlan(plan: DirectionFile): string {
@@ -108,6 +123,28 @@ function titlePlan(plan: DirectionFile): string {
     )
     .join(', ');
   return `This is the TITLE FRAME (the thumbnail): draw it with \`${C_CAM_API.ink}.titleCard(g, env, { title, subtitle?, cast: [{ person, view, pose, expr, x, y, s }], place?, accent? })\`: title "${titleFrame.title}"${titleFrame.subtitle === undefined ? '' : `, subtitle "${titleFrame.subtitle}"`}, cast [${cast}] acting the premise (${titleFrame.acting.map((entry) => entry.note ?? `${entry.person} ${entry.expr}`).join('; ')}), place '${titleFrame.background.placeId}' (${titleFrame.background.why}), accent ${titleFrame.accentObject}; the lettering thuds in letter by letter on twos, one framing (a slow push-in or pull-back), then a still hold.`;
+}
+
+/** The people the shot's beats put on screen (no gag) and its crowds. */
+function ensembleLines(plan: DirectionFile, beats: readonly DirectionBeat[]): string[] {
+  const gagged = new Set(beats.flatMap((beat) => beat.gagRefs));
+  const present = [...new Set(beats.flatMap((beat) => beat.people ?? []))].filter(
+    (id) => !gagged.has(id) && plan.cast.some((person) => person.id === id),
+  );
+  return [
+    ...(present.length === 0
+      ? []
+      : [
+          `- Also on screen (by id, acting the beat: a reaction, a look, an OTS back): ${present.join(', ')}.`,
+        ]),
+    ...beats.flatMap((beat) =>
+      beat.crowd === undefined
+        ? []
+        : [
+            `- Crowd on ${beat.id}: ${beat.crowd} (\`${C_CAM_VOCAB_API.crowd}\`, behind the people, reacting on the beat as one body; never a module).`,
+          ],
+    ),
+  ];
 }
 
 /** The scene's exact plan of its shot; undefined refs = no variable. */
@@ -130,6 +167,7 @@ export function sceneDirectionVars(
       ? []
       : [`- Beats: ${beats.map((beat) => localBeat(beat, shot)).join('; ')}.`]),
     ...gagLines(plan, shot, beats),
+    ...ensembleLines(plan, beats),
     ...accidents.map(
       (beat) =>
         `- Accident on ${beat.id}: ${beat.accident ?? ''} (not narrated: play it physically on its beat, then a reaction hold).`,
@@ -161,11 +199,11 @@ export function criticDirectionVars(
   const ecu = direction.framings.find((step) => step.framing === 'ecu');
   if (ecu !== undefined) checks.push(`an extreme close-up of ${ecu.subject}`);
   for (const person of plan.cast.filter((entry) => direction.gags?.includes(entry.id) === true)) {
-    const payoff = ids.includes(person.signatureGag.arc.payoff)
-      ? ' (its payoff: drawn and clear)'
-      : '';
+    const gag = person.signatureGag;
+    if (gag === undefined) continue;
+    const payoff = ids.includes(gag.arc.payoff) ? ' (its payoff: drawn and clear)' : '';
     checks.push(
-      `${person.id} playing \`${person.signatureGag.kind}\`${payoff} with the face at least 1/12 of the frame height (90 px of 1080)`,
+      `${person.id} playing \`${gag.kind}\`${payoff} with the face at least 1/12 of the frame height (90 px of 1080)`,
     );
   }
   if (ids.includes(plan.climax.beatRef)) {

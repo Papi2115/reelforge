@@ -13,7 +13,7 @@ import { directionFileSchema, projectFileSchema, type DirectionFile } from '@ree
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from '../runner.js';
 import { DEFAULT_STAGE_SETTINGS } from '../settings.js';
-import { directedShots, filmPlan } from '../testing/c-cam-direction.js';
+import { castTag, directedShots, filmPlan } from '../testing/c-cam-direction.js';
 import { FakeClaudeHarness, writes } from '../testing/fake-claude.js';
 import { filmShots, writeFilm, type FilmShot } from '../testing/film.js';
 import { readProject, TestProjects } from '../testing/project.js';
@@ -68,7 +68,7 @@ function storyboard(shots: readonly FilmShot[], plan: DirectionFile, titleFrame 
         id: shot.id,
         ...cuts[index],
         treatment: TREATMENTS[index] ?? 'character-scene',
-        intent: `cast: lead | place: mainPlace. ${shot.intent}`,
+        intent: `${castTag(plan)} | place: mainPlace. ${shot.intent}`,
         scene: shot.scene,
         roll: ROLLS[look],
         look,

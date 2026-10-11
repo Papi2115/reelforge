@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { C_CAM_ID } from '@reelforge/kit';
 import {
+  DIRECTION_MAX_CAST,
   INK_MODULES_REPORT_FILE,
   INK_MODULES_REPORT_VERSION,
   kitExtensionFile,
@@ -101,9 +102,11 @@ export async function ensureCCamModules(
       warnings: [],
     });
   }
-  const { designs, dropped } = inkModuleDesigns(job.shots);
-  const warnings = dropped.map(
-    ({ kind, id }) => `${kind} ${id} not built: the film already has the most ${kind} modules`,
+  const { designs, dropped } = inkModuleDesigns(job.shots, job.direction);
+  const warnings = dropped.map(({ kind, id }) =>
+    kind === 'people'
+      ? `people ${id} not built: a film builds at most ${String(DIRECTION_MAX_CAST)} people, the most important first`
+      : `${kind} ${id} not built: the film already has the most ${kind} modules`,
   );
   const needsTurn = designs.some((design) => {
     const file = kitExtensionFile(design.kind, design.id);

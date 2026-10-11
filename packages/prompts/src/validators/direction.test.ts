@@ -2,7 +2,7 @@
  * The direction plan rules (PLAN.md#14.16): a plan that follows every rule passes; each broken
  * rule gives its error code; the fallback plan is valid for any narration of three or more words.
  */
-import type { DirectionFile, WordsFile } from '@reelforge/shared';
+import type { DirectionFile, SignatureGag, WordsFile } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { fallbackDirection, fallbackTitle } from '../worlds/c-cam-direction-fallback.js';
 import { checkDirection, DIRECTION_RULES, validateDirection } from './direction.js';
@@ -22,6 +22,12 @@ function codes(plan: DirectionFile): string[] {
 
 function broken(edit: (plan: DirectionFile) => DirectionFile): string[] {
   return codes(edit(goodPlan()));
+}
+
+/** The person's signature gag (the fixture's warden and inmate carry one). */
+function gagOf(person: DirectionFile['cast'][number] | undefined): SignatureGag {
+  if (person?.signatureGag === undefined) throw new Error('no gag');
+  return person.signatureGag;
 }
 
 const beat = (plan: DirectionFile, index: number): DirectionFile['beats'][number] => {
@@ -50,28 +56,31 @@ describe('direction plan rules', () => {
   it('want the payoff in the last 30 % after a setup and an escalation', () => {
     expect(
       broken((plan) => {
-        const [warden, inmate] = plan.cast;
-        if (warden === undefined || inmate === undefined) throw new Error('cast');
-        const arc = { ...warden.signatureGag.arc, payoff: 'b02', escalations: [] };
+        const [warden, ...rest] = plan.cast;
+        if (warden === undefined) throw new Error('cast');
+        const arc = { ...gagOf(warden).arc, payoff: 'b02', escalations: [] };
         return {
           ...plan,
-          cast: [{ ...warden, signatureGag: { ...warden.signatureGag, arc } }, inmate],
+          cast: [{ ...warden, signatureGag: { ...gagOf(warden), arc } }, ...rest],
         };
       }),
     ).toEqual(expect.arrayContaining(['direction-gag-arc', 'direction-payoff-early']));
     const early = (plan: DirectionFile): DirectionFile => {
       const inmate = plan.cast[1];
       if (inmate === undefined) throw new Error('cast');
-      const arc = { ...inmate.signatureGag.arc, escalations: ['b03'], payoff: 'b04' };
-      const beats = plan.beats.map((entry) =>
-        entry.id === 'b03' ? { ...entry, gagRefs: ['warden', 'inmate'] } : entry,
-      );
+      const arc = { ...gagOf(inmate).arc, escalations: ['b03'], payoff: 'b04' };
+      const gagRefs: Readonly<Record<string, string[]>> = { b03: ['warden', 'inmate'], b05: [] };
+      const beats = plan.beats.map((entry) => ({
+        ...entry,
+        gagRefs: gagRefs[entry.id] ?? entry.gagRefs,
+      }));
       return {
         ...plan,
         beats,
         cast: [
           plan.cast[0] ?? inmate,
-          { ...inmate, signatureGag: { ...inmate.signatureGag, arc } },
+          { ...inmate, signatureGag: { ...gagOf(inmate), arc } },
+          ...plan.cast.slice(2),
         ],
       };
     };
@@ -82,18 +91,18 @@ describe('direction plan rules', () => {
     expect(
       broken((plan) => ({
         ...plan,
-        cast: plan.cast.map((person) => ({
-          ...person,
-          signatureGag: { ...person.signatureGag, kind: 'juggle' },
-        })),
+        cast: plan.cast.map((person) =>
+          person.signatureGag === undefined
+            ? person
+            : { ...person, signatureGag: { ...person.signatureGag, kind: 'juggle' } },
+        ),
       })),
     ).toEqual(['direction-gag-kind', 'direction-gag-kind']);
-    expect(
-      broken((plan) => ({
-        ...plan,
-        beats: plan.beats.map((entry) => ({ ...entry, gagRefs: [] })),
-      })),
-    ).toEqual(Array.from({ length: 6 }, () => 'direction-gag-arc'));
+    const noGags = broken((plan) => ({
+      ...plan,
+      beats: plan.beats.map((entry) => ({ ...entry, gagRefs: [] })),
+    }));
+    expect(noGags.filter((code) => code === 'direction-gag-arc')).toHaveLength(6);
   });
 
   it('want an accident and a climax ECU', () => {
@@ -264,7 +273,7 @@ describe('the fallback plan', () => {
     );
     expect(errors).toEqual([]);
     expect(plan.source).toBe('fallback');
-    expect(plan.cast[0]?.signatureGag.kind).toBe('fidget');
+    expect(plan.cast[0]?.signatureGag?.kind).toBe('fidget');
     expect(fallbackDirection({ words, script: 'x', gagKinds: kinds })).toEqual({
       ...plan,
       titleFrame: { ...plan.titleFrame, title: 'x' },

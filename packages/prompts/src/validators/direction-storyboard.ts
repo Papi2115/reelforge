@@ -3,16 +3,19 @@
  * frame (`ink-poster`, 1.5–3 s, `direction.titleFrame`); every other shot carries its `direction`
  * refs with 2–5 framings (close / ECU with a `why`), never the same framing sequence as the shot
  * before; close + ECU at least a quarter of the framings; the climax beat's shot has the ECU;
- * every person's payoff beat plays the gag, and a person in 3+ shots plays it in at least 3.
+ * every gag carrier's payoff beat plays the gag, and one in 3+ shots plays it in at least 3; every
+ * planned person is named in the `cast:` tag of at least 2 shots (the ensemble reaches the screen).
  * Runs inside `checkStoryboard` when the stage passes the plan (Grim Ink films only).
  */
 import {
   framingSequence,
+  normalizePropName,
   type DirectionFile,
   type FramingStep,
   type StoryboardShot,
 } from '@reelforge/shared';
 import { closeShareIssues, DIRECTION_RULES, whyIssues } from './direction-rules.js';
+import { castTagIds } from '../worlds/c-cam-tags.js';
 import { issue, type ValidationIssue } from './issues.js';
 
 const err = (code: string, message: string, path?: string): ValidationIssue =>
@@ -94,7 +97,9 @@ function mentions(text: string, id: string): boolean {
 function shotIssues(shots: readonly StoryboardShot[], plan: DirectionFile): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const beats = new Set(plan.beats.map((beat) => beat.id));
-  const cast = new Set(plan.cast.map((person) => person.id));
+  const cast = new Set(
+    plan.cast.filter((person) => person.signatureGag !== undefined).map((person) => person.id),
+  );
   let previous: { readonly id: string; readonly sequence: string } | undefined;
   shots.forEach((shot, index) => {
     if (index === 0) return;
@@ -138,7 +143,7 @@ function shotIssues(shots: readonly StoryboardShot[], plan: DirectionFile): Vali
     if (unknownBeats.length > 0 || unknownCast.length > 0) {
       const names = [
         ...unknownBeats.map((ref) => `beat ${ref}`),
-        ...unknownCast.map((ref) => `person ${ref}`),
+        ...unknownCast.map((ref) => `the gag of ${ref}`),
       ];
       issues.push(
         err(
@@ -188,7 +193,9 @@ function gagShotIssues(shots: readonly StoryboardShot[], plan: DirectionFile): V
   const issues: ValidationIssue[] = [];
   const story = shots.slice(1);
   for (const person of plan.cast) {
-    const payoff = person.signatureGag.arc.payoff;
+    const gag = person.signatureGag;
+    if (gag === undefined) continue;
+    const payoff = gag.arc.payoff;
     const payoffShots = covering(story, payoff);
     if (!payoffShots.some((shot) => shot.direction?.gags?.includes(person.id) === true)) {
       issues.push(
@@ -204,12 +211,27 @@ function gagShotIssues(shots: readonly StoryboardShot[], plan: DirectionFile): V
       issues.push(
         err(
           'direction-gag-shots',
-          `${person.id} is in ${String(appears)} shots but plays the signature gag (${person.signatureGag.kind}) in ${String(plays)}: at least ${String(DIRECTION_RULES.minGagShots)} (setup, escalation, payoff) in "direction.gags"`,
+          `${person.id} is in ${String(appears)} shots but plays the signature gag (${gag.kind}) in ${String(plays)}: at least ${String(DIRECTION_RULES.minGagShots)} (setup, escalation, payoff) in "direction.gags"`,
         ),
       );
     }
   }
   return issues;
+}
+
+function castShotIssues(shots: readonly StoryboardShot[], plan: DirectionFile): ValidationIssue[] {
+  const story = shots.slice(1).map((shot) => new Set(castTagIds(shot.intent)));
+  return plan.cast.flatMap((person) => {
+    const id = normalizePropName(person.id) ?? person.id;
+    const count = story.filter((tagged) => tagged.has(id)).length;
+    if (count >= DIRECTION_RULES.minPersonBeats) return [];
+    return [
+      err(
+        'direction-cast-shots',
+        `${person.id} is in the plan's cast but in the \`cast:\` tag of ${String(count)} shot(s): name "${person.id}" in the cast tag of at least ${String(DIRECTION_RULES.minPersonBeats)} shots (the beats the plan puts them on; introduce them once with their description)`,
+      ),
+    ];
+  });
 }
 
 function coverageIssues(shots: readonly StoryboardShot[], plan: DirectionFile): ValidationIssue[] {
@@ -250,6 +272,7 @@ export function checkDirectedStoryboard(
     ...shotIssues(shots, plan),
     ...climaxIssues(shots, plan),
     ...gagShotIssues(shots, plan),
+    ...castShotIssues(shots, plan),
     ...coverageIssues(shots, plan),
   ];
 }

@@ -1,20 +1,22 @@
 /**
  * The design list of a Grim Ink film (PLAN.md#14.11): its people and places, read from the
- * storyboard's intent tags (`cast:` / `place:`, packages/prompts/src/worlds/c-cam-api.ts). The
- * first intent that shows a role introduces it with a description in parentheses
- * (`cast: nightPorter (the hotel's night porter; axis: …), guest`), later intents name the id
- * only; every setting is `place: boilerRoom`. Ids are camelCase (kebab-case spellings are read
- * the same: `place: boiler-room` = `boilerRoom`). A tag runs to the next `|`, `;` at the top
- * level, newline, sentence end or another tag (including the gag hint, `gag: nightPorter on …`).
+ * storyboard's intent tags (`cast:` / `place:`, read by `intentTags` of @reelforge/prompts). Every
+ * person is one hand-built module (one Opus turn, about 1 USD): a film builds at most
+ * DIRECTION_MAX_CAST (8) people, the most important first (the direction plan's ensemble order:
+ * title-frame people, gag carriers, then by part; unplanned people by their number of shots), so
+ * a cap drops the least important ones (PLAN.md#14.16 casting).
  */
-import { C_CAM_CAST_TAG, C_CAM_GAG_TAG, C_CAM_PLACE_TAG } from '@reelforge/prompts';
+import { castByImportance, intentTags } from '@reelforge/prompts';
 import {
+  DIRECTION_MAX_CAST,
   INK_MODULE_LIMITS,
-  normalizePropName,
+  type DirectionFile,
   type InkModuleKind,
   type StoryboardShot,
   type WordsFile,
 } from '@reelforge/shared';
+
+export { intentTags, type IntentTags } from '@reelforge/prompts';
 
 export interface InkModuleDesign {
   readonly kind: InkModuleKind;
@@ -25,78 +27,6 @@ export interface InkModuleDesign {
   readonly shots: readonly StoryboardShot[];
 }
 
-export interface IntentTags {
-  readonly cast: readonly { readonly id: string; readonly description: string | undefined }[];
-  readonly place: { readonly id: string; readonly description: string | undefined } | undefined;
-}
-
-/** Words that fill a tag without naming anyone. */
-const NOBODY = new Set(['none', 'nobody', 'no', 'na', 'empty', 'nothing']);
-const MAX_ID_LENGTH = 40;
-
-/** The start of another tag (the gag hint follows the cast in an intent, PLAN.md#14.15). */
-const OTHER_TAG = new RegExp(
-  `^\\s(?:${[C_CAM_CAST_TAG, C_CAM_PLACE_TAG, C_CAM_GAG_TAG].map((tag) => tag.replace(':', '')).join('|')})\\s*:`,
-  'i',
-);
-
-/** The tag's text: from after the tag to its end at paren depth 0. */
-function tagSegment(intent: string, tag: string): string | undefined {
-  const match = new RegExp(`(?:^|[\\s|(;,\`'"])${tag.replace(':', '\\s*:')}`, 'i').exec(intent);
-  if (match === null) return undefined;
-  const start = match.index + match[0].length;
-  let depth = 0;
-  for (let index = start; index < intent.length; index += 1) {
-    const char = intent.charAt(index);
-    if (char === '(') depth += 1;
-    else if (char === ')') depth = Math.max(0, depth - 1);
-    else if (depth === 0) {
-      const rest = intent.slice(index);
-      if (/^[|;\n]/.test(rest) || /^\.(\s|$)/.test(rest)) return intent.slice(start, index);
-      if (OTHER_TAG.test(rest)) return intent.slice(start, index);
-    }
-  }
-  return intent.slice(start);
-}
-
-/** Top-level comma-separated items of a segment. */
-function items(segment: string): string[] {
-  const out: string[] = [];
-  let depth = 0;
-  let current = '';
-  for (const char of segment) {
-    if (char === '(') depth += 1;
-    if (char === ')') depth = Math.max(0, depth - 1);
-    if (char === ',' && depth === 0) {
-      out.push(current);
-      current = '';
-    } else current += char;
-  }
-  out.push(current);
-  return out.map((item) => item.trim()).filter((item) => item !== '');
-}
-
-function entryOf(item: string): { id: string; description: string | undefined } | undefined {
-  const head = /^[`'"]?([A-Za-z][A-Za-z0-9_-]*)/.exec(item)?.[1];
-  if (head === undefined || NOBODY.has(head.toLowerCase())) return undefined;
-  const id = normalizePropName(head);
-  if (id === undefined || id.length > MAX_ID_LENGTH) return undefined;
-  const open = item.indexOf('(');
-  const close = item.lastIndexOf(')');
-  const detail = open >= 0 && close > open ? item.slice(open + 1, close).trim() : '';
-  return { id, description: detail === '' ? undefined : detail };
-}
-
-export function intentTags(intent: string): IntentTags {
-  const cast = items(tagSegment(intent, C_CAM_CAST_TAG) ?? '')
-    .map(entryOf)
-    .filter((entry) => entry !== undefined);
-  const [place] = items(tagSegment(intent, C_CAM_PLACE_TAG) ?? '')
-    .map(entryOf)
-    .filter((entry) => entry !== undefined);
-  return { cast, place };
-}
-
 interface Draft {
   kind: InkModuleKind;
   id: string;
@@ -104,8 +34,32 @@ interface Draft {
   shots: StoryboardShot[];
 }
 
-/** People first, then places; each kind in order of first appearance, capped per kind. */
-export function inkModuleDesigns(shots: readonly StoryboardShot[]): {
+/** People in order of importance: the plan's ensemble order, then by shots (ties: first seen). */
+function byImportance(people: readonly Draft[], plan: DirectionFile | undefined): Draft[] {
+  const planned = plan === undefined ? [] : castByImportance(plan);
+  const rank = (draft: Draft): number => {
+    const at = planned.indexOf(draft.id);
+    return at >= 0 ? at : planned.length;
+  };
+  return people
+    .map((draft, order) => ({ draft, order }))
+    .sort(
+      (a, b) =>
+        rank(a.draft) - rank(b.draft) ||
+        b.draft.shots.length - a.draft.shots.length ||
+        a.order - b.order,
+    )
+    .map((entry) => entry.draft);
+}
+
+/**
+ * People first (by importance, at most DIRECTION_MAX_CAST), then places in order of first
+ * appearance (capped per kind); `plan`: the film's direction plan, when it has one.
+ */
+export function inkModuleDesigns(
+  shots: readonly StoryboardShot[],
+  plan?: DirectionFile,
+): {
   designs: InkModuleDesign[];
   dropped: { kind: InkModuleKind; id: string }[];
 } {
@@ -128,10 +82,19 @@ export function inkModuleDesigns(shots: readonly StoryboardShot[]): {
   }
   const designs: InkModuleDesign[] = [];
   const dropped: { kind: InkModuleKind; id: string }[] = [];
-  for (const kind of ['people', 'places'] as const) {
-    const ofKind = [...drafts.values()].filter((draft) => draft.kind === kind);
-    designs.push(...ofKind.slice(0, INK_MODULE_LIMITS.maxModules));
-    dropped.push(...ofKind.slice(INK_MODULE_LIMITS.maxModules).map(({ id }) => ({ kind, id })));
+  const all = [...drafts.values()];
+  const people = byImportance(
+    all.filter((draft) => draft.kind === 'people'),
+    plan,
+  );
+  const places = all.filter((draft) => draft.kind === 'places');
+  const limits = { people: DIRECTION_MAX_CAST, places: INK_MODULE_LIMITS.maxModules } as const;
+  for (const [kind, ofKind] of [
+    ['people', people],
+    ['places', places],
+  ] as const) {
+    designs.push(...ofKind.slice(0, limits[kind]));
+    dropped.push(...ofKind.slice(limits[kind]).map(({ id }) => ({ kind, id })));
   }
   return { designs, dropped };
 }

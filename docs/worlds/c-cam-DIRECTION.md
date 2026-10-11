@@ -70,8 +70,9 @@ People and gags (main = one of the three title-card people):
 
 ## 3. Rules of thumb (the validators' numbers)
 
-1. Plan before shots: motifs, cast with ONE signature gag each, beats with an intent and a framing progression,
-   accidents, the climax ECU and the title frame (`direction.json`).
+1. Plan before shots: motifs, the cast as an ensemble (§4; the main 2-3 with ONE signature gag each), beats with
+   an intent, a framing progression, the people on screen and crowds, accidents, the climax ECU and the title frame
+   (`direction.json`).
 2. Depth rule: 2–5 framings per shot (title frame: 1). Measured 2–5, mean 3.3.
 3. Every close / ECU framing states its `why` (information, emotion, cause → effect, consequence). Measured 100 %.
 4. Not all wide: close + ECU ≥ 25 % of all framings (measured 38–63 %); a shot usually opens wide/medium/OTS.
@@ -85,3 +86,44 @@ People and gags (main = one of the three title-card people):
    (the films used 4 s without narration under it), lettering thudding in.
 10. Dutch tilt only on tension beats (2–7°, alternating sign); level for title, calm and establishing framings.
 11. Facts stay the script's: devices dramatise what is said, never add a claim.
+
+## 4. Casting: an ensemble, not a lead and a prop
+
+The concept films never ran on one or two people: Apollo has you, the Commander, the Orbiter, Guidance, the Flight
+Director (5 named) plus a crowd; Papal has the Stubborn, the Tired and the Sleeping Cardinal, the Mayor, the Baker and
+the crowd of cardinals; Samurai has you, the Merchant, the Elder, the Clerk and a street crowd. A real ReelForge sample
+with two weak people read as empty. So the plan casts the narration as an ensemble:
+
+- Parts (`cast[].part`): `protagonist` (often the narration's "you"), `foil` (antagonist, doubter), `authority`,
+  `helper` (confidant), `comic-relief`, `bystander`. Each person also has a `role` (job, one exaggeration axis) and a
+  `silhouette` nobody else shares (height, width, head scale, their own tones), so the ensemble reads at thumbnail size.
+- Only the 2-3 main people carry a `signatureGag` (setup -> escalations -> payoff); minor parts react, look, stand in
+  the OTS back or the other side of a cut (`beats[].people`).
+- A group the narration names (soldiers, an audience, senators, villagers, spectators, …) is a `crowd` on the beat
+  where it is said, drawn with `ink.crowd` in the scene, never a module.
+
+Target named people (`castTarget`, packages/prompts/src/validators/direction-rules.ts):
+
+| Narration | ≤ 45 s | ≤ 90 s | ≤ 180 s | ≤ 270 s | ≤ 360 s | longer |
+|---|---|---|---|---|---|---|
+| Named people at least | 3 | 4 | 5 | 6 | 7 | 8 (cap) |
+
+Validator rules (errors with the fix in the message; direction-cast.ts, direction-storyboard.ts):
+
+1. `direction-cast-size`: at least the target number of named people (schema cap 8).
+2. `direction-cast-presence`: every person on screen (`gagRefs` or `people`) in at least 2 beats.
+3. `direction-cast-early`: at least 3 distinct people on screen in beats starting within the first 60 % of the runtime.
+4. `direction-cast-overexposed`: nobody in more than 60 % of the beats (never fewer than the 3 beats of a gag arc).
+5. `direction-cast-gags`: at least one person carries a signature gag; `gagRefs` only name people who have one.
+6. `direction-crowd`: when script.txt names a group, at least one beat carries a `crowd`.
+7. `direction-cast-shots` (storyboard vs plan): every planned person is named in the `cast:` tag of at least 2 story
+   shots.
+
+The fallback plan (Claude failed) casts the target with generic parts (`lead` with the gag, `foil`, `bystander`, then
+`authority`, `helper`, `oddball`, `witness`, `stranger`), each on screen in two beats half a film apart, and a crowd beat
+when the script names a group, so the film still builds.
+
+Cost: every named person is one hand-built module = one Opus build turn (plus at most one fix turn and the critic),
+measured at about 1 USD per person. The modules step builds at most 8 people per film, the most important first
+(title-frame people, gag carriers, then by part; unplanned people by their number of shots), and drops the rest with a
+warning; going from 2 to the target of 4-5 people adds about 2-3 USD per film.

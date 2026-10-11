@@ -1,7 +1,8 @@
 /**
  * The direction plan of a Grim Ink film (PLAN.md#14.16; docs/worlds/c-cam-DIRECTION.md §3): the
- * `c-cam-direction` reply / `direction.json` (schema + rules). Every person has ONE signature gag
- * with a setup, at least one escalation and a payoff in the last 30 % of the runtime; at least one
+ * `c-cam-direction` reply / `direction.json` (schema + rules). The cast is an ensemble (casting
+ * rules: direction-cast.ts); every person with a signature gag has a setup, at least one
+ * escalation and a payoff in the last 30 % of the runtime; at least one
  * accident beat; one climax ECU with a reason; every close / ECU framing says why; 2–5 framings
  * per beat (the depth rule); close + ECU at least a quarter of all framings; no two adjacent beats
  * with the same framing sequence; the title frame casts 1–3 of the film's people under a title of
@@ -13,6 +14,7 @@ import {
   type DirectionBeat,
   type DirectionFile,
 } from '@reelforge/shared';
+import { castIssues } from './direction-cast.js';
 import { closeShareIssues, DIRECTION_RULES, whyIssues } from './direction-rules.js';
 import { parseEmbeddedJsonText } from './embedded-json.js';
 import {
@@ -23,7 +25,8 @@ import {
   type ValidationReport,
 } from './issues.js';
 
-export { DIRECTION_RULES } from './direction-rules.js';
+export { castTarget, DIRECTION_RULES, maxPersonBeats } from './direction-rules.js';
+export { castAppearances, castByImportance, groupWordOf } from './direction-cast.js';
 
 export interface DirectionCheckOptions {
   /** Length of the narration (s). */
@@ -127,6 +130,7 @@ function gagIssues(file: DirectionFile, options: DirectionCheckOptions): Validat
   const beats = new Map(file.beats.map((beat) => [beat.id, beat]));
   file.cast.forEach((person, index) => {
     const path = `cast[${String(index)}].signatureGag`;
+    if (person.signatureGag === undefined) return;
     const { kind, arc } = person.signatureGag;
     if (options.gagKinds !== undefined && !options.gagKinds.includes(kind)) {
       issues.push(
@@ -336,6 +340,7 @@ export function checkDirection(
     ...accidentIssues(file),
     ...climaxIssues(file),
     ...titleIssues(file),
+    ...castIssues(file, options),
     ...quoteIssues(file, options.script),
   ];
 }

@@ -13,7 +13,7 @@ import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { StageRunner } from './runner.js';
 import { DEFAULT_STAGE_SETTINGS } from './settings.js';
 import type { DirectionFile } from '@reelforge/shared';
-import { directedShots, filmPlan } from './testing/c-cam-direction.js';
+import { castTag, directedShots, filmPlan } from './testing/c-cam-direction.js';
 import { FakeClaudeHarness, writes } from './testing/fake-claude.js';
 import { filmShots, writeFilm, type FilmShot } from './testing/film.js';
 import { readProject, TestProjects, writeProject } from './testing/project.js';
@@ -69,7 +69,7 @@ function storyboard(
         id: shot.id,
         ...cuts[index],
         treatment,
-        intent: `cast: lead | place: mainPlace. ${shot.intent}`,
+        intent: `${castTag(plan)} | place: mainPlace. ${shot.intent}`,
         scene: shot.scene,
         roll,
         look,

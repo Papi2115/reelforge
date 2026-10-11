@@ -63,6 +63,12 @@ export function goodPlan(): DirectionFile {
           },
         },
       },
+      {
+        id: 'guard',
+        part: 'bystander',
+        role: 'the day guard who never looks up from his soup',
+        silhouette: 'short and wide, a big head, mustard and dirty linen',
+      },
     ],
     beats: [
       {
@@ -73,6 +79,7 @@ export function goodPlan(): DirectionFile {
           progression: [wide('the cell block'), ecu('the empty hook'), close('the warden')],
         },
         gagRefs: ['warden'],
+        people: ['guard'],
       },
       {
         id: 'b02',
@@ -104,6 +111,7 @@ export function goodPlan(): DirectionFile {
           progression: [wide('the open door'), ecu('the lock on the floor'), close('the warden')],
         },
         gagRefs: ['inmate'],
+        people: ['guard'],
       },
       {
         id: 'b06',
@@ -160,7 +168,7 @@ export function goodShots(): StoryboardShot[] {
       's02_key',
       2.5,
       9,
-      'cast: warden, inmate | place: cellBlock. Nobody had the key.',
+      'cast: warden, inmate, guard | place: cellBlock. Nobody had the key.',
       'ink-scene',
       {
         beats: ['b01', 'b02'],
@@ -182,7 +190,7 @@ export function goodShots(): StoryboardShot[] {
       's05_door',
       19,
       24,
-      'cast: warden, inmate | place: cellBlock. The open door.',
+      'cast: warden, inmate, guard | place: cellBlock. The open door.',
       'ink-scene',
       {
         beats: ['b05'],
