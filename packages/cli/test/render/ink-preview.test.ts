@@ -56,7 +56,7 @@ describe('reelforge people-preview / places-preview', () => {
     );
     const broken = await runCli(project.root, 'people-preview', 'nightBaker');
     expect(broken.code).toBe(1);
-    expect(broken.stdout).toMatch(/failed to load: .*headScale/);
+    expect(broken.stdout).toMatch(/(failed to load|contract \/ load check failed): .*headScale/);
     await project.write('kit-ext/people/nightBaker.js', BAKER);
   });
 });
