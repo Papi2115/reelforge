@@ -119,6 +119,8 @@ export function castByImportance(file: DirectionFile): string[] {
     .map((entry) => entry.person.id);
 }
 
+const LEAD_MAX_SHARE = 0.85;
+
 const PARTS_HINT =
   'protagonist, foil/antagonist, authority, helper/confidant, comic relief, bystander';
 
@@ -153,11 +155,18 @@ function presenceIssues(file: DirectionFile): ValidationIssue[] {
         ),
       );
     }
-    if (count > limit) {
+    // The protagonist carries the film (the Apollo prototype's lead is in 11 of 13 shots): up to 85 % of the beats.
+    const isLead =
+      person.part === 'protagonist' ||
+      (index === 0 && !file.cast.some((entry) => entry.part === 'protagonist'));
+    const personLimit = isLead
+      ? Math.max(limit, Math.ceil(file.beats.length * LEAD_MAX_SHARE))
+      : limit;
+    if (count > personLimit) {
       issues.push(
         err(
           'direction-cast-overexposed',
-          `${person.id} is on screen in ${String(count)} of ${String(file.beats.length)} beats (at most ${String(limit)}, ${String(DIRECTION_RULES.maxPersonShare * 100)} %): give some of those beats to the other people (their reaction, their side of the story)`,
+          `${person.id} is on screen in ${String(count)} of ${String(file.beats.length)} beats (at most ${String(personLimit)}, ${String(isLead ? LEAD_MAX_SHARE * 100 : DIRECTION_RULES.maxPersonShare * 100)} %): give some of those beats to the other people (their reaction, their side of the story)`,
           `cast[${String(index)}]`,
         ),
       );

@@ -65,9 +65,18 @@ describe('the casting rules', () => {
 
   it('want every person in 2+ beats and nobody in more than 60 %', () => {
     expect(errors(withPeople(goodPlan(), { b05: [] }))).toEqual(['direction-cast-presence']);
-    expect(errors(withPeople(goodPlan(), { b02: ['warden'], b04: ['warden'] }))).toEqual([
-      'direction-cast-overexposed',
-    ]);
+    // The lead may carry the film (up to 85 % of the beats); everybody else is capped at 60 %.
+    expect(errors(withPeople(goodPlan(), { b02: ['warden'], b04: ['warden'] }))).toEqual([]);
+    const everyone = ['warden', 'inmate', 'guard'];
+    const crowded = withPeople(goodPlan(), {
+      b01: everyone,
+      b02: everyone,
+      b03: everyone,
+      b04: everyone,
+      b05: everyone,
+      b06: everyone,
+    });
+    expect(errors(crowded)).toContain('direction-cast-overexposed');
     expect(errors(withPeople(goodPlan(), { b01: [], b06: ['guard'] }))).toEqual([
       'direction-cast-early',
     ]);
