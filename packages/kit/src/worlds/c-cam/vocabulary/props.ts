@@ -149,7 +149,7 @@ export const PROPS_ITEMS = {
   weapon: {
     doc: 'a weapon with wear and state: sword or dagger (drawn / sheathed scabbard / broken / bent, a gleam), spear, club, axe, round shield',
     params:
-      'x, y = grip (a palm; shield = centre); kind sword|dagger|spear|club|axe|shield; state drawn|sheathed|broken|bent; rot deg (0 = point to the right, 90 = down); size; gleam 0-1; tone (blade / shield); wear (nicks, dents); seed',
+      'x, y = grip (a palm; shield = centre); kind sword|dagger|spear|club|axe|shield; state drawn|sheathed|broken|bent; rot deg (0 = point to the right, 90 = down); size; gleam 0-1; tone (blade / shield; wood or paleWood = a wooden practice sword, hilt included); wear (nicks, dents); seed',
     returns: 'points grip, tip, pommel (two tips meeting = acting.clink)',
     schema: weaponSchema,
     draw: drawWeapon,

@@ -10,7 +10,10 @@
  * the same grammar. Rule (docs, prompts): one signature gag per person, 1-2 gags per shot, never
  * decorative: a gag is acting (boredom, nerves, impatience), not ornament.
  *
- * Public API: `GAG_KINDS`, `GagKind`, `GAG_DOCS`, `GAG_PERIOD`, `MAX_GAGS`, `gagSpecSchema`,
+ * The drink of `sip` is a `vessel`: the Apollo film's steaming coffee mug by default, or a cup, a
+ * goblet or a bowl for any other period (the quality lab's Roman editor sipped from a coffee mug).
+ *
+ * Public API: `GAG_KINDS`, `GagKind`, `GAG_VESSELS`, `GAG_DOCS`, `GAG_PERIOD`, `MAX_GAGS`, `gagSpecSchema`,
  * `GagSpec`, `ResolvedGag`, `gagPhase`, `bump`, `FaceSpots`, `GagFrame`.
  */
 import { z } from 'zod';
@@ -46,6 +49,9 @@ export const GAG_KINDS = [
 
 export type GagKind = (typeof GAG_KINDS)[number];
 
+/** What `sip` drinks from: `mug` (a steaming coffee mug, the default) or a period-neutral vessel. */
+export const GAG_VESSELS = ['mug', 'cup', 'goblet', 'bowl'] as const;
+
 /** At most this many gags on one person in one draw. */
 export const MAX_GAGS = 2;
 
@@ -74,7 +80,7 @@ export const GAG_PERIOD: Readonly<Record<GagKind, number>> = {
 export const GAG_DOCS: Readonly<Record<GagKind, string>> = {
   gum: 'chews; a gum bubble swells at the lips and pops (bored, cocky)',
   sweat: 'sweat drops drip from the brow and cheeks on twos (fear, heat, pressure)',
-  sip: 'holds a coffee mug (steam at rest), raises it to the lips and sips (the hand comes in front)',
+  sip: 'holds a drink, raises it to the lips and sips (the hand comes in front); vessel: mug (a steaming coffee mug, default) | cup | goblet | bowl: the period\'s',
   eat: 'holds a sandwich, lifts it and takes a bite (the bite stays)',
   thumbs: 'raises a thumbs-up and pumps it (glove / skin of the arm style)',
   checklist:
@@ -106,6 +112,8 @@ export const gagSpecSchema = z.strictObject({
   seed: z.number().int().min(0).max(1e6).default(0),
   /** helmet only: the gold visor down. */
   visor: z.boolean().default(false),
+  /** sip only: what the drink is held in. */
+  vessel: z.enum(GAG_VESSELS).default('mug'),
 });
 
 export type GagSpec = z.input<typeof gagSpecSchema>;

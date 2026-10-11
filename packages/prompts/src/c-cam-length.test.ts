@@ -15,10 +15,10 @@ describe('Grim Ink length control', () => {
   it('states the words budget in the script prompt', () => {
     const text = worldPromptText('c-cam');
     if (text === undefined) throw new Error('no c-cam prompt text');
-    expect(worldWordBudget(text, 0.5)).toEqual({ words: 75, over: 0.1, wordsPerSecond: 2.5 });
+    expect(worldWordBudget(text, 0.5)).toEqual({ words: 66, over: 0.1, wordsPerSecond: 2.2 });
     const vars = scriptWorldVars({ label: 'Grim Ink', text }, 0.5);
-    expect(vars['worldScript']).toContain('~2.5 words/s × 30 s = 75 words');
-    expect(vars['worldScript']).toContain('more than 82 words is too long');
+    expect(vars['worldScript']).toContain('~2.2 words/s × 30 s = 66 words');
+    expect(vars['worldScript']).toContain('more than 72 words is too long');
     const prompt = render('script', {
       brief: 'x',
       language: 'en',
@@ -28,7 +28,7 @@ describe('Grim Ink length control', () => {
       audience: 'a',
       ...vars,
     });
-    expect(prompt.ok && prompt.value).toContain('words budget is ~2.5 words/s × 30 s = 75 words');
+    expect(prompt.ok && prompt.value).toContain('words budget is ~2.2 words/s × 30 s = 66 words');
   });
 
   it('leaves other worlds without a budget', () => {

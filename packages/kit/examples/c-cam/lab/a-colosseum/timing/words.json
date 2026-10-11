@@ -1,0 +1,581 @@
+{
+  "version": 1,
+  "lang": "en",
+  "asrModel": "synthetic-150wpm",
+  "words": [
+    {
+      "i": 0,
+      "text": "You've",
+      "paragraph": 0,
+      "t": 0.3,
+      "tEnd": 0.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 1,
+      "text": "just",
+      "paragraph": 0,
+      "t": 0.7,
+      "tEnd": 1.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 2,
+      "text": "won.",
+      "paragraph": 0,
+      "t": 1.1,
+      "tEnd": 1.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 3,
+      "text": "The",
+      "paragraph": 0,
+      "t": 1.9,
+      "tEnd": 2.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 4,
+      "text": "crowd",
+      "paragraph": 0,
+      "t": 2.3,
+      "tEnd": 2.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 5,
+      "text": "wants",
+      "paragraph": 0,
+      "t": 2.7,
+      "tEnd": 3.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 6,
+      "text": "you",
+      "paragraph": 0,
+      "t": 3.1,
+      "tEnd": 3.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 7,
+      "text": "free,",
+      "paragraph": 0,
+      "t": 3.5,
+      "tEnd": 3.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 8,
+      "text": "and",
+      "paragraph": 0,
+      "t": 3.9,
+      "tEnd": 4.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 9,
+      "text": "the",
+      "paragraph": 0,
+      "t": 4.3,
+      "tEnd": 4.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 10,
+      "text": "man",
+      "paragraph": 0,
+      "t": 4.7,
+      "tEnd": 5.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 11,
+      "text": "paying",
+      "paragraph": 0,
+      "t": 5.1,
+      "tEnd": 5.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 12,
+      "text": "for",
+      "paragraph": 0,
+      "t": 5.5,
+      "tEnd": 5.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 13,
+      "text": "the",
+      "paragraph": 0,
+      "t": 5.9,
+      "tEnd": 6.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 14,
+      "text": "games",
+      "paragraph": 0,
+      "t": 6.3,
+      "tEnd": 6.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 15,
+      "text": "hands",
+      "paragraph": 0,
+      "t": 6.7,
+      "tEnd": 7.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 16,
+      "text": "you",
+      "paragraph": 0,
+      "t": 7.1,
+      "tEnd": 7.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 17,
+      "text": "a",
+      "paragraph": 0,
+      "t": 7.5,
+      "tEnd": 7.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 18,
+      "text": "wooden",
+      "paragraph": 0,
+      "t": 7.9,
+      "tEnd": 8.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 19,
+      "text": "sword,",
+      "paragraph": 0,
+      "t": 8.3,
+      "tEnd": 8.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 20,
+      "text": "the",
+      "paragraph": 0,
+      "t": 8.7,
+      "tEnd": 9.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 21,
+      "text": "rudis.",
+      "paragraph": 0,
+      "t": 9.1,
+      "tEnd": 9.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 22,
+      "text": "It",
+      "paragraph": 0,
+      "t": 9.9,
+      "tEnd": 10.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 23,
+      "text": "means",
+      "paragraph": 0,
+      "t": 10.3,
+      "tEnd": 10.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 24,
+      "text": "you",
+      "paragraph": 0,
+      "t": 10.7,
+      "tEnd": 11.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 25,
+      "text": "are",
+      "paragraph": 0,
+      "t": 11.1,
+      "tEnd": 11.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 26,
+      "text": "done.",
+      "paragraph": 0,
+      "t": 11.5,
+      "tEnd": 11.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 27,
+      "text": "Volunteers",
+      "paragraph": 0,
+      "t": 12.3,
+      "tEnd": 12.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 28,
+      "text": "walked",
+      "paragraph": 0,
+      "t": 12.7,
+      "tEnd": 13.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 29,
+      "text": "away.",
+      "paragraph": 0,
+      "t": 13.1,
+      "tEnd": 13.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 30,
+      "text": "A",
+      "paragraph": 0,
+      "t": 13.9,
+      "tEnd": 14.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 31,
+      "text": "slave",
+      "paragraph": 0,
+      "t": 14.3,
+      "tEnd": 14.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 32,
+      "text": "might",
+      "paragraph": 0,
+      "t": 14.7,
+      "tEnd": 15.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 33,
+      "text": "be",
+      "paragraph": 0,
+      "t": 15.1,
+      "tEnd": 15.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 34,
+      "text": "freed,",
+      "paragraph": 0,
+      "t": 15.5,
+      "tEnd": 15.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 35,
+      "text": "though",
+      "paragraph": 0,
+      "t": 15.9,
+      "tEnd": 16.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 36,
+      "text": "sources",
+      "paragraph": 0,
+      "t": 16.3,
+      "tEnd": 16.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 37,
+      "text": "disagree.",
+      "paragraph": 0,
+      "t": 16.7,
+      "tEnd": 17.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 38,
+      "text": "But",
+      "paragraph": 0,
+      "t": 17.5,
+      "tEnd": 17.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 39,
+      "text": "some",
+      "paragraph": 0,
+      "t": 17.9,
+      "tEnd": 18.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 40,
+      "text": "came",
+      "paragraph": 0,
+      "t": 18.3,
+      "tEnd": 18.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 41,
+      "text": "back.",
+      "paragraph": 0,
+      "t": 18.7,
+      "tEnd": 19.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 42,
+      "text": "Tiberius",
+      "paragraph": 0,
+      "t": 19.5,
+      "tEnd": 19.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 43,
+      "text": "reportedly",
+      "paragraph": 0,
+      "t": 19.9,
+      "tEnd": 20.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 44,
+      "text": "paid",
+      "paragraph": 0,
+      "t": 20.3,
+      "tEnd": 20.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 45,
+      "text": "some",
+      "paragraph": 0,
+      "t": 20.7,
+      "tEnd": 21.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 46,
+      "text": "retired",
+      "paragraph": 0,
+      "t": 21.1,
+      "tEnd": 21.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 47,
+      "text": "fighters",
+      "paragraph": 0,
+      "t": 21.5,
+      "tEnd": 21.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 48,
+      "text": "one",
+      "paragraph": 0,
+      "t": 21.9,
+      "tEnd": 22.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 49,
+      "text": "hundred",
+      "paragraph": 0,
+      "t": 22.3,
+      "tEnd": 22.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 50,
+      "text": "thousand",
+      "paragraph": 0,
+      "t": 22.7,
+      "tEnd": 23.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 51,
+      "text": "sesterces",
+      "paragraph": 0,
+      "t": 23.1,
+      "tEnd": 23.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 52,
+      "text": "each",
+      "paragraph": 0,
+      "t": 23.5,
+      "tEnd": 23.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 53,
+      "text": "to",
+      "paragraph": 0,
+      "t": 23.9,
+      "tEnd": 24.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 54,
+      "text": "return.",
+      "paragraph": 0,
+      "t": 24.3,
+      "tEnd": 24.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 55,
+      "text": "Freedom,",
+      "paragraph": 0,
+      "t": 25.1,
+      "tEnd": 25.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 56,
+      "text": "it",
+      "paragraph": 0,
+      "t": 25.5,
+      "tEnd": 25.86,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 57,
+      "text": "turns",
+      "paragraph": 0,
+      "t": 25.9,
+      "tEnd": 26.26,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 58,
+      "text": "out,",
+      "paragraph": 0,
+      "t": 26.3,
+      "tEnd": 26.66,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 59,
+      "text": "had",
+      "paragraph": 0,
+      "t": 26.7,
+      "tEnd": 27.06,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 60,
+      "text": "a",
+      "paragraph": 0,
+      "t": 27.1,
+      "tEnd": 27.46,
+      "confidence": 0.95,
+      "status": "exact"
+    },
+    {
+      "i": 61,
+      "text": "price.",
+      "paragraph": 0,
+      "t": 27.5,
+      "tEnd": 27.86,
+      "confidence": 0.95,
+      "status": "exact"
+    }
+  ],
+  "mismatches": [],
+  "stats": {
+    "scriptWords": 62,
+    "asrWords": 62,
+    "wer": 0,
+    "werFolded": 0,
+    "exact": 62,
+    "folded": 0,
+    "fuzzy": 0,
+    "missing": 0,
+    "coverage": 1,
+    "timedShare": 1,
+    "insertions": 0,
+    "monotonic": true,
+    "clamped": 0
+  }
+}

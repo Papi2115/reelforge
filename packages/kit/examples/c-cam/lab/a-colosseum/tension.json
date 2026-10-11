@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "source": "claude",
+  "points": [
+    {
+      "t": 0,
+      "v": 0.5
+    },
+    {
+      "t": 3.9,
+      "v": 0.35
+    },
+    {
+      "t": 9.9,
+      "v": 0.2
+    },
+    {
+      "t": 13.9,
+      "v": 0.45
+    },
+    {
+      "t": 17.5,
+      "v": 0.7
+    },
+    {
+      "t": 21.9,
+      "v": 0.9
+    },
+    {
+      "t": 25.1,
+      "v": 0.5
+    },
+    {
+      "t": 27.9,
+      "v": 0.3
+    }
+  ],
+  "segments": [
+    {
+      "from": 0,
+      "to": 3.9,
+      "kind": "rising",
+      "label": "the win"
+    },
+    {
+      "from": 3.9,
+      "to": 13.9,
+      "kind": "calm",
+      "label": "the wooden sword"
+    },
+    {
+      "from": 13.9,
+      "to": 17.5,
+      "kind": "rising",
+      "label": "free or not"
+    },
+    {
+      "from": 17.5,
+      "to": 25.1,
+      "kind": "peak",
+      "label": "paid to come back"
+    },
+    {
+      "from": 25.1,
+      "to": 27.9,
+      "kind": "release",
+      "label": "the price"
+    }
+  ],
+  "note": "A stunned win, a quiet promise of freedom, doubt, then the turn back to the arena for pay."
+}

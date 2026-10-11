@@ -29,6 +29,7 @@ import { handAt, type Pose, type Vec3 } from './poses.js';
 import { palm } from './rig-ik.js';
 import type { LimbRig } from './rig-layers.js';
 import { blob, ellipseRing, tube } from './shapes.js';
+import { PROPS_TABLE } from '../vocabulary/props-table.js';
 
 /** Everything a gag reads at one moment. */
 export interface GagContext {
@@ -97,16 +98,25 @@ function held(c: GagContext, draw: (g: Paint2D, env: BrushEnv) => void): ArmMark
   };
 }
 
+/** How far below the grip each period vessel's bottom sits (the palm on its body or stem). */
+const VESSEL_GRIP = { cup: 30, goblet: 52, bowl: 22 } as const;
+
 function sip(c: GagContext): GagFrame {
   const w = bump(c.u, 0.3, 0.45, 0.75, 0.9);
   const tilt = -40 * bump(c.u, 0.45, 0.55, 0.7, 0.78);
   const steam = w < 0.05 ? Math.floor(twos(c.t) * 3) % 2 : 0;
+  const { vessel } = c.gag;
   return {
     ...reach(c, SPOT.mouth, w),
     hands: handOf(c.gag.hand, 'grip'),
     ...(w > 0.5 ? { front: c.gag.hand } : {}),
     beforeArm: held(c, (g, env) => {
-      mug(g, env, 6, -4, tilt, c.seed, steam);
+      if (vessel === 'mug') {
+        mug(g, env, 6, -4, tilt, c.seed, steam);
+        return;
+      }
+      const spec = { x: 0, y: VESSEL_GRIP[vessel], kind: vessel, tilt, size: 0.8, seed: c.seed };
+      PROPS_TABLE.vessel.draw(g, env, PROPS_TABLE.vessel.schema.parse(spec));
     }),
   };
 }

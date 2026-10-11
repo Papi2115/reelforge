@@ -27,7 +27,7 @@ import {
 } from './draw/brushes.js';
 import type { Paint2D } from './draw/paint.js';
 import { blob, type BlobOptions } from './draw/shapes.js';
-import { stageInk, type StageInk } from './stage-ink.js';
+import { INK_FUNCTIONS, stageInk, type StageInk, type StageInkFunctions } from './stage-ink.js';
 import { stageSurface } from './stage-surface.js';
 import { bindTextTarget, textTargetOf } from './text/target.js';
 import type { TextTarget } from './text/ink-text.js';
@@ -73,6 +73,8 @@ export type InkStageObject = KitObject & {
   readonly size: readonly [number, number];
   /** Repaints the stage for time t (seconds) with a pure painter; call it in update(t). */
   paint(t: number, painter: InkPainter): void;
+  /** The pure, frame-independent `env.ink` helpers for build() (contacts, anchors, frameOn). */
+  readonly ink: StageInkFunctions;
 };
 
 /**
@@ -93,6 +95,7 @@ const STAGE_METHODS = {
   'paint(t, (g, env) => ...)':
     'Repaints the whole stage for time t (seconds) from an opaque INK background: call it every frame in update(t). The painter must be a pure function of env.t (no state between frames)',
   g: 'Paint2D: fillStyle, strokeStyle, lineWidth, lineCap, globalAlpha, save/restore, setTransform/translate/rotate/scale, beginPath/closePath/moveTo/lineTo/quadraticCurveTo/rect/ellipse, fill(rule)/stroke/clip, fillRect. No text, images, gradients or pixel reads',
+  ink: 'The pure env.ink helpers outside the painter, for build(): stage.ink.palmWorld / anchorWorld / frameOn (frame a solved contact in the cut table)',
   env: 'width, height, t, zoom/lw (1: screen space), C (palette: INK, LINEN, OLIVE, CLAY, MUSTARD, RUST, ...), time.{twos, key, step, seg, ease, lerp, clamp01, hash, rnd, noise1}, brush.{inkLine(pts, o), brushStroke(pts, o), blob(pts, fill, o), curve(pts, closed, step)}, ink.* (the C-CAM draw functions: applyCamera, resolveCut, blob(g, e, ...), pool, stain, exprAt, palmWorld, reachPalm, drawFigure, drawText(text, o), ...: reelforge kit-docs grim-ink); points are flat [x, y, x, y, ...] in canvas px',
 } as const;
 
@@ -192,7 +195,7 @@ export function buildInkStage(
     return true;
   };
   Object.defineProperty(object, CAPTION_HOOK, { value: paintCaption, enumerable: false });
-  return Object.assign(object, { size, paint: wrappedPaint });
+  return Object.assign(object, { size, paint: wrappedPaint, ink: INK_FUNCTIONS });
 }
 
 export const inkStage = defineFx({

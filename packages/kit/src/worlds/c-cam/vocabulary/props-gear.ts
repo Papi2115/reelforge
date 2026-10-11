@@ -80,6 +80,9 @@ export function drawWeapon(g: Paint2D, e: BrushEnv, o: z.output<typeof weaponSch
   local(g, o.x, o.y, o.rot, o.size, () => {
     if (o.kind === 'sword' || o.kind === 'dagger') {
       const k = o.kind === 'sword' ? 1 : 0.7;
+      // A wooden blade (tone wood / paleWood) is a practice sword: grip and guard of the same wood.
+      const wooden = o.tone === 'wood' || o.tone === 'paleWood';
+      const [hiltWood, hiltWoodD] = toneOf(o.tone ?? 'wood');
       if (o.state === 'sheathed') {
         tube(g, e, [10, 0, len * 0.5, 3, len, 0], [22 * k + 4, 21 * k + 4, 19 * k + 4], C.BLACK, {
           lw: 5,
@@ -91,7 +94,7 @@ export function drawWeapon(g: Paint2D, e: BrushEnv, o: z.output<typeof weaponSch
           seed: o.seed + 1,
         });
       } else tipX = blade(g, e, o, len, 18 * k);
-      tube(g, e, [-len * 0.26, 2, -6, 0], [18 * k + 2, 20 * k + 2], '#2a2a2c', {
+      tube(g, e, [-len * 0.26, 2, -6, 0], [18 * k + 2, 20 * k + 2], wooden ? hiltWoodD : '#2a2a2c', {
         lw: 5,
         seed: o.seed + 4,
       });
@@ -104,7 +107,7 @@ export function drawWeapon(g: Paint2D, e: BrushEnv, o: z.output<typeof weaponSch
           taper: false,
         });
       }
-      blob(g, e, ellipseRing(-2, 0, 8 * k + 2, 18 * k + 4, 8), '#3d3a33', {
+      blob(g, e, ellipseRing(-2, 0, 8 * k + 2, 18 * k + 4, 8), wooden ? hiltWood : '#3d3a33', {
         lw: 4,
         seed: o.seed + 9,
         light: ['#6a6352', 2, -3],

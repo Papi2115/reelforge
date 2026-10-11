@@ -1,0 +1,249 @@
+{
+  "version": 1,
+  "shots": [
+    {
+      "id": "s01_title",
+      "t0": 0,
+      "t1": 1.9,
+      "treatment": "title-card",
+      "intent": "cast: champion (the winning gladiator; axis: a huge slab of a jaw under a tiny dented helmet; loud prop: the wooden sword he does not know how to hold; tic: fidget, his sword hand keeps twitching for a hilt that is not there), editor (the man paying for the games; axis: a tiny head on a vast toga; loud prop: a fat coin purse and a wine cup; tic: sip, sips from his wine cup before every decision) | place: arenaSand. Title frame: \"Freedom Had a Price\" thuds in letter by letter over the champion, stunned, holding the wooden sword at arm's length, and the editor, smug, hands on hips with his cup, on the arena sand; lands on \"You've just won\"; accent: the coin purse on the editor's belt.",
+      "scene": "scenes/s01_title.js",
+      "roll": "C",
+      "look": "ink-poster",
+      "direction": {
+        "titleFrame": true,
+        "framings": [
+          {
+            "framing": "wide",
+            "subject": "the title over the cast"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s02_crowd",
+      "t0": 1.9,
+      "t1": 6.7,
+      "treatment": "character-scene",
+      "intent": "cast: champion, editor | place: arenaSand. Wide of the stands waving cloths on \"The crowd wants you free\"; over the champion's shoulder up at the editor's box (his sword hand twitches: gag: champion on 'wants you free'); CU of the editor sipping before he decides (gag: editor on 'the man paying'); medium of the editor leaning down from his box with the wooden sword on \"hands you\".",
+      "scene": "scenes/s02_crowd.js",
+      "transitionIn": {
+        "type": "cut"
+      },
+      "roll": "A",
+      "look": "ink-scene",
+      "direction": {
+        "beats": ["b02", "b03"],
+        "gags": ["champion", "editor"],
+        "framings": [
+          {
+            "framing": "wide",
+            "subject": "the stands waving cloths"
+          },
+          {
+            "framing": "ots",
+            "subject": "over the champion's shoulder up at the editor's box"
+          },
+          {
+            "framing": "close",
+            "subject": "the editor sipping",
+            "why": "emotion: a man's freedom waits on one sip"
+          },
+          {
+            "framing": "medium",
+            "subject": "the editor leaning down from his box with the wooden sword"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s03_rudis",
+      "t0": 6.7,
+      "t1": 9.9,
+      "treatment": "metaphor-object",
+      "intent": "cast: champion, editor | place: arenaSand. ECU of the wooden sword landing in the champion's scarred palm on \"wooden sword\", lettered RUDIS on the blade on \"the rudis\"; CU of the champion staring at it; pull back wide: the champion small on the sand holding it, the editor sipping in his box (gag: editor on 'the rudis').",
+      "scene": "scenes/s03_rudis.js",
+      "transitionIn": {
+        "type": "cut"
+      },
+      "roll": "B",
+      "look": "ink-insert",
+      "worldMoment": "insert",
+      "annotations": [
+        {
+          "kind": "pin",
+          "phrase": "rudis.",
+          "target": "wooden sword",
+          "text": "RUDIS",
+          "reason": "name"
+        }
+      ],
+      "direction": {
+        "beats": ["b03"],
+        "gags": ["editor"],
+        "framings": [
+          {
+            "framing": "ecu",
+            "subject": "the wooden sword landing in the champion's palm",
+            "why": "information: the rudis is the thing the narration names"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion staring at it",
+            "why": "emotion: a toy for his life"
+          },
+          {
+            "framing": "wide",
+            "subject": "pull back: the champion small on the sand holding it"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s04_gate",
+      "t0": 9.9,
+      "t1": 13.9,
+      "treatment": "character-scene",
+      "intent": "cast: champion | place: arenaGate. Wide of the arena gate on \"It means you are done\", volunteers trudging out; medium: the champion following with the wooden sword on \"Volunteers walked away\"; ECU: the sword snags across the gate bars and yanks him back a step (the accident); CU of his twitching sword hand (gag: champion on 'walked away').",
+      "scene": "scenes/s04_gate.js",
+      "transitionIn": {
+        "type": "cut"
+      },
+      "roll": "A",
+      "look": "ink-scene",
+      "direction": {
+        "beats": ["b04"],
+        "gags": ["champion"],
+        "framings": [
+          {
+            "framing": "wide",
+            "subject": "the arena gate, volunteers trudging out"
+          },
+          {
+            "framing": "medium",
+            "subject": "the champion following them with the wooden sword"
+          },
+          {
+            "framing": "ecu",
+            "subject": "the wooden sword snagged in the gate bars",
+            "why": "cause -> effect: the gate will not let him go"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion's twitching sword hand",
+            "why": "emotion: his hand misses the fight"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s05_collar",
+      "t0": 13.9,
+      "t1": 17.5,
+      "treatment": "metaphor-object",
+      "intent": "cast: champion | place: arenaGate. ECU of the iron collar on the champion's neck on \"A slave might be freed\", a Dutch tilt; CU: his eyes slide up towards the editor's box on \"sources disagree\".",
+      "scene": "scenes/s05_collar.js",
+      "transitionIn": {
+        "type": "cut"
+      },
+      "roll": "B",
+      "look": "ink-insert",
+      "direction": {
+        "beats": ["b05"],
+        "gags": [],
+        "framings": [
+          {
+            "framing": "ecu",
+            "subject": "the iron collar on the champion's neck",
+            "why": "information: a slave's freedom is the open question"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion's eyes sliding up to the editor",
+            "why": "emotion: nobody can tell him"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s06_paid",
+      "t0": 17.5,
+      "t1": 25.1,
+      "treatment": "character-scene",
+      "intent": "cast: champion | place: arenaGate. Wide: the champion outside the gate looking back in on \"But some came back\"; the reverse from inside shows a ringed hand reaching through the bars with a purse on \"Tiberius reportedly paid\"; ECU (climax): coins pouring into the champion's palm on \"one hundred thousand sesterces\", lettered 100 000 on the purse; CU: his hand stops twitching and closes on the coins (gag: champion on 'to return'); medium: he steps back onto the sand. Dutch tilt on the ECU.",
+      "scene": "scenes/s06_paid.js",
+      "transitionIn": {
+        "type": "cut"
+      },
+      "roll": "A",
+      "look": "ink-scene",
+      "worldMoment": "reverse",
+      "annotations": [
+        {
+          "kind": "counter",
+          "phrase": "one hundred thousand sesterces",
+          "target": "coin purse",
+          "text": "100 000",
+          "reason": "number"
+        }
+      ],
+      "direction": {
+        "beats": ["b06"],
+        "gags": ["champion"],
+        "framings": [
+          {
+            "framing": "wide",
+            "subject": "the champion outside the gate, looking back in"
+          },
+          {
+            "framing": "ecu",
+            "subject": "a ringed hand pouring coins into the champion's palm",
+            "why": "the decisive fact: the price of coming back"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion's hand stops twitching and closes on the coins",
+            "why": "consequence: calm only when paid"
+          },
+          {
+            "framing": "medium",
+            "subject": "the champion stepping back onto the sand"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s07_price",
+      "t0": 25.1,
+      "t1": 28.36,
+      "treatment": "metaphor-object",
+      "intent": "cast: champion, editor | place: arenaSand. ECU of the wooden sword left lying in the sand on \"Freedom\"; CU of the editor sipping, satisfied, on \"had a price\" (gag: editor on 'had a price'); pull back wide: the champion back on the sand with a real sword, the crowd roaring.",
+      "scene": "scenes/s07_price.js",
+      "transitionIn": {
+        "type": "cut"
+      },
+      "roll": "A",
+      "look": "ink-scene",
+      "direction": {
+        "beats": ["b07"],
+        "gags": ["editor"],
+        "framings": [
+          {
+            "framing": "ecu",
+            "subject": "the wooden sword left lying in the sand",
+            "why": "consequence: the freedom he put down"
+          },
+          {
+            "framing": "close",
+            "subject": "the editor sipping, satisfied",
+            "why": "emotion: he wins either way"
+          },
+          {
+            "framing": "wide",
+            "subject": "pull back: the champion back on the sand, the crowd roaring"
+          }
+        ]
+      }
+    }
+  ]
+}

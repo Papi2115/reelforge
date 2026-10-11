@@ -79,6 +79,22 @@ describe('gags (PLAN.md#14.9)', () => {
     expect(() => drawn(person, { gag: { kind: 'juggle' as 'gum' } })).toThrow(KitError);
   });
 
+  it('sips from the period vessel the scene names (mug by default)', async () => {
+    const person = await baker();
+    const t = GAG_PERIOD.sip * 0.6;
+    const mug = drawn(person, { t, gag: { kind: 'sip' } });
+    expect(drawn(person, { t, gag: { kind: 'sip', vessel: 'mug' } })).toEqual(mug);
+    const vessels = (['cup', 'goblet', 'bowl'] as const).map((vessel) =>
+      drawn(person, { t, gag: { kind: 'sip', vessel } }),
+    );
+    for (const lines of vessels) expect(lines).not.toEqual(mug);
+    expect(new Set(vessels.map((lines) => lines.join('\n'))).size).toBe(3);
+    expect(() => drawn(person, { t, gag: { kind: 'sip', vessel: 'thermos' as 'cup' } })).toThrow(
+      KitError,
+    );
+    expect(GAG_DOCS.sip).toContain('goblet');
+  });
+
   it('places face marks from the face anchors, else from the head box', () => {
     const spots = faceSpots(TEST_CHARACTER, 0);
     expect(spots.mouth).toEqual(TEST_CHARACTER.faceAnchors?.[0].mouth);

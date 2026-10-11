@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "source": "claude",
+  "inputsHash": "2a37301a8b36f74d4c0b24476e6bdf5c54db98249e48d34edd3264d6c737caaa",
+  "titleFrame": {
+    "cast": ["champion", "editor"],
+    "title": "Freedom Had a Price",
+    "background": {
+      "placeId": "arenaSand",
+      "why": "the sand he won on and the place he comes back to"
+    },
+    "acting": [
+      {
+        "person": "champion",
+        "pose": "stand",
+        "expr": "stunned",
+        "note": "holds the wooden sword at arm's length like it might bite"
+      },
+      {
+        "person": "editor",
+        "pose": "akimbo",
+        "expr": "smug",
+        "note": "sips from his wine cup in his box"
+      }
+    ],
+    "accentObject": "the coin purse on the editor's belt"
+  },
+  "motifs": [
+    {
+      "id": "rudis",
+      "object": "the wooden sword",
+      "meaning": "freedom that is only a token"
+    },
+    {
+      "id": "purse",
+      "object": "a fat coin purse",
+      "meaning": "the price that buys a free man back"
+    }
+  ],
+  "cast": [
+    {
+      "id": "champion",
+      "role": "the winning gladiator (you); axis: a huge slab of a jaw under a tiny dented helmet",
+      "signatureGag": {
+        "kind": "fidget",
+        "note": "his sword hand keeps twitching for a hilt that is not there",
+        "arc": {
+          "setup": "b02",
+          "escalations": ["b04"],
+          "payoff": "b06",
+          "why": "he is only calm with a weapon or pay in his hand: the reason some came back"
+        }
+      }
+    },
+    {
+      "id": "editor",
+      "role": "the man paying for the games; axis: a tiny head on a vast toga",
+      "signatureGag": {
+        "kind": "sip",
+        "note": "sips from his wine cup before every decision, as if tasting the crowd",
+        "arc": {
+          "setup": "b02",
+          "escalations": ["b03"],
+          "payoff": "b07",
+          "why": "the decisions about a man's freedom cost him one sip; he wins either way"
+        }
+      }
+    }
+  ],
+  "beats": [
+    {
+      "id": "b01",
+      "span": {
+        "t0": 0.3,
+        "t1": 1.46,
+        "text": "You've just won."
+      },
+      "intent": "setup",
+      "camera": {
+        "progression": [
+          {
+            "framing": "wide",
+            "subject": "the champion alone on the sand under the roaring stands"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion's face",
+            "why": "emotion: he cannot believe he is alive"
+          }
+        ]
+      },
+      "gagRefs": []
+    },
+    {
+      "id": "b02",
+      "span": {
+        "t0": 1.9,
+        "t1": 3.86,
+        "text": "The crowd wants you free,"
+      },
+      "intent": "reaction",
+      "camera": {
+        "progression": [
+          {
+            "framing": "wide",
+            "subject": "the stands waving cloths"
+          },
+          {
+            "framing": "ots",
+            "subject": "over the champion's shoulder up at the editor's box"
+          },
+          {
+            "framing": "close",
+            "subject": "the editor sipping",
+            "why": "emotion: a man's freedom waits on one sip"
+          }
+        ]
+      },
+      "gagRefs": ["champion", "editor"]
+    },
+    {
+      "id": "b03",
+      "span": {
+        "t0": 3.9,
+        "t1": 9.46,
+        "text": "and the man paying for the games hands you a wooden sword, the rudis."
+      },
+      "intent": "reveal",
+      "camera": {
+        "progression": [
+          {
+            "framing": "medium",
+            "subject": "the editor leaning down from his box with the wooden sword"
+          },
+          {
+            "framing": "ecu",
+            "subject": "the wooden sword landing in the champion's palm",
+            "why": "information: the rudis is the thing the narration names"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion staring at it",
+            "why": "emotion: a toy for his life"
+          },
+          {
+            "framing": "wide",
+            "subject": "pull back: the champion small on the sand holding it"
+          }
+        ]
+      },
+      "gagRefs": ["editor"]
+    },
+    {
+      "id": "b04",
+      "span": {
+        "t0": 9.9,
+        "t1": 13.46,
+        "text": "It means you are done. Volunteers walked away."
+      },
+      "intent": "breath",
+      "camera": {
+        "progression": [
+          {
+            "framing": "wide",
+            "subject": "the arena gate, volunteers trudging out"
+          },
+          {
+            "framing": "medium",
+            "subject": "the champion following them with the wooden sword"
+          },
+          {
+            "framing": "ecu",
+            "subject": "the wooden sword snagged in the gate bars",
+            "why": "cause -> effect: the gate will not let him go"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion's twitching sword hand",
+            "why": "emotion: his hand misses the fight"
+          }
+        ]
+      },
+      "accident": "his wooden sword snags across the gate bars and yanks him back a step",
+      "gagRefs": ["champion"]
+    },
+    {
+      "id": "b05",
+      "span": {
+        "t0": 13.9,
+        "t1": 17.06,
+        "text": "A slave might be freed, though sources disagree."
+      },
+      "intent": "tension",
+      "camera": {
+        "progression": [
+          {
+            "framing": "medium",
+            "subject": "the champion at the gate, the editor shrugging in his box"
+          },
+          {
+            "framing": "ecu",
+            "subject": "the iron collar on the champion's neck",
+            "why": "information: a slave's freedom is the open question"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion's eyes sliding up to the editor",
+            "why": "emotion: nobody can tell him"
+          }
+        ],
+        "tilt": true
+      },
+      "gagRefs": []
+    },
+    {
+      "id": "b06",
+      "span": {
+        "t0": 17.5,
+        "t1": 24.66,
+        "text": "But some came back. Tiberius reportedly paid some retired fighters one hundred thousand sesterces each to return."
+      },
+      "intent": "tension",
+      "camera": {
+        "progression": [
+          {
+            "framing": "wide",
+            "subject": "the champion outside the gate, looking back in"
+          },
+          {
+            "framing": "ecu",
+            "subject": "a ringed hand pouring coins into the champion's palm",
+            "why": "the decisive fact: the price of coming back"
+          },
+          {
+            "framing": "close",
+            "subject": "the champion's hand stops twitching and closes on the coins",
+            "why": "consequence: calm only when paid"
+          },
+          {
+            "framing": "medium",
+            "subject": "the champion stepping back onto the sand"
+          }
+        ],
+        "tilt": true
+      },
+      "gagRefs": ["champion"]
+    },
+    {
+      "id": "b07",
+      "span": {
+        "t0": 25.1,
+        "t1": 27.86,
+        "text": "Freedom, it turns out, had a price."
+      },
+      "intent": "punchline",
+      "camera": {
+        "progression": [
+          {
+            "framing": "ecu",
+            "subject": "the wooden sword left lying in the sand",
+            "why": "consequence: the freedom he put down"
+          },
+          {
+            "framing": "close",
+            "subject": "the editor sipping, satisfied",
+            "why": "emotion: he wins either way"
+          },
+          {
+            "framing": "wide",
+            "subject": "pull back: the champion back on the sand, the crowd roaring"
+          }
+        ]
+      },
+      "gagRefs": ["editor"]
+    }
+  ],
+  "climax": {
+    "beatRef": "b06",
+    "ecuSubject": "the coins pouring into the champion's palm",
+    "why": "the one action the story turns on: freedom traded for pay"
+  },
+  "accidents": ["b04"]
+}

@@ -129,7 +129,9 @@ describe('Grim Ink prompts', () => {
 
   it('give scene-build and scene-fix the craft brief, the design process and the exact calls', () => {
     const brief = text.craftBrief;
-    expect(Buffer.byteLength(brief, 'utf8')).toBeLessThanOrEqual(1536);
+    // The direction and module prompts carry it whole (stages STYLE_DIGEST_BUDGET = 1500): the
+    // lab's first round found its last line (the period props) cut off there.
+    expect(Buffer.byteLength(brief, 'utf8')).toBeLessThanOrEqual(1500);
     for (const part of [
       'The world gives the GRAMMAR, the narration gives the content',
       '`// focal: <the one thing read first> | cast: <ids> | place: <id> | traces: <three>`',
@@ -141,6 +143,9 @@ describe('Grim Ink prompts', () => {
       'acting on twos, expressions snap',
       'Traces (>= 3)',
       'never `ctx.text` or `ctx.annotate`',
+      'Depth: >= 3 layers per framing',
+      'an ECU frames the solved contact (`env.ink.frameOn`)',
+      'Props and gag objects of the period',
     ]) {
       expect(brief).toContain(part);
     }

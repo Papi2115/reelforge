@@ -21,6 +21,7 @@ import {
   visibleRect,
   worldToScreen,
 } from './draw/camera.js';
+import { frameOn } from './draw/framing.js';
 import {
   bowPt,
   figToWorld,
@@ -54,8 +55,11 @@ import { textTargetOf } from './text/target.js';
 import { titleCard, type TitleCardResult, type TitleCardSpec } from './text/title-card.js';
 import { VOCAB } from './vocabulary/index.js';
 
-/** The frame-independent part of `env.ink` (built once). */
-const INK_FUNCTIONS = Object.freeze({
+/**
+ * The frame-independent part of `env.ink` (built once); also `stage.ink` in build(), so a cut
+ * table can frame a solved contact (palmWorld, anchorWorld, frameOn) before the first frame.
+ */
+export const INK_FUNCTIONS = Object.freeze({
   // Lines and shapes: (g, inkEnv, …).
   inkLine,
   brushStroke,
@@ -100,6 +104,7 @@ const INK_FUNCTIONS = Object.freeze({
   fgWorld,
   silhouette,
   coverage: CHECKED.coverage,
+  frameOn,
   SCREEN_ENV,
   FG_INK,
   // Faces and hands.
@@ -156,6 +161,7 @@ export function stageInk(g: Paint2D, t = 0) {
 }
 
 export type StageInk = ReturnType<typeof stageInk>;
+export type StageInkFunctions = typeof INK_FUNCTIONS;
 
 /** Names of `env.ink` (docs and tests). */
 export const STAGE_INK_NAMES: readonly string[] = Object.freeze(
