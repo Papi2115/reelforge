@@ -261,7 +261,10 @@ export function isolatedManifest(setup: RenderSetup, plan: ShotPlan): RenderMani
     seed: setup.seed,
     ...(setup.palette ? { palette: setup.palette } : {}),
     ...(setup.words ? { words: setup.words } : {}),
-    ...(setup.captions === true ? { captions: true } : {}),
+    // Captions follow the film's words, so only a storyboard shot draws them: a standalone render
+    // (a contact sheet, a prop turntable) would show different words on each page and fail its
+    // "same page twice" determinism check (real run Grim Ink 2).
+    ...(setup.captions === true && !plan.standalone ? { captions: true } : {}),
     ...(setup.kitExtensions.length > 0 ? { kitExtensions: [...setup.kitExtensions] } : {}),
     ...(setup.castRoles === undefined ? {} : { castRoles: setup.castRoles }),
     ...(setup.worldAssets === undefined ? {} : { worldAssets: setup.worldAssets }),
