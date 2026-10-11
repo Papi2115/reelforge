@@ -94,10 +94,17 @@ export function drawWeapon(g: Paint2D, e: BrushEnv, o: z.output<typeof weaponSch
           seed: o.seed + 1,
         });
       } else tipX = blade(g, e, o, len, 18 * k);
-      tube(g, e, [-len * 0.26, 2, -6, 0], [18 * k + 2, 20 * k + 2], wooden ? hiltWoodD : '#2a2a2c', {
-        lw: 5,
-        seed: o.seed + 4,
-      });
+      tube(
+        g,
+        e,
+        [-len * 0.26, 2, -6, 0],
+        [18 * k + 2, 20 * k + 2],
+        wooden ? hiltWoodD : '#2a2a2c',
+        {
+          lw: 5,
+          seed: o.seed + 4,
+        },
+      );
       for (let j = 1; j < 4; j += 1) {
         const u = -len * 0.26 + (len * 0.2 * j) / 4;
         brushStroke(g, e, [u - 6, -7, u + 6, 7], {

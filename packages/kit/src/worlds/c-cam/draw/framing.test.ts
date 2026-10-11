@@ -61,6 +61,6 @@ describe('frameOn', () => {
   it('rejects what is not a subject or a size', () => {
     expect(() => frameOn({ x: 1, y: 2 }, 'close')).toThrow(KitError);
     expect(() => frameOn([], 'close')).toThrow(/world point/);
-    expect(() => frameOn([1, 2], 'huge' as 'ecu')).toThrow(/size must be one of/);
+    expect(() => frameOn([1, 2], 'huge')).toThrow(/size must be one of/);
   });
 });

@@ -76,7 +76,9 @@ function isPoint(value: unknown): value is Pt {
 /** The subject's points: one point, or a list (null entries, e.g. a missing face anchor, skipped). */
 function pointsOf(subject: unknown): Pt[] {
   if (isPoint(subject)) return [subject];
-  const list = Array.isArray(subject) ? subject.filter(isPoint) : [];
+  const list: Pt[] = [];
+  if (Array.isArray(subject))
+    for (const entry of subject as unknown[]) if (isPoint(entry)) list.push(entry);
   if (list.length === 0) {
     throw new KitError(
       'invalid-params',
@@ -101,16 +103,15 @@ const centreFor = (sx: number, sy: number, px: number, py: number, z: number) =>
   y: sy - (py - H / 2) / z,
 });
 
+const isSize = (value: unknown): value is FramingSize =>
+  typeof value === 'string' && (FRAMING_SIZES as readonly string[]).includes(value);
+
 /** A framing (and an optional push) that puts the subject on a third at the size's zoom. */
-export function frameOn(
-  subject: unknown,
-  size: FramingSize,
-  options: FrameOnOptions = {},
-): FramedCut {
-  if (!FRAMING_SIZES.includes(size)) {
+export function frameOn(subject: unknown, size: unknown, options: FrameOnOptions = {}): FramedCut {
+  if (!isSize(size)) {
     throw new KitError(
       'invalid-params',
-      `frameOn(subject, size): size must be one of ${FRAMING_SIZES.join(', ')} (got ${String(size)})`,
+      `frameOn(subject, size): size must be one of ${FRAMING_SIZES.join(', ')} (got ${JSON.stringify(size)})`,
     );
   }
   const points = pointsOf(subject);

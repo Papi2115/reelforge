@@ -80,7 +80,7 @@ export const GAG_PERIOD: Readonly<Record<GagKind, number>> = {
 export const GAG_DOCS: Readonly<Record<GagKind, string>> = {
   gum: 'chews; a gum bubble swells at the lips and pops (bored, cocky)',
   sweat: 'sweat drops drip from the brow and cheeks on twos (fear, heat, pressure)',
-  sip: 'holds a drink, raises it to the lips and sips (the hand comes in front); vessel: mug (a steaming coffee mug, default) | cup | goblet | bowl: the period\'s',
+  sip: 'sips a drink (hand in front); vessel: mug (coffee, default) | cup | goblet | bowl',
   eat: 'holds a sandwich, lifts it and takes a bite (the bite stays)',
   thumbs: 'raises a thumbs-up and pumps it (glove / skin of the arm style)',
   checklist:
