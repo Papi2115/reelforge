@@ -6,7 +6,7 @@ anatomy rig, flat grime, an uneven ink line, acting on twos) plus the **camera w
 (cuts inside a shot, push-ins and pull-backs, Dutch tilt, extreme close-ups, foreground silhouettes). Nothing else from
 c-plus (lighting passes, face system, doubled strokes) is part of it.
 
-This folder holds three finished 60-second films in the style and the full written documentation, so that:
+This folder holds four finished 60-second films in the style and the full written documentation, so that:
 - the ReelForge Manager/Coder can port the style into the app (start with [07-REELFORGE_INTEGRATION](docs/07-REELFORGE_INTEGRATION.md));
 - the runtime Claude (the one that writes scenes per video) can draw new characters, sets and shots in this style
   (start with [01-STYLE_GRAMMAR](docs/01-STYLE_GRAMMAR.md) and [04-CHARACTER_GUIDE](docs/04-CHARACTER_GUIDE.md)).
@@ -15,13 +15,14 @@ Every factual statement in these docs is taken from the code; citations are `fil
 `films/` are relative to this folder; paths that start with `packages/`, `docs/`, `styles/`, `templates/` are relative
 to the repository root. Things that could not be established from the code are marked **UNKNOWN**.
 
-## The three films
+## The four films
 
 | # | Folder | Title (poster) | Topic | Runtime | Shots | In-shot camera setups | Hand-built cast |
 |---|---|---|---|---|---|---|---|
 | 1 | [films/01-samurai-edo](films/01-samurai-edo/showcase.html) | Would You Survive as a Samurai in Peaceful Japan? | Edo-period samurai as clerks in debt to rice merchants | 62.0 s | 11 | 40 framings | you, merchant, elder, clerk, keeper, rival + a cat + townspeople |
 | 2 | [films/02-papal-conclave](films/02-papal-conclave/showcase.html) | How Not to Choose a Pope (Viterbo, 1268) | The 1268–1271 papal election and the origin of "conclave" | 63.0 s | 12 | 37 setups | stubborn, tired, mayor, gregory, roofer, baker + townsfolk/cardinals |
 | 3 | [films/03-apollo-11](films/03-apollo-11/showcase.html) | Would You Survive Landing on the Moon? | Apollo 11 descent: 1202 alarm, boulders, low fuel | 63.0 s | 13 | 35 framings | you, commander, orbiter, director, guidance + engineers |
+| 4 | [films/04-miami-80s](films/04-miami-80s/showcase.html) | Would You Survive as a Miami Gangster in the 80s? | satire: the 80s Miami TV myth vs. a real day (hotel of retirees, cash in a freezer, the wire, the courtroom) | 62.2 s | 13 | 40 framings | you, boss, accountant, agent + retirees, judge, bailiff |
 
 Runtimes and shot counts are `ST.DURATION` / `ST.SHOTS.length` measured by loading each page (see "Verification" below);
 film tables: `films/01-samurai-edo/js/film.js:4`, `films/02-papal-conclave/js/film.js:5`, `films/03-apollo-11/js/film.js:4`.
