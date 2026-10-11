@@ -52,7 +52,7 @@ This shot belongs to a vertical YouTube SHORT (9:16 portrait, about {{shortLengt
 - {{worldShort}}{{/worldShort}}{{/short}}
 
 Steps:
-1. `reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.
+1. {{#worldDocs}}{{worldDocs}}{{/worldDocs}}{{^worldDocs}}`reelforge kit-docs` (and `reelforge kit-docs <name>` for what you use; `reelforge kit-docs ctx` for camera rigs, `ctx.text` and `ctx.annotate` options — never guess option names). Compose from the kit.{{/worldDocs}}
 2. Write `{{shotScene}}`: `meta`, `build`, `update`. Sync key moments to words with `ctx.anchor("phrase")`; register matching `sfx.at(...)`. {{^world}}Camera always moving.{{/world}}{{#world}}{{worldMotion}}{{/world}} Text inside the safe area.
 3. Self-QA loop: `reelforge lint` → `reelforge frames --at` (start, key anchor moments, end−0.1) → Read the PNGs → fix → `reelforge anchors --shot {{shotId}}`. Max 2 fix iterations.
 4. {{#world}}{{worldMissing}}{{/world}}{{^world}}If an object the narration needs has no kit prop (kit and project-local props), do NOT fake it with loose boxes: build the best scene with what exists and end your reply with one line `MISSING: <prop names>` — short names only, comma-separated, no explanations (e.g. `MISSING: chip, file-icon`). The app then builds each as a project prop (`kit-ext/props/`) and asks you to build the shot again with it. Leave the line out when nothing is missing.{{/world}}

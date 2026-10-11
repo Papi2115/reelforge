@@ -19,6 +19,7 @@ import type { TemplateVars } from '../template.js';
 import { claimsPromptVars } from '../validators/claims.js';
 import { hooksPromptVars } from '../validators/hooks.js';
 import { shortScriptPromptVars } from '../short-vars.js';
+import { tensionPromptVars } from '../tension-vars.js';
 import { targetWordsFor } from '../validators/script.js';
 import type { EvalCase } from './cases.js';
 import { seoEvalVars } from './seo-eval.js';
@@ -168,11 +169,7 @@ export function stageVars(stage: PromptId, evalCase: EvalCase): Result<TemplateV
         maxItems: 8,
       });
     case 'tension':
-      return ok({
-        durationS: (evalCase.words.words.at(-1)?.tEnd ?? 0).toFixed(1),
-        minPoints: 4,
-        maxPoints: 8,
-      });
+      return ok(tensionPromptVars(evalCase.words.words.at(-1)?.tEnd ?? 0, 4, 8));
     case 'claims': {
       const read = (name: string): string =>
         readFileSync(path.join(evalCase.projectDir, name), 'utf8');

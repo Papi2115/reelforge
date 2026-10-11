@@ -123,6 +123,31 @@ describe('text provenance', () => {
     expect(shown(['21', '21 − 2 = 19', '19 - 4 = 15'])).toEqual([]);
   });
 
+  it('reads a space-grouped number as one number (quality lab: "100 000" sesterces)', () => {
+    expect(tokenize('100 000 each').map((token) => token.number ?? token.text)).toEqual([
+      100000,
+      'each',
+    ]);
+    expect(tokenize('1 250 000.').map((token) => token.number)).toEqual([1250000]);
+    // Not a group of three: two numbers; a year next to a count stays two numbers.
+    expect(tokenize('12 34').map((token) => token.number)).toEqual([12, 34]);
+    expect(tokenize('in 1969 100 people').map((token) => token.number ?? token.text)).toEqual([
+      'in',
+      1969,
+      100,
+      'people',
+    ]);
+    const narration = buildVocabulary(['He paid one hundred thousand sesterces each.']);
+    const shown = (strings: string[]) =>
+      inventedTexts(
+        strings.map((text, line) => ({ text, line })),
+        narration,
+        SKETCHBOOK,
+      ).map((entry) => entry.text);
+    expect(shown(['100 000', '100,000', '100000'])).toEqual([]);
+    expect(shown(['200 000'])).toEqual(['200 000']);
+  });
+
   it('flags a timeline that ends "now" when the sources never reach the modern era', () => {
     const end = [{ text: 'now', line: 7, role: 'timeline-end' as const }];
     const medieval = buildVocabulary([

@@ -95,6 +95,28 @@ describe('gags (PLAN.md#14.9)', () => {
     expect(GAG_DOCS.sip).toContain('goblet');
   });
 
+  it('draws the period object of eat, penClick, checklist and clockCheck (film object by default)', async () => {
+    const person = await baker();
+    const options = {
+      eat: ['food', ['sandwich', 'loaf', 'fruit', 'cheese', 'meat']],
+      penClick: ['pen', ['pen', 'quill', 'stylus', 'pencil', 'chalk']],
+      checklist: ['sheet', ['checklist', 'scroll', 'tablet', 'sheet']],
+      clockCheck: ['timepiece', ['watch', 'pocketWatch', 'hourglass']],
+    } as const;
+    for (const [kind, [key, values]] of Object.entries(options) as [
+      keyof typeof options,
+      (typeof options)[keyof typeof options],
+    ][]) {
+      const t = GAG_PERIOD[kind] * 0.65;
+      const film = drawn(person, { t, gag: { kind } });
+      const all = values.map((value) => drawn(person, { t, gag: { kind, [key]: value } }));
+      expect(all[0], kind).toEqual(film);
+      expect(new Set(all.map((lines) => lines.join('\n'))).size, kind).toBe(values.length);
+      expect(GAG_DOCS[kind], kind).toContain(values[1]);
+      expect(() => drawn(person, { t, gag: { kind, [key]: 'laptop' } }), kind).toThrow(KitError);
+    }
+  });
+
   it('places face marks from the face anchors, else from the head box', () => {
     const spots = faceSpots(TEST_CHARACTER, 0);
     expect(spots.mouth).toEqual(TEST_CHARACTER.faceAnchors?.[0].mouth);

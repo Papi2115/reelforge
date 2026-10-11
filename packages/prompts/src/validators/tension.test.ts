@@ -1,7 +1,9 @@
 /** tension.json validation and the `tension-tempo` storyboard check (PLAN.md#12.22). */
 import type { StoryboardShot, TensionFile } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { renderPrompt } from '../catalog.js';
+import { tensionPromptVars } from '../tension-vars.js';
 import { checkStoryboard } from './storyboard.js';
 import { checkTensionTempo, validateTension } from './tension.js';
 
@@ -111,11 +113,25 @@ describe('prompts', () => {
   });
 
   it('the tension prompt asks for tension.json over the narration', () => {
-    const rendered = renderPrompt('tension', { durationS: '36.7', minPoints: 4, maxPoints: 8 });
+    const rendered = renderPrompt('tension', tensionPromptVars(36.7, 4, 8));
     if (!rendered.ok) throw new Error('tension prompt does not render');
     expect(rendered.value).toContain('Write `tension.json`');
     expect(rendered.value).toContain('the last at 36.7');
     expect(rendered.value).toContain('4–8 points');
     expect(rendered.value).not.toContain('You are the director/storyboard artist');
+  });
+
+  it("scales the tension prompt's example curve to the narration (quality lab: 61 and 130 s on a 28 s film)", () => {
+    const rendered = renderPrompt('tension', tensionPromptVars(27.9, 4, 8));
+    if (!rendered.ok) throw new Error('tension prompt does not render');
+    const example = /```json\n([\s\S]*?)\n```/.exec(rendered.value)?.[1] ?? '';
+    const parsed: unknown = JSON.parse(example);
+    const times = z
+      .object({ points: z.array(z.object({ t: z.number() })) })
+      .parse(parsed)
+      .points.map((point) => point.t);
+    expect(times).toEqual([0, 1.5, 11.4, 24.3, 26.2, 27.9]);
+    expect(validateTension(example, { durationS: 27.9 }).valid).toBe(true);
+    expect(rendered.value).toContain('the reveal at 0:24');
   });
 });

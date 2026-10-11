@@ -1,6 +1,6 @@
 ---
 id: tension
-version: 1
+version: 2
 model: sonnet
 tools: [Read, Write, Glob, Grep, Bash(reelforge *)]
 output: tension.json
@@ -9,12 +9,12 @@ You are the film's dramaturg. Before any shot is planned, map the tension of the
 
 Inputs in the project folder: `script.txt` and `timing/words.json` (every spoken word with t/tEnd in seconds). The narration lasts {{durationS}} s.
 
-Write `tension.json`:
+Write `tension.json` (the example's times fit this narration; put yours where THIS story changes):
 ```json
 { "version": 1, "source": "claude",
-  "note": "Calm setup, a rising investigation, the reveal at 2:10, a short release.",
-  "points": [ { "t": 0, "v": 0.45 }, { "t": 8.2, "v": 0.25 }, { "t": 61.0, "v": 0.6 }, { "t": 130.4, "v": 0.9 }, { "t": 141.0, "v": 0.5 }, { "t": {{durationS}}, "v": 0.2 } ],
-  "segments": [ { "from": 0, "to": 8.2, "kind": "rising", "label": "the hook" }, { "from": 8.2, "to": 61.0, "kind": "calm", "label": "how it started" } ] }
+  "note": "Calm setup, a rising investigation, the reveal at {{exampleRevealClock}}, a short release.",
+  "points": [ { "t": 0, "v": 0.45 }, { "t": {{exampleHook}}, "v": 0.25 }, { "t": {{exampleRise}}, "v": 0.6 }, { "t": {{exampleReveal}}, "v": 0.9 }, { "t": {{exampleRelease}}, "v": 0.5 }, { "t": {{durationS}}, "v": 0.2 } ],
+  "segments": [ { "from": 0, "to": {{exampleHook}}, "kind": "rising", "label": "the hook" }, { "from": {{exampleHook}}, "to": {{exampleRise}}, "kind": "calm", "label": "how it started" } ] }
 ```
 Rules:
 - `points`: `t` in seconds, strictly increasing, the first at 0 and the last at {{durationS}}; `v` is the tension 0..1. Put a point where the story changes (a new question, a reveal, a twist, the payoff), on a word's `t` from `words.json`; {{minPoints}}–{{maxPoints}} points, the curve is straight between them.

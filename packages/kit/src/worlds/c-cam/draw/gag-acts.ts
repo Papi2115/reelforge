@@ -6,21 +6,11 @@
  *
  * Public API: `GagContext`, `gagFrame`, `gagSeed`.
  */
-import { ANIM, C, ease, hash, seg, twos } from '../core.js';
+import { ANIM, ease, hash, seg, twos } from '../core.js';
 import type { RigDims } from './character.js';
 import { bump, type FaceSpots, type GagFrame, type GagKind, type ResolvedGag } from './gags.js';
-import {
-  checklist,
-  gumBubble,
-  helmet,
-  mug,
-  puff,
-  sandwich,
-  sweat,
-  thumbsUp,
-  ticks,
-  watch,
-} from './gag-props.js';
+import { drawGagFood, drawGagPen, drawGagSheet, drawGagTimepiece } from './gag-items.js';
+import { gumBubble, helmet, mug, puff, sweat, thumbsUp, ticks } from './gag-props.js';
 import type { BrushEnv } from './brushes.js';
 import type { ArmSide } from './figure.js';
 import type { HandKind } from './hand.js';
@@ -28,7 +18,6 @@ import type { Paint2D } from './paint.js';
 import { handAt, type Pose, type Vec3 } from './poses.js';
 import { palm } from './rig-ik.js';
 import type { LimbRig } from './rig-layers.js';
-import { blob, ellipseRing, tube } from './shapes.js';
 import { PROPS_TABLE } from '../vocabulary/props-table.js';
 
 /** Everything a gag reads at one moment. */
@@ -129,7 +118,7 @@ function eat(c: GagContext): GagFrame {
     hands: handOf(c.gag.hand, 'grip'),
     ...(w > 0.5 ? { front: c.gag.hand } : {}),
     beforeArm: held(c, (g, env) => {
-      sandwich(g, env, 0, -16, -10, c.seed, bitten);
+      drawGagFood(g, env, c.gag.food, bitten, c.seed);
     }),
   };
 }
@@ -165,7 +154,7 @@ function readChecklist(c: GagContext): GagFrame {
       if (view === 3) return;
       const x = (J.aL.h[0] + J.aR.h[0]) / 2;
       const y = (J.aL.h[1] + J.aR.h[1]) / 2 + 30;
-      checklist(g, env, x, y, c.D.hsz * 4.4, page, c.seed + 60);
+      drawGagSheet(g, env, c.gag.sheet, { x, y, w: c.D.hsz * 4.4 }, page, c.seed + 60);
     },
   };
 }
@@ -275,7 +264,9 @@ function hands(c: GagContext): GagFrame {
       ...reach(c, SPOT.watch, w),
       ...(w > 0.5 ? { front: side, look: [0, 0.8] as const } : {}),
       afterArm: (g, env, s, j) => {
-        if (mine(s)) watch(g, env, j.h[0], j.h[1], c.D.hsz * 0.24, c.t, c.seed + 95);
+        if (!mine(s)) return;
+        const spots = { wrist: [j.h[0], j.h[1]] as const, palm: at(j), hsz: c.D.hsz };
+        drawGagTimepiece(g, env, c.gag.timepiece, spots, c.t, c.seed + 95);
       },
     };
   }
@@ -302,10 +293,7 @@ function hands(c: GagContext): GagFrame {
   const w = bump(c.u, 0.05, 0.15, 0.85, 0.95);
   const click = w > 0.99 && f % 4 === 0;
   const pen = (g: Paint2D, env: BrushEnv): void => {
-    tube(g, env, [0, 26, 0, -80], [10, 9], C.INK, { lw: 3, seed: c.seed + 98 });
-    const top = ellipseRing(0, click ? -80 : -88, 6, 7, 6);
-    blob(g, env, top, C.STONE, { lw: 3, seed: c.seed + 99 });
-    if (click) ticks(g, env, 0, -96, 14, 0, c.seed + 100);
+    drawGagPen(g, env, c.gag.pen, click, c.seed + 98);
   };
   return { ...reach(c, SPOT.chest, w), hands: handOf(side, 'grip'), beforeArm: held(c, pen) };
 }

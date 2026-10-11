@@ -8,7 +8,7 @@
  */
 import { rm } from 'node:fs/promises';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
-import { validateTension } from '@reelforge/prompts';
+import { tensionPromptVars, validateTension } from '@reelforge/prompts';
 import {
   lockedShotPins,
   normalizeTensionPoints,
@@ -215,11 +215,7 @@ export async function proposeTension(
   required: boolean,
 ): Promise<Result<ProposalOutcome, StageError>> {
   const durationS = narrationS(words);
-  const prompt = render('tension', {
-    durationS: durationS.toFixed(1),
-    minPoints: MIN_POINTS,
-    maxPoints: maxPoints(durationS),
-  });
+  const prompt = render('tension', tensionPromptVars(durationS, MIN_POINTS, maxPoints(durationS)));
   if (!prompt.ok) return prompt;
   ctx.step('Mapping the tension', 5);
   const before = state.status === 'missing' ? undefined : state.text;

@@ -37,6 +37,7 @@ import { cobbles, crack, flies, house, peel, puddle, stain, windowPane } from '.
 import { hand } from './draw/hand.js';
 import type { Paint2D } from './draw/paint.js';
 import { footAt, handAt } from './draw/poses.js';
+import { poseAt } from './draw/pose-track.js';
 import { turn } from './draw/rig-views.js';
 import { bands, beam, bricks, gloom, pool, rect, rough, stars, wobble } from './draw/scenery.js';
 import { blob, ellipseRing, hatch, mottle, tube } from './draw/shapes.js';
@@ -119,6 +120,7 @@ export const INK_FUNCTIONS = Object.freeze({
   hand,
   // Poses and the rig.
   pose: CHECKED.pose,
+  poseAt,
   handAt,
   footAt,
   turn,

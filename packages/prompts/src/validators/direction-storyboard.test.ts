@@ -115,6 +115,30 @@ describe('a storyboard against its direction plan', () => {
     expect(warnings.map((entry) => entry.code)).toEqual(['direction-uncovered']);
   });
 
+  it('counts a beat spoken over the title frame as covered and keeps the title length rule (lab A)', () => {
+    const plan = goodPlan();
+    const [first] = plan.beats;
+    if (first === undefined) throw new Error('the fixture plan has no beats');
+    const hook = { ...first, id: 'b00', span: { t0: 0.3, t1: 1.6, text: 'Nobody.' } };
+    const withHook = { ...plan, beats: [hook, ...plan.beats] };
+    expect(checkDirectedStoryboard(goodShots(), withHook)).toEqual([]);
+    // A beat whose middle is past the title still needs a shot.
+    const late = { ...hook, span: { t0: 2, t1: 4, text: 'Nobody.' } };
+    const codes = checkDirectedStoryboard(goodShots(), { ...plan, beats: [late, ...plan.beats] });
+    expect(codes.map((entry) => entry.code)).toEqual(['direction-uncovered']);
+    // The general shot-length rules let the title frame be 1.5-3 s (no warning at 1.9 s).
+    const short = goodShots().map((shot, index) =>
+      index === 0 ? { ...shot, t1: 1.9 } : index === 1 ? { ...shot, t0: 1.9 } : shot,
+    );
+    const lengths = (shots: StoryboardShot[]) =>
+      validateStoryboard(JSON.stringify({ version: 1, shots }), { direction: plan })
+        .issues.filter((entry) => entry.code === 'shot-length' && entry.path === 'shots[0]')
+        .map((entry) => entry.severity);
+    expect(lengths(short)).toEqual([]);
+    const untitled = short.map((shot, index) => (index === 0 ? undirected(shot) : shot));
+    expect(lengths(untitled)).toEqual(['warning']);
+  });
+
   it('runs inside validateStoryboard only with a plan', () => {
     const text = JSON.stringify({
       version: 1,

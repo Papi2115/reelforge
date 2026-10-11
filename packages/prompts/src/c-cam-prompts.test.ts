@@ -177,6 +177,11 @@ describe('Grim Ink prompts', () => {
     expect(build).toContain('Never reverse the same place twice in a film');
     expect(build).toContain('draw each into the place, never with `ctx.annotate`');
     expect(build).not.toContain('MISSING: <prop names>');
+    // Step 1 points at the world's topics, never at the voxel camera rigs (quality lab A).
+    expect(build).toContain('1. `reelforge kit-docs grim-ink` (the world\'s index)');
+    expect(build).toContain('`ink-acting`');
+    expect(build).toContain('never `kit-docs ctx`');
+    expect(build).not.toContain('`reelforge kit-docs ctx` for camera rigs');
     const fix = prompts['scene-fix'];
     expect(fix).toContain('this shot is in look `ink-poster`');
     expect(fix).toContain('Keep the planned page moment (`poster`) in the shot: The line the film');

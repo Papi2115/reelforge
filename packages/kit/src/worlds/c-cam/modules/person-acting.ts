@@ -74,7 +74,7 @@ export function personGags(
   if (!parsed.success) {
     throw new KitError(
       'invalid-params',
-      `${label}: gag must be { kind, t0?, rate?, hand?, seed?, visor? } or a list of at most ${String(MAX_GAGS)} (kinds: ${GAG_KINDS.join(', ')}): ${issuesText(parsed.error)}`,
+      `${label}: gag must be { kind, t0?, rate?, hand?, seed?, visor?, vessel?, food?, pen?, sheet?, timepiece? } or a list of at most ${String(MAX_GAGS)} (kinds: ${GAG_KINDS.join(', ')}): ${issuesText(parsed.error)}`,
     );
   }
   return Array.isArray(parsed.data) ? parsed.data : [parsed.data];

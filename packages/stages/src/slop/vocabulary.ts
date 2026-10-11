@@ -41,8 +41,18 @@ const FRACTION_GLYPHS: Readonly<Record<string, string>> = {
   '⅓': ' third ',
 };
 
-/** Letters/digits runs: numbers (with separators, decimals, ordinal or plural suffix) and words. */
-const TOKEN = /\d[\d,]*(?:\.\d+)?(?:st|nd|rd|th|s)?|\.\d+|\p{L}[\p{L}'’]*/giu;
+/**
+ * Letters/digits runs: numbers (with separators, decimals, ordinal or plural suffix) and words. A
+ * number grouped by spaces ("100 000", also a no-break or thin space) is one number: 1-3 digits,
+ * then groups of exactly three (the quality lab's "100 000" sesterces read as 100 and 0).
+ */
+const SPACE_GROUPED = '(?<!\\d)\\d{1,3}(?:[ \\u00a0\\u2009\\u202f]\\d{3})+(?!\\d|[.,]\\d)';
+const TOKEN = new RegExp(
+  `${SPACE_GROUPED}|\\d[\\d,]*(?:\\.\\d+)?(?:st|nd|rd|th|s)?|\\.\\d+|\\p{L}[\\p{L}'’]*`,
+  'giu',
+);
+/** The group separators a number may carry ("1,257", "100 000"). */
+const GROUP_SEPARATORS = /[, \u00a0\u2009\u202f]/g;
 
 export interface Token {
   readonly text: string;
@@ -63,7 +73,7 @@ function numericToken(text: string): Token {
     const zeros = /0+$/.exec(plural[1])?.[0].length ?? 1;
     return { text, number: start, decimals: 0, range: [start, start + 10 ** zeros] };
   }
-  const digits = text.replace(/(st|nd|rd|th|s)$/, '').replace(/,/g, '');
+  const digits = text.replace(/(st|nd|rd|th|s)$/, '').replace(GROUP_SEPARATORS, '');
   const value = Number(digits.startsWith('.') ? `0${digits}` : digits);
   const decimals = digits.includes('.') ? (digits.split('.')[1]?.length ?? 0) : 0;
   return { text, number: value, decimals };

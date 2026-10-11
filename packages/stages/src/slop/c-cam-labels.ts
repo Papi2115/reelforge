@@ -9,7 +9,9 @@
  * the world, an expression that snaps on a beat (once per scene, however many cues); as options:
  * a Dutch tilt or tilted lettering (`rot`), a head jolt (`headDy`), a figure off-balance (`lean`),
  * a bow (`bow`), a micro-acting gag (`gag`: gum, sweat, a sip, PLAN.md#14.15), and what a place
- * paints in front of its people (`kit.places.<id>.foreground(…)`, once). Counted only as member
+ * paints in front of its people (`kit.places.<id>.foreground(…)`, once), the title poster
+ * (`env.ink.titleCard(…)`, once: its lettering thuds in by hand over the cast in character; the
+ * quality lab's title shots needed extra marks only to pass the count). Counted only as member
  * calls of the scene API (`env.ink.stain(…)`), never a local helper of the same name. The ink line's swell, the mottle and hatching inside every `blob` and
  * the ink background run everywhere and never count.
  *
@@ -68,8 +70,9 @@ export const C_CAM_SLOP: WorldSlopSpec = {
     fgWorld: 1,
     exprAt: 1,
     foreground: 1,
+    titleCard: 1,
   },
-  traceCaps: { exprAt: 1, silhouette: 2, foreground: 1 },
+  traceCaps: { exprAt: 1, silhouette: 2, foreground: 1, titleCard: 1 },
   memberTraces: [
     'stain',
     'peel',
@@ -80,6 +83,7 @@ export const C_CAM_SLOP: WorldSlopSpec = {
     'fgWorld',
     'exprAt',
     'foreground',
+    'titleCard',
   ],
   traceOptions: [
     { key: 'rot', trace: 'rot (a Dutch tilt on a tense beat, or tilted lettering)' },

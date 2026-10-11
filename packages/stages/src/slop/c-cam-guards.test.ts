@@ -142,6 +142,18 @@ describe('Grim Ink calibration on the kit examples (PLAN.md#14.12)', () => {
     expect(count.total).toBe(2);
     expect(inventedTexts(onScreenTexts(program(scene), SPEC), VOCABULARY, SPEC)).toEqual([]);
   });
+
+  it('counts the title poster once, so a title shot needs no extra marks (quality lab)', () => {
+    const title = `export function update(t, s, ctx) {
+  s.stage.paint(t, (g, env) => {
+    env.ink.titleCard({ title: 'No Key Fits', cast: [{ person: ctx.kit.people.porter, x: 900, y: 1000, s: 0.6, view: 'front', pose: 'stand', expr: env.ink.exprAt([[0, 'deadpan'], [0.6, 'shock']], env.t), gag: { kind: 'yawn', t0: 0 } }] });
+    env.ink.titleCard({ title: 'No Key Fits', cast: [] });
+  });
+}`;
+    const count = countTraces(program(title), SPEC);
+    expect(count.found.get('titleCard')).toBe(2);
+    expect(count.total).toBe(MIN_HUMAN_TRACES);
+  });
 });
 
 describe('Grim Ink calibration on the goldens (PLAN.md#14.12)', () => {

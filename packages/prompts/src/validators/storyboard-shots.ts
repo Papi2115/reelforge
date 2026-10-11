@@ -13,6 +13,7 @@ import {
   type StoryboardShot,
   type WordsFile,
 } from '@reelforge/shared';
+import { DIRECTION_RULES } from './direction-rules.js';
 import { issue, type ValidationIssue } from './issues.js';
 import type { StoryboardRules } from './storyboard.js';
 import { worldTransitionIssues } from './world-transitions.js';
@@ -22,6 +23,13 @@ const EPSILON = 1e-3;
 const fmt = (seconds: number): string => seconds.toFixed(3);
 /** Shortest mascot reactor shot (a reaction micro-beat), seconds. */
 export const REACTOR_MIN_SHOT_S = 1.2;
+
+/** How short this kind of shot may be (s): a reaction micro-beat, a title frame, else no limit. */
+function shortestShotS(shot: StoryboardShot): number {
+  if (shot.mascot?.role === 'reactor') return REACTOR_MIN_SHOT_S;
+  if (shot.direction?.titleFrame === true) return DIRECTION_RULES.titleMinS;
+  return Number.POSITIVE_INFINITY;
+}
 
 export function timelineIssues(
   shots: readonly StoryboardShot[],
@@ -53,12 +61,11 @@ export function timelineIssues(
     }
     const length = shot.t1 - shot.t0;
     const where = `shots[${String(index)}]`;
-    // A mascot reaction may be a micro-beat as short as REACTOR_MIN_SHOT_S (2.3.7).
-    const reactor = shot.mascot?.role === 'reactor';
-    const minShotS = reactor ? Math.min(rules.minShotS, REACTOR_MIN_SHOT_S) : rules.minShotS;
-    const typicalMinS = reactor
-      ? Math.min(rules.typicalMinShotS, REACTOR_MIN_SHOT_S)
-      : rules.typicalMinShotS;
+    // A mascot reaction may be a micro-beat as short as REACTOR_MIN_SHOT_S (2.3.7); a Grim Ink
+    // title frame lasts DIRECTION_RULES.titleMinS-titleMaxS (its own rule, direction-storyboard.ts).
+    const shortest = shortestShotS(shot);
+    const minShotS = Math.min(rules.minShotS, shortest);
+    const typicalMinS = Math.min(rules.typicalMinShotS, shortest);
     if (length < minShotS || length > rules.maxShotS) {
       issues.push(
         issue(

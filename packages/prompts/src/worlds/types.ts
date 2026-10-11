@@ -34,6 +34,11 @@ export interface WorldPromptText {
   readonly motion: string;
   /** Scene-build: step 4 (what to do when the kit has no prop). */
   readonly missing: string;
+  /**
+   * Scene-build: step 1, the world's kit-docs topics (replaces the general pointer to
+   * `kit-docs ctx`, whose camera rigs and `ctx.text` a world without them never uses).
+   */
+  readonly docs?: string;
   /** The world's craft brief (QUALITY.md §9, ≤ 1.5 KB): scene-build and scene-fix. */
   readonly craftBrief: string;
   /** Critic: "a strict visual QA reviewer for <medium> video frames". */

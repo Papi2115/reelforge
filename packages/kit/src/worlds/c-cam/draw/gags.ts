@@ -12,8 +12,11 @@
  *
  * The drink of `sip` is a `vessel`: the Apollo film's steaming coffee mug by default, or a cup, a
  * goblet or a bowl for any other period (the quality lab's Roman editor sipped from a coffee mug).
+ * Likewise `eat` takes a `food`, `penClick` a `pen`, `checklist` a `sheet` and `clockCheck` a
+ * `timepiece` (gag-items.ts); every default is the film's own object, drawn as before.
  *
- * Public API: `GAG_KINDS`, `GagKind`, `GAG_VESSELS`, `GAG_DOCS`, `GAG_PERIOD`, `MAX_GAGS`, `gagSpecSchema`,
+ * Public API: `GAG_KINDS`, `GagKind`, `GAG_VESSELS`, `GAG_FOODS`, `GAG_PENS`, `GAG_SHEETS`,
+ * `GAG_TIMEPIECES`, `GAG_DOCS`, `GAG_PERIOD`, `MAX_GAGS`, `gagSpecSchema`,
  * `GagSpec`, `ResolvedGag`, `gagPhase`, `bump`, `FaceSpots`, `GagFrame`.
  */
 import { z } from 'zod';
@@ -51,6 +54,14 @@ export type GagKind = (typeof GAG_KINDS)[number];
 
 /** What `sip` drinks from: `mug` (a steaming coffee mug, the default) or a period-neutral vessel. */
 export const GAG_VESSELS = ['mug', 'cup', 'goblet', 'bowl'] as const;
+/** What `eat` bites: `sandwich` (the default) or period-neutral food. */
+export const GAG_FOODS = ['sandwich', 'loaf', 'fruit', 'cheese', 'meat'] as const;
+/** What `penClick` holds: the click `pen` (the default) or a tool that taps. */
+export const GAG_PENS = ['pen', 'quill', 'stylus', 'pencil', 'chalk'] as const;
+/** What `checklist` reads: the ring-bound `checklist` (the default) or period-neutral paper. */
+export const GAG_SHEETS = ['checklist', 'scroll', 'tablet', 'sheet'] as const;
+/** What `clockCheck` looks at: the wrist `watch` (the default), a pocket watch or an hourglass. */
+export const GAG_TIMEPIECES = ['watch', 'pocketWatch', 'hourglass'] as const;
 
 /** At most this many gags on one person in one draw. */
 export const MAX_GAGS = 2;
@@ -81,10 +92,10 @@ export const GAG_DOCS: Readonly<Record<GagKind, string>> = {
   gum: 'chews; a gum bubble swells at the lips and pops (bored, cocky)',
   sweat: 'sweat drops drip from the brow and cheeks on twos (fear, heat, pressure)',
   sip: 'sips a drink (hand in front); vessel: mug (coffee, default) | cup | goblet | bowl',
-  eat: 'holds a sandwich, lifts it and takes a bite (the bite stays)',
+  eat: 'lifts food and takes a bite (the bite stays); food: sandwich (default) | loaf | fruit | cheese | meat',
   thumbs: 'raises a thumbs-up and pumps it (glove / skin of the arm style)',
   checklist:
-    'holds a ring-bound checklist in both hands at the chest and flips a page (not from the back)',
+    'holds a paper in both hands at the chest and flips a page (not from the back); sheet: checklist (ring-bound, default) | scroll | tablet | sheet',
   helmet:
     'wears a bubble helmet; visor: true pulls the gold visor down (a costume state, no cycle)',
   fidget: 'taps a finger at the belt, quick ticks on the tap frames (impatience)',
@@ -93,10 +104,12 @@ export const GAG_DOCS: Readonly<Record<GagKind, string>> = {
   scratchHead: 'hand scratches the side of the head, puzzled brows (confusion)',
   sighPuff: 'head drops, miserable brows, a breath puff leaves the mouth (resignation)',
   cough: 'fist to the mouth, the head jerks twice with small puffs (awkwardness, smoke)',
-  clockCheck: 'raises the wrist and looks down at the watch (impatience, deadline)',
+  clockCheck:
+    'raises the hand and looks down at the time (impatience, deadline); timepiece: watch (wrist, default) | pocketWatch | hourglass; no clock in antiquity',
   tugCollar: 'hand tugs at the collar (guilt, heat, a lie)',
   wipeBrow: 'hand swipes beside the brow and flicks a drop away (relief, effort)',
-  penClick: 'holds a pen at the chest and clicks it on twos (nervous energy)',
+  penClick:
+    'holds a pen at the chest and clicks it on twos (nervous energy); pen: pen (click, default) | quill | stylus | pencil | chalk (these tap)',
 };
 
 /** What a scene passes as `gag` (one object or a list of at most `MAX_GAGS`). */
@@ -114,6 +127,14 @@ export const gagSpecSchema = z.strictObject({
   visor: z.boolean().default(false),
   /** sip only: what the drink is held in. */
   vessel: z.enum(GAG_VESSELS).default('mug'),
+  /** eat only: what is bitten. */
+  food: z.enum(GAG_FOODS).default('sandwich'),
+  /** penClick only: the writing tool. */
+  pen: z.enum(GAG_PENS).default('pen'),
+  /** checklist only: the paper read. */
+  sheet: z.enum(GAG_SHEETS).default('checklist'),
+  /** clockCheck only: the timepiece. */
+  timepiece: z.enum(GAG_TIMEPIECES).default('watch'),
 });
 
 export type GagSpec = z.input<typeof gagSpecSchema>;

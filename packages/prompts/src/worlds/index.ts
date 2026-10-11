@@ -189,6 +189,7 @@ export function sceneWorldVars(world: PromptWorld, momentId?: string): Record<st
     worldAnnotate: text.annotate,
     worldMotion: text.motion,
     worldMissing: text.missing,
+    ...(text.docs === undefined ? {} : { worldDocs: text.docs }),
     ...(text.short === undefined ? {} : { worldShort: text.short }),
   };
 }

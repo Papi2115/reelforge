@@ -3,7 +3,8 @@
  * character on the rig (anchors, head coherence, tangle, contact) and reports `Finding`s; the
  * registry (registry.ts) lists every rule with its severity and documented thresholds.
  *
- * Public API: `Severity`, `RuleCategory`, `RuleKind`, `RuleCode`, `RULE_CODES`, `Finding`,
+ * Public API: `Severity`, `RuleCategory`, `RuleKind`, `RuleCode`, `RULE_CODES`,
+ * `PLACE_RULE_CODES`, `Finding`,
  * `PoseCase`, `SweepCase`, `ValidateOptions`, `ValidationReport`.
  */
 import type { Character } from '../draw/character.js';
@@ -33,7 +34,10 @@ export const RULE_CODES = [
   'no-signature-gag',
 ] as const;
 
-export type RuleCode = (typeof RULE_CODES)[number];
+/** The place checks (place-depth.ts): no character rule, run on a place module. */
+export const PLACE_RULE_CODES = ['place-no-midground'] as const;
+
+export type RuleCode = (typeof RULE_CODES)[number] | (typeof PLACE_RULE_CODES)[number];
 
 /** One problem found. */
 export interface Finding {

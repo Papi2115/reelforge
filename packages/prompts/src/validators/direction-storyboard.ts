@@ -212,10 +212,22 @@ function gagShotIssues(shots: readonly StoryboardShot[], plan: DirectionFile): V
   return issues;
 }
 
+/**
+ * A beat spoken over the title frame (its middle inside the title shot): the title frame carries
+ * it without `direction.beats` (the title rule asks for none), so it is not "uncovered".
+ */
+function underTitle(shots: readonly StoryboardShot[], span: { t0: number; t1: number }): boolean {
+  const title = shots[0];
+  if (title?.direction?.titleFrame !== true) return false;
+  const middle = (span.t0 + span.t1) / 2;
+  return middle >= title.t0 && middle < title.t1;
+}
+
 function coverageIssues(shots: readonly StoryboardShot[], plan: DirectionFile): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   for (const beat of plan.beats) {
     const carriers = covering(shots, beat.id);
+    if (carriers.length === 0 && underTitle(shots, beat.span)) continue;
     if (carriers.length === 0) {
       issues.push(
         issue(
