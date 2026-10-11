@@ -7,7 +7,7 @@
  * turn, else kept ⚠); a turn's writes outside its module are put back. Another style never runs
  * the step.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { autocommit } from '@reelforge/project';
 import type { FakeClaudeStep } from '@reelforge/fake-claude';
@@ -20,6 +20,7 @@ import { buildRule, CRITIC_OK, filmShots, sceneSource, writeFilm } from '../test
 import { readProject, TestProjects, writeProject } from '../testing/project.js';
 import { ScriptedFrameRenderer } from '../testing/scripted-renderer.js';
 import { PLACEHOLDER_MARKER, placeholderSource } from './placeholder.js';
+import { RECOVERED_NOTE } from './recover.js';
 
 const projects = new TestProjects();
 const harnesses: FakeClaudeHarness[] = [];
@@ -252,6 +253,25 @@ describe('Grim Ink people and places', { timeout: 180_000 }, () => {
     const subjects = (await projects.history(dir)).map((entry) => entry.subject);
     expect(subjects).toContain('Person clerk placeholder ⚠');
     expect(existsSync(path.join(dir, 'scenes', 's02.js'))).toBe(true);
+  });
+
+  it('resumes a step stopped before its report: modules committed built ✓ are kept', async () => {
+    const { dir } = await film('resume');
+    const { harness, runner } = setup(dir, [
+      rule(BUILD_CLERK, { [CLERK]: GOOD_CLERK }),
+      BOOTH_RULE,
+    ]);
+    expect((await runner.run({ stage: 'scenes', action: 'c-cam-modules' })).ok).toBe(true);
+    // The step stopped after the clerk: no report yet, the booth never written.
+    rmSync(path.join(dir, '.reelforge', 'ink-modules.json'));
+    rmSync(path.join(dir, BOOTH));
+    const resumed = await runner.run({ stage: 'scenes', action: 'c-cam-modules' });
+    if (!resumed.ok) throw new Error(JSON.stringify(resumed.error));
+    expect(turns(harness, BUILD_CLERK)).toHaveLength(1);
+    expect(turns(harness, `Build \`${BOOTH}\``)).toHaveLength(2);
+    const [clerk, booth] = report(dir).modules;
+    expect(clerk).toMatchObject({ id: 'clerk', status: 'built', notes: [RECOVERED_NOTE] });
+    expect(booth).toMatchObject({ id: 'tollBooth', status: 'built' });
   });
 
   it('never runs for another style', async () => {

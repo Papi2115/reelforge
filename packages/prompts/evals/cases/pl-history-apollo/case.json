@@ -217,7 +217,7 @@
     "c-cam-direction": {
       "version": 1,
       "titleFrame": {
-        "cast": ["lead"],
+        "cast": ["lead", "foil"],
         "title": "Każdy telefon w twojej kieszeni ma",
         "background": {
           "placeId": "mainPlace",
@@ -229,6 +229,12 @@
             "pose": "stand",
             "expr": "scared",
             "note": "braced for what the title promises"
+          },
+          {
+            "person": "foil",
+            "pose": "akimbo",
+            "expr": "smug",
+            "note": "sure the lead is wrong"
           }
         ],
         "accentObject": "the one object the opening line names"
@@ -238,6 +244,8 @@
         {
           "id": "lead",
           "role": "the person the narration follows (its \"you\")",
+          "part": "protagonist",
+          "silhouette": "short and wide, a big head (headScale 1.2), mustard and clay",
           "signatureGag": {
             "kind": "fidget",
             "note": "a nervous tic that grows with the pressure",
@@ -248,6 +256,18 @@
               "why": "the nerves are how the viewer feels the stakes"
             }
           }
+        },
+        {
+          "id": "foil",
+          "part": "foil",
+          "role": "the one who stands against the lead or doubts the claim",
+          "silhouette": "tall and thin, a small head (headScale 1.05), grey-blue and plum"
+        },
+        {
+          "id": "bystander",
+          "part": "bystander",
+          "role": "an ordinary witness of what the narration says",
+          "silhouette": "medium height, round, olive and dirty linen"
         }
       ],
       "beats": [
@@ -277,7 +297,8 @@
               }
             ]
           },
-          "gagRefs": ["lead"]
+          "gagRefs": ["lead"],
+          "people": ["foil"]
         },
         {
           "id": "b02",
@@ -300,7 +321,8 @@
               }
             ]
           },
-          "gagRefs": []
+          "gagRefs": [],
+          "people": ["bystander"]
         },
         {
           "id": "b03",
@@ -355,7 +377,8 @@
               }
             ]
           },
-          "gagRefs": ["lead"]
+          "gagRefs": ["lead"],
+          "people": ["foil"]
         },
         {
           "id": "b05",
@@ -384,7 +407,8 @@
             ],
             "tilt": true
           },
-          "gagRefs": []
+          "gagRefs": [],
+          "people": ["bystander"]
         },
         {
           "id": "b06",

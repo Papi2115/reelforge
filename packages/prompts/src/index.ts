@@ -50,6 +50,7 @@ export * from './worlds/c-cam-direction.js';
 export * from './worlds/c-cam-direction-vars.js';
 export * from './worlds/c-cam-refs.js';
 export * from './worlds/c-cam-direction-fallback.js';
+export * from './worlds/c-cam-tags.js';
 export * from './worlds/c-cam-vocab-api.js';
 export * from './validators/cues.js';
 export * from './validators/review.js';

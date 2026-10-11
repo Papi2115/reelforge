@@ -2,26 +2,56 @@
  * The minimal direction plan of a Grim Ink film when Claude fails (PLAN.md#14.16): deterministic,
  * from the timed words alone, and valid by the direction rules so the storyboard and the scenes
  * still have a plan to follow (the stage marks it ⚠). Beats are the narration's sentences (a
- * sentence over 8 s is split at its middle word); one person (`lead`) with one signature gag set up
- * on the first beat, escalated in the middle and paid off on the last beat (in the last 30 %); an
- * accident at about a third; the climax ECU near 80 %; framing progressions cycling through four
- * distinct sequences; the title frame from the script's first words.
+ * sentence over 8 s is split at its middle word); the target ensemble with generic parts (`lead`
+ * with the one signature gag set up on the first beat, escalated in the middle and paid off on the
+ * last beat, in the last 30 %; `foil`, `bystander` and more for longer films, each on screen in two
+ * beats spread over the film); a crowd beat when the script names a group; an accident at about a
+ * third; the climax ECU near 80 %; framing progressions cycling through four distinct sequences;
+ * the title frame from the script's first words.
  */
 import type {
   BeatIntent,
+  CastPart,
   DirectionBeat,
+  DirectionCast,
   DirectionFile,
   FramingStep,
   TimedWord,
   WordsFile,
 } from '@reelforge/shared';
-import { DIRECTION_RULES } from '../validators/direction-rules.js';
+import { groupWordOf } from '../validators/direction-cast.js';
+import { castTarget, DIRECTION_RULES } from '../validators/direction-rules.js';
 import { sentencesOf } from '../validators/shot-range.js';
 
 /** A fallback beat longer than this (s) is split at its middle word. */
 const MAX_BEAT_S = 8;
 const MIN_BEATS = 3;
 const LEAD = 'lead';
+const FOIL = 'foil';
+/** The generic ensemble after the lead, in casting order (the target takes the first ones). */
+const SUPPORTING: readonly {
+  readonly id: string;
+  readonly part: CastPart;
+  readonly role: string;
+}[] = [
+  { id: FOIL, part: 'foil', role: 'the one who stands against the lead or doubts the claim' },
+  { id: 'bystander', part: 'bystander', role: 'an ordinary witness of what the narration says' },
+  { id: 'authority', part: 'authority', role: 'the one in charge of the place or the rules' },
+  { id: 'helper', part: 'helper', role: "the lead's confidant who hands over what is needed" },
+  { id: 'oddball', part: 'comic-relief', role: 'the oddball who reacts too much' },
+  { id: 'witness', part: 'bystander', role: 'a second witness, older, unimpressed' },
+  { id: 'stranger', part: 'bystander', role: 'a stranger passing through' },
+];
+const SILHOUETTES: readonly string[] = [
+  'short and wide, a big head (headScale 1.2), mustard and clay',
+  'tall and thin, a small head (headScale 1.05), grey-blue and plum',
+  'medium height, round, olive and dirty linen',
+  'very tall and broad, a heavy jaw, rust and ink',
+  'small and bony, a long neck, clay and grey-blue',
+  'stooped, a long face, plum and olive',
+  'stocky, a tiny head, mustard and rust',
+  'lanky, a big nose, olive and grey-blue',
+];
 const PLACE = 'mainPlace';
 const PREFERRED_GAG = 'fidget';
 
@@ -144,6 +174,20 @@ function closestTo(beats: readonly DirectionBeat[], at: number): number {
   return best;
 }
 
+/**
+ * Puts every supporting person on screen in two beats half a film apart (person j on beats j and
+ * j + n/2, wrapping): early beats get the first ones, nobody exceeds two beats.
+ */
+function placeEnsemble(beats: DirectionBeat[], ids: readonly string[]): void {
+  const half = Math.ceil(beats.length / 2);
+  ids.forEach((id, index) => {
+    for (const at of [index % beats.length, (index + half) % beats.length]) {
+      const beat = beats[at];
+      if (beat !== undefined) beats[at] = { ...beat, people: [...(beat.people ?? []), id] };
+    }
+  });
+}
+
 /** The title: the first words (at most 6) of the script's first sentence. */
 export function fallbackTitle(script: string): string {
   const sentence = script.trim().split(/(?<=[.!?…])\s/)[0] ?? '';
@@ -191,6 +235,18 @@ export function fallbackDirection(input: FallbackDirectionInput): DirectionFile 
     if (beat !== undefined) beats[index] = { ...beat, ...patch };
   };
   for (const index of new Set([0, middle, last])) set(index, { gagRefs: [LEAD] });
+  const supporting = SUPPORTING.slice(0, castTarget(durationS) - 1);
+  placeEnsemble(
+    beats,
+    supporting.map((person) => person.id),
+  );
+  const group = groupWordOf(input.script);
+  if (group !== undefined) {
+    const at = beats.findIndex((beat) => beat.span.text.toLowerCase().includes(group));
+    set(at >= 0 ? at : middle, {
+      crowd: `the ${group} the narration names, reacting as one body behind the people`,
+    });
+  }
   const climaxBeat = beats[climax];
   if (climaxBeat !== undefined) {
     set(climax, {
@@ -212,11 +268,12 @@ export function fallbackDirection(input: FallbackDirectionInput): DirectionFile 
     version: 1,
     source: 'fallback',
     titleFrame: {
-      cast: [LEAD],
+      cast: [LEAD, FOIL],
       title: fallbackTitle(input.script),
       background: { placeId: PLACE, why: 'the setting the narration opens in' },
       acting: [
         { person: LEAD, pose: 'stand', expr: 'scared', note: 'braced for what the title promises' },
+        { person: FOIL, pose: 'akimbo', expr: 'smug', note: 'sure the lead is wrong' },
       ],
       accentObject: 'the one object the opening line names',
     },
@@ -225,6 +282,8 @@ export function fallbackDirection(input: FallbackDirectionInput): DirectionFile 
       {
         id: LEAD,
         role: 'the person the narration follows (its "you")',
+        part: 'protagonist',
+        silhouette: SILHOUETTES[0] ?? 'short and wide',
         signatureGag: {
           kind,
           note: 'a nervous tic that grows with the pressure',
@@ -236,6 +295,10 @@ export function fallbackDirection(input: FallbackDirectionInput): DirectionFile 
           },
         },
       },
+      ...supporting.map((person, index): DirectionCast => ({
+        ...person,
+        silhouette: SILHOUETTES[index + 1] ?? 'medium height',
+      })),
     ],
     beats,
     climax: {

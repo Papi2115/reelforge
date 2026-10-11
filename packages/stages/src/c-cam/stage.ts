@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs';
 import { err, ok, type Result } from '@reelforge/claude-bridge';
 import { C_CAM_ID } from '@reelforge/kit';
 import {
+  DIRECTION_MAX_CAST,
   INK_MODULES_REPORT_FILE,
   INK_MODULES_REPORT_VERSION,
   kitExtensionFile,
@@ -23,6 +24,7 @@ import { storyboardHash } from '../world-assets/report.js';
 import { worldScope } from '../worlds.js';
 import { buildInkModule, nounOf } from './builder.js';
 import { inkModuleDesigns } from './design.js';
+import { recoverBuiltModules } from './recover.js';
 import { readInkModulesReport, saveInkModulesReport } from './report.js';
 
 export type InkModulesStatus = 'skipped' | 'up-to-date' | 'built';
@@ -86,13 +88,25 @@ export async function ensureCCamModules(
   const { ctx } = job;
   const hash = await storyboardHash(ctx.projectDir);
   if (!hash.ok) return hash;
-  if (hash.value === undefined) return ok(skipped('no storyboard yet'));
+  const storyboard = hash.value;
+  if (storyboard === undefined) return ok(skipped('no storyboard yet'));
   const report = await readInkModulesReport(ctx.projectDir);
   if (!report.ok) return report;
   const previous = report.value;
   const exists = (entry: Pick<InkModuleRecord, 'file'>): boolean =>
     existsSync(inProject(ctx.projectDir, entry.file));
-  if (!options.force && previous?.storyboardHash === hash.value && previous.modules.every(exists)) {
+  const { designs, dropped } = inkModuleDesigns(job.shots, job.direction);
+  // Up to date: same storyboard, every design reported (a stopped step reports only some).
+  const reportsAll = (modules: readonly InkModuleRecord[]): boolean =>
+    designs.every((design) =>
+      modules.some((entry) => entry.file === kitExtensionFile(design.kind, design.id)),
+    );
+  if (
+    !options.force &&
+    previous?.storyboardHash === storyboard &&
+    previous.modules.every(exists) &&
+    reportsAll(previous.modules)
+  ) {
     return ok({
       status: 'up-to-date',
       message: `${summary(previous.modules)} (kept)`,
@@ -101,22 +115,42 @@ export async function ensureCCamModules(
       warnings: [],
     });
   }
-  const { designs, dropped } = inkModuleDesigns(job.shots);
-  const warnings = dropped.map(
-    ({ kind, id }) => `${kind} ${id} not built: the film already has the most ${kind} modules`,
+  const warnings = dropped.map(({ kind, id }) =>
+    kind === 'people'
+      ? `people ${id} not built: a film builds at most ${String(DIRECTION_MAX_CAST)} people, the most important first`
+      : `${kind} ${id} not built: the film already has the most ${kind} modules`,
   );
+  const reported = previous?.modules ?? [];
+  // Modules built clean by a step that stopped before its report (their commits say so).
+  const known = [
+    ...reported,
+    ...(await recoverBuiltModules(ctx.projectDir, designs, reported, ctx.git)),
+  ];
   const needsTurn = designs.some((design) => {
     const file = kitExtensionFile(design.kind, design.id);
-    const before = previous?.modules.find((entry) => entry.file === file);
+    const before = known.find((entry) => entry.file === file);
     return !keeps(before, exists({ file }), options.force);
   });
   if (needsTurn && !ctx.hasClaude) {
     return ok(skipped('Claude is not connected: people and places not built'));
   }
   const records: InkModuleRecord[] = [];
+  // Saved after every module, so a step stopped midway keeps what it built.
+  const save = (): ReturnType<typeof saveInkModulesReport> => {
+    // Modules of earlier storyboards stay on disk (a scene may still draw them) and in the report.
+    const kept = known.filter(
+      (entry) => !records.some((record) => record.file === entry.file) && exists(entry),
+    );
+    return saveInkModulesReport(ctx.projectDir, {
+      version: INK_MODULES_REPORT_VERSION,
+      storyboardHash: storyboard,
+      modules: [...records, ...kept],
+      updatedAt: ctx.now().toISOString(),
+    });
+  };
   for (const design of designs) {
     const file = kitExtensionFile(design.kind, design.id);
-    const before = previous?.modules.find((entry) => entry.file === file);
+    const before = known.find((entry) => entry.file === file);
     const onDisk = exists({ file });
     if (before !== undefined && keeps(before, onDisk, options.force)) {
       records.push(before);
@@ -128,17 +162,10 @@ export async function ensureCCamModules(
     });
     if (!built.ok) return built;
     records.push(built.value);
+    const progress = await save();
+    if (!progress.ok) return progress;
   }
-  // Modules of earlier storyboards stay on disk (a scene may still draw them) and in the report.
-  const kept = (previous?.modules ?? []).filter(
-    (entry) => !records.some((record) => record.file === entry.file) && exists(entry),
-  );
-  const saved = await saveInkModulesReport(ctx.projectDir, {
-    version: INK_MODULES_REPORT_VERSION,
-    storyboardHash: hash.value,
-    modules: [...records, ...kept],
-    updatedAt: ctx.now().toISOString(),
-  });
+  const saved = await save();
   if (!saved.ok) return saved;
   const unclean = records.filter((entry) => entry.status !== 'built');
   return ok({

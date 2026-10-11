@@ -96,7 +96,7 @@ describe('Grim Ink prompts', () => {
     const storyboard = prompts.storyboard;
     expect(storyboard).toContain('storyboard artist for a hand-inked grim cartoon video');
     expect(storyboard).toContain('World brief (Grim Ink): the whole film is one hand-inked');
-    expect(storyboard).toContain('Cast: 2-5 roles');
+    expect(storyboard).toContain('Cast: an ensemble of 3-8 roles');
     expect(storyboard).toContain('`cast: nightPorter (the hotel');
     expect(storyboard).toContain('`place: boilerRoom`');
     expect(storyboard).toContain('ONE signature tic');

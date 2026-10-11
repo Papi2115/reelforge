@@ -5,8 +5,8 @@
  * the rule numbers). The stage (packages/stages/src/c-cam/direction*.ts) adds what comes from the
  * kit and the project.
  */
-import type { WordsFile } from '@reelforge/shared';
-import { DIRECTION_RULES } from '../validators/direction-rules.js';
+import { DIRECTION_MAX_CAST, type WordsFile } from '@reelforge/shared';
+import { castTarget, DIRECTION_RULES } from '../validators/direction-rules.js';
 import { sentencesOf } from '../validators/shot-range.js';
 
 /** The playbook digest the prompt carries at most. */
@@ -24,6 +24,7 @@ export const C_CAM_DIRECTION_PLAYBOOK = `- Running gag: a person's one tic is pl
 - Slow push-in on a realisation; pull-back to reveal scale or loneliness; a smash cut from expectation to reality.
 - Prop reveal for scale: a comparison the narration states becomes one image (the old machine, then the modern thing thudding in beside it).
 - Time passing as a change on a person (a beard grows under the year slate); a crowd acting as one body for the punchline.
+- Ensemble: the films cast 5+ named people and a crowd (the narration's "you", the one in charge, the expert, the voice on the radio, the one left behind); each has a part (protagonist, foil, authority, helper, comic relief, bystander), a silhouette nobody else has (tall or short, wide or thin, head size, own tones) and reacts on other people's beats; a group the narration names acts as one crowd.
 - Title frame = thumbnail: the main people lined up in character (sweating, chewing, smug), the title thudding in letter by letter, their place behind them.
 - Numbers seen in the films: 2-5 framings per shot (mean 3.3), a framing 0.4-2.4 s, an ECU about 1.4 s; close-ups and ECUs about half of all framings; each main person's gag in 3-7 shots; payoffs at 81-96 % of the runtime; 1-4 accidents per film; every ECU has a reason (the noun the narration says on that beat, or the gag's object).`;
 
@@ -74,6 +75,10 @@ export function cCamDirectionPromptVars(
     maxFramings: DIRECTION_RULES.maxFramings,
     minClosePercent: DIRECTION_RULES.minCloseShare * 100,
     titleMaxWords: DIRECTION_RULES.titleMaxWords,
+    castTarget: castTarget(narrationEnd(input.words)),
+    maxCast: DIRECTION_MAX_CAST,
+    earlyPercent: DIRECTION_RULES.earlyShare * 100,
+    maxPersonPercent: DIRECTION_RULES.maxPersonShare * 100,
     ...(input.genre === undefined ? {} : { genre: input.genre }),
   };
 }

@@ -23,6 +23,11 @@ export function filmPlan(dir: string): DirectionFile {
   return reply;
 }
 
+/** The cast tag naming every person of the plan (each is then tagged in every story shot). */
+export function castTag(plan: DirectionFile): string {
+  return `cast: ${plan.cast.map((person) => person.id).join(', ')}`;
+}
+
 const A: readonly FramingStep[] = [
   { framing: 'wide', subject: 'the place' },
   { framing: 'ecu', subject: 'the thing', why: 'information: the narration names it' },

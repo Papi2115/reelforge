@@ -1,5 +1,5 @@
 /** The design list of a Grim Ink film from the storyboard's cast and place tags (PLAN.md#14.11). */
-import type { StoryboardShot, WordsFile } from '@reelforge/shared';
+import type { DirectionFile, StoryboardShot, WordsFile } from '@reelforge/shared';
 import { describe, expect, it } from 'vitest';
 import { designBrief, inkModuleDesigns, intentTags, narrationExcerpt } from './design.js';
 
@@ -82,5 +82,44 @@ describe('inkModuleDesigns', () => {
     };
     expect(narrationExcerpt(booth, words)).toBe('s01: "Pay"\ns03: "twice."');
     expect(narrationExcerpt(booth, undefined)).toMatch(/^s01: \(no words timed yet\) cast: clerk/);
+  });
+
+  it('builds people by importance (the plan first, then by shots) and at most 8', () => {
+    const extras = Array.from({ length: 9 }, (_, index) => `extra${String(index)}`);
+    const shots = [
+      shot('s01', `cast: ${extras.join(', ')} | place: hall.`),
+      shot('s02', 'cast: extra8, porter | place: hall.', 2),
+      shot('s03', 'cast: porter, boss | place: hall.', 4),
+    ];
+    const plan: DirectionFile = {
+      version: 1,
+      titleFrame: {
+        cast: ['boss'],
+        title: 'The hall',
+        background: { placeId: 'hall', why: 'where it happens' },
+        acting: [{ person: 'boss', pose: 'stand', expr: 'smug' }],
+        accentObject: 'a bell',
+      },
+      motifs: [],
+      cast: [{ id: 'porter' }, { id: 'boss' }],
+      beats: [],
+      climax: { beatRef: 'b01', ecuSubject: 'the bell', why: 'it decides' },
+      accidents: [],
+    };
+    const { designs, dropped } = inkModuleDesigns(shots, plan);
+    const people = designs.filter((design) => design.kind === 'people').map((d) => d.id);
+    expect(people).toEqual([
+      'boss',
+      'porter',
+      'extra8',
+      'extra0',
+      'extra1',
+      'extra2',
+      'extra3',
+      'extra4',
+    ]);
+    expect(dropped).toEqual(['extra5', 'extra6', 'extra7'].map((id) => ({ kind: 'people', id })));
+    expect(designs.at(-1)).toMatchObject({ kind: 'places', id: 'hall' });
+    expect(inkModuleDesigns(shots).designs[0]?.id).toBe('extra8');
   });
 });

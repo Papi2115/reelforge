@@ -1,8 +1,9 @@
 /**
  * The direction plan of a Grim Ink (`c-cam`) film (PLAN.md#14.16, docs/worlds/c-cam-DIRECTION.md):
  * `direction.json` in the project root (tracked) holds the film's narrative accents planned BEFORE
- * the shots exist: motifs, the cast with ONE signature gag each (setup -> escalations -> payoff on
- * narration beats), the beats with their intent and framing progression, the accidents, the climax
+ * the shots exist: motifs, the cast as an ensemble (parts, distinct silhouettes; the main 2-3 with
+ * ONE signature gag each: setup -> escalations -> payoff on narration beats), the beats with their
+ * intent, framing progression, people on screen and crowd, the accidents, the climax
  * extreme close-up and the title frame (the opening poster = the thumbnail). Claude writes it
  * (`source: 'claude'`); when Claude fails the stage writes a minimal plan from the script
  * (`fallback`). The storyboard's shots carry `direction` refs into it (beat ids, gag people,
@@ -75,6 +76,10 @@ export const directionBeatSchema = z.object({
   accident: text(240).optional(),
   /** Cast ids whose signature gag plays on this beat. */
   gagRefs: z.array(directionIdSchema).max(4),
+  /** Cast ids on screen in this beat besides the gag players (the ensemble's presence). */
+  people: z.array(directionIdSchema).max(8).optional(),
+  /** A group the narration names, acting as one body (drawn with `ink.crowd`, never a module). */
+  crowd: text(200).optional(),
 });
 export type DirectionBeat = z.infer<typeof directionBeatSchema>;
 
@@ -86,19 +91,42 @@ export const gagArcSchema = z.object({
   why: text(240),
 });
 
+/** What a person does for the story in the ensemble (docs/worlds/c-cam-DIRECTION.md §4). */
+export const CAST_PARTS = [
+  'protagonist',
+  'foil',
+  'authority',
+  'helper',
+  'comic-relief',
+  'bystander',
+] as const;
+export const castPartSchema = z.enum(CAST_PARTS);
+export type CastPart = z.infer<typeof castPartSchema>;
+
+/** The film's cap on named people (each one is a hand-built module, one Opus turn). */
+export const DIRECTION_MAX_CAST = 8;
+
+export const signatureGagSchema = z.object({
+  /** A kit gag kind (`reelforge kit-docs people`), checked against the kit's list. */
+  kind: z.string().trim().min(1).max(40),
+  /** The film's own variation of the gag. */
+  note: text(200).optional(),
+  arc: gagArcSchema,
+});
+
 export const directionCastSchema = z.object({
   id: directionIdSchema,
   /** Who this person is in the film (job, exaggeration axis). */
   role: text(200).optional(),
-  signatureGag: z.object({
-    /** A kit gag kind (`reelforge kit-docs people`), checked against the kit's list. */
-    kind: z.string().trim().min(1).max(40),
-    /** The film's own variation of the gag. */
-    note: text(200).optional(),
-    arc: gagArcSchema,
-  }),
+  /** Their part in the ensemble. */
+  part: castPartSchema.optional(),
+  /** Height, width, head scale and tones, distinct from everyone else's. */
+  silhouette: text(160).optional(),
+  /** The main 2-3 people carry ONE signature gag; minor roles may have none. */
+  signatureGag: signatureGagSchema.optional(),
 });
 export type DirectionCast = z.infer<typeof directionCastSchema>;
+export type SignatureGag = z.infer<typeof signatureGagSchema>;
 
 export const directionMotifSchema = z.object({
   id: directionIdSchema,
@@ -147,7 +175,7 @@ export const directionFileSchema = z.object({
     .optional(),
   titleFrame: titleFrameSchema,
   motifs: z.array(directionMotifSchema).max(12),
-  cast: z.array(directionCastSchema).min(1).max(6),
+  cast: z.array(directionCastSchema).min(1).max(DIRECTION_MAX_CAST),
   beats: z.array(directionBeatSchema).min(1).max(200),
   climax: directionClimaxSchema,
   /** Beat ids that carry an accident (each beat has its `accident` text). */
@@ -167,6 +195,11 @@ export const shotDirectionRefsSchema = z.object({
   titleFrame: z.boolean().optional(),
 });
 export type ShotDirectionRefs = z.infer<typeof shotDirectionRefsSchema>;
+
+/** Cast ids on screen in a beat: its gag players and its `people`, once each. */
+export function beatCast(beat: Pick<DirectionBeat, 'gagRefs' | 'people'>): string[] {
+  return [...new Set([...beat.gagRefs, ...(beat.people ?? [])])];
+}
 
 /** The size sequence of a progression, e.g. `wide>ecu>close`. */
 export function framingSequence(steps: readonly Pick<FramingStep, 'framing'>[]): string {

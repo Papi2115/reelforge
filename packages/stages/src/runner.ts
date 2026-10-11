@@ -178,6 +178,7 @@ export class StageRunner extends EventEmitter<{ event: [StageEvent] }> {
       taste: this.options.taste,
       scenes: this.options.scenes,
       store: this.store,
+      git: this.options.git,
       claudeConcurrency: () => this.options.guard?.concurrency ?? Number.POSITIVE_INFINITY,
       commit: async (message, paths) => {
         await this.commit(stage, message, 'pipeline-step', paths);

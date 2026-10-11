@@ -2,6 +2,7 @@
 import type { ModelAlias, PipelineStateStore, Result, StreamEvent } from '@reelforge/claude-bridge';
 import type { AssetRuntime } from '@reelforge/cli/assets';
 import type { WhisperModelId } from '@reelforge/pipeline';
+import type { GitOptions } from '@reelforge/project';
 import type { PromptId } from '@reelforge/prompts';
 import type { SessionPurpose, ShotBuildStatus, UsageTotals } from '@reelforge/shared';
 import type { AudioTools } from './audio-tools.js';
@@ -250,6 +251,8 @@ export interface StageContext {
   readonly scenes: SceneTools | undefined;
   /** The runner's pipeline.json store (per-shot work items; one instance = serialized writes). */
   readonly store: PipelineStateStore;
+  /** Git options of the project's repository (reading its history; default: plain `git`). */
+  readonly git?: GitOptions | undefined;
   /** Claude turns allowed at once now (LimitGuard concurrency, halved after a limit). */
   claudeConcurrency(): number;
   /**

@@ -1,9 +1,9 @@
 /**
  * The numbers and shared checks of the Grim Ink direction rules (PLAN.md#14.16; measured on the
- * concept films, docs/worlds/c-cam-DIRECTION.md §2-§3): used by the plan validator (direction.ts)
- * and by the storyboard check against the plan (direction-storyboard.ts).
+ * concept films, docs/worlds/c-cam-DIRECTION.md §2-§4): used by the plan validator (direction.ts,
+ * direction-cast.ts) and by the storyboard check against the plan (direction-storyboard.ts).
  */
-import { CLOSE_FRAMINGS, type FramingStep } from '@reelforge/shared';
+import { CLOSE_FRAMINGS, DIRECTION_MAX_CAST, type FramingStep } from '@reelforge/shared';
 import { issue, type ValidationIssue } from './issues.js';
 
 /** The numbers of the direction rules (measured on the concept films, c-cam-DIRECTION.md §2). */
@@ -28,7 +28,31 @@ export const DIRECTION_RULES = {
   titleMaxS: 3,
   /** Beats may end this long after the narration (s). */
   tailS: 1,
+  /** Casting (c-cam-DIRECTION.md §4): beats a named person is on screen in, at least. */
+  minPersonBeats: 2,
+  /** Distinct people on screen within the first `earlyShare` of the runtime. */
+  earlyPeople: 3,
+  earlyShare: 0.6,
+  /** No person in more than this share of the beats (never below a gag arc's beats). */
+  maxPersonShare: 0.6,
+  /** People who carry a signature gag, at least. */
+  minGagPeople: 1,
 } as const;
+
+/**
+ * Named people a film of this length casts at least: 3 up to 45 s, 4 up to 90 s, then one more
+ * per started 90 s, at most DIRECTION_MAX_CAST (8).
+ */
+export function castTarget(durationS: number): number {
+  if (durationS <= 45) return 3;
+  if (durationS <= 90) return 4;
+  return Math.min(DIRECTION_MAX_CAST, 4 + Math.ceil((durationS - 90) / 90));
+}
+
+/** The most beats one person may be on screen in (a gag arc's three beats are always allowed). */
+export function maxPersonBeats(beats: number): number {
+  return Math.max(DIRECTION_RULES.minArcBeats, Math.floor(DIRECTION_RULES.maxPersonShare * beats));
+}
 
 const err = (code: string, message: string, path?: string): ValidationIssue =>
   issue('error', code, message, path);

@@ -51,6 +51,22 @@ describe('isolated manifests and ctx.film (PLAN.md#14.19)', () => {
     expect(manifest.film).toBeUndefined();
     expect(manifest.shots[0]?.filmIndex).toBeUndefined();
   });
+
+  it('draws captions on storyboard shots only, never on a standalone sheet', async () => {
+    const files = await readProjectFiles(root);
+    const setup = { ...renderSetup(files), captions: true as const };
+    const shot = isolatedManifest(setup, await planForShot(files, 's02'));
+    expect(shot.captions).toBe(true);
+    const sheet = isolatedManifest(setup, {
+      id: 'ink-sheet',
+      t0: 0,
+      t1: 3,
+      file: '.reelforge/frames/people/hero/sheet.js',
+      source: 'export const meta = {};',
+      standalone: true,
+    });
+    expect(sheet.captions).toBeUndefined();
+  });
 });
 
 describe('Grim Ink libraries in kit-ext (PLAN.md#14.19)', () => {
